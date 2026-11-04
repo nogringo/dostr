@@ -1,9 +1,6 @@
-import 'package:meta/meta.dart';
-
 /// {@template connection_state}
 /// The state of a WebSocket connection.
 /// {@endtemplate}
-@immutable
 sealed class ConnectionState {
   /// {@macro connection_state}
   const ConnectionState();

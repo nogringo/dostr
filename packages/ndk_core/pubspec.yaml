@@ -16,7 +16,6 @@ resolution: workspace
 dependencies:
   convert: ^3.1.2
   crypto: ^3.0.7
-  meta: ">=1.10.0 <2.0.0"
   rxdart: ^0.28.0
   web: ^1.1.1
   web_socket_channel: ^3.0.3
