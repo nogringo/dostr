@@ -45,7 +45,7 @@ class Nip44 {
     final paddedPlaintext = pad(utf8.encode(plaintext));
 
     // Step 6: Encrypt
-    final ciphertext = await encryptChaCha20(
+    final ciphertext = encryptChaCha20(
       chachaKey,
       chachaNonce,
       paddedPlaintext,
@@ -89,7 +89,7 @@ class Nip44 {
     verifyMac(hmacKey, nonce, ciphertext, mac);
 
     // Step 6: Decrypt
-    final paddedPlaintext = await decryptChaCha20(
+    final paddedPlaintext = decryptChaCha20(
       chachaKey,
       chachaNonce,
       ciphertext,

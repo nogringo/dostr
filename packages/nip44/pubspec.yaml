@@ -16,8 +16,6 @@ resolution: workspace
 
 dependencies:
   convert: ^3.1.2
-  crypto: ^3.0.7
-  cryptography: ^2.9.0
   pointycastle: ">=3.0.0 <5.0.0"
 
 dev_dependencies:

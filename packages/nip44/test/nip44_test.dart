@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
+import 'package:pointycastle/digests/sha256.dart';
 
 Uint8List hexToBytes(String hex) {
   if (hex.startsWith('0x')) {
@@ -113,7 +113,7 @@ Future<String> decryptMessageWithConversationKey(
 
   verifyMac(hmacKey, nonce, ciphertext, mac);
 
-  final paddedPlaintext = await decryptChaCha20(
+  final paddedPlaintext = decryptChaCha20(
     chachaKey,
     chachaNonce,
     ciphertext,
@@ -188,7 +188,7 @@ Future<String> encryptMessageWithConversationKey(
   final paddedPlaintext = pad(utf8.encode(plaintext));
 
   // Step 4: Encrypt
-  final ciphertext = await encryptChaCha20(
+  final ciphertext = encryptChaCha20(
     chachaKey,
     chachaNonce,
     paddedPlaintext,
@@ -218,7 +218,7 @@ Future<void> assertCryptLong(
 
   // Compute SHA256 hash of plaintext
   final plaintextBytes = utf8.encode(plaintext);
-  final actualPlaintextSha256 = sha256.convert(plaintextBytes).bytes;
+  final actualPlaintextSha256 = SHA256Digest().process(plaintextBytes);
   final actualPlaintextSha256Hex = bytesToHex(
     Uint8List.fromList(actualPlaintextSha256),
   );
@@ -239,7 +239,7 @@ Future<void> assertCryptLong(
 
   // Compute SHA256 hash of payload
   final payloadBytes = utf8.encode(encryptedMessage);
-  final actualPayloadSha256 = sha256.convert(payloadBytes).bytes;
+  final actualPayloadSha256 = SHA256Digest().process(payloadBytes);
   final actualPayloadSha256Hex = bytesToHex(
     Uint8List.fromList(actualPayloadSha256),
   );

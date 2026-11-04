@@ -2,8 +2,10 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart' as crypto;
-import 'package:cryptography/cryptography.dart';
+import 'package:pointycastle/api.dart';
+import 'package:pointycastle/digests/sha256.dart';
+import 'package:pointycastle/macs/hmac.dart';
+import 'package:pointycastle/stream/chacha7539.dart';
 
 Uint8List secureRandomBytes(int length) {
   final random = Random.secure();
@@ -61,34 +63,24 @@ int calcPaddedLen(int unpaddedLen) {
   }
 }
 
-Future<Uint8List> encryptChaCha20(
-  Uint8List key,
-  Uint8List nonce,
-  Uint8List data,
-) async {
-  final algorithm = Chacha20(macAlgorithm: MacAlgorithm.empty);
-  final skey = SecretKey(key);
-  final secretBox = await algorithm.encrypt(
-    data,
-    secretKey: skey,
-    nonce: nonce,
-  );
+Uint8List encryptChaCha20(Uint8List key, Uint8List nonce, Uint8List data) =>
+    _chaCha20(key, nonce, data);
 
-  return Uint8List.fromList(secretBox.cipherText);
-}
-
-Future<Uint8List> decryptChaCha20(
+Uint8List decryptChaCha20(
   Uint8List key,
   Uint8List nonce,
   Uint8List ciphertext,
-) async {
-  final algorithm = Chacha20(macAlgorithm: MacAlgorithm.empty);
-  final skey = SecretKey(key);
-  final secretBox = SecretBox(ciphertext, nonce: nonce, mac: Mac.empty);
+) => _chaCha20(key, nonce, ciphertext);
 
-  final plaintext = await algorithm.decrypt(secretBox, secretKey: skey);
+Uint8List _chaCha20(Uint8List key, Uint8List nonce, Uint8List input) {
+  final engine = ChaCha7539Engine()
+    ..init(true, ParametersWithIV(KeyParameter(key), nonce));
+  return engine.process(input);
+}
 
-  return Uint8List.fromList(plaintext);
+Uint8List _hmacSha256(Uint8List key, List<int> data) {
+  final hmac = HMac(SHA256Digest(), 64)..init(KeyParameter(key));
+  return hmac.process(Uint8List.fromList(data));
 }
 
 String constructPayload(Uint8List nonce, Uint8List ciphertext, Uint8List mac) {
@@ -102,9 +94,7 @@ String constructPayload(Uint8List nonce, Uint8List ciphertext, Uint8List mac) {
 }
 
 Uint8List hkdfExtract({required Uint8List ikm, required Uint8List salt}) {
-  var hmacSha256 = crypto.Hmac(crypto.sha256, salt);
-  var prk = hmacSha256.convert(ikm).bytes;
-  return Uint8List.fromList(prk);
+  return _hmacSha256(salt, ikm);
 }
 
 Uint8List hkdfExpand({
@@ -118,9 +108,7 @@ Uint8List hkdfExpand({
   var previous = <int>[];
 
   for (var i = 1; i <= n; i++) {
-    var hmacSha256 = crypto.Hmac(crypto.sha256, prk);
-    var data = <int>[...previous, ...info, i];
-    previous = hmacSha256.convert(data).bytes;
+    previous = _hmacSha256(prk, [...previous, ...info, i]);
     okm.addAll(previous);
   }
   return Uint8List.fromList(okm.sublist(0, length));
@@ -135,9 +123,7 @@ Uint8List unpad(Uint8List padded) {
 }
 
 Uint8List calculateMac(Uint8List key, Uint8List nonce, Uint8List ciphertext) {
-  var hmacSha256 = crypto.Hmac(crypto.sha256, key);
-  var mac = hmacSha256.convert([...nonce, ...ciphertext]).bytes;
-  return Uint8List.fromList(mac);
+  return _hmacSha256(key, [...nonce, ...ciphertext]);
 }
 
 Map<String, dynamic> parsePayload(String payload) {
