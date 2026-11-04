@@ -416,21 +416,6 @@ class RequestState implements TimeoutPausable {
     _trackRequest(RelayRequestState(key, filters));
   }
 
-  /// Drops a relay request, for a relay the request could not be sent to
-  void removeRequest(RelayConnectionKey key) {
-    final dropped = requests.remove(key);
-    if (dropped == null) return;
-    dropped.onOutcomeChanged = null;
-    final onUrl = _requestsByUrl[dropped.url];
-    if (onUrl != null) {
-      onUrl.remove(dropped);
-      if (onUrl.isEmpty) {
-        _requestsByUrl.remove(dropped.url);
-      }
-    }
-    _onRelayRequestChanged(dropped.url);
-  }
-
   void _trackRequest(RelayRequestState request) {
     request.onOutcomeChanged = () => _onRelayRequestChanged(request.url);
     requests[request.key] = request;

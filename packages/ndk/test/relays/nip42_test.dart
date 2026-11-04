@@ -934,9 +934,8 @@ void nip42Tests(NdkEngine engine) {
         contains(key1.publicKey),
         reason: 'the request must open the connection bound to its account',
       );
-      // the jit engine discovers relays on anonymous connections and only then
-      // routes the request onto the bound one, so it pays for a second socket
-      expect(relay1.connectedClientCount, engine == NdkEngine.JIT ? 2 : 1);
+      // explicit relays skip the engine, so no anonymous socket is opened first
+      expect(relay1.connectedClientCount, 1);
       expect(relay1.receivedAuths, 0);
 
       await ndk.destroy();

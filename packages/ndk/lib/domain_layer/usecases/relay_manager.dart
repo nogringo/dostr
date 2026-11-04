@@ -1571,6 +1571,129 @@ class RelayManager<T> {
     _checkNetworkClose(state);
   }
 
+  /// Sends [filters] to [url] for [state], on the connection its [AuthPolicy]
+  /// allows. The relay is tracked before this returns, so a request sealed
+  /// right after does not end on it.
+  ///
+  /// Each relay takes one call: [filters] travel in a single REQ, since a
+  /// second REQ with the same id would replace the first on the relay.
+  Future<void> sendRequestToRelay(
+    RequestState state,
+    String url,
+    List<Filter> filters,
+  ) async {
+    final auth = state.request.auth;
+    final key = RelayConnectionKey.forAuth(url, auth);
+    if (key == null) {
+      final account = (auth as AuthPolicyRequire).account;
+      failRelayRequest(
+        state,
+        RelayConnectionKey.authenticated(url, account.pubkey),
+        filters,
+        "requires ${account.pubkey}, which cannot sign",
+      );
+      return;
+    }
+    if (state.requests.containsKey(key)) {
+      throw StateError("${state.id} was already sent to $key");
+    }
+    state.addRequest(key, filters);
+    await sendTrackedRequest(state, state.requests[key]!);
+  }
+
+  /// Sends [request], already tracked by [state], to its relay. One it cannot
+  /// be sent to is reported as notSent before the send path ends, so the
+  /// request never closes on that relay as merely disconnected.
+  Future<void> sendTrackedRequest(
+    RequestState state,
+    RelayRequestState request,
+  ) async {
+    // a connection that is still opening is not one that is gone, and
+    // _checkNetworkClose cannot tell them apart on its own
+    beginPendingConnection(state);
+    try {
+      final notSentReason = await _sendTrackedRequest(state, request);
+      if (notSentReason != null) {
+        failRelayRequest(state, request.key, request.filters, notSentReason);
+      }
+    } finally {
+      endPendingConnection(state);
+    }
+  }
+
+  /// Null once sent, otherwise what kept [request] from being sent.
+  Future<String?> _sendTrackedRequest(
+    RequestState state,
+    RelayRequestState request,
+  ) async {
+    if (globalState.blockedRelays.contains(request.url)) {
+      Logger.log.w(
+        () => "COULD NOT SEND REQUEST TO ${request.url} since relay is blocked",
+      );
+      return "relay is blocked";
+    }
+
+    final connected = await reconnectConnection(
+      request.key,
+      connectionSource:
+          ConnectionSource.explicit, // TODO improve this connection source
+      force: false,
+      as: state.request.auth?.account,
+      pausing: state,
+    );
+    // a timeout or a close may have ended the request while the connection
+    // was opening: nothing tracks it anymore, so nothing would ever CLOSE what
+    // we would send here
+    if (!isStillInFlight(state)) {
+      return "request ended while connecting";
+    }
+    if (!connected) {
+      Logger.log.e(
+        () =>
+            "COULD NOT SEND REQUEST TO ${request.url} since socket seems to be not open",
+      );
+      return "could not connect";
+    }
+    final relay = globalState.relays[request.key];
+    if (relay == null) {
+      Logger.log.w(
+        () =>
+            "COULD NOT SEND REQUEST TO ${request.url}, ${request.key} is gone",
+      );
+      return "connection closed before sending";
+    }
+    try {
+      await sendOrThrow(
+        relay,
+        ClientMsg(ClientMsgType.kReq, id: state.id, filters: request.filters),
+      );
+    } catch (e) {
+      Logger.log.e(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
+      return "$e";
+    }
+    return null;
+  }
+
+  /// Sends a CLOSE wherever [state] is still open on a relay, then ends it.
+  Future<void> closeRequest(RequestState state) async {
+    for (final relay in connectedRelays) {
+      final request = state.requests[relay.key];
+      if (request == null) continue;
+      // a request the relay ended itself, with a CLOSED or with the EOSE of a
+      // query, is already closed on its side
+      final endedOnRelay =
+          request.receivedClosed ||
+          (state.request.closeOnEOSE && request.receivedEOSE);
+      if (endedOnRelay) continue;
+      sendCloseToConnection(relay.key, state.id);
+    }
+
+    await state.close();
+    if (identical(globalState.inFlightRequests[state.id], state)) {
+      globalState.inFlightRequests.remove(state.id);
+    }
+  }
+
   /// Handles CLOSED auth-required.
   ///
   /// A connection is bound to at most one identity, and that binding never

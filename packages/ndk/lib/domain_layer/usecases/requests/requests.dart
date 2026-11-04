@@ -4,6 +4,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../config/request_defaults.dart';
 import '../../../shared/helpers/bounded_lru_set.dart';
+import '../../../shared/helpers/relay_helper.dart';
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/event_kind_classification.dart';
 import '../../../shared/nips/nip01/helpers.dart';
@@ -14,7 +15,6 @@ import '../../entities/global_state.dart';
 import '../../entities/ndk_request.dart';
 import '../../entities/nip_01_event.dart';
 import '../../entities/auth_policy.dart';
-import '../../entities/relay_connectivity.dart';
 import '../../entities/relay_set.dart';
 import '../../entities/relay_request_outcome.dart';
 import '../../entities/request_response.dart';
@@ -68,7 +68,7 @@ class Requests {
 
   /// ids of events whose signature was already checked by this [Ndk]
   /// instance, so repeat delivery across relays/requests skips re-verifying
-  final VerifiedEventMemCache _verifiedEventIds = VerifiedEventMemCache();
+  final VerifiedEventMemCache _verifiedEventIds;
 
   /// Creates a new [Requests] instance
   ///
@@ -76,7 +76,8 @@ class Requests {
   /// [cacheRead] The cache reader for retrieving cached events \
   /// [cacheManager] The cache used to persist network-delivered events \
   /// [networkEngine] The engine for handling network requests \
-  /// [eventVerifier] The verifier for validating Nostr events
+  /// [eventVerifier] The verifier for validating Nostr events \
+  /// [verifiedEventCache] Signature checks to share, e.g. with `RelayReqs`
   Requests({
     required GlobalState globalState,
     required CacheRead cacheRead,
@@ -87,7 +88,9 @@ class Requests {
     required List<EventFilter> eventOutFilters,
     required Duration defaultQueryTimeout,
     bool debugMode = false,
-  }) : _engine = networkEngine,
+    VerifiedEventMemCache? verifiedEventCache,
+  }) : _verifiedEventIds = verifiedEventCache ?? VerifiedEventMemCache(),
+       _engine = networkEngine,
        _relayManager = relayManager,
        _cacheManager = cacheManager,
        _cacheRead = cacheRead,
@@ -340,25 +343,7 @@ class Requests {
       return;
     }
 
-    Iterable<RelayConnectivity> relays = _relayManager.connectedRelays
-        .whereType<RelayConnectivity>()
-        .where((relay) => state.requests.containsKey(relay.key));
-
-    for (final relay in relays) {
-      final request = state.requests[relay.key]!;
-      // a request the relay ended itself, with a CLOSED or with the EOSE of a
-      // query, is already closed on its side
-      final endedOnRelay =
-          request.receivedClosed ||
-          (state.request.closeOnEOSE && request.receivedEOSE);
-      if (endedOnRelay) {
-        continue;
-      }
-      _relayManager.sendCloseToConnection(relay.key, subId);
-    }
-
-    await state.close();
-    _globalState.inFlightRequests.remove(subId);
+    await _relayManager.closeRequest(state);
   }
 
   /// Close all subscriptions
@@ -491,11 +476,15 @@ class Requests {
       }
 
       /// if there are any more filters left (not served by cacheRead)
-      if (state.request.filters.isNotEmpty) {
-        /// handle request
-        _engine.handleRequest(state);
-      } else {
+      if (state.request.filters.isEmpty) {
         state.networkController.close();
+        return;
+      }
+      final explicitRelays = state.request.explicitRelays;
+      if (explicitRelays != null && explicitRelays.isNotEmpty) {
+        _sendToExplicitRelays(state, explicitRelays);
+      } else {
+        _engine.handleRequest(state);
       }
     }
 
@@ -503,6 +492,19 @@ class Requests {
 
     // Return the response immediately
     return response;
+  }
+
+  /// Explicit relays bypass outbox routing, so no engine is involved: each of
+  /// them gets every filter the cache left.
+  void _sendToExplicitRelays(RequestState state, Iterable<String> relays) {
+    final filters = [
+      for (final filter in state.unresolvedFilters)
+        ...RelaySet.sliceFilterAuthors(filter),
+    ];
+    for (final url in cleanRelayUrls(relays.toList()).toSet()) {
+      unawaited(_relayManager.sendRequestToRelay(state, url, List.of(filters)));
+    }
+    state.closeIfNoRelays();
   }
 
   /// Performs a paginated query that fetches all events in a time range
@@ -633,9 +635,6 @@ class Requests {
           final pageFilter = filter.clone();
           pageFilter.until = state.currentUntil;
 
-          // no relaySet: it takes precedence over explicitRelays in the relay
-          // sets engine, which would send this page to the whole set with the
-          // `until` of a single relay
           final response = requestNostrEvent(
             NdkRequest.query(
               _requestId(name),

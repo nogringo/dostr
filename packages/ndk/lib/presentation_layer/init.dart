@@ -44,7 +44,9 @@ import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
+import '../domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/requests/requests.dart';
+import '../domain_layer/usecases/requests/verified_event_cache.dart';
 import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/ta/trusted_assertions.dart';
@@ -74,6 +76,7 @@ class Initialization {
 
   late RelayManager relayManager;
   late CacheRead cacheRead;
+  late RelayReqs relayReqs;
   late Requests requests;
   late Accounts accounts;
   late Bunkers bunkers;
@@ -185,6 +188,13 @@ class Initialization {
       cacheManager: _ndkConfig.cache,
     );
 
+    final verifiedEventCache = VerifiedEventMemCache();
+    relayReqs = RelayReqs(
+      relayManager: relayManager,
+      eventVerifier: _ndkConfig.eventVerifier,
+      verifiedEventCache: verifiedEventCache,
+    );
+
     requests = Requests(
       defaultQueryTimeout: _ndkConfig.defaultQueryTimeout,
       globalState: _globalState,
@@ -195,6 +205,7 @@ class Initialization {
       eventVerifier: _ndkConfig.eventVerifier,
       eventOutFilters: _ndkConfig.eventOutFilters,
       debugMode: _ndkConfig.debugMode,
+      verifiedEventCache: verifiedEventCache,
     );
 
     final broadcastSender = BroadcastSender(
@@ -235,6 +246,7 @@ class Initialization {
     bunkers = Bunkers(
       broadcast: broadcast,
       requests: requests,
+      relayReqs: relayReqs,
       eventSignerFactory: _ndkConfig.eventSignerFactory,
     );
 

@@ -23,6 +23,7 @@ import '../domain_layer/usecases/dms/dms.dart';
 import '../domain_layer/usecases/nip77/nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
+import '../domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
@@ -82,6 +83,10 @@ class Ndk {
   /// Use this to directly query or subscribe to notes from the Nostr network. \
   /// Available methods include query() and subscription()
   Requests get requests => _initialization.requests;
+
+  /// NIP-01 REQs on relays you pick, below [requests]: no cache, no outbox
+  /// routing, no dedup across relays.
+  RelayReqs get relayReqs => _initialization.relayReqs;
 
   /// Accounts
   Accounts get accounts => _initialization.accounts;

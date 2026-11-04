@@ -20,7 +20,6 @@ import 'relay_jit_broadcast_strategies/relay_jit_broadcast_specific.dart';
 import 'relay_jit_request_strategies/relay_jit_blast_all_strategy.dart';
 import 'relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import '../relay_manager.dart';
-import 'relay_jit_request_strategies/relay_jit_specific_strategy.dart';
 
 /// Just In Time Network Engine
 /// This engine is responsible for handling all nostr network requests
@@ -55,17 +54,7 @@ class JitEngine with Logger implements NetworkEngine {
   @override
   void handleRequest(RequestState requestState) async {
     await relayManagerLight.seedRelaysConnected;
-
-    // explicit relays get every filter: one none of them took must not end the
-    // request before the next ones are sent. Other strategies let it end early
-    final holdOpen = requestState.request.explicitRelays?.isNotEmpty ?? false;
-    if (holdOpen) relayManagerLight.beginPendingConnection(requestState);
-    try {
-      await _handleFilters(requestState);
-    } finally {
-      if (holdOpen) relayManagerLight.endPendingConnection(requestState);
-    }
-
+    await _handleFilters(requestState);
     requestState.closeIfNoRelays();
   }
 
@@ -79,21 +68,6 @@ class JitEngine with Logger implements NetworkEngine {
     /// user can provide multiple filters
     for (final filter in requestState.unresolvedFilters) {
       // filter different types of filters/requests because each requires a different strategy
-
-      if (requestState.request.explicitRelays != null &&
-          requestState.request.explicitRelays!.isNotEmpty) {
-        final cleanedExplicitRelays = cleanRelayUrls(
-          requestState.request.explicitRelays!.toList(),
-        );
-        await RelayJitRequestSpecificStrategy.handleRequest(
-          relayManager: relayManagerLight,
-          requestState: requestState,
-          filter: filter,
-          closeOnEOSE: ndkRequest.closeOnEOSE,
-          specificRelays: cleanedExplicitRelays,
-        );
-        continue;
-      }
 
       if ((filter.authors != null && filter.authors!.isNotEmpty)) {
         await RelayJitPubkeyStrategy.handleRequest(
@@ -254,11 +228,5 @@ class JitEngine with Logger implements NetworkEngine {
       }
     }
     return false;
-  }
-
-  /// add to response stream
-  void onMessage(Nip01Event event, RequestState requestState) async {
-    // add to response stream
-    requestState.networkController.add(event);
   }
 }

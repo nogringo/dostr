@@ -136,6 +136,7 @@ void main() {
       // Use bunkers to connect with the URL
       final bunkers = Bunkers(
         requests: ndk.requests,
+        relayReqs: ndk.relayReqs,
         broadcast: ndk.broadcast,
         eventSignerFactory: eventSignerFactory,
       );
@@ -188,6 +189,7 @@ void main() {
       // Create bunkers and accounts instances
       final bunkers = Bunkers(
         requests: ndk.requests,
+        relayReqs: ndk.relayReqs,
         broadcast: ndk.broadcast,
         eventSignerFactory: eventSignerFactory,
       );
@@ -242,6 +244,7 @@ void main() {
       // Create bunkers and accounts instances
       final bunkers = Bunkers(
         requests: ndk.requests,
+        relayReqs: ndk.relayReqs,
         broadcast: ndk.broadcast,
         eventSignerFactory: eventSignerFactory,
       );

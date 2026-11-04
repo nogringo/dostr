@@ -2,7 +2,6 @@ import 'package:ndk/data_layer/repositories/nostr_transport/websocket_client_nos
 import 'package:ndk/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
 import 'package:ndk/domain_layer/entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_specific_strategy.dart';
 import 'package:ndk/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart' as ndk_entities;
 import 'package:ndk/ndk.dart';
@@ -117,27 +116,6 @@ void deadConnectionTests() {
   });
 }
 
-/// Sends the first connection to each of [failing] to [deadUrl], so that relay
-/// is unreachable once and reachable after.
-class _FailFirstConnectFactory implements NostrTransportFactory {
-  _FailFirstConnectFactory(this.failing, this.deadUrl);
-
-  final Set<String> failing;
-  final String deadUrl;
-  final _inner = WebSocketClientNostrTransportFactory();
-
-  @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) => _inner(
-    failing.remove(url) ? deadUrl : url,
-    onReconnect: onReconnect,
-    onDisconnect: onDisconnect,
-  );
-}
-
 /// A relay a request could not be sent to must neither hold the request open
 /// nor end it while another relay still owes an answer.
 void notSentEndTests() {
@@ -170,15 +148,6 @@ void notSentEndTests() {
       nostrTransportFactory: factory ?? WebSocketClientNostrTransportFactory(),
       engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
     );
-
-    JitEngine buildEngine(RelayManager manager, List<String> seeds) =>
-        JitEngine(
-          relayManagerLight: manager,
-          cache: MemCacheManager(),
-          ignoreRelays: [],
-          globalState: manager.globalState,
-          bootstrapRelays: seeds,
-        );
 
     ndk_entities.RequestState trackQuery(
       RelayManager manager,
@@ -257,88 +226,6 @@ void notSentEndTests() {
     );
 
     test(
-      'a relay an earlier filter could not reach still answers a later one',
-      () async {
-        final seed = MockRelay(name: "seed", signEvents: false);
-        final flaky = MockRelay(name: "flaky", signEvents: false);
-        final nothingListens = MockRelay(
-          name: "nothing listens",
-          signEvents: false,
-        );
-        final note = textNote(key2);
-        await seed.startServer();
-        await flaky.startServer(textNotes: {key2: note});
-        final manager = buildManager([
-          seed.url,
-        ], factory: _FailFirstConnectFactory({flaky.url}, nothingListens.url));
-        addTearDown(() async {
-          await manager.closeAllTransports();
-          await seed.stopServer();
-          await flaky.stopServer();
-          await nothingListens.stopServer();
-        });
-
-        final state = trackQuery(
-          manager,
-          "later-filter-test",
-          [notesOf(key1), notesOf(key2)],
-          explicitRelays: [flaky.url],
-        );
-        final events = state.networkController.stream.toList();
-        buildEngine(manager, [seed.url]).handleRequest(state);
-
-        expect((await events).map((e) => e.id), contains(note.id));
-      },
-    );
-
-    test(
-      'a relay a later filter reached is waited for although an earlier one could not reach it',
-      () async {
-        final fast = MockRelay(name: "fast", signEvents: false);
-        final flaky = MockRelay(name: "flaky", signEvents: false);
-        final nothingListens = MockRelay(
-          name: "nothing listens",
-          signEvents: false,
-        );
-        final fastNote = textNote(key1);
-        final flakyNote = textNote(key2);
-        // the fast relay answers after the later filter went out, and before
-        // the flaky relay does
-        await fast.startServer(
-          textNotes: {key1: fastNote},
-          delayResponse: Duration(seconds: 1),
-        );
-        await flaky.startServer(
-          textNotes: {key2: flakyNote},
-          delayResponse: Duration(seconds: 2),
-        );
-        final manager = buildManager([
-          fast.url,
-        ], factory: _FailFirstConnectFactory({flaky.url}, nothingListens.url));
-        addTearDown(() async {
-          await manager.closeAllTransports();
-          await fast.stopServer();
-          await flaky.stopServer();
-          await nothingListens.stopServer();
-        });
-
-        final state = trackQuery(
-          manager,
-          "waited-filter-test",
-          [notesOf(key1), notesOf(key2)],
-          explicitRelays: [flaky.url, fast.url],
-        );
-        final events = state.networkController.stream.toList();
-        buildEngine(manager, [fast.url]).handleRequest(state);
-
-        expect(
-          (await events).map((e) => e.id),
-          containsAll([fastNote.id, flakyNote.id]),
-        );
-      },
-    );
-
-    test(
       'a relay still connecting is waited for, not reported notSent',
       () async {
         final connected = MockRelay(name: "connected", signEvents: false);
@@ -366,93 +253,27 @@ void notSentEndTests() {
           dirtyUrl: connecting.url,
           connectionSource: ndk_entities.ConnectionSource.explicit,
         );
-        final state = trackQuery(
-          manager,
-          "connecting-test",
-          [
-            Filter(
-              kinds: [Nip01Event.kTextNodeKind],
-              authors: [key1.publicKey, key2.publicKey],
-            ),
-          ],
-          explicitRelays: [connected.url, connecting.url],
+        final filter = Filter(
+          kinds: [Nip01Event.kTextNodeKind],
+          authors: [key1.publicKey, key2.publicKey],
         );
-        final events = state.networkController.stream.toList();
-        buildEngine(manager, [connected.url]).handleRequest(state);
-        final received = await events;
+        final req =
+            RelayReqs(
+              relayManager: manager,
+              eventVerifier: MockEventVerifier(),
+            ).req(
+              relays: {
+                connected.url: [filter],
+                connecting.url: [filter],
+              },
+            );
+        final received = await req.events.toList();
 
-        expect(state.relayOutcomes, {
+        expect(req.outcomes, {
           connected.url: RelayRequestOutcome(RelayRequestStatus.eose),
           connecting.url: RelayRequestOutcome(RelayRequestStatus.eose),
         });
         expect(received.map((e) => e.id), contains(connectingNote.id));
-      },
-    );
-
-    test(
-      'a relay that got an earlier filter is not reported notSent when a later one cannot reach it',
-      () async {
-        final lost = MockRelay(
-          name: "lost",
-          signEvents: false,
-          silenceRequests: true,
-        );
-        final silent = MockRelay(
-          name: "silent",
-          signEvents: false,
-          silenceRequests: true,
-        );
-        await lost.startServer();
-        await silent.startServer();
-        final manager = buildManager([lost.url, silent.url]);
-        addTearDown(() async {
-          await manager.closeAllTransports();
-          await lost.stopServer();
-          await silent.stopServer();
-        });
-        await manager.seedRelaysConnected;
-
-        final first = notesOf(key1);
-        final second = notesOf(key2);
-        final relays = [lost.url, silent.url];
-        final state = trackQuery(manager, "earlier-filter-test", [
-          first,
-          second,
-        ], explicitRelays: relays);
-
-        // one filter after the other, as JitEngine.handleRequest does
-        await RelayJitRequestSpecificStrategy.handleRequest(
-          requestState: state,
-          filter: first,
-          closeOnEOSE: true,
-          relayManager: manager,
-          specificRelays: relays,
-        );
-        await _waitUntil(
-          () => lost.connectionsThatRequested(state.id) == 1,
-          reason: 'the first filter never reached the relay',
-        );
-
-        await lost.stopServer();
-        await _waitUntil(
-          () =>
-              !manager.isConnectionOpen(RelayConnectionKey.anonymous(lost.url)),
-          reason: 'the relay never went away',
-        );
-
-        await RelayJitRequestSpecificStrategy.handleRequest(
-          requestState: state,
-          filter: second,
-          closeOnEOSE: true,
-          relayManager: manager,
-          specificRelays: relays,
-        );
-
-        expect(
-          state.relayOutcomes[lost.url]?.status,
-          isNot(RelayRequestStatus.notSent),
-          reason: 'the relay got the first filter, it was not left unsent',
-        );
       },
     );
   });

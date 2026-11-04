@@ -8,19 +8,15 @@ import '../../config/broadcast_defaults.dart';
 import '../../shared/logger/logger.dart';
 import '../../shared/nips/nip01/event_kind_classification.dart';
 import '../../shared/nips/nip01/client_msg.dart';
-import '../../shared/nips/nip01/helpers.dart';
 import '../../shared/helpers/relay_helper.dart';
 import '../entities/broadcast_response.dart';
 import '../entities/broadcast_state.dart';
-import '../entities/connection_source.dart';
 import '../entities/filter.dart';
 import '../entities/global_state.dart';
-import '../entities/ndk_request.dart';
 import '../entities/nip_01_event.dart';
 import '../entities/auth_policy.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_set.dart';
-import '../entities/request_response.dart';
 import '../entities/request_state.dart';
 import '../repositories/cache_manager.dart';
 import '../repositories/event_signer.dart';
@@ -49,96 +45,6 @@ class RelaySetsEngine implements NetworkEngine {
        _relayManager = relayManager,
        _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS {
     _globalState = globalState ?? GlobalState();
-  }
-
-  // ====================================================================================================================
-
-  /// Sends [request] to its relay. One it cannot be sent to is reported as
-  /// notSent before the send path ends, so the request never closes on that
-  /// relay as merely disconnected.
-  Future<bool> doRelayRequest(String id, RelayRequestState request) async {
-    // a connection that is still opening is not one that is gone, and
-    // _checkNetworkClose cannot tell them apart on its own
-    final state = _globalState.inFlightRequests[id];
-    if (state != null) {
-      _relayManager.beginPendingConnection(state);
-    }
-    try {
-      final notSentReason = await _sendRelayRequest(id, request, state);
-      if (notSentReason != null && state != null) {
-        _relayManager.failRelayRequest(
-          state,
-          request.key,
-          request.filters,
-          notSentReason,
-        );
-      }
-      return notSentReason == null;
-    } finally {
-      if (state != null) {
-        _relayManager.endPendingConnection(state);
-      }
-    }
-  }
-
-  /// Null once sent, otherwise what kept [request] from being sent.
-  Future<String?> _sendRelayRequest(
-    String id,
-    RelayRequestState request,
-    RequestState? state,
-  ) async {
-    if (_globalState.blockedRelays.contains(request.url)) {
-      Logger.log.w(
-        () => "COULD NOT SEND REQUEST TO ${request.url} since relay is blocked",
-      );
-      return "relay is blocked";
-    }
-
-    final connected = await _relayManager.reconnectConnection(
-      request.key,
-      connectionSource:
-          ConnectionSource.explicit, // TODO improve this connection source
-      force: false,
-      as: state?.request.auth?.account,
-      pausing: state,
-    );
-    // a timeout or a closeSubscription may have ended the request while the
-    // connection was opening: nothing tracks it anymore, so nothing would ever
-    // CLOSE what we would send here
-    if (state != null && !_relayManager.isStillInFlight(state)) {
-      return "request ended while connecting";
-    }
-    if (connected) {
-      RelayConnectivity? relay = _globalState.relays[request.key];
-      if (relay == null) {
-        // the connection was closed between opening it and looking it up
-        Logger.log.w(
-          () =>
-              "COULD NOT SEND REQUEST TO ${request.url}, ${request.key} "
-              "is gone",
-        );
-        return "connection closed before sending";
-      }
-      try {
-        await _relayManager.sendOrThrow(
-          relay,
-          ClientMsg(ClientMsgType.kReq, id: id, filters: request.filters),
-        );
-      } catch (e) {
-        Logger.log.e(
-          () => "COULD NOT SEND REQUEST TO ${request.url}:",
-          error: e,
-        );
-        return "$e";
-      }
-      return null;
-    } else {
-      Logger.log.e(
-        () =>
-            "COULD NOT SEND REQUEST TO ${request.url} since socket seems to be not open",
-      );
-      return "could not connect";
-    }
   }
 
   /// =====================================================================================
@@ -274,30 +180,18 @@ class RelaySetsEngine implements NetworkEngine {
     state.closeIfNoRelays();
 
     for (final request in state.requests.values.toList()) {
-      doRelayRequest(state.id, request);
+      _relayManager.sendTrackedRequest(state, request);
     }
   }
 
   @override
   Future<void> handleRequest(RequestState state) async {
-    if (state.request.explicitRelays == null ||
-        state.request.explicitRelays!.isEmpty) {
-      await _relayManager.seedRelaysConnected;
-    }
+    await _relayManager.seedRelaysConnected;
 
     if (state.request.relaySet != null) {
       return await doNostrRequestWithRelaySet(state);
     }
-    Iterable<String>? relaysForRequest;
-
-    if (state.request.explicitRelays != null &&
-        state.request.explicitRelays!.isNotEmpty) {
-      relaysForRequest = state.request.explicitRelays;
-    } else {
-      relaysForRequest = _bootstrapRelays;
-    }
-    relaysForRequest = cleanRelayUrls(relaysForRequest!.toList());
-    for (final url in relaysForRequest) {
+    for (final url in cleanRelayUrls(_bootstrapRelays)) {
       if (state.request.filters.isEmpty) {
         throw Exception("cannot do request with empty filters");
       }
@@ -312,46 +206,8 @@ class RelaySetsEngine implements NetworkEngine {
     state.closeIfNoRelays();
 
     for (final request in state.requests.values.toList()) {
-      doRelayRequest(state.id, request);
+      _relayManager.sendTrackedRequest(state, request);
     }
-  }
-
-  //! dead code
-  Future<NdkResponse> requestRelays(
-    String name,
-    Iterable<String> urls,
-    Filter filter, {
-    Duration timeout = kDefaultStreamIdleTimeout,
-    bool closeOnEOSE = true,
-  }) async {
-    String id = Helpers.getSecureRandomHex(16);
-    RequestState state = RequestState(
-      closeOnEOSE
-          ? NdkRequest.query(
-              id,
-              name: name,
-              filters: [filter],
-              timeoutDuration: timeout,
-            )
-          : NdkRequest.subscription(id, name: name, filters: []),
-    );
-
-    for (final url in urls) {
-      state.addRequestForRelay(url, RelaySet.sliceFilterAuthors(filter));
-    }
-    _globalState.inFlightRequests[state.id] = state;
-
-    for (final request in state.requests.values.toList()) {
-      doRelayRequest(state.id, request);
-    }
-
-    return NdkResponse(
-      state.id,
-      state.stream,
-      relayOutcomes: () => state.relayOutcomes,
-      relayOutcomesStream: () => state.relayOutcomesStream,
-      relayOutcomesDone: state.controller.done.then((_) => state.relayOutcomes),
-    );
   }
 
   @override

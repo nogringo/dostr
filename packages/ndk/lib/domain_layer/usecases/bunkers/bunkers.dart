@@ -1,22 +1,27 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:rxdart/rxdart.dart';
+
 import 'package:ndk/domain_layer/usecases/bunkers/models/nostr_connect.dart';
 
 import '../../../data_layer/repositories/signers/nip46_event_signer.dart';
 import '../../../domain_layer/repositories/event_signer.dart';
+import '../../../shared/helpers/relay_helper.dart';
 import 'models/bunker_request.dart';
 import 'models/bunker_connection.dart';
 import '../../entities/nip46_client_metadata.dart';
 import '../../entities/filter.dart';
 import '../../entities/nip_01_event.dart';
 import '../broadcast/broadcast.dart';
+import '../relay_reqs/relay_reqs.dart';
 import '../requests/requests.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {
   final Broadcast _broadcast;
   final Requests _requests;
+  final RelayReqs _relayReqs;
   final LocalEventSignerFactory _eventSignerFactory;
 
   static const int kMaxWaitingTimeForConnectionSeconds = 600;
@@ -24,9 +29,11 @@ class Bunkers {
   Bunkers({
     required Broadcast broadcast,
     required Requests requests,
+    required RelayReqs relayReqs,
     required LocalEventSignerFactory eventSignerFactory,
   }) : _broadcast = broadcast,
        _requests = requests,
+       _relayReqs = relayReqs,
        _eventSignerFactory = eventSignerFactory;
 
   /// Connects to a bunker using a bunker URL (bunker://)
@@ -92,9 +99,9 @@ class Bunkers {
 
     // Subscribe BEFORE broadcasting to avoid missing the response,
     // since NIP-46 uses ephemeral events (kind 24133)
-    final subscription = _requests.subscription(
-      explicitRelays: relays,
-      filter: Filter(
+    final subscription = _subscribe(
+      relays,
+      Filter(
         authors: [remotePubkey],
         kinds: [BunkerRequest.kKind],
         pTags: [localEventSigner.getPublicKey()],
@@ -108,38 +115,36 @@ class Bunkers {
     );
     await broadcastRes.broadcastDoneFuture;
 
-    BunkerConnection? result;
-
-    await for (final event in subscription.stream.timeout(
-      Duration(seconds: kMaxWaitingTimeForConnectionSeconds),
-    )) {
-      final decryptedContent = await localEventSigner.decryptNip44(
-        ciphertext: event.content,
-        senderPubKey: remotePubkey,
-      );
-
-      final response = jsonDecode(decryptedContent!);
-
-      if (response["id"] != request.id) continue;
-
-      if (response["result"] == "auth_url") {
-        if (authCallback != null) {
-          authCallback(response["error"]);
-        }
-        continue;
-      }
-
-      if (response["result"] == "ack") {
-        result = BunkerConnection(
-          privateKey: keyPair.$1,
-          remotePubkey: remotePubkey,
-          relays: relays,
+    try {
+      await for (final event in _responses(subscription)) {
+        final decryptedContent = await localEventSigner.decryptNip44(
+          ciphertext: event.content,
+          senderPubKey: remotePubkey,
         );
-        break;
+
+        final response = jsonDecode(decryptedContent!);
+
+        if (response["id"] != request.id) continue;
+
+        if (response["result"] == "auth_url") {
+          if (authCallback != null) {
+            authCallback(response["error"]);
+          }
+          continue;
+        }
+
+        if (response["result"] == "ack") {
+          return BunkerConnection(
+            privateKey: keyPair.$1,
+            remotePubkey: remotePubkey,
+            relays: relays,
+          );
+        }
       }
+      return null;
+    } finally {
+      await subscription.close();
     }
-    await _requests.closeSubscription(subscription.requestId);
-    return result;
   }
 
   /// Connects to a bunker using a nostr connect URL (nostrconnect://)
@@ -161,38 +166,49 @@ class Bunkers {
       publicKey: keyPair.publicKey,
     );
 
-    final subscription = _requests.subscription(
-      explicitRelays: relays,
-      filter: Filter(
+    final subscription = _subscribe(
+      relays,
+      Filter(
         kinds: [BunkerRequest.kKind],
         pTags: [localEventSigner.getPublicKey()],
         since: someTimeAgo(),
       ),
     );
-    BunkerConnection? result;
 
-    await for (final event in subscription.stream.timeout(
-      Duration(seconds: kMaxWaitingTimeForConnectionSeconds),
-    )) {
-      final decryptedContent = await localEventSigner.decryptNip44(
-        ciphertext: event.content,
-        senderPubKey: event.pubKey,
-      );
-
-      final response = jsonDecode(decryptedContent!);
-
-      if (response["result"] == secret) {
-        result = BunkerConnection(
-          privateKey: nostrConnect.keyPair.privateKey!,
-          remotePubkey: event.pubKey,
-          relays: relays,
+    try {
+      await for (final event in _responses(subscription)) {
+        final decryptedContent = await localEventSigner.decryptNip44(
+          ciphertext: event.content,
+          senderPubKey: event.pubKey,
         );
-        break;
+
+        final response = jsonDecode(decryptedContent!);
+
+        if (response["result"] == secret) {
+          return BunkerConnection(
+            privateKey: nostrConnect.keyPair.privateKey!,
+            remotePubkey: event.pubKey,
+            relays: relays,
+          );
+        }
       }
+      return null;
+    } finally {
+      await subscription.close();
     }
-    await _requests.closeSubscription(subscription.requestId);
-    return result;
   }
+
+  RelayReq _subscribe(List<String> relays, Filter filter) => _relayReqs.req(
+    relays: {
+      for (final relay in cleanRelayUrls(relays)) relay: [filter],
+    },
+    closeOnEose: false,
+  );
+
+  /// Each response once, although every relay of the bunker delivers it.
+  Stream<Nip01Event> _responses(RelayReq subscription) => subscription.events
+      .distinctUnique()
+      .timeout(Duration(seconds: kMaxWaitingTimeForConnectionSeconds));
 
   int someTimeAgo({Duration duration = const Duration(minutes: 5)}) {
     return (DateTime.now().millisecondsSinceEpoch ~/ 1000) - duration.inSeconds;

@@ -72,9 +72,10 @@ The request is never written to a connection other than one reserved for that
 account. It does not mean the relay knows who asked: NIP-42 has no way to
 authenticate unprompted, so a relay that never sends a challenge never learns
 the identity. It also does not mean no anonymous socket to that relay exists.
-NDK connects to its bootstrap relays anonymously at startup, and the JIT engine
-discovers relays on anonymous connections before routing the request onto the
-bound one, which costs a second socket to the same relay.
+NDK connects to its bootstrap relays anonymously at startup, and the JIT engine,
+when it picks relays from the outbox model, discovers them on anonymous
+connections before routing the request onto the bound one, which costs a second
+socket to the same relay. Explicit relays go straight to the bound connection.
 
 If the account cannot sign, no connection can carry the request at all. Rather
 than fall back to the anonymous one, which is what `require` rules out, it is
