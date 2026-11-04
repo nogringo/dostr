@@ -3,12 +3,12 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../shared/net/user_agent.dart';
-import 'package:ndk_core/data_layer/data_sources/http_request.dart';
+import '../data_layer/data_sources/http_request.dart';
 import '../data_layer/io/file_io_platform.dart';
 import '../data_layer/repositories/blossom/blossom_impl.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
-import 'package:ndk_core/data_layer/repositories/relay_info_http_impl.dart';
+import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/connection_source.dart';

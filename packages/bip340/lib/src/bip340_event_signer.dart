@@ -1,7 +1,6 @@
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/shared/nips/nip04/nip04.dart';
-import 'package:ndk_core/shared/nips/nip44/nip44.dart';
+import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'bip340.dart';

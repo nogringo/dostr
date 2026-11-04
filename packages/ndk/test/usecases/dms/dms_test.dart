@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
-import 'package:ndk_core/shared/nips/nip04/nip04.dart';
+import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_relay.dart';

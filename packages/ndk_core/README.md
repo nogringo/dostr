@@ -61,4 +61,9 @@ still exports what it did.
 
 `Bip340`, `Bip340EventSigner` and `Bip340EventVerifier` are in
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
-`Bip340.signEvent`.
+`Bip340.signEvent`. `Nip04` and `Nip44` are in
+[`ndk_nip44`](https://pub.dev/packages/ndk_nip44).
+
+`ndk_core` makes no HTTP calls: `RelayManager` reads NIP-11 documents from the
+`RelayInfoRepo` you give it. `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in
+`ndk` at their old paths, and the deprecated `RelayInfo.get` is gone.

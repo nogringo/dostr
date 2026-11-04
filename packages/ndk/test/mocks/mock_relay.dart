@@ -12,8 +12,7 @@ import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:ndk_core/shared/nips/nip77/negentropy.dart';
-import 'package:ndk_core/shared/nips/nip04/nip04.dart';
-import 'package:ndk_core/shared/nips/nip44/nip44.dart';
+import 'package:ndk_nip44/ndk_nip44.dart';
 
 class MockRelay {
   static final Random _random = Random.secure();

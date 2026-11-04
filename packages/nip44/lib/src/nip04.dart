@@ -5,8 +5,6 @@ import 'dart:typed_data';
 import 'package:convert/convert.dart';
 import 'package:pointycastle/export.dart';
 
-import '../../logger/logger.dart';
-
 class Nip04 {
   static var secp256k1 = ECDomainParameters("secp256k1");
 
@@ -110,13 +108,7 @@ class Nip04 {
       hex.encode(hex.decode(pk.padLeft(64, '0'))),
       radix: 16,
     );
-    BigInt? y;
-    try {
-      y = liftX(x);
-    } on Error {
-      Logger.log.d(() => "error in handle pubKey");
-    }
-    ECPoint endPoint = secp256k1.curve.createPoint(x, y!);
+    ECPoint endPoint = secp256k1.curve.createPoint(x, liftX(x));
     return ECPublicKey(endPoint, secp256k1);
   }
 

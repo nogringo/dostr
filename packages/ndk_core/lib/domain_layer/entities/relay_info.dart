@@ -1,8 +1,3 @@
-import 'package:http/http.dart' as http;
-
-import '../../data_layer/data_sources/http_request.dart';
-import '../../data_layer/repositories/relay_info_http_impl.dart';
-
 /// NIP-11 relay information document, as declared by the relay and not
 /// verified. Every field the relay omits is null
 class RelayInfo {
@@ -88,24 +83,6 @@ class RelayInfo {
           : null,
       fees: fees is Map<String, dynamic> ? RelayFees.fromJson(fees) : null,
     );
-  }
-
-  /// Fetches relay metadata with a private HTTP client that is closed
-  /// afterwards.
-  @Deprecated('Use Ndk.relays.getRelayInfo or RelayInfoHttpRepoImpl instead')
-  static Future<RelayInfo?> get(
-    String url, {
-    Duration timeout = const Duration(seconds: 5),
-  }) async {
-    final client = http.Client();
-    try {
-      return await RelayInfoHttpRepoImpl(
-        httpDS: HttpRequestDS(client),
-        timeout: timeout,
-      ).getRelayInfo(url);
-    } finally {
-      client.close();
-    }
   }
 
   /// does this relay support given nip, e.g. "1", "01", "77" or "EE"

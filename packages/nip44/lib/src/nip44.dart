@@ -1,14 +1,20 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:elliptic/ecdh.dart';
-import 'package:elliptic/elliptic.dart';
-import 'package:meta/meta.dart';
+import 'package:convert/convert.dart';
+import 'package:pointycastle/ecc/api.dart';
+import 'package:pointycastle/ecc/curves/secp256k1.dart';
 
 import 'utils.dart';
 
+final _secp256k1 = ECCurve_secp256k1();
+final _fieldPrime = BigInt.parse(
+  'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
+  radix: 16,
+);
+final _hexPattern = RegExp(r'^[0-9a-fA-F]+$');
+
 /// NIP-44 encryption and decryption functions.
-@experimental
 class Nip44 {
   static Future<String> encryptMessage(
     String plaintext,
@@ -99,11 +105,46 @@ class Nip44 {
     String privateKeyHex,
     String publicKeyHex,
   ) {
-    final ec = getS256();
-    final privateKey = PrivateKey.fromHex(ec, privateKeyHex);
-    final publicKey = PublicKey.fromHex(ec, checkPublicKey(publicKeyHex));
-    final sec = computeSecret(privateKey, publicKey);
-    return Uint8List.fromList(sec);
+    final publicKey = _decodePublicKey(checkPublicKey(publicKeyHex));
+    final privateKey = BigInt.parse(privateKeyHex, radix: 16);
+    if (privateKey <= BigInt.zero || privateKey >= _secp256k1.n) {
+      throw Exception('invalid private key');
+    }
+    final sharedX = (publicKey * privateKey)!.x!.toBigInteger()!;
+    return Uint8List.fromList(
+      hex.decode(sharedX.toRadixString(16).padLeft(64, '0')),
+    );
+  }
+
+  static ECPoint _decodePublicKey(String publicKeyHex) {
+    if (!_hexPattern.hasMatch(publicKeyHex)) {
+      throw Exception('Invalid Public Key');
+    }
+    final prefix = publicKeyHex.substring(0, 2);
+    final x = BigInt.parse(publicKeyHex.substring(2, 66), radix: 16);
+    if (x >= _fieldPrime) {
+      throw Exception('invalid public key X value');
+    }
+    final ySquared =
+        (x.modPow(BigInt.from(3), _fieldPrime) + BigInt.from(7)) % _fieldPrime;
+
+    BigInt y;
+    if (prefix == '04') {
+      if (publicKeyHex.length != 130) {
+        throw Exception('Invalid Public Key');
+      }
+      y = BigInt.parse(publicKeyHex.substring(66), radix: 16);
+    } else {
+      // p = 3 mod 4, so this is the square root when one exists
+      y = ySquared.modPow((_fieldPrime + BigInt.one) >> 2, _fieldPrime);
+      if (y.isOdd != (prefix == '03')) {
+        y = _fieldPrime - y;
+      }
+    }
+    if (y >= _fieldPrime || y * y % _fieldPrime != ySquared) {
+      throw Exception('public key is not on this curve');
+    }
+    return _secp256k1.curve.createPoint(x, y);
   }
 
   static Uint8List deriveConversationKey(Uint8List sharedSecret) {

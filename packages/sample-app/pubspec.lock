@@ -233,14 +233,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.1"
-  elliptic:
-    dependency: transitive
-    description:
-      name: elliptic
-      sha256: "03a7c29e3b7c952cf4612fec0496188e9ae686bd00195f784568aefc24894d99"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.4.0"
   equatable:
     dependency: transitive
     description:
@@ -843,6 +835,13 @@ packages:
     dependency: "direct overridden"
     description:
       path: "../nip19"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_nip44:
+    dependency: "direct overridden"
+    description:
+      path: "../nip44"
       relative: true
     source: path
     version: "0.1.0"

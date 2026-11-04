@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:ndk_core/shared/nips/nip44/nip44.dart';
-import 'package:ndk_core/shared/nips/nip44/utils.dart';
+import 'package:ndk_nip44/ndk_nip44.dart';
+import 'package:ndk_nip44/src/utils.dart';
+import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:test/test.dart';
-import 'package:elliptic/elliptic.dart' as elliptic;
 
 import 'dart:typed_data';
 
@@ -27,6 +27,11 @@ Uint8List hexToBytes(String hex) {
 
 String bytesToHex(Uint8List bytes) {
   return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+}
+
+String uncompressedPublicKeyHex(String privateKeyHex) {
+  final point = ECCurve_secp256k1().G * BigInt.parse(privateKeyHex, radix: 16);
+  return bytesToHex(point!.getEncoded(false));
 }
 
 void assertConversationKeyGeneration(
@@ -54,12 +59,8 @@ Future<void> assertCryptPriv(
   String plaintext,
   String expectedCiphertext,
 ) async {
-  // Compute public keys from private keys
-  final ec = elliptic.getS256();
-  final sk1 = elliptic.PrivateKey.fromHex(ec, sk1Hex);
-  final sk2 = elliptic.PrivateKey.fromHex(ec, sk2Hex);
-  final pk1Hex = sk1.publicKey.toHex();
-  final pk2Hex = sk2.publicKey.toHex();
+  final pk1Hex = uncompressedPublicKeyHex(sk1Hex);
+  final pk2Hex = uncompressedPublicKeyHex(sk2Hex);
 
   assertConversationKeyGeneration(sk1Hex, pk2Hex, expectedConversationKeyHex);
 

@@ -17,6 +17,7 @@ resolution: workspace
 dependencies:
   bip340: ">=0.3.0 <0.4.0"
   ndk_core: ^0.11.0-dev.2
+  ndk_nip44: ^0.1.0
   rxdart: ^0.28.0
 
 dev_dependencies:

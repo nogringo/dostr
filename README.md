@@ -29,6 +29,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_bip340`: BIP-340 Schnorr signing and verification for Nostr events (event signer and verifier), in pure Dart.
 
+### [🔗 NIP-44](./packages/nip44/)
+
+`ndk_nip44`: NIP-44 encryption, and the deprecated NIP-04 encryption, in pure Dart.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.

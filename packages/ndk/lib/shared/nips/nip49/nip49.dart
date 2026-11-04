@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math' show Random;
 import 'dart:typed_data';
 
 import 'package:bech32/bech32.dart';
@@ -8,7 +9,6 @@ import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import 'package:ndk_core/shared/isolates/isolate_manager.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_core/shared/nips/nip44/utils.dart';
 import 'scrypt.dart';
 
 /// How the private key was handled before being encrypted.
@@ -55,8 +55,8 @@ class Nip49 {
     }
     RangeError.checkValueInInterval(logN, 1, maxLogN, 'logN');
 
-    final salt = secureRandomBytes(16);
-    final nonce = secureRandomBytes(24);
+    final salt = _randomBytes(16);
+    final nonce = _randomBytes(24);
     final associatedData = [keySecurity.value];
 
     final symmetricKey = SecretKeyData(
@@ -168,5 +168,12 @@ class Nip49 {
     } finally {
       password.fillRange(0, password.length, 0);
     }
+  }
+
+  static Uint8List _randomBytes(int length) {
+    final random = Random.secure();
+    return Uint8List.fromList(
+      List<int>.generate(length, (_) => random.nextInt(256)),
+    );
   }
 }

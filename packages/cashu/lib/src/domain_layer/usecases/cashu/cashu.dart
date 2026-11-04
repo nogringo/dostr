@@ -21,7 +21,7 @@ import '../../entities/cashu/cashu_token.dart';
 import '../../entities/cashu/cashu_user_seedphrase.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk_core/data_layer/data_sources/http_request.dart';
+import 'package:ndk/data_layer/data_sources/http_request.dart';
 import 'package:ndk/presentation_layer/ndk.dart';
 import '../../repositories/cashu_key_derivation.dart';
 import '../../repositories/cashu_repo.dart';

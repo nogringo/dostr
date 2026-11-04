@@ -24,6 +24,8 @@ dependency_overrides:
     path: ../nip19
   ndk_bip340:
     path: ../bip340
+  ndk_nip44:
+    path: ../nip44
   ndk_cashu:
     path: ../cashu
   ndk_wallets:

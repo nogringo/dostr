@@ -1,6 +1,7 @@
-import '../../domain_layer/entities/relay_info.dart';
-import '../../domain_layer/repositories/relay_info_repo.dart';
-import '../../shared/logger/logger.dart';
+import 'package:ndk_core/domain_layer/entities/relay_info.dart';
+import 'package:ndk_core/domain_layer/repositories/relay_info_repo.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+
 import '../data_sources/http_request.dart';
 
 /// implementation of the [RelayInfoRepo] interface with http

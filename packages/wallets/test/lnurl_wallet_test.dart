@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_core/data_layer/data_sources/http_request.dart';
+import 'package:ndk/data_layer/data_sources/http_request.dart';
 import 'package:ndk/data_layer/repositories/lnurl_http_impl.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';

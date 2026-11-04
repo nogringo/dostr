@@ -12,7 +12,7 @@ import '../../../domain_layer/entities/file_hash_progress.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/tuple.dart';
 import '../../../domain_layer/repositories/blossom.dart';
-import 'package:ndk_core/data_layer/data_sources/http_request.dart';
+import '../../data_sources/http_request.dart';
 import '../../io/file_io.dart';
 import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 

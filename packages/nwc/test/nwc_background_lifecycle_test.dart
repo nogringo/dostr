@@ -3,7 +3,7 @@ import 'dart:convert';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk/entities.dart';
-import 'package:ndk_core/shared/nips/nip04/nip04.dart';
+import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
 
