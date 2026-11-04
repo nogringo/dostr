@@ -92,6 +92,37 @@ URLs to `NWalletsState.onProtocolUrlReceived`; on mobile resume without a
 callback, call `resumePendingWalletAuth`. Legacy untagged providers are
 revalidated every five seconds while their connection screen remains open.
 
+The wallet widgets use the `Wallets`, `Cashu` and `Nwc` usecases from
+`ndk_wallets`, `ndk_cashu` and `ndk_nwc`. Create them on top of your `Ndk` and
+pass them to `NdkFlutter`:
+
+```dart
+final walletsRepo = FlutterSecureStorageWalletsRepo();
+final nwc = Nwc(ndk);
+final cashu = Cashu(
+  ndk,
+  walletsRepo: walletsRepo,
+  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
+);
+final wallets = Wallets(
+  ndk,
+  repository: walletsRepo,
+  providers: [
+    CashuWalletProvider(cashu),
+    NwcWalletProvider(nwc),
+    LnurlWalletProvider(ndk.lnurl),
+    const Bolt12WalletProvider(),
+    LnBitsWalletProvider(),
+  ],
+);
+final ndkFlutter = NdkFlutter(
+  ndk: ndk,
+  wallets: wallets,
+  cashu: cashu,
+  nwc: nwc,
+);
+```
+
 Only camera decoding is supplied by the host, so ndk_flutter does not depend on
 a camera plugin, WebRTC, or a native QR decoder:
 

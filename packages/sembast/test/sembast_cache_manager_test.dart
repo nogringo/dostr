@@ -754,4 +754,20 @@ void main() {
       } catch (_) {}
     },
   );
+
+  runCashuStorageTestSuite(
+    name: 'SembastCacheManager (Shared Suite)',
+    createStorage: () async {
+      sharedTempDir = await Directory.systemTemp.createTemp(
+        'sembast_cashu_test',
+      );
+      return SembastCacheManager.create(databasePath: sharedTempDir.path);
+    },
+    cleanUp: (storage) async {
+      await (storage as SembastCacheManager).close();
+      try {
+        await sharedTempDir.delete(recursive: true);
+      } catch (_) {}
+    },
+  );
 }

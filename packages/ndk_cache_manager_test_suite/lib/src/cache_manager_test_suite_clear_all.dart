@@ -49,27 +49,33 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
     );
     await cacheManager.saveRelaySet(relaySet);
 
-    final keyset = CahsuKeyset(
-      id: 'clearall_keyset',
-      mintUrl: 'https://clearall.mint.com',
-      unit: 'sat',
-      active: true,
-      inputFeePPK: 0,
-      mintKeyPairs: {},
-    );
-    await cacheManager.saveKeyset(keyset);
-
-    final proof = CashuProof(
-      keysetId: 'clearall_keyset',
-      amount: 100,
-      secret: 'clearall_secret',
-      unblindedSig: 'clearall_sig',
-      state: CashuProofState.unspend,
-    );
-    await cacheManager.saveProofs(
-      proofs: [proof],
-      mintUrl: 'https://clearall.mint.com',
-    );
+    final cashuStorage = cacheManager is CashuStorage
+        ? cacheManager as CashuStorage
+        : null;
+    if (cashuStorage != null) {
+      await cashuStorage.saveKeyset(
+        CahsuKeyset(
+          id: 'clearall_keyset',
+          mintUrl: 'https://clearall.mint.com',
+          unit: 'sat',
+          active: true,
+          inputFeePPK: 0,
+          mintKeyPairs: {},
+        ),
+      );
+      await cashuStorage.saveProofs(
+        proofs: [
+          CashuProof(
+            keysetId: 'clearall_keyset',
+            amount: 100,
+            secret: 'clearall_secret',
+            unblindedSig: 'clearall_sig',
+            state: CashuProofState.unspend,
+          ),
+        ],
+        mintUrl: 'https://clearall.mint.com',
+      );
+    }
 
     expect(await cacheManager.loadEvent(event.id), isNotNull);
     expect(
@@ -92,18 +98,20 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
       ),
       isNotNull,
     );
-    expect(
-      (await cacheManager.getKeysets(
-        mintUrl: 'https://clearall.mint.com',
-      )).length,
-      equals(1),
-    );
-    expect(
-      (await cacheManager.getProofs(
-        mintUrl: 'https://clearall.mint.com',
-      )).length,
-      equals(1),
-    );
+    if (cashuStorage != null) {
+      expect(
+        (await cashuStorage.getKeysets(
+          mintUrl: 'https://clearall.mint.com',
+        )).length,
+        equals(1),
+      );
+      expect(
+        (await cashuStorage.getProofs(
+          mintUrl: 'https://clearall.mint.com',
+        )).length,
+        equals(1),
+      );
+    }
 
     await cacheManager.clearAll();
 
@@ -125,17 +133,19 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
       ),
       isNull,
     );
-    expect(
-      (await cacheManager.getKeysets(
-        mintUrl: 'https://clearall.mint.com',
-      )).length,
-      equals(0),
-    );
-    expect(
-      (await cacheManager.getProofs(
-        mintUrl: 'https://clearall.mint.com',
-      )).length,
-      equals(0),
-    );
+    if (cashuStorage != null) {
+      expect(
+        (await cashuStorage.getKeysets(
+          mintUrl: 'https://clearall.mint.com',
+        )).length,
+        equals(0),
+      );
+      expect(
+        (await cashuStorage.getProofs(
+          mintUrl: 'https://clearall.mint.com',
+        )).length,
+        equals(0),
+      );
+    }
   });
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:ndk/entities.dart';
+
+import 'package:ndk_nwc/ndk_nwc.dart';
 
 class NNwcWalletIcon extends StatelessWidget {
   final NwcWallet wallet;

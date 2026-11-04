@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -74,7 +76,7 @@ class _NWalletActionsState extends State<NWalletActions>
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<List<Wallet>>(
-      stream: widget.ndkFlutter.ndk.wallets.walletsStream,
+      stream: widget.ndkFlutter.wallets.walletsStream,
       builder: (context, snapshot) {
         if (!snapshot.hasData) return const SizedBox.shrink();
 

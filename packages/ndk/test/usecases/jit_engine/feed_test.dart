@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 
 import 'dart:developer' as developer;
 
-import '../../mocks/mock_event_verifier.dart';
+import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 
 void main() async {
   group("Calculate best relays (external REAL)", skip: true, () {

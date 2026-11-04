@@ -4,7 +4,7 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 /// Tests for the ephemeral-event cache policy.

@@ -1,4 +1,4 @@
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 
 import 'cli_accounts_store.dart';

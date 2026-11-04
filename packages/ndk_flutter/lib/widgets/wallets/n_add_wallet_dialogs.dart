@@ -7,9 +7,10 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk/entities.dart';
-import 'package:ndk/domain_layer/usecases/nwc/consts/nwc_kind.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
 import 'package:ndk/shared/nips/nip01/key_pair.dart';
@@ -1341,7 +1342,7 @@ class NwcWalletAuthCoordinator {
           NwcWallet.kRequireAuthenticatedResponseMetadataKey: true,
       },
     );
-    await ndkFlutter.ndk.wallets.addWallet(nwcWallet);
+    await ndkFlutter.wallets.addWallet(nwcWallet);
     _lastConnectedWalletId = walletId;
   }
 }
@@ -1616,10 +1617,8 @@ Future<CashuWallet?> showAddCashuWalletDialog(
               final scaffoldMessenger = ScaffoldMessenger.of(context);
 
               try {
-                await ndkFlutter.ndk.cashu.addMintToKnownMints(
-                  mintUrl: mintUrl,
-                );
-                final mintInfo = await ndkFlutter.ndk.cashu.getMintInfoNetwork(
+                await ndkFlutter.cashu.addMintToKnownMints(mintUrl: mintUrl);
+                final mintInfo = await ndkFlutter.cashu.getMintInfoNetwork(
                   mintUrl: mintUrl,
                 );
 
@@ -1631,7 +1630,7 @@ Future<CashuWallet?> showAddCashuWalletDialog(
                   supportedUnits: mintInfo.supportedUnits,
                 );
 
-                await ndkFlutter.ndk.wallets.addWallet(cashuWallet);
+                await ndkFlutter.wallets.addWallet(cashuWallet);
 
                 if (dialogContext.mounted) {
                   Navigator.of(dialogContext).pop(cashuWallet);
@@ -1880,9 +1879,7 @@ class _AddNwcWalletDialogState extends State<_AddNwcWalletDialog>
                             supportedUnits: {'sat'},
                             nwcUrl: nwcUri,
                           );
-                          await widget.ndkFlutter.ndk.wallets.addWallet(
-                            nwcWallet,
-                          );
+                          await widget.ndkFlutter.wallets.addWallet(nwcWallet);
 
                           if (!mounted) return;
                           navigator.pop(nwcWallet);
@@ -1933,7 +1930,7 @@ class _AddNwcWalletDialogState extends State<_AddNwcWalletDialog>
                         supportedUnits: {'sat'},
                         nwcUrl: nwcUriController.text,
                       );
-                      await widget.ndkFlutter.ndk.wallets.addWallet(nwcWallet);
+                      await widget.ndkFlutter.wallets.addWallet(nwcWallet);
 
                       if (!mounted) return;
                       navigator.pop(nwcWallet);
@@ -2057,14 +2054,14 @@ class _AddLnurlWalletDialogState extends State<_AddLnurlWalletDialog> {
 
     try {
       final walletId = DateTime.now().millisecondsSinceEpoch.toString();
-      final wallet = widget.ndkFlutter.ndk.wallets.createWallet(
+      final wallet = widget.ndkFlutter.wallets.createWallet(
         type: WalletType.LNURL,
         id: walletId,
         name: identifier,
         supportedUnits: {'sat'},
         metadata: {'identifier': identifier},
       );
-      await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+      await widget.ndkFlutter.wallets.addWallet(wallet);
 
       if (!mounted) return;
       Navigator.of(context).pop(wallet);
@@ -2267,7 +2264,7 @@ class _AddBolt12WalletDialogState extends State<_AddBolt12WalletDialog> {
           ? requestedName
           : resolved.bip353Address ?? description ?? l10n.bolt12Wallet;
       final wallet =
-          widget.ndkFlutter.ndk.wallets.createWallet(
+          widget.ndkFlutter.wallets.createWallet(
                 id: 'bolt12-${DateTime.now().microsecondsSinceEpoch}',
                 name: name,
                 type: WalletType.BOLT12,
@@ -2275,7 +2272,7 @@ class _AddBolt12WalletDialogState extends State<_AddBolt12WalletDialog> {
                 metadata: resolved.toMetadata(),
               )
               as Bolt12Wallet;
-      await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+      await widget.ndkFlutter.wallets.addWallet(wallet);
 
       if (!mounted) return;
       Navigator.of(context).pop(wallet);
@@ -2715,7 +2712,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
   }
 
   Future<List<CashuMintSuggestion>> _discoverCashuMints() async {
-    final recommendations = await widget.ndkFlutter.ndk.cashu
+    final recommendations = await widget.ndkFlutter.cashu
         .discoverMintRecommendations();
     final suggestions = recommendations.map((recommendation) {
       final info = recommendation.mintInfo;
@@ -2743,7 +2740,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
             .toList(),
       );
     }).toList();
-    final existingMintUrls = (await widget.ndkFlutter.ndk.wallets.getWallets())
+    final existingMintUrls = (await widget.ndkFlutter.wallets.getWallets())
         .whereType<CashuWallet>()
         .map((wallet) => wallet.mintUrl.replaceAll(RegExp(r'/+$'), ''))
         .toSet();
@@ -2760,7 +2757,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
       averageRating: suggestion.averageRating,
       reviewsCount: suggestion.reviewsCount,
     );
-    final enriched = await widget.ndkFlutter.ndk.cashu.enrichMintRecommendation(
+    final enriched = await widget.ndkFlutter.cashu.enrichMintRecommendation(
       recommendation,
     );
     final info = enriched.mintInfo;
@@ -2969,7 +2966,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
           );
         }
       case WalletInputKind.cashuMint:
-        final mintInfo = await widget.ndkFlutter.ndk.cashu.getMintInfoNetwork(
+        final mintInfo = await widget.ndkFlutter.cashu.getMintInfoNetwork(
           mintUrl: input,
         );
         final name = mintInfo.name?.trim().isNotEmpty == true
@@ -3214,7 +3211,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
           nwcUrl: preview.input,
           providerId: preview.providerId,
         );
-        await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+        await widget.ndkFlutter.wallets.addWallet(wallet);
         return wallet;
       case WalletType.BOLT12:
         return _addResolvedBolt12Wallet(
@@ -3231,7 +3228,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
         );
       case WalletType.LNBITS:
         final connection = preview.lnBitsConnection!;
-        final wallet = widget.ndkFlutter.ndk.wallets.createWallet(
+        final wallet = widget.ndkFlutter.wallets.createWallet(
           id: 'lnbits-${DateTime.now().microsecondsSinceEpoch}',
           name: walletName,
           type: WalletType.LNBITS,
@@ -3243,7 +3240,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
             LnBitsWallet.remoteWalletIdMetadataKey: ?connection.remoteWalletId,
           },
         );
-        await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+        await widget.ndkFlutter.wallets.addWallet(wallet);
         return wallet;
     }
   }
@@ -3253,7 +3250,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
     required String walletName,
   }) async {
     final wallet =
-        widget.ndkFlutter.ndk.wallets.createWallet(
+        widget.ndkFlutter.wallets.createWallet(
               id: 'bolt12-${DateTime.now().microsecondsSinceEpoch}',
               name: walletName,
               type: WalletType.BOLT12,
@@ -3261,7 +3258,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
               metadata: resolved.toMetadata(),
             )
             as Bolt12Wallet;
-    await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+    await widget.ndkFlutter.wallets.addWallet(wallet);
     return wallet;
   }
 
@@ -3269,14 +3266,14 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
     String identifier, {
     required String walletName,
   }) async {
-    final wallet = widget.ndkFlutter.ndk.wallets.createWallet(
+    final wallet = widget.ndkFlutter.wallets.createWallet(
       id: 'lnurl-${DateTime.now().microsecondsSinceEpoch}',
       name: walletName,
       type: WalletType.LNURL,
       supportedUnits: const {'sat'},
       metadata: {'identifier': identifier},
     );
-    await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+    await widget.ndkFlutter.wallets.addWallet(wallet);
     return wallet;
   }
 
@@ -3285,10 +3282,10 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
     required String walletName,
     CashuMintInfo? mintInfo,
   }) async {
-    await widget.ndkFlutter.ndk.cashu.addMintToKnownMints(mintUrl: mintUrl);
+    await widget.ndkFlutter.cashu.addMintToKnownMints(mintUrl: mintUrl);
     final resolvedMintInfo =
         mintInfo ??
-        await widget.ndkFlutter.ndk.cashu.getMintInfoNetwork(mintUrl: mintUrl);
+        await widget.ndkFlutter.cashu.getMintInfoNetwork(mintUrl: mintUrl);
     final wallet = CashuWallet(
       id: mintUrl,
       name: walletName,
@@ -3296,7 +3293,7 @@ class _AddWalletFlowState extends State<_AddWalletFlow> {
       mintInfo: resolvedMintInfo,
       supportedUnits: resolvedMintInfo.supportedUnits,
     );
-    await widget.ndkFlutter.ndk.wallets.addWallet(wallet);
+    await widget.ndkFlutter.wallets.addWallet(wallet);
     return wallet;
   }
 
@@ -3887,7 +3884,7 @@ Future<void> _showNwcUriInputAndAddWallet(
       supportedUnits: {'sat'},
       nwcUrl: result,
     );
-    await ndkFlutter.ndk.wallets.addWallet(nwcWallet);
+    await ndkFlutter.wallets.addWallet(nwcWallet);
 
     scaffoldMessenger.showSnackBar(
       SnackBar(
@@ -4121,7 +4118,7 @@ Future<void> _showNwcFaucetDialog(
                       supportedUnits: {'sat'},
                       nwcUrl: nwcUri,
                     );
-                    await ndkFlutter.ndk.wallets.addWallet(nwcWallet);
+                    await ndkFlutter.wallets.addWallet(nwcWallet);
 
                     if (context.mounted) {
                       navigator.pop();

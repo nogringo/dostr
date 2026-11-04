@@ -1,14 +1,10 @@
 import 'dart:async';
 
-import '../../entities/nip_01_event.dart';
 import '../../../shared/logger/logger.dart';
 import '../../entities/filter.dart';
 import '../../entities/request_response.dart';
 import '../../repositories/event_signer.dart';
 import '../lnurl/lnurl.dart';
-import '../nwc/nwc.dart';
-import '../nwc/nwc_connection.dart';
-import '../nwc/responses/pay_invoice_response.dart';
 import '../requests/requests.dart';
 import 'invoice_response.dart';
 import 'zap_receipt.dart';
@@ -17,13 +13,11 @@ import 'zap_request.dart';
 /// Zaps
 class Zaps {
   final Requests _requests;
-  final Nwc _nwc;
   final Lnurl _lnurl;
 
   /// .
-  Zaps({required Requests requests, required Nwc nwc, required Lnurl lnurl})
+  Zaps({required Requests requests, required Lnurl lnurl})
     : _requests = requests,
-      _nwc = nwc,
       _lnurl = lnurl;
 
   /// creates an invoice with an optional zap request encoded if signer, pubKey & relays are non empty
@@ -91,126 +85,6 @@ class Zaps {
     return sigendZapRequest;
   }
 
-  /// zap or pay some lnurl, for zap to be created it is necessary:
-  /// - that the lnurl has the allowsNostr: true
-  /// - non empty relays
-  /// - non empty pubKey
-  /// - non empty _signer
-  Future<ZapResponse> zap({
-    required NwcConnection nwcConnection,
-    required String lnurl,
-    required int amountSats,
-    bool fetchZapReceipt = false,
-    EventSigner? signer,
-    Iterable<String>? relays,
-    String? pubKey,
-    String? comment,
-    String? eventId,
-    String? addressableId,
-  }) async {
-    String? lud16Link = Lnurl.getLud16LinkFromLud16(lnurl);
-    ZapRequest? zapRequest;
-    if (pubKey != null &&
-        signer != null &&
-        relays != null &&
-        relays.isNotEmpty) {
-      zapRequest = await createZapRequest(
-        amountSats: amountSats,
-        signer: signer,
-        pubKey: pubKey,
-        comment: comment,
-        relays: relays,
-        eventId: eventId,
-        addressableId: addressableId,
-      );
-    }
-    final invoice = await fetchInvoice(
-      lud16Link: lud16Link!,
-      comment: comment,
-      amountSats: amountSats,
-      zapRequest: zapRequest,
-    );
-    if (invoice == null) {
-      return ZapResponse(error: "couldn't get invoice from $lnurl");
-    }
-    try {
-      final payResponse = await _nwc.payInvoice(
-        nwcConnection,
-        invoice: invoice.invoice,
-        timeout: Duration(seconds: 10),
-      );
-      if (payResponse.preimage != null &&
-          payResponse.preimage!.isNotEmpty &&
-          payResponse.errorCode == null) {
-        final zapResponse = ZapResponse(payInvoiceResponse: payResponse);
-        if (zapRequest != null &&
-            fetchZapReceipt &&
-            invoice.nostrPubkey != null &&
-            invoice.nostrPubkey!.isNotEmpty) {
-          // if it's a zap, try to find the zap receipt
-          zapResponse.receiptResponse = _requests.subscription(
-            explicitRelays: relays,
-            filters: [
-              eventId != null
-                  ? Filter(
-                      kinds: [ZapReceipt.kKind],
-                      eTags: [eventId],
-                      pTags: [pubKey!],
-                    )
-                  : Filter(kinds: [ZapReceipt.kKind], pTags: [pubKey!]),
-            ],
-          );
-          // TODO make timeout waiting for receipt parameterizable somehow
-          StreamSubscription<Nip01Event>? streamSubscription;
-          final timeout = Timer(Duration(seconds: 30), () {
-            _requests.closeSubscription(
-              zapResponse.zapReceiptResponse!.requestId,
-            );
-            if (streamSubscription != null) {
-              streamSubscription.cancel();
-            }
-            Logger.log.w(
-              () => "timed out waiting for zap receipt for invoice $invoice",
-            );
-          });
-
-          streamSubscription = zapResponse.zapReceiptResponse!.stream.listen((
-            event,
-          ) {
-            String? bolt11 = event.getFirstTag("bolt11");
-            String? preimage = event.getFirstTag("preimage");
-            if (bolt11 != null && bolt11 == invoice.invoice ||
-                preimage != null && preimage == payResponse.preimage) {
-              ZapReceipt receipt = ZapReceipt.fromEvent(event);
-              Logger.log.d(() => "Zap Receipt: $receipt");
-              if (receipt.isValid(
-                nostrPubKey: invoice.nostrPubkey!,
-                recipientLnurl: lnurl,
-              )) {
-                zapResponse.emitReceipt(receipt);
-              } else {
-                Logger.log.w(() => "Zap Receipt invalid: $receipt");
-              }
-              timeout.cancel();
-              _requests.closeSubscription(
-                zapResponse.zapReceiptResponse!.requestId,
-              );
-              if (streamSubscription != null) {
-                streamSubscription.cancel();
-              }
-            }
-          });
-        } else {
-          zapResponse.emitReceipt(null);
-        }
-        return zapResponse;
-      }
-      return ZapResponse(error: payResponse.errorMessage);
-    } catch (e) {
-      return ZapResponse(error: e.toString());
-    }
-  }
-
   /// fetch all zap receipts matching given pubKey and optional event id, in sats
   Stream<ZapReceipt> fetchZappedReceipts({
     required String pubKey,
@@ -252,33 +126,5 @@ class Zaps {
       ],
     );
     return response;
-  }
-}
-
-/// zap response
-class ZapResponse {
-  NdkResponse? zapReceiptResponse;
-  PayInvoiceResponse? payInvoiceResponse;
-  String? error;
-  final _receiptCompleter = Completer<ZapReceipt?>();
-
-  /// the validated zap receipt
-  Future<ZapReceipt?> get zapReceipt {
-    if (zapReceiptResponse == null) {
-      return Future.value(null);
-    }
-    return _receiptCompleter.future;
-  }
-
-  /// emit the receipt
-  void emitReceipt(ZapReceipt? receipt) {
-    _receiptCompleter.complete(receipt);
-  }
-
-  ///
-  ZapResponse({this.zapReceiptResponse, this.payInvoiceResponse, this.error});
-
-  set receiptResponse(NdkResponse receiptResponse) {
-    zapReceiptResponse = receiptResponse;
   }
 }

@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk/entities.dart' show Bolt12Wallet;
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class _UnavailableNdk implements Ndk {
-  @override
-  final Wallets wallets = _UnavailableWallets();
-
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Wallet backend unavailable');
@@ -72,7 +69,10 @@ void main() {
               l10n = AppLocalizations.of(context)!;
               return _CardHost(
                 key: hostKey,
-                ndkFlutter: NdkFlutter(ndk: _UnavailableNdk()),
+                ndkFlutter: NdkFlutter(
+                  ndk: _UnavailableNdk(),
+                  wallets: _UnavailableWallets(),
+                ),
               );
             },
           ),

@@ -4,7 +4,7 @@ import 'package:ndk/domain_layer/usecases/requests/verify_event_stream.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 
 void main() {
   group('VerifyEventStream', () {

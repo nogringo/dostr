@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_l10n;
 
 Future<String?> scanBolt12Input(BuildContext context) {

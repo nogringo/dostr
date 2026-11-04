@@ -1,7 +1,7 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -106,7 +106,7 @@ class _CashuSeedPhraseDialogState extends State<_CashuSeedPhraseDialog> {
       await widget.seedStore.write(phrase);
       // Awaiting the actual seed derivation means a failure surfaces here
       // instead of as an unhandled async error.
-      await widget.ndkFlutter.ndk.cashu.setCashuSeedPhrase(
+      await widget.ndkFlutter.cashu.setCashuSeedPhrase(
         CashuUserSeedphrase(seedPhrase: phrase),
       );
       // The seed changed, so the previous backup confirmation no longer

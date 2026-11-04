@@ -37,11 +37,9 @@ final ndk = Ndk(
 | `bootstrapRelays` | `List<String>` | DEFAULT_BOOTSTRAP_RELAYS | Connect on start |
 | `ignoreRelays` | `List<String>` | `[]` | Skip for inbox/outbox |
 | `eventSignerFactory` | `LocalEventSignerFactory` | `Bip340EventSignerFactory()` | Key signing |
-| `walletsRepo` | `WalletsRepo?` | `null` | Required for wallet persistence |
 | `defaultQueryTimeout` | `Duration` | 5s | Per-query timeout |
 | `defaultBroadcastTimeout` | `Duration` | — | Broadcast timeout |
 | `logLevel` | `LogLevel` | warning | Logging verbosity |
-| `cashuUserSeedphrase` | `CashuUserSeedphrase?` | `null` | Required for Cashu |
 | `fetchedRangesEnabled` | `bool` | `false` | Track fetched time ranges per relay |
 | `eagerAuth` | `bool` | `false` | AUTH on challenge vs on auth-required |
 

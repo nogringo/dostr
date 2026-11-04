@@ -15,11 +15,23 @@ Our Target is to make it easy to build constrained Nostr clients, particularly f
 
 ## Monorepo Packages
 
-NDK ships as a small monorepo with focused packages for core, Flutter, and storage integrations.
+NDK ships as a small monorepo with focused packages for core, wallets, Flutter, and storage integrations.
 
 ### [🔗 Dart Nostr Development Kit (NDK)](./packages/ndk/#readme)
 
 Core package of the NDK. Go here for instructions on how to use the NDK. 📜
+
+### [🔗 Wallets](./packages/wallets/)
+
+`ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.
+
+### [🔗 NWC](./packages/nwc/)
+
+`ndk_nwc`: Nostr Wallet Connect (NIP-47) client and NWC zaps.
+
+### [🔗 Cashu](./packages/cashu/)
+
+`ndk_cashu`: Cashu ecash wallet.
 
 ### [🔗 ObjectBox](./packages/objectbox/)
 

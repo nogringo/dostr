@@ -177,25 +177,34 @@ void main() {
     expect(authTransport.closed, isTrue);
   });
 
-  test('NDK background hook closes idle relay without NWC wallet', () async {
-    final ndk = Ndk.emptyBootstrapRelaysConfig();
-    final transport = _Transport();
-    ndk.relays.globalState.relays[anonymous] = RelayConnectivity(
-      key: anonymous,
-      relay: Relay(
-        url: anonymous.url,
-        connectionSource: ConnectionSource.explicit,
-      ),
-      relayTransport: transport,
-    );
-    await ndk.setBackgrounded(true);
-    expect(transport.closed, isTrue);
-    expect(ndk.relays.globalState.relays, isEmpty);
-    expect(ndk.wallets.isBackgrounded, isTrue);
-    await ndk.setBackgrounded(false);
-    expect(ndk.wallets.isBackgrounded, isFalse);
-    await ndk.destroy();
-  });
+  test(
+    'NDK background hook closes idle relay and runs lifecycle hooks',
+    () async {
+      final ndk = Ndk.emptyBootstrapRelaysConfig();
+      final backgrounded = <bool>[];
+      var destroyed = false;
+      ndk.addLifecycleHooks(
+        onBackgrounded: (value) async => backgrounded.add(value),
+        onDestroy: () async => destroyed = true,
+      );
+      final transport = _Transport();
+      ndk.relays.globalState.relays[anonymous] = RelayConnectivity(
+        key: anonymous,
+        relay: Relay(
+          url: anonymous.url,
+          connectionSource: ConnectionSource.explicit,
+        ),
+        relayTransport: transport,
+      );
+      await ndk.setBackgrounded(true);
+      expect(transport.closed, isTrue);
+      expect(ndk.relays.globalState.relays, isEmpty);
+      await ndk.setBackgrounded(false);
+      expect(backgrounded, [true, false]);
+      await ndk.destroy();
+      expect(destroyed, isTrue);
+    },
+  );
 
   test(
     'request-sent waiter completes on exact REQ and supports late waiters',

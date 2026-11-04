@@ -2,10 +2,10 @@
 
 import 'dart:io';
 
-import 'package:ndk_sembast/ndk_sembast.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_user_seedphrase.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk/domain_layer/entities/wallet/wallet_type.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
+
+import 'wallets_setup.dart';
 
 Future<void> main() async {
   final nwcUri = Platform.environment['NWC_URI']!;
@@ -13,23 +13,12 @@ Future<void> main() async {
 
   final examplesDir = Directory.current.absolute;
   final dbPath = '${examplesDir.path}/wallets_db.db';
-  final walletsRepo = await SembastWalletsRepo.create(filename: dbPath);
-  final ndk = Ndk(
-    NdkConfig(
-      cache: MemCacheManager(),
-      walletsRepo: walletsRepo,
-      eventVerifier: Bip340EventVerifier(),
-      bootstrapRelays: const [],
-      cashuUserSeedphrase: CashuUserSeedphrase(
-        seedPhrase: CashuSeed.generateSeedPhrase(),
-      ),
-    ),
-  );
+  final setup = await setUpWallets(filename: dbPath);
 
   try {
     NostrWalletConnectUri.parseConnectionUri(nwcUri);
 
-    final wallet = ndk.wallets.createWallet(
+    final wallet = setup.wallets.createWallet(
       id: 'wallet_${DateTime.now().microsecondsSinceEpoch}',
       name: walletName,
       type: WalletType.NWC,
@@ -37,11 +26,11 @@ Future<void> main() async {
       metadata: {'nwcUrl': nwcUri},
     );
 
-    await ndk.wallets.addWallet(wallet);
+    await setup.wallets.addWallet(wallet);
 
     print('Added ${wallet.name}.');
     print('');
-    final wallets = await ndk.wallets.getWallets();
+    final wallets = await setup.wallets.getWallets();
     print('Wallets (${wallets.length}):');
     for (final wallet in wallets) {
       print(
@@ -50,6 +39,6 @@ Future<void> main() async {
       );
     }
   } finally {
-    await ndk.destroy();
+    await setup.ndk.destroy();
   }
 }

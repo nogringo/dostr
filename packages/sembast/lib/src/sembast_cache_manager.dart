@@ -1,5 +1,6 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk/shared/nips/nip01/event_eviction_planner.dart';
 import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
@@ -10,7 +11,7 @@ import 'ndk_extensions.dart';
 // Platform-specific imports
 import 'sembast_cache_manager_platform.dart';
 
-class SembastCacheManager extends CacheManager {
+class SembastCacheManager extends CacheManager implements CashuStorage {
   /// Creates a new [SembastCacheManager] instance.
   ///
   /// Platform-specific behavior:

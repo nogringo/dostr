@@ -17,6 +17,8 @@ resolution: workspace
 dependencies:
   ndk: ^0.11.0-dev.2
   sqlite3: ^3.5.2
+  ndk_cashu: ^0.1.0
+  ndk_wallets: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0

@@ -42,6 +42,9 @@ dependencies:
   convert: ^3.1.2
   rxdart: ^0.28.0
   shared_preferences: ^2.5.5
+  ndk_cashu: ^0.1.0
+  ndk_nwc: ^0.1.0
+  ndk_wallets: ^0.1.0
 
 dev_dependencies:
   flutter_test:

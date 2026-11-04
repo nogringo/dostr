@@ -3,7 +3,7 @@ import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_relay.dart';
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 
 /// Waits until [condition] holds, polling so the test does not depend on
 /// reconnect backoff timings.

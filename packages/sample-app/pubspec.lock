@@ -803,21 +803,42 @@ packages:
       path: "../ndk"
       relative: true
     source: path
-    version: "0.10.2"
+    version: "0.11.0-dev.2"
+  ndk_cashu:
+    dependency: "direct main"
+    description:
+      path: "../cashu"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_drift:
     dependency: "direct main"
     description:
       path: "../drift"
       relative: true
     source: path
-    version: "0.2.0"
+    version: "0.2.1-dev.1"
   ndk_flutter:
     dependency: "direct main"
     description:
       path: "../ndk_flutter"
       relative: true
     source: path
-    version: "0.10.2"
+    version: "0.10.3-dev.2"
+  ndk_nwc:
+    dependency: "direct main"
+    description:
+      path: "../nwc"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_wallets:
+    dependency: "direct main"
+    description:
+      path: "../wallets"
+      relative: true
+    source: path
+    version: "0.1.0"
   nested:
     dependency: transitive
     description:

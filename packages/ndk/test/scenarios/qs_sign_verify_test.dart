@@ -5,7 +5,7 @@ import 'package:ndk/data_layer/repositories/verifiers/qs_rust_event_verifier_nat
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../tools/simple_profiler.dart';
+import '../../../cashu/test/tools/simple_profiler.dart';
 
 void main() async {
   group("qs_sign + qs_verify", skip: true, () {

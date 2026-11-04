@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk/entities.dart';
-import 'package:ndk/domain_layer/usecases/nwc/consts/nwc_method.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 void main() {

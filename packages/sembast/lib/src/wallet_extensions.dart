@@ -1,4 +1,4 @@
-import 'package:ndk/entities.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 
 extension WalletTransactionExtension on WalletTransaction {
   Map<String, Object?> toJsonForStorage() {

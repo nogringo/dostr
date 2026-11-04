@@ -25,6 +25,8 @@ dependencies:
   path: ^1.9.1
   http: ^1.6.0
   crypto: ^3.0.7
+  ndk_cashu: ^0.1.0
+  ndk_wallets: ^0.1.0
 
 dev_dependencies:
   ndk_cache_manager_test_suite: ^1.0.1-dev.14

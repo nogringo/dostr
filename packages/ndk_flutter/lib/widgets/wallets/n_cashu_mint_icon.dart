@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
+
+import 'package:ndk_cashu/ndk_cashu.dart';
 
 /// Displays Cashu mint's NUT-06 icon with bundled Cashu asset fallback.
 class NCashuMintIcon extends StatelessWidget {

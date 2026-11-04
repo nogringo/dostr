@@ -1,8 +1,8 @@
 // ignore_for_file: experimental_member_use
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/ndk.dart';
 
+import 'package:ndk_nwc/ndk_nwc.dart';
 import 'main.dart';
 
 class ZapsPage extends StatefulWidget {
@@ -84,7 +84,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: uri.text.isNotEmpty
             ? () async {
-                connection = await ndk.nwc.connect(
+                connection = await nwc.connect(
                   uri.text,
                   doGetInfoMethod: true,
                 );
@@ -106,7 +106,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                final b = await ndk.nwc.getBalance(connection!);
+                final b = await nwc.getBalance(connection!);
                 setState(() {
                   balance = b;
                 });
@@ -143,7 +143,7 @@ class _ZapsPageState extends State<ZapsPage> {
           FilledButton(
             onPressed: canMakeInvoice
                 ? () async {
-                    final invoice = await ndk.nwc.makeInvoice(
+                    final invoice = await nwc.makeInvoice(
                       connection!,
                       amountSats: int.tryParse(amount.text) ?? 0,
                     );
@@ -184,7 +184,7 @@ class _ZapsPageState extends State<ZapsPage> {
           FilledButton(
             onPressed: canPayInvoice
                 ? () async {
-                    final p = await ndk.nwc.payInvoice(
+                    final p = await nwc.payInvoice(
                       connection!,
                       invoice: invoice.text,
                     );
@@ -208,7 +208,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                await ndk.nwc.disconnect(connection!);
+                await nwc.disconnect(connection!);
                 setState(() {
                   connection = null;
                   balance = null;

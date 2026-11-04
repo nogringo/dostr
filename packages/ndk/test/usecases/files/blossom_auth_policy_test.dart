@@ -8,7 +8,7 @@ import 'package:ndk/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
-import '../../mocks/mock_event_verifier.dart';
+import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 
 const int policyPort = 30040;
 

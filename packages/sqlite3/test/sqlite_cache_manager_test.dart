@@ -4,6 +4,7 @@ import 'dart:math';
 
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_sqlite3/ndk_sqlite3.dart';
 import 'package:ndk_sqlite3/src/migrations/v1.dart';
@@ -28,6 +29,12 @@ void main() {
     name: 'SqliteCacheManager',
     createCacheManager: () async => _inMemory(),
     cleanUp: (cacheManager) => cacheManager.close(),
+  );
+
+  runCashuStorageTestSuite(
+    name: 'SqliteCacheManager',
+    createStorage: () async => _inMemory(),
+    cleanUp: (storage) => (storage as SqliteCacheManager).close(),
   );
 
   test('persists across reopening the database file', () async {

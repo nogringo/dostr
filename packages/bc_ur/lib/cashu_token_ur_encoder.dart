@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ur/ur.dart';
 import 'package:ur/ur_encoder.dart';
 import 'package:ur/ur_decoder.dart';

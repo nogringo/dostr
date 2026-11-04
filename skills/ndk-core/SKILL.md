@@ -19,10 +19,10 @@ Core Dart library for building Nostr apps. Not a binary — this is library deve
 | Requests + subscriptions (query relays) | [references/requests.md](references/requests.md) |
 | Accounts + signers | [references/accounts.md](references/accounts.md) |
 | Usecases overview (all ndk.* accessors) | [references/usecases.md](references/usecases.md) |
-| Wallets (NWC + Cashu) | [references/wallets.md](references/wallets.md) |
+| Wallets (NWC + Cashu, separate packages) | [references/wallets.md](references/wallets.md) |
 
 ## One-Line Summary
 
 ```
-NdkConfig(cache, eventVerifier) → Ndk(config) → ndk.requests / ndk.accounts / ndk.wallets / …
+NdkConfig(cache, eventVerifier) → Ndk(config) → ndk.requests / ndk.accounts / ndk.zaps / ...
 ```

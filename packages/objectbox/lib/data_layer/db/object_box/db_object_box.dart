@@ -1,12 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/shared/nips/nip01/event_eviction_planner.dart';
 import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_objectbox/data_layer/db/object_box/schema/db_nip_05.dart';
 
 import '../../../objectbox.g.dart';
@@ -23,7 +24,7 @@ import 'schema/db_user_relay_list.dart';
 import 'schema/db_wallet.dart';
 import 'schema/db_wallet_transaction.dart';
 
-class DbObjectBox extends WalletsRepo implements CacheManager {
+class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
   static const String _defaultWalletForReceivingKey =
       'default_wallet_for_receiving';
   static const String _defaultWalletForSendingKey =

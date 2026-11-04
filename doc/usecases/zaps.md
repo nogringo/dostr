@@ -8,7 +8,9 @@ icon: zap
 
 ## Example
 
-:::code source="../../packages/ndk/example/zaps/zap.dart" language="dart" range="18-51" title="zap, receipt" :::
+Paying a zap goes through a wallet: with NWC, `Nwc.zap(...)` from the `ndk_nwc` package fetches the invoice, pays it and waits for the receipt. Without a wallet, `ndk.zaps.fetchInvoice(...)` returns the invoice to pay.
+
+:::code source="../../packages/nwc/example/zap.dart" language="dart" range="13-53" title="zap, receipt" :::
 
 :::code source="../../packages/ndk/example/zaps/receipts_for_profile.dart" language="dart" range="8-31" title="receipts for profile" :::
 

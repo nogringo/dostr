@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:ndk/entities.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -118,7 +119,7 @@ class _NWalletCardState extends State<NWalletCard>
     final generation = ++_connectionCheckGeneration;
     final walletId = widget.wallet.id;
     try {
-      await widget.ndkFlutter.ndk.wallets
+      await widget.ndkFlutter.wallets
           .reconnectWallet(walletId)
           .timeout(const Duration(seconds: 10));
       if (mounted &&
@@ -138,7 +139,7 @@ class _NWalletCardState extends State<NWalletCard>
   void _initializeNwcBalanceIfNeeded() {
     if (widget.wallet is! NwcWallet) return;
     try {
-      widget.ndkFlutter.ndk.wallets.getBalance(widget.wallet.id, 'sat');
+      widget.ndkFlutter.wallets.getBalance(widget.wallet.id, 'sat');
     } catch (_) {
       // Keep initialization best-effort.
     }
@@ -163,7 +164,7 @@ class _NWalletCardState extends State<NWalletCard>
 
       // Use the balance stream to detect when wallet is fully initialized.
       await for (final _
-          in widget.ndkFlutter.ndk.wallets
+          in widget.ndkFlutter.wallets
               .getBalancesStream(nwcWallet.id)
               .take(1)
               .timeout(const Duration(seconds: 10))) {
@@ -191,7 +192,7 @@ class _NWalletCardState extends State<NWalletCard>
         return;
       }
 
-      final budget = await widget.ndkFlutter.ndk.nwc.getBudget(connection);
+      final budget = await widget.ndkFlutter.nwc.getBudget(connection);
 
       if (mounted) {
         setState(() {
@@ -668,7 +669,6 @@ class _NWalletCardState extends State<NWalletCard>
                       ? reclaimablePending(
                           widget
                                   .ndkFlutter
-                                  .ndk
                                   .cashu
                                   .pendingTransactions
                                   .valueOrNull ??
@@ -845,12 +845,13 @@ class _NWalletCardState extends State<NWalletCard>
                       await _showCashuRestoreOptions();
                       break;
                     case 'set_default_receive':
-                      widget.ndkFlutter.ndk.wallets
-                          .setDefaultWalletForReceiving(widget.wallet.id);
+                      widget.ndkFlutter.wallets.setDefaultWalletForReceiving(
+                        widget.wallet.id,
+                      );
                       widget.onDefaultWalletChanged?.call();
                       break;
                     case 'set_default_send':
-                      widget.ndkFlutter.ndk.wallets.setDefaultWalletForSending(
+                      widget.ndkFlutter.wallets.setDefaultWalletForSending(
                         widget.wallet.id,
                       );
                       widget.onDefaultWalletChanged?.call();
@@ -1026,7 +1027,7 @@ class _NWalletCardState extends State<NWalletCard>
         setState(() {
           widget.wallet.name = newName;
         });
-        await widget.ndkFlutter.ndk.wallets.addWallet(widget.wallet);
+        await widget.ndkFlutter.wallets.addWallet(widget.wallet);
         scaffoldMessenger.showSnackBar(
           SnackBar(
             content: Text(l10n.walletRenamed),
@@ -1207,7 +1208,7 @@ class _NWalletCardState extends State<NWalletCard>
           throw UnsupportedError('Unknown wallet type');
         }
 
-        await widget.ndkFlutter.ndk.wallets.addWallet(updatedWallet);
+        await widget.ndkFlutter.wallets.addWallet(updatedWallet);
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1463,7 +1464,7 @@ class _NWalletCardState extends State<NWalletCard>
     final balanceFontSize = isCompactNwc ? 24.0 : 28.0;
     final unitFontSize = isCompactNwc ? 12.0 : 14.0;
     return StreamBuilder<List<WalletBalance>>(
-      stream: widget.ndkFlutter.ndk.wallets.getBalancesStream(widget.wallet.id),
+      stream: widget.ndkFlutter.wallets.getBalancesStream(widget.wallet.id),
       builder: (context, snapshot) {
         final balances = snapshot.data ?? [];
         final satBalance = balances
@@ -1526,7 +1527,7 @@ class _NWalletCardState extends State<NWalletCard>
     final wasUnavailable = !_isWalletAvailable;
     setState(() => _isRefreshingBalance = true);
     try {
-      await widget.ndkFlutter.ndk.wallets
+      await widget.ndkFlutter.wallets
           .reconnectWallet(walletId)
           .timeout(const Duration(seconds: 10));
       final canRefreshBalance =
@@ -1536,7 +1537,7 @@ class _NWalletCardState extends State<NWalletCard>
                 widget.wallet as NwcWallet,
               ).contains(NwcMethod.GET_BALANCE.name));
       if (canRefreshBalance) {
-        await widget.ndkFlutter.ndk.wallets
+        await widget.ndkFlutter.wallets
             .refreshBalance(walletId)
             .timeout(const Duration(seconds: 10));
       }
@@ -1678,7 +1679,7 @@ class _NWalletCardState extends State<NWalletCard>
   Future<void> _defaultDeleteHandler(BuildContext context) async {
     final l10n = AppLocalizations.of(context)!;
     final scaffoldMessenger = ScaffoldMessenger.of(context);
-    final wallets = widget.ndkFlutter.ndk.wallets;
+    final wallets = widget.ndkFlutter.wallets;
     final walletId = widget.wallet.id;
 
     final bool? confirmed = await showDialog<bool>(

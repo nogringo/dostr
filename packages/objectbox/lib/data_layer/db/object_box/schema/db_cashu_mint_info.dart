@@ -1,7 +1,8 @@
 import 'dart:convert';
 
 import 'package:objectbox/objectbox.dart';
-import 'package:ndk/entities.dart' as ndk_entities;
+
+import 'package:ndk_cashu/ndk_cashu.dart' as ndk_entities;
 
 @Entity()
 class DbCashuMintInfo {

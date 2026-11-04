@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -54,9 +55,7 @@ class _NCashuSeedBackupWarningState extends State<NCashuSeedBackupWarning> {
   /// list when no seed is configured.
   List<String> _seedWords() {
     try {
-      final mnemonic = widget.ndkFlutter.ndk.cashu
-          .getCashuSeed()
-          .getSeedPhrase();
+      final mnemonic = widget.ndkFlutter.cashu.getCashuSeed().getSeedPhrase();
       return mnemonic.sentence.trim().split(RegExp(r'\s+'));
     } catch (_) {
       return const [];
@@ -170,7 +169,7 @@ class _NCashuSeedBackupWarningState extends State<NCashuSeedBackupWarning> {
 
     // Only warn when at least one cashu wallet actually exists.
     return StreamBuilder<List<Wallet>>(
-      stream: widget.ndkFlutter.ndk.wallets.walletsStream,
+      stream: widget.ndkFlutter.wallets.walletsStream,
       builder: (context, snapshot) {
         final hasCashuWallet =
             snapshot.data?.any((w) => w is CashuWallet) ?? false;

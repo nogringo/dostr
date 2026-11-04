@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
@@ -43,7 +45,7 @@ Future<void> showReclaimDialog(
   // StreamBuilder tiles don't restart the process on every rebuild.
   final streams = <CashuWalletTransaction, Stream<CashuWalletTransaction>>{
     for (final tx in reclaimable)
-      tx: ndkFlutter.ndk.cashu
+      tx: ndkFlutter.cashu
           .retrieveFunds(draftTransaction: tx)
           .asBroadcastStream(),
   };
@@ -257,7 +259,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
     CashuWallet wallet,
   ) async {
     final reclaimable = reclaimablePending(
-      ndkFlutter.ndk.cashu.pendingTransactions.valueOrNull ??
+      ndkFlutter.cashu.pendingTransactions.valueOrNull ??
           const <CashuWalletTransaction>[],
       mintUrl: wallet.mintUrl,
     );
@@ -281,7 +283,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
             Future<void> generate() async {
               setDialogState(() => generating = true);
               try {
-                final json = await ndkFlutter.ndk.cashu
+                final json = await ndkFlutter.cashu
                     .exportCashuStateJsonString();
                 setDialogState(() {
                   backupJson = json;
@@ -450,7 +452,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                           }
                           setDialogState(() => restoring = true);
                           try {
-                            final result = await ndkFlutter.ndk.cashu
+                            final result = await ndkFlutter.cashu
                                 .importCashuStateJsonString(json);
 
                             // Close via the dialog's own navigator and report
@@ -491,13 +493,13 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
 
   Future<void> showSendDialog(BuildContext context, Wallet wallet) async {
     final l10n = AppLocalizations.of(context)!;
-    final wallets = await ndkFlutter.ndk.wallets.getWallets();
+    final wallets = await ndkFlutter.wallets.getWallets();
     if (!context.mounted) return;
     final destinations = wallets
         .where(
           (destination) =>
               destination.id != wallet.id &&
-              ndkFlutter.ndk.wallets.compatibleTransferProtocol(
+              ndkFlutter.wallets.compatibleTransferProtocol(
                     source: wallet,
                     destination: destination,
                   ) !=
@@ -706,7 +708,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
 
                         setDialogState(() => sending = true);
                         try {
-                          await ndkFlutter.ndk.wallets.transfer(
+                          await ndkFlutter.wallets.transfer(
                             sourceWalletId: source.id,
                             destinationWalletId: selectedDestination.id,
                             amountMsat: amountMsat,
@@ -882,12 +884,11 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                 }
 
                 try {
-                  final spendingResult = await ndkFlutter.ndk.cashu
-                      .initiateSpend(
-                        mintUrl: wallet.mintUrl,
-                        amount: amount,
-                        unit: 'sat',
-                      );
+                  final spendingResult = await ndkFlutter.cashu.initiateSpend(
+                    mintUrl: wallet.mintUrl,
+                    amount: amount,
+                    unit: 'sat',
+                  );
                   final cashuString = spendingResult.token.toV4TokenString();
 
                   await Clipboard.setData(ClipboardData(text: cashuString));
@@ -945,7 +946,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
 
                 try {
                   if (wallet is CashuWallet) {
-                    final draftTransaction = await ndkFlutter.ndk.cashu
+                    final draftTransaction = await ndkFlutter.cashu
                         .initiateRedeem(
                           mintUrl: wallet.mintUrl,
                           request: invoice,
@@ -953,7 +954,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                           method: 'bolt11',
                         );
 
-                    await for (final transaction in ndkFlutter.ndk.cashu.redeem(
+                    await for (final transaction in ndkFlutter.cashu.redeem(
                       draftRedeemTransaction: draftTransaction,
                     )) {
                       if (transaction.state ==
@@ -976,7 +977,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                       }
                     }
                   } else if (wallet.supportsBolt11InvoicePay) {
-                    final response = await ndkFlutter.ndk.wallets.send(
+                    final response = await ndkFlutter.wallets.send(
                       walletId: wallet.id,
                       invoice: invoice,
                     );
@@ -984,9 +985,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                         response.preimage != null) {
                       if (wallet is LnBitsWallet) {
                         try {
-                          await ndkFlutter.ndk.wallets.refreshBalance(
-                            wallet.id,
-                          );
+                          await ndkFlutter.wallets.refreshBalance(wallet.id);
                         } catch (_) {
                           // Payment succeeded; background polling will retry.
                         }
@@ -1052,7 +1051,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                 }
 
                 try {
-                  final rcvStream = ndkFlutter.ndk.cashu.receive(token);
+                  final rcvStream = ndkFlutter.cashu.receive(token);
                   await rcvStream.last;
                   if (!mounted) return;
                   navigator.pop();
@@ -1108,7 +1107,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
 
                 try {
                   if (wallet is CashuWallet) {
-                    final draftTransaction = await ndkFlutter.ndk.cashu
+                    final draftTransaction = await ndkFlutter.cashu
                         .initiateFund(
                           mintUrl: wallet.mintUrl,
                           amount: amount,
@@ -1129,7 +1128,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
                       );
                     }
                   } else if (wallet.supportsBolt11InvoiceReceive) {
-                    final invoice = await ndkFlutter.ndk.wallets.receive(
+                    final invoice = await ndkFlutter.wallets.receive(
                       walletId: wallet.id,
                       amountSats: amount,
                     );
@@ -1159,7 +1158,7 @@ mixin WalletActionDialogsMixin<T extends StatefulWidget> on State<T> {
     ScaffoldMessengerState scaffoldMessenger,
   ) {
     final l10n = AppLocalizations.of(context)!;
-    final stream = ndkFlutter.ndk.cashu.retrieveFunds(
+    final stream = ndkFlutter.cashu.retrieveFunds(
       draftTransaction: draftTransaction,
     );
 

@@ -24,6 +24,9 @@ on:
           - ndk_sembast
           - ndk_sqlite3
           - ndk_flutter
+          - ndk_wallets
+          - ndk_nwc
+          - ndk_cashu
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

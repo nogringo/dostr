@@ -1,14 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/entities.dart' show Wallet;
 import 'package:ndk/ndk.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class _TestNdk implements Ndk {
-  @override
-  final Wallets wallets = _TestWallets();
-
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Unexpected NDK operation');
@@ -42,7 +39,7 @@ Widget _buildList({
       body: SizedBox(
         height: 200,
         child: NWalletCardList(
-          ndkFlutter: NdkFlutter(ndk: _TestNdk()),
+          ndkFlutter: NdkFlutter(ndk: _TestNdk(), wallets: _TestWallets()),
           onWalletSelected: (_) {},
           onAddWallet: onAddWallet,
           addWalletCardBuilder: addWalletCardBuilder,

@@ -1,0 +1,27 @@
+name: ndk_wallets
+description: Wallet abstraction for NDK (Nostr Development Kit), combining Cashu, NWC, LNURL, BOLT12 and LNbits wallets behind one API.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - wallet
+  - lightning
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  collection: ^1.19.1
+  http: ^1.6.0
+  ndk: ^0.11.0-dev.2
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  fake_async: ^1.3.3
+  lints: ^6.1.0
+  test: any

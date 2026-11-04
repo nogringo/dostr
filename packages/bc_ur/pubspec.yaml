@@ -9,6 +9,7 @@ environment:
 dependencies:
   cbor: ^6.5.1
   ndk: '>0.7.1'
+  ndk_cashu: ^0.1.0
 
 dev_dependencies:
   test: ^1.16.0
@@ -17,3 +18,7 @@ dev_dependencies:
 dependency_overrides:
   ndk:
     path: ../ndk
+  ndk_cashu:
+    path: ../cashu
+  ndk_wallets:
+    path: ../wallets

@@ -3,8 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
-import 'package:ndk/entities.dart' as ndk_entities;
+import 'package:ndk_wallets/ndk_wallets.dart';
+
+import 'package:ndk_wallets/ndk_wallets.dart' as ndk_entities;
 
 const _walletsStateKey = kDebugMode
     ? 'dev_ndk_flutter_wallets_state'

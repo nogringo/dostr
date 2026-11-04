@@ -2,16 +2,13 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_keyset.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_mint_info.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk/domain_layer/entities/nip_05.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/pubkey_mapping.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
-import 'package:ndk/domain_layer/entities/wallet/wallet_factory.dart';
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
@@ -21,7 +18,8 @@ import 'database/event_index.dart';
 import 'sql.dart';
 
 /// A Drift-based implementation of the CacheManager for NDK.
-class DriftCacheManager extends WalletsRepo implements CacheManager {
+class DriftCacheManager extends WalletsRepo
+    implements CacheManager, CashuStorage {
   static const String _defaultWalletForReceivingKey =
       'default_wallet_for_receiving';
   static const String _defaultWalletForSendingKey =

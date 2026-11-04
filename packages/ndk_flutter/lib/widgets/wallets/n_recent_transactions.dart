@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -24,8 +25,8 @@ class NRecentTransactions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stream = walletId == null
-        ? ndkFlutter.ndk.wallets.combinedRecentTransactions
-        : ndkFlutter.ndk.wallets.getRecentTransactionsStream(walletId!);
+        ? ndkFlutter.wallets.combinedRecentTransactions
+        : ndkFlutter.wallets.getRecentTransactionsStream(walletId!);
     return StreamBuilder<List<WalletTransaction>>(
       stream: stream,
       builder: (context, snapshot) {

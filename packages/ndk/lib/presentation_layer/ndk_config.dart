@@ -5,14 +5,12 @@ import '../config/logger_defaults.dart';
 import '../config/request_defaults.dart';
 import '../data_layer/repositories/signers/bip340_event_signer.dart';
 import '../domain_layer/entities/auth_handler.dart';
-import '../domain_layer/entities/cashu/cashu_user_seedphrase.dart';
 import '../domain_layer/entities/cache_eviction.dart';
 import '../domain_layer/entities/event_filter.dart';
 import '../domain_layer/entities/nip_85.dart';
 import '../domain_layer/repositories/cache_manager.dart';
 import '../domain_layer/repositories/event_signer.dart';
 import '../domain_layer/repositories/event_verifier.dart';
-import '../domain_layer/repositories/wallets_repo.dart';
 import '../shared/logger/log_level.dart';
 
 /// Configuration class for the Nostr Development Kit (NDK)
@@ -25,9 +23,6 @@ class NdkConfig {
 
   /// The cache manager (DB) used to store and retrieve Nostr data. E.g MemCacheManager()
   CacheManager cache;
-
-  /// The wallets repository used to manage wallet data. E.g MemWalletsRepo()
-  WalletsRepo? walletsRepo;
 
   /// Factory for creating EventSigner instances. Defaults to Bip340EventSigner.
   LocalEventSignerFactory eventSignerFactory;
@@ -59,17 +54,6 @@ class NdkConfig {
   /// percentage of relays that need to respond with "OK" for the broadcast to be considered done \
   /// value between 0.0 and 1.0
   double defaultBroadcastConsiderDonePercent;
-
-  /// cashu user seed phrase, required for using cashu features \
-  /// you can use CashuSeed.generateSeedPhrase() to generate a new seed phrase \
-  /// Store this securely! Seed phrase allow full access to cashu funds!
-  final CashuUserSeedphrase? cashuUserSeedphrase;
-
-  /// when false (default), automatic cashu quote completion on startup
-  /// requires an explicit `Cashu.restore()` call for the mint/unit first;
-  /// when true, it instead runs a bounded NUT-09 scan itself to verify the
-  /// mint derivation counter before minting. See [Cashu.retrieveFunds].
-  bool autoVerifyMintCounters;
 
   /// whether to save broadcasted events to cache by default
   bool defaultBroadcastSaveToCache;
@@ -171,13 +155,11 @@ class NdkConfig {
   /// [eventOutFilters] A list of filters to apply to the output stream (defaults to an empty list). \
   /// [defaultQueryTimeout] The default timeout for queries (defaults to DEFAULT_QUERY_TIMEOUT). \
   /// [logLevel] The log level for the NDK (defaults to warning).
-  /// [cashuUserSeedphrase] The cashu user seed phrase, required for using cashu features
   /// [webSocketCompression] Whether native WebSockets negotiate compression.
   NdkConfig({
     required this.eventVerifier,
     required this.cache,
     this.eventSignerFactory = const Bip340EventSignerFactory(),
-    this.walletsRepo,
     this.engine = NdkEngine.RELAY_SETS,
     this.ignoreRelays = const [],
     this.bootstrapRelays = DEFAULT_BOOTSTRAP_RELAYS,
@@ -192,8 +174,6 @@ class NdkConfig {
     this.webSocketCompression = true,
     this.webSocketPingInterval = const Duration(seconds: 10),
     this.webSocketReconnectMaximumStep = 4,
-    this.cashuUserSeedphrase,
-    this.autoVerifyMintCounters = false,
     this.fetchedRangesEnabled = false,
     // ignore: deprecated_member_use_from_same_package
     this.eagerAuth = false,

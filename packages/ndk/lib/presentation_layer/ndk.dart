@@ -6,7 +6,6 @@ import '../domain_layer/entities/global_state.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/bunkers/bunkers.dart';
-import '../domain_layer/usecases/cashu/cashu.dart';
 import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
@@ -16,12 +15,12 @@ import '../domain_layer/usecases/files/blossom_user_server_list.dart';
 import '../domain_layer/usecases/files/files.dart';
 import '../domain_layer/usecases/follows/follows.dart';
 import '../domain_layer/usecases/gift_wrap/gift_wrap.dart';
+import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import '../domain_layer/usecases/dms/dms.dart';
 import '../domain_layer/usecases/nip77/nip77.dart';
-import '../domain_layer/usecases/nwc/nwc.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
@@ -30,7 +29,6 @@ import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/ta/trusted_assertions.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
-import '../domain_layer/usecases/wallets/wallets.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'init.dart';
 import 'ndk_config.dart';
@@ -48,6 +46,9 @@ class Ndk {
 
   /// Internal initialization object for setting up repositories and usecases
   late final Initialization _initialization;
+
+  final List<Future<void> Function(bool backgrounded)> _backgroundedHooks = [];
+  final List<Future<void> Function()> _destroyHooks = [];
 
   /// Creates a new instance of [Ndk] with the given [config]
   Ndk(this.config) : _globalState = GlobalState() {
@@ -164,16 +165,25 @@ class Ndk {
 
   ProofOfWork get proofOfWork => _initialization.proofOfWork;
 
-  /// Nostr Wallet connect
-  @experimental // needs more docs & tests
-  Nwc get nwc => _initialization.nwc;
+  /// Registers callbacks run by [setBackgrounded] and [destroy], in
+  /// registration order. Add-on packages such as ndk_nwc and ndk_wallets use
+  /// it to follow the lifecycle of this instance.
+  void addLifecycleHooks({
+    Future<void> Function(bool backgrounded)? onBackgrounded,
+    Future<void> Function()? onDestroy,
+  }) {
+    if (onBackgrounded != null) _backgroundedHooks.add(onBackgrounded);
+    if (onDestroy != null) _destroyHooks.add(onDestroy);
+  }
 
-  /// Suspends wallet notifications and balance polling, and closes idle relay
+  /// Runs the background hooks registered with [addLifecycleHooks] (wallet
+  /// notifications and balance polling are suspended), and closes idle relay
   /// connections when the application enters background. Active requests keep
   /// their connections.
   Future<void> setBackgrounded(bool backgrounded) async {
-    wallets.setBackgrounded(backgrounded);
-    await nwc.setBackgrounded(backgrounded);
+    for (final hook in List.of(_backgroundedHooks)) {
+      await hook(backgrounded);
+    }
     if (backgrounded) await relays.closeIdleConnections();
   }
 
@@ -181,20 +191,15 @@ class Ndk {
   @experimental // needs more docs & tests
   Zaps get zaps => _initialization.zaps;
 
+  /// LNURL-pay (LUD-06/LUD-16) lookups and invoice fetching
+  Lnurl get lnurl => _initialization.lnurl;
+
   /// Search
   @experimental
   Search get search => _initialization.search;
 
   /// NIP-82 software application, release, and asset discovery.
   Software get software => _initialization.software;
-
-  /// Cashu Wallet
-  @experimental // in development
-  Cashu get cashu => _initialization.cashu;
-
-  /// Wallet combining all wallet accounts \
-  @experimental
-  Wallets get wallets => _initialization.wallets;
 
   /// Fetched ranges tracking
   /// Track which time ranges have been fetched from which relays for each filter
@@ -226,11 +231,10 @@ class Ndk {
     final allFutures = [
       _initialization.dispose(),
       Future(() => _initialization.closeAllNip77Negotiations()),
-      nwc.disconnectAll(),
+      ..._destroyHooks.map((hook) => hook()),
       _initialization.requests.closeAllSubscription(),
       _initialization.relayManager.closeAllTransports(),
       _initialization.requests.closeAllSubscription(),
-      wallets.dispose(),
       accounts.dispose(),
     ];
 

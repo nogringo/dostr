@@ -1,0 +1,41 @@
+// ignore_for_file: avoid_print
+import 'package:http/http.dart' as http;
+import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk/ndk.dart';
+import 'package:test/test.dart';
+
+void main() {
+  setUp(() {});
+
+  group('dev tests', () {
+    test('fund', () async {
+      final ndk = Ndk.emptyBootstrapRelaysConfig();
+
+      final mintUrl = 'http://127.0.0.1:8085';
+
+      final cashu = Cashu(ndk);
+
+      final fundResponse = await cashu.initiateFund(
+        mintUrl: mintUrl,
+        amount: 52,
+        unit: 'sat',
+        method: 'bolt11',
+      );
+
+      print(fundResponse);
+    });
+
+    test('parse mint info', () async {
+      final mintUrl = 'http://127.0.0.1:8085';
+
+      final HttpRequestDS httpRequestDS = HttpRequestDS(http.Client());
+
+      final repo = CashuRepoImpl(client: httpRequestDS);
+
+      final mintInfo = await repo.getMintInfo(mintUrl: mintUrl);
+
+      print(mintInfo);
+    });
+  }, skip: true);
+}

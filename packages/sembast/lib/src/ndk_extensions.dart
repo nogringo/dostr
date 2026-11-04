@@ -1,5 +1,7 @@
 import 'package:ndk/entities.dart';
 
+import 'package:ndk_cashu/ndk_cashu.dart';
+
 // Extension for Nip01Event to add JSON serialization support
 extension Nip01EventExtension on Nip01Event {
   Map<String, Object?> toJsonForStorage() {

@@ -1,5 +1,7 @@
 import 'package:ndk/entities.dart';
 
+import 'package:ndk_cashu/ndk_cashu.dart';
+
 // Extension for Nip05 to add JSON serialization support
 extension Nip05Extension on Nip05 {
   Map<String, Object?> toJsonForStorage() {

@@ -1,24 +1,12 @@
 // ignore_for_file: avoid_print
 
-import 'package:ndk_sembast/ndk_sembast.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_user_seedphrase.dart';
-import 'package:ndk/ndk.dart';
+import 'wallets_setup.dart';
 
 Future<void> main() async {
-  final ndk = Ndk(
-    NdkConfig(
-      cache: MemCacheManager(),
-      walletsRepo: await SembastWalletsRepo.create(filename: "wallets_db.db"),
-      eventVerifier: Bip340EventVerifier(),
-      bootstrapRelays: const [],
-      cashuUserSeedphrase: CashuUserSeedphrase(
-        seedPhrase: CashuSeed.generateSeedPhrase(),
-      ),
-    ),
-  );
+  final setup = await setUpWallets();
 
   try {
-    final wallets = await ndk.wallets.getWallets();
+    final wallets = await setup.wallets.getWallets();
 
     if (wallets.isEmpty) {
       print('No wallets stored yet.');
@@ -33,6 +21,6 @@ Future<void> main() async {
       );
     }
   } finally {
-    await ndk.destroy();
+    await setup.ndk.destroy();
   }
 }

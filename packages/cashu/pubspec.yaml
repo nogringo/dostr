@@ -1,0 +1,33 @@
+name: ndk_cashu
+description: Cashu ecash wallet for NDK (Nostr Development Kit).
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - cashu
+  - ecash
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  bip32_keys: ^3.1.4
+  bip39_mnemonic: ^4.1.0
+  cbor: ^6.5.1
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  http: ^1.6.0
+  ndk: ^0.11.0-dev.2
+  ndk_wallets: ^0.1.0
+  pointycastle: ">=3.0.0 <5.0.0"
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  ndk_cache_manager_test_suite: ^1.0.1-dev.14
+  lints: ^6.1.0
+  test: any

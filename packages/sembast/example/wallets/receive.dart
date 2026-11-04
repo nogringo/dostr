@@ -2,32 +2,20 @@
 
 import 'dart:io';
 
-import 'package:ndk_sembast/ndk_sembast.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_user_seedphrase.dart';
-import 'package:ndk/ndk.dart';
+import 'wallets_setup.dart';
 
 Future<void> main() async {
-  final ndk = Ndk(
-    NdkConfig(
-      cache: MemCacheManager(),
-      walletsRepo: await SembastWalletsRepo.create(filename: "wallets_db.db"),
-      eventVerifier: Bip340EventVerifier(),
-      bootstrapRelays: const [],
-      cashuUserSeedphrase: CashuUserSeedphrase(
-        seedPhrase: CashuSeed.generateSeedPhrase(),
-      ),
-    ),
-  );
+  final setup = await setUpWallets();
 
   try {
     final amountSats = int.parse(Platform.environment['AMOUNT_SATS'] ?? '1000');
-    final wallets = await ndk.wallets.getWallets();
+    final wallets = await setup.wallets.getWallets();
     if (wallets.isEmpty) {
       throw StateError('No wallets stored yet.');
     }
     final walletId = Platform.environment['WALLET_ID'] ?? wallets.first.id;
 
-    final invoice = await ndk.wallets.receive(
+    final invoice = await setup.wallets.receive(
       walletId: walletId,
       amountSats: amountSats,
     );
@@ -35,6 +23,6 @@ Future<void> main() async {
     print('Invoice for $amountSats sats:');
     print(invoice);
   } finally {
-    await ndk.destroy();
+    await setup.ndk.destroy();
   }
 }

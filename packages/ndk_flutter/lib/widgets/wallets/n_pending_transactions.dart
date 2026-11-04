@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -29,8 +29,8 @@ class NPendingTransactions extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final stream = walletId == null
-        ? ndkFlutter.ndk.wallets.combinedPendingTransactions
-        : ndkFlutter.ndk.wallets.getPendingTransactionsStream(walletId!);
+        ? ndkFlutter.wallets.combinedPendingTransactions
+        : ndkFlutter.wallets.getPendingTransactionsStream(walletId!);
     return StreamBuilder<List<WalletTransaction>>(
       stream: stream,
       builder: (context, snapshot) {

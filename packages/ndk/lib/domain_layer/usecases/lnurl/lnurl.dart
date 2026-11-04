@@ -1,8 +1,6 @@
 import 'package:ndk/domain_layer/repositories/lnurl_transport.dart';
 import 'package:ndk/ndk.dart';
 
-import 'lnurl_response.dart';
-
 /// LN URL utilities
 class Lnurl {
   final LnurlTransport _transport;

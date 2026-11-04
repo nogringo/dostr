@@ -4,7 +4,7 @@ part of 'cache_manager_test_suite.dart';
 // Cashu Tests
 // ============================================================================
 
-void _runCashuTests(CacheManager Function() getCacheManager) {
+void _runCashuTests(CashuStorage Function() getCacheManager) {
   test('saveKeyset and getKeysets', () async {
     final cacheManager = getCacheManager();
     final keyset = CahsuKeyset(

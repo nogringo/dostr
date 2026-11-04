@@ -1,13 +1,10 @@
 import 'dart:convert';
 
-import 'package:ndk/domain_layer/entities/cashu/cashu_keyset.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_mint_info.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk/domain_layer/entities/nip_05.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
-import 'package:ndk/domain_layer/entities/wallet/wallet_factory.dart';
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
@@ -26,7 +23,8 @@ import 'sql.dart';
 ///
 /// SQLite calls are synchronous, each method blocks the calling isolate until
 /// its queries finish.
-class SqliteCacheManager extends WalletsRepo implements CacheManager {
+class SqliteCacheManager extends WalletsRepo
+    implements CacheManager, CashuStorage {
   static const _defaultWalletForReceivingKey = 'default_wallet_for_receiving';
   static const _defaultWalletForSendingKey = 'default_wallet_for_sending';
 

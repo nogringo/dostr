@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -10,7 +12,7 @@ import '../../l10n/app_localizations.dart';
 typedef AddWalletCardBuilder =
     Widget Function(BuildContext context, VoidCallback? onTap);
 
-/// Reorderable list of wallet cards backed by `ndk.wallets.walletsStream`.
+/// Reorderable list of wallet cards backed by `wallets.walletsStream`.
 class NWalletCardList extends StatefulWidget {
   final NdkFlutter ndkFlutter;
   final String? selectedWalletId;
@@ -183,7 +185,7 @@ class _NWalletCardListState extends State<NWalletCardList> {
       final updatedMetadata = Map<String, dynamic>.from(wallet.metadata);
       updatedMetadata[_walletOrderKey] = i;
       final updatedWallet = _copyWalletWithMetadata(wallet, updatedMetadata);
-      updates.add(widget.ndkFlutter.ndk.wallets.addWallet(updatedWallet));
+      updates.add(widget.ndkFlutter.wallets.addWallet(updatedWallet));
     }
     if (updates.isNotEmpty) {
       await Future.wait(updates);
@@ -222,7 +224,7 @@ class _NWalletCardListState extends State<NWalletCardList> {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return StreamBuilder<List<Wallet>>(
-      stream: widget.ndkFlutter.ndk.wallets.walletsStream,
+      stream: widget.ndkFlutter.wallets.walletsStream,
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return Center(child: Text('${l10n.error}: ${snapshot.error}'));
@@ -231,9 +233,9 @@ class _NWalletCardListState extends State<NWalletCardList> {
         final wallets = snapshot.data ?? [];
         final orderedWallets = _orderWallets(wallets);
         final defaultWalletIdForReceiving =
-            widget.ndkFlutter.ndk.wallets.defaultWalletForReceiving?.id;
+            widget.ndkFlutter.wallets.defaultWalletForReceiving?.id;
         final defaultWalletIdForSending =
-            widget.ndkFlutter.ndk.wallets.defaultWalletForSending?.id;
+            widget.ndkFlutter.wallets.defaultWalletForSending?.id;
 
         if (orderedWallets.isEmpty && !widget.showAddWalletCard) {
           return Center(

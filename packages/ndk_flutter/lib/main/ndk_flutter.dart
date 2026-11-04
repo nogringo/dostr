@@ -4,6 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ndk/data_layer/repositories/signers/nip46_event_signer.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:ndk_flutter/main/config.dart';
 import 'package:ndk_flutter/models/accounts.dart';
@@ -21,14 +24,31 @@ class NdkFlutter {
   final int npubPrefixLength;
   final int npubSuffixLength;
   final FlutterSecureStorage _storage;
+  final Wallets? _wallets;
+  final Cashu? _cashu;
+  final Nwc? _nwc;
 
+  /// [wallets], [cashu] and [nwc] are only needed by the wallet widgets.
   NdkFlutter({
     required this.ndk,
+    Wallets? wallets,
+    Cashu? cashu,
+    Nwc? nwc,
     this.npubSeparator = '…',
     this.npubPrefixLength = 10,
     this.npubSuffixLength = 4,
     FlutterSecureStorage? storage,
-  }) : _storage = storage ?? const FlutterSecureStorage();
+  }) : _storage = storage ?? const FlutterSecureStorage(),
+       _wallets = wallets,
+       _cashu = cashu,
+       _nwc = nwc;
+
+  Wallets get wallets =>
+      _wallets ?? (throw StateError('Pass wallets to NdkFlutter'));
+
+  Cashu get cashu => _cashu ?? (throw StateError('Pass cashu to NdkFlutter'));
+
+  Nwc get nwc => _nwc ?? (throw StateError('Pass nwc to NdkFlutter'));
 
   String formatNpub(String pubkey) {
     final npub = Nip19.encodePubKey(pubkey);

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 import '../../l10n/app_localizations.dart';
@@ -179,7 +179,7 @@ class CashuRestoreProgressDialog extends StatefulWidget {
 
 class _CashuRestoreProgressDialogState
     extends State<CashuRestoreProgressDialog> {
-  late final Stream<CashuRestoreResult> _progress = widget.ndkFlutter.ndk.cashu
+  late final Stream<CashuRestoreResult> _progress = widget.ndkFlutter.cashu
       .restore(mintUrl: widget.mintUrl);
   CashuRestoreResult? _result;
   bool _failed = false;

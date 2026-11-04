@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:ndk/shared/nips/nip01/key_pair.dart';
@@ -11,7 +10,7 @@ import 'package:ndk/shared/nips/nip25/reactions.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_event_verifier.dart';
+import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';
 
 void main() {
@@ -1089,9 +1088,6 @@ Future<Ndk> _createNdk(
       logLevel: LogLevel.all,
       pendingDeliveryRetryInterval:
           pendingDeliveryRetryInterval ?? const Duration(seconds: 15),
-      cashuUserSeedphrase: CashuUserSeedphrase(
-        seedPhrase: CashuSeed.generateSeedPhrase(),
-      ),
     ),
   );
 }

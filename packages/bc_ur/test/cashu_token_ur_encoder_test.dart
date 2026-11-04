@@ -1,5 +1,4 @@
-import 'package:ndk/domain_layer/entities/cashu/cashu_proof.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_token.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 
 import '../lib/cashu_token_ur_encoder.dart';
 

@@ -26,6 +26,7 @@ import 'package:test/test.dart';
 
 import 'package:ndk/entities.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 
 part 'cache_manager_test_suite_clear_all.dart';
 part 'cache_manager_test_suite_contact_list.dart';
@@ -125,9 +126,31 @@ void runCacheManagerTestSuite({
     group('Eviction Operations', () {
       _runEvictionTests(() => cacheManager);
     });
+  });
+}
+
+/// Runs the Cashu tests for a [CashuStorage] implementation, usually a cache
+/// manager that also persists Cashu data.
+void runCashuStorageTestSuite({
+  required String name,
+  required Future<CashuStorage> Function() createStorage,
+  Future<void> Function(CashuStorage storage)? cleanUp,
+}) {
+  group('$name CashuStorage Test Suite', () {
+    late CashuStorage storage;
+
+    setUp(() async {
+      storage = await createStorage();
+    });
+
+    tearDown(() async {
+      if (cleanUp != null) {
+        await cleanUp(storage);
+      }
+    });
 
     group('Cashu Operations', () {
-      _runCashuTests(() => cacheManager);
+      _runCashuTests(() => storage);
     });
   });
 }

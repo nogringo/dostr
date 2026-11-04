@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
-import '../data_layer/repositories/cashu_seed_secret_generator/dart_cashu_key_derivation.dart';
-import '../data_layer/repositories/wallets/wallets_repo_stub.dart';
 import '../shared/net/user_agent.dart';
 import '../data_layer/data_sources/http_request.dart';
 import '../data_layer/io/file_io_platform.dart';
 import '../data_layer/repositories/blossom/blossom_impl.dart';
-import '../data_layer/repositories/cashu/cashu_repo_impl.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
@@ -17,16 +14,9 @@ import '../domain_layer/entities/global_state.dart';
 import '../domain_layer/entities/connection_source.dart';
 import '../domain_layer/entities/jit_engine_relay_connectivity_data.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
-import '../domain_layer/entities/wallet/providers/cashu/cashu_wallet_provider.dart';
-import '../domain_layer/entities/wallet/providers/nwc/nwc_wallet_provider.dart';
-import '../domain_layer/entities/wallet/providers/lnurl/lnurl_wallet_provider.dart';
-import '../domain_layer/entities/wallet/providers/bolt12/bolt12_wallet_provider.dart';
-import '../domain_layer/entities/wallet/providers/lnbits/lnbits_wallet_provider.dart';
 import '../domain_layer/repositories/blossom.dart';
-import '../domain_layer/repositories/cashu_repo.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
 import '../domain_layer/repositories/nip_05_repo.dart';
-import '../domain_layer/repositories/wallets_repo.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/broadcast/broadcast_sender.dart';
@@ -34,8 +24,6 @@ import '../domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
 import '../domain_layer/usecases/bunkers/bunkers.dart';
 import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/cache_read/cache_read.dart';
-import '../domain_layer/usecases/cashu/cashu.dart';
-import '../domain_layer/usecases/cashu/cashu_mint_recommendations.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../domain_layer/usecases/engines/network_engine.dart';
@@ -52,7 +40,6 @@ import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import '../domain_layer/usecases/dms/dms.dart';
 import '../domain_layer/usecases/nip77/nip77.dart';
-import '../domain_layer/usecases/nwc/nwc.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
@@ -62,7 +49,6 @@ import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/ta/trusted_assertions.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
-import '../domain_layer/usecases/wallets/wallets.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import '../shared/logger/logger.dart';
 import 'ndk_config.dart';
@@ -98,7 +84,6 @@ class Initialization {
   late RelaySets relaySets;
   late Broadcast broadcast;
   late PendingBroadcastDelivery pendingBroadcastDelivery;
-  late Nwc nwc;
   late Zaps zaps;
   late Lnurl lnurl;
   late Files files;
@@ -110,8 +95,6 @@ class Initialization {
   late Dms dms;
   late Connectivy connectivity;
   late DecryptedEventPayloads decryptedEventPayloads;
-  late Cashu cashu;
-  late Wallets wallets;
   late FetchedRanges fetchedRanges;
   CacheEvictionScheduler? cacheEvictionScheduler;
   late ProofOfWork proofOfWork;
@@ -196,8 +179,6 @@ class Initialization {
       fileIO: createFileIO(),
     );
 
-    final CashuRepo cashuRepo = CashuRepoImpl(client: _httpRequestDS);
-
     ///   use cases
     cacheRead = CacheRead(_ndkConfig.cache);
     decryptedEventPayloads = DecryptedEventPayloads(
@@ -250,37 +231,6 @@ class Initialization {
         retryInterval: _ndkConfig.pendingDeliveryRetryInterval,
       );
     }
-
-    // Initialize nwc and cashu before walletsOperationsRepo since they are dependencies
-    nwc = Nwc(
-      requests: requests,
-      broadcast: broadcast,
-      eventSignerFactory: _ndkConfig.eventSignerFactory,
-      waitForRequestSent: relayManager.waitForRequestSent,
-    );
-
-    if (_ndkConfig.walletsRepo == null) {
-      // auto detect if the provided cache manager has wallets capabilities.
-      if (_ndkConfig.cache is WalletsRepo) {
-        _ndkConfig.walletsRepo = _ndkConfig.cache as WalletsRepo;
-      } else {
-        _ndkConfig.walletsRepo = StubWalletsRepo();
-      }
-    }
-
-    cashu = Cashu(
-      cashuRepo: cashuRepo,
-      walletsRepo: _ndkConfig.walletsRepo!,
-      cacheManager: _ndkConfig.cache,
-      cashuUserSeedphrase: _ndkConfig.cashuUserSeedphrase,
-      cashuKeyDerivation: DartCashuKeyDerivation(),
-      mintRecommendations: CashuMintRecommendations(requests: requests),
-      autoVerifyMintCounters: _ndkConfig.autoVerifyMintCounters,
-    );
-
-    // Create wallet providers
-    final cashuProvider = CashuWalletProvider(cashu);
-    final nwcProvider = NwcWalletProvider(nwc);
 
     bunkers = Bunkers(
       broadcast: broadcast,
@@ -336,12 +286,7 @@ class Initialization {
 
     lnurl = Lnurl(transport: lnurlTransport);
 
-    // Create LNURL wallet provider after lnurl is initialized
-    final lnurlProvider = LnurlWalletProvider(lnurl);
-    const bolt12Provider = Bolt12WalletProvider();
-    final lnbitsProvider = LnBitsWalletProvider();
-
-    zaps = Zaps(requests: requests, nwc: nwc, lnurl: lnurl);
+    zaps = Zaps(requests: requests, lnurl: lnurl);
 
     blossomUserServerList = BlossomUserServerList(
       requests: requests,
@@ -387,16 +332,6 @@ class Initialization {
 
     connectivity = Connectivy(relayManager);
 
-    wallets = Wallets(
-      providers: [
-        cashuProvider,
-        nwcProvider,
-        lnurlProvider,
-        bolt12Provider,
-        lnbitsProvider,
-      ],
-      repository: _ndkConfig.walletsRepo!,
-    );
     proofOfWork = ProofOfWork();
 
     nip77 = Nip77(

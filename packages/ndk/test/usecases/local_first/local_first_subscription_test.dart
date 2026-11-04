@@ -8,7 +8,7 @@ import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_event_verifier.dart';
+import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';
 
 void main() {

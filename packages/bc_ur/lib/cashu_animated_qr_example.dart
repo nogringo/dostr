@@ -1,6 +1,5 @@
 // ignore_for_file: avoid_print
-import 'package:ndk/domain_layer/entities/cashu/cashu_proof.dart';
-import 'package:ndk/domain_layer/entities/cashu/cashu_token.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 
 import 'cashu_token_ur_encoder.dart';
 

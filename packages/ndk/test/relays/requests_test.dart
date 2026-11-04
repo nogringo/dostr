@@ -11,7 +11,7 @@ import 'package:ndk/presentation_layer/init.dart';
 import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:ndk/shared/nips/nip01/key_pair.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 void main() async {

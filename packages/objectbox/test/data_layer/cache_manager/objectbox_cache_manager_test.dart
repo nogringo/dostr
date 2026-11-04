@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk/entities.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_objectbox/ndk_objectbox.dart';
 
@@ -23,6 +24,24 @@ void main() async {
     },
     cleanUp: (cacheManager) async {
       await cacheManager.close();
+      try {
+        await sharedTempDir.delete(recursive: true);
+      } catch (_) {}
+    },
+  );
+
+  runCashuStorageTestSuite(
+    name: 'ObjectBoxCacheManager (Shared Suite)',
+    createStorage: () async {
+      sharedTempDir = await Directory.systemTemp.createTemp(
+        'objectbox_cashu_test',
+      );
+      final cacheManager = DbObjectBox(directory: sharedTempDir.path);
+      await cacheManager.dbRdy;
+      return cacheManager;
+    },
+    cleanUp: (storage) async {
+      await (storage as DbObjectBox).close();
       try {
         await sharedTempDir.delete(recursive: true);
       } catch (_) {}

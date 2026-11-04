@@ -4,17 +4,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/entities.dart' show Bolt12Wallet, Wallet;
 import 'package:ndk/ndk.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class _TestNdk implements Ndk {
-  _TestNdk(Wallet wallet) : wallets = _TestWallets(wallet);
-
-  @override
-  final Wallets wallets;
-
   @override
   dynamic noSuchMethod(Invocation invocation) =>
       throw StateError('Wallet backend must not be used for localization');
@@ -121,7 +116,10 @@ void main() {
                   children: [
                     NWalletCard(
                       wallet: wallet,
-                      ndkFlutter: NdkFlutter(ndk: _TestNdk(wallet)),
+                      ndkFlutter: NdkFlutter(
+                        ndk: _TestNdk(),
+                        wallets: _TestWallets(wallet),
+                      ),
                       isSelected: false,
                       width: 800,
                       onTap: () {},

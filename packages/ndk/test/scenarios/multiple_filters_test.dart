@@ -3,9 +3,9 @@ import 'package:ndk/shared/nips/nip01/bip340.dart';
 import 'package:ndk/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
-import '../tools/simple_profiler.dart';
+import '../../../cashu/test/tools/simple_profiler.dart';
 
 void main() async {
   group("multiple filters (external REAL)", skip: true, () {

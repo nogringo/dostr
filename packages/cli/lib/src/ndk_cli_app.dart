@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:ndk/domain_layer/repositories/wallets_repo.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 
@@ -54,7 +53,7 @@ class NdkCliApp {
 
     final walletsRepo = await _createWalletsRepo();
     final cache = await _createCache();
-    final ndk = _createNdk(walletsRepo, cache, globalOptions.logLevel);
+    final ndk = _createNdk(cache, globalOptions.logLevel);
     try {
       final accountsStore = await CliAccountsStore.load();
       if (command.restoreAccountsOnStartup &&
@@ -127,16 +126,11 @@ class NdkCliApp {
     );
   }
 
-  Ndk _createNdk(
-    WalletsRepo walletsRepo,
-    SembastCacheManager cache,
-    LogLevel logLevel,
-  ) {
+  Ndk _createNdk(SembastCacheManager cache, LogLevel logLevel) {
     Logger.setLogLevel(logLevel);
     return Ndk(
       NdkConfig(
         cache: cache,
-        walletsRepo: walletsRepo,
         eventVerifier: _CliEventVerifier(),
         bootstrapRelays: const [],
         logLevel: logLevel,

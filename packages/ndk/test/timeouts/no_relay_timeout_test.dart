@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
 
 /// a request sent to zero relays has nothing to wait for and must not hang
 /// until the query timeout

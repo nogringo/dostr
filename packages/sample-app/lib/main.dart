@@ -8,13 +8,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_demo/router.dart';
 import 'package:ndk_drift/ndk_drift.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
 import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 
 import 'dm_live_state.dart';
 import 'l10n/generated/sample_app_localizations.dart';
@@ -23,6 +25,9 @@ import 'protocol_registration.dart';
 bool signerAppAvailable = false;
 
 late Ndk ndk;
+late Nwc nwc;
+late Cashu cashu;
+late Wallets wallets;
 late NdkFlutter ndkFlutter;
 late NAppUpdateController appUpdater;
 Future<void> Function(String url)? activeWalletProtocolHandler;
@@ -65,12 +70,34 @@ Future<void> main() async {
     NdkConfig(
       eventVerifier: eventVerifier,
       cache: cacheManager,
-      walletsRepo: FlutterSecureStorageWalletsRepo(storage: secureStorage),
       logLevel: Logger.logLevels.info,
-      cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
     ),
   );
-  ndkFlutter = NdkFlutter(ndk: ndk, storage: secureStorage);
+  final walletsRepo = FlutterSecureStorageWalletsRepo(storage: secureStorage);
+  nwc = Nwc(ndk);
+  cashu = Cashu(
+    ndk,
+    walletsRepo: walletsRepo,
+    cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
+  );
+  wallets = Wallets(
+    ndk,
+    repository: walletsRepo,
+    providers: [
+      CashuWalletProvider(cashu),
+      NwcWalletProvider(nwc),
+      LnurlWalletProvider(ndk.lnurl),
+      const Bolt12WalletProvider(),
+      LnBitsWalletProvider(),
+    ],
+  );
+  ndkFlutter = NdkFlutter(
+    ndk: ndk,
+    wallets: wallets,
+    cashu: cashu,
+    nwc: nwc,
+    storage: secureStorage,
+  );
   appUpdater = NAppUpdateController.self(
     ndkFlutter: ndkFlutter,
     app: const SoftwareAppRef(

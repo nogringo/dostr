@@ -18,6 +18,29 @@ This API is `experimental` you can try it and submit your feedback.
 
 Cashu usecase can manage eCash (digital cash) within your application. It provides functionalities for funding, spending, and receiving eCash tokens.
 
+## Setup
+
+Cashu lives in the `ndk_cashu` package.
+
+```yaml
+dependencies:
+  ndk_cashu: ^0.1.0
+  ndk_wallets: ^0.1.0 # WalletTransactionState and wallets repositories
+```
+
+```dart
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
+
+final cashu = Cashu(
+  ndk,
+  // generate one with CashuSeed.generateSeedPhrase() and store it securely
+  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
+);
+```
+
+Proofs, keysets and mint infos go to a `CashuStorage`. Without `storage`, the NDK cache is used when it implements `CashuStorage` (`ndk_objectbox`, `ndk_drift`, `ndk_sembast` and `ndk_sqlite3` do), an in memory `MemCashuStorage` otherwise. Pending quotes go to the `walletsRepo`, see [wallets](wallets.md).
+
 ## Examples
 
 ## add mint url
@@ -28,20 +51,20 @@ When you receive tokens or initiate funding, the mint gets added automatically
 
 ```dart
 /// adds to known mints
-ndk.cashu.addMintToKnownMints(mintUrl: "https://example.mint");
+cashu.addMintToKnownMints(mintUrl: "https://example.mint");
 
 /// stream [Set<CashuMintInfo>] of known mints
-ndk.cashu.knownMints;
+cashu.knownMints;
 
 /// get [CashuMintInfo] without adding it to known mints
-ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
+cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```
 
 ## fund (mint)
 
 ```dart
-    final initTransaction = await ndk.cashu.initiateFund(
+    final initTransaction = await cashu.initiateFund(
         mintUrl: "https://example.mint",
         amount: "100",
         unit: "sat",
@@ -54,16 +77,16 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
     /// retrieve funds and listen for status
     final resultStream =
-          ndk.cashu.retrieveFunds(draftTransaction: initTransaction);
+          cashu.retrieveFunds(draftTransaction: initTransaction);
 
       await for (final result in resultStream) {
-        if (result.state == ndk_entities.WalletTransactionState.completed) {
+        if (result.state == WalletTransactionState.completed) {
           /// transcation done
           print(result.completionMsg);
-        } else if (result.state == ndk_entities.WalletTransactionState.pending) {
+        } else if (result.state == WalletTransactionState.pending) {
           /// pending
         }
-         else if (result.state == ndk_entities.WalletTransactionState.failed) {
+         else if (result.state == WalletTransactionState.failed) {
           /// transcation done
           print(result.completionMsg);
         }
@@ -75,7 +98,7 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```dart
 
-    final draftTransaction = await ndk.cashu.initiateRedeem(
+    final draftTransaction = await cashu.initiateRedeem(
         mintUrl: "https://example.mint",
         request: "lnbc1...",
         unit: "sat"
@@ -87,16 +110,16 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
     /// redeem funds and listen for status
     final resultStream =
-        ndk.cashu.redeem(draftTransaction: draftTransaction);
+        cashu.redeem(draftTransaction: draftTransaction);
 
     await for (final result in resultStream) {
-    if (result.state == ndk_entities.WalletTransactionState.completed) {
+    if (result.state == WalletTransactionState.completed) {
         /// transcation done
         print(result.completionMsg);
-    } else if (result.state == ndk_entities.WalletTransactionState.pending) {
+    } else if (result.state == WalletTransactionState.pending) {
         /// pending
     }
-    else if (result.state == ndk_entities.WalletTransactionState.failed) {
+    else if (result.state == WalletTransactionState.failed) {
         /// transcation done
         print(result.completionMsg);
     }
@@ -108,7 +131,7 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 ## spend
 
 ```dart
-    final spendResult = await ndk.cashu.initiateSpend(
+    final spendResult = await cashu.initiateSpend(
         mintUrl: "https://example.mint",
         amount: 5,
         unit: "sat",
@@ -119,12 +142,12 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
     print("transaction id: ${spendResult.transaction}");
 
     /// listen to pending transactions List<CashuWalletTransaction>
-    await for (final transaction in ndk.cashu.pendingTransactions) {
+    await for (final transaction in cashu.pendingTransactions) {
       print("latest transaction: $transaction");
     }
 
     /// listen to recent transactinos List<CashuWalletTransaction>
-    await for (final transaction in ndk.cashu.latestTransactions) {
+    await for (final transaction in cashu.latestTransactions) {
       print("latest transaction: $transaction");
     }
 
@@ -135,16 +158,16 @@ ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```dart
 
-      final rcvResultStream = _ndk.cashu.receive(tokenString);
+      final rcvResultStream = cashu.receive(tokenString);
 
       await for (final rcvResult in rcvResultStream) {
-        if (rcvResult.state == ndk_entities.WalletTransactionState.pending) {
+        if (rcvResult.state == WalletTransactionState.pending) {
             /// pending
         } else if (rcvResult.state ==
-            ndk_entities.WalletTransactionState.completed) {
+            WalletTransactionState.completed) {
             /// completed
         } else if (rcvResult.state ==
-            ndk_entities.WalletTransactionState.failed) {
+            WalletTransactionState.failed) {
             /// failed
             print(result.completionMsg);
         }
@@ -161,7 +184,7 @@ As well as in the `Wallets` usecase
 
 ```dart
     /// balances for all mints [List<CashuMintBalance>]
-    final balances = await ndk.cashu.getBalances();
+    final balances = await cashu.getBalances();
     print(balances);
 
     /// balance for one mint and unit [int]
@@ -171,7 +194,7 @@ As well as in the `Wallets` usecase
     );
 
     /// stream of [List<CashuMintBalance>]
-    ndk.cashu.balances;
+    cashu.balances;
 
 ```
 

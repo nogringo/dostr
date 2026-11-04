@@ -28,11 +28,8 @@ All accessible via `ndk.<accessor>`.
 
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
-| `ndk.nwc` | `Nwc` | Nostr Wallet Connect |
-| `ndk.zaps` | `Zaps` | Zap send/receive |
+| `ndk.zaps` | `Zaps` | Zap requests, invoices and receipts (pay with `Nwc.zap`, see wallets.md) |
 | `ndk.search` | `Search` | NIP-50 relay search |
-| `ndk.cashu` | `Cashu` | Cashu e-cash wallet |
-| `ndk.wallets` | `Wallets` | Combined NWC + Cashu wallet |
 | `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay |
 | `ndk.nip77` | `Nip77` | Negentropy set reconciliation |
 | `ndk.ta` / `ndk.trustedAssertions` | `TrustedAssertions` | NIP-85 trusted metrics |
