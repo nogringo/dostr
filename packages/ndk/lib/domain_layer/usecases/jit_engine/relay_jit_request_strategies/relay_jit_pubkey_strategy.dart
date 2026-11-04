@@ -199,13 +199,13 @@ class RelayJitPubkeyStrategy with Logger {
         entry,
       ) async {
         final url = entry.key;
-        final connected = await relayManager.connectRelay(
+        final result = await relayManager.connectRelay(
           dirtyUrl: url,
           connectionSource: ConnectionSource.pubkeyStrategy,
         );
         final connectivity =
             globalState.relays[RelayConnectionKey.anonymous(url)];
-        if (!connected.first ||
+        if (!result.connected ||
             connectivity
                 is! RelayConnectivity<JitEngineRelayConnectivityData>) {
           Logger.log.w(

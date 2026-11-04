@@ -2,8 +2,7 @@ import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
+import 'package:ndk/shared/nips/nip01/helpers.dart';
 import 'package:ndk/domain_layer/entities/nip_51_list.dart';
 import 'package:test/test.dart';
 

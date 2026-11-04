@@ -2,6 +2,8 @@ import 'package:bip340/bip340.dart' as bip340;
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 
+import 'key_pair.dart';
+
 class Bip340 {
   /// [message] is a hex string
   /// [privateKey] is a  32-bytes hex encoded string

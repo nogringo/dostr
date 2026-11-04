@@ -3,7 +3,6 @@
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
 
 void main() async {

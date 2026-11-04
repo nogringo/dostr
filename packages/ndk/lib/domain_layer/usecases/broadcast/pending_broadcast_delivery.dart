@@ -14,7 +14,7 @@ import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../accounts/accounts.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
+import '../../../shared/nips/nip01/event_kind_classification.dart';
 import 'broadcast_sender.dart';
 import 'delivery_policy.dart';
 

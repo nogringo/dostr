@@ -1,4 +1,4 @@
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import '../../../../shared/nips/nip01/helpers.dart';
 
 import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
 export 'package:ndk_core/domain_layer/entities/pending_signer_request.dart'

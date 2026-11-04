@@ -1,9 +1,10 @@
 import 'dart:async';
 
+import 'package:ndk/domain_layer/entities/relay_info.dart';
+import 'package:ndk/domain_layer/repositories/relay_info_repo.dart';
+import 'package:ndk/domain_layer/usecases/connectivity/connectivity.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/relay_info.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_core/domain_layer/repositories/relay_info_repo.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:test/test.dart';
 
@@ -31,43 +32,45 @@ void main() {
   const url = 'wss://relay.example';
   final info = RelayInfo.fromJson({'name': 'Example'});
   late _Repo repo;
-  late RelayManager manager;
+  late Connectivy connectivity;
 
   setUp(() {
     repo = _Repo();
-    manager = RelayManager(
-      globalState: GlobalState(),
-      nostrTransportFactory: _NoTransport(),
-      bootstrapRelays: [],
-      relayInfoRepo: repo,
+    connectivity = Connectivy(
+      RelayManager(
+        globalState: GlobalState(),
+        nostrTransportFactory: _NoTransport(),
+        bootstrapRelays: [],
+      ),
+      repo,
     );
   });
 
   test('concurrent and later calls share one fetch per relay', () async {
-    final first = manager.getRelayInfo(url);
-    final second = manager.getRelayInfo('$url/');
+    final first = connectivity.getRelayInfo(url);
+    final second = connectivity.getRelayInfo('$url/');
     repo.next.complete(info);
 
     expect(await first, same(info));
     expect(await second, same(info));
-    expect(await manager.getRelayInfo(url), same(info));
+    expect(await connectivity.getRelayInfo(url), same(info));
     expect(repo.requested, [url]);
   });
 
   test('a failed fetch is retried on the next call', () async {
     repo.next.complete(null);
-    expect(await manager.getRelayInfo(url), isNull);
+    expect(await connectivity.getRelayInfo(url), isNull);
 
     repo.next = Completer()..complete(info);
-    expect(await manager.getRelayInfo(url), same(info));
+    expect(await connectivity.getRelayInfo(url), same(info));
     expect(repo.requested, [url, url]);
   });
 
   test('a throwing repo is retried on the next call', () async {
     repo.next.completeError(StateError('offline'));
-    await expectLater(manager.getRelayInfo(url), throwsStateError);
+    await expectLater(connectivity.getRelayInfo(url), throwsStateError);
 
     repo.next = Completer()..complete(info);
-    expect(await manager.getRelayInfo(url), same(info));
+    expect(await connectivity.getRelayInfo(url), same(info));
   });
 }

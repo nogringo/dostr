@@ -10,7 +10,6 @@ import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/domain_layer/usecases/relay_sets_engine.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
 import '../../../../cashu/test/mocks/mock_event_verifier.dart';

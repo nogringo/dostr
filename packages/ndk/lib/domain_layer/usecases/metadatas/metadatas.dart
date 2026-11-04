@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import '../../../config/metadata_defaults.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import '../../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/metadata.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';

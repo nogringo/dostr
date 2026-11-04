@@ -1,6 +1,5 @@
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 
 import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';

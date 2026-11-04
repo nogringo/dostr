@@ -12,7 +12,6 @@ import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk/domain_layer/usecases/zaps/zap_request.dart';
 import 'package:ndk/domain_layer/usecases/zaps/zaps.dart';
 import 'package:ndk/presentation_layer/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_slow_signer.dart';

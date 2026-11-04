@@ -5,7 +5,7 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../config/cashu_config.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk/shared/nips/nip01/helpers.dart';
 import '../../entities/cashu/cashu_blinded_message.dart';
 import '../../entities/cashu/cashu_blinded_signature.dart';
 import '../../entities/cashu/cashu_keyset.dart';

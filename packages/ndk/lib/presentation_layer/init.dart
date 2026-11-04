@@ -141,7 +141,6 @@ class Initialization {
           bootstrapRelays: _ndkConfig.bootstrapRelays,
           authCallbackTimeout: _ndkConfig.authCallbackTimeout,
           authHandler: _ndkConfig.authHandler,
-          relayInfoRepo: RelayInfoHttpRepoImpl(httpDS: _httpRequestDS),
         );
 
         engine = RelaySetsEngine(
@@ -159,7 +158,6 @@ class Initialization {
           engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
           authCallbackTimeout: _ndkConfig.authCallbackTimeout,
           authHandler: _ndkConfig.authHandler,
-          relayInfoRepo: RelayInfoHttpRepoImpl(httpDS: _httpRequestDS),
         );
 
         engine = JitEngine(
@@ -341,7 +339,10 @@ class Initialization {
       eventVerifier: _ndkConfig.eventVerifier,
     );
 
-    connectivity = Connectivy(relayManager);
+    connectivity = Connectivy(
+      relayManager,
+      RelayInfoHttpRepoImpl(httpDS: _httpRequestDS),
+    );
 
     proofOfWork = ProofOfWork();
 

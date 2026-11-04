@@ -3,7 +3,6 @@ import 'dart:typed_data';
 
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';

@@ -23,11 +23,8 @@ import '../entities/relay.dart';
 import '../entities/auth_policy.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
-import '../entities/relay_info.dart';
 import '../entities/request_state.dart';
-import '../entities/tuple.dart';
 import '../repositories/nostr_transport.dart';
-import '../repositories/relay_info_repo.dart';
 import '../repositories/auth_accounts.dart';
 import '../entities/engine_additional_data_factory.dart';
 import 'nip42/auth_event.dart';
@@ -46,8 +43,6 @@ class RelayManager<T> {
 
   /// signer for nip-42 AUTH challenges from relays
   final AuthAccounts? _accounts;
-  final RelayInfoRepo? _relayInfoRepo;
-  final Map<String, Future<RelayInfo?>> _relayInfoCache = {};
 
   /// stores the last AUTH challenge per connection for late authentication;
   /// each socket gets its own challenge, so this cannot be keyed by relay
@@ -78,7 +73,7 @@ class RelayManager<T> {
 
   /// Tracks relay connect attempts that are still finishing setup so callers
   /// can wait for "socket open + listener attached", not just raw socket open.
-  final Map<RelayConnectionKey, Completer<Tuple<bool, String>>>
+  final Map<RelayConnectionKey, Completer<({bool connected, String error})>>
   _connectReadyCompleters = {};
 
   /// timeout for AUTH callbacks (how long to wait for AUTH OK)
@@ -135,9 +130,7 @@ class RelayManager<T> {
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     this.authChallengeTimeout = RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     this.authHandler,
-    RelayInfoRepo? relayInfoRepo,
-  }) : _accounts = accounts,
-       _relayInfoRepo = relayInfoRepo {
+  }) : _accounts = accounts {
     allowReconnectRelays = allowReconnect;
     _connectSeedRelays(urls: bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS);
   }
@@ -245,9 +238,8 @@ class RelayManager<T> {
   }
 
   /// Connects to a relay to the relay pool.
-  /// Returns a tuple with the first element being a boolean indicating success \\
-  /// and the second element being a string with the error message if any.
-  Future<Tuple<bool, String>> connectRelay({
+  /// Returns whether it is connected, and the error message if it is not.
+  Future<({bool connected, String error})> connectRelay({
     required String dirtyUrl,
     required ConnectionSource connectionSource,
     String? authPubkey,
@@ -256,11 +248,11 @@ class RelayManager<T> {
     String? url = cleanRelayUrl(dirtyUrl);
     if (url == null) {
       updateRelayConnectivity();
-      return Tuple(false, "unclean url");
+      return (connected: false, error: "unclean url");
     }
     if (globalState.blockedRelays.contains(url)) {
       updateRelayConnectivity();
-      return Tuple(false, "relay is blocked");
+      return (connected: false, error: "relay is blocked");
     }
 
     final connectionKey = authPubkey == null
@@ -270,7 +262,7 @@ class RelayManager<T> {
     if (isConnectionOpen(connectionKey)) {
       Logger.log.t(() => "relay already connected: $connectionKey");
       updateRelayConnectivity();
-      return Tuple(true, "");
+      return (connected: true, error: "");
     }
 
     if (isConnectionConnecting(connectionKey) ||
@@ -283,10 +275,10 @@ class RelayManager<T> {
         return result;
       }
       updateRelayConnectivity();
-      return Tuple(false, "relay is still connecting");
+      return (connected: false, error: "relay is still connecting");
     }
     RelayConnectivity? relayConnectivity = globalState.relays[connectionKey];
-    final connectCompleter = Completer<Tuple<bool, String>>();
+    final connectCompleter = Completer<({bool connected, String error})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
     bool ownsTransport() =>
@@ -366,7 +358,7 @@ class RelayManager<T> {
       Logger.log.i(() => "connected to relay: $url");
       relayConnectivity.relay.succeededToConnect();
       relayConnectivity.stats.connections++;
-      final connected = Tuple(true, "");
+      final connected = (connected: true, error: "");
       if (!connectCompleter.isCompleted) {
         connectCompleter.complete(connected);
       }
@@ -394,7 +386,10 @@ class RelayManager<T> {
       failedConnectivity.relay.failedToConnect();
       failedConnectivity.stats.connectionErrors++;
     }
-    final failed = Tuple(false, "could not connect to $url: $failure");
+    final failed = (
+      connected: false,
+      error: "could not connect to $url: $failure",
+    );
     if (!connectCompleter.isCompleted) {
       connectCompleter.complete(failed);
     }
@@ -431,7 +426,7 @@ class RelayManager<T> {
   }) async {
     final inFlightConnect = _connectReadyCompleters[key];
     if (inFlightConnect != null) {
-      final connected = (await inFlightConnect.future).first;
+      final connected = (await inFlightConnect.future).connected;
       updateRelayConnectivity();
       return connected;
     }
@@ -482,7 +477,7 @@ class RelayManager<T> {
       if (!(await connectRelay(
         dirtyUrl: key.url,
         connectionSource: connectionSource,
-      )).first) {
+      )).connected) {
         // could not connect
         return false;
       }
@@ -1147,15 +1142,15 @@ class RelayManager<T> {
       return globalState.relays[key];
     }
 
-    final connected = await connectRelay(
+    final result = await connectRelay(
       dirtyUrl: url,
       connectionSource: connectionSource,
       authPubkey: account.pubkey,
       connectTimeout: connectTimeout,
     );
     final connectivity = globalState.relays[key];
-    if (!connected.first || connectivity == null) {
-      Logger.log.w(() => "Could not open $key: ${connected.second}");
+    if (!result.connected || connectivity == null) {
+      Logger.log.w(() => "Could not open $key: ${result.error}");
       return null;
     }
     return connectivity;
@@ -1230,13 +1225,13 @@ class RelayManager<T> {
     }
 
     if (!isRelayConnected(url)) {
-      final connected = await connectRelay(
+      final result = await connectRelay(
         dirtyUrl: url,
         connectionSource: connectionSource,
         connectTimeout: connectTimeout,
       );
-      if (!connected.first) {
-        Logger.log.w(() => "Could not connect to $url: ${connected.second}");
+      if (!result.connected) {
+        Logger.log.w(() => "Could not connect to $url: ${result.error}");
         return null;
       }
     }
@@ -2228,25 +2223,6 @@ class RelayManager<T> {
       await Future.wait(keys.map(closeConnection));
     } catch (e) {
       Logger.log.e(() => e);
-    }
-  }
-
-  /// fetches relay info once per relay for the lifetime of this manager;
-  /// concurrent calls share the request and failures are not cached. Returns
-  /// null when no [RelayInfoRepo] is configured
-  Future<RelayInfo?> getRelayInfo(String url) async {
-    final repo = _relayInfoRepo;
-    if (repo == null) return null;
-    final key = cleanRelayUrl(url) ?? url;
-    final pending = _relayInfoCache[key];
-    if (pending != null) return pending;
-    final fetch = _relayInfoCache[key] = repo.getRelayInfo(key);
-    RelayInfo? info;
-    try {
-      info = await fetch;
-      return info;
-    } finally {
-      if (info == null) _relayInfoCache.remove(key);
     }
   }
 

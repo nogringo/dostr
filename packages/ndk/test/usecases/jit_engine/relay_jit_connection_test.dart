@@ -10,7 +10,6 @@ import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 
@@ -271,11 +270,11 @@ void main() async {
         nostrTransportFactory: factory,
         engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
       );
-      final connected = await relayManager.connectRelay(
+      final result = await relayManager.connectRelay(
         dirtyUrl: fallbackUrl,
         connectionSource: ConnectionSource.pubkeyStrategy,
       );
-      expect(connected.first, isTrue);
+      expect(result.connected, isTrue);
 
       final sent = <String, List<Filter>>{};
       final plan = JitRequestPlan((url, filters) => sent[url] = filters);

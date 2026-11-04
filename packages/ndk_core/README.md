@@ -55,15 +55,20 @@ await publishes
 ## Coming from `ndk`
 
 These files used to live in `ndk`. A deep import keeps its path and changes
-package: `package:ndk/shared/nips/nip01/helpers.dart` is now
-`package:ndk_core/shared/nips/nip01/helpers.dart`. `package:ndk/ndk.dart`
+package: `package:ndk/domain_layer/entities/filter.dart` is now
+`package:ndk_core/domain_layer/entities/filter.dart`. `package:ndk/ndk.dart`
 still exports what it did.
 
-`Bip340`, `Bip340EventSigner` and `Bip340EventVerifier` are in
+`Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
 [`ndk_nip44`](https://pub.dev/packages/ndk_nip44).
 
-`ndk_core` makes no HTTP calls: `RelayManager` reads NIP-11 documents from the
-`RelayInfoRepo` you give it. `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in
-`ndk` at their old paths, and the deprecated `RelayInfo.get` is gone.
+`Helpers`, `Tuple` and `EventKindClassification` stay in `ndk` at their old
+paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
+`RelayManager.connectRelay` returns a `({bool connected, String error})` record.
+
+`ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
+`RelayInfoRepo`, `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in `ndk` at
+their old paths. `ndk.connectivity.getRelayInfo` fetches and caches the
+documents, and the deprecated `RelayInfo.get` is gone.

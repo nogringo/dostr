@@ -12,7 +12,6 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 import 'package:url_launcher/url_launcher.dart';

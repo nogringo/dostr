@@ -56,8 +56,8 @@ void main() async {
       ]);
 
       for (final result in results) {
-        expect(result.first, isFalse);
-        expect(result.second, contains('SocketException'));
+        expect(result.connected, isFalse);
+        expect(result.error, contains('SocketException'));
       }
     });
 

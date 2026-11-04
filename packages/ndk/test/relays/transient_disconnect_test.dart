@@ -6,7 +6,6 @@ import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_relay.dart';

@@ -1,5 +1,4 @@
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -64,7 +63,7 @@ class Bip340EventSigner implements EventSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    if (Helpers.isNotBlank(privateKey)) {
+    if (privateKey?.trim().isNotEmpty ?? false) {
       return event.copyWith(sig: Bip340.sign(event.id, privateKey!));
     }
     throw Exception('Private key is required for signing');
@@ -87,7 +86,7 @@ class Bip340EventSigner implements EventSigner {
 
   @override
   bool canSign() {
-    return Helpers.isNotBlank(privateKey);
+    return privateKey?.trim().isNotEmpty ?? false;
   }
 
   @override

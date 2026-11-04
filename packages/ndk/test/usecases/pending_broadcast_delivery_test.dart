@@ -13,7 +13,6 @@ import 'package:ndk/domain_layer/entities/relay_set.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/domain_layer/entities/signer_request_rejected_exception.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';

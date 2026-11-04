@@ -5,7 +5,7 @@ import '../entities/blossom_authorization.dart';
 import '../entities/blossom_blobs.dart';
 import '../entities/file_hash_progress.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
-import 'package:ndk_core/domain_layer/entities/tuple.dart';
+import '../entities/tuple.dart';
 
 abstract class BlossomRepository {
   /// Uploads a blob using the specified strategy

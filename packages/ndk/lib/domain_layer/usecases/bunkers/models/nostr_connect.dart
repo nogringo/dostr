@@ -1,5 +1,5 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import '../../../../shared/nips/nip01/helpers.dart';
 import '../../../entities/nip46_client_metadata.dart';
 
 class NostrConnect {

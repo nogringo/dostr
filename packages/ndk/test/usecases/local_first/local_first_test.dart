@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:ndk/shared/nips/nip25/reactions.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';

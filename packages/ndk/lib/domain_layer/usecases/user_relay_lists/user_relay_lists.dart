@@ -1,7 +1,7 @@
 import '../../../config/user_relay_list_defaults.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/contact_list.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';

@@ -1,5 +1,5 @@
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
+import '../nip01/event_kind_classification.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
 
 /// NIP-19 references to an event, with its sources as relay hints.
