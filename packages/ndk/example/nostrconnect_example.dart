@@ -6,7 +6,11 @@ Future<void> main() async {
   final ndk = Ndk.emptyBootstrapRelaysConfig();
 
   final nostrConnect = NostrConnect(
-    relays: ["wss://relay.nsec.app"],
+    relays: [
+      "wss://promenade.fiatjaf.com",
+      "wss://relay.ditto.pub",
+      "wss://relay.primal.net",
+    ],
     clientMetadata: const Nip46ClientMetadata(
       name: "NDK nostr connect example",
       url: "https://dart-nostr.com/",

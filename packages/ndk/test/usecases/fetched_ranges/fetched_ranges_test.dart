@@ -463,7 +463,7 @@ void main() {
       // Add Jan-Mar fetched range
       await fetchedRanges.addRange(
         filter: filter,
-        relayUrl: 'wss://relay.damus.io',
+        relayUrl: 'wss://relay.primal.net',
         since: 1704067200, // Jan 1
         until: 1711929599, // Mar 31
       );
@@ -471,16 +471,16 @@ void main() {
       // Add Jun-Sep fetched range
       await fetchedRanges.addRange(
         filter: filter,
-        relayUrl: 'wss://relay.damus.io',
+        relayUrl: 'wss://relay.primal.net',
         since: 1717200000, // Jun 1
         until: 1727740799, // Sep 30
       );
 
       final result = await fetchedRanges.getForFilter(filter);
-      final damusFetchedRanges = result['wss://relay.damus.io']!;
+      final primalFetchedRanges = result['wss://relay.primal.net']!;
 
       // Should have 2 separate ranges
-      expect(damusFetchedRanges.ranges.length, 2);
+      expect(primalFetchedRanges.ranges.length, 2);
 
       // Check gaps for Jan-Oct query
       final gaps = await fetchedRanges.findGaps(

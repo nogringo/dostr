@@ -37,7 +37,7 @@ void main() {
           createdAt: 1234567890,
         );
         final event = eventInit.copyWith(
-          sources: ['wss://relay.example.org/', 'wss://relay.damus.io/'],
+          sources: ['wss://relay.example.org/', 'wss://relay.primal.net/'],
         );
 
         final eventModel = Nip01EventModel.fromEntity(event);

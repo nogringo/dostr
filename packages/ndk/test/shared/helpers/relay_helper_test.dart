@@ -6,13 +6,16 @@ void main() {
     group('valid URLs', () {
       test('accepts valid wss URL with port + path', () {
         expect(
-          cleanRelayUrl('wss://relay.damus.io:5000/abc/aa.co.mm'),
-          'wss://relay.damus.io:5000/abc/aa.co.mm',
+          cleanRelayUrl('wss://relay.primal.net:5000/abc/aa.co.mm'),
+          'wss://relay.primal.net:5000/abc/aa.co.mm',
         );
       });
 
       test('accepts valid wss URL', () {
-        expect(cleanRelayUrl('wss://relay.damus.io'), 'wss://relay.damus.io');
+        expect(
+          cleanRelayUrl('wss://relay.primal.net'),
+          'wss://relay.primal.net',
+        );
       });
 
       test('accepts valid ws URL', () {
@@ -55,13 +58,16 @@ void main() {
 
     group('URL cleaning', () {
       test('removes trailing slash', () {
-        expect(cleanRelayUrl('wss://relay.damus.io/'), 'wss://relay.damus.io');
+        expect(
+          cleanRelayUrl('wss://relay.primal.net/'),
+          'wss://relay.primal.net',
+        );
       });
 
       test('trims whitespace', () {
         expect(
-          cleanRelayUrl('  wss://relay.damus.io  '),
-          'wss://relay.damus.io',
+          cleanRelayUrl('  wss://relay.primal.net  '),
+          'wss://relay.primal.net',
         );
       });
 
@@ -73,11 +79,17 @@ void main() {
       });
 
       test('fixes triple slash URL', () {
-        expect(cleanRelayUrl('wss:///relay.damus.io'), 'wss://relay.damus.io');
+        expect(
+          cleanRelayUrl('wss:///relay.primal.net'),
+          'wss://relay.primal.net',
+        );
       });
 
       test('fixes multiple extra slashes', () {
-        expect(cleanRelayUrl('wss:////relay.damus.io'), 'wss://relay.damus.io');
+        expect(
+          cleanRelayUrl('wss:////relay.primal.net'),
+          'wss://relay.primal.net',
+        );
       });
     });
 
@@ -87,15 +99,15 @@ void main() {
       });
 
       test('returns null for URL without protocol', () {
-        expect(cleanRelayUrl('relay.damus.io'), null);
+        expect(cleanRelayUrl('relay.primal.net'), null);
       });
 
       test('returns null for http URL', () {
-        expect(cleanRelayUrl('http://relay.damus.io'), null);
+        expect(cleanRelayUrl('http://relay.primal.net'), null);
       });
 
       test('returns null for https URL', () {
-        expect(cleanRelayUrl('https://relay.damus.io'), null);
+        expect(cleanRelayUrl('https://relay.primal.net'), null);
       });
 
       test('returns null for URL with only protocol', () {
@@ -126,13 +138,23 @@ void main() {
     });
 
     test('filters out invalid URLs', () {
-      final urls = ['wss://relay.damus.io', 'invalid-url', 'wss://nos.lol'];
-      expect(cleanRelayUrls(urls), ['wss://relay.damus.io', 'wss://nos.lol']);
+      final urls = [
+        'wss://relay.primal.net',
+        'invalid-url',
+        'wss://relay.ditto.pub',
+      ];
+      expect(cleanRelayUrls(urls), [
+        'wss://relay.primal.net',
+        'wss://relay.ditto.pub',
+      ]);
     });
 
     test('cleans valid URLs', () {
-      final urls = ['wss://relay.damus.io/', '  wss://nos.lol  '];
-      expect(cleanRelayUrls(urls), ['wss://relay.damus.io', 'wss://nos.lol']);
+      final urls = ['wss://relay.primal.net/', '  wss://relay.ditto.pub  '];
+      expect(cleanRelayUrls(urls), [
+        'wss://relay.primal.net',
+        'wss://relay.ditto.pub',
+      ]);
     });
 
     test('returns empty list when all URLs are invalid', () {
@@ -141,19 +163,22 @@ void main() {
     });
 
     test('fixes triple slash URLs in list', () {
-      final urls = ['wss:///relay.damus.io', 'wss://nos.lol'];
-      expect(cleanRelayUrls(urls), ['wss://relay.damus.io', 'wss://nos.lol']);
+      final urls = ['wss:///relay.primal.net', 'wss://relay.ditto.pub'];
+      expect(cleanRelayUrls(urls), [
+        'wss://relay.primal.net',
+        'wss://relay.ditto.pub',
+      ]);
     });
 
     test('normalizes URLs with RFC 3986 compliance', () {
       final urls = [
-        'WSS://RELAY.DAMUS.IO',
-        'wss://nos.lol:443',
+        'WSS://RELAY.PRIMAL.NET',
+        'wss://relay.ditto.pub:443',
         'WS://LOCALHOST:80',
       ];
       expect(cleanRelayUrls(urls), [
-        'wss://relay.damus.io',
-        'wss://nos.lol',
+        'wss://relay.primal.net',
+        'wss://relay.ditto.pub',
         'ws://localhost',
       ]);
     });
@@ -161,7 +186,7 @@ void main() {
 
   group('RELAY_URL_REGEX', () {
     test('matches valid relay URL pattern', () {
-      expect(relayUrlRegex.hasMatch('wss://relay.damus.io'), true);
+      expect(relayUrlRegex.hasMatch('wss://relay.primal.net'), true);
       expect(relayUrlRegex.hasMatch('ws://localhost'), true);
       expect(relayUrlRegex.hasMatch('wss://192.168.1.1'), true);
       expect(relayUrlRegex.hasMatch('wss://relay.example.com:8080'), true);

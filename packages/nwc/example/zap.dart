@@ -30,7 +30,7 @@ void main() async {
       privateKey: key.privateKey,
       publicKey: key.publicKey,
     ),
-    relays: ["wss://relay.damus.io"],
+    relays: ["wss://relay.primal.net"],
     pubKey: "787338757fc25d65cd929394d5e7713cf43638e8d259e8dcf5c73b834eb851f2",
     eventId: "906a0c5920b59e5754d0df5164bfea2a8d48ce5d73beaa1e854b3e6725e3288a",
   );

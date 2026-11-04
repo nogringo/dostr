@@ -29,16 +29,16 @@ One JSON object per line (newline-delimited JSON):
 
 ```bash
 # fetch 10 events from a relay (default limit)
-ndk req relay.damus.io
+ndk req relay.primal.net
 
 # fetch kind-1 notes, limit 5, 20s timeout
-ndk req -k 1 -l 5 -t 20 wss://relay.damus.io wss://nos.lol
+ndk req -k 1 -l 5 -t 20 wss://relay.primal.net wss://relay.ditto.pub
 
 # pipe into jq
-ndk req -k 1 -l 3 relay.damus.io | jq '.content'
+ndk req -k 1 -l 3 relay.primal.net | jq '.content'
 ```
 
 ## Notes
 
 - `cacheRead` and `cacheWrite` both disabled — always hits relays directly
-- Relay URLs: accepts bare hostnames (`relay.damus.io`), prefixed (`wss://relay.damus.io`), or with path
+- Relay URLs: accepts bare hostnames (`relay.primal.net`), prefixed (`wss://relay.primal.net`), or with path

@@ -12,8 +12,7 @@ const myPubkey =
 const relays = [
   "wss://purplepag.es",
   "wss://relay.primal.net",
-  "wss://relay.damus.io",
-  "wss://nos.lol",
+  "wss://relay.ditto.pub",
   "wss://bwcervpt.mooo.com",
 ];
 

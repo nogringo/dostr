@@ -48,20 +48,20 @@ Output control:
 ```bash
 # publish a text note using the active account
 ndk accounts login nsec nsec1...    # one-time
-ndk broadcast --kind 1 --content "hello from ndk cli" relay.damus.io nos.lol
+ndk broadcast --kind 1 --content "hello from ndk cli" relay.primal.net relay.ditto.pub
 
 # publish a text note with an explicit private key
-ndk broadcast --kind 1 --content "hello" --privkey nsec1... relay.damus.io
+ndk broadcast --kind 1 --content "hello" --privkey nsec1... relay.primal.net
 
 # broadcast a pre-signed event from a file
-ndk broadcast --file signed.json relay.damus.io
+ndk broadcast --file signed.json relay.primal.net
 
 # broadcast a pre-signed event piped on stdin
-cat signed.json | ndk broadcast --stdin relay.damus.io
+cat signed.json | ndk broadcast --stdin relay.primal.net
 
 # custom OK threshold and timeout
 ndk broadcast --event '{...}' --consider-done 1.0 --timeout 20 \
-    relay.damus.io nos.lol relay.nostr.band
+    relay.primal.net relay.ditto.pub relay.nostr.band
 ```
 
 Exit code is `0` if at least one relay accepted the event, `1` otherwise.

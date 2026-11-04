@@ -298,7 +298,7 @@ Options (common):
     final config = ndk.config;
     final bootstraps = config.bootstrapRelays;
     if (bootstraps.isNotEmpty) return bootstraps.toList();
-    return ['wss://relay.damus.io', 'wss://nos.lol'];
+    return ['wss://relay.primal.net', 'wss://relay.ditto.pub'];
   }
 
   int? _parseAmount(String raw) {

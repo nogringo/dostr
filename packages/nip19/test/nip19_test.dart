@@ -647,7 +647,7 @@ void main() {
         const author =
             '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa';
         const kind = 1;
-        const relays = ['wss://relay.example.org/', 'wss://relay.damus.io/'];
+        const relays = ['wss://relay.example.org/', 'wss://relay.primal.net/'];
 
         // Encode
         final encoded = Nip19.encodeNevent(

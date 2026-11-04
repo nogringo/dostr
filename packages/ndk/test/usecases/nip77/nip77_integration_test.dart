@@ -5,7 +5,7 @@ import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 
 void main() {
   test("should be in sync after broadcasting events", skip: true, () async {
-    final relayUrl = "wss://relay.damus.io";
+    final relayUrl = "wss://relay.ditto.pub";
 
     final ndk = Ndk(
       NdkConfig(
@@ -53,7 +53,7 @@ void main() {
   });
 
   test("should return needIds with empty local cache", skip: true, () async {
-    final relayUrl = "wss://relay.damus.io";
+    final relayUrl = "wss://relay.ditto.pub";
 
     final ndk = Ndk(
       NdkConfig(
@@ -83,7 +83,7 @@ void main() {
   });
 
   test("should report local events as haveIds", skip: true, () async {
-    final relayUrl = "wss://relay.damus.io";
+    final relayUrl = "wss://relay.ditto.pub";
 
     final ndk = Ndk(
       NdkConfig(

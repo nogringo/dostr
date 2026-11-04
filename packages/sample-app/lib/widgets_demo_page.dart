@@ -254,8 +254,9 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                           nostrConnect: NostrConnect(
                             clientMetadata: _clientMetadata,
                             relays: [
-                              "wss://relay.damus.io",
-                              "wss://nos.lol",
+                              "wss://promenade.fiatjaf.com",
+                              "wss://relay.ditto.pub",
+                              "wss://relay.primal.net",
                               "wss://relay.nmail.li",
                             ],
                           ),

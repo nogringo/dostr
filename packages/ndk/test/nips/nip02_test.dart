@@ -12,7 +12,7 @@ void main() {
         pubKey: 'pubkeyUser1',
         kind: ContactList.kKind,
         content:
-            "{\"wss://nos.lol\":{\"read\":true,\"write\":true},\"wss://relay.damus.io\":{\"read\":true,\"write\":true}}",
+            "{\"wss://relay.ditto.pub\":{\"read\":true,\"write\":true},\"wss://relay.primal.net\":{\"read\":true,\"write\":true}}",
         tags: [
           ['p', 'contact1'],
           ['p', 'contact2'],
@@ -24,8 +24,8 @@ void main() {
       final nip02 = ContactList.fromEvent(event);
       expect(nip02.contacts, ['contact1', 'contact2', 'contact3', 'contact4']);
       expect(ContactList.relaysFromContent(event), {
-        "wss://nos.lol": ReadWriteMarker.readWrite,
-        "wss://relay.damus.io": ReadWriteMarker.readWrite,
+        "wss://relay.ditto.pub": ReadWriteMarker.readWrite,
+        "wss://relay.primal.net": ReadWriteMarker.readWrite,
       });
     });
 

@@ -498,7 +498,7 @@ void main() async {
     //     filter.toMap()
     //   ];
     //   final encoded = jsonEncode(request);
-    //   String relay = 'wss://relay.damus.io';
+    //   String relay = 'wss://relay.primal.net';
     //   // NostrRequest rr = NostrRequest.query("569298423984982349");
     //   // rr.addRequest(relay, [filter]);
     //   // nostrRequests[rr.id] = rr;

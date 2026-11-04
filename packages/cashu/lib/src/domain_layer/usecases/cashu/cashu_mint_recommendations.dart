@@ -9,7 +9,7 @@ class CashuMintRecommendations {
   static const int mintReviewKind = 38000;
   static const Set<String> defaultRelays = {
     'wss://relay.cashumints.space',
-    'wss://nos.lol',
+    'wss://relay.ditto.pub',
     'wss://relay.azzamo.net',
     'wss://relay.snort.social',
   };

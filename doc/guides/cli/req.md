@@ -39,20 +39,20 @@ makes sense.
 
 ```bash
 # last 5 text notes (kind 1) from a relay
-ndk req -k 1 -l 5 wss://relay.damus.net
+ndk req -k 1 -l 5 wss://relay.primal.net
 
 # kind-0 metadata from two relays, 5s timeout
-ndk req -k 0 --timeout 5 relay.damus.net nos.lol
+ndk req -k 0 --timeout 5 relay.primal.net relay.ditto.pub
 
 # events by an author (npub accepted), last hour, compact output
-ndk req -a npub1... -k 1 --since 1h -l 20 -o summary relay.damus.io
+ndk req -a npub1... -k 1 --since 1h -l 20 -o summary relay.primal.net
 
 # NIP-50 search
-ndk req --search "lightning" -k 1 -l 5 nos.lol
+ndk req --search "lightning" -k 1 -l 5 relay.ditto.pub
 
-# arbitrary single-char tag, e.g. #r=relay.damus.io
-ndk req --tag r=relay.damus.io -k 3 -l 10 relay.damus.io
+# arbitrary single-char tag, e.g. #r=relay.primal.net
+ndk req --tag r=relay.primal.net -k 3 -l 10 relay.primal.net
 
 # live stream of new text notes (Ctrl+C to stop)
-ndk req --stream -k 1 relay.damus.io
+ndk req --stream -k 1 relay.primal.net
 ```
