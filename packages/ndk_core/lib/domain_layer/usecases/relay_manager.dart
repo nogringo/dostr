@@ -33,6 +33,7 @@ import 'nip42/auth_event.dart';
 import 'requests/verified_event_cache.dart';
 import 'requests/verify_event_stream.dart';
 
+part 'nip42/auth_session.dart';
 part 'relay_reqs/relay_reqs.dart';
 
 ///  relay manager, responsible for lifecycle of relays, sending messages, \
@@ -49,27 +50,8 @@ class RelayManager {
   /// signer for nip-42 AUTH challenges from relays
   final AuthAccounts? _accounts;
 
-  /// stores the last AUTH challenge per connection for late authentication;
-  /// each socket gets its own challenge, so this cannot be keyed by relay
-  final Map<RelayConnectionKey, String> _lastChallengePerConnection = {};
-
-  /// AUTH events waiting for their OK, keyed by AUTH event id. The connection
-  /// is part of the entry so a dying transport can fail its own.
-  final Map<String, _PendingAuth> _pendingAuths = {};
-
-  /// transport generation per connection, bumped whenever a socket dies or is
-  /// replaced. Authentication carries the generation it started on, so nothing
-  /// it produces can land on the socket that took its place.
-  final Map<RelayConnectionKey, int> _transportGenerations = {};
-
-  /// waiters for the AUTH challenge of a connection that is being authenticated
-  final Map<RelayConnectionKey, Completer<String>> _challengeWaiters = {};
-
-  /// in flight authentications, so concurrent callers share a single AUTH
-  final Map<RelayConnectionKey, Future<bool>> _authenticating = {};
-
-  /// connections whose AUTH event the relay accepted
-  final Set<RelayConnectionKey> _authenticatedConnections = {};
+  /// NIP-42 on the current socket of each connection, see [_forgetAuthState]
+  final Map<RelayConnectionKey, _AuthSession> _authSessions = {};
 
   /// the account a connection was opened as, for identities the caller handed
   /// over instead of registering. A challenge can arrive long after whatever
@@ -277,10 +259,7 @@ class RelayManager {
     final connectCompleter = Completer<({bool connected, String error})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
-    bool ownsTransport() =>
-        transport != null &&
-        identical(_globalState.relays[connectionKey], relayConnectivity) &&
-        identical(relayConnectivity?.relayTransport, transport);
+    bool ownsTransport() => _isCurrent(relayConnectivity, transport);
     // the transport retries a failed connect on its own and only reports why
     // through onDisconnect, so this is what tells a refusal from a timeout
     Object? transportError;
@@ -789,27 +768,24 @@ class RelayManager {
     }
   }
 
+  /// Whether [connectivity] is still the connection tracked under its key, and
+  /// [transport] still the one it runs on: anything a replaced one reports is
+  /// stale.
+  bool _isCurrent(RelayConnectivity? connectivity, NostrTransport? transport) =>
+      connectivity != null &&
+      transport != null &&
+      identical(_globalState.relays[connectivity.key], connectivity) &&
+      identical(connectivity.relayTransport, transport);
+
   void _startListeningToSocket(RelayConnectivity relayConnectivity) {
     final transport = relayConnectivity.relayTransport;
     relayConnectivity.listen(
       (message) {
-        if (!identical(
-              _globalState.relays[relayConnectivity.key],
-              relayConnectivity,
-            ) ||
-            !identical(relayConnectivity.relayTransport, transport)) {
-          return;
-        }
+        if (!_isCurrent(relayConnectivity, transport)) return;
         _handleIncomingMessage(message, relayConnectivity);
       },
       onError: (error) {
-        if (!identical(
-              _globalState.relays[relayConnectivity.key],
-              relayConnectivity,
-            ) ||
-            !identical(relayConnectivity.relayTransport, transport)) {
-          return;
-        }
+        if (!_isCurrent(relayConnectivity, transport)) return;
         Logger.log.e(() => "onError ${relayConnectivity.url} on listen $error");
         relayConnectivity.stats.connectionErrors++;
         _handleTransportGone(relayConnectivity, transport);
@@ -834,13 +810,7 @@ class RelayManager {
     RelayConnectivity relayConnectivity,
     NostrTransport? transport,
   ) async {
-    if (!identical(
-          _globalState.relays[relayConnectivity.key],
-          relayConnectivity,
-        ) ||
-        !identical(relayConnectivity.relayTransport, transport)) {
-      return;
-    }
+    if (!_isCurrent(relayConnectivity, transport)) return;
 
     try {
       await relayConnectivity.close();
@@ -981,13 +951,13 @@ class RelayManager {
       final String? msg = eventJson.length > 3 ? eventJson[3] : null;
 
       // an AUTH is only answered by the connection it was sent on
-      if (_pendingAuths[eventId]?.key == relayConnectivity.key) {
+      final session = _authSessions[relayConnectivity.key];
+      if (session != null && session.receiveOk(eventId, success)) {
         if (success) {
-          Logger.log.d(() => "AUTH OK for $eventId, executing callback");
+          Logger.log.d(() => "AUTH OK for $eventId");
         } else {
           Logger.log.e(() => "AUTH failed for $eventId: $msg");
         }
-        _resolvePendingAuth(eventId, success);
         return Future.value();
       }
 
@@ -1033,12 +1003,7 @@ class RelayManager {
         () => "AUTH challenge from ${relayConnectivity.key}: $challenge",
       );
 
-      _lastChallengePerConnection[relayConnectivity.key] = challenge;
-
-      final waiter = _challengeWaiters.remove(relayConnectivity.key);
-      if (waiter != null && !waiter.isCompleted) {
-        waiter.complete(challenge);
-      }
+      _authSessionOf(relayConnectivity.key).receiveChallenge(challenge);
 
       // an anonymous connection never answers a challenge: signing here would
       // bind it to an identity nobody asked for, and every request already on
@@ -1187,172 +1152,35 @@ class RelayManager {
   Account? _accountFor(RelayConnectionKey key) =>
       _accounts?.accounts[key.pubkey] ?? _boundAccounts[key];
 
-  /// Waits for the AUTH challenge of [key]. Only call this once something has
-  /// asked for authentication, otherwise a relay that only challenges on demand
-  /// would never answer. Returns null if it never arrives.
-  Future<String?> _awaitChallenge(RelayConnectionKey key) async {
-    final stored = _lastChallengePerConnection[key];
-    if (stored != null) {
-      return stored;
-    }
-    final waiter = _challengeWaiters.putIfAbsent(key, Completer<String>.new);
-    try {
-      return await waiter.future.timeout(authChallengeTimeout);
-    } catch (_) {
-      if (identical(_challengeWaiters[key], waiter)) {
-        _challengeWaiters.remove(key);
-      }
-      Logger.log.w(() => "No AUTH challenge from $key");
-      return null;
-    }
-  }
+  _AuthSession _authSessionOf(RelayConnectionKey key) =>
+      _authSessions.putIfAbsent(
+        key,
+        () => _AuthSession(
+          key,
+          challengeTimeout: authChallengeTimeout,
+          okTimeout: authCallbackTimeout,
+        ),
+      );
 
-  int _generationOf(RelayConnectionKey key) => _transportGenerations[key] ?? 0;
+  bool _isAuthenticated(RelayConnectionKey key) =>
+      _authSessions[key]?.authenticated ?? false;
 
-  /// Drops everything authentication built on [key]'s current transport and
-  /// moves the connection to its next generation. Call this whenever the socket
+  /// Ends the NIP-42 session of [key]'s socket. Call this whenever the socket
   /// dies or gets replaced: what is still in flight then resolves to false
   /// instead of landing on the socket that took its place.
-  void _forgetAuthState(RelayConnectionKey key) {
-    _transportGenerations[key] = _generationOf(key) + 1;
-    _authenticatedConnections.remove(key);
-    _lastChallengePerConnection.remove(key);
-    _authenticating.remove(key);
-
-    final waiter = _challengeWaiters.remove(key);
-    if (waiter != null && !waiter.isCompleted) {
-      waiter.completeError(StateError("transport of $key is gone"));
-    }
-
-    final pending = _pendingAuths.entries
-        .where((entry) => entry.value.key == key)
-        .map((entry) => entry.key)
-        .toList();
-    for (final authEventId in pending) {
-      _resolvePendingAuth(authEventId, false);
-    }
-  }
-
-  /// Registers an AUTH event waiting for its OK. [onResult] runs once, with
-  /// what the relay answered or with false if the OK never comes.
-  void _registerPendingAuth({
-    required String authEventId,
-    required RelayConnectionKey key,
-    required void Function(bool accepted) onResult,
-  }) {
-    _pendingAuths[authEventId] = _PendingAuth(
-      key: key,
-      onResult: onResult,
-      timer: Timer(authCallbackTimeout, () {
-        Logger.log.w(() => "AUTH callback timeout for $authEventId on $key");
-        _resolvePendingAuth(authEventId, false);
-      }),
-    );
-  }
-
-  void _resolvePendingAuth(String authEventId, bool accepted) {
-    final pending = _pendingAuths.remove(authEventId);
-    if (pending == null) {
-      return;
-    }
-    pending.timer.cancel();
-    pending.onResult(accepted);
-  }
+  void _forgetAuthState(RelayConnectionKey key) =>
+      _authSessions.remove(key)?.end();
 
   /// Answers the challenge for [key] and completes once the relay accepted the
   /// AUTH event. Concurrent callers share a single AUTH.
   Future<bool> authenticateConnection(RelayConnectionKey key) {
-    if (key.isAnonymous) {
+    final connectivity = _globalState.relays[key];
+    if (key.isAnonymous || connectivity == null) {
       return Future.value(false);
     }
-    if (_authenticatedConnections.contains(key)) {
-      return Future.value(true);
-    }
-    final inFlight = _authenticating[key];
-    if (inFlight != null) {
-      return inFlight;
-    }
-    final attempt = _sendAuth(key, _generationOf(key));
-    _authenticating[key] = attempt;
-    return attempt.whenComplete(() {
-      if (identical(_authenticating[key], attempt)) {
-        _authenticating.remove(key);
-      }
-    });
-  }
-
-  Future<bool> _sendAuth(RelayConnectionKey key, int generation) async {
-    bool transportGone() => _generationOf(key) != generation;
-
-    final connectivity = _globalState.relays[key];
-    final account = _accountFor(key);
-    if (connectivity == null) {
-      return false;
-    }
-    if (account == null) {
-      Logger.log.w(() => "Cannot authenticate $key, no account for its pubkey");
-      return false;
-    }
-    if (!account.signer.canSign()) {
-      Logger.log.w(() => "Cannot authenticate $key, signer cannot sign");
-      return false;
-    }
-
-    // the relay may send its challenge before or with the refusal, so waiting
-    // is safe here: something already asked us to authenticate
-    final challenge = await _awaitChallenge(key);
-    if (challenge == null || transportGone()) {
-      return false;
-    }
-
-    // signing throws for anything from a declined request to an unreachable
-    // signer, and a caller that paused its timeout to wait for it would never
-    // resume that timeout if the error escaped here
-    final Nip01Event signedAuth;
-    try {
-      signedAuth = await account.signer.sign(
-        AuthEvent(
-          pubKey: account.pubkey,
-          tags: [
-            ["relay", key.url],
-            ["challenge", challenge],
-          ],
-        ),
-      );
-    } catch (error, stackTrace) {
-      Logger.log.w(
-        () => "Could not sign AUTH for $key",
-        error: error,
-        stackTrace: stackTrace,
-      );
-      return false;
-    }
-    if (transportGone()) {
-      return false;
-    }
-
-    final accepted = Completer<bool>();
-    _registerPendingAuth(
-      authEventId: signedAuth.id,
-      key: key,
-      onResult: (ok) {
-        if (!accepted.isCompleted) {
-          accepted.complete(ok);
-        }
-      },
-    );
-
-    _send(
-      connectivity,
-      ClientMsg(ClientMsgType.kAuth, event: signedAuth).toJson(),
-    );
-    Logger.log.d(() => "AUTH sent on $key");
-
-    if (!await accepted.future || transportGone()) {
-      return false;
-    }
-    _authenticatedConnections.add(key);
-    return true;
+    return _authSessionOf(
+      key,
+    ).authenticate(_accountFor(key), (message) => _send(connectivity, message));
   }
 
   void _handleIncomingEvent(
@@ -1686,7 +1514,8 @@ class RelayManager {
     _endRequestOnRelay(relayConnectivity, reqId, request, message);
 
     if (!key.isAnonymous) {
-      if (_authenticatedConnections.contains(key)) {
+      final session = _authSessionOf(key);
+      if (session.authenticated) {
         // the relay refused us while we were authenticated as the only identity
         // this connection may ever assume, so there is nothing left to try
         Logger.log.w(() => "REQ $reqId refused on authenticated $key");
@@ -1697,7 +1526,6 @@ class RelayManager {
       Logger.log.d(() => "Authenticating $key to satisfy REQ $reqId");
       state.pauseTimeout();
       request.retryingAuth = true;
-      final generation = _generationOf(key);
       authenticateConnection(key).then((authenticated) {
         if (!_isStillInFlight(state)) {
           return;
@@ -1706,7 +1534,7 @@ class RelayManager {
         if (!authenticated) {
           // an authentication that died with its socket is not a refusal: stay
           // on the retry so the replacement replays the request
-          request.retryingAuth = _generationOf(key) != generation;
+          request.retryingAuth = session.ended;
           _checkNetworkClose(state);
           return;
         }
@@ -1918,8 +1746,7 @@ class RelayManager {
         // Some relays challenge immediately; others only after seeing EVENT on
         // the bound socket. Trigger the latter, then the next auth-required OK
         // enters this method with the bound key and authenticates below.
-        if (relayConnectivity.key != boundKey &&
-            !_authenticatedConnections.contains(boundKey)) {
+        if (relayConnectivity.key != boundKey && !_isAuthenticated(boundKey)) {
           await _sendOrThrow(
             bound,
             ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
@@ -2102,9 +1929,7 @@ class RelayManager {
     if (_connectReadyCompleters.containsKey(key) ||
         connectivity.relay.connecting ||
         (connectivity.relayTransport?.isConnecting() ?? false) ||
-        _authenticating.containsKey(key) ||
-        _challengeWaiters.containsKey(key) ||
-        _pendingAuths.values.any((auth) => auth.key == key)) {
+        (_authSessions[key]?.authenticating ?? false)) {
       return true;
     }
     for (final state in _globalState.inFlightRequests.values) {
@@ -2162,17 +1987,4 @@ class RelayManager {
   RelayConnectivity? getConnectivity(RelayConnectionKey key) {
     return _globalState.relays[key];
   }
-}
-
-/// An AUTH event sent to a connection, waiting for the relay's OK
-class _PendingAuth {
-  _PendingAuth({
-    required this.key,
-    required this.onResult,
-    required this.timer,
-  });
-
-  final RelayConnectionKey key;
-  final void Function(bool accepted) onResult;
-  final Timer timer;
 }
