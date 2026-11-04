@@ -50,6 +50,10 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/nip19
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
           - package: ./packages/wallets
             pub_get_directory: .
             pub_get_command: dart pub get

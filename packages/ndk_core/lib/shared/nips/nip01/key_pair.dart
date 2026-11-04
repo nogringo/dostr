@@ -5,18 +5,7 @@ class KeyPair {
   /// [publicKey] is a 32-bytes hex-encoded string
   final String publicKey;
 
-  /// [privateKeyBech32] is a human readable private key e.g. nsec
-  String? privateKeyBech32;
-
-  /// [publicKeyBech32] is a human readable public key e.g. npub
-  String? publicKeyBech32;
-
-  KeyPair(
-    this.privateKey,
-    this.publicKey,
-    this.privateKeyBech32,
-    this.publicKeyBech32,
-  );
+  KeyPair(this.privateKey, this.publicKey);
 
   KeyPair.justPublicKey(this.publicKey);
 

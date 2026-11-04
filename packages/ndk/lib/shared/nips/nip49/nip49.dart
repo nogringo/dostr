@@ -7,8 +7,7 @@ import 'package:cryptography/cryptography.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
 import 'package:ndk_core/shared/isolates/isolate_manager.dart';
-import 'package:ndk_core/shared/nips/nip19/hrps.dart';
-import 'package:ndk_core/shared/nips/nip19/nip19_utils.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
 import 'package:ndk_core/shared/nips/nip44/utils.dart';
 import 'scrypt.dart';
 

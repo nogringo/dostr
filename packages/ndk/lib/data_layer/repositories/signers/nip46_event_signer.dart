@@ -3,8 +3,6 @@ import 'dart:convert';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_core/shared/nips/nip01/bip340.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../shared/helpers/bounded_lru_set.dart';
@@ -56,16 +54,10 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
     final privKey = connection.privateKey;
-    final pubKey = Bip340.getPublicKey(privKey);
-
-    final privKeyHr = Helpers.encodeBech32(privKey, 'nsec');
-    final pubKeyHr = Helpers.encodeBech32(pubKey, 'npub');
-
-    final keyPair = KeyPair(privKey, pubKey, privKeyHr, pubKeyHr);
 
     localEventSigner = eventSignerFactory.create(
-      privateKey: keyPair.privateKey!,
-      publicKey: keyPair.publicKey,
+      privateKey: privKey,
+      publicKey: Bip340.getPublicKey(privKey),
     );
 
     listenRelays();

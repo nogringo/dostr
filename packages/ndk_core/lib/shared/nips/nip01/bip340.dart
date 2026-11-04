@@ -34,9 +34,6 @@ class Bip340 {
     final privKey = Helpers.getSecureRandomHex(32);
     final pubKey = getPublicKey(privKey);
 
-    final privKeyHr = Helpers.encodeBech32(privKey, 'nsec');
-    final pubKeyHr = Helpers.encodeBech32(pubKey, 'npub');
-
-    return KeyPair(privKey, pubKey, privKeyHr, pubKeyHr);
+    return KeyPair(privKey, pubKey);
   }
 }

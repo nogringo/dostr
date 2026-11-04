@@ -149,7 +149,8 @@ export 'shared/event_filters/tag_count_event_filter.dart';
  * 
  */
 
-export 'package:ndk_core/shared/nips/nip19/nip19.dart';
+export 'package:ndk_nip19/ndk_nip19.dart';
+export 'shared/nips/nip19/nip19_event_references.dart';
 
 /**
  * Nip 49

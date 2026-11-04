@@ -25,6 +25,7 @@ on:
           - ndk_sqlite3
           - ndk_flutter
           - ndk_core
+          - ndk_nip19
           - ndk_wallets
           - ndk_nwc
           - ndk_cashu

@@ -2,7 +2,6 @@ import 'dart:developer';
 
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -31,7 +30,7 @@ void main() async {
 
       final t0 = DateTime.now();
 
-      final key = KeyPair.justPublicKey(Helpers.decodeBech32(npub)[0]);
+      final key = KeyPair.justPublicKey(Nip19.decode(npub));
 
       final contactsResponse = ndk.requests.query(
         name: "contacts",

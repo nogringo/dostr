@@ -21,6 +21,10 @@ NDK ships as a small monorepo with focused packages for core, wallets, Flutter, 
 
 Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
+### [🔗 NIP-19](./packages/nip19/)
+
+`ndk_nip19`: NIP-19 bech32 encoding and decoding (npub, nsec, note, nprofile, nevent, naddr), in pure Dart.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.

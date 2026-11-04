@@ -1,0 +1,23 @@
+name: ndk_nip19
+description: NIP-19 bech32 encoding and decoding for Nostr (npub, nsec, note, nprofile, nevent and naddr).
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - bech32
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  bech32: ^0.2.2
+  convert: ^3.1.2
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any

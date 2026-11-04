@@ -16,6 +16,7 @@ resolution: workspace
 dependencies:
   ndk: ^0.11.0-dev.1
   ndk_core: ^0.11.0-dev.2
+  ndk_nip19: ^0.1.0
   ndk_sembast: ^0.1.0
   path: ^1.9.1
   ndk_cashu: ^0.1.0

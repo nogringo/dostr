@@ -2,8 +2,6 @@ import 'dart:convert';
 
 import '../../domain_layer/entities/nip_01_event.dart';
 import '../../shared/helpers/list_casting.dart';
-import '../../shared/nips/nip01/event_kind_classification.dart';
-import '../../shared/nips/nip19/nip19.dart';
 
 /// Data model for NIP-01 Event
 /// Extends [Nip01Event] entity with serialization methods to/from JSON and other formats
@@ -109,62 +107,8 @@ class Nip01EventModel extends Nip01Event {
     return json.encode(jsonMap);
   }
 
-  /// Encode this event as a nevent (NIP-19 event reference)
-  ///
-  /// Returns a bech32-encoded nevent string that includes:
-  /// - Event ID (required)
-  /// - Author pubkey (included)
-  /// - Kind (included)
-  /// - Relay hints from event.sources (if available)
-  ///
-  /// Usage: `final nevent = event.nevent;`
-  String get nevent {
-    return Nip19.encodeNevent(
-      eventId: id,
-      author: pubKey,
-      kind: kind,
-      relays: sources.isEmpty ? null : sources,
-    );
-  }
-
-  /// Encode this event as an naddr (NIP-19 addressable event coordinate)
-  ///
-  /// Only works for coordinate-capable replaceable events.
-  /// Requires a "d" tag to identify the event.
-  ///
-  /// Returns a bech32-encoded naddr string or null if:
-  /// - Event is not addressable/replaceable
-  /// - Event doesn't have a "d" tag
-  ///
-  /// Usage: `final naddr = event.naddr;`
-  String? get naddr {
-    // NIP-19 coordinates are valid for parameterized replaceables and
-    // singleton replaceable kinds that use an empty d-tag.
-    if (!_supportsCoordinate(kind)) {
-      return null;
-    }
-
-    // Get the "d" tag identifier
-    final identifier = getDtag();
-    if (identifier == null) {
-      return null;
-    }
-
-    return Nip19.encodeNaddr(
-      identifier: identifier,
-      pubkey: pubKey,
-      kind: kind,
-      relays: sources.isEmpty ? null : sources,
-    );
-  }
-
   /// Returns the Event object as a base64-encoded JSON string
   String toBase64() {
     return base64Encode(utf8.encode(json.encode(toJson())));
-  }
-
-  bool _supportsCoordinate(int kind) {
-    return EventKindClassification.isAddressableKind(kind) ||
-        EventKindClassification.legacyReplaceableKinds.contains(kind);
   }
 }

@@ -1,16 +1,10 @@
 import 'hrps.dart';
-import 'nip19_encoder.dart';
+import 'naddr.dart';
+import 'nevent.dart';
 import 'nip19_decoder.dart';
+import 'nip19_encoder.dart';
 import 'nip19_utils.dart';
-import '../../../domain_layer/entities/naddr.dart';
-import '../../../domain_layer/entities/nevent.dart';
-import '../../../domain_layer/entities/nprofile.dart';
-
-// Re-export for backwards compatibility
-export 'nip19_encoder.dart';
-export 'nip19_decoder.dart';
-export 'nip19_tlv.dart';
-export 'nip19_utils.dart';
+import 'nprofile.dart';
 
 /// Main NIP-19 class providing encoding, decoding, and validation
 /// This is a facade that delegates to specialized encoder/decoder classes

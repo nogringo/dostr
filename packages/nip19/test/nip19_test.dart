@@ -1,19 +1,15 @@
 import 'dart:convert';
 
 import 'package:test/test.dart';
-import 'package:bech32/bech32.dart';
+import 'package:bech32/bech32.dart' hide InvalidPadding;
 import 'package:convert/convert.dart';
-import 'package:ndk_core/shared/nips/nip19/nip19.dart';
-import 'package:ndk_core/shared/nips/nip19/nip19_utils.dart' as nip19_utils;
-import 'package:ndk_core/domain_layer/entities/naddr.dart';
-import 'package:ndk_core/domain_layer/entities/nevent.dart';
-import 'package:ndk_core/domain_layer/entities/nprofile.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
 
 void main() {
   group('Nip19Utils', () {
     test('convertBits should convert from 8 to 5 bits with padding', () {
       final data = [72, 101, 108, 108, 111]; // "Hello" in ASCII
-      final result = nip19_utils.Nip19Utils.convertBits(data, 8, 5, true);
+      final result = Nip19Utils.convertBits(data, 8, 5, true);
 
       expect(result, isNotEmpty);
       expect(
@@ -33,7 +29,7 @@ void main() {
         15,
         0,
       ]; // 5-bit values, padded correctly
-      final result = nip19_utils.Nip19Utils.convertBits(data, 5, 8, true);
+      final result = Nip19Utils.convertBits(data, 5, 8, true);
 
       expect(result, isNotEmpty);
       expect(
@@ -49,8 +45,8 @@ void main() {
         final data = [1, 2, 3, 4, 5];
 
         expect(
-          () => nip19_utils.Nip19Utils.convertBits(data, 5, 8, false),
-          throwsA(isA<nip19_utils.InvalidPadding>()),
+          () => Nip19Utils.convertBits(data, 5, 8, false),
+          throwsA(isA<InvalidPadding>()),
         );
       },
     );
@@ -60,8 +56,8 @@ void main() {
       final data = [255, 255, 255]; // Will create non-zero remainder
 
       expect(
-        () => nip19_utils.Nip19Utils.convertBits(data, 8, 5, false),
-        throwsA(isA<nip19_utils.InvalidPadding>()),
+        () => Nip19Utils.convertBits(data, 8, 5, false),
+        throwsA(isA<InvalidPadding>()),
       );
     });
 
@@ -70,7 +66,7 @@ void main() {
       final data = [256]; // Too large for 8-bit
 
       expect(
-        () => nip19_utils.Nip19Utils.convertBits(data, 8, 5, true),
+        () => Nip19Utils.convertBits(data, 8, 5, true),
         throwsA(isA<Exception>()),
       );
     });
@@ -79,13 +75,13 @@ void main() {
       final data = [-1]; // Negative value
 
       expect(
-        () => nip19_utils.Nip19Utils.convertBits(data, 8, 5, true),
+        () => Nip19Utils.convertBits(data, 8, 5, true),
         throwsA(isA<Exception>()),
       );
     });
 
     test('InvalidPadding toString should return formatted message', () {
-      final exception = nip19_utils.InvalidPadding('test error');
+      final exception = InvalidPadding('test error');
       expect(exception.toString(), 'InvalidPadding: test error');
     });
 
@@ -93,20 +89,10 @@ void main() {
       final original = [72, 101, 108, 108, 111]; // "Hello"
 
       // Convert 8 to 5 bits
-      final converted5bit = nip19_utils.Nip19Utils.convertBits(
-        original,
-        8,
-        5,
-        true,
-      );
+      final converted5bit = Nip19Utils.convertBits(original, 8, 5, true);
 
       // Convert back 5 to 8 bits
-      final converted8bit = nip19_utils.Nip19Utils.convertBits(
-        converted5bit,
-        5,
-        8,
-        false,
-      );
+      final converted8bit = Nip19Utils.convertBits(converted5bit, 5, 8, false);
 
       expect(converted8bit, original);
     });
@@ -210,13 +196,13 @@ void main() {
 
     test('Nip19.decodeNevent should decode nevent with all fields', () {
       const neventBech32 =
-          "nevent1qqs2ztln6vaff7jq34c7ys67vwp8qpj87rxncrqf64hv9nry65tykscppemhxue69uhkummn9ekx7mp0qgs8d3c64cayj8canmky0jap0c3fekjpzwsthdhx4cthd4my8c5u47srqsqqqqqpkmyhxk";
+          "nevent1qqs2ztln6vaff7jq34c7ys67vwp8qpj87rxncrqf64hv9nry65tykscprpmhxue69uhhyetvv9ujuetcv9khqmr99ehhyee0qgs8d3c64cayj8canmky0jap0c3fekjpzwsthdhx4cthd4my8c5u47srqsqqqqqpk00gdp";
       const expectedEventId =
           'a12ff3d33a94fa408d71e2435e6382700647f0cd3c0c09d56ec2cc64d5164b43';
       const expectedAuthor =
           '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa';
       const expectedKind = 1;
-      const expectedRelays = ['wss://nos.lol/'];
+      const expectedRelays = ['wss://relay.example.org/'];
 
       final decoded = Nip19.decodeNevent(neventBech32);
 
@@ -232,7 +218,7 @@ void main() {
       const author =
           '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa';
       const kind = 1;
-      const relays = ['wss://nos.lol/'];
+      const relays = ['wss://relay.example.org/'];
 
       final nevent = Nip19.encodeNevent(
         eventId: eventId,
@@ -320,7 +306,7 @@ void main() {
           author:
               '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa',
           kind: 1,
-          relays: ['wss://nos.lol/'],
+          relays: ['wss://relay.example.org/'],
         );
 
         final str = nevent.toString();
@@ -337,7 +323,7 @@ void main() {
           true,
         );
         expect(str.contains('1'), true);
-        expect(str.contains('wss://nos.lol/'), true);
+        expect(str.contains('wss://relay.example.org/'), true);
       });
 
       test('Nprofile.toString should return formatted string', () {
@@ -611,7 +597,7 @@ void main() {
         const validNote =
             'note15ylfqkhfduchm9pxfq8dsgrq7qppe7cxdvzxr3t2enq3vjd23dpqhva0cr';
         const validNevent =
-            'nevent1qqs2ztln6vaff7jq34c7ys67vwp8qpj87rxncrqf64hv9nry65tykscppemhxue69uhkummn9ekx7mp0qgs8d3c64cayj8canmky0jap0c3fekjpzwsthdhx4cthd4my8c5u47srqsqqqqqpkmyhxk';
+            'nevent1qqs2ztln6vaff7jq34c7ys67vwp8qpj87rxncrqf64hv9nry65tykscprpmhxue69uhhyetvv9ujuetcv9khqmr99ehhyee0qgs8d3c64cayj8canmky0jap0c3fekjpzwsthdhx4cthd4my8c5u47srqsqqqqqpk00gdp';
         const notNip19 = 'random-string';
 
         expect(Nip19.isNip19(validNpub), true);
@@ -661,7 +647,7 @@ void main() {
         const author =
             '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa';
         const kind = 1;
-        const relays = ['wss://nos.lol/', 'wss://relay.damus.io/'];
+        const relays = ['wss://relay.example.org/', 'wss://relay.damus.io/'];
 
         // Encode
         final encoded = Nip19.encodeNevent(
@@ -704,7 +690,7 @@ void main() {
         const relays = [
           'wss://relay.example.com',
           'wss://relay2.example.com',
-          'wss://nos.lol/',
+          'wss://relay.example.org/',
         ];
 
         // Encode
@@ -738,7 +724,7 @@ void main() {
         const pubkey =
             '460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c';
         const kind = 31990;
-        const relays = ['wss://relay.example.com', 'wss://nos.lol/'];
+        const relays = ['wss://relay.example.com', 'wss://relay.example.org/'];
 
         // Encode
         final encoded = Nip19.encodeNaddr(
@@ -877,7 +863,7 @@ void main() {
         const pubkey =
             '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa';
         const kind = 1;
-        const relays = ['wss://nos.lol/'];
+        const relays = ['wss://relay.example.org/'];
 
         // Encode as nevent
         final nevent = Nip19.encodeNevent(

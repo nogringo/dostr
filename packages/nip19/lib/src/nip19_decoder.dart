@@ -1,16 +1,14 @@
 import 'dart:convert';
 
 import 'package:bech32/bech32.dart';
-import 'package:collection/collection.dart';
 import 'package:convert/convert.dart';
 
-import '../../logger/logger.dart';
-import '../../../domain_layer/entities/naddr.dart';
-import '../../../domain_layer/entities/nevent.dart';
-import '../../../domain_layer/entities/nprofile.dart';
 import 'hrps.dart';
+import 'naddr.dart';
+import 'nevent.dart';
 import 'nip19_tlv.dart';
 import 'nip19_utils.dart';
+import 'nprofile.dart';
 
 /// NIP-19 decoding functions
 class Nip19Decoder {
@@ -25,7 +23,7 @@ class Nip19Decoder {
           bech32Result.hrp != Hrps.kPublicKey &&
           bech32Result.hrp != Hrps.kPrivateKey) {
         final tlv = Nip19TLV.parseTLV(data);
-        final special = tlv.firstWhereOrNull((t) => t.type == 0)?.value;
+        final special = tlv.where((t) => t.type == 0).firstOrNull?.value;
         if (special != null) {
           return hex.encode(special);
         } else {
@@ -34,8 +32,7 @@ class Nip19Decoder {
       } else {
         return hex.encode(data);
       }
-    } catch (e) {
-      Logger.log.e(() => "Nip19 decode error ${e.toString()}");
+    } catch (_) {
       return "";
     }
   }

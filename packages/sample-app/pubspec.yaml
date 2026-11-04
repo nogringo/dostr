@@ -74,6 +74,8 @@ dependency_overrides:
     path: ../ndk
   ndk_core:
     path: ../ndk_core
+  ndk_nip19:
+    path: ../nip19
   ndk_flutter:
     path: ../ndk_flutter
   ndk_drift:

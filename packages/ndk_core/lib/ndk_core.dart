@@ -42,5 +42,4 @@ export 'shared/logger/logger.dart';
 export 'shared/logger/ndk_logger.dart';
 export 'shared/nips/nip01/bip340.dart';
 export 'shared/nips/nip01/key_pair.dart';
-export 'shared/nips/nip19/nip19.dart';
 export 'src/version.dart';

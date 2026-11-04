@@ -1,6 +1,5 @@
-import 'package:ndk/entities.dart';
 import 'package:test/test.dart';
-import 'package:ndk_core/shared/nips/nip19/nip19.dart';
+import 'package:ndk/ndk.dart';
 
 void main() {
   group('Nip01Event NIP-19 getters', () {
@@ -38,7 +37,7 @@ void main() {
           createdAt: 1234567890,
         );
         final event = eventInit.copyWith(
-          sources: ['wss://nos.lol/', 'wss://relay.damus.io/'],
+          sources: ['wss://relay.example.org/', 'wss://relay.damus.io/'],
         );
 
         final eventModel = Nip01EventModel.fromEntity(event);
@@ -64,6 +63,19 @@ void main() {
 
         final decoded = Nip19.decodeNevent(nevent);
         expect(decoded.relays, null);
+      });
+
+      test('should work on a plain Nip01Event', () {
+        final event = Nip01Event(
+          pubKey:
+              '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa',
+          kind: 1,
+          tags: [],
+          content: 'Hello Nostr!',
+          createdAt: 1234567890,
+        );
+
+        expect(event.nevent, Nip01EventModel.fromEntity(event).nevent);
       });
     });
 

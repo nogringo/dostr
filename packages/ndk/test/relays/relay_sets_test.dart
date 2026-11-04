@@ -610,7 +610,7 @@ void main() async {
       while (i <= iterations) {
         final t0 = DateTime.now();
 
-        KeyPair key = KeyPair.justPublicKey(Helpers.decodeBech32(npub)[0]);
+        KeyPair key = KeyPair.justPublicKey(Nip19.decode(npub));
 
         ContactList? contactList = await ndk.follows.getContactList(
           key.publicKey,
@@ -659,7 +659,7 @@ void main() async {
     //   RelayManager relayManager = RelayManager();
     //   // String relay = "wss://nostr.fmar.link";
     //   await relayManager.connect();
-    //   KeyPair key = KeyPair.justPublicKey(Helpers.decodeBech32("npub1xpuz4qerklyck9evtg40wgrthq5rce2mumwuuygnxcg6q02lz9ms275ams")[0]);
+    //   KeyPair key = KeyPair.justPublicKey(Nip19.decode("npub1xpuz4qerklyck9evtg40wgrthq5rce2mumwuuygnxcg6q02lz9ms275ams"));
     //
     //   String pubKey = "48e7d9b7813958c13679ac82971211a3be9031015a2248bb041fb74652a1ddd7";
     //   var filter = Filter(
@@ -727,10 +727,10 @@ void main() async {
   //   RelayManager manager = RelayManager();
   //   await manager.init();
   //   await manager.connect();
-  //   KeyPair key = KeyPair.justPublicKey(Helpers.decodeBech32(
+  //   KeyPair key = KeyPair.justPublicKey(Nip19.decode(
   //       // "npub1cd32tje2tyhcnm3mwen2hwcghs0vfyupcxjd9aff9e64rhgu755qa9wt08"
   //           "npub1xpuz4qerklyck9evtg40wgrthq5rce2mumwuuygnxcg6q02lz9ms275ams"
-  //   )[0]);
+  //   ));
   //   // Map<String, List<PubkeyMapping>> bestRelays =
   //   // await manager.calculateBestRelaysForPubKeyMappings(
   //   //     [PubkeyMapping(pubKey: key.publicKey, rwMarker: ReadWriteMarker.readWrite)],
