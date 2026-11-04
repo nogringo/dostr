@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../shared/helpers/bounded_lru_set.dart';

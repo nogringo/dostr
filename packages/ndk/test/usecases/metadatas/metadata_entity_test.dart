@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 void main() {

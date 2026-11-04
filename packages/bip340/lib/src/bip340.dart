@@ -1,7 +1,6 @@
 import 'package:bip340/bip340.dart' as bip340;
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
-
-import 'helpers.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 
 class Bip340 {
   /// [message] is a hex string
@@ -35,5 +34,17 @@ class Bip340 {
     final pubKey = getPublicKey(privKey);
 
     return KeyPair(privKey, pubKey);
+  }
+
+  /// this method signs the event with the provided private key
+  /// mainly used for testing purposes, please use the account usecase to sign events!
+  static Nip01Event signEvent({
+    required Nip01Event event,
+    required String privateKey,
+  }) {
+    final id = Nip01Utils.calculateId(event);
+
+    final signature = sign(id, privateKey);
+    return event.copyWith(sig: signature, validSig: true);
   }
 }

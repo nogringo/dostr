@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -85,7 +84,7 @@ void main() {
         ],
         content: 'inbound ephemeral — should not be cached',
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: ephemeralEvent,
         privateKey: authorKey.privateKey!,
       );
@@ -336,7 +335,7 @@ void main() {
       await _waitForSubscriptionCount(mockRelay, 1);
 
       // Broadcast a non-ephemeral text note from a separate NDK instance.
-      final textNote = Nip01Utils.signWithPrivateKey(
+      final textNote = Bip340.signEvent(
         event: Nip01Event(
           kind: Nip01Event.kTextNodeKind,
           pubKey: key.publicKey,
@@ -353,7 +352,7 @@ void main() {
       await textNoteReceived.future.timeout(const Duration(seconds: 5));
 
       // Broadcast an ephemeral event from the same separate instance.
-      final ephemeralEvent = Nip01Utils.signWithPrivateKey(
+      final ephemeralEvent = Bip340.signEvent(
         event: Nip01Event(
           pubKey: key.publicKey,
           kind: ephemeralKind,

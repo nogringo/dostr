@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:ndk/shared/nips/nip25/reactions.dart';
@@ -169,7 +168,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'reaction-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final rootEvent = Nip01Utils.signWithPrivateKey(
+        final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -442,7 +441,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'incoming-deletion-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final rootEvent = Nip01Utils.signWithPrivateKey(
+        final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -452,7 +451,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final deletionEvent = Nip01Utils.signWithPrivateKey(
+        final deletionEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Deletion.kKind,
@@ -518,7 +517,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'deletion-first-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final rootEvent = Nip01Utils.signWithPrivateKey(
+        final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -528,7 +527,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final deletionEvent = Nip01Utils.signWithPrivateKey(
+        final deletionEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Deletion.kKind,
@@ -601,7 +600,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'metadata-convergence-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final oldMetadataEvent = Nip01Utils.signWithPrivateKey(
+        final oldMetadataEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Metadata.kKind,
@@ -611,7 +610,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final newMetadataEvent = Nip01Utils.signWithPrivateKey(
+        final newMetadataEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Metadata.kKind,

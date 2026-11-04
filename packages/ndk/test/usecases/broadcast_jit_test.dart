@@ -1,6 +1,5 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk/shared/nips/nip25/reactions.dart';
 import 'package:test/test.dart';
@@ -60,7 +59,7 @@ void main() async {
         content: "",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );
@@ -87,7 +86,7 @@ void main() async {
         content: "my content",
       );
 
-      final signedEvent2 = Nip01Utils.signWithPrivateKey(
+      final signedEvent2 = Bip340.signEvent(
         event: event2,
         privateKey: key0.privateKey!,
       );
@@ -120,7 +119,7 @@ void main() async {
         content: "",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -15,17 +14,16 @@ void main() {
   nip77AuthHandlerTests();
 }
 
-Nip01Event _textNote(KeyPair key, String content) =>
-    Nip01Utils.signWithPrivateKey(
-      event: Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
-        pubKey: key.publicKey,
-        content: content,
-        tags: [],
-        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      ),
-      privateKey: key.privateKey!,
-    );
+Nip01Event _textNote(KeyPair key, String content) => Bip340.signEvent(
+  event: Nip01Event(
+    kind: Nip01Event.kTextNodeKind,
+    pubKey: key.publicKey,
+    content: content,
+    tags: [],
+    createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+  ),
+  privateKey: key.privateKey!,
+);
 
 Account _signable(KeyPair key) => Account(
   pubkey: key.publicKey,

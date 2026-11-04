@@ -844,7 +844,7 @@ class MockRelay {
             if (signEvents && entry.key.privateKey != null) {
               // Sign the new instance, not the one in _nip65s
 
-              eventToAddSigned = Nip01Utils.signWithPrivateKey(
+              eventToAddSigned = Bip340.signEvent(
                 event: eventToAdd,
                 privateKey: entry.key.privateKey!,
               );
@@ -883,7 +883,7 @@ class MockRelay {
             Nip01Event eventToAdd = entry.value.copyWith();
             Nip01Event? eventToAddSigned;
             if (signEvents && entry.key.privateKey != null) {
-              eventToAddSigned = Nip01Utils.signWithPrivateKey(
+              eventToAddSigned = Bip340.signEvent(
                 event: eventToAdd,
                 privateKey: entry.key.privateKey!,
               );
@@ -954,7 +954,7 @@ class MockRelay {
 
     Nip01Event? signedEvent;
     if (keyPair != null) {
-      signedEvent = Nip01Utils.signWithPrivateKey(
+      signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -1165,7 +1165,7 @@ class MockRelay {
         content: encryptedResponse,
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
-      Nip01Event responseEvent = Nip01Utils.signWithPrivateKey(
+      Nip01Event responseEvent = Bip340.signEvent(
         event: responseEventUnsinged,
         privateKey: _remoteSignerPrivateKey,
       );
@@ -1242,7 +1242,7 @@ class MockRelay {
                 signEventCreatedAtOffsetSeconds,
           );
 
-          final Nip01Event signedEvent = Nip01Utils.signWithPrivateKey(
+          final Nip01Event signedEvent = Bip340.signEvent(
             event: eventToSign,
             privateKey: _remoteSignerPrivateKey,
           );

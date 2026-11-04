@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -37,7 +36,7 @@ void main() {
     authors: [key.publicKey],
   );
 
-  Nip01Event note(String content) => Nip01Utils.signWithPrivateKey(
+  Nip01Event note(String content) => Bip340.signEvent(
     event: Nip01Event(
       pubKey: key.publicKey,
       kind: Nip01Event.kTextNodeKind,

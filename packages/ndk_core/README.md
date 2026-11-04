@@ -12,11 +12,17 @@ you already know, for a bot, a relay tool or a NIP-46 client.
 ```yaml
 dependencies:
   ndk_core: ^0.11.0-dev.2
+  ndk_bip340: ^0.1.0
 ```
+
+`ndk_core` has no signing or verification code of its own: it takes any
+`EventSigner` and `EventVerifier`. [`ndk_bip340`](https://pub.dev/packages/ndk_bip340)
+provides pure Dart ones.
 
 ## Usage
 
 ```dart
+import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
 
 final relays = RelayManager(
@@ -49,6 +55,10 @@ await publishes
 ## Coming from `ndk`
 
 These files used to live in `ndk`. A deep import keeps its path and changes
-package: `package:ndk/shared/nips/nip01/bip340.dart` is now
-`package:ndk_core/shared/nips/nip01/bip340.dart`. `package:ndk/ndk.dart`
+package: `package:ndk/shared/nips/nip01/helpers.dart` is now
+`package:ndk_core/shared/nips/nip01/helpers.dart`. `package:ndk/ndk.dart`
 still exports what it did.
+
+`Bip340`, `Bip340EventSigner` and `Bip340EventVerifier` are in
+[`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
+`Bip340.signEvent`.

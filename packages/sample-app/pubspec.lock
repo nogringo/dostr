@@ -804,6 +804,13 @@ packages:
       relative: true
     source: path
     version: "0.11.0-dev.2"
+  ndk_bip340:
+    dependency: "direct overridden"
+    description:
+      path: "../bip340"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_cashu:
     dependency: "direct main"
     description:

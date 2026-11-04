@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk_core/shared/nips/nip04/nip04.dart';
 import 'package:test/test.dart';
@@ -69,7 +68,7 @@ void main() async {
           for (final url in urls) ['relay', url],
         ],
       );
-      final signed = Nip01Utils.signWithPrivateKey(
+      final signed = Bip340.signEvent(
         event: event,
         privateKey: owner.privateKey!,
       );
@@ -203,7 +202,7 @@ void main() async {
           bob.publicKey,
           'must not be decrypted',
         );
-        final signed = Nip01Utils.signWithPrivateKey(
+        final signed = Bip340.signEvent(
           event: Nip01Event(
             pubKey: alice.publicKey,
             kind: Dms.kLegacyNip04MessageKind,

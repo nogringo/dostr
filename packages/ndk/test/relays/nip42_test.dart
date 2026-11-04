@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -33,7 +32,7 @@ void nip42Tests(NdkEngine engine) {
         tags: [],
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key.privateKey!,
       );
@@ -128,7 +127,7 @@ void nip42Tests(NdkEngine engine) {
         tags: [],
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key.privateKey!,
       );
@@ -663,10 +662,7 @@ void nip42Tests(NdkEngine engine) {
         tags: [],
         createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       );
-      return Nip01Utils.signWithPrivateKey(
-        event: event,
-        privateKey: key.privateKey!,
-      );
+      return Bip340.signEvent(event: event, privateKey: key.privateKey!);
     }
 
     Account signableAccount(KeyPair key) => Account(

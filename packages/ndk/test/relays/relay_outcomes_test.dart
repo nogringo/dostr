@@ -5,7 +5,6 @@ import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart' as ndk_entities;
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
@@ -120,7 +119,7 @@ void notSentEndTests() {
     final key1 = Bip340.generatePrivateKey();
     final key2 = Bip340.generatePrivateKey();
 
-    Nip01Event textNote(KeyPair key) => Nip01Utils.signWithPrivateKey(
+    Nip01Event textNote(KeyPair key) => Bip340.signEvent(
       event: Nip01Event(
         kind: Nip01Event.kTextNodeKind,
         pubKey: key.publicKey,
@@ -399,7 +398,7 @@ void relayOutcomesTests(NdkEngine engine) {
     late MockRelay relay1;
     late Ndk ndk;
 
-    Nip01Event textNote(KeyPair key) => Nip01Utils.signWithPrivateKey(
+    Nip01Event textNote(KeyPair key) => Bip340.signEvent(
       event: Nip01Event(
         kind: Nip01Event.kTextNodeKind,
         pubKey: key.publicKey,

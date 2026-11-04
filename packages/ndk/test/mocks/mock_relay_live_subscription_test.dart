@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -77,7 +76,7 @@ void main() {
         tags: [],
         content: 'live subscription event',
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -148,7 +147,7 @@ void main() {
           content: 'current replaceable event',
           createdAt: now,
         );
-        final signedCurrentEvent = Nip01Utils.signWithPrivateKey(
+        final signedCurrentEvent = Bip340.signEvent(
           event: currentEvent,
           privateKey: keyPair.privateKey!,
         );
@@ -175,7 +174,7 @@ void main() {
           content: 'stale replaceable event',
           createdAt: now - 100,
         );
-        final signedStaleEvent = Nip01Utils.signWithPrivateKey(
+        final signedStaleEvent = Bip340.signEvent(
           event: staleEvent,
           privateKey: keyPair.privateKey!,
         );
@@ -261,7 +260,7 @@ void main() {
         tags: [],
         content: 'event after reconnect',
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );

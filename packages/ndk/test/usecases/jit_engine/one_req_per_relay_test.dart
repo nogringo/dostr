@@ -10,7 +10,6 @@ import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/domain_layer/usecases/relay_sets_engine.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -23,7 +22,7 @@ void main() {
   final a = Bip340.generatePrivateKey();
   final b = Bip340.generatePrivateKey();
 
-  Nip01Event note(KeyPair key) => Nip01Utils.signWithPrivateKey(
+  Nip01Event note(KeyPair key) => Bip340.signEvent(
     event: Nip01Event(
       pubKey: key.publicKey,
       kind: Nip01Event.kTextNodeKind,

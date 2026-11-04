@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -152,7 +151,7 @@ void main() {
 }
 
 Nip01Event _signedNote(KeyPair keyPair, List<List<String>> tags) {
-  return Nip01Utils.signWithPrivateKey(
+  return Bip340.signEvent(
     event: Nip01Event(
       pubKey: keyPair.publicKey,
       kind: Nip01Event.kTextNodeKind,

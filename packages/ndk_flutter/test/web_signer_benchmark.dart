@@ -4,7 +4,6 @@ library;
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:ndk_flutter/signers/web_event_signer.dart';
 import 'package:ndk_flutter/verifiers/web_event_verifier.dart';

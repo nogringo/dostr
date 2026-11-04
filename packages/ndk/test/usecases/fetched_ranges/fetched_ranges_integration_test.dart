@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -16,10 +15,7 @@ void main() async {
       tags: [],
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
-    return Nip01Utils.signWithPrivateKey(
-      event: event,
-      privateKey: key.privateKey!,
-    );
+    return Bip340.signEvent(event: event, privateKey: key.privateKey!);
   }
 
   Map<KeyPair, Nip01Event> textNotes = {key1: textNote(key1)};

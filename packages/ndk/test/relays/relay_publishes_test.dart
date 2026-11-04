@@ -2,7 +2,6 @@ import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -13,7 +12,7 @@ void main() {
   final mentioned = Bip340.generatePrivateKey();
 
   Nip01Event signedNote({List<List<String>> tags = const []}) =>
-      Nip01Utils.signWithPrivateKey(
+      Bip340.signEvent(
         event: Nip01Event(
           pubKey: author.publicKey,
           kind: Nip01Event.kTextNodeKind,

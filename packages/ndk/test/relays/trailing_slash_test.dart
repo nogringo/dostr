@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_relay.dart';
@@ -26,7 +25,7 @@ void main() {
         tags: [],
         content: "Test",
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -127,7 +126,7 @@ void main() {
         tags: [],
         content: "Test",
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -157,7 +156,7 @@ void main() {
         tags: [],
         content: "Test",
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -281,7 +280,7 @@ void main() {
         tags: [],
         content: "Test",
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );
@@ -318,7 +317,7 @@ void main() {
         content: "Test",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: keyPair.privateKey!,
       );

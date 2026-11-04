@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
@@ -32,7 +31,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'subscription-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final cachedEvent = Nip01Utils.signWithPrivateKey(
+        final cachedEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -42,7 +41,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final liveEvent = Nip01Utils.signWithPrivateKey(
+        final liveEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -105,7 +104,7 @@ void main() {
       () async {
         final relay = MockRelay(name: 'subscription-delete-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final targetEvent = Nip01Utils.signWithPrivateKey(
+        final targetEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -115,7 +114,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final deletionEvent = Nip01Utils.signWithPrivateKey(
+        final deletionEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Deletion.kKind,
@@ -191,7 +190,7 @@ void main() {
           ),
         );
         addTearDown(writerNdk.destroy);
-        final cachedVersion = Nip01Utils.signWithPrivateKey(
+        final cachedVersion = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Metadata.kKind,
@@ -201,7 +200,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final newerVersion = Nip01Utils.signWithPrivateKey(
+        final newerVersion = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Metadata.kKind,
@@ -211,7 +210,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        final staleVersion = Nip01Utils.signWithPrivateKey(
+        final staleVersion = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
             kind: Metadata.kKind,

@@ -1,12 +1,10 @@
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip04/nip04.dart';
+import 'package:ndk_core/shared/nips/nip44/nip44.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../domain_layer/entities/nip_01_event.dart';
-import '../../../domain_layer/entities/pending_signer_request.dart';
-import '../../../shared/nips/nip01/helpers.dart';
-import '../../../shared/nips/nip04/nip04.dart';
-import '../../../shared/nips/nip01/bip340.dart';
-import '../../../domain_layer/repositories/event_signer.dart';
-import '../../../shared/nips/nip44/nip44.dart';
+import 'bip340.dart';
 
 /// Default factory for creating Bip340EventSigner instances
 class Bip340EventSignerFactory implements LocalEventSignerFactory {

@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -43,7 +42,7 @@ void main() {
           content: '',
           createdAt: now - 100,
         );
-        final signedOld = Nip01Utils.signWithPrivateKey(
+        final signedOld = Bip340.signEvent(
           event: oldEvent,
           privateKey: keyPair.privateKey!,
         );
@@ -61,7 +60,7 @@ void main() {
           content: '',
           createdAt: now,
         );
-        final signedNew = Nip01Utils.signWithPrivateKey(
+        final signedNew = Bip340.signEvent(
           event: newEvent,
           privateKey: keyPair.privateKey!,
         );
@@ -130,7 +129,7 @@ void main() {
           content: 'first draft',
           createdAt: now - 100,
         );
-        final signedOld = Nip01Utils.signWithPrivateKey(
+        final signedOld = Bip340.signEvent(
           event: oldEvent,
           privateKey: keyPair.privateKey!,
         );
@@ -148,7 +147,7 @@ void main() {
           content: 'final version',
           createdAt: now,
         );
-        final signedNew = Nip01Utils.signWithPrivateKey(
+        final signedNew = Bip340.signEvent(
           event: newEvent,
           privateKey: keyPair.privateKey!,
         );

@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 import 'package:test/test.dart';
 
@@ -29,7 +28,7 @@ void main() async {
       tags: [],
       createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
-    final signedEvent = Nip01Utils.signWithPrivateKey(
+    final signedEvent = Bip340.signEvent(
       event: event,
       privateKey: key2.privateKey!,
     );

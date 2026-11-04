@@ -3,7 +3,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 
 import '../../../config/blossom_config.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/auth_handler.dart';

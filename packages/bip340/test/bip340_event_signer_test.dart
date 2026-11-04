@@ -1,6 +1,5 @@
-import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
-import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
 void main() {

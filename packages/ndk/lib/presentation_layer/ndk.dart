@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../data_layer/repositories/cache_manager/mem_cache_manager.dart';
-import 'package:ndk_core/data_layer/repositories/verifiers/bip340_event_verifier.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';

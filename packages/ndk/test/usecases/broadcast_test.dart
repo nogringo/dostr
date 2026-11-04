@@ -2,7 +2,6 @@ import 'package:ndk/entities.dart';
 import 'package:ndk/shared/nips/nip25/reactions.dart';
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -67,7 +66,7 @@ void main() async {
         content: "",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );
@@ -92,7 +91,7 @@ void main() async {
         content: "my content",
       );
 
-      final signedEvent2 = Nip01Utils.signWithPrivateKey(
+      final signedEvent2 = Bip340.signEvent(
         event: event2,
         privateKey: key0.privateKey!,
       );
@@ -123,7 +122,7 @@ void main() async {
         content: "",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );
@@ -168,7 +167,7 @@ void main() async {
         content: "1",
       );
 
-      final signedEvent1 = Nip01Utils.signWithPrivateKey(
+      final signedEvent1 = Bip340.signEvent(
         event: event1,
         privateKey: key0.privateKey!,
       );
@@ -179,7 +178,7 @@ void main() async {
         content: "2",
       );
 
-      final signedEvent2 = Nip01Utils.signWithPrivateKey(
+      final signedEvent2 = Bip340.signEvent(
         event: event2,
         privateKey: key0.privateKey!,
       );
@@ -229,7 +228,7 @@ void main() async {
         content: "",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );
@@ -311,7 +310,7 @@ void main() async {
           content: "testing timeout",
         );
 
-        final signedEvent = Nip01Utils.signWithPrivateKey(
+        final signedEvent = Bip340.signEvent(
           event: event,
           privateKey: key0.privateKey!,
         );
@@ -392,7 +391,7 @@ void main() async {
           content: "testing considerDonePercent",
         );
 
-        final signedEvent = Nip01Utils.signWithPrivateKey(
+        final signedEvent = Bip340.signEvent(
           event: event,
           privateKey: key0.privateKey!,
         );
@@ -449,7 +448,7 @@ void main() async {
         content: "test cache save",
       );
 
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );
@@ -480,7 +479,7 @@ void main() async {
           content: "test no cache save",
         );
 
-        final signedEvent = Nip01Utils.signWithPrivateKey(
+        final signedEvent = Bip340.signEvent(
           event: event,
           privateKey: key0.privateKey!,
         );
@@ -505,7 +504,7 @@ void main() async {
         tags: [],
         content: "test offline broadcast",
       );
-      final signedEvent = Nip01Utils.signWithPrivateKey(
+      final signedEvent = Bip340.signEvent(
         event: event,
         privateKey: key0.privateKey!,
       );

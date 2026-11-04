@@ -1,6 +1,5 @@
 import 'package:ndk/entities.dart' show RelayBroadcastResponse;
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import '../../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -53,10 +52,8 @@ void sameEventBroadcastTests(NdkEngine engine) {
       content: content,
     );
 
-    Nip01Event signedNote(String content) => Nip01Utils.signWithPrivateKey(
-      event: note(content),
-      privateKey: key.privateKey!,
-    );
+    Nip01Event signedNote(String content) =>
+        Bip340.signEvent(event: note(content), privateKey: key.privateKey!);
 
     void expectAcceptedOnlyBy(
       List<RelayBroadcastResponse> responses,

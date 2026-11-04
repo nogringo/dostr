@@ -4,7 +4,6 @@ import 'package:test/test.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 

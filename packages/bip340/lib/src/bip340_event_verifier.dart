@@ -1,9 +1,6 @@
 import 'package:bip340/bip340.dart' as bip340;
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/shared/isolates/isolate_manager.dart';
-
-import '../../../domain_layer/entities/nip_01_event.dart';
-import '../../../domain_layer/entities/nip_01_utils.dart';
-import '../../../domain_layer/repositories/event_verifier.dart';
 
 /// Pure dart event verifier using https://pub.dev/packages/bip340
 /// can be slow on mobile devices

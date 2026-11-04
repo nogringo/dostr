@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:test/test.dart';
 
 import 'mocks/mock_relay.dart';
@@ -119,7 +118,7 @@ void main() {
             reason: 'the destroyed NDK reconnected or the live NDK did not',
           );
 
-          final event = Nip01Utils.signWithPrivateKey(
+          final event = Bip340.signEvent(
             event: Nip01Event(
               pubKey: key.publicKey,
               kind: Nip01Event.kTextNodeKind,
@@ -168,7 +167,7 @@ void main() {
         ]);
 
         final key = Bip340.generatePrivateKey();
-        final event = Nip01Utils.signWithPrivateKey(
+        final event = Bip340.signEvent(
           event: Nip01Event(
             pubKey: key.publicKey,
             kind: Nip01Event.kTextNodeKind,
@@ -216,7 +215,7 @@ void main() {
         challengePerConnection: true,
       );
       final noteKey = Bip340.generatePrivateKey();
-      final note = Nip01Utils.signWithPrivateKey(
+      final note = Bip340.signEvent(
         event: Nip01Event(
           pubKey: noteKey.publicKey,
           kind: Nip01Event.kTextNodeKind,
