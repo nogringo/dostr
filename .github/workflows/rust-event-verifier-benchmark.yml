@@ -48,7 +48,22 @@ jobs:
       - name: Run benchmark
         run: dart run tool/benchmark_rust_event_verifier.dart > benchmark-results.json
 
+      # Forks don't have the benchmark-data branch, and the action fails without it.
+      - name: Check benchmark data branch
+        id: data-branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          if gh api --silent "repos/$REPO/branches/benchmark-data"; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No benchmark-data branch in $REPO, skipping comparison"
+          fi
+
       - name: Record and compare benchmark
+        if: steps.data-branch.outputs.exists == 'true'
         uses: benchmark-action/github-action-benchmark@v1
         with:
           name: Rust event verifier
