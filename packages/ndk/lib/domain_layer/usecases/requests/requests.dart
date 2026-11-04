@@ -29,11 +29,22 @@ import '../relay_reqs/relay_reqs.dart';
 import '../stream_response_cleaner/stream_response_cleaner.dart';
 import 'concurrency_check.dart';
 
-/// Internal state for tracking pagination progress on a single relay
+/// How far a paginated query got on a single relay
 class _RelayPaginationState {
-  int? oldestTimestamp;
-  int? currentUntil;
-  bool exhausted = false;
+  /// ids this relay returned, so a page is only progress if it brought new ones
+  final Set<String> seen = {};
+  int? until;
+  bool stalled = false;
+}
+
+/// A paginated query in flight, so it can be closed like any request
+class _Pagination {
+  final String id;
+  final ReplaySubject<Nip01Event> events = ReplaySubject<Nip01Event>();
+  final Set<String> pageIds = {};
+  bool cancelled = false;
+
+  _Pagination(this.id);
 }
 
 /// One network request, served to every identical request that joined it.
@@ -102,6 +113,7 @@ class Requests {
   final ConcurrencyCheck _concurrency = ConcurrencyCheck();
   final Map<String, _SharedRequest> _sharedByHash = {};
   final Map<String, _Caller> _callers = {};
+  final Map<String, _Pagination> _paginations = {};
 
   /// Creates a new [Requests] instance
   ///
@@ -372,6 +384,8 @@ class Requests {
   Future<void> closeSubscription(String subId, {String debugLabel = ""}) async {
     final caller = _callers[subId];
     if (caller != null) return _release(caller);
+    final pagination = _paginations[subId];
+    if (pagination != null) return _cancel(pagination);
 
     final state = _globalState.inFlightRequests[subId];
     if (state == null) {
@@ -387,6 +401,10 @@ class Requests {
 
   /// Close all subscriptions, and the REQs opened outside of [Requests]
   Future<void> closeAllSubscription() async {
+    await Future.wait([
+      for (final pagination in _paginations.values.toList())
+        _cancel(pagination),
+    ]);
     await Future.wait([
       for (final caller in _callers.values.toList()) _release(caller),
     ]);
@@ -405,6 +423,18 @@ class Requests {
       _sharedByHash.remove(shared.hash);
     }
     await shared.relayReq.close();
+  }
+
+  Future<void> _cancel(_Pagination pagination) async {
+    pagination.cancelled = true;
+    if (identical(_paginations[pagination.id], pagination)) {
+      _paginations.remove(pagination.id);
+    }
+    await Future.wait([
+      for (final pageId in pagination.pageIds.toList())
+        closeSubscription(pageId),
+    ]);
+    await pagination.events.close();
   }
 
   void _forget(_Caller caller) {
@@ -572,23 +602,11 @@ class Requests {
       }
     }
 
-    final explicitRelays = request.explicitRelays;
-    if (explicitRelays != null && explicitRelays.isNotEmpty) {
-      // explicit relays bypass outbox routing, each gets every filter
-      final sliced = [
-        for (final filter in filters) ...RelaySet.sliceFilterAuthors(filter),
-      ];
-      for (final url in cleanRelayUrls(explicitRelays.toList()).toSet()) {
-        send(url, List.of(sliced));
-      }
-      relayReq.seal();
-      return;
-    }
-
     try {
-      await _engine.route(
+      await _dispatch(
         filters,
         send,
+        explicitRelays: request.explicitRelays,
         relaySet: request.relaySet,
         desiredCoverage: request.desiredCoverage,
       );
@@ -603,6 +621,36 @@ class Requests {
       relayReq.seal();
     }
   }
+
+  /// Hands [filters] to the relays they go to: the [explicitRelays], or those
+  /// the engine picks.
+  Future<void> _dispatch(
+    List<Filter> filters,
+    RelaySend send, {
+    Iterable<String>? explicitRelays,
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  }) async {
+    if (explicitRelays != null && explicitRelays.isNotEmpty) {
+      // explicit relays bypass outbox routing, each gets every filter
+      final sliced = [
+        for (final filter in filters) ...RelaySet.sliceFilterAuthors(filter),
+      ];
+      for (final url in cleanRelayUrls(explicitRelays.toList()).toSet()) {
+        send(url, List.of(sliced));
+      }
+      return;
+    }
+    await _engine.route(
+      filters,
+      send,
+      relaySet: relaySet,
+      desiredCoverage: desiredCoverage,
+    );
+  }
+
+  bool _passesEventOutFilters(Nip01Event event) =>
+      _eventOutFilters.every((filter) => filter.filter(event));
 
   /// Performs a paginated query that fetches all events in a time range
   /// by making multiple requests per relay, each time adjusting the `until` parameter
@@ -621,8 +669,8 @@ class Requests {
     int? desiredCoverage,
     AuthPolicy? auth,
   }) {
-    final requestId = _requestId(name);
-    final aggregatedController = ReplaySubject<Nip01Event>();
+    final pagination = _Pagination(_requestId(name));
+    _paginations[pagination.id] = pagination;
     final seenEventIds = <String>{};
 
     // a relay is paginated by its own sequence of requests, so what it ended
@@ -652,150 +700,152 @@ class Requests {
       }
     }
 
-    Future<void> paginate() async {
-      final since = filter.since;
+    // once for the whole query, however many of its pages time out
+    var timedOut = false;
+    void onPageTimeout() {
+      if (timedOut) return;
+      timedOut = true;
+      timeoutCallback?.call();
+      timeoutCallbackUserFacing?.call();
+    }
 
-      // First request to discover relays and get initial events
-      final initialResponse = requestNostrEvent(
-        NdkRequest.query(
-          _requestId(name),
-          name: name,
-          filters: [filter.clone()],
-          relaySet: relaySet,
-          cacheRead: cacheRead,
-          cacheWrite: cacheWrite,
-          timeoutDuration: timeout,
-          timeoutCallbackUserFacing: timeoutCallbackUserFacing,
-          timeoutCallback: timeoutCallback,
-          explicitRelays: explicitRelays,
-          desiredCoverage:
-              desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
-          auth: auth,
-        ),
-      );
+    void emit(Nip01Event event) {
+      if (pagination.events.isClosed || !seenEventIds.add(event.id)) return;
+      pagination.events.add(event);
+    }
 
-      final initialEvents = await awaitPage(initialResponse);
+    /// Pages backwards through [url] alone, so a page only answers for the
+    /// relay it was sent to.
+    Future<void> paginateRelay(String url, List<Filter> relayFilters) async {
+      final progress = _RelayPaginationState();
+      while (!pagination.cancelled) {
+        final page = requestNostrEvent(
+          NdkRequest.query(
+            _requestId(name),
+            name: name,
+            filters: [
+              for (final relayFilter in relayFilters)
+                relayFilter.clone()
+                  ..until = progress.until ?? relayFilter.until,
+            ],
+            cacheRead: false,
+            cacheWrite: cacheWrite,
+            timeoutDuration: timeout,
+            timeoutCallback: onPageTimeout,
+            explicitRelays: [url],
+            desiredCoverage: 1,
+            auth: auth,
+          ),
+        );
+        pagination.pageIds.add(page.requestId);
+        final List<Nip01Event> pageEvents;
+        try {
+          pageEvents = await awaitPage(page);
+        } finally {
+          pagination.pageIds.remove(page.requestId);
+        }
+        if (pageEvents.isEmpty) return;
 
-      // Emit initial events and discover relays
-      final relayState = <String, _RelayPaginationState>{};
-
-      for (final event in initialEvents) {
-        if (!seenEventIds.contains(event.id)) {
-          seenEventIds.add(event.id);
-          aggregatedController.add(event);
+        var fresh = false;
+        var oldest = pageEvents.first.createdAt;
+        for (final event in pageEvents) {
+          emit(event);
+          fresh = progress.seen.add(event.id) || fresh;
+          if (event.createdAt < oldest) oldest = event.createdAt;
         }
 
-        // Track oldest timestamp per relay
-        for (final relay in event.sources) {
-          final state = relayState.putIfAbsent(
-            relay,
-            () => _RelayPaginationState(),
-          );
-          if (state.oldestTimestamp == null ||
-              event.createdAt < state.oldestTimestamp!) {
-            state.oldestTimestamp = event.createdAt;
-          }
+        if (fresh) {
+          // inclusive: the events of the oldest timestamp may not all have
+          // fit in this page
+          progress.until = oldest;
+          progress.stalled = false;
+        } else if (progress.stalled) {
+          return;
+        } else {
+          // more events share that timestamp than a page holds, the ones the
+          // relay never returned cannot be reached without skipping it
+          progress.until = oldest - 1;
+          progress.stalled = true;
         }
       }
+    }
 
-      // If no events or no relays discovered, we're done
-      if (initialEvents.isEmpty || relayState.isEmpty) {
-        await aggregatedController.close();
+    Future<void> paginate() async {
+      var filters = [filter.clone()];
+      if (cacheRead) {
+        final cached = StreamController<Nip01Event>();
+        final emitted = cached.stream
+            .where(_passesEventOutFilters)
+            .forEach(emit);
+        try {
+          filters = await _cacheRead.resolveUnresolvedFilters(
+            filters: filters,
+            outController: cached,
+          );
+        } catch (error, stackTrace) {
+          Logger.log.w(
+            () =>
+                "${pagination.id} could not read the cache, asking the relays",
+            error: error,
+            stackTrace: stackTrace,
+          );
+          if (!cached.isClosed) unawaited(cached.close());
+        }
+        await emitted;
+      }
+      if (filters.isEmpty || pagination.cancelled) return;
+      if (auth is AuthPolicyRequire && !auth.account.signer.canSign()) {
+        Logger.log.w(
+          () =>
+              "${pagination.id} requires ${auth.account.pubkey}, which cannot sign",
+        );
         return;
       }
 
-      // Initialize relay states
-      for (final entry in relayState.entries) {
-        final state = entry.value;
-        if (state.oldestTimestamp != null) {
-          state.currentUntil = state.oldestTimestamp! - 1;
-          // Check if already reached since
-          if (since != null && state.oldestTimestamp! <= since) {
-            state.exhausted = true;
-          }
-        } else {
-          state.exhausted = true;
-        }
+      final relays = <Future<void>>[];
+      var over = false;
+      await _dispatch(
+        filters,
+        (url, relayFilters) {
+          // a relay the engine hands over once every other one is done
+          // would start the query over on its own
+          if (over || pagination.cancelled) return;
+          relays.add(paginateRelay(url, relayFilters));
+        },
+        explicitRelays: explicitRelays,
+        relaySet: relaySet,
+        desiredCoverage:
+            desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
+      );
+      var awaited = 0;
+      while (awaited < relays.length) {
+        final running = relays.sublist(awaited);
+        awaited = relays.length;
+        await Future.wait(running);
       }
-
-      // Paginate each relay independently
-      while (relayState.values.any((s) => !s.exhausted)) {
-        // Get active relays
-        final activeRelays = relayState.entries
-            .where((e) => !e.value.exhausted)
-            .map((e) => e.key)
-            .toList();
-
-        // Make parallel requests to all active relays
-        final futures = activeRelays.map((relay) async {
-          final state = relayState[relay]!;
-          final pageFilter = filter.clone();
-          pageFilter.until = state.currentUntil;
-
-          final response = requestNostrEvent(
-            NdkRequest.query(
-              _requestId(name),
-              name: name,
-              filters: [pageFilter],
-              cacheRead: false, // Don't read from cache for subsequent pages
-              cacheWrite: cacheWrite,
-              timeoutDuration: timeout,
-              timeoutCallbackUserFacing: timeoutCallbackUserFacing,
-              timeoutCallback: timeoutCallback,
-              explicitRelays: [relay],
-              desiredCoverage: 1,
-              auth: auth,
-            ),
-          );
-
-          final pageEvents = await awaitPage(response);
-          return MapEntry(relay, pageEvents);
-        });
-
-        final results = await Future.wait(futures);
-
-        // Process results
-        for (final result in results) {
-          final relay = result.key;
-          final pageEvents = result.value;
-          final state = relayState[relay]!;
-
-          int? oldestTimestamp;
-          for (final event in pageEvents) {
-            if (!seenEventIds.contains(event.id)) {
-              seenEventIds.add(event.id);
-              aggregatedController.add(event);
-            }
-            // Track oldest timestamp for this relay
-            if (oldestTimestamp == null || event.createdAt < oldestTimestamp) {
-              oldestTimestamp = event.createdAt;
-            }
-          }
-
-          if (pageEvents.isEmpty || oldestTimestamp == null) {
-            state.exhausted = true;
-          } else {
-            state.currentUntil = oldestTimestamp - 1;
-            // Check if reached since
-            if (since != null && oldestTimestamp <= since) {
-              state.exhausted = true;
-            }
-          }
-        }
-      }
-
-      await aggregatedController.close();
+      over = true;
     }
 
-    // Start pagination asynchronously
-    paginate().whenComplete(() {
-      relayOutcomesDone.complete(Map.of(relayOutcomes));
-      relayOutcomesSubject.close();
-    });
+    paginate()
+        .catchError((Object error, StackTrace stackTrace) {
+          Logger.log.e(
+            () => "paginated query ${pagination.id} failed",
+            error: error,
+            stackTrace: stackTrace,
+          );
+        })
+        .whenComplete(() async {
+          if (identical(_paginations[pagination.id], pagination)) {
+            _paginations.remove(pagination.id);
+          }
+          await pagination.events.close();
+          relayOutcomesDone.complete(Map.of(relayOutcomes));
+          await relayOutcomesSubject.close();
+        });
 
     return NdkResponse(
-      requestId,
-      aggregatedController.stream,
+      pagination.id,
+      pagination.events.stream,
       relayOutcomes: () => Map.of(relayOutcomes),
       relayOutcomesStream: () => relayOutcomesSubject.stream,
       relayOutcomesDone: relayOutcomesDone.future,

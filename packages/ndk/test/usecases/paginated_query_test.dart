@@ -175,13 +175,8 @@ void main() async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       final sameTimestamp = now - 2000;
 
-      final timestamps = [
-        now - 4000,
-        sameTimestamp, // same
-        sameTimestamp, // same
-        sameTimestamp, // same
-        now - 1000,
-      ];
+      // the first page (2 events) cuts the timestamp they share in half
+      final timestamps = [now - 4000, sameTimestamp, sameTimestamp, now - 1000];
 
       // Publish events
       for (int i = 0; i < timestamps.length; i++) {
@@ -208,11 +203,89 @@ void main() async {
 
       final events = await query.future;
 
-      expect(events.length, equals(3));
+      expect(events.length, equals(4));
 
       // Verify no duplicates
       final ids = events.map((e) => e.id).toSet();
-      expect(ids.length, equals(3));
+      expect(ids.length, equals(4));
+    });
+
+    Future<void> publish(MockRelay relay, int count, {int offset = 0}) async {
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      for (var i = 0; i < count; i++) {
+        final response = ndk.broadcast.broadcast(
+          nostrEvent: Nip01Event(
+            kind: Nip01Event.kTextNodeKind,
+            pubKey: key1.publicKey,
+            content: "Event $offset-$i",
+            tags: [],
+            createdAt: now - offset - i * 1000,
+          ),
+          specificRelays: [relay.url],
+        );
+        await response.broadcastDoneFuture;
+      }
+      await ndk.config.cache.clearAll();
+    }
+
+    test('closing it stops asking for pages', () async {
+      // one event per page, each answered late: the query outlives the close
+      final slow = MockRelay(name: "slow", maxEventsPerRequest: 1);
+      await slow.startServer(delayResponse: const Duration(milliseconds: 200));
+      addTearDown(slow.stopServer);
+      await publish(slow, 8);
+
+      final query = ndk.requests.query(
+        filter: Filter(
+          kinds: [Nip01Event.kTextNodeKind],
+          authors: [key1.publicKey],
+        ),
+        explicitRelays: [slow.url],
+        paginate: true,
+      );
+      await query.stream.first;
+      await ndk.requests.closeSubscription(query.requestId);
+
+      // the page that was already on its way counts once it got through the
+      // relay's delay
+      await Future<void>.delayed(const Duration(milliseconds: 400));
+      final requested = slow.totalRequestedSubscriptionCount;
+      await Future<void>.delayed(const Duration(milliseconds: 800));
+
+      expect(slow.totalRequestedSubscriptionCount, requested);
+      expect(await query.future, isNotEmpty);
+    });
+
+    test('reports its timeout once, however many pages run into it', () async {
+      final relays = [
+        MockRelay(name: "goes silent 1", maxEventsPerRequest: 1),
+        MockRelay(name: "goes silent 2", maxEventsPerRequest: 1),
+      ];
+      for (final (index, relay) in relays.indexed) {
+        await relay.startServer();
+        addTearDown(relay.stopServer);
+        await publish(relay, 2, offset: index * 100);
+      }
+
+      var timeouts = 0;
+      final query = ndk.requests.query(
+        filter: Filter(
+          kinds: [Nip01Event.kTextNodeKind],
+          authors: [key1.publicKey],
+        ),
+        explicitRelays: relays.map((relay) => relay.url),
+        timeout: const Duration(milliseconds: 500),
+        timeoutCallbackUserFacing: () => timeouts++,
+        paginate: true,
+      );
+      // every page after the first one runs into the timeout, on each relay
+      await query.stream.first;
+      for (final relay in relays) {
+        relay.silenceRequests = true;
+      }
+
+      await query.future;
+      expect(timeouts, 1);
     });
 
     test('paginates correctly across multiple relays', () async {
