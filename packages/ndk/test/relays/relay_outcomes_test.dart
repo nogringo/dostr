@@ -4,7 +4,6 @@ import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart' as ndk_entities;
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
@@ -81,10 +80,7 @@ void deadConnectionTests() {
       final key = RelayConnectionKey.anonymous(relay.url);
       state.addRequest(key, [filter]);
       manager.globalState.inFlightRequests[state.id] = state;
-      manager.send(
-        manager.globalState.relays[key]!,
-        ClientMsg(ClientMsgType.kReq, id: state.id, filters: [filter]),
-      );
+      manager.send(key, ['REQ', state.id, filter.toMap()]);
       await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
       await _waitUntil(
         () => relay.connectedClientCount == 1,
@@ -177,10 +173,7 @@ void notSentEndTests() {
         final state = trackQuery(manager, "open-socket-test");
         final droppedKey = RelayConnectionKey.anonymous(dropped.url);
         state.addRequest(droppedKey, [filter]);
-        manager.send(
-          manager.globalState.relays[droppedKey]!,
-          ClientMsg(ClientMsgType.kReq, id: state.id, filters: [filter]),
-        );
+        manager.send(droppedKey, ['REQ', state.id, filter.toMap()]);
         await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
         // a relay given up on that opened its socket afterwards: nothing
         // replays the request on a first connection

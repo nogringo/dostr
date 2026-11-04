@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';

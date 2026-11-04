@@ -5,7 +5,6 @@ import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_relay.dart';
@@ -205,10 +204,7 @@ void main() {
             'socket carried',
       );
 
-      subscribed.manager.send(
-        connectivity,
-        ClientMsg(ClientMsgType.kClose, id: _subId),
-      );
+      subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
       await _waitUntil(() => connectivity.stats.activeRequests == 0);
 
       await subscribed.tearDown();
@@ -223,10 +219,7 @@ void main() {
     subscribed.transport.dropConnection();
     // the CLOSE waits for the socket to come back, and by then nothing replays
     // the subscription: it is not in flight anymore
-    subscribed.manager.send(
-      connectivity,
-      ClientMsg(ClientMsgType.kClose, id: _subId),
-    );
+    subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
     subscribed.manager.globalState.inFlightRequests.remove(_subId);
 
     subscribed.transport.restoreConnection();
@@ -287,10 +280,11 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
     connectionKey,
     filters,
   );
-  manager.send(
-    connectivity,
-    ClientMsg(ClientMsgType.kReq, id: _subId, filters: filters),
-  );
+  manager.send(connectionKey, [
+    'REQ',
+    _subId,
+    for (final filter in filters) filter.toMap(),
+  ]);
   await _waitUntil(() => connectivity.stats.activeRequests == 1);
 
   return _SubscribedOnFlakyRelay(

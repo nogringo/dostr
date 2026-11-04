@@ -188,7 +188,7 @@ class _Nip77Internal extends RelayProtocolHandler {
       state.filter.toMap(),
       neg.NegentropyEncoder.bytesToHex(initialMessage),
     ];
-    _send(state.connectionKey, negOpen);
+    _relayManager.send(state.connectionKey, negOpen);
     _awaitAnswer(state, state.openTimeout, openUnanswered: true);
 
     Logger.log.d(
@@ -215,13 +215,6 @@ class _Nip77Internal extends RelayProtocolHandler {
         ),
       );
     });
-  }
-
-  void _send(RelayConnectionKey key, List<dynamic> message) {
-    _relayManager
-        .getConnectivity(key)
-        ?.relayTransport
-        ?.send(jsonEncode(message));
   }
 
   Future<List<neg.NegentropyItem>> _buildItemsFromIds(List<String> ids) async {
@@ -301,7 +294,7 @@ class _Nip77Internal extends RelayProtocolHandler {
       } else {
         // Send response (hex encoded)
         final responsePayload = neg.NegentropyEncoder.bytesToHex(response);
-        _send(key, ['NEG-MSG', subscriptionId, responsePayload]);
+        _relayManager.send(key, ['NEG-MSG', subscriptionId, responsePayload]);
         _awaitAnswer(state, state.idleTimeout, openUnanswered: false);
         Logger.log.d(() => 'NEG-MSG sent to $key');
       }
@@ -485,7 +478,7 @@ class _Nip77Internal extends RelayProtocolHandler {
   }
 
   void _sendNegClose(RelayConnectionKey key, String subscriptionId) {
-    _send(key, ['NEG-CLOSE', subscriptionId]);
+    _relayManager.send(key, ['NEG-CLOSE', subscriptionId]);
     Logger.log.d(() => 'NEG-CLOSE sent to $key: $subscriptionId');
   }
 

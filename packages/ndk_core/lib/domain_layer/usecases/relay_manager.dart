@@ -558,11 +558,11 @@ class RelayManager {
     return true;
   }
 
-  /// Sends a [ClientMsg] and surfaces transport churn/closed-socket failures to
+  /// Sends [message] and surfaces transport churn/closed-socket failures to
   /// the caller instead of silently dropping the write.
   Future<void> _sendOrThrow(
     RelayConnectivity relayConnectivity,
-    ClientMsg msg,
+    List<dynamic> message,
   ) async {
     NostrTransport? transport = relayConnectivity.relayTransport;
     if (transport == null) {
@@ -590,7 +590,7 @@ class RelayManager {
       }
     }
 
-    final String encodedMsg = jsonEncode(msg.toJson());
+    final String encodedMsg = jsonEncode(message);
     if (!identical(relayConnectivity.relayTransport, transport) ||
         !transport.isOpen()) {
       throw StateError(
@@ -598,25 +598,25 @@ class RelayManager {
       );
     }
     if (_sendRaw(relayConnectivity, transport, encodedMsg)) {
-      _countRequest(relayConnectivity, msg);
+      _countRequest(relayConnectivity, message);
     }
   }
 
   /// Keeps the open requests of a connection on the connection that carries
   /// them: a REQ re-routed to another one is not accounted here.
-  void _countRequest(RelayConnectivity relayConnectivity, ClientMsg msg) {
-    final id = msg.id;
-    if (id == null) {
-      return;
-    }
-    if (msg.type == ClientMsgType.kReq) {
-      relayConnectivity.stats.openRequestIds.add(id);
-      for (final waiter
-          in _requestSentWaiters.remove(id) ?? <Completer<void>>{}) {
-        waiter.complete();
-      }
-    } else if (msg.type == ClientMsgType.kClose) {
-      relayConnectivity.stats.openRequestIds.remove(id);
+  void _countRequest(
+    RelayConnectivity relayConnectivity,
+    List<dynamic> message,
+  ) {
+    switch (message) {
+      case [ClientMsgType.kReq, final String id, ...]:
+        relayConnectivity.stats.openRequestIds.add(id);
+        for (final waiter
+            in _requestSentWaiters.remove(id) ?? <Completer<void>>{}) {
+          waiter.complete();
+        }
+      case [ClientMsgType.kClose, final String id, ...]:
+        relayConnectivity.stats.openRequestIds.remove(id);
     }
   }
 
@@ -642,10 +642,21 @@ class RelayManager {
     }
   }
 
-  /// sends a [ClientMsg] to relay transport sink, throw an error if relay not connected
-  void send(RelayConnectivity relayConnectivity, ClientMsg msg) {
+  /// Sends [message], a JSON array such as `["NEG-CLOSE", subscriptionId]`, on
+  /// the connection behind [key] once its socket is ready. It is dropped, and
+  /// logged, when there is no such connection or its socket goes away first.
+  void send(RelayConnectionKey key, List<dynamic> message) {
+    final relayConnectivity = getConnectivity(key);
+    if (relayConnectivity == null) {
+      Logger.log.t(() => "skip send to $key: no such connection");
+      return;
+    }
+    _send(relayConnectivity, message);
+  }
+
+  void _send(RelayConnectivity relayConnectivity, List<dynamic> message) {
     unawaited(
-      _sendOrThrow(relayConnectivity, msg).catchError((Object error) {
+      _sendOrThrow(relayConnectivity, message).catchError((Object error) {
         Logger.log.t(() => "skip send to ${relayConnectivity.url}: $error");
       }),
     );
@@ -752,7 +763,10 @@ class RelayManager {
         _failBroadcast(state, url, vetoed);
         return;
       }
-      await _sendOrThrow(relay, ClientMsg(ClientMsgType.kEvent, event: event));
+      await _sendOrThrow(
+        relay,
+        ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
+      );
     } catch (error) {
       _failBroadcast(state, url, "broadcast error: $error");
     }
@@ -1311,7 +1325,10 @@ class RelayManager {
       },
     );
 
-    send(connectivity, ClientMsg(ClientMsgType.kAuth, event: signedAuth));
+    _send(
+      connectivity,
+      ClientMsg(ClientMsgType.kAuth, event: signedAuth).toJson(),
+    );
     Logger.log.d(() => "AUTH sent on $key");
 
     if (!await accepted.future || transportGone()) {
@@ -1432,9 +1449,13 @@ class RelayManager {
     RelayRequestState request,
   ) {
     request.markSent();
-    send(
+    _send(
       relayConnectivity,
-      ClientMsg(ClientMsgType.kReq, id: reqId, filters: request.filters),
+      ClientMsg(
+        ClientMsgType.kReq,
+        id: reqId,
+        filters: request.filters,
+      ).toJson(),
     );
   }
 
@@ -1582,7 +1603,11 @@ class RelayManager {
     try {
       await _sendOrThrow(
         relay,
-        ClientMsg(ClientMsgType.kReq, id: state.id, filters: request.filters),
+        ClientMsg(
+          ClientMsgType.kReq,
+          id: state.id,
+          filters: request.filters,
+        ).toJson(),
       );
     } catch (e) {
       Logger.log.e(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
@@ -1877,7 +1902,7 @@ class RelayManager {
             !_authenticatedConnections.contains(boundKey)) {
           await _sendOrThrow(
             bound,
-            ClientMsg(ClientMsgType.kEvent, event: eventToResend),
+            ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
           );
           return;
         }
@@ -1892,7 +1917,7 @@ class RelayManager {
         }
         await _sendOrThrow(
           bound,
-          ClientMsg(ClientMsgType.kEvent, event: eventToResend),
+          ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
         );
       } catch (error, stackTrace) {
         Logger.log.e(
@@ -1970,7 +1995,10 @@ class RelayManager {
 
   void _sendCloseToRelay(RelayConnectivity relayConnectivity, String id) {
     try {
-      send(relayConnectivity, ClientMsg(ClientMsgType.kClose, id: id));
+      _send(
+        relayConnectivity,
+        ClientMsg(ClientMsgType.kClose, id: id).toJson(),
+      );
     } catch (e) {
       Logger.log.e(() => e);
     }

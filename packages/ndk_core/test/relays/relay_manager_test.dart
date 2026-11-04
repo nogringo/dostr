@@ -157,4 +157,32 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 200));
     expect(recorder.messages, hasLength(1));
   });
+
+  test('sends a raw message on the connection of a key', () async {
+    final relay = await startRelay();
+    await manager.connectRelay(dirtyUrl: relay.url);
+
+    manager.send(RelayConnectionKey.anonymous(relay.url), [
+      'NEG-OPEN',
+      'neg-1',
+      {
+        'kinds': [1],
+      },
+      '6100',
+    ]);
+    manager.send(RelayConnectionKey.anonymous('wss://unknown.example'), [
+      'NEG-CLOSE',
+      'neg-2',
+    ]);
+
+    await eventually(() => relay.received('NEG-OPEN').isNotEmpty);
+    expect(relay.received('NEG-OPEN').single, [
+      'NEG-OPEN',
+      'neg-1',
+      {
+        'kinds': [1],
+      },
+      '6100',
+    ]);
+  });
 }

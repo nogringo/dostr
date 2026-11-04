@@ -13,7 +13,6 @@ import 'package:ndk_core/domain_layer/entities/request_state.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
 
 class _NeedsConnection extends RelayProtocolHandler {
   final RelayConnectionKey key;
@@ -169,31 +168,13 @@ void main() {
     'request-sent waiter completes on exact REQ and supports late waiters',
     () async {
       connect(anonymous);
-      final relay = state.relays[anonymous]!;
       final pending = manager.waitForRequestSent(
         'wanted',
         const Duration(seconds: 1),
       );
-      manager.send(
-        relay,
-        ClientMsg(
-          ClientMsgType.kReq,
-          id: 'other',
-          filters: [
-            Filter(kinds: [1]),
-          ],
-        ),
-      );
-      manager.send(
-        relay,
-        ClientMsg(
-          ClientMsgType.kReq,
-          id: 'wanted',
-          filters: [
-            Filter(kinds: [1]),
-          ],
-        ),
-      );
+      final notes = Filter(kinds: [1]).toMap();
+      manager.send(anonymous, ['REQ', 'other', notes]);
+      manager.send(anonymous, ['REQ', 'wanted', notes]);
       await pending;
       await manager.waitForRequestSent('wanted', const Duration(seconds: 1));
       await expectLater(
