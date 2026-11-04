@@ -12,7 +12,6 @@ import '../../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import '../../entities/event_filter.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../entities/ndk_request.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
@@ -98,11 +97,9 @@ class Requests {
     throw ArgumentError.value(id, 'id', 'must be 1 to 64 characters long');
   }
 
-  final GlobalState _globalState;
   final CacheRead _cacheRead;
   final CacheManager _cacheManager;
   final NetworkEngine _engine;
-  final RelayManager _relayManager;
   final RelayReqs _relayReqs;
   final List<EventFilter> _eventOutFilters;
   final Duration _defaultQueryTimeout;
@@ -116,14 +113,12 @@ class Requests {
 
   /// Creates a new [Requests] instance
   ///
-  /// [globalState] The global state of the application \
   /// [cacheRead] The cache reader for retrieving cached events \
   /// [cacheManager] The cache used to persist network-delivered events \
   /// [networkEngine] The engine for handling network requests \
   /// [eventVerifier] The verifier for validating Nostr events \
   /// [relayReqs] The REQs this builds on, by default its own ones
   Requests({
-    required GlobalState globalState,
     required CacheRead cacheRead,
     required CacheManager cacheManager,
     required NetworkEngine networkEngine,
@@ -137,10 +132,8 @@ class Requests {
            relayReqs ??
            RelayReqs(relayManager: relayManager, eventVerifier: eventVerifier),
        _engine = networkEngine,
-       _relayManager = relayManager,
        _cacheManager = cacheManager,
        _cacheRead = cacheRead,
-       _globalState = globalState,
        _eventOutFilters = eventOutFilters,
        _defaultQueryTimeout = defaultQueryTimeout,
        _debugMode = debugMode;
@@ -388,16 +381,12 @@ class Requests {
     final pagination = _paginations[subId];
     if (pagination != null) return _cancel(pagination);
 
-    final state = _globalState.inFlightRequests[subId];
-    if (state == null) {
+    if (!await _relayReqs.close(subId)) {
       Logger.log.w(
         () =>
             "no relay urls found for subscription $subId, cannot close :: debug: $debugLabel",
       );
-      return;
     }
-
-    await _relayManager.closeRequest(state);
   }
 
   /// Close all subscriptions, and the REQs opened outside of [Requests]
@@ -409,10 +398,7 @@ class Requests {
     await Future.wait([
       for (final caller in _callers.values.toList()) _release(caller),
     ]);
-    await Future.wait([
-      for (final state in _globalState.inFlightRequests.values.toList())
-        _relayManager.closeRequest(state),
-    ]);
+    await _relayReqs.closeAll();
   }
 
   Future<void> _release(_Caller caller) async {

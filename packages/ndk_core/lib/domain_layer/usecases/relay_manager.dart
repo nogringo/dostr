@@ -95,6 +95,10 @@ class RelayManager {
 
   final List<RelayProtocolHandler> _protocolHandlers = [];
 
+  /// the [RelayReq]s open on this manager, by id, whatever [RelayReqs] opened
+  /// them
+  final Map<String, RelayReq> _openReqs = {};
+
   /// nostr transport factory, to create new transports (usually websocket)
   final NostrTransportFactory nostrTransportFactory;
 
@@ -1617,7 +1621,7 @@ class RelayManager {
   }
 
   /// Sends a CLOSE wherever [state] is still open on a relay, then ends it.
-  Future<void> closeRequest(RequestState state) async {
+  Future<void> _closeRequest(RequestState state) async {
     for (final relay in connectedRelays) {
       final request = state.requests[relay.key];
       if (request == null) continue;
@@ -1632,6 +1636,9 @@ class RelayManager {
     await state.close();
     if (identical(globalState.inFlightRequests[state.id], state)) {
       globalState.inFlightRequests.remove(state.id);
+    }
+    if (identical(_openReqs[state.id]?._state, state)) {
+      _openReqs.remove(state.id);
     }
   }
 

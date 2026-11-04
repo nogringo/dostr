@@ -20,6 +20,22 @@ class RelayReqs {
   /// Forgets which signatures were already checked.
   void clearVerifiedEventCache() => _verifiedEventCache.clear();
 
+  /// Closes the REQ open under [id] on this manager, whatever [RelayReqs]
+  /// opened it, like [RelayReq.close]. Says whether there was one.
+  Future<bool> close(String id) async {
+    final req = _relayManager._openReqs[id];
+    if (req == null) return false;
+    await req.close();
+    return true;
+  }
+
+  /// Closes every REQ open on this manager, whatever [RelayReqs] opened them.
+  Future<void> closeAll() async {
+    await Future.wait([
+      for (final req in _relayManager._openReqs.values.toList()) req.close(),
+    ]);
+  }
+
   /// Opens a REQ.
   ///
   /// With [relays], each of them gets its filters and the request is sealed
@@ -93,10 +109,12 @@ class RelayReq {
     required VerifiedEventMemCache verifiedEventCache,
   }) : _relayManager = relayManager {
     final inFlight = relayManager.globalState.inFlightRequests;
+    final open = relayManager._openReqs;
     _state.onTimeout = (_) => close();
     // released by seal: until then, more relays may come
     relayManager._beginPendingConnection(_state);
     inFlight[id] = _state;
+    open[id] = this;
     _done = _state.controller.done.then((_) => _state.relayOutcomes);
 
     VerifyEventStream(
@@ -111,6 +129,7 @@ class RelayReq {
         unawaited(_events.close());
         unawaited(_state.controller.close());
         if (identical(inFlight[id], _state)) inFlight.remove(id);
+        if (identical(open[id], this)) open.remove(id);
       },
     );
   }
@@ -166,5 +185,5 @@ class RelayReq {
   }
 
   /// Sends a CLOSE to the relays still serving the request, then ends it.
-  Future<void> close() => _closing ??= _relayManager.closeRequest(_state);
+  Future<void> close() => _closing ??= _relayManager._closeRequest(_state);
 }

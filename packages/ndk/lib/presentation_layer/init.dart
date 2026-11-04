@@ -190,7 +190,6 @@ class Initialization {
 
     requests = Requests(
       defaultQueryTimeout: _ndkConfig.defaultQueryTimeout,
-      globalState: _globalState,
       cacheRead: cacheRead,
       cacheManager: _ndkConfig.cache,
       networkEngine: engine,

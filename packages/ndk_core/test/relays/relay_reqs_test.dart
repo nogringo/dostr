@@ -221,4 +221,43 @@ void main() {
       await req.close();
     });
   });
+
+  group('close by id', () {
+    test('closes a REQ another RelayReqs opened, once', () async {
+      final relay = await startRelay();
+      final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
+      await eventually(() => subscribed(relay, req));
+      final others = RelayReqs(relayManager: manager, eventVerifier: verifier);
+
+      final closed = others.close(req.id);
+      await req.close();
+
+      expect(await closed, isTrue);
+      await req.done;
+      await eventually(() => !subscribed(relay, req));
+      expect(relay.received('CLOSE'), [
+        ['CLOSE', req.id],
+      ]);
+      expect(await others.close(req.id), isFalse);
+    });
+
+    test('closeAll closes the REQs of every RelayReqs', () async {
+      final relay = await startRelay();
+      final others = RelayReqs(relayManager: manager, eventVerifier: verifier);
+      final first = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
+      final second = others.req(relays: {relay.url: notes}, closeOnEose: false);
+      await eventually(
+        () => subscribed(relay, first) && subscribed(relay, second),
+      );
+
+      await reqs.closeAll();
+
+      await Future.wait([first.done, second.done]);
+      await eventually(
+        () => !subscribed(relay, first) && !subscribed(relay, second),
+      );
+      expect(await reqs.close(first.id), isFalse);
+      expect(await reqs.close(second.id), isFalse);
+    });
+  });
 }

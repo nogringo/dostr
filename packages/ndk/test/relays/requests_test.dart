@@ -429,7 +429,6 @@ void main() async {
       // Create a Requests instance
       final requests = Requests(
         defaultQueryTimeout: Duration(seconds: 10),
-        globalState: globalState,
         cacheRead: MockCacheRead(cache),
         cacheManager: cache,
         networkEngine: init.engine,

@@ -79,13 +79,14 @@ paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
 `failBroadcast`, `failRelayRequest`, `connectionForBroadcast`,
 `isStillInFlight`, `beginPendingConnection`, `endPendingConnection`,
 `sendRequestToRelay`, `sendCloseToRelay`, `sendCloseToConnection`,
-`reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the
-deprecated `authenticateIfNeeded` are gone, and so is
+`reSubscribeInFlightSubscriptions`, `updateRelayConnectivity`, `closeRequest`
+and the deprecated `authenticateIfNeeded` are gone, and so is
 `RequestState.registerRequest`. Open REQs with `RelayReqs`, publish with
 `RelayPublishes` and send any other message with `RelayManager.send`, which
 now takes the `RelayConnectionKey` of a connection and the message as a JSON
 array, such as `['NEG-CLOSE', subscriptionId]`, instead of a
-`RelayConnectivity` and a `ClientMsg`.
+`RelayConnectivity` and a `ClientMsg`. Close a REQ with `RelayReq.close`, by
+its id with `RelayReqs.close`, or all of them with `RelayReqs.closeAll`.
 `RelayManager.reconnectClosedConnections` reconnects and replays the requests
 that `reSubscribeInFlightSubscriptions` used to replay by hand.
 
