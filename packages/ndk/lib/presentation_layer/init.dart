@@ -46,7 +46,6 @@ import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
 import '../domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/requests/requests.dart';
-import '../domain_layer/usecases/requests/verified_event_cache.dart';
 import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/ta/trusted_assertions.dart';
@@ -187,11 +186,9 @@ class Initialization {
       cacheManager: _ndkConfig.cache,
     );
 
-    final verifiedEventCache = VerifiedEventMemCache();
     relayReqs = RelayReqs(
       relayManager: relayManager,
       eventVerifier: _ndkConfig.eventVerifier,
-      verifiedEventCache: verifiedEventCache,
     );
 
     requests = Requests(
@@ -204,7 +201,7 @@ class Initialization {
       eventVerifier: _ndkConfig.eventVerifier,
       eventOutFilters: _ndkConfig.eventOutFilters,
       debugMode: _ndkConfig.debugMode,
-      verifiedEventCache: verifiedEventCache,
+      relayReqs: relayReqs,
     );
 
     final broadcastSender = BroadcastSender(

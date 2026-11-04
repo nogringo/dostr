@@ -103,7 +103,6 @@ void main() {
           : NdkRequest.subscription(id, filters: filters),
     );
     request.networkController.stream.listen((_) {});
-    request.cacheController.stream.listen((_) {});
     if (key != null) request.registerRequest(key, filters);
     state.inFlightRequests[id] = request;
     requests.add(request);

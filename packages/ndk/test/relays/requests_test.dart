@@ -4,7 +4,6 @@ import 'dart:async';
 
 import 'package:test/test.dart';
 import 'package:ndk/domain_layer/entities/global_state.dart';
-import 'package:ndk/domain_layer/entities/request_state.dart';
 import 'package:ndk/domain_layer/usecases/cache_read/cache_read.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/presentation_layer/init.dart';
@@ -499,11 +498,21 @@ void main() async {
         (id) => ndk.requests.query(filter: filter, id: id),
         (id) => ndk.requests.subscription(filter: filter, id: id),
       ];
-      for (final request in requests) {
+      for (final (index, request) in requests.indexed) {
+        final longest = '$index' * 64;
         expect(() => request(''), throwsArgumentError);
         expect(() => request('i' * 65), throwsArgumentError);
-        expect(request('i' * 64).requestId, 'i' * 64);
+        expect(request(longest).requestId, longest);
       }
+    });
+
+    test('an id already in flight is refused', () {
+      ndk.requests.subscription(filter: filter, id: 'taken');
+
+      expect(
+        () => ndk.requests.query(filter: filter, id: 'taken'),
+        throwsStateError,
+      );
     });
 
     test('an explicit query id cannot be combined with paginate', () {
@@ -542,12 +551,13 @@ class MockCacheRead extends CacheRead {
   MockCacheRead(super.cacheManager);
 
   @override
-  Future<void> resolveUnresolvedFilters({
-    required RequestState requestState,
+  Future<List<Filter>> resolveUnresolvedFilters({
+    required List<Filter> filters,
     required StreamController<Nip01Event> outController,
   }) async {
-    for (var filter in requestState.unresolvedFilters) {
+    for (var filter in filters) {
       filter.authors = [];
     }
+    return filters;
   }
 }

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../../../shared/logger/logger.dart';
 import '../../entities/nip_01_event.dart';
-import '../../entities/request_state.dart';
+import '../../entities/filter.dart';
 import '../../repositories/cache_manager.dart';
 
 /// Cache-first helper for request resolution.
@@ -15,17 +15,19 @@ class CacheRead {
 
   CacheRead(this.cacheManager);
 
-  /// Finds matching visible events in cache and forwards them to
-  /// [outController].
+  /// Finds matching visible events in cache, forwards them to [outController]
+  /// and closes it. Returns the filters the network still has to answer: an
+  /// id found here is removed from its filter, and a filter left without ids
+  /// is dropped.
   ///
   /// `loadEvents()` already applies visibility rules, so callers do not need to
   /// re-check replacement, expiration, or deletion here.
-  Future<void> resolveUnresolvedFilters({
-    required RequestState requestState,
+  Future<List<Filter>> resolveUnresolvedFilters({
+    required List<Filter> filters,
     required StreamController<Nip01Event> outController,
   }) async {
-    final unresolved = requestState.unresolvedFilters.toSet();
-    for (final filter in unresolved) {
+    final unresolved = List.of(filters);
+    for (final filter in filters.toSet()) {
       final List<Nip01Event> foundEvents = [];
 
       // authors
@@ -85,7 +87,7 @@ class CacheRead {
         if (filter.ids!.isEmpty) {
           // if we have not more ids in filter, remove the filter entirely,
           // otherwise it will send too broad filter to relay
-          requestState.unresolvedFilters.remove(filter);
+          unresolved.remove(filter);
         }
       }
 
@@ -98,5 +100,6 @@ class CacheRead {
 
     /// close stream even if nothing was found
     outController.close();
+    return unresolved;
   }
 }

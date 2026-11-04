@@ -1,9 +1,22 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk/domain_layer/entities/request_state.dart';
 import 'package:ndk/domain_layer/usecases/cache_read/cache_read.dart';
 import 'package:ndk/ndk.dart';
+
+/// The events [cacheRead] found for [request], and the filters it left.
+Future<(List<Nip01Event>, List<Filter>)> resolve(
+  CacheRead cacheRead,
+  NdkRequest request,
+) async {
+  final found = StreamController<Nip01Event>();
+  final events = found.stream.toList();
+  final remaining = await cacheRead.resolveUnresolvedFilters(
+    filters: request.filters,
+    outController: found,
+  );
+  return (await events, remaining);
+}
 
 void main() async {
   group('CacheRead', () {
@@ -30,30 +43,13 @@ void main() async {
         ],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestState = RequestState(myNdkRequest);
       final CacheRead myUsecase = CacheRead(myCacheManager);
 
-      closeStream() async {
-        // wait to add events
-        await Future.delayed(const Duration(seconds: 1));
-        await myRequestState.controller.close();
-      }
+      final (data, unresolvedFilters) = await resolve(myUsecase, myNdkRequest);
 
-      closeStream();
-      final response = myRequestState.stream.toList();
+      expect(data, unorderedEquals(myEvens));
 
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestState,
-        outController: myRequestState.controller,
-      );
-
-      await response.then((data) {
-        expect(data, unorderedEquals(myEvens));
-      });
-
-      //await expectLater(myRequestState.stream, emitsInAnyOrder(myEvens));
-
-      for (final filter in myRequestState.unresolvedFilters) {
+      for (final filter in unresolvedFilters) {
         expect(filter.authors, equals([]));
       }
     });
@@ -69,30 +65,13 @@ void main() async {
         ],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestState = RequestState(myNdkRequest);
       final CacheRead myUsecase = CacheRead(myCacheManager);
 
-      closeStream() async {
-        // wait to add events
-        await Future.delayed(const Duration(seconds: 1));
-        await myRequestState.controller.close();
-      }
+      final (data, unresolvedFilters) = await resolve(myUsecase, myNdkRequest);
 
-      closeStream();
-      final response = myRequestState.stream.toList();
+      expect(data, unorderedEquals(myEvens));
 
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestState,
-        outController: myRequestState.controller,
-      );
-
-      await response.then((data) {
-        expect(data, unorderedEquals(myEvens));
-      });
-
-      //await expectLater(myRequestState.stream, emitsInAnyOrder(myEvens));
-
-      for (final filter in myRequestState.unresolvedFilters) {
+      for (final filter in unresolvedFilters) {
         expect(filter.authors, equals(['notInCachePubKey']));
       }
     });
@@ -111,19 +90,12 @@ void main() async {
           ],
           timeoutDuration: Duration(seconds: 5),
         );
-        final RequestState myRequestStateWithLimit = RequestState(
+        final (_, unresolvedFilters) = await resolve(
+          myUsecase,
           myNdkRequestWithLimit,
         );
 
-        await myUsecase.resolveUnresolvedFilters(
-          requestState: myRequestStateWithLimit,
-          outController: myRequestStateWithLimit.controller,
-        );
-
-        expect(
-          myRequestStateWithLimit.unresolvedFilters[0].authors,
-          equals([]),
-        );
+        expect(unresolvedFilters[0].authors, equals([]));
       },
     );
 
@@ -147,17 +119,13 @@ void main() async {
         ],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestStateWithLimit = RequestState(
+      final (_, unresolvedFilters) = await resolve(
+        myUsecase,
         myNdkRequestWithLimit,
       );
 
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestStateWithLimit,
-        outController: myRequestStateWithLimit.controller,
-      );
-
       expect(
-        myRequestStateWithLimit.unresolvedFilters[0].authors,
+        unresolvedFilters[0].authors,
         equals([
           'pubKey1',
           'pubKey2',
@@ -212,26 +180,17 @@ void main() async {
         ],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestState = RequestState(myNdkRequest);
-
-      final streamController = StreamController<Nip01Event>();
-      final response = streamController.stream.toList();
-
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestState,
-        outController: streamController,
+      final (foundEvents, unresolvedFilters) = await resolve(
+        myUsecase,
+        myNdkRequest,
       );
-
-      await streamController.close();
-
-      final foundEvents = await response;
       expect(foundEvents.length, equals(3));
       expect(
         foundEvents.map((e) => e.id).toSet(),
         equals({'id0', 'id1', 'id2'}),
       );
 
-      expect(myRequestState.unresolvedFilters[0].ids, equals(['id3']));
+      expect(unresolvedFilters[0].ids, equals(['id3']));
     });
 
     test('cache read - id filter all in cache', () async {
@@ -279,26 +238,17 @@ void main() async {
         ],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestState = RequestState(myNdkRequest);
-
-      final streamController = StreamController<Nip01Event>();
-      final response = streamController.stream.toList();
-
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestState,
-        outController: streamController,
+      final (foundEvents, unresolvedFilters) = await resolve(
+        myUsecase,
+        myNdkRequest,
       );
-
-      await streamController.close();
-
-      final foundEvents = await response;
       expect(foundEvents.length, equals(3));
       expect(
         foundEvents.map((e) => e.id).toSet(),
         equals({'id0', 'id1', 'id2'}),
       );
 
-      expect(myRequestState.unresolvedFilters, equals([]));
+      expect(unresolvedFilters, equals([]));
     });
 
     test('cache read - has events for all authors', () async {
@@ -309,30 +259,15 @@ void main() async {
         filters: [filter],
         timeoutDuration: Duration(seconds: 5),
       );
-      final RequestState myRequestState = RequestState(myNdkRequest);
       final CacheRead myUsecase = CacheRead(myCacheManager);
 
-      closeStream() async {
-        // wait to add events
-        await Future.delayed(const Duration(seconds: 1));
-        await myRequestState.controller.close();
-      }
+      final (data, unresolvedFilters) = await resolve(myUsecase, myNdkRequest);
 
-      closeStream();
-      final response = myRequestState.stream.toList();
-
-      await myUsecase.resolveUnresolvedFilters(
-        requestState: myRequestState,
-        outController: myRequestState.controller,
-      );
-
-      await response.then((data) {
-        expect(data, unorderedEquals(myEvens));
-      });
+      expect(data, unorderedEquals(myEvens));
 
       /// expect in any order
 
-      expect(myRequestState.unresolvedFilters, unorderedEquals([filter]));
+      expect(unresolvedFilters, unorderedEquals([filter]));
     });
   });
 }

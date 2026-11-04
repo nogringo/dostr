@@ -30,18 +30,23 @@ class RelayReqs {
        _eventVerifier = eventVerifier,
        _verifiedEventCache = verifiedEventCache ?? VerifiedEventMemCache();
 
+  /// Forgets which signatures were already checked.
+  void clearVerifiedEventCache() => _verifiedEventCache.clear();
+
   /// Opens a REQ.
   ///
   /// With [relays], each of them gets its filters and the request is sealed
   /// right away. Without, add relays with [RelayReq.send], then
-  /// [RelayReq.seal].
+  /// [RelayReq.seal]: the request is held open until then.
   ///
   /// [closeOnEose] makes it a query, ended once every relay sent its EOSE.
   /// Otherwise it is a subscription, which lives until [RelayReq.close].
   /// [timeout] ends it after that long, not counting NIP-42 authentication.
+  /// [name] only shows in logs.
   RelayReq req({
     Map<String, List<Filter>>? relays,
     String? id,
+    String? name,
     bool closeOnEose = true,
     AuthPolicy? auth,
     Duration? timeout,
@@ -55,7 +60,7 @@ class RelayReqs {
     }
 
     final req = RelayReq._(
-      RequestState(_ndkRequest(reqId, closeOnEose, auth, timeout)),
+      RequestState(_ndkRequest(reqId, name, closeOnEose, auth, timeout)),
       relayManager: _relayManager,
       eventVerifier: _eventVerifier,
       verifiedEventCache: _verifiedEventCache,
@@ -74,6 +79,7 @@ class RelayReqs {
 
   static NdkRequest _ndkRequest(
     String id,
+    String? name,
     bool closeOnEose,
     AuthPolicy? auth,
     Duration? timeout,
@@ -81,6 +87,7 @@ class RelayReqs {
     final request = closeOnEose
         ? NdkRequest.query(
             id,
+            name: name,
             filters: [],
             timeoutDuration: timeout,
             auth: auth,
@@ -89,6 +96,7 @@ class RelayReqs {
           )
         : NdkRequest.subscription(
             id,
+            name: name,
             filters: [],
             auth: auth,
             cacheRead: false,
@@ -122,9 +130,6 @@ class RelayReq {
   }) : _relayManager = relayManager {
     final inFlight = relayManager.globalState.inFlightRequests;
     _state.onTimeout = (_) => close();
-    // RequestState.close awaits it, which only completes once listened to
-    unawaited(_state.cacheController.stream.drain<void>());
-    unawaited(_state.cacheController.close());
     // released by seal: until then, more relays may come
     relayManager.beginPendingConnection(_state);
     inFlight[id] = _state;
@@ -164,25 +169,32 @@ class RelayReq {
   /// [outcomes] once every relay ended the request, on timeout, or on [close].
   Future<Map<String, RelayRequestOutcome>> get done => _done;
 
+  /// Whether the request ended on its timeout.
+  bool get timedOut => _state.timedOut;
+
   /// Sends [filters] to [relayUrl] on the connection the request's
-  /// [AuthPolicy] allows. One call per relay, before [seal].
-  void send(String relayUrl, List<Filter> filters) {
-    if (_sealed) {
-      throw StateError('$id is sealed, no relay can be added');
+  /// [AuthPolicy] allows, and says whether it went out: once the request is
+  /// over, nothing is sent. One call per relay.
+  ///
+  /// A relay sent to after [seal] still has to answer before the request ends.
+  bool send(String relayUrl, List<Filter> filters) {
+    if (!_relayManager.isStillInFlight(_state) ||
+        _state.networkController.isClosed) {
+      return false;
     }
     if (!_sentTo.add(RelayConnectionKey.anonymous(relayUrl).url)) {
       throw StateError('$id was already sent to $relayUrl');
     }
-    if (!_relayManager.isStillInFlight(_state)) return;
     unawaited(
       _relayManager.sendRequestToRelay(_state, relayUrl, [
         for (final filter in filters) filter.clone(),
       ]),
     );
+    return true;
   }
 
-  /// No relay will be added anymore: the request ends once the relays it was
-  /// sent to are done with it.
+  /// The request may end once the relays it was sent to are done with it.
+  /// Until then, it is held open for the relays still to come.
   void seal() {
     if (_sealed) return;
     _sealed = true;

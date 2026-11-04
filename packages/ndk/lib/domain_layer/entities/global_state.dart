@@ -10,7 +10,7 @@ import 'request_state.dart';
 class GlobalState {
   /// holds the state of all in flight requests
   /// key: request Id
-  /// used by concurrency check, and relay manager
+  /// used by the relay manager
   final Map<String, RequestState> inFlightRequests = {};
 
   /// hold state information for a broadcast

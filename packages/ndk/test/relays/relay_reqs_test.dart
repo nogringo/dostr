@@ -201,15 +201,28 @@ void main() {
       });
     });
 
-    test('a relay takes one send, and none come after seal', () async {
+    test('a relay takes one send, and one sent after seal counts', () async {
+      await relayA.startServer();
+      await relayB.startServer();
       final req = ndk.relayReqs.req();
-      req.send(relayA.url, [filter]);
 
+      expect(req.send(relayA.url, [filter]), isTrue);
       expect(() => req.send(relayA.url, [filter]), throwsStateError);
       req.seal();
-      expect(() => req.send(relayB.url, [filter]), throwsStateError);
+      expect(req.send(relayB.url, [filter]), isTrue);
 
-      await req.close();
+      expect(await req.done, {
+        relayA.url: RelayRequestOutcome(RelayRequestStatus.eose),
+        relayB.url: RelayRequestOutcome(RelayRequestStatus.eose),
+      });
+    });
+
+    test('nothing is sent once the request is over', () async {
+      final req = ndk.relayReqs.req(relays: {});
+      await req.done;
+
+      expect(req.send(relayA.url, [filter]), isFalse);
+      expect(req.outcomes, isEmpty);
     });
 
     test('an id already in flight is refused', () async {

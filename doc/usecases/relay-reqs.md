@@ -54,6 +54,10 @@ req.seal();
 Each relay takes one `send`. Its filters travel in a single REQ, since a second
 REQ with the same id replaces the first on the relay.
 
+A relay can still be added after `seal()` while the request runs: it then has
+to answer too before the request ends. Once the request is over, `send` sends
+nothing and returns `false`.
+
 ## What you get
 
 - Events are signature-checked, and invalid ones are dropped.

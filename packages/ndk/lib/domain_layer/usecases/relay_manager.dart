@@ -553,11 +553,6 @@ class RelayManager<T> {
     }
 
     globalState.inFlightRequests.forEach((key, state) {
-      // the concurrency check files a request under its filter hash as well,
-      // and one request must not go back up once per alias
-      if (key != state.id) {
-        return;
-      }
       state.requests.values
           // by connection, not by relay: replaying a bound request on the
           // anonymous socket gets it refused, and replaying an anonymous one on

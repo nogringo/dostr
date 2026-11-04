@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../config/request_defaults.dart';
+import '../../../config/rx_defaults.dart';
 import '../../../shared/helpers/bounded_lru_set.dart';
 import '../../../shared/helpers/relay_helper.dart';
 import '../../../shared/logger/logger.dart';
@@ -18,23 +19,55 @@ import '../../entities/auth_policy.dart';
 import '../../entities/relay_set.dart';
 import '../../entities/relay_request_outcome.dart';
 import '../../entities/request_response.dart';
-import '../../entities/request_state.dart';
 import '../../repositories/cache_manager.dart';
 import '../../repositories/event_verifier.dart';
-import 'verified_event_cache.dart';
 import '../cache_read/cache_read.dart';
 import '../fetched_ranges/fetched_ranges.dart';
 import '../engines/network_engine.dart';
 import '../relay_manager.dart';
+import '../relay_reqs/relay_reqs.dart';
 import '../stream_response_cleaner/stream_response_cleaner.dart';
 import 'concurrency_check.dart';
-import 'verify_event_stream.dart';
 
 /// Internal state for tracking pagination progress on a single relay
 class _RelayPaginationState {
   int? oldestTimestamp;
   int? currentUntil;
   bool exhausted = false;
+}
+
+/// One network request, served to every identical request that joined it.
+class _SharedRequest {
+  final RelayReq relayReq;
+  final String? hash;
+
+  /// cache and network events, each once, past the event out filters
+  final ReplaySubject<Nip01Event> events = ReplaySubject<Nip01Event>(
+    maxSize: RX_REPLAYSUBJECT_MAX_EVENTS,
+  );
+  final Set<_Caller> callers = {};
+
+  _SharedRequest(this.relayReq, this.hash);
+}
+
+/// A request served by a [_SharedRequest], with a stream of its own so it can
+/// be closed without ending the others.
+class _Caller {
+  final String id;
+  final _SharedRequest shared;
+  final ReplaySubject<Nip01Event> events = ReplaySubject<Nip01Event>(
+    maxSize: RX_REPLAYSUBJECT_MAX_EVENTS,
+  );
+  late final StreamSubscription<Nip01Event> _subscription;
+
+  _Caller(this.id, this.shared) {
+    _subscription = shared.events.listen(events.add, onDone: events.close);
+  }
+
+  Future<void> close() async {
+    await _subscription.cancel();
+    await events.close();
+  }
 }
 
 /// A class that handles low-level Nostr network requests and subscriptions.
@@ -60,15 +93,15 @@ class Requests {
   final CacheManager _cacheManager;
   final NetworkEngine _engine;
   final RelayManager _relayManager;
-  final EventVerifier _eventVerifier;
+  final RelayReqs _relayReqs;
   final List<EventFilter> _eventOutFilters;
   final Duration _defaultQueryTimeout;
   final bool _debugMode;
   FetchedRanges? _fetchedRanges;
 
-  /// ids of events whose signature was already checked by this [Ndk]
-  /// instance, so repeat delivery across relays/requests skips re-verifying
-  final VerifiedEventMemCache _verifiedEventIds;
+  final ConcurrencyCheck _concurrency = ConcurrencyCheck();
+  final Map<String, _SharedRequest> _sharedByHash = {};
+  final Map<String, _Caller> _callers = {};
 
   /// Creates a new [Requests] instance
   ///
@@ -77,7 +110,7 @@ class Requests {
   /// [cacheManager] The cache used to persist network-delivered events \
   /// [networkEngine] The engine for handling network requests \
   /// [eventVerifier] The verifier for validating Nostr events \
-  /// [verifiedEventCache] Signature checks to share, e.g. with `RelayReqs`
+  /// [relayReqs] The REQs this builds on, by default its own ones
   Requests({
     required GlobalState globalState,
     required CacheRead cacheRead,
@@ -88,20 +121,21 @@ class Requests {
     required List<EventFilter> eventOutFilters,
     required Duration defaultQueryTimeout,
     bool debugMode = false,
-    VerifiedEventMemCache? verifiedEventCache,
-  }) : _verifiedEventIds = verifiedEventCache ?? VerifiedEventMemCache(),
+    RelayReqs? relayReqs,
+  }) : _relayReqs =
+           relayReqs ??
+           RelayReqs(relayManager: relayManager, eventVerifier: eventVerifier),
        _engine = networkEngine,
        _relayManager = relayManager,
        _cacheManager = cacheManager,
        _cacheRead = cacheRead,
        _globalState = globalState,
-       _eventVerifier = eventVerifier,
        _eventOutFilters = eventOutFilters,
        _defaultQueryTimeout = defaultQueryTimeout,
        _debugMode = debugMode;
 
   /// Clears signature-verification reuse state owned by this NDK instance.
-  void clearVerifiedEventCache() => _verifiedEventIds.clear();
+  void clearVerifiedEventCache() => _relayReqs.clearVerifiedEventCache();
 
   Stream<Nip01Event> _prepareNetworkStream(
     Stream<Nip01Event> verifiedNetworkStream, {
@@ -332,9 +366,14 @@ class Requests {
   }
 
   /// Closes a Nostr network subscription
+  ///
+  /// A request that shares its network request with identical ones only stops
+  /// its own stream: the REQ is closed once none of them is left.
   Future<void> closeSubscription(String subId, {String debugLabel = ""}) async {
-    final state = _globalState.inFlightRequests[subId];
+    final caller = _callers[subId];
+    if (caller != null) return _release(caller);
 
+    final state = _globalState.inFlightRequests[subId];
     if (state == null) {
       Logger.log.w(
         () =>
@@ -346,13 +385,31 @@ class Requests {
     await _relayManager.closeRequest(state);
   }
 
-  /// Close all subscriptions
+  /// Close all subscriptions, and the REQs opened outside of [Requests]
   Future<void> closeAllSubscription() async {
-    await Future.wait(
-      _globalState.inFlightRequests.values.map(
-        (state) => closeSubscription(state.id),
-      ),
-    );
+    await Future.wait([
+      for (final caller in _callers.values.toList()) _release(caller),
+    ]);
+    await Future.wait([
+      for (final state in _globalState.inFlightRequests.values.toList())
+        _relayManager.closeRequest(state),
+    ]);
+  }
+
+  Future<void> _release(_Caller caller) async {
+    _forget(caller);
+    await caller.close();
+    final shared = caller.shared;
+    if (shared.callers.isNotEmpty) return;
+    if (identical(_sharedByHash[shared.hash], shared)) {
+      _sharedByHash.remove(shared.hash);
+    }
+    await shared.relayReq.close();
+  }
+
+  void _forget(_Caller caller) {
+    if (identical(_callers[caller.id], caller)) _callers.remove(caller.id);
+    caller.shared.callers.remove(caller);
   }
 
   /// Performs a low-level Nostr event request
@@ -364,48 +421,56 @@ class Requests {
   ///
   /// Returns an [NdkResponse] containing the request results
   NdkResponse requestNostrEvent(NdkRequest request) {
-    final state = RequestState(request);
+    if (_callers.containsKey(request.id)) {
+      throw StateError('a request with id ${request.id} is already in flight');
+    }
+    final hash = request.cacheRead ? _concurrency.hash(request) : null;
+    final shared =
+        (hash == null ? null : _sharedByHash[hash]) ?? _open(request, hash);
 
-    final response = NdkResponse(
-      state.id,
-      state.stream,
-      relayOutcomes: () => state.relayOutcomes,
-      relayOutcomesStream: () => state.relayOutcomesStream,
-      relayOutcomesDone: state.controller.done.then((_) => state.relayOutcomes),
+    final caller = _Caller(request.id, shared);
+    shared.callers.add(caller);
+    _callers[caller.id] = caller;
+    caller.events.done.then((_) => _forget(caller));
+
+    return NdkResponse(
+      caller.id,
+      caller.events.stream,
+      relayOutcomes: () => shared.relayReq.outcomes,
+      relayOutcomesStream: () => shared.relayReq.outcomesStream,
+      relayOutcomesDone: caller.events.done.then(
+        (_) => shared.relayReq.outcomes,
+      ),
     );
+  }
 
-    final concurrency = ConcurrencyCheck(_globalState);
+  /// Opens the network request behind [request], and the cache read and
+  /// cache write around it.
+  _SharedRequest _open(NdkRequest request, String? hash) {
+    final relayReq = _relayReqs.req(
+      id: request.id,
+      name: request.name,
+      closeOnEose: request.closeOnEOSE,
+      auth: request.auth,
+      timeout: request.timeoutDuration,
+    );
+    final shared = _SharedRequest(relayReq, hash);
+    if (hash != null) _sharedByHash[hash] = shared;
 
-    // define on timeout behavior
-    state.onTimeout = (RequestState state) {
-      // closing in case relay is alive but not sending events
-      closeSubscription(state.id, debugLabel: "timeout");
+    final cacheEvents = StreamController<Nip01Event>();
+    final sentFilters = <String, List<Filter>>{};
 
-      // call our internal timeout function
-      request.timeoutCallback?.call();
-
-      // call user defined timeout function
-      request.timeoutCallbackUserFacing?.call();
-    };
-
-    // register event verification - removes invalid events from the stream
-    final verifiedNetworkStream = VerifyEventStream(
-      unverifiedStreamInput: state.networkController.stream,
-      eventVerifier: _eventVerifier,
-      verifiedEventCache: _verifiedEventIds,
-    )();
-
-    final preparedNetworkStream = _prepareNetworkStream(
-      verifiedNetworkStream,
+    final networkEvents = _prepareNetworkStream(
+      relayReq.events,
       writeToCache: request.cacheWrite,
     );
 
     // only the oldest timestamp per relay is needed, buffering the events
     // themselves would grow unbounded on long-lived subscriptions
     final oldestNetworkEventByRelay = <String, int>{};
-    final trackedNetworkStream = _fetchedRanges == null
-        ? preparedNetworkStream
-        : preparedNetworkStream.map((event) {
+    final trackedNetworkEvents = _fetchedRanges == null
+        ? networkEvents
+        : networkEvents.map((event) {
             for (final source in event.sources) {
               final oldest = oldestNetworkEventByRelay[source];
               if (oldest == null || event.createdAt < oldest) {
@@ -415,119 +480,128 @@ class Requests {
             return event;
           });
 
-    // register listener
     StreamResponseCleaner(
-      inputStreams: [trackedNetworkStream, state.cacheController.stream],
-      trackingSet: state.returnedIds,
-      outController: state.controller,
+      inputStreams: [trackedNetworkEvents, cacheEvents.stream],
+      trackingSet: {},
+      outController: shared.events,
       eventOutFilters: _eventOutFilters,
     )();
 
-    // Record fetched ranges once the response stream is closed, meaning the
-    // network stream has been fully drained. Closing on networkController.done
-    // would run before verification finished pushing events downstream.
-    state.controller.done.then((_) {
-      _recordFetchedRanges(state, oldestNetworkEventByRelay);
-    });
-
-    // cleanup on close
-    // use done future for replay subject
-    state.controller.done.then((_) {
-      _globalState.inFlightRequests.remove(state.id);
-      Logger.log.d(() => "req done: ${state.id}");
-    });
-
-    /// avoids sending events to response stream before a listener could be attached
-    Future<void> asyncStuff() async {
-      /// concurrency check - check if request is inFlight
-      final streamWasReplaced = request.cacheRead && concurrency.check(state);
-      if (streamWasReplaced) {
-        // Cancel timeout for duplicate - it will complete when original completes
-        state.cancelTimeout();
-        return;
-      } else {
-        // add to in flight
-        _globalState.inFlightRequests[state.id] = state;
+    // once the network stream is drained, not merely closed: events still
+    // being persisted would be missing from the ranges
+    shared.events.done.then((_) {
+      if (hash != null && identical(_sharedByHash[hash], shared)) {
+        _sharedByHash.remove(hash);
       }
+      _recordFetchedRanges(
+        relayReq.outcomes,
+        sentFilters,
+        oldestNetworkEventByRelay,
+      );
+      Logger.log.d(() => "req done: ${relayReq.id}");
+    });
 
-      // caching should write to response stream and keep track on what is unresolved to send the split filters to the engine
-      if (request.cacheRead) {
-        await _cacheRead.resolveUnresolvedFilters(
-          requestState: state,
-          outController: state.cacheController,
+    relayReq.done.then((_) {
+      if (!relayReq.timedOut) return;
+      request.timeoutCallback?.call();
+      request.timeoutCallbackUserFacing?.call();
+    });
+
+    _resolve(request, relayReq, cacheEvents, sentFilters).catchError((
+      Object error,
+      StackTrace stackTrace,
+    ) {
+      Logger.log.e(
+        () => "${relayReq.id} failed",
+        error: error,
+        stackTrace: stackTrace,
+      );
+      if (!cacheEvents.isClosed) unawaited(cacheEvents.close());
+      unawaited(relayReq.close());
+    });
+    return shared;
+  }
+
+  /// Serves what it can from the cache, then sends the rest to the relays:
+  /// the explicit ones, or those the engine picks.
+  Future<void> _resolve(
+    NdkRequest request,
+    RelayReq relayReq,
+    StreamController<Nip01Event> cacheEvents,
+    Map<String, List<Filter>> sentFilters,
+  ) async {
+    var filters = request.filters;
+    if (request.cacheRead) {
+      try {
+        filters = await _cacheRead.resolveUnresolvedFilters(
+          filters: filters,
+          outController: cacheEvents,
         );
-      } else {
-        /// close cache controller if not used
-        state.cacheController.close();
-      }
-
-      // a request that requires an identity nobody can sign for has no
-      // connection to go out on, and its timeout would only delay the same
-      // empty answer. The cache already had its say above
-      final auth = state.request.auth;
-      if (auth is AuthPolicyRequire && !auth.account.signer.canSign()) {
+      } catch (error, stackTrace) {
         Logger.log.w(
-          () =>
-              "${state.id} requires ${auth.account.pubkey}, which cannot sign",
+          () => "${relayReq.id} could not read the cache, asking the relays",
+          error: error,
+          stackTrace: stackTrace,
         );
-        state.cancelTimeout();
-        await state.networkController.close();
-        return;
+        if (!cacheEvents.isClosed) unawaited(cacheEvents.close());
       }
+    } else {
+      unawaited(cacheEvents.close());
+    }
 
-      /// if there are any more filters left (not served by cacheRead)
-      if (state.request.filters.isEmpty) {
-        state.networkController.close();
-        return;
-      }
-      final explicitRelays = state.request.explicitRelays;
-      if (explicitRelays != null && explicitRelays.isNotEmpty) {
-        _sendToExplicitRelays(state, explicitRelays);
-      } else {
-        await _route(state);
+    // a request that requires an identity nobody can sign for has no
+    // connection to go out on, and its timeout would only delay the same
+    // empty answer. The cache already had its say above
+    final auth = request.auth;
+    if (auth is AuthPolicyRequire && !auth.account.signer.canSign()) {
+      Logger.log.w(
+        () =>
+            "${relayReq.id} requires ${auth.account.pubkey}, which cannot sign",
+      );
+      relayReq.seal();
+      return;
+    }
+    if (filters.isEmpty) {
+      relayReq.seal();
+      return;
+    }
+
+    void send(String url, List<Filter> relayFilters) {
+      if (relayReq.send(url, relayFilters)) {
+        sentFilters[cleanRelayUrl(url) ?? url] = relayFilters;
       }
     }
 
-    asyncStuff();
+    final explicitRelays = request.explicitRelays;
+    if (explicitRelays != null && explicitRelays.isNotEmpty) {
+      // explicit relays bypass outbox routing, each gets every filter
+      final sliced = [
+        for (final filter in filters) ...RelaySet.sliceFilterAuthors(filter),
+      ];
+      for (final url in cleanRelayUrls(explicitRelays.toList()).toSet()) {
+        send(url, List.of(sliced));
+      }
+      relayReq.seal();
+      return;
+    }
 
-    // Return the response immediately
-    return response;
-  }
-
-  /// Hands the filters the cache left to the relays the engine picks. The
-  /// request is held open until the engine is done picking.
-  Future<void> _route(RequestState state) async {
-    _relayManager.beginPendingConnection(state);
     try {
       await _engine.route(
-        List.of(state.unresolvedFilters),
-        (url, filters) =>
-            unawaited(_relayManager.sendRequestToRelay(state, url, filters)),
-        relaySet: state.request.relaySet,
-        desiredCoverage: state.request.desiredCoverage,
+        filters,
+        send,
+        relaySet: request.relaySet,
+        desiredCoverage: request.desiredCoverage,
       );
     } catch (error, stackTrace) {
+      // the relays handed over so far still serve the request
       Logger.log.e(
-        () => "routing ${state.id} failed",
+        () => "routing ${relayReq.id} failed",
         error: error,
         stackTrace: stackTrace,
       );
     } finally {
-      _relayManager.endPendingConnection(state);
+      relayReq.seal();
     }
-  }
-
-  /// Explicit relays bypass outbox routing, so no engine is involved: each of
-  /// them gets every filter the cache left.
-  void _sendToExplicitRelays(RequestState state, Iterable<String> relays) {
-    final filters = [
-      for (final filter in state.unresolvedFilters)
-        ...RelaySet.sliceFilterAuthors(filter),
-    ];
-    for (final url in cleanRelayUrls(relays.toList()).toSet()) {
-      unawaited(_relayManager.sendRequestToRelay(state, url, List.of(filters)));
-    }
-    state.closeIfNoRelays();
   }
 
   /// Performs a paginated query that fetches all events in a time range
@@ -736,23 +810,21 @@ class Requests {
   /// this request. Cache hits would make the recorded range claim coverage the
   /// relay never actually served.
   void _recordFetchedRanges(
-    RequestState state,
+    Map<String, RelayRequestOutcome> outcomes,
+    Map<String, List<Filter>> sentFilters,
     Map<String, int> oldestEventByRelay,
   ) {
     if (_fetchedRanges == null) return;
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    for (final entry in state.requests.entries) {
-      final relayUrl = entry.key.url;
-      final relayState = entry.value;
-
-      if (!relayState.receivedEOSE) continue;
+    for (final MapEntry(key: relayUrl, value: filters) in sentFilters.entries) {
+      if (outcomes[relayUrl]?.status != RelayRequestStatus.eose) continue;
 
       final oldestEvent = oldestEventByRelay[relayUrl];
 
       // Record fetched range for each filter sent to this relay
-      for (final filter in relayState.filters) {
+      for (final filter in filters) {
         int since = filter.since ?? 0;
         final int until = filter.until ?? now;
 

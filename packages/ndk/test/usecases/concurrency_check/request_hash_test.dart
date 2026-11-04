@@ -1,21 +1,17 @@
-import 'package:ndk/domain_layer/entities/global_state.dart';
-import 'package:ndk/domain_layer/entities/request_state.dart';
 import 'package:ndk/domain_layer/usecases/requests/concurrency_check.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 void main() {
-  RequestState query(String id, List<Filter> filters) {
-    return RequestState(
-      NdkRequest.query(id, timeoutDuration: null, filters: filters),
-    );
+  NdkRequest query(String id, List<Filter> filters) {
+    return NdkRequest.query(id, timeoutDuration: null, filters: filters);
   }
 
   group('request hashing', () {
     late ConcurrencyCheck concurrencyCheck;
 
     setUp(() {
-      concurrencyCheck = ConcurrencyCheck(GlobalState());
+      concurrencyCheck = ConcurrencyCheck();
     });
 
     test('dedups filters whose lists differ only in order', () {
@@ -26,8 +22,7 @@ void main() {
         Filter(authors: ['b', 'a'], kinds: [7, 1]),
       ]);
 
-      expect(concurrencyCheck.check(first), false);
-      expect(concurrencyCheck.check(second), true);
+      expect(concurrencyCheck.hash(second), concurrencyCheck.hash(first));
     });
 
     test('dedups tags whose values or keys differ only in order', () {
@@ -38,8 +33,7 @@ void main() {
         Filter(eTags: ['c'], pTags: ['b', 'a']),
       ]);
 
-      expect(concurrencyCheck.check(first), false);
-      expect(concurrencyCheck.check(second), true);
+      expect(concurrencyCheck.hash(second), concurrencyCheck.hash(first));
     });
 
     test('dedups requests whose filters differ only in order', () {
@@ -52,8 +46,7 @@ void main() {
         Filter(authors: ['a']),
       ]);
 
-      expect(concurrencyCheck.check(first), false);
-      expect(concurrencyCheck.check(second), true);
+      expect(concurrencyCheck.hash(second), concurrencyCheck.hash(first));
     });
 
     test('keeps different filters apart', () {
@@ -64,8 +57,10 @@ void main() {
         Filter(authors: ['a', 'c']),
       ]);
 
-      expect(concurrencyCheck.check(first), false);
-      expect(concurrencyCheck.check(second), false);
+      expect(
+        concurrencyCheck.hash(second),
+        isNot(concurrencyCheck.hash(first)),
+      );
     });
   });
 }

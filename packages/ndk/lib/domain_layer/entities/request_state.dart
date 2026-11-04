@@ -142,12 +142,6 @@ class RequestState implements TimeoutPausable {
   StreamController<Nip01Event> networkController =
       StreamController<Nip01Event>();
 
-  /// [cacheController] is the controller cacheRead writes to
-  StreamController<Nip01Event> cacheController = StreamController<Nip01Event>();
-
-  /// ids that got already returned by this request
-  Set<String> returnedIds = {};
-
   Timer? _timeout;
   DateTime? _timeoutStartedAt;
   Duration? _timeoutLeftAtStart;
@@ -178,10 +172,6 @@ class RequestState implements TimeoutPausable {
   /// the original request
   NdkRequest request;
 
-  /// this is the working filter obj, gets initialized with user provided filters.
-  /// Then on each step (cache, network) resolved filters get removed/updated
-  final List<Filter> unresolvedFilters;
-
   /// timeout duration, closes all streams
   Duration? timeoutDuration;
 
@@ -195,10 +185,6 @@ class RequestState implements TimeoutPausable {
     _timedOut = value;
     _refreshRelayOutcomes();
   }
-
-  /// request this one was merged into by the concurrency check, when its stream
-  /// got replaced by an identical request already in flight
-  RequestState? servedBy;
 
   /// called when timeout is triggered
   Function(RequestState)? onTimeout;
@@ -215,7 +201,7 @@ class RequestState implements TimeoutPausable {
   }
 
   /// Creates a new [RequestState] instance
-  RequestState(this.request) : unresolvedFilters = request.filters {
+  RequestState(this.request) {
     // if we have a timeout set, we start it
     if (request.timeoutDuration != null) {
       timeoutDuration = request.timeoutDuration;
@@ -300,8 +286,7 @@ class RequestState implements TimeoutPausable {
   ///
   /// Keyed by relay url: several connections to one relay collapse into the
   /// outcome that comes first in [RelayRequestStatus].
-  Map<String, RelayRequestOutcome> get relayOutcomes =>
-      servedBy?.relayOutcomes ?? _ownRelayOutcomes;
+  Map<String, RelayRequestOutcome> get relayOutcomes => _ownRelayOutcomes;
 
   /// [relayOutcomes] on every change, starting with what it holds right now,
   /// and closed once the request is over.
@@ -309,10 +294,6 @@ class RequestState implements TimeoutPausable {
   /// Late subscribers get the current outcomes instead of missing everything
   /// the relays answered before they listened.
   Stream<Map<String, RelayRequestOutcome>> get relayOutcomesStream {
-    final served = servedBy;
-    if (served != null) {
-      return served.relayOutcomesStream;
-    }
     final subject = _relayOutcomesSubject ??= BehaviorSubject.seeded(
       _ownRelayOutcomes,
     );
@@ -438,7 +419,6 @@ class RequestState implements TimeoutPausable {
   Future<void> close() async {
     cancelTimeout();
     await networkController.close();
-    await cacheController.close();
     await controller.close();
   }
 }
