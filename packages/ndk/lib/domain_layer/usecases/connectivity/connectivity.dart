@@ -45,11 +45,7 @@ class Connectivy {
     for (final rConnectivity in relayConnectivities) {
       if (!rConnectivity.isConnected) {
         await _relayManager
-            .reconnectConnection(
-              rConnectivity.key,
-              connectionSource: rConnectivity.relay.connectionSource,
-              force: true,
-            )
+            .reconnectConnection(rConnectivity.key, force: true)
             .then((connected) {
               _relayManager.updateRelayConnectivity();
               if (connected) {

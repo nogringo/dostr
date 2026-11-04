@@ -15,7 +15,6 @@ import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../../entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import '../../../entities/user_relay_list.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../../user_relay_lists/user_relay_lists.dart';
@@ -193,10 +192,7 @@ class RelayJitPubkeyStrategy with Logger {
         entry,
       ) async {
         final url = entry.key;
-        final result = await relayManager.connectRelay(
-          dirtyUrl: url,
-          connectionSource: ConnectionSource.pubkeyStrategy,
-        );
+        final result = await relayManager.connectRelay(dirtyUrl: url);
         final connectivity =
             globalState.relays[RelayConnectionKey.anonymous(url)];
         if (!result.connected || connectivity == null) {

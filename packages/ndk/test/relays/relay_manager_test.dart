@@ -25,15 +25,11 @@ void main() async {
         bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
-      await manager
-          .connectRelay(
-            dirtyUrl: relay1.url,
-            connectionSource: ConnectionSource.seed,
-          )
-          .then((value) {})
-          .onError((error, stackTrace) async {
-            await relay1.stopServer();
-          });
+      await manager.connectRelay(dirtyUrl: relay1.url).then((value) {}).onError(
+        (error, stackTrace) async {
+          await relay1.stopServer();
+        },
+      );
       await relay1.stopServer();
     });
 
@@ -49,10 +45,7 @@ void main() async {
       );
       final results = await Future.wait([
         for (var i = 0; i < 2; i++)
-          manager.connectRelay(
-            dirtyUrl: 'ws://127.0.0.1:$port',
-            connectionSource: ConnectionSource.explicit,
-          ),
+          manager.connectRelay(dirtyUrl: 'ws://127.0.0.1:$port'),
       ]);
 
       for (final result in results) {
@@ -70,15 +63,11 @@ void main() async {
         bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
-      await manager
-          .connectRelay(
-            dirtyUrl: relay1.url,
-            connectionSource: ConnectionSource.seed,
-          )
-          .then((value) {})
-          .onError((error, stackTrace) async {
-            await relay1.stopServer();
-          });
+      await manager.connectRelay(dirtyUrl: relay1.url).then((value) {}).onError(
+        (error, stackTrace) async {
+          await relay1.stopServer();
+        },
+      );
 
       expect(
         manager
@@ -103,10 +92,7 @@ void main() async {
         bootstrapRelays: [relay1.url],
         nostrTransportFactory: WebSocketNostrTransportFactory(),
       );
-      await manager.connectRelay(
-        dirtyUrl: relay1.url,
-        connectionSource: ConnectionSource.seed,
-      );
+      await manager.connectRelay(dirtyUrl: relay1.url);
       expect(manager.isRelayConnected(relay1.url), true);
 
       // The server registers the client asynchronously; closing before that
@@ -162,10 +148,7 @@ void main() async {
 
       MockRelay relay1 = MockRelay(name: "relay 1");
       try {
-        await manager.connectRelay(
-          dirtyUrl: relay1.url,
-          connectionSource: ConnectionSource.seed,
-        );
+        await manager.connectRelay(dirtyUrl: relay1.url);
         fail("should throw exception");
       } catch (e) {
         // success
@@ -180,10 +163,7 @@ void main() async {
         bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
-      await manager.connectRelay(
-        dirtyUrl: relay1.url,
-        connectionSource: ConnectionSource.seed,
-      );
+      await manager.connectRelay(dirtyUrl: relay1.url);
       expect(manager.globalState.relays, isNotEmpty);
 
       await manager.resetTransport(relay1.url);
@@ -218,14 +198,8 @@ void main() async {
         );
 
         // Connect to both relays
-        await manager.connectRelay(
-          dirtyUrl: relay1.url,
-          connectionSource: ConnectionSource.seed,
-        );
-        await manager.connectRelay(
-          dirtyUrl: relay2.url,
-          connectionSource: ConnectionSource.seed,
-        );
+        await manager.connectRelay(dirtyUrl: relay1.url);
+        await manager.connectRelay(dirtyUrl: relay2.url);
 
         // Create test filters for the request
         final testFilters = [

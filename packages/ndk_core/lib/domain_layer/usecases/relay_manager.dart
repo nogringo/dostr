@@ -13,7 +13,6 @@ import '../../shared/nips/nip01/client_msg.dart';
 import '../entities/account.dart';
 import '../entities/auth_handler.dart';
 import '../entities/broadcast_state.dart';
-import '../entities/connection_source.dart';
 import '../entities/filter.dart';
 import '../entities/global_state.dart';
 import '../entities/nip_01_event.dart';
@@ -138,14 +137,7 @@ class RelayManager {
   /// Connects to the bootstrap relays, if any.
   Future<void> _connectSeedRelays(Iterable<String> urls) async {
     await Future.wait(
-      urls
-          .map(
-            (url) => connectRelay(
-              dirtyUrl: url,
-              connectionSource: ConnectionSource.seed,
-            ),
-          )
-          .toList(),
+      urls.map((url) => connectRelay(dirtyUrl: url)).toList(),
     ).whenComplete(() {
       if (!_seedRelaysCompleter.isCompleted) {
         _seedRelaysCompleter.complete();
@@ -224,7 +216,6 @@ class RelayManager {
   /// Returns whether it is connected, and the error message if it is not.
   Future<({bool connected, String error})> connectRelay({
     required String dirtyUrl,
-    required ConnectionSource connectionSource,
     String? authPubkey,
     int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
   }) async {
@@ -277,7 +268,7 @@ class RelayManager {
       if (relayConnectivity == null) {
         relayConnectivity = RelayConnectivity(
           key: connectionKey,
-          relay: Relay(url: url, connectionSource: connectionSource),
+          relay: Relay(url: url),
         );
         globalState.relays[connectionKey] = relayConnectivity;
       }
@@ -383,15 +374,8 @@ class RelayManager {
   }
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
-  Future<bool> reconnectRelay(
-    String url, {
-    required ConnectionSource connectionSource,
-    bool force = false,
-  }) => reconnectConnection(
-    RelayConnectionKey.anonymous(url),
-    connectionSource: connectionSource,
-    force: force,
-  );
+  Future<bool> reconnectRelay(String url, {bool force = false}) =>
+      reconnectConnection(RelayConnectionKey.anonymous(url), force: force);
 
   /// Reconnects the connection identified by [key], if it is closed. An
   /// authenticated connection comes back authenticated or not at all.
@@ -401,7 +385,6 @@ class RelayManager {
   /// registered one.
   Future<bool> reconnectConnection(
     RelayConnectionKey key, {
-    required ConnectionSource connectionSource,
     bool force = false,
     Account? as,
     TimeoutPausable? pausing,
@@ -447,19 +430,11 @@ class RelayManager {
           Logger.log.w(() => "No account left to reconnect $key");
           return false;
         }
-        return await openConnectionAs(
-              key.url,
-              account,
-              connectionSource: connectionSource,
-              pausing: pausing,
-            ) !=
+        return await openConnectionAs(key.url, account, pausing: pausing) !=
             null;
       }
 
-      if (!(await connectRelay(
-        dirtyUrl: key.url,
-        connectionSource: connectionSource,
-      )).connected) {
+      if (!(await connectRelay(dirtyUrl: key.url)).connected) {
         // could not connect
         return false;
       }
@@ -505,13 +480,7 @@ class RelayManager {
     final startTime = DateTime.now();
     Logger.log.d(() => "connecting ${urls.length} relays in parallel");
     List<bool> connected = await Future.wait(
-      urls.map(
-        (url) => reconnectRelay(
-          url,
-          connectionSource: ConnectionSource.explicit,
-          force: true,
-        ),
-      ),
+      urls.map((url) => reconnectRelay(url, force: true)),
     );
     final endTime = DateTime.now();
     final duration = endTime.difference(startTime);
@@ -747,7 +716,6 @@ class RelayManager {
     BroadcastState state,
     String url,
     Nip01Event event, {
-    ConnectionSource connectionSource = ConnectionSource.broadcastSpecific,
     int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     Future<String?> Function()? veto,
   }) async {
@@ -760,7 +728,6 @@ class RelayManager {
       final relay = await connectionForBroadcast(
         url,
         state.auth,
-        connectionSource: connectionSource,
         connectTimeout: connectTimeout,
         pausing: state,
       );
@@ -862,10 +829,7 @@ class RelayManager {
     if (allowReconnectRelays &&
         globalState.relays[relayConnectivity.key] != null) {
       Logger.log.i(() => "closed ${relayConnectivity.url}. Reconnecting");
-      reconnectConnection(
-        relayConnectivity.key,
-        connectionSource: relayConnectivity.relay.connectionSource,
-      ).then((connected) {
+      reconnectConnection(relayConnectivity.key).then((connected) {
         updateRelayConnectivity();
         if (connected) {
           reSubscribeInFlightSubscriptions(relayConnectivity);
@@ -1068,7 +1032,6 @@ class RelayManager {
   Future<RelayConnectivity?> openConnectionAs(
     String url,
     Account account, {
-    ConnectionSource connectionSource = ConnectionSource.explicit,
     int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     TimeoutPausable? pausing,
   }) async {
@@ -1090,7 +1053,6 @@ class RelayManager {
 
     final result = await connectRelay(
       dirtyUrl: url,
-      connectionSource: connectionSource,
       authPubkey: account.pubkey,
       connectTimeout: connectTimeout,
     );
@@ -1150,7 +1112,6 @@ class RelayManager {
   Future<RelayConnectivity?> connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
-    ConnectionSource connectionSource = ConnectionSource.broadcastSpecific,
     int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     TimeoutPausable? pausing,
   }) async {
@@ -1164,7 +1125,6 @@ class RelayManager {
       return openConnectionAs(
         url,
         auth.account,
-        connectionSource: connectionSource,
         connectTimeout: connectTimeout,
         pausing: pausing,
       );
@@ -1173,7 +1133,6 @@ class RelayManager {
     if (!isRelayConnected(url)) {
       final result = await connectRelay(
         dirtyUrl: url,
-        connectionSource: connectionSource,
         connectTimeout: connectTimeout,
       );
       if (!result.connected) {
@@ -1607,8 +1566,6 @@ class RelayManager {
 
     final connected = await reconnectConnection(
       request.key,
-      connectionSource:
-          ConnectionSource.explicit, // TODO improve this connection source
       force: false,
       as: state.auth?.account,
       pausing: state,
@@ -1741,11 +1698,7 @@ class RelayManager {
 
     state.pauseTimeout();
     beginPendingConnection(state);
-    openConnectionAs(
-      key.url,
-      account,
-      connectionSource: relayConnectivity.relay.connectionSource,
-    ).then((bound) {
+    openConnectionAs(key.url, account).then((bound) {
       try {
         if (!_isStillInFlight(reqId, state)) {
           return;
@@ -1919,7 +1872,6 @@ class RelayManager {
         final bound = await openConnectionAs(
           relayUrl,
           account,
-          connectionSource: relayConnectivity.relay.connectionSource,
           pausing: broadcastState,
         );
         if (broadcastState.networkController.isClosed) {

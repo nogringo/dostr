@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:test/test.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
@@ -91,7 +90,7 @@ void main() {
     final transport = _Transport();
     state.relays[key] = RelayConnectivity(
       key: key,
-      relay: Relay(url: key.url, connectionSource: ConnectionSource.explicit),
+      relay: Relay(url: key.url),
       relayTransport: transport,
     );
     return transport;
@@ -192,10 +191,7 @@ void main() {
       final transport = _Transport();
       ndk.relays.globalState.relays[anonymous] = RelayConnectivity(
         key: anonymous,
-        relay: Relay(
-          url: anonymous.url,
-          connectionSource: ConnectionSource.explicit,
-        ),
+        relay: Relay(url: anonymous.url),
         relayTransport: transport,
       );
       await ndk.setBackgrounded(true);

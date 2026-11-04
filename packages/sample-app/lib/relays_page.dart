@@ -146,7 +146,6 @@ class _RelaysPageState extends State<RelaysPage>
       for (final url in list.relays.keys) {
         await ndk.relays.connectRelay(
           dirtyUrl: url,
-          connectionSource: ConnectionSource.unknown,
         );
       }
     }

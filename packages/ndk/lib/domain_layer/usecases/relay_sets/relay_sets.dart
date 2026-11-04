@@ -1,6 +1,5 @@
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import '../../entities/pubkey_mapping.dart';
 import '../../entities/read_write.dart';
 import '../../entities/read_write_marker.dart';
@@ -127,7 +126,6 @@ class RelaySets {
       }
       bool connectable = (await _relayManager.connectRelay(
         dirtyUrl: url,
-        connectionSource: ConnectionSource.connectionProbe,
       )).connected;
       Logger.log.d(() => "tried to reconnect to $url = $connectable");
       if (!connectable) {

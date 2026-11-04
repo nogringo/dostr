@@ -70,10 +70,7 @@ void deadConnectionTests() {
         bootstrapRelays: [relay.url],
         nostrTransportFactory: WebSocketNostrTransportFactory(),
       );
-      await manager.connectRelay(
-        dirtyUrl: relay.url,
-        connectionSource: ndk_entities.ConnectionSource.seed,
-      );
+      await manager.connectRelay(dirtyUrl: relay.url);
 
       final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
       final state = ndk_entities.RequestState.query(
@@ -232,10 +229,7 @@ void notSentEndTests() {
         await manager.seedRelaysConnected;
 
         // another request is already opening it
-        opening = manager.connectRelay(
-          dirtyUrl: connecting.url,
-          connectionSource: ndk_entities.ConnectionSource.explicit,
-        );
+        opening = manager.connectRelay(dirtyUrl: connecting.url);
         final filter = Filter(
           kinds: [Nip01Event.kTextNodeKind],
           authors: [key1.publicKey, key2.publicKey],

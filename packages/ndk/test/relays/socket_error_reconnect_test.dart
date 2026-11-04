@@ -111,10 +111,7 @@ void main() {
       bootstrapRelays: [relay.url],
       nostrTransportFactory: factory,
     );
-    await manager.connectRelay(
-      dirtyUrl: relay.url,
-      connectionSource: ConnectionSource.seed,
-    );
+    await manager.connectRelay(dirtyUrl: relay.url);
 
     final connectivity =
         manager.globalState.relays[RelayConnectionKey.anonymous(relay.url)]!;

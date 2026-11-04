@@ -267,10 +267,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
     bootstrapRelays: [],
     nostrTransportFactory: factory,
   );
-  await manager.connectRelay(
-    dirtyUrl: relay.url,
-    connectionSource: ConnectionSource.seed,
-  );
+  await manager.connectRelay(dirtyUrl: relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
   final connectivity = manager.globalState.relays[connectionKey]!;

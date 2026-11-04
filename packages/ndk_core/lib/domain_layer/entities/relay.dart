@@ -1,5 +1,3 @@
-import 'connection_source.dart';
-
 /// Basic relay info/status
 class Relay {
   /// relay url
@@ -14,10 +12,8 @@ class Relay {
   /// last successful connection
   int? lastSuccessfulConnect;
 
-  ConnectionSource connectionSource;
-
   /// default constructor
-  Relay({required this.url, required this.connectionSource});
+  Relay({required this.url});
 
   /// set trying to connect
   void tryingToConnect() {

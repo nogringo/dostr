@@ -4,7 +4,6 @@ import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import '../../entities/contact_list.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../entities/jit_engine_relay_connectivity_data.dart';
@@ -180,14 +179,12 @@ class JitEngine with Logger implements NetworkEngine {
             broadcastState,
             url,
             workingNostrEvent,
-            connectionSource: ConnectionSource.broadcastOwn,
           ),
         for (final url in inboxRelays.difference(ownRelays))
           relayManagerLight.publishToRelay(
             broadcastState,
             url,
             workingNostrEvent,
-            connectionSource: ConnectionSource.broadcastOther,
           ),
       ]);
       broadcastState.closeIfNoRelays();

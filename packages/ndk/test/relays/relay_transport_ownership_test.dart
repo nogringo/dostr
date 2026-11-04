@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
@@ -94,11 +93,8 @@ void main() {
   late GlobalState state;
   late _Factory factory;
   late _Manager manager;
-  Future<bool> connect() async => (await manager.connectRelay(
-    dirtyUrl: url,
-    connectionSource: ConnectionSource.explicit,
-    connectTimeout: 1,
-  )).connected;
+  Future<bool> connect() async =>
+      (await manager.connectRelay(dirtyUrl: url, connectTimeout: 1)).connected;
   setUp(() {
     state = GlobalState();
     factory = _Factory();

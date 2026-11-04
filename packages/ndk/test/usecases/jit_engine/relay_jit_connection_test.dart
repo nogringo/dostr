@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
@@ -267,10 +266,7 @@ void main() async {
         globalState: globalState,
         nostrTransportFactory: factory,
       );
-      final result = await relayManager.connectRelay(
-        dirtyUrl: fallbackUrl,
-        connectionSource: ConnectionSource.pubkeyStrategy,
-      );
+      final result = await relayManager.connectRelay(dirtyUrl: fallbackUrl);
       expect(result.connected, isTrue);
 
       final sent = <String, List<Filter>>{};

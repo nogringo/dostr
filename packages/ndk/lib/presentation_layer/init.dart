@@ -11,7 +11,6 @@ import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/repositories/blossom.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
@@ -230,11 +229,8 @@ class Initialization {
       pendingBroadcastDelivery.startPeriodicRetry(
         connectedRelayUrls: () =>
             relayManager.connectedRelays.map((relay) => relay.url),
-        reconnectRelay: (relayUrl) => relayManager.reconnectRelay(
-          relayUrl,
-          connectionSource: ConnectionSource.explicit,
-          force: true,
-        ),
+        reconnectRelay: (relayUrl) =>
+            relayManager.reconnectRelay(relayUrl, force: true),
         retryInterval: _ndkConfig.pendingDeliveryRetryInterval,
       );
     }

@@ -163,7 +163,6 @@ class _Nip77Internal extends RelayProtocolHandler {
   Future<RelayConnectivity?> _openConnection(Nip77State state) async {
     final connected = await _relayManager.reconnectConnection(
       state.connectionKey,
-      connectionSource: ConnectionSource.explicit,
       as: state.auth?.account,
       pausing: state,
     );
@@ -464,11 +463,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     state.cancelTimeout();
     final RelayConnectivity? bound;
     try {
-      bound = await _relayManager.openConnectionAs(
-        url,
-        account,
-        connectionSource: ConnectionSource.explicit,
-      );
+      bound = await _relayManager.openConnectionAs(url, account);
     } catch (e) {
       if (!state.isCompleted) {
         _fail(state, Nip77AuthRequiredException(url, '$message ($e)'));

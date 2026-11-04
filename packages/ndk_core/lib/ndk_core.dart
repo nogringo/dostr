@@ -10,7 +10,6 @@ export 'domain_layer/entities/auth_handler.dart';
 export 'domain_layer/entities/auth_policy.dart';
 export 'domain_layer/entities/broadcast_response.dart';
 export 'domain_layer/entities/broadcast_state.dart';
-export 'domain_layer/entities/connection_source.dart';
 export 'domain_layer/entities/filter.dart';
 export 'domain_layer/entities/global_state.dart';
 export 'domain_layer/entities/nip_01_event.dart';
