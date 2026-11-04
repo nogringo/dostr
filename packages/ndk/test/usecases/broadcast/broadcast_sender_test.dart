@@ -1,4 +1,3 @@
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk/domain_layer/usecases/engines/network_engine.dart';
@@ -52,11 +51,7 @@ class _UnreachableNetworkEngine implements NetworkEngine {
   }
 
   @override
-  NdkBroadcastResponse handleEventBroadcast({
-    required Nip01Event nostrEvent,
-    required EventSigner? signer,
-    required BroadcastState broadcastState,
-  }) {
+  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) {
     throw UnimplementedError();
   }
 }

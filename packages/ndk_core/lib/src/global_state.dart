@@ -1,4 +1,4 @@
-import '../domain_layer/entities/broadcast_state.dart';
+import 'broadcast_state.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/usecases/relay_manager.dart';

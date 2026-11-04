@@ -25,7 +25,6 @@ export 'domain_layer/repositories/event_signer.dart';
 export 'domain_layer/repositories/event_verifier.dart';
 export 'domain_layer/repositories/nostr_transport.dart';
 export 'domain_layer/usecases/relay_manager.dart';
-export 'domain_layer/usecases/relay_reqs/relay_publishes.dart';
 export 'shared/logger/console_output.dart';
 export 'shared/logger/log_level.dart';
 export 'shared/logger/log_output.dart';

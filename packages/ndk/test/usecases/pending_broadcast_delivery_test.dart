@@ -1421,11 +1421,7 @@ class _ThrowingNetworkEngine implements NetworkEngine {
   }
 
   @override
-  NdkBroadcastResponse handleEventBroadcast({
-    required Nip01Event nostrEvent,
-    required EventSigner? signer,
-    required BroadcastState broadcastState,
-  }) {
+  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) {
     throw UnimplementedError();
   }
 }

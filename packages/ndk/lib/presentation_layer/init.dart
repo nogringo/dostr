@@ -41,7 +41,6 @@ import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
@@ -193,6 +192,7 @@ class Initialization {
     final broadcastSender = BroadcastSender(
       networkEngine: engine,
       relayManager: relayManager,
+      relayPublishes: relayPublishes,
       cacheManager: _ndkConfig.cache,
       accounts: accounts,
       considerDonePercent: _ndkConfig.defaultBroadcastConsiderDonePercent,

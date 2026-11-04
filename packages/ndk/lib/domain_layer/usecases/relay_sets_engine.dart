@@ -7,13 +7,10 @@ import 'package:ndk/config/bootstrap_relays.dart';
 import 'package:ndk/config/broadcast_defaults.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../entities/relay_set.dart';
 import '../repositories/cache_manager.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'engines/network_engine.dart';
 import 'broadcast/obsolete_replaceable.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
@@ -79,99 +76,71 @@ class RelaySetsEngine implements NetworkEngine {
   }
 
   @override
-  NdkBroadcastResponse handleEventBroadcast({
-    required Nip01Event nostrEvent,
-    required EventSigner? signer,
-    required BroadcastState broadcastState,
-  }) {
-    Future<void> asyncStuff() async {
-      final Nip01Event workingEvent;
-
-      try {
-        if (signer != null) {
-          workingEvent = await signer.sign(nostrEvent);
-        } else {
-          workingEvent = nostrEvent;
-        }
-      } catch (e, stackTrace) {
-        broadcastState.addError(e, stackTrace);
-        return;
-      }
-      broadcastState.startTimeout();
-
-      // =====================================================================================
-      // own outbox
-      // =====================================================================================
-      // TODO should not only depend on cached, but go fetch it if not present in cache
-      final nip65List = (await UserRelayLists.getUserRelayListCacheLatest(
-        pubkeys: [workingEvent.pubKey],
-        cacheManager: _cacheManager,
-      ));
-      // make a copy of the keys since connectRelay may mutate the underlying map
-      // several connections can share a url, and broadcasting twice to the
-      // same relay would duplicate the event
-      List<String> writeRelaysUrls = _relayManager.connectivities.keys
-          .map((key) => key.url)
-          .toSet()
+  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) async {
+    // =====================================================================================
+    // own outbox
+    // =====================================================================================
+    // TODO should not only depend on cached, but go fetch it if not present in cache
+    final nip65List = (await UserRelayLists.getUserRelayListCacheLatest(
+      pubkeys: [event.pubKey],
+      cacheManager: _cacheManager,
+    ));
+    // make a copy of the keys since connectRelay may mutate the underlying map
+    // several connections can share a url, and broadcasting twice to the
+    // same relay would duplicate the event
+    List<String> writeRelaysUrls = _relayManager.connectivities.keys
+        .map((key) => key.url)
+        .toSet()
+        .toList();
+    if (nip65List.isNotEmpty) {
+      writeRelaysUrls = nip65List.first.relays.entries
+          .where((element) => element.value.isWrite)
+          .map((e) => e.key)
           .toList();
-      if (nip65List.isNotEmpty) {
-        writeRelaysUrls = nip65List.first.relays.entries
-            .where((element) => element.value.isWrite)
+    } else {
+      Logger.log.w(
+        () =>
+            "could not find user relay list from nip65, using default bootstrap relays",
+      );
+    }
+    final relayUrls = [...writeRelaysUrls];
+
+    // =====================================================================================
+    // other inbox
+    // =====================================================================================
+    if (event.pTags.isNotEmpty) {
+      final nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
+        pubkeys: event.pTags,
+        cacheManager: _cacheManager,
+      );
+
+      /// filter read relays
+      for (final userNip65 in nip65Data) {
+        final completeList = userNip65.relays.entries
+            .where((element) => element.value.isRead)
             .map((e) => e.key)
             .toList();
-      } else {
-        Logger.log.w(
-          () =>
-              "could not find user relay list from nip65, using default bootstrap relays",
-        );
-      }
-      final relayUrls = [...writeRelaysUrls];
 
-      // =====================================================================================
-      // other inbox
-      // =====================================================================================
-      if (workingEvent.pTags.isNotEmpty) {
-        final nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
-          pubkeys: workingEvent.pTags,
-          cacheManager: _cacheManager,
-        );
-
-        /// filter read relays
-        for (final userNip65 in nip65Data) {
-          final completeList = userNip65.relays.entries
-              .where((element) => element.value.isRead)
-              .map((e) => e.key)
-              .toList();
-
-          // cut list of at a certain threshold
-          relayUrls.addAll(
-            completeList.sublist(
-              0,
-              min(
-                completeList.length,
-                BroadcastDefaults.MAX_INBOX_RELAYS_TO_BROADCAST,
-              ),
+        // cut list of at a certain threshold
+        relayUrls.addAll(
+          completeList.sublist(
+            0,
+            min(
+              completeList.length,
+              BroadcastDefaults.MAX_INBOX_RELAYS_TO_BROADCAST,
             ),
-          );
-        }
-      }
-
-      // a relay in an outbox and an inbox gets the event once
-      await Future.wait([
-        for (final url in cleanRelayUrls(relayUrls).toSet())
-          _relayManager.publishToRelay(
-            broadcastState,
-            url,
-            workingEvent,
-            connectTimeout: 1,
-            veto: () => obsoleteReplaceableVeto(_cacheManager, workingEvent),
           ),
-      ]);
-      broadcastState.closeIfNoRelays();
+        );
+      }
     }
 
-    asyncStuff();
-
-    return NdkBroadcastResponse.fromState(nostrEvent, broadcastState);
+    // a relay in an outbox and an inbox gets the event once
+    for (final url in cleanRelayUrls(relayUrls).toSet()) {
+      send(
+        url,
+        connectTimeout: 1,
+        veto: () => obsoleteReplaceableVeto(_cacheManager, event),
+      );
+    }
   }
 }

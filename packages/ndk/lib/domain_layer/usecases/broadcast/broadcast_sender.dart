@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:ndk/ndk.dart';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../engines/network_engine.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'obsolete_replaceable.dart';
@@ -15,6 +14,7 @@ import 'obsolete_replaceable.dart';
 class BroadcastSender {
   final NetworkEngine _engine;
   final RelayManager _relayManager;
+  final RelayPublishes _relayPublishes;
   final Accounts _accounts;
   final CacheManager _cacheManager;
   final double _considerDonePercent;
@@ -25,6 +25,7 @@ class BroadcastSender {
     required CacheManager cacheManager,
     required NetworkEngine networkEngine,
     required RelayManager relayManager,
+    RelayPublishes? relayPublishes,
     required Accounts accounts,
     required double considerDonePercent,
     required Duration timeout,
@@ -33,6 +34,8 @@ class BroadcastSender {
        _cacheManager = cacheManager,
        _engine = networkEngine,
        _relayManager = relayManager,
+       _relayPublishes =
+           relayPublishes ?? RelayPublishes(relayManager: relayManager),
        _considerDonePercent = considerDonePercent,
        _timeout = timeout,
        _saveToCache = saveToCache;
@@ -77,61 +80,58 @@ class BroadcastSender {
         ? _checkSinger(customSigner: customSigner)
         : null;
 
-    final broadcastState = BroadcastState(
-      considerDonePercent: myConsiderDonePercent,
-      timeout: myTimeout,
+    final publish = _relayPublishes.open(
+      nostrEvent,
       auth: auth,
+      timeout: myTimeout,
+      considerDonePercent: myConsiderDonePercent,
     );
-    _relayManager.trackBroadcast(nostrEvent, broadcastState);
 
     if (mySaveToCache) {
       _cacheManager.saveEvent(nostrEvent);
     }
 
-    if (specificRelays != null) {
-      unawaited(
-        _sendToSpecificRelays(
-          nostrEvent,
-          signer,
-          broadcastState,
-          cleanRelayUrls(specificRelays.toList()).toSet(),
-        ),
-      );
-      return NdkBroadcastResponse.fromState(nostrEvent, broadcastState);
-    }
-
-    return _engine.handleEventBroadcast(
-      nostrEvent: nostrEvent,
-      signer: signer,
-      broadcastState: broadcastState,
+    unawaited(
+      _send(
+        publish,
+        signer,
+        specificRelays == null
+            ? null
+            : cleanRelayUrls(specificRelays.toList()).toSet(),
+      ),
     );
+    return publish.response;
   }
 
-  /// Specific relays bypass outbox routing, so no engine is involved.
-  Future<void> _sendToSpecificRelays(
-    Nip01Event nostrEvent,
+  Future<void> _send(
+    RelayPublish publish,
     EventSigner? signer,
-    BroadcastState broadcastState,
-    Set<String> relays,
+    Set<String>? specificRelays,
   ) async {
     final Nip01Event signed;
     try {
-      signed = signer == null ? nostrEvent : await signer.sign(nostrEvent);
+      signed = signer == null
+          ? publish.event
+          : await signer.sign(publish.event);
+      publish.start(signed);
     } catch (error, stackTrace) {
-      broadcastState.addError(error, stackTrace);
+      publish.fail(error, stackTrace);
       return;
     }
-    broadcastState.startTimeout();
-    await Future.wait([
-      for (final url in relays)
-        _relayManager.publishToRelay(
-          broadcastState,
-          url,
-          signed,
-          connectTimeout: 1,
-          veto: () => obsoleteReplaceableVeto(_cacheManager, signed),
-        ),
-    ]);
-    broadcastState.closeIfNoRelays();
+    try {
+      if (specificRelays == null) {
+        await _engine.routeBroadcast(signed, publish.send);
+      } else {
+        for (final url in specificRelays) {
+          publish.send(
+            url,
+            connectTimeout: 1,
+            veto: () => obsoleteReplaceableVeto(_cacheManager, signed),
+          );
+        }
+      }
+    } finally {
+      publish.seal();
+    }
   }
 }

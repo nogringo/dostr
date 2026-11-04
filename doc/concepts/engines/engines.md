@@ -16,9 +16,9 @@ For more information [look here](./jit_engine/README.md)
 If you want to implement your own engine with custom behavior you need to touch the following things:
 
 1. implement the `NetworkEngine` interface: `route` picks the relays for a request and hands each of them its filters through `send`, once per relay. NDK sends the REQ, tracks EOSE and the outcome of every relay, and closes the request
-2. if you need global state you can register your own data type in `global_state.dart`
+2. `routeBroadcast` gets an event NDK already signed, picks the relays it goes to and hands each of them to `send`. NDK sends the EVENT, collects the OK of every relay and ends the broadcast
 3. initialize your engine in `init.dart`
 
-Requests with explicit relays never reach the engine: they go to those relays as they are.
+Requests and broadcasts with explicit relays never reach the engine: they go to those relays as they are.
 
 > The network engine is only concerned about network requests! Caching and avoiding concurrency is handled by separate usecases. Take a look at `requests.dart` usecase to learn more.

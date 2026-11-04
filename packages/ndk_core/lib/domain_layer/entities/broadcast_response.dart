@@ -26,13 +26,4 @@ class NdkBroadcastResponse {
     Future<List<RelayBroadcastResponse>>? broadcastDoneFuture,
   }) : _broadcastDoneStream = broadcastDoneStream,
        _broadcastDoneFuture = broadcastDoneFuture ?? broadcastDoneStream.last;
-
-  /// The response of [state], a broadcast of [publishEvent].
-  NdkBroadcastResponse.fromState(this.publishEvent, BroadcastState state)
-    : _broadcastDoneStream = state.stateUpdates.map(
-        (state) => state.broadcasts.values.toList(),
-      ),
-      _broadcastDoneFuture = state.publishDoneFuture.then(
-        (state) => state.broadcasts.values.toList(),
-      );
 }

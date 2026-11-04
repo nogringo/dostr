@@ -142,4 +142,105 @@ void main() {
     expect(responses.single.okReceived, isFalse);
     expect(silent.events, hasLength(1));
   });
+
+  group('open', () {
+    test('is in flight before it is signed', () async {
+      final relay = await startRelay();
+      final event = signedEvent();
+      final unsigned = Nip01Event(
+        pubKey: event.pubKey,
+        createdAt: event.createdAt,
+        kind: event.kind,
+        tags: event.tags,
+        content: event.content,
+      );
+
+      final publish = publishes.open(unsigned);
+      expect(manager.isBroadcasting(event.id), isTrue);
+
+      publish.start(event);
+      expect(publish.send(relay.url), isTrue);
+      publish.seal();
+      final responses = await publish.response.broadcastDoneFuture;
+
+      expect(responses.single.broadcastSuccessful, isTrue);
+      expect(relay.events.single.sig, event.sig);
+      expect(manager.isBroadcasting(event.id), isFalse);
+    });
+
+    test('takes a relay once sealed only if the publish is not over', () async {
+      final first = await startRelay();
+      final late = await startRelay();
+      final event = signedEvent();
+      final publish = publishes.open(event)..start(event);
+
+      publish.send(first.url);
+      publish.seal();
+      await publish.response.broadcastDoneFuture;
+
+      expect(publish.send(late.url), isFalse);
+      expect(late.received('EVENT'), isEmpty);
+    });
+
+    test('sends to a relay once', () async {
+      final relay = await startRelay();
+      final event = signedEvent();
+      final publish = publishes.open(event)..start(event);
+
+      expect(publish.send(relay.url), isTrue);
+      expect(publish.send('${relay.url}/'), isFalse);
+      publish.seal();
+      await publish.response.broadcastDoneFuture;
+
+      expect(relay.received('EVENT'), hasLength(1));
+    });
+
+    test('cannot be sent before it is started', () {
+      final publish = publishes.open(signedEvent());
+
+      expect(() => publish.send('wss://relay.example'), throwsStateError);
+    });
+
+    test('refuses to start unsigned', () {
+      final unsigned = Nip01Event(
+        pubKey: alice,
+        kind: 1,
+        tags: [],
+        content: '',
+      );
+      final publish = publishes.open(unsigned);
+
+      expect(() => publish.start(unsigned), throwsArgumentError);
+    });
+
+    test('follows the id of an event its signer changed', () async {
+      final relay = await startRelay();
+      final asked = signedEvent(content: 'asked');
+      final signed = signedEvent(content: 'signed');
+      final publish = publishes.open(asked)..start(signed);
+
+      publish.send(relay.url);
+      publish.seal();
+      expect(manager.isBroadcasting(asked.id), isTrue);
+      final responses = await publish.response.broadcastDoneFuture;
+
+      expect(relay.events.single.id, signed.id);
+      expect(responses.single.broadcastSuccessful, isTrue);
+      expect(manager.isBroadcasting(asked.id), isFalse);
+      expect(manager.isBroadcasting(signed.id), isFalse);
+    });
+
+    test('fails with the error it is given', () async {
+      final event = signedEvent();
+      final publish = publishes.open(event);
+
+      publish.fail(StateError('signer refused'));
+
+      await expectLater(
+        publish.response.broadcastDoneFuture,
+        throwsA(isA<StateError>()),
+      );
+      expect(manager.isBroadcasting(event.id), isFalse);
+    });
+  });
 }

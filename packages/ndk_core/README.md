@@ -117,3 +117,13 @@ engine of `ndk`, which now keeps its data on its own.
 relays with `RelayManager.blockedRelays`, ask `RelayManager.isBroadcasting`
 whether an event is still being broadcast, and `RelayReqs.openIds` which REQs
 are open.
+
+`RelayManager.trackBroadcast` and `RelayManager.publishToRelay` are gone, and
+`BroadcastState` is no longer public. `RelayBroadcastResponse` stays at its old
+path. To publish an event that still has to be signed, open it with
+`RelayPublishes.open`: it counts as in flight right away. Then `start` the
+`RelayPublish` with the signed event, `send` it to each relay with an optional
+`veto` and `connectTimeout`, and `seal` it, or `fail` it when signing does.
+`NdkBroadcastResponse.fromState` is gone too: read `RelayPublish.response`.
+`NetworkEngine.handleEventBroadcast` in `ndk` became `routeBroadcast`, which
+gets the signed event and only picks its relays.

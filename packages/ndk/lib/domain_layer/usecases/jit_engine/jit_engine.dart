@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../../entities/contact_list.dart';
 import '../../entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
@@ -12,7 +10,6 @@ import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/relay_set.dart';
 import '../../repositories/cache_manager.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../engines/network_engine.dart';
 import 'relay_jit_broadcast_strategies/relay_jit_broadcast_other_read.dart';
 import 'relay_jit_broadcast_strategies/relay_jit_broadcast_own.dart';
@@ -120,72 +117,33 @@ class JitEngine with Logger implements NetworkEngine {
     );
   }
 
-  /// broadcasts given event using inbox/outbox (gossip) if explicit relays are given they are used instead
-  /// [nostrEvent] event to publish
-  /// [explicitRelays] used instead of gossip if set
-
   @override
-  NdkBroadcastResponse handleEventBroadcast({
-    required Nip01Event nostrEvent,
-    required EventSigner? signer,
-    required BroadcastState broadcastState,
-  }) {
-    Future<void> asyncStuff() async {
-      await relayManagerLight.seedRelaysConnected;
+  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) async {
+    await relayManagerLight.seedRelaysConnected;
 
-      final Nip01Event workingNostrEvent;
-      try {
-        if (signer != null) {
-          workingNostrEvent = await signer.sign(nostrEvent);
-        } else {
-          workingNostrEvent = nostrEvent;
-        }
-      } catch (e, stackTrace) {
-        broadcastState.addError(e, stackTrace);
-        return;
-      }
-      broadcastState.startTimeout();
+    final ownRelays = cleanRelayUrls(
+      await RelayJitBroadcastOutboxStrategy.relays(
+        eventToPublish: event,
+        cacheManager: cache,
+        bootstrapRelays: bootstrapRelays,
+      ),
+    ).toSet();
 
-      final ownRelays = cleanRelayUrls(
-        await RelayJitBroadcastOutboxStrategy.relays(
-          eventToPublish: workingNostrEvent,
-          cacheManager: cache,
-          bootstrapRelays: bootstrapRelays,
-        ),
-      ).toSet();
+    // check if we need to publish to others inboxes
+    final inboxRelays =
+        event.pTags.isNotEmpty && event.kind != ContactList.kKind
+        ? cleanRelayUrls(
+            await RelayJitBroadcastOtherReadStrategy.relays(
+              cacheManager: cache,
+              pubkeysOfInbox: event.pTags,
+            ),
+          ).toSet()
+        : <String>{};
 
-      // check if we need to publish to others inboxes
-      final inboxRelays =
-          workingNostrEvent.pTags.isNotEmpty &&
-              workingNostrEvent.kind != ContactList.kKind
-          ? cleanRelayUrls(
-              await RelayJitBroadcastOtherReadStrategy.relays(
-                cacheManager: cache,
-                pubkeysOfInbox: workingNostrEvent.pTags,
-              ),
-            ).toSet()
-          : <String>{};
-
-      // a relay in the outbox and an inbox gets the event once
-      await Future.wait([
-        for (final url in ownRelays)
-          relayManagerLight.publishToRelay(
-            broadcastState,
-            url,
-            workingNostrEvent,
-          ),
-        for (final url in inboxRelays.difference(ownRelays))
-          relayManagerLight.publishToRelay(
-            broadcastState,
-            url,
-            workingNostrEvent,
-          ),
-      ]);
-      broadcastState.closeIfNoRelays();
+    // a relay in the outbox and an inbox gets the event once
+    for (final url in {...ownRelays, ...inboxRelays}) {
+      send(url);
     }
-
-    asyncStuff();
-    return NdkBroadcastResponse.fromState(nostrEvent, broadcastState);
   }
 
   /// checks if relay covers given pubkey in given direction

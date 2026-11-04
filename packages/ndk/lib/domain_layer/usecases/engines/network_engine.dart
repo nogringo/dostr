@@ -1,12 +1,19 @@
-import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../entities/relay_set.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 
 /// Hands [filters] to [relayUrl] in a single REQ.
 typedef RelaySend = void Function(String relayUrl, List<Filter> filters);
+
+/// Hands the event being broadcast to [relayUrl]. [connectTimeout] bounds the
+/// connecting, in seconds, and [veto] can still call the send off once the
+/// relay is connected.
+typedef RelayPublishSend =
+    void Function(
+      String relayUrl, {
+      int connectTimeout,
+      Future<String?> Function()? veto,
+    });
 
 abstract class NetworkEngine {
   /// Picks the relays [filters] go to and hands each of them to [send], at
@@ -23,11 +30,10 @@ abstract class NetworkEngine {
     required int desiredCoverage,
   });
 
-  /// Signs [nostrEvent] with [signer] when given, then publishes it to the
-  /// author's outbox relays and the inboxes it mentions.
-  NdkBroadcastResponse handleEventBroadcast({
-    required Nip01Event nostrEvent,
-    required EventSigner? signer,
-    required BroadcastState broadcastState,
-  });
+  /// Picks the relays [event], already signed, is broadcast to: the author's
+  /// outbox relays and the inboxes it mentions. Hands each of them to [send].
+  ///
+  /// The broadcast may end once the returned future completes and the relays
+  /// handed over answered.
+  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send);
 }

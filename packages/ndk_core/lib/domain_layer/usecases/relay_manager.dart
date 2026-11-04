@@ -4,6 +4,7 @@ import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
 
+import '../../config/broadcast_defaults.dart';
 import '../../config/relay_defaults.dart';
 import '../../config/request_defaults.dart';
 import '../../shared/decode_nostr_msg/decode_nostr_msg.dart';
@@ -12,10 +13,12 @@ import '../../shared/isolates/isolate_manager.dart';
 import '../../shared/logger/logger.dart';
 import '../../shared/nips/nip01/client_msg.dart';
 import '../../shared/nips/nip01/helpers.dart';
+import '../../src/broadcast_state.dart';
 import '../../src/global_state.dart';
 import '../../src/request_state.dart';
 import '../entities/account.dart';
 import '../entities/auth_handler.dart';
+import '../entities/broadcast_response.dart';
 import '../entities/broadcast_state.dart';
 import '../entities/filter.dart';
 import '../entities/nip_01_event.dart';
@@ -34,6 +37,7 @@ import 'requests/verified_event_cache.dart';
 import 'requests/verify_event_stream.dart';
 
 part 'nip42/auth_session.dart';
+part 'relay_reqs/relay_publish.dart';
 part 'relay_reqs/relay_reqs.dart';
 
 ///  relay manager, responsible for lifecycle of relays, sending messages, \
@@ -701,15 +705,15 @@ class RelayManager {
     );
   }
 
-  /// Tracks [state] as a broadcast of [event] until it is done, so the OK of
+  /// Tracks [state] as a broadcast of [eventId] until it is done, so the OK of
   /// the relays reach it.
-  void trackBroadcast(Nip01Event event, BroadcastState state) {
-    _globalState.inFlightBroadcasts.putIfAbsent(event.id, () => []).add(state);
+  void _trackBroadcast(String eventId, BroadcastState state) {
+    _globalState.inFlightBroadcasts.putIfAbsent(eventId, () => []).add(state);
     void untrack() {
-      final states = _globalState.inFlightBroadcasts[event.id];
+      final states = _globalState.inFlightBroadcasts[eventId];
       if (states == null) return;
       states.remove(state);
-      if (states.isEmpty) _globalState.inFlightBroadcasts.remove(event.id);
+      if (states.isEmpty) _globalState.inFlightBroadcasts.remove(eventId);
     }
 
     state.publishDoneFuture.then(
@@ -724,7 +728,7 @@ class RelayManager {
   ///
   /// [veto] is asked once the connection is up: a reason it gives not to send
   /// after all fails the relay with that reason.
-  Future<void> publishToRelay(
+  Future<void> _publishToRelay(
     BroadcastState state,
     String url,
     Nip01Event event, {
