@@ -102,7 +102,7 @@ void main() {
 
     test('reports a blocked relay as notSent', () async {
       const blocked = 'wss://blocked.example';
-      manager.globalState.blockedRelays.add(blocked);
+      manager.blockedRelays.add(blocked);
 
       final req = reqs.req(relays: {blocked: notes});
 
@@ -194,7 +194,7 @@ void main() {
 
       await req.done;
       await eventually(() => !subscribed(relay, req));
-      expect(manager.globalState.inFlightRequests, isEmpty);
+      expect(reqs.openIds, isEmpty);
     });
 
     test('is sent again once the relay drops the connection', () async {

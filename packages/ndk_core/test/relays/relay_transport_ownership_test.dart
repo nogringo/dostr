@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_core/src/global_state.dart';
+import 'package:ndk_core/src/request_state.dart';
 import 'package:test/test.dart';
 
 class _Transport implements NostrTransport {
@@ -84,13 +86,9 @@ void main() {
       .length;
   int allReplays() => factory.created.map(replays).fold(0, (a, b) => a + b);
   setUp(() {
-    state = GlobalState();
     factory = _Factory();
-    manager = RelayManager(
-      globalState: state,
-      nostrTransportFactory: factory,
-      bootstrapRelays: [],
-    );
+    manager = RelayManager(nostrTransportFactory: factory, bootstrapRelays: []);
+    state = relayManagerState(manager);
     subscription = RequestState.subscription('live')
       ..addRequest(key, [
         Filter(kinds: [1]),

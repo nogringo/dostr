@@ -573,7 +573,7 @@ void nip42Tests(NdkEngine engine) {
         );
         expect(await response.future, isNotEmpty);
 
-        final keysForRelay = ndk.relays.globalState.relays.keys
+        final keysForRelay = ndk.relays.connectivities.keys
             .where((key) => key.url == relay1.url)
             .toList();
 
@@ -632,7 +632,7 @@ void nip42Tests(NdkEngine engine) {
           .future;
 
       expect(
-        ndk.relays.globalState.relays.keys.where((key) => !key.isAnonymous),
+        ndk.relays.connectivities.keys.where((key) => !key.isAnonymous),
         isNotEmpty,
         reason: 'the query must have opened an authenticated connection',
       );
@@ -640,7 +640,7 @@ void nip42Tests(NdkEngine engine) {
       await ndk.relays.closeAllTransports();
 
       expect(
-        ndk.relays.globalState.relays,
+        ndk.relays.connectivities,
         isEmpty,
         reason: 'an authenticated connection must not survive the close',
       );
@@ -713,7 +713,7 @@ void nip42Tests(NdkEngine engine) {
       expect(await response.future, isEmpty);
       expect(relay1.receivedAuths, 0);
       expect(
-        ndk.relays.globalState.relays.keys.where((key) => !key.isAnonymous),
+        ndk.relays.connectivities.keys.where((key) => !key.isAnonymous),
         isEmpty,
         reason: 'never must not open a connection bound to any identity',
       );
@@ -751,7 +751,7 @@ void nip42Tests(NdkEngine engine) {
       expect(await response.future, isNotEmpty);
       expect(relay1.connectionsAuthenticatedAs(key1.publicKey), 1);
       expect(
-        ndk.relays.globalState.relays.keys.where((key) => key.isAnonymous),
+        ndk.relays.connectivities.keys.where((key) => key.isAnonymous),
         hasLength(1),
         reason: 'allow starts anonymous and leaves that connection anonymous',
       );
@@ -925,7 +925,7 @@ void nip42Tests(NdkEngine engine) {
 
       expect(await response.future, isNotEmpty);
       expect(
-        ndk.relays.globalState.relays.keys.map((key) => key.pubkey),
+        ndk.relays.connectivities.keys.map((key) => key.pubkey),
         contains(key1.publicKey),
         reason: 'the request must open the connection bound to its account',
       );
@@ -1082,7 +1082,7 @@ void nip42Tests(NdkEngine engine) {
         await Future.delayed(Duration(seconds: 1));
 
         expect(
-          ndk.relays.globalState.inFlightRequests.keys,
+          ndk.relayReqs.openIds,
           isNot(contains(subId)),
           reason: 'a closed subscription must not come back in flight',
         );

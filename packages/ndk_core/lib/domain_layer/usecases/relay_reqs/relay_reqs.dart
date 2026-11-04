@@ -20,6 +20,10 @@ class RelayReqs {
   /// Forgets which signatures were already checked.
   void clearVerifiedEventCache() => _verifiedEventCache.clear();
 
+  /// The ids of the REQs open on this manager, whatever [RelayReqs] opened
+  /// them.
+  List<String> get openIds => _relayManager._openReqs.keys.toList();
+
   /// Closes the REQ open under [id] on this manager, whatever [RelayReqs]
   /// opened it, like [RelayReq.close]. Says whether there was one.
   Future<bool> close(String id) async {
@@ -58,7 +62,7 @@ class RelayReqs {
     if (reqId.isEmpty || reqId.length > 64) {
       throw ArgumentError.value(id, 'id', 'must be 1 to 64 characters long');
     }
-    if (_relayManager.globalState.inFlightRequests.containsKey(reqId)) {
+    if (_relayManager._globalState.inFlightRequests.containsKey(reqId)) {
       throw StateError('a request with id $reqId is already in flight');
     }
 
@@ -108,14 +112,14 @@ class RelayReq {
     required EventVerifier eventVerifier,
     required VerifiedEventMemCache verifiedEventCache,
   }) : _relayManager = relayManager {
-    final inFlight = relayManager.globalState.inFlightRequests;
+    final inFlight = relayManager._globalState.inFlightRequests;
     final open = relayManager._openReqs;
     _state.onTimeout = (_) => close();
     // released by seal: until then, more relays may come
     relayManager._beginPendingConnection(_state);
     inFlight[id] = _state;
     open[id] = this;
-    _done = _state.controller.done.then((_) => _state.relayOutcomes);
+    _done = _state.ended.then((_) => _state.relayOutcomes);
 
     VerifyEventStream(
       unverifiedStreamInput: _state.networkController.stream,
@@ -127,7 +131,7 @@ class RelayReq {
       },
       onDone: () {
         unawaited(_events.close());
-        unawaited(_state.controller.close());
+        _state.end();
         if (identical(inFlight[id], _state)) inFlight.remove(id);
         if (identical(open[id], this)) open.remove(id);
       },

@@ -57,7 +57,7 @@ void main() {
       await Future.delayed(Duration(seconds: 3));
 
       expect(
-        ndk.relays.globalState.inFlightRequests.keys,
+        ndk.relayReqs.openIds,
         isNot(contains(response.requestId)),
         reason: 'a request that already ended must not come back in flight',
       );

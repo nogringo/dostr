@@ -76,8 +76,7 @@ void authHandlerTests(NdkEngine engine) {
 
     Iterable<RelayConnectionKey> boundKeys(Ndk ndk, String url) => ndk
         .relays
-        .globalState
-        .relays
+        .connectivities
         .keys
         .where((k) => !k.isAnonymous && k.url == url);
 

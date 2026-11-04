@@ -124,14 +124,14 @@ void main() async {
 
       final t1 = DateTime.now();
 
-      for (final relay in ndk.relays.globalState.relays.values) {
+      for (final relay in ndk.relays.connectivities.values) {
         log(
           "Relay: ${relay.url} - ${relay.jitEngineData.assignedPubkeys.length} pubkeys",
         );
       }
 
       log(
-        "BEST ${ndk.relays.globalState.relays.length} RELAYS (min $relayMinCountPerPubKey per pubKey):",
+        "BEST ${ndk.relays.connectivities.length} RELAYS (min $relayMinCountPerPubKey per pubKey):",
       );
       log(
         "CONTACTS ${myContactList.contacts.length} WITH  ${nip65events.length} nip65 events",

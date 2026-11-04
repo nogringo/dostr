@@ -3,7 +3,6 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/usecases/cache_read/cache_read.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/presentation_layer/init.dart';
@@ -88,7 +87,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+      expect(ndk.relayReqs.openIds.isEmpty, true);
       await relay1.stopServer();
     });
 
@@ -122,7 +121,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+      expect(ndk.relayReqs.openIds.isEmpty, true);
       await relay1.stopServer();
     });
 
@@ -165,7 +164,7 @@ void main() async {
         expect(sources.length, equals(2));
 
         await ndk.destroy();
-        expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+        expect(ndk.relayReqs.openIds.isEmpty, true);
         await relay1.stopServer();
         await relay2.stopServer();
       },
@@ -203,7 +202,7 @@ void main() async {
       // }
 
       await ndk.destroy();
-      expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+      expect(ndk.relayReqs.openIds.isEmpty, true);
       await relay1.stopServer();
     });
     test('Request multiple filters text note JIT', skip: true, () async {
@@ -238,7 +237,7 @@ void main() async {
       // }
 
       await ndk.destroy();
-      expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+      expect(ndk.relayReqs.openIds.isEmpty, true);
       await relay1.stopServer();
     });
 
@@ -280,7 +279,7 @@ void main() async {
         await streamSubscription.cancel();
         await ndk.requests.closeSubscription(subscription.requestId);
         await ndk.destroy();
-        expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+        expect(ndk.relayReqs.openIds.isEmpty, true);
         await relay1.stopServer();
       }
     });
@@ -332,7 +331,7 @@ void main() async {
           await streamSubscription.cancel();
           await ndk.requests.closeSubscription(subscription.requestId);
           await ndk.destroy();
-          expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+          expect(ndk.relayReqs.openIds.isEmpty, true);
           await relay1.stopServer();
         }
       },
@@ -409,7 +408,7 @@ void main() async {
           await streamSubscription.cancel();
           await ndk.requests.closeSubscription(subscription.requestId);
           await ndk.destroy();
-          expect(ndk.relays.globalState.inFlightRequests.isEmpty, true);
+          expect(ndk.relayReqs.openIds.isEmpty, true);
           await relay1.stopServer();
         }
       },
@@ -420,9 +419,7 @@ void main() async {
     test('Filters are cloned and immutable in query method', () {
       final cache = MemCacheManager();
       final eventVerifier = MockEventVerifier();
-      final globalState = GlobalState();
       final init = Initialization(
-        globalState: globalState,
         ndkConfig: NdkConfig(eventVerifier: eventVerifier, cache: cache),
       );
 

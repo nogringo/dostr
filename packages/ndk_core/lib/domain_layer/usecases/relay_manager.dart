@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
@@ -11,11 +12,12 @@ import '../../shared/isolates/isolate_manager.dart';
 import '../../shared/logger/logger.dart';
 import '../../shared/nips/nip01/client_msg.dart';
 import '../../shared/nips/nip01/helpers.dart';
+import '../../src/global_state.dart';
+import '../../src/request_state.dart';
 import '../entities/account.dart';
 import '../entities/auth_handler.dart';
 import '../entities/broadcast_state.dart';
 import '../entities/filter.dart';
-import '../entities/global_state.dart';
 import '../entities/nip_01_event.dart';
 import '../entities/nostr_message_raw.dart';
 import '../entities/relay.dart';
@@ -24,7 +26,6 @@ import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_protocol_handler.dart';
 import '../entities/relay_request_outcome.dart';
-import '../entities/request_state.dart';
 import '../repositories/auth_accounts.dart';
 import '../repositories/event_verifier.dart';
 import '../repositories/nostr_transport.dart';
@@ -43,8 +44,7 @@ class RelayManager {
   /// completes when all seed relays are connected
   Future<void> get seedRelaysConnected => _seedRelaysCompleter.future;
 
-  /// global state obj
-  GlobalState globalState;
+  final GlobalState _globalState = GlobalState();
 
   /// signer for nip-42 AUTH challenges from relays
   final AuthAccounts? _accounts;
@@ -115,9 +115,19 @@ class RelayManager {
   Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
       _relayUpdatesStreamController.stream;
 
+  /// Every connection this manager holds, connected or not, by key.
+  Map<RelayConnectionKey, RelayConnectivity> get connectivities =>
+      UnmodifiableMapView(_globalState.relays);
+
+  /// Clean urls of the relays this manager does not connect to.
+  Set<String> get blockedRelays => _globalState.blockedRelays;
+
+  /// Whether a broadcast of [eventId] is still waiting on its relays.
+  bool isBroadcasting(String eventId) =>
+      _globalState.inFlightBroadcasts.containsKey(eventId);
+
   /// Creates a new relay manager.
   RelayManager({
-    required this.globalState,
     required this.nostrTransportFactory,
     AuthAccounts? accounts,
     List<String> bootstrapRelays = const [],
@@ -126,6 +136,7 @@ class RelayManager {
     this.authChallengeTimeout = RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     this.authHandler,
   }) : _accounts = accounts {
+    bindRelayManagerState(this, _globalState);
     allowReconnectRelays = allowReconnect;
     _connectSeedRelays(bootstrapRelays);
   }
@@ -142,7 +153,7 @@ class RelayManager {
   }
 
   void _updateRelayConnectivity() {
-    _relayUpdatesStreamController.add(globalState.relays.values.toList());
+    _relayUpdatesStreamController.add(_globalState.relays.values.toList());
   }
 
   /// Connects to the bootstrap relays, if any.
@@ -158,7 +169,7 @@ class RelayManager {
 
   /// Returns a list of fully connected relays, excluding connecting ones.
   /// DO NOT USE THIS FOR CHECKING A SINGLE RELAY, use [isRelayConnected] INSTEAD
-  List<RelayConnectivity> get connectedRelays => globalState.relays.values
+  List<RelayConnectivity> get connectedRelays => _globalState.relays.values
       .where((connectivity) => connectivity.isConnected)
       .toList();
 
@@ -168,7 +179,7 @@ class RelayManager {
   /// relay would duplicate the request, and sending on a bound one would make
   /// it attributable. An identity is added later, by the re-route, and only on
   /// the relays that ask for one.
-  List<RelayConnectivity> get connectedAnonymousRelays => globalState
+  List<RelayConnectivity> get connectedAnonymousRelays => _globalState
       .relays
       .values
       .where((connectivity) => connectivity.key.isAnonymous)
@@ -185,11 +196,11 @@ class RelayManager {
 
   /// checks if the connection identified by [key] is open
   bool isConnectionOpen(RelayConnectionKey key) =>
-      globalState.relays[key]?.relayTransport?.isOpen() ?? false;
+      _globalState.relays[key]?.relayTransport?.isOpen() ?? false;
 
   /// checks if the connection identified by [key] is connecting
   bool isConnectionConnecting(RelayConnectionKey key) {
-    final relay = globalState.relays[key]?.relay;
+    final relay = _globalState.relays[key]?.relay;
     return relay != null && relay.connecting;
   }
 
@@ -235,7 +246,7 @@ class RelayManager {
       _updateRelayConnectivity();
       return (connected: false, error: "unclean url");
     }
-    if (globalState.blockedRelays.contains(url)) {
+    if (_globalState.blockedRelays.contains(url)) {
       _updateRelayConnectivity();
       return (connected: false, error: "relay is blocked");
     }
@@ -262,13 +273,13 @@ class RelayManager {
       _updateRelayConnectivity();
       return (connected: false, error: "relay is still connecting");
     }
-    RelayConnectivity? relayConnectivity = globalState.relays[connectionKey];
+    RelayConnectivity? relayConnectivity = _globalState.relays[connectionKey];
     final connectCompleter = Completer<({bool connected, String error})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
     bool ownsTransport() =>
         transport != null &&
-        identical(globalState.relays[connectionKey], relayConnectivity) &&
+        identical(_globalState.relays[connectionKey], relayConnectivity) &&
         identical(relayConnectivity?.relayTransport, transport);
     // the transport retries a failed connect on its own and only reports why
     // through onDisconnect, so this is what tells a refusal from a timeout
@@ -281,7 +292,7 @@ class RelayManager {
           key: connectionKey,
           relay: Relay(url: url),
         );
-        globalState.relays[connectionKey] = relayConnectivity;
+        _globalState.relays[connectionKey] = relayConnectivity;
       }
 
       relayConnectivity.relay.tryingToConnect();
@@ -294,7 +305,7 @@ class RelayManager {
       // A disconnected transport may still own reconnect timers and listeners.
       // Retire it before replacement or it can later open an untracked socket.
       await relayConnectivity.close();
-      if (!identical(globalState.relays[connectionKey], relayConnectivity)) {
+      if (!identical(_globalState.relays[connectionKey], relayConnectivity)) {
         throw StateError(
           'Connection was removed while replacing its transport',
         );
@@ -407,7 +418,7 @@ class RelayManager {
       return connected;
     }
 
-    RelayConnectivity? relayConnectivity = globalState.relays[key];
+    RelayConnectivity? relayConnectivity = _globalState.relays[key];
     if (relayConnectivity != null && relayConnectivity.relayTransport != null) {
       try {
         final opened = await _waitForTransportOpen(
@@ -449,7 +460,7 @@ class RelayManager {
         // could not connect
         return false;
       }
-      relayConnectivity = globalState.relays[key];
+      relayConnectivity = _globalState.relays[key];
       if (relayConnectivity == null ||
           relayConnectivity.relayTransport == null ||
           !relayConnectivity.relayTransport!.isOpen()) {
@@ -469,7 +480,7 @@ class RelayManager {
   /// Closes and clears only transport-scoped state of one connection, while
   /// keeping its entry and relay-scoped metadata in memory.
   Future<void> resetConnection(RelayConnectionKey key) async {
-    final connectivity = globalState.relays[key];
+    final connectivity = _globalState.relays[key];
     if (connectivity != null) {
       Logger.log.d(() => "Resetting transport for $key...");
       connectivity.relay.failedToConnect();
@@ -483,7 +494,9 @@ class RelayManager {
   /// every connection currently held towards [url]
   List<RelayConnectionKey> _connectionKeysForRelay(String url) {
     final relayUrl = RelayConnectionKey.anonymous(url).url;
-    return globalState.relays.keys.where((key) => key.url == relayUrl).toList();
+    return _globalState.relays.keys
+        .where((key) => key.url == relayUrl)
+        .toList();
   }
 
   /// Reconnects all given relays
@@ -505,7 +518,7 @@ class RelayManager {
   /// failed to, and replays the requests it was carrying. Call this when the
   /// app learns that the network is back.
   Future<void> reconnectClosedConnections() async {
-    for (final connectivity in globalState.relays.values.toList()) {
+    for (final connectivity in _globalState.relays.values.toList()) {
       if (connectivity.isConnected) continue;
       final connected = await reconnectConnection(
         connectivity.key,
@@ -524,7 +537,7 @@ class RelayManager {
       return;
     }
 
-    globalState.inFlightRequests.forEach((key, state) {
+    _globalState.inFlightRequests.forEach((key, state) {
       state.requests.values
           // by connection, not by relay: replaying a bound request on the
           // anonymous socket gets it refused, and replaying an anonymous one on
@@ -626,7 +639,7 @@ class RelayManager {
 
   /// Waits until a REQ with [id] is sent on a connected relay.
   Future<void> waitForRequestSent(String id, Duration timeout) async {
-    if (globalState.relays.values.any(
+    if (_globalState.relays.values.any(
       (relay) => relay.isConnected && relay.stats.openRequestIds.contains(id),
     )) {
       return;
@@ -712,12 +725,12 @@ class RelayManager {
   /// Tracks [state] as a broadcast of [event] until it is done, so the OK of
   /// the relays reach it.
   void trackBroadcast(Nip01Event event, BroadcastState state) {
-    globalState.inFlightBroadcasts.putIfAbsent(event.id, () => []).add(state);
+    _globalState.inFlightBroadcasts.putIfAbsent(event.id, () => []).add(state);
     void untrack() {
-      final states = globalState.inFlightBroadcasts[event.id];
+      final states = _globalState.inFlightBroadcasts[event.id];
       if (states == null) return;
       states.remove(state);
-      if (states.isEmpty) globalState.inFlightBroadcasts.remove(event.id);
+      if (states.isEmpty) _globalState.inFlightBroadcasts.remove(event.id);
     }
 
     state.publishDoneFuture.then(
@@ -781,7 +794,7 @@ class RelayManager {
     relayConnectivity.listen(
       (message) {
         if (!identical(
-              globalState.relays[relayConnectivity.key],
+              _globalState.relays[relayConnectivity.key],
               relayConnectivity,
             ) ||
             !identical(relayConnectivity.relayTransport, transport)) {
@@ -791,7 +804,7 @@ class RelayManager {
       },
       onError: (error) {
         if (!identical(
-              globalState.relays[relayConnectivity.key],
+              _globalState.relays[relayConnectivity.key],
               relayConnectivity,
             ) ||
             !identical(relayConnectivity.relayTransport, transport)) {
@@ -822,7 +835,7 @@ class RelayManager {
     NostrTransport? transport,
   ) async {
     if (!identical(
-          globalState.relays[relayConnectivity.key],
+          _globalState.relays[relayConnectivity.key],
           relayConnectivity,
         ) ||
         !identical(relayConnectivity.relayTransport, transport)) {
@@ -837,7 +850,7 @@ class RelayManager {
     // Closing can yield while a new owner or transport takes over. Its AUTH
     // and subscriptions belong to the replacement, not this retired socket.
     if (!identical(
-          globalState.relays[relayConnectivity.key],
+          _globalState.relays[relayConnectivity.key],
           relayConnectivity,
         ) ||
         relayConnectivity.relayTransport != null) {
@@ -850,7 +863,7 @@ class RelayManager {
     // condition is that the relay is still tracked: deliberate closes cancel
     // the stream subscription first and never reach this handler.
     if (allowReconnectRelays &&
-        globalState.relays[relayConnectivity.key] != null) {
+        _globalState.relays[relayConnectivity.key] != null) {
       Logger.log.i(() => "closed ${relayConnectivity.url}. Reconnecting");
       reconnectConnection(relayConnectivity.key).then((connected) {
         _updateRelayConnectivity();
@@ -872,7 +885,7 @@ class RelayManager {
   /// A request the replacement socket took back has stopped retrying by now, so
   /// what is left here is what nothing will send again.
   void _endAuthRetriesLeftBehind(RelayConnectionKey key) {
-    for (final state in globalState.inFlightRequests.values.toList()) {
+    for (final state in _globalState.inFlightRequests.values.toList()) {
       final request = state.requests[key];
       if (request == null || !request.retryingAuth) {
         continue;
@@ -886,7 +899,7 @@ class RelayManager {
   /// connection back. They are reported as disconnected right away instead of
   /// waiting for a completion event no relay will send, or for the timeout.
   void _endRequestsLeftBehind(RelayConnectionKey key) {
-    for (final state in globalState.inFlightRequests.values.toList()) {
+    for (final state in _globalState.inFlightRequests.values.toList()) {
       final request = state.requests[key];
       if (request == null ||
           request.retryingAuth ||
@@ -1063,7 +1076,7 @@ class RelayManager {
       return null;
     }
     final key = RelayConnectionKey.authenticated(url, account.pubkey);
-    if (globalState.relays[key] == null &&
+    if (_globalState.relays[key] == null &&
         !await _consent(key, pausing: pausing)) {
       Logger.log.d(() => "Not allowed to open $key");
       return null;
@@ -1071,7 +1084,7 @@ class RelayManager {
     _boundAccounts[key] = account;
 
     if (isConnectionOpen(key)) {
-      return globalState.relays[key];
+      return _globalState.relays[key];
     }
 
     final result = await connectRelay(
@@ -1079,7 +1092,7 @@ class RelayManager {
       authPubkey: account.pubkey,
       connectTimeout: connectTimeout,
     );
-    final connectivity = globalState.relays[key];
+    final connectivity = _globalState.relays[key];
     if (!result.connected || connectivity == null) {
       Logger.log.w(() => "Could not open $key: ${result.error}");
       return null;
@@ -1271,7 +1284,7 @@ class RelayManager {
   Future<bool> _sendAuth(RelayConnectionKey key, int generation) async {
     bool transportGone() => _generationOf(key) != generation;
 
-    final connectivity = globalState.relays[key];
+    final connectivity = _globalState.relays[key];
     final account = _accountFor(key);
     if (connectivity == null) {
       return false;
@@ -1350,17 +1363,17 @@ class RelayManager {
     final requestId = nostrMsgRaw.requestId!;
     final event = nostrMsgRaw.nip01Event!;
 
-    if (globalState.inFlightRequests[requestId] == null) {
+    if (_globalState.inFlightRequests[requestId] == null) {
       Logger.log.w(
         () =>
-            "RECEIVED EVENT from ${connectivity.url} for id $requestId, not in globalState inFlightRequests. Likely data after EOSE on a query",
+            "RECEIVED EVENT from ${connectivity.url} for id $requestId, not in flight. Likely data after EOSE on a query",
       );
       return;
     }
 
     connectivity.stats.incStatsByNewEvent(event, messageSize);
 
-    RequestState? state = globalState.inFlightRequests[requestId];
+    RequestState? state = _globalState.inFlightRequests[requestId];
     if (state != null) {
       RelayRequestState? request = state.requests[connectivity.key];
       if (request == null) {
@@ -1389,7 +1402,7 @@ class RelayManager {
     RelayConnectivity relayConnectivity,
   ) {
     String id = eventJson[1];
-    RequestState? state = globalState.inFlightRequests[id];
+    RequestState? state = _globalState.inFlightRequests[id];
     if (state != null && state.closeOnEose) {
       Logger.log.t(
         () =>
@@ -1429,7 +1442,7 @@ class RelayManager {
       return;
     }
 
-    RequestState? state = globalState.inFlightRequests[id];
+    RequestState? state = _globalState.inFlightRequests[id];
     if (state != null) {
       Logger.log.t(
         () =>
@@ -1479,7 +1492,7 @@ class RelayManager {
   /// closed while an authentication or a connection was pending must not be
   /// sent afterwards: nothing tracks it anymore, so nothing would ever CLOSE it.
   bool _isStillInFlight(RequestState state) =>
-      identical(globalState.inFlightRequests[state.id], state);
+      identical(_globalState.inFlightRequests[state.id], state);
 
   /// Announces a send path that has yet to work out which connection to use,
   /// so a relay answering meanwhile does not look like the only one this
@@ -1570,7 +1583,7 @@ class RelayManager {
     RequestState state,
     RelayRequestState request,
   ) async {
-    if (globalState.blockedRelays.contains(request.url)) {
+    if (_globalState.blockedRelays.contains(request.url)) {
       Logger.log.w(
         () => "COULD NOT SEND REQUEST TO ${request.url} since relay is blocked",
       );
@@ -1596,7 +1609,7 @@ class RelayManager {
       );
       return "could not connect";
     }
-    final relay = globalState.relays[request.key];
+    final relay = _globalState.relays[request.key];
     if (relay == null) {
       Logger.log.w(
         () =>
@@ -1634,8 +1647,8 @@ class RelayManager {
     }
 
     await state.close();
-    if (identical(globalState.inFlightRequests[state.id], state)) {
-      globalState.inFlightRequests.remove(state.id);
+    if (identical(_globalState.inFlightRequests[state.id], state)) {
+      _globalState.inFlightRequests.remove(state.id);
     }
     if (identical(_openReqs[state.id]?._state, state)) {
       _openReqs.remove(state.id);
@@ -1652,7 +1665,7 @@ class RelayManager {
     RelayConnectivity relayConnectivity,
     String message,
   ) {
-    final state = globalState.inFlightRequests[reqId];
+    final state = _globalState.inFlightRequests[reqId];
     if (state == null) {
       Logger.log.w(
         () => "Received CLOSED auth-required for unknown request $reqId",
@@ -1830,7 +1843,7 @@ class RelayManager {
   /// In-flight broadcasts of [eventId] sent to [relayUrl] that have no answer
   /// from it yet.
   List<BroadcastState> _broadcastsWaitingOn(String eventId, String relayUrl) {
-    final states = globalState.inFlightBroadcasts[eventId] ?? const [];
+    final states = _globalState.inFlightBroadcasts[eventId] ?? const [];
     return states
         .where(
           (state) =>
@@ -1994,7 +2007,7 @@ class RelayManager {
 
   /// sends a close message on the connection the subscription was sent on
   void _sendCloseToConnection(RelayConnectionKey key, String id) {
-    RelayConnectivity? connectivity = globalState.relays[key];
+    RelayConnectivity? connectivity = _globalState.relays[key];
     if (connectivity != null) {
       _sendCloseToRelay(connectivity, id);
     }
@@ -2014,7 +2027,7 @@ class RelayManager {
   void _logActiveRequests() {
     // Map<int?, int> kindsMap = {};
     Map<String?, int> namesMap = {};
-    globalState.inFlightRequests.forEach((key, state) {
+    _globalState.inFlightRequests.forEach((key, state) {
       // int? kind;
       // if (state.requests.isNotEmpty &&
       //     state.requests.values.first.filters.first.kinds != null &&
@@ -2032,7 +2045,7 @@ class RelayManager {
     });
     Logger.log.d(
       () =>
-          "------------ IN FLIGHT REQUESTS: ${globalState.inFlightRequests.length} || $namesMap",
+          "------------ IN FLIGHT REQUESTS: ${_globalState.inFlightRequests.length} || $namesMap",
     );
   }
 
@@ -2055,7 +2068,7 @@ class RelayManager {
   Future<void> closeIdleConnections() async {
     var changed = false;
     try {
-      for (final key in globalState.relays.keys.toList()) {
+      for (final key in _globalState.relays.keys.toList()) {
         // Re-evaluate after each asynchronous close. Another operation may
         // have claimed the next connection while the previous one was closing.
         if (_hasUnassignedConnectionWork()) break;
@@ -2069,13 +2082,13 @@ class RelayManager {
   }
 
   bool _hasUnassignedConnectionWork() {
-    for (final state in globalState.inFlightRequests.values) {
+    for (final state in _globalState.inFlightRequests.values) {
       if (!state.networkController.isClosed &&
           (state.pendingConnections > 0 || state.requests.isEmpty)) {
         return true;
       }
     }
-    return globalState.inFlightBroadcasts.values
+    return _globalState.inFlightBroadcasts.values
         .expand((states) => states)
         .any(
           (state) =>
@@ -2084,7 +2097,7 @@ class RelayManager {
   }
 
   bool _connectionHasWork(RelayConnectionKey key) {
-    final connectivity = globalState.relays[key];
+    final connectivity = _globalState.relays[key];
     if (connectivity == null) return true;
     if (_connectReadyCompleters.containsKey(key) ||
         connectivity.relay.connecting ||
@@ -2094,7 +2107,7 @@ class RelayManager {
         _pendingAuths.values.any((auth) => auth.key == key)) {
       return true;
     }
-    for (final state in globalState.inFlightRequests.values) {
+    for (final state in _globalState.inFlightRequests.values) {
       if (state.networkController.isClosed) continue;
       final request = state.requests[key];
       if (request != null &&
@@ -2104,7 +2117,7 @@ class RelayManager {
         return true;
       }
     }
-    for (final state in globalState.inFlightBroadcasts.values.expand(
+    for (final state in _globalState.inFlightBroadcasts.values.expand(
       (states) => states,
     )) {
       if (state.networkController.isClosed) continue;
@@ -2119,7 +2132,7 @@ class RelayManager {
   /// a reset or to a failed connection attempt, is forgotten just the same:
   /// leaving it behind keeps its auth state alive and makes it reconnect.
   Future<void> closeConnection(RelayConnectionKey key) async {
-    final connectivity = globalState.relays.remove(key);
+    final connectivity = _globalState.relays.remove(key);
     if (connectivity == null) {
       return;
     }
@@ -2132,7 +2145,7 @@ class RelayManager {
 
   /// Closes all transports
   Future<void> closeAllTransports() async {
-    final keys = globalState.relays.keys.toList();
+    final keys = _globalState.relays.keys.toList();
     try {
       await Future.wait(keys.map(closeConnection));
     } catch (e) {
@@ -2142,12 +2155,12 @@ class RelayManager {
 
   /// return [RelayConnectivity] by url
   RelayConnectivity? getRelayConnectivity(String url) {
-    return globalState.relays[RelayConnectionKey.anonymous(url)];
+    return _globalState.relays[RelayConnectionKey.anonymous(url)];
   }
 
   /// return [RelayConnectivity] of one connection, anonymous or bound
   RelayConnectivity? getConnectivity(RelayConnectionKey key) {
-    return globalState.relays[key];
+    return _globalState.relays[key];
   }
 }
 

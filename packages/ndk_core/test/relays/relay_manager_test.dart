@@ -54,7 +54,7 @@ void main() {
   });
 
   test('refuses unclean and blocked urls without opening anything', () async {
-    manager.globalState.blockedRelays.add('wss://blocked.example');
+    manager.blockedRelays.add('wss://blocked.example');
 
     expect(await manager.connectRelay(dirtyUrl: 'https://not.a.relay'), (
       connected: false,
@@ -64,7 +64,7 @@ void main() {
       connected: false,
       error: 'relay is blocked',
     ));
-    expect(manager.globalState.relays, isEmpty);
+    expect(manager.connectivities, isEmpty);
   });
 
   test('reports connectivity changes', () async {
@@ -88,7 +88,7 @@ void main() {
 
     await manager.closeConnection(RelayConnectionKey.anonymous(relay.url));
 
-    expect(manager.globalState.relays, isEmpty);
+    expect(manager.connectivities, isEmpty);
     await eventually(() => relay.openClients.isEmpty);
     await Future<void>.delayed(const Duration(seconds: 1));
     expect(relay.clients, hasLength(1));

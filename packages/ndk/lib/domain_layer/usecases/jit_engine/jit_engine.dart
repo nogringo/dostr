@@ -5,7 +5,6 @@ import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../../entities/contact_list.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../entities/read_write_marker.dart';
@@ -34,9 +33,6 @@ class JitEngine with Logger implements NetworkEngine {
   /// manager for all relays
   RelayManager relayManagerLight;
 
-  /// global state of the ndk
-  GlobalState globalState;
-
   /// ndk config
   List<String> bootstrapRelays;
 
@@ -45,7 +41,6 @@ class JitEngine with Logger implements NetworkEngine {
     required this.relayManagerLight,
     required this.cache,
     required this.ignoreRelays,
-    required this.globalState,
     required this.bootstrapRelays,
   });
 
@@ -110,7 +105,6 @@ class JitEngine with Logger implements NetworkEngine {
       candidates: candidates,
       plan: plan,
       relayManager: relayManagerLight,
-      globalState: globalState,
       bootstrapRelays: bootstrapRelays,
     );
     // a request no relay serves yet has nothing to end on but these

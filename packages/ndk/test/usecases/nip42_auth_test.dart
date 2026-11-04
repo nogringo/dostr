@@ -309,7 +309,7 @@ void authTests(NdkEngine engine) {
 
         expect(result, isEmpty);
         expect(
-          ndk.relays.globalState.relays.keys.where(
+          ndk.relays.connectivities.keys.where(
             (connectionKey) => connectionKey.pubkey == key.publicKey,
           ),
           isNotEmpty,

@@ -2,13 +2,12 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import '../../config/rx_defaults.dart';
-import 'filter.dart';
-import 'nip_01_event.dart';
-import 'auth_handler.dart';
-import 'auth_policy.dart';
-import 'relay_connection_key.dart';
-import 'relay_request_outcome.dart';
+import '../domain_layer/entities/filter.dart';
+import '../domain_layer/entities/nip_01_event.dart';
+import '../domain_layer/entities/auth_handler.dart';
+import '../domain_layer/entities/auth_policy.dart';
+import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_request_outcome.dart';
 
 /// Single relay request state
 class RelayRequestState {
@@ -134,13 +133,11 @@ class RelayRequestState {
 
 /// State per request for multiple relays
 class RequestState implements TimeoutPausable {
-  ReplaySubject<Nip01Event> controller = ReplaySubject<Nip01Event>(
-    maxSize: RX_REPLAYSUBJECT_MAX_EVENTS,
-  );
-
   /// [networkController] used by engines to write their response
   StreamController<Nip01Event> networkController =
       StreamController<Nip01Event>();
+
+  final Completer<void> _ended = Completer<void>();
 
   Timer? _timeout;
   DateTime? _timeoutStartedAt;
@@ -148,7 +145,8 @@ class RequestState implements TimeoutPausable {
   Duration? _remainingTimeout;
   int _timeoutPauses = 0;
 
-  Stream<Nip01Event> get stream => controller.stream;
+  /// completes once [end] was called
+  Future<void> get ended => _ended.future;
 
   /// subscription id sent to relays in REQ/CLOSE (NIP-01)
   final String id;
@@ -195,17 +193,6 @@ class RequestState implements TimeoutPausable {
   /// called when timeout is triggered
   Function(RequestState)? onTimeout;
 
-  late StreamSubscription<Nip01Event> _streamSubscription;
-
-  /// Cancels the timeout timer without closing streams.
-  /// Used when a duplicate request is detected and this request's stream
-  /// will be fed from another in-flight request.
-  void cancelTimeout() {
-    _timeout?.cancel();
-    _timeout = null;
-    _remainingTimeout = null;
-  }
-
   /// Creates a new [RequestState] instance
   RequestState(
     this.id, {
@@ -218,20 +205,6 @@ class RequestState implements TimeoutPausable {
     if (timeout != null) {
       _startTimeout(timeout);
     }
-    _streamSubscription = controller.listen(
-      (e) {},
-      onDone: () {
-        if (_timeout != null) {
-          _timeout!.cancel();
-        }
-        _remainingTimeout = null;
-        // a query ends here rather than on close(), its controller is closed
-        // by the response cleaner once every relay is done
-        _relayOutcomesDone = true;
-        _relayOutcomesSubject?.close();
-        _streamSubscription.cancel();
-      },
-    );
   }
 
   /// A query, ended once every relay sent its EOSE.
@@ -443,10 +416,26 @@ class RequestState implements TimeoutPausable {
     networkController.close();
   }
 
+  /// Stops the timeout and closes [relayOutcomesStream]. A query ends here
+  /// once its events are all delivered, rather than on [close].
+  void end() {
+    if (_ended.isCompleted) return;
+    _stopTimeout();
+    _relayOutcomesDone = true;
+    _relayOutcomesSubject?.close();
+    _ended.complete();
+  }
+
   /// closes all streams
   Future<void> close() async {
-    cancelTimeout();
+    _stopTimeout();
     await networkController.close();
-    await controller.close();
+    end();
+  }
+
+  void _stopTimeout() {
+    _timeout?.cancel();
+    _timeout = null;
+    _remainingTimeout = null;
   }
 }

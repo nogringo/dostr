@@ -10,7 +10,6 @@ import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/repositories/blossom.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
@@ -56,7 +55,6 @@ import 'ndk_config.dart';
 /// its like playing lego ;)
 class Initialization {
   final NdkConfig _ndkConfig;
-  final GlobalState _globalState;
 
   /// data sources
 
@@ -109,12 +107,7 @@ class Initialization {
   late final NetworkEngine engine;
 
   /// [NdkConfig] is user defined
-  /// [GlobalState] global state object that schuld stay in memory
-  Initialization({
-    required NdkConfig ndkConfig,
-    required GlobalState globalState,
-  }) : _globalState = globalState,
-       _ndkConfig = ndkConfig {
+  Initialization({required NdkConfig ndkConfig}) : _ndkConfig = ndkConfig {
     // first, so what the use cases log while they are built respects it
     Logger.setLogLevel(_ndkConfig.logLevel);
 
@@ -132,7 +125,6 @@ class Initialization {
     switch (_ndkConfig.engine) {
       case NdkEngine.RELAY_SETS:
         relayManager = RelayManager(
-          globalState: _globalState,
           accounts: accounts,
           nostrTransportFactory: _webSocketNostrTransportFactory,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
@@ -148,7 +140,6 @@ class Initialization {
         break;
       case NdkEngine.JIT:
         relayManager = RelayManager(
-          globalState: _globalState,
           accounts: accounts,
           nostrTransportFactory: _webSocketNostrTransportFactory,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
@@ -160,7 +151,6 @@ class Initialization {
           cache: _ndkConfig.cache,
           ignoreRelays: _ndkConfig.ignoreRelays,
           relayManagerLight: relayManager,
-          globalState: _globalState,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
         );
         break;
@@ -201,7 +191,6 @@ class Initialization {
     );
 
     final broadcastSender = BroadcastSender(
-      globalState: _globalState,
       networkEngine: engine,
       relayManager: relayManager,
       cacheManager: _ndkConfig.cache,
@@ -273,7 +262,7 @@ class Initialization {
       cacheManager: _ndkConfig.cache,
       userRelayLists: userRelayLists,
       relayManager: relayManager,
-      blockedRelays: _globalState.blockedRelays,
+      blockedRelays: relayManager.blockedRelays,
     );
 
     nip05 = Nip05Usecase(

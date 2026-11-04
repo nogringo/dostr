@@ -4,7 +4,6 @@ import 'package:ndk/ndk.dart';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../engines/network_engine.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'obsolete_replaceable.dart';
@@ -18,13 +17,11 @@ class BroadcastSender {
   final RelayManager _relayManager;
   final Accounts _accounts;
   final CacheManager _cacheManager;
-  final GlobalState _globalState;
   final double _considerDonePercent;
   final Duration _timeout;
   final bool _saveToCache;
 
   BroadcastSender({
-    required GlobalState globalState,
     required CacheManager cacheManager,
     required NetworkEngine networkEngine,
     required RelayManager relayManager,
@@ -36,14 +33,11 @@ class BroadcastSender {
        _cacheManager = cacheManager,
        _engine = networkEngine,
        _relayManager = relayManager,
-       _globalState = globalState,
        _considerDonePercent = considerDonePercent,
        _timeout = timeout,
        _saveToCache = saveToCache;
 
-  bool isEventInFlight(String eventId) {
-    return _globalState.inFlightBroadcasts.containsKey(eventId);
-  }
+  bool isEventInFlight(String eventId) => _relayManager.isBroadcasting(eventId);
 
   /// [throws] if the default signer and the custom signer are null \
   /// [returns] the signer that is not null, if both are provided returns [customSigner]

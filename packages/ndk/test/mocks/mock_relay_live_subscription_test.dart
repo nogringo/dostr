@@ -242,8 +242,7 @@ void main() {
       // not suppressed by the FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS throttle.
       ndkA
               .relays
-              .globalState
-              .relays[RelayConnectionKey.anonymous(mockRelay.url)]!
+              .connectivities[RelayConnectionKey.anonymous(mockRelay.url)]!
               .relay
               .lastConnectTry =
           0;

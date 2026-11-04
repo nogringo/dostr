@@ -27,10 +27,8 @@ You can read more about it [here](https://blog.cleancoder.com/uncle-bob/2012/08/
 
 For initialization we use `presentation_layer/init.dart` to assemble all dependencies, these are then exposed in `presentation_layer/ndk.dart` the main entry point for the lib user.
 
-Global state is realized via a simple [GlobalState] object created by `ndk.dart`. \
-The lib user is supposed to keep the [NDK] object in memory.
-
-Other state objects are created on demand, for example [RequestState] for each request.
+The lib user is supposed to keep the [NDK] object in memory. \
+The state of the relays, and of the requests and broadcasts in flight, lives in the `RelayManager` of `ndk_core`.
 
 ### Folder Structure of `ndk`
 

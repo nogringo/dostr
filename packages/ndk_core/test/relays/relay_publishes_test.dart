@@ -53,7 +53,7 @@ void main() {
 
   test('fails a relay it cannot connect to', () async {
     const blocked = 'wss://blocked.example';
-    manager.globalState.blockedRelays.add(blocked);
+    manager.blockedRelays.add(blocked);
 
     final responses = await publishes
         .publish(signedEvent(), relays: [blocked])
@@ -96,15 +96,17 @@ void main() {
     final relay = await startRelay();
     final event = signedEvent();
 
-    final responses = await Future.wait([
+    final broadcasts = [
       publishes.publish(event, relays: [relay.url]).broadcastDoneFuture,
       publishes.publish(event, relays: [relay.url]).broadcastDoneFuture,
-    ]);
+    ];
+    expect(manager.isBroadcasting(event.id), isTrue);
+    final responses = await Future.wait(broadcasts);
 
     for (final response in responses) {
       expect(response.single.broadcastSuccessful, isTrue);
     }
-    expect(manager.globalState.inFlightBroadcasts, isEmpty);
+    expect(manager.isBroadcasting(event.id), isFalse);
   });
 
   test('is done once enough relays accepted the event', () async {

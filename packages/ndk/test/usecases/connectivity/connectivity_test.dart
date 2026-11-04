@@ -89,16 +89,14 @@ void main() async {
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay0.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay0.url)]
             ?.isConnected,
         true,
       );
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay1.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay1.url)]
             ?.isConnected,
         true,
       );
@@ -109,16 +107,14 @@ void main() async {
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay0.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay0.url)]
             ?.isConnected,
         true,
       );
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay1.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay1.url)]
             ?.isConnected,
         false,
       );
@@ -128,16 +124,14 @@ void main() async {
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay0.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay0.url)]
             ?.isConnected,
         true,
       );
       expect(
         ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relay1.url)]
+            .connectivities[RelayConnectionKey.anonymous(relay1.url)]
             ?.isConnected,
         true,
       );
@@ -155,8 +149,7 @@ Future<void> _waitForRelayConnectionState(
   while (DateTime.now().isBefore(deadline)) {
     if (ndk
             .relays
-            .globalState
-            .relays[RelayConnectionKey.anonymous(relayUrl)]
+            .connectivities[RelayConnectionKey.anonymous(relayUrl)]
             ?.isConnected ==
         expectedState) {
       return;

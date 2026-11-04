@@ -3,7 +3,6 @@ import 'package:ndk_nip77/ndk_nip77.dart';
 
 Future<void> main() async {
   final relays = RelayManager(
-    globalState: GlobalState(),
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     bootstrapRelays: [],
   );

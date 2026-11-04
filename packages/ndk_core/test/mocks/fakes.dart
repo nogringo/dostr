@@ -111,7 +111,6 @@ RelayManager newRelayManager({
   AuthHandler? authHandler,
   NostrTransportFactory? transportFactory,
 }) => RelayManager(
-  globalState: GlobalState(),
   nostrTransportFactory:
       transportFactory ??
       WebSocketClientNostrTransportFactory(pingInterval: null),

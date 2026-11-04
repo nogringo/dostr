@@ -32,10 +32,10 @@ void main() {
       final first = _createNdk();
       final second = _createNdk();
 
-      expect(first.relays.globalState, isNot(same(second.relays.globalState)));
+      expect(first.relays, isNot(same(second.relays)));
 
-      first.relays.globalState.blockedRelays.add('wss://blocked.example');
-      expect(second.relays.globalState.blockedRelays, isEmpty);
+      first.relays.blockedRelays.add('wss://blocked.example');
+      expect(second.relays.blockedRelays, isEmpty);
 
       await first.destroy();
       await second.destroy();
@@ -101,8 +101,7 @@ void main() {
 
           first
                   .relays
-                  .globalState
-                  .relays[RelayConnectionKey.anonymous(relay.url)]!
+                  .connectivities[RelayConnectionKey.anonymous(relay.url)]!
                   .relay
                   .lastConnectTry =
               0;
@@ -268,8 +267,8 @@ void main() {
         expect(relay.connectionsAuthenticatedAs(firstKey.publicKey), 1);
         expect(relay.connectionsAuthenticatedAs(secondKey.publicKey), 1);
 
-        final firstConnectionKeys = first.relays.globalState.relays.keys;
-        final secondConnectionKeys = second.relays.globalState.relays.keys;
+        final firstConnectionKeys = first.relays.connectivities.keys;
+        final secondConnectionKeys = second.relays.connectivities.keys;
         expect(
           firstConnectionKeys,
           contains(

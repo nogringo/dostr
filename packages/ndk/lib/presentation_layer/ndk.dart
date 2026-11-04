@@ -2,7 +2,6 @@ import 'package:meta/meta.dart';
 
 import '../data_layer/repositories/cache_manager/mem_cache_manager.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/bunkers/bunkers.dart';
@@ -42,9 +41,6 @@ class Ndk {
   /// Configuration for the NDK instance
   final NdkConfig config;
 
-  /// Request, broadcast, and relay state owned by this NDK instance.
-  final GlobalState _globalState;
-
   /// Internal initialization object for setting up repositories and usecases
   late final Initialization _initialization;
 
@@ -52,11 +48,8 @@ class Ndk {
   final List<Future<void> Function()> _destroyHooks = [];
 
   /// Creates a new instance of [Ndk] with the given [config]
-  Ndk(this.config) : _globalState = GlobalState() {
-    _initialization = Initialization(
-      ndkConfig: config,
-      globalState: _globalState,
-    );
+  Ndk(this.config) {
+    _initialization = Initialization(ndkConfig: config);
   }
 
   /// Creates a new instance of [Ndk] with default configuration

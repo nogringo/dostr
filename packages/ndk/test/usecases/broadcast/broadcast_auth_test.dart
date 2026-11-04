@@ -195,7 +195,7 @@ void broadcastAuthTests(NdkEngine engine) {
           .broadcastDoneFuture;
 
       expect(
-        ndk.relays.globalState.relays.keys.where(
+        ndk.relays.connectivities.keys.where(
           (connectionKey) =>
               connectionKey.url == target.url && connectionKey.isAnonymous,
         ),
@@ -203,7 +203,7 @@ void broadcastAuthTests(NdkEngine engine) {
         reason: 'a socket we opened is one the relay saw, sent on or not',
       );
       expect(
-        ndk.relays.globalState.relays.keys.where(
+        ndk.relays.connectivities.keys.where(
           (connectionKey) => connectionKey.pubkey == key.publicKey,
         ),
         isNotEmpty,
@@ -227,7 +227,7 @@ void broadcastAuthTests(NdkEngine engine) {
           .broadcastDoneFuture;
 
       expect(
-        ndk.relays.globalState.relays.keys.where(
+        ndk.relays.connectivities.keys.where(
           (connectionKey) => connectionKey.pubkey == key.publicKey,
         ),
         isNotEmpty,

@@ -26,7 +26,6 @@ import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
 
 final relays = RelayManager(
-  globalState: GlobalState(),
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   bootstrapRelays: [],
 );
@@ -111,3 +110,10 @@ alone and no longer rejects an event that misses the proof-of-work target its
 `EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and
 `RelayStats.touched` and `touchUseful` are gone: they only served the JIT
 engine of `ndk`, which now keeps its data on its own.
+
+`GlobalState` and `RequestState` are no longer public, in `ndk_core` or in
+`ndk`: `RelayManager` keeps its own state and no longer takes a
+`globalState`. Read its connections with `RelayManager.connectivities`, block
+relays with `RelayManager.blockedRelays`, ask `RelayManager.isBroadcasting`
+whether an event is still being broadcast, and `RelayReqs.openIds` which REQs
+are open.

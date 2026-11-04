@@ -11,9 +11,7 @@ import 'package:ndk/shared/nips/nip65/relay_ranking.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/jit_engine.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_blast_all_strategy.dart';
 
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../../entities/jit_engine_relay_connectivity_data.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import '../../../entities/user_relay_list.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
@@ -180,7 +178,6 @@ class RelayJitPubkeyStrategy with Logger {
     required List<JitRelayCandidate> candidates,
     required JitRequestPlan plan,
     required RelayManager relayManager,
-    required GlobalState globalState,
     required List<String> bootstrapRelays,
   }) async {
     final unreachable = <JitRelayCandidate>[];
@@ -193,8 +190,7 @@ class RelayJitPubkeyStrategy with Logger {
       ) async {
         final url = entry.key;
         final result = await relayManager.connectRelay(dirtyUrl: url);
-        final connectivity =
-            globalState.relays[RelayConnectionKey.anonymous(url)];
+        final connectivity = relayManager.getRelayConnectivity(url);
         if (!result.connected || connectivity == null) {
           Logger.log.w(
             () => "Could not connect to relay: $url - errorHandling",

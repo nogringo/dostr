@@ -2,7 +2,6 @@ import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_clien
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk/entities.dart' as ndk_entities;
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
@@ -13,7 +12,6 @@ void main() {
   for (final engine in NdkEngine.values) {
     relayOutcomesTests(engine);
   }
-  collapseTests();
   deadConnectionTests();
   notSentEndTests();
   fallbackTests();
@@ -65,23 +63,25 @@ void deadConnectionTests() {
       await relay.startServer();
 
       final manager = RelayManager(
-        globalState: ndk_entities.GlobalState(),
         bootstrapRelays: [relay.url],
         nostrTransportFactory: WebSocketNostrTransportFactory(),
       );
       await manager.connectRelay(dirtyUrl: relay.url);
 
       final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
-      final state = ndk_entities.RequestState.query(
-        "dead-connection-test",
-        // long enough that the timeout cannot be what ends the request
-        timeout: Duration(seconds: 60),
-      );
-      final key = RelayConnectionKey.anonymous(relay.url);
-      state.addRequest(key, [filter]);
-      manager.globalState.inFlightRequests[state.id] = state;
-      manager.send(key, ['REQ', state.id, filter.toMap()]);
-      await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
+      final req =
+          RelayReqs(
+            relayManager: manager,
+            eventVerifier: MockEventVerifier(),
+          ).req(
+            id: "dead-connection-test",
+            relays: {
+              relay.url: [filter],
+            },
+            // long enough that the timeout cannot be what ends the request
+            timeout: Duration(seconds: 60),
+          );
+      await manager.waitForRequestSent(req.id, const Duration(seconds: 5));
       await _waitUntil(
         () => relay.connectedClientCount == 1,
         reason: 'the request never reached the relay',
@@ -93,11 +93,10 @@ void deadConnectionTests() {
 
       await _waitUntil(
         () =>
-            state.relayOutcomes[relay.url]?.status ==
-            RelayRequestStatus.disconnected,
+            req.outcomes[relay.url]?.status == RelayRequestStatus.disconnected,
         reason: 'the request stayed on a socket nobody will reopen',
       );
-      expect(state.networkController.isClosed, true);
+      await req.done.timeout(const Duration(seconds: 5));
 
       await relay.stopServer();
     });
@@ -129,22 +128,11 @@ void notSentEndTests() {
       List<String> seeds, {
       NostrTransportFactory? factory,
     }) => RelayManager(
-      globalState: ndk_entities.GlobalState(),
       bootstrapRelays: seeds,
       // the transport Ndk uses: the plain one reports a socket open before its
       // handshake, so a relay nothing listens on would look reachable
       nostrTransportFactory: factory ?? WebSocketClientNostrTransportFactory(),
     );
-
-    ndk_entities.RequestState trackQuery(RelayManager manager, String id) {
-      final state = ndk_entities.RequestState.query(
-        id,
-        // long enough that the timeout cannot be what ends the request
-        timeout: Duration(seconds: 60),
-      );
-      manager.globalState.inFlightRequests[state.id] = state;
-      return state;
-    }
 
     test(
       'a notSent relay with an open socket does not hold the request once the others are gone',
@@ -170,31 +158,41 @@ void notSentEndTests() {
         await manager.seedRelaysConnected;
 
         final filter = notesOf(key1);
-        final state = trackQuery(manager, "open-socket-test");
-        final droppedKey = RelayConnectionKey.anonymous(dropped.url);
-        state.addRequest(droppedKey, [filter]);
-        manager.send(droppedKey, ['REQ', state.id, filter.toMap()]);
-        await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
-        // a relay given up on that opened its socket afterwards: nothing
-        // replays the request on a first connection
+        final req =
+            RelayReqs(
+              relayManager: manager,
+              eventVerifier: MockEventVerifier(),
+            ).req(
+              id: "open-socket-test",
+              // long enough that the timeout cannot be what ends the request
+              timeout: Duration(seconds: 60),
+            );
+        req.send(dropped.url, [filter]);
+        await manager.waitForRequestSent(req.id, const Duration(seconds: 5));
+        // a relay given up on while its socket stays open
         final notSentKey = RelayConnectionKey.anonymous(notSent.url);
-        state.addRequest(notSentKey, [filter]);
-        state.requests[notSentKey]!.markNotSent("could not connect");
+        manager.blockedRelays.add(notSentKey.url);
+        req.send(notSent.url, [filter]);
+        req.seal();
+        await _waitUntil(
+          () => req.outcomes[notSent.url]?.status == RelayRequestStatus.notSent,
+          reason: 'the blocked relay was sent the request',
+        );
 
         manager.allowReconnectRelays = false;
         await dropped.closeClientSockets();
 
         await _waitUntil(
           () =>
-              state.relayOutcomes[dropped.url]?.status ==
+              req.outcomes[dropped.url]?.status ==
               RelayRequestStatus.disconnected,
           reason: 'the dropped relay was never given up on',
         );
         expect(manager.isConnectionOpen(notSentKey), isTrue);
-        expect(
-          state.networkController.isClosed,
-          isTrue,
-          reason: 'no relay is left to answer, only the timeout would end it',
+        await req.done.timeout(
+          const Duration(seconds: 5),
+          onTimeout: () =>
+              fail('no relay is left to answer, only the timeout would end it'),
         );
       },
     );
@@ -250,132 +248,7 @@ void notSentEndTests() {
   });
 }
 
-/// What no relay can be made to do on demand: a connection that goes away, and
-/// two connections to one relay ending differently.
-void collapseTests() {
-  group('relay outcomes collapse', () {
-    const url = "wss://relay.example.com";
-    final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
-
-    ndk_entities.RequestState buildState() =>
-        ndk_entities.RequestState.subscription("outcome-test");
-
-    test('a connection that went away reports disconnected', () {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!.connectionGone = true;
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.disconnected),
-      });
-    });
-
-    test('an eose on one connection wins over a closed on another', () {
-      final state = buildState();
-      final anonymous = RelayConnectionKey.anonymous(url);
-      final authenticated = RelayConnectionKey.authenticated(url, "a" * 64);
-      state.addRequest(anonymous, [filter]);
-      state.addRequest(authenticated, [filter]);
-      state.requests[anonymous]!
-        ..receivedClosed = true
-        ..closedMessage = "auth-required: we only serve authenticated users";
-      state.requests[authenticated]!.receivedEOSE = true;
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.eose),
-      });
-    });
-
-    test('a request that could not be sent reports notSent and why', () {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!.markNotSent("could not connect");
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(
-          RelayRequestStatus.notSent,
-          message: "could not connect",
-        ),
-      });
-      expect(state.didAllRequestsFinish, isTrue);
-    });
-
-    test('a request sent after all is no longer notSent', () {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!.markNotSent("could not connect");
-
-      state.requests[key]!.markSent();
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.pending),
-      });
-    });
-
-    test('a connection sent again after it went away is pending once more', () {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!.connectionGone = true;
-
-      // what a subscription replayed on a replacement socket goes through
-      state.requests[key]!.markSent();
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.pending),
-      });
-    });
-
-    test('the stream reports a change once and a repeat not at all', () async {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-
-      final seen = <Map<String, RelayRequestOutcome>>[];
-      final subscription = state.relayOutcomesStream.listen(seen.add);
-      await Future.delayed(Duration.zero);
-
-      state.requests[key]!.receivedEOSE = true;
-      state.requests[key]!.receivedEOSE = true;
-      await Future.delayed(Duration.zero);
-      await subscription.cancel();
-
-      expect(seen, [
-        {url: RelayRequestOutcome(RelayRequestStatus.pending)},
-        {url: RelayRequestOutcome(RelayRequestStatus.eose)},
-      ]);
-    });
-
-    test('a late listener gets the outcomes it was not there for', () async {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!.receivedEOSE = true;
-
-      expect(await state.relayOutcomesStream.first, {
-        url: RelayRequestOutcome(RelayRequestStatus.eose),
-      });
-    });
-
-    test('a connection retrying its authentication stays pending', () {
-      final state = buildState();
-      final key = RelayConnectionKey.anonymous(url);
-      state.addRequest(key, [filter]);
-      state.requests[key]!
-        ..receivedClosed = true
-        ..retryingAuth = true;
-
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.pending),
-      });
-    });
-  });
-}
-
-/// Both engines track their requests in the same [RequestState], so both must
+/// Both engines open their requests through the same RelayReqs, so both must
 /// report the same outcomes.
 void relayOutcomesTests(NdkEngine engine) {
   group('relay outcomes [${engine.name}]', () {

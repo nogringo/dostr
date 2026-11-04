@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/pubkey_mapping.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
@@ -99,7 +98,6 @@ void main() {
   test('a relay set relay gets every filter that maps to it', () async {
     const url = 'wss://relay.example.com';
     final manager = RelayManager(
-      globalState: GlobalState(),
       bootstrapRelays: [],
       nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     );

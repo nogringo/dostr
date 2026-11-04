@@ -110,7 +110,7 @@ class RelaySetsEngine implements NetworkEngine {
       // make a copy of the keys since connectRelay may mutate the underlying map
       // several connections can share a url, and broadcasting twice to the
       // same relay would duplicate the event
-      List<String> writeRelaysUrls = _relayManager.globalState.relays.keys
+      List<String> writeRelaysUrls = _relayManager.connectivities.keys
           .map((key) => key.url)
           .toSet()
           .toList();

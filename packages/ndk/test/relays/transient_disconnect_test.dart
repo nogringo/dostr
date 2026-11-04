@@ -7,6 +7,7 @@ import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
+import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 /// A transport that loses its connection the way web_socket_client does: the
@@ -111,7 +112,6 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(
-      globalState: GlobalState(),
       bootstrapRelays: [],
       nostrTransportFactory: factory,
       accounts: accounts,
@@ -149,7 +149,6 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(
-      globalState: GlobalState(),
       bootstrapRelays: [],
       nostrTransportFactory: factory,
       accounts: accounts,
@@ -204,7 +203,7 @@ void main() {
             'socket carried',
       );
 
-      subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
+      await subscribed.req.close();
       await _waitUntil(() => connectivity.stats.activeRequests == 0);
 
       await subscribed.tearDown();
@@ -220,7 +219,7 @@ void main() {
     // the CLOSE waits for the socket to come back, and by then nothing replays
     // the subscription: it is not in flight anymore
     subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
-    subscribed.manager.globalState.inFlightRequests.remove(_subId);
+    await subscribed.req.close();
 
     subscribed.transport.restoreConnection();
     await Future<void>.delayed(const Duration(milliseconds: 300));
@@ -242,12 +241,14 @@ class _SubscribedOnFlakyRelay {
     this.connectivity,
     this.transport,
     this._relay,
+    this.req,
   );
 
   final RelayManager manager;
   final RelayConnectivity connectivity;
   final _FlakyTransport transport;
   final MockRelay _relay;
+  final RelayReq req;
 
   Future<void> tearDown() async {
     await manager.closeAllTransports();
@@ -262,29 +263,20 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
 
   final factory = _FlakyTransportFactory();
   final manager = RelayManager(
-    globalState: GlobalState(),
     bootstrapRelays: [],
     nostrTransportFactory: factory,
   );
   await manager.connectRelay(dirtyUrl: relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
-  final connectivity = manager.globalState.relays[connectionKey]!;
+  final connectivity = manager.connectivities[connectionKey]!;
   final filters = [
     Filter(kinds: [Nip01Event.kTextNodeKind]),
   ];
-  manager.globalState.inFlightRequests[_subId] = RequestState.subscription(
-    _subId,
-  );
-  manager.globalState.inFlightRequests[_subId]!.addRequest(
-    connectionKey,
-    filters,
-  );
-  manager.send(connectionKey, [
-    'REQ',
-    _subId,
-    for (final filter in filters) filter.toMap(),
-  ]);
+  final req = RelayReqs(
+    relayManager: manager,
+    eventVerifier: MockEventVerifier(),
+  ).req(id: _subId, relays: {relay.url: filters}, closeOnEose: false);
   await _waitUntil(() => connectivity.stats.activeRequests == 1);
 
   return _SubscribedOnFlakyRelay(
@@ -292,6 +284,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
     connectivity,
     factory.created.last,
     relay,
+    req,
   );
 }
 

@@ -107,14 +107,13 @@ void main() {
 
     final factory = _FaultyTransportFactory();
     final manager = RelayManager(
-      globalState: GlobalState(),
       bootstrapRelays: [relay.url],
       nostrTransportFactory: factory,
     );
     await manager.connectRelay(dirtyUrl: relay.url);
 
     final connectivity =
-        manager.globalState.relays[RelayConnectionKey.anonymous(relay.url)]!;
+        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
     expect(connectivity.stats.connections, 1);
 
     // otherwise FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS suppresses the reconnect
@@ -150,7 +149,6 @@ void main() {
 
       final factory = _FaultyTransportFactory();
       final manager = RelayManager(
-        globalState: GlobalState(),
         bootstrapRelays: [],
         nostrTransportFactory: factory,
         accounts: accounts,

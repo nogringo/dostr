@@ -6,7 +6,6 @@ import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/event_cache_records.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
 import 'package:ndk/domain_layer/entities/relay_set.dart';
@@ -1376,11 +1375,9 @@ class RecordingBroadcastSender extends BroadcastSender {
 
   RecordingBroadcastSender({required MemCacheManager cacheManager})
     : super(
-        globalState: GlobalState(),
         cacheManager: cacheManager,
         networkEngine: _ThrowingNetworkEngine(),
         relayManager: RelayManager(
-          globalState: GlobalState(),
           bootstrapRelays: const [],
           nostrTransportFactory: WebSocketClientNostrTransportFactory(),
         ),

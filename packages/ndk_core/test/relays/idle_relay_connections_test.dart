@@ -4,12 +4,12 @@ import 'package:test/test.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
+import 'package:ndk_core/src/global_state.dart';
 import 'package:ndk_core/domain_layer/entities/relay.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';
-import 'package:ndk_core/domain_layer/entities/request_state.dart';
+import 'package:ndk_core/src/request_state.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
@@ -122,12 +122,11 @@ void main() {
   }
 
   setUp(() {
-    state = GlobalState();
     manager = RelayManager(
-      globalState: state,
       nostrTransportFactory: _NoConnections(),
       bootstrapRelays: [],
     );
+    state = relayManagerState(manager);
   });
 
   tearDown(() async {

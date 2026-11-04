@@ -1,41 +1,15 @@
-import 'dart:async';
-
 import 'package:ndk/ndk.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:test/test.dart';
 
-class _Transport implements NostrTransport {
-  bool closed = false;
-  final controller = StreamController<dynamic>();
-
-  @override
-  Future<void> ready = Future.value();
-  @override
-  bool isOpen() => !closed;
-  @override
-  bool isConnecting() => false;
-  @override
-  Future<void> close() async => closed = true;
-  @override
-  void send(dynamic data) {}
-  @override
-  StreamSubscription<dynamic> listen(
-    void Function(dynamic) onData, {
-    Function? onError,
-    void Function()? onDone,
-  }) => controller.stream.listen(onData, onError: onError, onDone: onDone);
-  @override
-  int? closeCode() => null;
-  @override
-  String? closeReason() => null;
-}
+import '../mocks/mock_relay.dart';
 
 void main() {
   test(
     'NDK background hook closes idle relay and runs lifecycle hooks',
     () async {
-      final anonymous = RelayConnectionKey.anonymous('wss://relay.example');
+      final relay = MockRelay(name: "idle relay", signEvents: false);
+      await relay.startServer();
+      addTearDown(relay.stopServer);
       final ndk = Ndk.emptyBootstrapRelaysConfig();
       final backgrounded = <bool>[];
       var destroyed = false;
@@ -43,15 +17,16 @@ void main() {
         onBackgrounded: (value) async => backgrounded.add(value),
         onDestroy: () async => destroyed = true,
       );
-      final transport = _Transport();
-      ndk.relays.globalState.relays[anonymous] = RelayConnectivity(
-        key: anonymous,
-        relay: Relay(url: anonymous.url),
-        relayTransport: transport,
-      );
+      await ndk.relays.connectRelay(dirtyUrl: relay.url);
+      expect(relay.connectedClientCount, 1);
+
       await ndk.setBackgrounded(true);
-      expect(transport.closed, isTrue);
-      expect(ndk.relays.globalState.relays, isEmpty);
+      expect(ndk.relays.connectivities, isEmpty);
+      for (var i = 0; i < 50 && relay.connectedClientCount > 0; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 20));
+      }
+      expect(relay.connectedClientCount, 0);
+
       await ndk.setBackgrounded(false);
       expect(backgrounded, [true, false]);
       await ndk.destroy();
