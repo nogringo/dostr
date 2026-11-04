@@ -1,16 +1,4 @@
-import 'dart:async';
-
-import '../../../shared/nips/nip01/helpers.dart';
-import '../../entities/auth_policy.dart';
-import '../../entities/filter.dart';
-import '../../entities/nip_01_event.dart';
-import '../../entities/relay_connection_key.dart';
-import '../../entities/relay_request_outcome.dart';
-import '../../entities/request_state.dart';
-import '../../repositories/event_verifier.dart';
-import '../relay_manager.dart';
-import '../requests/verified_event_cache.dart';
-import '../requests/verify_event_stream.dart';
+part of '../relay_manager.dart';
 
 /// Opens [RelayReq]s: NIP-01 REQs on relays the caller picks.
 ///
@@ -107,7 +95,7 @@ class RelayReq {
     final inFlight = relayManager.globalState.inFlightRequests;
     _state.onTimeout = (_) => close();
     // released by seal: until then, more relays may come
-    relayManager.beginPendingConnection(_state);
+    relayManager._beginPendingConnection(_state);
     inFlight[id] = _state;
     _done = _state.controller.done.then((_) => _state.relayOutcomes);
 
@@ -154,7 +142,7 @@ class RelayReq {
   ///
   /// A relay sent to after [seal] still has to answer before the request ends.
   bool send(String relayUrl, List<Filter> filters) {
-    if (!_relayManager.isStillInFlight(_state) ||
+    if (!_relayManager._isStillInFlight(_state) ||
         _state.networkController.isClosed) {
       return false;
     }
@@ -162,7 +150,7 @@ class RelayReq {
       throw StateError('$id was already sent to $relayUrl');
     }
     unawaited(
-      _relayManager.sendRequestToRelay(_state, relayUrl, [
+      _relayManager._sendRequestToRelay(_state, relayUrl, [
         for (final filter in filters) filter.clone(),
       ]),
     );
@@ -174,7 +162,7 @@ class RelayReq {
   void seal() {
     if (_sealed) return;
     _sealed = true;
-    _relayManager.endPendingConnection(_state);
+    _relayManager._endPendingConnection(_state);
   }
 
   /// Sends a CLOSE to the relays still serving the request, then ends it.

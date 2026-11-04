@@ -24,7 +24,6 @@ import 'package:ndk_nip77/ndk_nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';

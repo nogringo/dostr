@@ -81,10 +81,11 @@ void deadConnectionTests() {
       final key = RelayConnectionKey.anonymous(relay.url);
       state.addRequest(key, [filter]);
       manager.globalState.inFlightRequests[state.id] = state;
-      await manager.sendOrThrow(
+      manager.send(
         manager.globalState.relays[key]!,
         ClientMsg(ClientMsgType.kReq, id: state.id, filters: [filter]),
       );
+      await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
       await _waitUntil(
         () => relay.connectedClientCount == 1,
         reason: 'the request never reached the relay',
@@ -176,16 +177,16 @@ void notSentEndTests() {
         final state = trackQuery(manager, "open-socket-test");
         final droppedKey = RelayConnectionKey.anonymous(dropped.url);
         state.addRequest(droppedKey, [filter]);
-        await manager.sendOrThrow(
+        manager.send(
           manager.globalState.relays[droppedKey]!,
           ClientMsg(ClientMsgType.kReq, id: state.id, filters: [filter]),
         );
+        await manager.waitForRequestSent(state.id, const Duration(seconds: 5));
         // a relay given up on that opened its socket afterwards: nothing
         // replays the request on a first connection
         final notSentKey = RelayConnectionKey.anonymous(notSent.url);
-        manager.failRelayRequest(state, notSentKey, [
-          filter,
-        ], "could not connect");
+        state.addRequest(notSentKey, [filter]);
+        state.requests[notSentKey]!.markNotSent("could not connect");
 
         manager.allowReconnectRelays = false;
         await dropped.closeClientSockets();

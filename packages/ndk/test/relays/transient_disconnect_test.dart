@@ -205,7 +205,10 @@ void main() {
             'socket carried',
       );
 
-      subscribed.manager.sendCloseToConnection(connectivity.key, _subId);
+      subscribed.manager.send(
+        connectivity,
+        ClientMsg(ClientMsgType.kClose, id: _subId),
+      );
       await _waitUntil(() => connectivity.stats.activeRequests == 0);
 
       await subscribed.tearDown();
@@ -220,7 +223,10 @@ void main() {
     subscribed.transport.dropConnection();
     // the CLOSE waits for the socket to come back, and by then nothing replays
     // the subscription: it is not in flight anymore
-    subscribed.manager.sendCloseToConnection(connectivity.key, _subId);
+    subscribed.manager.send(
+      connectivity,
+      ClientMsg(ClientMsgType.kClose, id: _subId),
+    );
     subscribed.manager.globalState.inFlightRequests.remove(_subId);
 
     subscribed.transport.restoreConnection();
@@ -277,10 +283,9 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   manager.globalState.inFlightRequests[_subId] = RequestState.subscription(
     _subId,
   );
-  manager.registerRelayRequest(
-    reqId: _subId,
-    connectionKey: connectionKey,
-    filters: filters,
+  manager.globalState.inFlightRequests[_subId]!.addRequest(
+    connectionKey,
+    filters,
   );
   manager.send(
     connectivity,

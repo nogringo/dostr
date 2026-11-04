@@ -74,6 +74,18 @@ NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
 `RelayManager.connectRelay` returns a `({bool connected, String error})` record.
 
+`RelayManager` keeps the plumbing behind `RelayReq` and broadcasts to itself.
+`sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`,
+`failBroadcast`, `failRelayRequest`, `connectionForBroadcast`,
+`isStillInFlight`, `beginPendingConnection`, `endPendingConnection`,
+`sendRequestToRelay`, `sendCloseToRelay`, `sendCloseToConnection`,
+`reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the
+deprecated `authenticateIfNeeded` are gone, and so is
+`RequestState.registerRequest`. Open REQs with `RelayReqs`, publish with
+`RelayPublishes` and send a raw message with `RelayManager.send`.
+`RelayManager.reconnectClosedConnections` reconnects and replays the requests
+that `reSubscribeInFlightSubscriptions` used to replay by hand.
+
 `ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
 `RelayInfoRepo`, `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in `ndk` at
 their old paths. `ndk.connectivity.getRelayInfo` fetches and caches the

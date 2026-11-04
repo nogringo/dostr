@@ -5,7 +5,6 @@ import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/relay.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
@@ -14,7 +13,6 @@ import 'package:ndk_core/domain_layer/entities/request_state.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk/ndk.dart' show Ndk;
 import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
 
 class _NeedsConnection extends RelayProtocolHandler {
@@ -108,7 +106,7 @@ void main() {
         ? RequestState.query(id)
         : RequestState.subscription(id);
     request.networkController.stream.listen((_) {});
-    if (key != null) request.registerRequest(key, filters);
+    if (key != null) request.addRequest(key, filters);
     state.inFlightRequests[id] = request;
     requests.add(request);
     return request;
@@ -119,18 +117,7 @@ void main() {
     state.inFlightBroadcasts[id] = [broadcast];
     broadcasts.add(broadcast);
     if (url != null) {
-      manager.registerRelayBroadcast(
-        broadcastState: broadcast,
-        relayUrl: url,
-        eventToPublish: Nip01Event(
-          id: id,
-          pubKey:
-              'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          kind: 1,
-          tags: [],
-          content: '',
-        ),
-      );
+      broadcast.broadcasts[url] = RelayBroadcastResponse(relayUrl: url);
     }
     return broadcast;
   }
@@ -179,32 +166,6 @@ void main() {
   });
 
   test(
-    'NDK background hook closes idle relay and runs lifecycle hooks',
-    () async {
-      final ndk = Ndk.emptyBootstrapRelaysConfig();
-      final backgrounded = <bool>[];
-      var destroyed = false;
-      ndk.addLifecycleHooks(
-        onBackgrounded: (value) async => backgrounded.add(value),
-        onDestroy: () async => destroyed = true,
-      );
-      final transport = _Transport();
-      ndk.relays.globalState.relays[anonymous] = RelayConnectivity(
-        key: anonymous,
-        relay: Relay(url: anonymous.url),
-        relayTransport: transport,
-      );
-      await ndk.setBackgrounded(true);
-      expect(transport.closed, isTrue);
-      expect(ndk.relays.globalState.relays, isEmpty);
-      await ndk.setBackgrounded(false);
-      expect(backgrounded, [true, false]);
-      await ndk.destroy();
-      expect(destroyed, isTrue);
-    },
-  );
-
-  test(
     'request-sent waiter completes on exact REQ and supports late waiters',
     () async {
       connect(anonymous);
@@ -213,7 +174,7 @@ void main() {
         'wanted',
         const Duration(seconds: 1),
       );
-      await manager.sendOrThrow(
+      manager.send(
         relay,
         ClientMsg(
           ClientMsgType.kReq,
@@ -223,7 +184,7 @@ void main() {
           ],
         ),
       );
-      await manager.sendOrThrow(
+      manager.send(
         relay,
         ClientMsg(
           ClientMsgType.kReq,
@@ -269,7 +230,7 @@ void main() {
       final authTransport = connect(authenticated);
       final subscription = request('subscription', key: anonymous);
       subscription.requests[anonymous]!.markClosed('auth-required');
-      subscription.registerRequest(authenticated, [
+      subscription.addRequest(authenticated, [
         Filter(kinds: [1]),
       ]);
       subscription.requests[authenticated]!.markClosed('auth-required');
@@ -311,7 +272,7 @@ void main() {
       final pending = request('discovering');
       await manager.closeIdleConnections();
       expect(idle.closed, isFalse);
-      pending.registerRequest(anonymous, [
+      pending.addRequest(anonymous, [
         Filter(kinds: [1]),
       ]);
       await manager.closeIdleConnections();

@@ -423,17 +423,6 @@ class RequestState implements TimeoutPausable {
     _trackRequest(RelayRequestState(key, filters));
   }
 
-  /// Adds single relay request to the state, merging [filters] into the one
-  /// already tracked on the same connection
-  void registerRequest(RelayConnectionKey key, List<Filter> filters) {
-    final tracked = requests[key];
-    if (tracked != null) {
-      tracked.filters.addAll(filters);
-      return;
-    }
-    _trackRequest(RelayRequestState(key, filters));
-  }
-
   void _trackRequest(RelayRequestState request) {
     request.onOutcomeChanged = () => _onRelayRequestChanged(request.url);
     requests[request.key] = request;

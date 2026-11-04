@@ -1,10 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
 class _Transport implements NostrTransport {
@@ -15,6 +11,7 @@ class _Transport implements NostrTransport {
   final Function? reconnect;
   final Function(int?, Object?, String?)? disconnect;
   final controller = StreamController<dynamic>.broadcast();
+  final sent = <dynamic>[];
   _Transport(this.reconnect, this.disconnect);
   @override
   Future<void> ready = Future.value();
@@ -42,7 +39,7 @@ class _Transport implements NostrTransport {
     Function()? onDone,
   }) => controller.stream.listen(onData, onError: onError, onDone: onDone);
   @override
-  void send(dynamic data) {}
+  void send(dynamic data) => sent.add(data);
   @override
   int? closeCode() => null;
   @override
@@ -73,34 +70,36 @@ class _Factory implements NostrTransportFactory {
   }
 }
 
-class _Manager extends RelayManager {
-  int resubscriptions = 0;
-  _Manager(GlobalState state, _Factory factory)
-    : super(
-        globalState: state,
-        nostrTransportFactory: factory,
-        bootstrapRelays: [],
-      );
-  @override
-  void reSubscribeInFlightSubscriptions(RelayConnectivity relay) {
-    resubscriptions++;
-  }
-}
-
 void main() {
   const url = 'wss://relay.example';
   final key = RelayConnectionKey.anonymous(url);
   late GlobalState state;
   late _Factory factory;
-  late _Manager manager;
+  late RelayManager manager;
+  late RequestState subscription;
   Future<bool> connect() async =>
       (await manager.connectRelay(dirtyUrl: url, connectTimeout: 1)).connected;
+  int replays(_Transport transport) => transport.sent
+      .where((data) => (data as String).startsWith('["REQ","live"'))
+      .length;
+  int allReplays() => factory.created.map(replays).fold(0, (a, b) => a + b);
   setUp(() {
     state = GlobalState();
     factory = _Factory();
-    manager = _Manager(state, factory);
+    manager = RelayManager(
+      globalState: state,
+      nostrTransportFactory: factory,
+      bootstrapRelays: [],
+    );
+    subscription = RequestState.subscription('live')
+      ..addRequest(key, [
+        Filter(kinds: [1]),
+      ]);
+    subscription.networkController.stream.listen((_) {});
+    state.inFlightRequests[subscription.id] = subscription;
   });
   tearDown(() async {
+    await subscription.close();
     await manager.closeAllTransports();
     for (final transport in factory.created) {
       await transport.close();
@@ -171,10 +170,12 @@ void main() {
       old.reconnect?.call();
       expect(current.stats.openRequestIds, {'live-request'});
       expect(current.stats.connectionErrors, errors);
-      expect(manager.resubscriptions, 0);
+      await pumpEventQueue();
+      expect(allReplays(), 0);
       await manager.closeAllTransports();
       old.reconnect?.call();
-      expect(manager.resubscriptions, 0);
+      await pumpEventQueue();
+      expect(allReplays(), 0);
       expect(state.relays, isEmpty);
     },
   );
@@ -194,7 +195,37 @@ void main() {
       transport.reconnect?.call();
       expect(state.relays, isEmpty);
       expect(transport.closed, isTrue);
-      expect(manager.resubscriptions, 0);
+      await pumpEventQueue();
+      expect(allReplays(), 0);
     },
+  );
+
+  test(
+    'a reconnect of the current transport replays its subscriptions',
+    () async {
+      await connect();
+
+      factory.created.single.reconnect?.call();
+      await pumpEventQueue();
+
+      expect(replays(factory.created.single), 1);
+    },
+  );
+
+  test(
+    'reconnectClosedConnections replaces a dead transport and replays',
+    () async {
+      await connect();
+      factory.created.single.open = false;
+
+      await manager.reconnectClosedConnections();
+      await pumpEventQueue();
+
+      expect(factory.created, hasLength(2));
+      expect(factory.created.first.closed, isTrue);
+      expect(replays(factory.created.last), 1);
+      expect(manager.isConnectionOpen(key), isTrue);
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
   );
 }

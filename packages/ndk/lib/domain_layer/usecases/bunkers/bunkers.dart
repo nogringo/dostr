@@ -14,7 +14,7 @@ import '../../entities/nip46_client_metadata.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_reqs.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {

@@ -216,15 +216,13 @@ void main() async {
             );
 
         // Register the request with both relays
-        manager.registerRelayRequest(
-          reqId: requestId,
-          connectionKey: RelayConnectionKey.anonymous(relay1.url),
-          filters: testFilters,
+        manager.globalState.inFlightRequests[requestId]!.addRequest(
+          RelayConnectionKey.anonymous(relay1.url),
+          testFilters,
         );
-        manager.registerRelayRequest(
-          reqId: requestId,
-          connectionKey: RelayConnectionKey.anonymous(relay2.url),
-          filters: testFilters,
+        manager.globalState.inFlightRequests[requestId]!.addRequest(
+          RelayConnectionKey.anonymous(relay2.url),
+          testFilters,
         );
 
         // Verify both relay requests are registered
