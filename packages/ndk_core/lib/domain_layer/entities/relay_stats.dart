@@ -1,5 +1,3 @@
-import 'package:collection/collection.dart';
-
 import 'nip_01_event.dart';
 
 /// relay stats
@@ -41,12 +39,12 @@ class RelayStats {
 
   /// Get total number of read events in this relay
   int getTotalEventsRead() {
-    return eventsRead.values.sum;
+    return eventsRead.values.fold(0, (a, b) => a + b);
   }
 
   /// Get total bytes read this relay
   int getTotalBytesRead() {
-    return dataReadBytes.values.sum;
+    return dataReadBytes.values.fold(0, (a, b) => a + b);
   }
 
   /// increment stats by new event

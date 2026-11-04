@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:collection/collection.dart';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:cryptography/cryptography.dart';
 
@@ -170,9 +169,18 @@ void verifyMac(
   Uint8List mac,
 ) {
   Uint8List calculatedMac = calculateMac(hmacKey, nonce, ciphertext);
-  if (!const ListEquality().equals(calculatedMac, mac)) {
+  if (!_constantTimeEquals(calculatedMac, mac)) {
     throw Exception('Invalid MAC');
   }
+}
+
+bool _constantTimeEquals(List<int> a, List<int> b) {
+  if (a.length != b.length) return false;
+  var diff = 0;
+  for (var i = 0; i < a.length; i++) {
+    diff |= a[i] ^ b[i];
+  }
+  return diff == 0;
 }
 
 String checkPublicKey(String publicKey) {
