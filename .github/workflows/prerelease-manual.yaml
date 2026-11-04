@@ -28,6 +28,7 @@ on:
           - ndk_nip19
           - ndk_bip340
           - ndk_nip44
+          - ndk_nip77
           - ndk_wallets
           - ndk_nwc
           - ndk_cashu

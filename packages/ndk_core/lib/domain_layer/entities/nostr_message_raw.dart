@@ -1,16 +1,6 @@
 import 'nip_01_event.dart';
 
-enum NostrMessageRawType {
-  notice,
-  event,
-  eose,
-  ok,
-  closed,
-  auth,
-  negMsg,
-  negErr,
-  unknown,
-}
+enum NostrMessageRawType { notice, event, eose, ok, closed, auth, unknown }
 
 class NostrMessageRaw {
   final NostrMessageRawType type;

@@ -1,13 +1,10 @@
 import 'dart:async';
 import 'dart:typed_data';
 
+import 'package:ndk_core/ndk_core.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../shared/nips/nip77/negentropy.dart';
-import 'filter.dart';
-import 'auth_handler.dart';
-import 'auth_policy.dart';
-import 'relay_connection_key.dart';
+import 'negentropy.dart';
 
 /// State of a NIP-77 negentropy reconciliation session
 class Nip77State implements TimeoutPausable {

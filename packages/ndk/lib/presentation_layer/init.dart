@@ -39,7 +39,7 @@ import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import '../domain_layer/usecases/dms/dms.dart';
-import '../domain_layer/usecases/nip77/nip77.dart';
+import 'package:ndk_nip77/ndk_nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
@@ -347,15 +347,10 @@ class Initialization {
     proofOfWork = ProofOfWork();
 
     nip77 = Nip77(
-      globalState: _globalState,
       relayManager: relayManager,
-      cacheManager: _ndkConfig.cache,
+      loadEventIds: _ndkConfig.cache.loadEventIdsWithCreatedAt,
+      loadEvent: _ndkConfig.cache.loadEvent,
     );
-
-    // Wire up NIP-77 handlers
-    relayManager.onNegMsg = nip77.processNegMsg;
-    relayManager.onNegErr = nip77.processNegErr;
-    relayManager.onNegClosed = nip77.processNegClosed;
 
     trustedAssertions = TrustedAssertions(
       requests: requests,

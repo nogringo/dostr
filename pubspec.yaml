@@ -14,6 +14,7 @@ workspace:
   - packages/nip19
   - packages/bip340
   - packages/nip44
+  - packages/nip77
   - packages/ndk_cache_manager_test_suite
   - packages/objectbox
   - packages/sembast

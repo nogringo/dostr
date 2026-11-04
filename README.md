@@ -33,6 +33,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip44`: NIP-44 encryption, and the deprecated NIP-04 encryption, in pure Dart.
 
+### [🔗 NIP-77](./packages/nip77/)
+
+`ndk_nip77`: NIP-77 negentropy sync on top of `ndk_core`, with the Negentropy V1 codec.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.

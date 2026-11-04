@@ -64,6 +64,12 @@ still exports what it did.
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
 [`ndk_nip44`](https://pub.dev/packages/ndk_nip44).
 
+NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
+`NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
+`inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or
+`onNegClosed`, and `ClientMsgType` no longer has the `kNeg` constants. A protocol of its own, NIP-77 included, plugs in with
+`RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
+
 `Helpers`, `Tuple` and `EventKindClassification` stay in `ndk` at their old
 paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
 `RelayManager.connectRelay` returns a `({bool connected, String error})` record.

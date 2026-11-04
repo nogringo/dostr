@@ -3,18 +3,73 @@ part of 'nip77.dart';
 /// Internal implementation of NIP-77 Negentropy sync.
 ///
 /// **Not part of the public API.** Use [Nip77] instead.
-class _Nip77Internal {
-  final GlobalState _globalState;
+class _Nip77Internal extends RelayProtocolHandler {
   final RelayManager _relayManager;
-  final CacheManager _cacheManager;
+  final Nip77LoadEventIds _loadEventIds;
+  final Nip77LoadEvent _loadEvent;
+
+  /// in-flight reconciliations, by subscription id
+  final Map<String, Nip77State> _sessions = {};
 
   _Nip77Internal({
-    required GlobalState globalState,
     required RelayManager relayManager,
-    required CacheManager cacheManager,
-  }) : _globalState = globalState,
-       _relayManager = relayManager,
-       _cacheManager = cacheManager;
+    required Nip77LoadEventIds loadEventIds,
+    required Nip77LoadEvent loadEvent,
+  }) : _relayManager = relayManager,
+       _loadEventIds = loadEventIds,
+       _loadEvent = loadEvent;
+
+  @override
+  bool onMessage(RelayConnectionKey key, List<dynamic> message) {
+    switch (message) {
+      case ['NEG-MSG', final String subscriptionId, final String payload, ...]:
+        _processNegMsg(subscriptionId, key, payload);
+        return true;
+      case ['NEG-ERR', final String subscriptionId, final String error, ...]:
+        _processNegErr(subscriptionId, key, error);
+        return true;
+    }
+    return false;
+  }
+
+  @override
+  bool onClosed(
+    RelayConnectionKey key,
+    String subscriptionId,
+    String? message,
+  ) {
+    if (!_sessions.containsKey(subscriptionId)) return false;
+    _processNegClosed(subscriptionId, key, message);
+    return true;
+  }
+
+  /// Some relays answer a NEG-OPEN they do not understand with a NOTICE, so
+  /// one that looks like a refusal fails every negotiation on that relay.
+  @override
+  void onNotice(RelayConnectionKey key, String message) {
+    final lower = message.toLowerCase();
+    final refusesNegentropy =
+        lower.contains('negentropy') ||
+        lower.contains('neg-') ||
+        lower.contains('unsupported') ||
+        lower.contains('unknown command') ||
+        lower.contains('not implemented') ||
+        lower.contains('nip-77');
+    if (!refusesNegentropy) return;
+
+    for (final entry in _sessions.entries.toList()) {
+      if (entry.value.relayUrl != key.url) continue;
+      entry.value.completeWithError(
+        Exception('Relay does not support NIP-77: $message'),
+      );
+      _sessions.remove(entry.key);
+    }
+  }
+
+  @override
+  bool hasWorkOn(RelayConnectionKey key) => _sessions.values.any(
+    (state) => !state.isCompleted && state.connectionKey == key,
+  );
 
   Nip77Response reconcile({
     required String relayUrl,
@@ -52,7 +107,7 @@ class _Nip77Internal {
     );
 
     // Register in global state
-    _globalState.inFlightNegotiations[subscriptionId] = state;
+    _sessions[subscriptionId] = state;
 
     // Start async initialization
     _startReconciliation(
@@ -78,7 +133,7 @@ class _Nip77Internal {
         state.completeWithError(
           Exception('Failed to connect to relay: ${state.connectionKey}'),
         );
-        _globalState.inFlightNegotiations.remove(subscriptionId);
+        _sessions.remove(subscriptionId);
         return;
       }
 
@@ -99,7 +154,7 @@ class _Nip77Internal {
       _sendNegOpen(state);
     } catch (e) {
       state.completeWithError(e);
-      _globalState.inFlightNegotiations.remove(subscriptionId);
+      _sessions.remove(subscriptionId);
     }
   }
 
@@ -174,7 +229,7 @@ class _Nip77Internal {
     final items = <neg.NegentropyItem>[];
 
     for (final id in ids) {
-      final event = await _cacheManager.loadEvent(id);
+      final event = await _loadEvent(id);
       if (event != null) {
         items.add(
           neg.NegentropyItem.fromHex(timestamp: event.createdAt, idHex: id),
@@ -188,7 +243,7 @@ class _Nip77Internal {
   }
 
   Future<List<neg.NegentropyItem>> _buildItemsFromFilter(Filter filter) async {
-    final events = await _cacheManager.loadEventIdsWithCreatedAt(filter);
+    final events = await _loadEventIds(filter);
     return [
       for (final e in events)
         neg.NegentropyItem.fromHex(timestamp: e.createdAt, idHex: e.id),
@@ -204,7 +259,7 @@ class _Nip77Internal {
     RelayConnectionKey key,
     String messageType,
   ) {
-    final state = _globalState.inFlightNegotiations[subscriptionId];
+    final state = _sessions[subscriptionId];
     if (state == null) {
       Logger.log.w(
         () => 'Received $messageType for unknown session: $subscriptionId',
@@ -223,7 +278,7 @@ class _Nip77Internal {
   }
 
   /// Process incoming NEG-MSG from a relay
-  void processNegMsg(
+  void _processNegMsg(
     String subscriptionId,
     RelayConnectionKey key,
     String payload,
@@ -239,7 +294,7 @@ class _Nip77Internal {
         // Reconciliation complete
         _sendNegClose(key, subscriptionId);
         state.complete();
-        _globalState.inFlightNegotiations.remove(subscriptionId);
+        _sessions.remove(subscriptionId);
         Logger.log.d(
           () =>
               'NEG reconciliation complete: need=${state.needIds.length}, have=${state.haveIds.length}',
@@ -254,12 +309,12 @@ class _Nip77Internal {
     } catch (e) {
       Logger.log.e(() => 'Error processing NEG-MSG: $e');
       state.completeWithError(e);
-      _globalState.inFlightNegotiations.remove(subscriptionId);
+      _sessions.remove(subscriptionId);
     }
   }
 
   /// Process incoming NEG-ERR from a relay
-  void processNegErr(
+  void _processNegErr(
     String subscriptionId,
     RelayConnectionKey key,
     String errorMsg,
@@ -280,13 +335,13 @@ class _Nip77Internal {
       state.completeWithError(Exception(errorMsg));
     }
 
-    _globalState.inFlightNegotiations.remove(subscriptionId);
+    _sessions.remove(subscriptionId);
   }
 
   /// Process a CLOSED that ends a negotiation. NIP-77 only names NEG-ERR, but
   /// relays that gate NEG-OPEN behind NIP-42 commonly refuse it the way they
   /// refuse a REQ.
-  void processNegClosed(
+  void _processNegClosed(
     String subscriptionId,
     RelayConnectionKey key,
     String? message,
@@ -305,7 +360,7 @@ class _Nip77Internal {
     }
 
     state.completeWithError(Exception(reason.isEmpty ? 'closed' : reason));
-    _globalState.inFlightNegotiations.remove(subscriptionId);
+    _sessions.remove(subscriptionId);
   }
 
   /// NIP-77 only suggests `blocked` and `closed`, so a relay that gates the
@@ -318,7 +373,7 @@ class _Nip77Internal {
 
   void _fail(Nip77State state, Object error) {
     state.completeWithError(error);
-    _globalState.inFlightNegotiations.remove(state.subscriptionId);
+    _sessions.remove(state.subscriptionId);
   }
 
   /// Reopens a refused negotiation on a connection bound to an identity, the
@@ -440,19 +495,19 @@ class _Nip77Internal {
   }
 
   void close(String subscriptionId) {
-    final state = _globalState.inFlightNegotiations[subscriptionId];
+    final state = _sessions[subscriptionId];
     if (state != null) {
       _sendNegClose(state.connectionKey, subscriptionId);
       state.close();
-      _globalState.inFlightNegotiations.remove(subscriptionId);
+      _sessions.remove(subscriptionId);
     }
   }
 
   void closeAll() {
-    for (final entry in _globalState.inFlightNegotiations.entries.toList()) {
+    for (final entry in _sessions.entries.toList()) {
       _sendNegClose(entry.value.connectionKey, entry.key);
       entry.value.close();
     }
-    _globalState.inFlightNegotiations.clear();
+    _sessions.clear();
   }
 }

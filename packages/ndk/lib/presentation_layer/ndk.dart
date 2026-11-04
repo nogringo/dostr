@@ -20,7 +20,7 @@ import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import '../domain_layer/usecases/dms/dms.dart';
-import '../domain_layer/usecases/nip77/nip77.dart';
+import 'package:ndk_nip77/ndk_nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart';

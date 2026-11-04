@@ -1,17 +1,20 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk/ndk.dart';
-
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/nips/nip77/negentropy.dart' as neg;
-import 'package:ndk_core/domain_layer/entities/connection_source.dart';
-import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/nip77_state.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+
+import 'negentropy.dart' as neg;
+import 'nip77_state.dart';
 
 part 'nip77_internal.dart';
+
+/// Ids and creation times of the local events matching a filter
+typedef Nip77LoadEventIds =
+    Future<List<({String id, int createdAt})>> Function(Filter filter);
+
+/// One local event by id, or null when it is not stored
+typedef Nip77LoadEvent = Future<Nip01Event?> Function(String id);
 
 /// Exception thrown when a relay doesn't support NIP-77
 class Nip77NotSupportedException implements Exception {
@@ -111,49 +114,25 @@ class Nip77Response {
 class Nip77 {
   final _Nip77Internal _internal;
 
+  /// Reconciles over the connections of [relayManager], comparing the relay's
+  /// events with the local ones that [loadEventIds] and [loadEvent] return.
   Nip77({
-    required GlobalState globalState,
     required RelayManager relayManager,
-    required CacheManager cacheManager,
+    required Nip77LoadEventIds loadEventIds,
+    required Nip77LoadEvent loadEvent,
   }) : _internal = _Nip77Internal(
-         globalState: globalState,
          relayManager: relayManager,
-         cacheManager: cacheManager,
-       );
+         loadEventIds: loadEventIds,
+         loadEvent: loadEvent,
+       ) {
+    relayManager.addProtocolHandler(_internal);
+  }
 
   /// How long a relay may take to answer NEG-OPEN by default
   static const Duration defaultOpenTimeout = Duration(seconds: 30);
 
   /// How long a relay may stay silent between two rounds by default
   static const Duration defaultIdleTimeout = Duration(seconds: 15);
-
-  /// Process incoming NEG-MSG from a relay
-  void processNegMsg(
-    String subscriptionId,
-    RelayConnectionKey key,
-    String payload,
-  ) {
-    _internal.processNegMsg(subscriptionId, key, payload);
-  }
-
-  /// Process incoming NEG-ERR from a relay
-  void processNegErr(
-    String subscriptionId,
-    RelayConnectionKey key,
-    String errorMsg,
-  ) {
-    _internal.processNegErr(subscriptionId, key, errorMsg);
-  }
-
-  /// Process a CLOSED that ends a negotiation, which is how some relays refuse
-  /// a NEG-OPEN instead of answering NEG-ERR
-  void processNegClosed(
-    String subscriptionId,
-    RelayConnectionKey key,
-    String? message,
-  ) {
-    _internal.processNegClosed(subscriptionId, key, message);
-  }
 
   /// Close a specific NIP-77 negotiation
   void close(String subscriptionId) {

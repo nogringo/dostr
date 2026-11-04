@@ -6,17 +6,26 @@ import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk_core/domain_layer/entities/nip77_state.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/relay.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
+import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';
 import 'package:ndk_core/domain_layer/entities/request_state.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk/ndk.dart' show Ndk, Nip77;
+import 'package:ndk/ndk.dart' show Ndk;
 import 'package:ndk_core/shared/nips/nip01/client_msg.dart';
+
+class _NeedsConnection extends RelayProtocolHandler {
+  final RelayConnectionKey key;
+
+  _NeedsConnection(this.key);
+
+  @override
+  bool hasWorkOn(RelayConnectionKey key) => key == this.key;
+}
 
 class _Transport implements NostrTransport {
   bool closed = false;
@@ -158,9 +167,6 @@ void main() {
       await broadcast.publishDoneFuture;
     }
     broadcasts.clear();
-    for (final negotiation in state.inFlightNegotiations.values) {
-      negotiation.close();
-    }
     await manager.closeAllTransports();
   });
 
@@ -376,17 +382,10 @@ void main() {
     },
   );
 
-  test('NIP77 negotiation keeps only its current connection', () async {
+  test('a protocol handler keeps only the connections it needs', () async {
     connect(anonymous);
     connect(authenticated);
-    state.inFlightNegotiations['negotiation'] = Nip77State(
-      subscriptionId: 'negotiation',
-      connectionKey: authenticated,
-      filter: Filter(kinds: [1]),
-      localItems: [],
-      openTimeout: Nip77.defaultOpenTimeout,
-      idleTimeout: Nip77.defaultIdleTimeout,
-    );
+    manager.addProtocolHandler(_NeedsConnection(authenticated));
     await manager.closeIdleConnections();
     expect(state.relays.keys, [authenticated]);
   });

@@ -62,18 +62,6 @@ NostrMessageRaw decodeNostrMsg(String msgJsonStr) {
           type: NostrMessageRawType.auth,
           otherData: decoded,
         );
-      case 'NEG-MSG':
-        return NostrMessageRaw(
-          type: NostrMessageRawType.negMsg,
-          requestId: decoded.length > 1 ? decoded[1] : null,
-          otherData: decoded,
-        );
-      case 'NEG-ERR':
-        return NostrMessageRaw(
-          type: NostrMessageRawType.negErr,
-          requestId: decoded.length > 1 ? decoded[1] : null,
-          otherData: decoded,
-        );
       default:
         return NostrMessageRaw(
           type: NostrMessageRawType.unknown,

@@ -23,6 +23,7 @@ import '../entities/relay.dart';
 import '../entities/auth_policy.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
+import '../entities/relay_protocol_handler.dart';
 import '../entities/request_state.dart';
 import '../repositories/nostr_transport.dart';
 import '../repositories/auth_accounts.dart';
@@ -88,17 +89,7 @@ class RelayManager<T> {
   /// in flight [authHandler] questions, so concurrent openings ask once
   final Map<RelayConnectionKey, Future<bool>> _consents = {};
 
-  /// Handler for NIP-77 NEG-MSG messages
-  void Function(String subscriptionId, RelayConnectionKey key, String payload)?
-  onNegMsg;
-
-  /// Handler for NIP-77 NEG-ERR messages
-  void Function(String subscriptionId, RelayConnectionKey key, String errorMsg)?
-  onNegErr;
-
-  /// Handler for CLOSED messages that end a NIP-77 negotiation
-  void Function(String subscriptionId, RelayConnectionKey key, String? message)?
-  onNegClosed;
+  final List<RelayProtocolHandler> _protocolHandlers = [];
 
   /// nostr transport factory, to create new transports (usually websocket)
   final NostrTransportFactory nostrTransportFactory;
@@ -133,6 +124,17 @@ class RelayManager<T> {
   }) : _accounts = accounts {
     allowReconnectRelays = allowReconnect;
     _connectSeedRelays(urls: bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS);
+  }
+
+  /// Hands [handler] the messages, CLOSED and NOTICE this manager does not
+  /// handle itself, and keeps the connections it still needs open.
+  void addProtocolHandler(RelayProtocolHandler handler) {
+    _protocolHandlers.add(handler);
+  }
+
+  /// Stops handing messages to [handler].
+  void removeProtocolHandler(RelayProtocolHandler handler) {
+    _protocolHandlers.remove(handler);
   }
 
   void updateRelayConnectivity() {
@@ -978,6 +980,13 @@ class RelayManager<T> {
     dynamic message,
   ) {
     if (nostrMsg.type == NostrMessageRawType.unknown) {
+      final data = nostrMsg.otherData;
+      if (data is List &&
+          List.of(
+            _protocolHandlers,
+          ).any((handler) => handler.onMessage(relayConnectivity.key, data))) {
+        return Future.value();
+      }
       Logger.log.w(
         () =>
             "Received non NostrMessageRaw message from ${relayConnectivity.url}: $nostrMsg",
@@ -1014,33 +1023,8 @@ class RelayManager<T> {
       final noticeMsg = eventJson[1] as String? ?? '';
       Logger.log.w(() => "NOTICE from ${relayConnectivity.url}: $noticeMsg");
       _logActiveRequests();
-
-      // Check if this is a negentropy-related error
-      // Look for various patterns relays might use to reject NEG commands
-      final noticeLower = noticeMsg.toLowerCase();
-      final isNegentropyError =
-          noticeLower.contains('negentropy') ||
-          noticeLower.contains('neg-') ||
-          noticeLower.contains('unsupported') ||
-          noticeLower.contains('unknown command') ||
-          noticeLower.contains('not implemented') ||
-          noticeLower.contains('nip-77');
-
-      if (isNegentropyError) {
-        // Fail all in-flight negotiations for this relay
-        final relayUrl = relayConnectivity.url;
-        final toRemove = <String>[];
-        for (final entry in globalState.inFlightNegotiations.entries) {
-          if (entry.value.relayUrl == relayUrl) {
-            entry.value.completeWithError(
-              Exception('Relay does not support NIP-77: $noticeMsg'),
-            );
-            toRemove.add(entry.key);
-          }
-        }
-        for (final key in toRemove) {
-          globalState.inFlightNegotiations.remove(key);
-        }
+      for (final handler in List.of(_protocolHandlers)) {
+        handler.onNotice(relayConnectivity.key, noticeMsg);
       }
     } else if (nostrMsg.type == NostrMessageRawType.event) {
       _handleIncomingEvent(
@@ -1081,24 +1065,6 @@ class RelayManager<T> {
       // it would become attributable. A bound one answers as soon as it can.
       if (!relayConnectivity.key.isAnonymous) {
         unawaited(authenticateConnection(relayConnectivity.key));
-      }
-      return Future.value();
-    }
-    if (nostrMsg.type == NostrMessageRawType.negMsg) {
-      final msgData = nostrMsg.otherData;
-      if (msgData.length >= 3 && onNegMsg != null) {
-        final subscriptionId = msgData[1] as String;
-        final payload = msgData[2] as String;
-        onNegMsg!(subscriptionId, relayConnectivity.key, payload);
-      }
-      return Future.value();
-    }
-    if (nostrMsg.type == NostrMessageRawType.negErr) {
-      final msgData = nostrMsg.otherData;
-      if (msgData.length >= 3 && onNegErr != null) {
-        final subscriptionId = msgData[1] as String;
-        final errorMsg = msgData[2] as String;
-        onNegErr!(subscriptionId, relayConnectivity.key, errorMsg);
       }
       return Future.value();
     }
@@ -1499,11 +1465,10 @@ class RelayManager<T> {
     String id = eventJson[1];
     String? message = eventJson.length > 2 ? eventJson[2] : null;
 
-    // a negentropy session is not a REQ: it owns its own retry and never has a
+    // a protocol session is not a REQ: it owns its own retry and never has a
     // RequestState for the auth branch below to find
-    if (globalState.inFlightNegotiations.containsKey(id)) {
-      onNegClosed?.call(id, relayConnectivity.key, message);
-      return;
+    for (final handler in List.of(_protocolHandlers)) {
+      if (handler.onClosed(relayConnectivity.key, id, message)) return;
     }
 
     // Check if this is an auth-required CLOSED message
@@ -2196,9 +2161,7 @@ class RelayManager<T> {
         return true;
       }
     }
-    return globalState.inFlightNegotiations.values.any(
-      (state) => !state.isCompleted && state.connectionKey == key,
-    );
+    return _protocolHandlers.any((handler) => handler.hasWorkOn(key));
   }
 
   /// Closes one connection and forgets it. An entry that lost its transport, to
