@@ -557,6 +557,29 @@ void relayOutcomesTests(NdkEngine engine) {
       });
     });
 
+    test('a subscription reports the relays that caught up', () async {
+      relay1 = MockRelay(name: "relay 1", signEvents: false);
+      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      ndk = buildNdk();
+
+      final response = ndk.requests.subscription(
+        filter: Filter(
+          kinds: [Nip01Event.kTextNodeKind],
+          authors: [key1.publicKey],
+        ),
+        cacheRead: false,
+      );
+
+      expect(
+        await response.relayOutcomesStream.firstWhere(
+          (outcomes) => outcomes[relay1.url]?.status == RelayRequestStatus.eose,
+        ),
+        {relay1.url: RelayRequestOutcome(RelayRequestStatus.eose)},
+      );
+
+      await ndk.requests.closeSubscription(response.requestId);
+    });
+
     test('a subscription streams its relays until it is closed', () async {
       relay1 = MockRelay(
         name: "relay 1",

@@ -127,3 +127,7 @@ path. To publish an event that still has to be signed, open it with
 `NdkBroadcastResponse.fromState` is gone too: read `RelayPublish.response`.
 `NetworkEngine.handleEventBroadcast` in `ndk` became `routeBroadcast`, which
 gets the signed event and only picks its relays.
+
+A subscription now reports `RelayRequestStatus.eose` on each relay that sent
+its EOSE, instead of staying `pending` until it is closed. It still runs until
+closed, and a CLOSED, a lost connection or its timeout replace that `eose`.

@@ -146,7 +146,8 @@ class RelayReq {
   /// Single-subscription: cancelling it closes the request, like [close].
   Stream<Nip01Event> get events => _events.stream;
 
-  /// What the request ended with on each relay so far, keyed by relay url.
+  /// Where the request stands on each relay so far, keyed by relay url. A
+  /// subscription shows [RelayRequestStatus.eose] on a relay that caught up.
   Map<String, RelayRequestOutcome> get outcomes => _state.relayOutcomes;
 
   /// [outcomes] on every change, closed once the request is over.

@@ -8,7 +8,8 @@ enum RelayRequestStatus {
   /// the relay has not ended the request, it may still send events
   pending,
 
-  /// the relay sent an EOSE, it has given everything it stored
+  /// the relay sent an EOSE, it has given everything it stored. A
+  /// subscription stays open on it for new events
   eose,
 
   /// the relay ended the request itself with a CLOSED

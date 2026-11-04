@@ -184,6 +184,33 @@ void main() {
       ]);
     });
 
+    test('reports the relays that caught up and stays open', () async {
+      final caughtUp = await startRelay();
+      final silent = await startRelay(answerRequests: false);
+      final req = reqs.req(
+        relays: {caughtUp.url: notes, silent.url: notes},
+        closeOnEose: false,
+      );
+      final received = <Nip01Event>[];
+      req.events.listen(received.add);
+
+      await eventually(
+        () => req.outcomes[caughtUp.url]?.status == RelayRequestStatus.eose,
+      );
+      expect(req.outcomes[silent.url]?.status, RelayRequestStatus.pending);
+      expect(caughtUp.received('CLOSE'), isEmpty);
+
+      final live = signedEvent(content: 'after the eose');
+      caughtUp.sendToAll([
+        'EVENT',
+        req.id,
+        Nip01EventModel.fromEntity(live).toJson(),
+      ]);
+      await eventually(() => received.any((e) => e.id == live.id));
+      expect(reqs.openIds, [req.id]);
+      await req.close();
+    });
+
     test('cancelling its events closes the request', () async {
       final relay = await startRelay();
       final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);

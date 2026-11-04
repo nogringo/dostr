@@ -875,11 +875,7 @@ class RelayManager {
   void _endRequestsLeftBehind(RelayConnectionKey key) {
     for (final state in _globalState.inFlightRequests.values.toList()) {
       final request = state.requests[key];
-      if (request == null ||
-          request.retryingAuth ||
-          request.receivedEOSE ||
-          request.receivedClosed ||
-          request.notSent) {
+      if (request == null || request.retryingAuth || state.endedOn(request)) {
         continue;
       }
       request.connectionGone = true;
@@ -1235,23 +1231,17 @@ class RelayManager {
   ) {
     String id = eventJson[1];
     RequestState? state = _globalState.inFlightRequests[id];
-    if (state != null && state.closeOnEose) {
-      Logger.log.t(
-        () =>
-            "⛁ received EOSE from ${relayConnectivity.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
-      );
-      RelayRequestState? request = state.requests[relayConnectivity.key];
-      if (request != null) {
-        request.receivedEOSE = true;
-      }
+    if (state == null) return;
+    Logger.log.t(
+      () =>
+          "⛁ received EOSE from ${relayConnectivity.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
+    );
+    state.requests[relayConnectivity.key]?.receivedEOSE = true;
+    if (!state.closeOnEose) return;
 
-      if (state.closeOnEose) {
-        _sendCloseToRelay(relayConnectivity, state.id);
-        _checkNetworkClose(state);
-        _logActiveRequests();
-      }
-    }
-    return;
+    _sendCloseToRelay(relayConnectivity, state.id);
+    _checkNetworkClose(state);
+    _logActiveRequests();
   }
 
   /// handles CLOSED messages
@@ -1469,12 +1459,8 @@ class RelayManager {
   Future<void> _closeRequest(RequestState state) async {
     for (final relay in connectedRelays) {
       final request = state.requests[relay.key];
-      if (request == null) continue;
-      // a request the relay ended itself, with a CLOSED or with the EOSE of a
-      // query, is already closed on its side
-      final endedOnRelay =
-          request.receivedClosed || (state.closeOnEose && request.receivedEOSE);
-      if (endedOnRelay) continue;
+      // a request the relay ended itself, or never got, needs no CLOSE
+      if (request == null || state.endedOn(request)) continue;
       _sendCloseToConnection(relay.key, state.id);
     }
 
@@ -1816,20 +1802,14 @@ class RelayManager {
     final bool didAllRelaysFinish = state.requests.values.every(
       (element) =>
           !element.retryingAuth &&
-          (element.receivedEOSE ||
-              element.receivedClosed ||
-              element.notSent ||
+          (state.endedOn(element) ||
               myNotConnectedRelays.contains(element.key)),
     );
 
     if (didAllRelaysFinish) {
       for (final key in myNotConnectedRelays) {
         final request = state.requests[key]!;
-        if (!request.receivedEOSE &&
-            !request.receivedClosed &&
-            !request.notSent) {
-          request.connectionGone = true;
-        }
+        if (!state.endedOn(request)) request.connectionGone = true;
       }
       state.networkController.close();
       _updateRelayConnectivity();

@@ -124,4 +124,69 @@ void main() {
       });
     });
   });
+
+  group('a subscription after its EOSE', () {
+    const url = "wss://relay.example.com";
+    final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
+    final key = RelayConnectionKey.anonymous(url);
+
+    RequestState caughtUp() {
+      final state = RequestState.subscription("caught-up")
+        ..addRequest(key, [filter]);
+      state.requests[key]!.receivedEOSE = true;
+      return state;
+    }
+
+    test('reports eose and is not over', () {
+      final state = caughtUp();
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.eose),
+      });
+      expect(state.endedOn(state.requests[key]!), isFalse);
+      expect(state.didAllRequestsFinish, isFalse);
+    });
+
+    test('reports the CLOSED that ends it on the relay', () {
+      final state = caughtUp();
+      state.requests[key]!.markClosed("error: shutting down");
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(
+          RelayRequestStatus.closed,
+          message: "error: shutting down",
+        ),
+      });
+      expect(state.didAllRequestsFinish, isTrue);
+    });
+
+    test('reports a connection that went away', () {
+      final state = caughtUp();
+      state.requests[key]!.connectionGone = true;
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.disconnected),
+      });
+    });
+
+    test('is pending again once sent again', () {
+      final state = caughtUp();
+      state.requests[key]!.markSent();
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.pending),
+      });
+    });
+
+    test('a query keeps its eose over a later timeout', () {
+      final state = RequestState.query("query")..addRequest(key, [filter]);
+      state.requests[key]!.receivedEOSE = true;
+      state.timedOut = true;
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.eose),
+      });
+      expect(state.didAllRequestsFinish, isTrue);
+    });
+  });
 }

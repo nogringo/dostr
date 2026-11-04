@@ -111,16 +111,18 @@ class RelayRequestState {
     onOutcomeChanged?.call();
   }
 
-  /// The request is on its way to the relay again, so whatever ended it the
-  /// last time no longer holds.
+  /// The request is on its way to the relay again, so nothing the relay
+  /// answered the last time holds anymore.
   void markSent() {
-    if (!_receivedClosed &&
+    if (!_receivedEOSE &&
+        !_receivedClosed &&
         _closedMessage == null &&
         !_connectionGone &&
         !_notSent &&
         !_retryingAuth) {
       return;
     }
+    _receivedEOSE = false;
     _receivedClosed = false;
     _closedMessage = null;
     _connectionGone = false;
@@ -269,16 +271,19 @@ class RequestState implements TimeoutPausable {
     _startTimeout(remaining);
   }
 
-  /// checks if all requests finished (received EOSE or CLOSED, or could not be
-  /// sent)
+  /// Whether the relay behind [request] is done with it: it ended it with a
+  /// CLOSED, never got it, or sent the EOSE of a query. A subscription
+  /// outlives its EOSE.
+  bool endedOn(RelayRequestState request) =>
+      (closeOnEose && request.receivedEOSE) ||
+      request.receivedClosed ||
+      request.notSent;
+
+  /// checks if all requests finished on their relays, see [endedOn]
   bool get didAllRequestsFinish =>
       pendingConnections == 0 &&
       requests.values.every(
-        (element) =>
-            (element.receivedEOSE ||
-                element.receivedClosed ||
-                element.notSent) &&
-            !element.retryingAuth,
+        (element) => endedOn(element) && !element.retryingAuth,
       );
 
   final Map<String, RelayRequestOutcome> _relayOutcomes = {};
@@ -366,7 +371,7 @@ class RequestState implements TimeoutPausable {
     if (request.retryingAuth) {
       return const RelayRequestOutcome(RelayRequestStatus.pending);
     }
-    if (request.receivedEOSE) {
+    if (closeOnEose && request.receivedEOSE) {
       return const RelayRequestOutcome(RelayRequestStatus.eose);
     }
     if (request.receivedClosed) {
@@ -386,6 +391,10 @@ class RequestState implements TimeoutPausable {
     }
     if (timedOut) {
       return const RelayRequestOutcome(RelayRequestStatus.timedOut);
+    }
+    // a subscription that caught up, still open for new events
+    if (request.receivedEOSE) {
+      return const RelayRequestOutcome(RelayRequestStatus.eose);
     }
     return const RelayRequestOutcome(RelayRequestStatus.pending);
   }

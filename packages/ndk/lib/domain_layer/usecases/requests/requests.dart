@@ -511,11 +511,13 @@ class Requests {
       if (hash != null && identical(_sharedByHash[hash], shared)) {
         _sharedByHash.remove(hash);
       }
-      _recordFetchedRanges(
-        relayReq.outcomes,
-        sentFilters,
-        oldestNetworkEventByRelay,
-      );
+      if (relayReq.closeOnEose) {
+        _recordFetchedRanges(
+          relayReq.outcomes,
+          sentFilters,
+          oldestNetworkEventByRelay,
+        );
+      }
       Logger.log.d(() => "req done: ${relayReq.id}");
     });
 
