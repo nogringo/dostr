@@ -7,7 +7,7 @@ import 'relay_connection_key.dart';
 import 'relay_stats.dart';
 
 /// Represents the connectivity of a relay.
-class RelayConnectivity<T> {
+class RelayConnectivity {
   /// identifies this connection: the relay and the identity bound to it
   final RelayConnectionKey key;
 
@@ -59,9 +59,6 @@ class RelayConnectivity<T> {
     }
   }
 
-  /// specific data that a engine might require for algorithms to work
-  final T? specificEngineData;
-
   /// relay url/identifier
   String get url => key.url;
 
@@ -74,6 +71,5 @@ class RelayConnectivity<T> {
     required this.key,
     required this.relay,
     this.relayTransport,
-    this.specificEngineData,
   });
 }

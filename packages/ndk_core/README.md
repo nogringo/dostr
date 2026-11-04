@@ -78,3 +78,20 @@ paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
 `RelayInfoRepo`, `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in `ndk` at
 their old paths. `ndk.connectivity.getRelayInfo` fetches and caches the
 documents, and the deprecated `RelayInfo.get` is gone.
+
+`RelayManager` connects to no relay unless you pass `bootstrapRelays`.
+`DEFAULT_BOOTSTRAP_RELAYS` stays in `ndk` at its old path, and `NdkConfig`
+still defaults to it. `RequestDefaults` and `BroadcastDefaults` keep only what
+`ndk_core` uses. `ndk` has both classes at their old paths with everything
+else, including `DEFAULT_QUERY_TIMEOUT`, `DEFAULT_USER_AGENT` and
+`MAX_INBOX_RELAYS_TO_BROADCAST`.
+
+`Nip13` stays in `ndk` at its old path. `Nip01Utils.isIdValid` checks the id
+alone and no longer rejects an event that misses the proof-of-work target its
+`nonce` tag declares. `Nip01Utils.createEventCalculateId` and
+`Nip01Utils.calculateEventId` are gone: `Nip01Event` computes its own id.
+
+`RelayManager` and `RelayConnectivity` are no longer generic.
+`EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and
+`RelayStats.touched` and `touchUseful` are gone: they only served the JIT
+engine of `ndk`, which now keeps its data on its own.

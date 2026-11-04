@@ -1,8 +1,8 @@
-import 'package:ndk_core/config/bootstrap_relays.dart';
+import 'package:ndk/config/bootstrap_relays.dart';
 import '../config/nip85_defaults.dart';
-import 'package:ndk_core/config/broadcast_defaults.dart';
+import 'package:ndk/config/broadcast_defaults.dart';
 import 'package:ndk_core/config/logger_defaults.dart';
-import 'package:ndk_core/config/request_defaults.dart';
+import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/cache_eviction.dart';

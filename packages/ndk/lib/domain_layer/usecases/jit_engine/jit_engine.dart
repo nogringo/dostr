@@ -64,9 +64,7 @@ class JitEngine with Logger implements NetworkEngine {
     await relayManagerLight.seedRelaysConnected;
 
     final plan = JitRequestPlan(send);
-    final connectedRelays = relayManagerLight.connectedAnonymousRelays
-        .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
-        .toList();
+    final connectedRelays = relayManagerLight.connectedAnonymousRelays;
     final cleanIgnoreRelays = cleanRelayUrls(ignoreRelays);
     final candidates = <JitRelayCandidate>[];
 
@@ -201,12 +199,12 @@ class JitEngine with Logger implements NetworkEngine {
 
   /// checks if relay covers given pubkey in given direction
   static bool doesRelayCoverPubkey(
-    RelayConnectivity<JitEngineRelayConnectivityData> relay,
+    RelayConnectivity relay,
     String pubkey,
     ReadWriteMarker direction,
   ) {
     for (RelayJitAssignedPubkey assignedPubkey
-        in relay.specificEngineData!.assignedPubkeys) {
+        in relay.jitEngineData.assignedPubkeys) {
       if (assignedPubkey.pubkey == pubkey) {
         switch (direction) {
           case ReadWriteMarker.readOnly:

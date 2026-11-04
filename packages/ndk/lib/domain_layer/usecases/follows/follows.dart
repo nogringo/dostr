@@ -1,4 +1,4 @@
-import 'package:ndk_core/config/request_defaults.dart';
+import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/contact_list.dart';

@@ -1,4 +1,5 @@
-import 'package:ndk_core/domain_layer/entities/engine_additional_data_factory.dart';
+import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
+
 import 'read_write_marker.dart';
 
 /// additional data for the JIT engine
@@ -28,12 +29,10 @@ class RelayJitAssignedPubkey {
   RelayJitAssignedPubkey(this.pubkey, this.direction);
 }
 
-/// Factory for creating additional data for the engine
-class JitEngineRelayConnectivityDataFactory
-    implements EngineAdditionalDataFactory<JitEngineRelayConnectivityData> {
-  @override
-  JitEngineRelayConnectivityData call() {
-    // create a new instance of the data
-    return JitEngineRelayConnectivityData();
-  }
+final _jitEngineData = Expando<JitEngineRelayConnectivityData>();
+
+extension JitEngineRelayConnectivity on RelayConnectivity {
+  /// the JIT engine data of this connection, gone with the connection
+  JitEngineRelayConnectivityData get jitEngineData =>
+      _jitEngineData[this] ??= JitEngineRelayConnectivityData();
 }

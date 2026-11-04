@@ -232,8 +232,8 @@ void main() {
       expect(await verifier.verify(event), isFalse);
     });
 
-    test('rejects malformed packed FFI inputs for the combined id/PoW/'
-        'signature check', () {
+    test('rejects malformed packed FFI inputs for the combined id/signature '
+        'check', () {
       const packedLength = 64 + 64 + 128;
       const oversizedLength = packedLength + 10;
       final truncatedPacked = calloc<Uint8>(packedLength - 10);
@@ -304,7 +304,7 @@ void main() {
     });
 
     test(
-      'rejects event whose declared proof-of-work target is not met',
+      'accepts event whose declared proof-of-work target is not met',
       () async {
         final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
         final tags = [
@@ -327,7 +327,7 @@ void main() {
           sig: Bip340.sign(id, keyPair.privateKey!),
         );
 
-        expect(await verifier.verify(event), isFalse);
+        expect(await verifier.verify(event), isTrue);
       },
     );
 

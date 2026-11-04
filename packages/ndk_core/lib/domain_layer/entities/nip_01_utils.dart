@@ -3,59 +3,19 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../../data_layer/models/nip_01_event_model.dart';
-import '../../shared/isolates/isolate_manager.dart';
-import '../../shared/nips/nip13/nip13.dart';
 import 'nip_01_event.dart';
 
 class Nip01Utils {
-  /// create event and calculate id \
-  /// [returns] event with calculated id
-  static Nip01Event createEventCalculateId({
-    required String pubKey,
-    required int kind,
-    required List<List<String>> tags,
-    required String content,
-    int createdAt = 0,
-  }) {
-    final id = calculateEventIdSync(
-      pubKey: pubKey,
-      createdAt: createdAt,
-      kind: kind,
-      tags: tags,
-      content: content,
-    );
-
-    final event = Nip01Event(
-      id: id,
-      pubKey: pubKey,
-      kind: kind,
-      tags: tags,
-      content: content,
-      createdAt: createdAt,
-      sources: [],
-    );
-
-    return event;
-  }
-
-  /// checks if event id is valid, including proof of work if present
+  /// checks if event id matches the event data (NIP-01)
   static bool isIdValid(Nip01Event event) {
-    // Validate event data
-    if (event.id !=
+    return event.id ==
         calculateEventIdSync(
           pubKey: event.pubKey,
           createdAt: event.createdAt,
           kind: event.kind,
           tags: event.tags,
           content: event.content,
-        )) {
-      return false;
-    }
-    // Validate proof of work if present
-    if (!Nip13.validateEvent(event)) {
-      return false;
-    }
-    return true;
+        );
   }
 
   /// Calculate event id synchronously
@@ -81,30 +41,6 @@ class Nip01Utils {
         sources: [],
       ),
     );
-  }
-
-  /// Calculate event id asynchronously running in an isolate
-  static Future<String> calculateEventId({
-    required String publicKey,
-    required int createdAt,
-    required int kind,
-    required List<dynamic> tags,
-    required String content,
-  }) async {
-    final id = await IsolateManager.instance
-        .runInComputeIsolate<Nip01Event, String>(
-          calculateId,
-          Nip01Event(
-            pubKey: publicKey,
-            createdAt: createdAt,
-            kind: kind,
-            tags: List<List<String>>.from(
-              tags.map((tag) => List<String>.from(tag)),
-            ),
-            content: content,
-          ),
-        );
-    return id;
   }
 
   static String calculateId(Nip01Event event) {

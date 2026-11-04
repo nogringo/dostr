@@ -13,10 +13,10 @@ final class QsBuffer extends Struct {
 
 // ── Existing Nostr / Schnorr bindings ──────────────────────────────────
 
-/// Verifies id derivation, NIP-13 proof-of-work, and the Schnorr signature of a
-/// Nostr event from one packed ASCII buffer containing event id (64 bytes),
-/// pubkey (64 bytes), and signature (128 bytes), plus the remaining fields
-/// needed to recompute the id hash. Replaces the previous
+/// Verifies id derivation and the Schnorr signature of a Nostr event from one
+/// packed ASCII buffer containing event id (64 bytes), pubkey (64 bytes), and
+/// signature (128 bytes), plus the remaining fields needed to recompute the id
+/// hash. Replaces the previous
 /// `Nip01Utils.isIdValid` (Dart-side JSON re-serialization and re-hashing) with
 /// a single native call.
 @Native<

@@ -24,10 +24,10 @@ class RustEventVerifier implements EventVerifier {
       return false;
     }
 
-    // Id derivation, NIP-13 proof-of-work, and Schnorr verification all happen
-    // in one native call. The fixed-size id/pubkey/signature triplet is packed
-    // into a single allocation; tags and content are variable-length and must
-    // still cross the FFI boundary since the id hash is derived from them.
+    // Id derivation and Schnorr verification both happen in one native call.
+    // The fixed-size id/pubkey/signature triplet is packed into a single
+    // allocation; tags and content are variable-length and must still cross
+    // the FFI boundary since the id hash is derived from them.
     const packedLength = 64 + 64 + 128;
     final packed = malloc<Uint8>(packedLength);
 

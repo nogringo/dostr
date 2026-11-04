@@ -1,7 +1,7 @@
 import 'dart:math';
 
-import '../../../domain_layer/entities/nip_01_event.dart';
-import '../../isolates/isolate_manager.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_core/shared/isolates/isolate_manager.dart';
 
 class _MiningParams {
   final Nip01Event event;

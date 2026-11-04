@@ -11,11 +11,11 @@ use secp256k1::{schnorr::Signature, XOnlyPublicKey, SECP256K1};
 use sha2::{Digest, Sha256};
 use zeroize::Zeroize;
 
-/// Verifies id derivation, NIP-13 proof-of-work, and the Schnorr signature of a
-/// Nostr event from one packed ASCII buffer (id, pubkey, signature) plus the
-/// remaining fields needed to recompute the id hash.
+/// Verifies id derivation and the Schnorr signature of a Nostr event from one
+/// packed ASCII buffer (id, pubkey, signature) plus the remaining fields needed
+/// to recompute the id hash.
 ///
-/// This replaces the previous split between a Dart-side id/PoW check
+/// This replaces the previous split between a Dart-side id check
 /// (`Nip01Utils.isIdValid`, which serializes the event to JSON and re-hashes it)
 /// and a Rust-side signature-only check: both now happen here, in one call, with
 /// only the fixed-size id/pubkey/signature triplet packed into a single buffer.
@@ -48,10 +48,6 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
         Ok(s) => s,
         Err(_) => return 0,
     };
-    let event_id_str = match std::str::from_utf8(event_id_hex) {
-        Ok(s) => s,
-        Err(_) => return 0,
-    };
     let content_str = match unsafe { CStr::from_ptr(content) }.to_str() {
         Ok(s) => s,
         Err(_) => return 0,
@@ -65,10 +61,6 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
     let calc_id =
         hash_event_data_internal(pub_key_str, created_at, kind as u16, &tags, content_str);
     if calc_id.as_bytes() != event_id_hex {
-        return 0;
-    }
-
-    if !nip13_difficulty_ok(&tags, event_id_str) {
         return 0;
     }
 
@@ -116,56 +108,6 @@ unsafe fn parse_tags(
         offset += len as usize;
     }
     Some(result)
-}
-
-/// Mirrors `Nip13.getTargetDifficultyFromEvent`: the target difficulty from the
-/// first `["nonce", <value>, <difficulty>]` tag, or `None` if there is no such
-/// tag *or* its difficulty field fails to parse (matching Dart's `int.tryParse`
-/// returning null, which `Nip13.validateEvent` treats as "no requirement").
-fn nip13_target_difficulty(tags: &[Vec<String>]) -> Option<i64> {
-    for tag in tags {
-        if tag.len() >= 3 && tag[0] == "nonce" {
-            return tag[2].parse::<i64>().ok();
-        }
-    }
-    None
-}
-
-/// Mirrors `Nip13.countLeadingZeroBits`: counts leading zero bits across the hex
-/// digits of `hex`, stopping at the first nonzero nibble.
-fn count_leading_zero_bits(hex: &[u8]) -> usize {
-    let mut count = 0usize;
-    for &c in hex {
-        let nibble = match (c as char).to_digit(16) {
-            Some(n) => n,
-            None => return count,
-        };
-        if nibble == 0 {
-            count += 4;
-        } else {
-            if nibble & 8 == 0 {
-                count += 1;
-            }
-            if nibble & 12 == 0 {
-                count += 1;
-            }
-            if nibble & 14 == 0 {
-                count += 1;
-            }
-            break;
-        }
-    }
-    count
-}
-
-/// Mirrors `Nip13.validateEvent`: an event without a `nonce` tag (or with an
-/// unparsable difficulty) always passes; otherwise the event id's leading zero
-/// bits must meet the declared target.
-fn nip13_difficulty_ok(tags: &[Vec<String>], event_id_hex: &str) -> bool {
-    match nip13_target_difficulty(tags) {
-        None => true,
-        Some(target) => count_leading_zero_bits(event_id_hex.as_bytes()) as i64 >= target,
-    }
 }
 
 fn verify_schnorr_signature_bytes(
@@ -618,62 +560,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn count_leading_zero_bits_matches_reference_values() {
-        assert_eq!(count_leading_zero_bits(b"00"), 8);
-        assert_eq!(count_leading_zero_bits(b"0f"), 4);
-        assert_eq!(count_leading_zero_bits(b"1f"), 3);
-        assert_eq!(count_leading_zero_bits(b"8f"), 0);
-        assert_eq!(count_leading_zero_bits(b"000f"), 12);
-    }
-
-    #[test]
-    fn nip13_target_difficulty_finds_first_nonce_tag() {
-        let tags = vec![
-            vec!["p".to_string(), "abc".to_string()],
-            vec!["nonce".to_string(), "42".to_string(), "20".to_string()],
-            vec!["nonce".to_string(), "99".to_string(), "5".to_string()],
-        ];
-        assert_eq!(nip13_target_difficulty(&tags), Some(20));
-    }
-
-    #[test]
-    fn nip13_target_difficulty_none_without_nonce_tag() {
-        let tags = vec![vec!["p".to_string(), "abc".to_string()]];
-        assert_eq!(nip13_target_difficulty(&tags), None);
-    }
-
-    /// An unparsable difficulty field is treated as "no requirement", mirroring
-    /// `int.tryParse` returning null in `Nip13.getTargetDifficultyFromEvent`.
-    #[test]
-    fn nip13_target_difficulty_none_when_unparsable() {
-        let tags = vec![vec![
-            "nonce".to_string(),
-            "42".to_string(),
-            "not-a-number".to_string(),
-        ]];
-        assert_eq!(nip13_target_difficulty(&tags), None);
-    }
-
-    #[test]
-    fn nip13_difficulty_ok_passes_without_nonce_tag() {
-        let tags: Vec<Vec<String>> = vec![];
-        assert!(nip13_difficulty_ok(&tags, "8f00000000000000000000000000000000000000000000000000000000000000"));
-    }
-
-    #[test]
-    fn nip13_difficulty_ok_enforces_declared_target() {
-        let tags = vec![vec!["nonce".to_string(), "1".to_string(), "8".to_string()]];
-        assert!(nip13_difficulty_ok(
-            &tags,
-            "00be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
-        ));
-        assert!(!nip13_difficulty_ok(
-            &tags,
-            "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798"
-        ));
-    }
-
     /// Builds a null-terminated C string on the heap, for feeding raw pointer FFI
     /// entry points from safe test code.
     fn cstring(value: &str) -> std::ffi::CString {
@@ -718,43 +604,6 @@ mod tests {
                 std::ptr::null(),
                 std::ptr::null(),
                 0,
-                content.as_ptr(),
-            )
-        };
-        assert_eq!(rc, 0);
-    }
-
-    /// The difficulty check runs on the (already id-matched) hash before the
-    /// signature is checked, so a PoW failure is caught even with a bogus
-    /// signature — matching `Nip01Utils.isIdValid`, which never reaches
-    /// signature verification for a failed `Nip13.validateEvent`.
-    #[test]
-    fn verify_nostr_event_packed_rejects_insufficient_pow() {
-        let pubkey = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
-        let valid_id = "2bd7b2af40868949001713ffdcf95e1b1659dbbabe659ef9299d0fe11e31421d";
-        let bogus_signature = "0".repeat(128);
-
-        let mut packed = Vec::with_capacity(256);
-        packed.extend_from_slice(&valid_id.as_bytes()[..64]);
-        packed.extend_from_slice(pubkey.as_bytes());
-        packed.extend_from_slice(bogus_signature.as_bytes());
-
-        let tag_item_0 = cstring("nonce");
-        let tag_item_1 = cstring("1");
-        let tag_item_2 = cstring("255");
-        let tags_data = [tag_item_0.as_ptr(), tag_item_1.as_ptr(), tag_item_2.as_ptr()];
-        let tags_lengths = [3u32];
-        let content = cstring("hello world");
-
-        let rc = unsafe {
-            verify_nostr_event_packed(
-                packed.as_ptr(),
-                packed.len(),
-                1726215220,
-                1,
-                tags_data.as_ptr(),
-                tags_lengths.as_ptr(),
-                1,
                 content.as_ptr(),
             )
         };

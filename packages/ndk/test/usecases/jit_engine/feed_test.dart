@@ -1,5 +1,6 @@
 import 'dart:developer';
 
+import 'package:ndk/domain_layer/entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
@@ -125,7 +126,7 @@ void main() async {
 
       for (final relay in ndk.relays.globalState.relays.values) {
         log(
-          "Relay: ${relay.url} - ${relay.specificEngineData.assignedPubkeys.length} pubkeys",
+          "Relay: ${relay.url} - ${relay.jitEngineData.assignedPubkeys.length} pubkeys",
         );
       }
 

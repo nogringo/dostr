@@ -54,8 +54,7 @@ class RelayJitPubkeyStrategy with Logger {
 
     // specific filter (only one for this request)
     required Filter filter,
-    required List<RelayConnectivity<JitEngineRelayConnectivityData>>
-    connectedRelays,
+    required List<RelayConnectivity> connectedRelays,
     required List<String> bootstrapRelays,
 
     /// used to get the nip65 data if its necessary to look for not covered pubkeys
@@ -89,11 +88,9 @@ class RelayJitPubkeyStrategy with Logger {
         }
       }
 
-      connectedRelay.stats.touched++;
       if (coveredPubkeysForRelay.isEmpty) {
         continue;
       }
-      connectedRelay.stats.touchUseful++;
 
       plan.addPubkeys(connectedRelay.url, filter, coveredPubkeysForRelay);
 
@@ -156,10 +153,7 @@ class RelayJitPubkeyStrategy with Logger {
         candidates.add(JitRelayCandidate(url, filter, pubkeys, direction));
         continue;
       }
-      connected.specificEngineData!.addPubkeysToAssignedPubkeys(
-        pubkeys,
-        direction,
-      );
+      connected.jitEngineData.addPubkeysToAssignedPubkeys(pubkeys, direction);
       plan.addPubkeys(connected.url, filter, pubkeys);
     }
 
@@ -205,9 +199,7 @@ class RelayJitPubkeyStrategy with Logger {
         );
         final connectivity =
             globalState.relays[RelayConnectionKey.anonymous(url)];
-        if (!result.connected ||
-            connectivity
-                is! RelayConnectivity<JitEngineRelayConnectivityData>) {
+        if (!result.connected || connectivity == null) {
           Logger.log.w(
             () => "Could not connect to relay: $url - errorHandling",
           );
@@ -215,7 +207,7 @@ class RelayJitPubkeyStrategy with Logger {
           return;
         }
         for (final candidate in entry.value) {
-          connectivity.specificEngineData!.addPubkeysToAssignedPubkeys(
+          connectivity.jitEngineData.addPubkeysToAssignedPubkeys(
             candidate.pubkeys,
             candidate.direction,
           );

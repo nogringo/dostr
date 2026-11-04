@@ -16,15 +16,6 @@ class RelayStats {
   /// number of active requests on this relay
   int get activeRequests => openRequestIds.length;
 
-  /// gets incremented on every touch => search if it has a pubkey assigned
-  int touched = 1;
-
-  /// gets incremented when there is a pubkey match
-  int touchUseful = 0;
-
-  /// describes how often the relay was used and returned something useful
-  // double get relayUsefulness => touchUseful / touched;
-
   /// kind as keys, count as values
   Map<int, int> eventsRead = {};
 

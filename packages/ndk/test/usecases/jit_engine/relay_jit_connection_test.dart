@@ -2,8 +2,6 @@ import 'dart:async';
 
 import 'package:ndk_core/domain_layer/entities/connection_source.dart';
 import 'package:ndk_core/domain_layer/entities/global_state.dart';
-import 'package:ndk/domain_layer/entities/jit_engine_relay_connectivity_data.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
@@ -264,11 +262,10 @@ void main() async {
       addTearDown(fallbackTransport.close);
 
       final globalState = GlobalState();
-      final relayManager = RelayManager<JitEngineRelayConnectivityData>(
+      final relayManager = RelayManager(
         bootstrapRelays: const [],
         globalState: globalState,
         nostrTransportFactory: factory,
-        engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
       );
       final result = await relayManager.connectRelay(
         dirtyUrl: fallbackUrl,
@@ -281,9 +278,7 @@ void main() async {
       final candidates = await RelayJitPubkeyStrategy.plan(
         plan: plan,
         filter: Filter(authors: [key1.publicKey]),
-        connectedRelays: relayManager.connectedAnonymousRelays
-            .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
-            .toList(),
+        connectedRelays: relayManager.connectedAnonymousRelays,
         bootstrapRelays: [fallbackUrl],
         cacheManager: _ThrowingUserRelayListCache(),
         desiredCoverage: 1,

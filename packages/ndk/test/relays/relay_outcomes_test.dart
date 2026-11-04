@@ -1,6 +1,5 @@
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
-import 'package:ndk/domain_layer/entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart' as ndk_entities;
@@ -135,13 +134,12 @@ void notSentEndTests() {
     RelayManager buildManager(
       List<String> seeds, {
       NostrTransportFactory? factory,
-    }) => RelayManager<JitEngineRelayConnectivityData>(
+    }) => RelayManager(
       globalState: ndk_entities.GlobalState(),
       bootstrapRelays: seeds,
       // the transport Ndk uses: the plain one reports a socket open before its
       // handshake, so a relay nothing listens on would look reachable
       nostrTransportFactory: factory ?? WebSocketClientNostrTransportFactory(),
-      engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
     );
 
     ndk_entities.RequestState trackQuery(RelayManager manager, String id) {

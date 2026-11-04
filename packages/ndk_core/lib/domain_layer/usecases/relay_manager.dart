@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:rxdart/rxdart.dart';
 
-import '../../config/bootstrap_relays.dart';
 import '../../config/relay_defaults.dart';
 import '../../config/request_defaults.dart';
 import '../../shared/decode_nostr_msg/decode_nostr_msg.dart';
@@ -27,12 +26,11 @@ import '../entities/relay_protocol_handler.dart';
 import '../entities/request_state.dart';
 import '../repositories/nostr_transport.dart';
 import '../repositories/auth_accounts.dart';
-import '../entities/engine_additional_data_factory.dart';
 import 'nip42/auth_event.dart';
 
 ///  relay manager, responsible for lifecycle of relays, sending messages, \
 ///  and help with tracking of requests
-class RelayManager<T> {
+class RelayManager {
   final Completer<void> _seedRelaysCompleter = Completer<void>();
   final Map<String, Set<Completer<void>>> _requestSentWaiters = {};
 
@@ -94,9 +92,6 @@ class RelayManager<T> {
   /// nostr transport factory, to create new transports (usually websocket)
   final NostrTransportFactory nostrTransportFactory;
 
-  /// factory for creating additional data for the engine
-  final EngineAdditionalDataFactory? engineAdditionalDataFactory;
-
   /// Are reconnects allowed when a connection drops?
   bool allowReconnectRelays = true;
 
@@ -115,15 +110,14 @@ class RelayManager<T> {
     required this.globalState,
     required this.nostrTransportFactory,
     AuthAccounts? accounts,
-    this.engineAdditionalDataFactory,
-    List<String>? bootstrapRelays,
+    List<String> bootstrapRelays = const [],
     allowReconnect = true,
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     this.authChallengeTimeout = RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     this.authHandler,
   }) : _accounts = accounts {
     allowReconnectRelays = allowReconnect;
-    _connectSeedRelays(urls: bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS);
+    _connectSeedRelays(bootstrapRelays);
   }
 
   /// Hands [handler] the messages, CLOSED and NOTICE this manager does not
@@ -141,21 +135,8 @@ class RelayManager<T> {
     _relayUpdatesStreamController.add(globalState.relays.values.toList());
   }
 
-  /// This will initialize the manager with bootstrap relays.
-  /// If you don't give any, will use some predefined
-  Future<void> _connectSeedRelays({
-    Iterable<String> urls = DEFAULT_BOOTSTRAP_RELAYS,
-  }) async {
-    List<String> bootstrapRelays = [];
-    for (String url in urls) {
-      String? clean = cleanRelayUrl(url);
-      if (clean != null) {
-        bootstrapRelays.add(clean);
-      }
-    }
-    if (bootstrapRelays.isEmpty) {
-      bootstrapRelays = DEFAULT_BOOTSTRAP_RELAYS;
-    }
+  /// Connects to the bootstrap relays, if any.
+  Future<void> _connectSeedRelays(Iterable<String> urls) async {
     await Future.wait(
       urls
           .map(
@@ -294,10 +275,9 @@ class RelayManager<T> {
 
     try {
       if (relayConnectivity == null) {
-        relayConnectivity = RelayConnectivity<T>(
+        relayConnectivity = RelayConnectivity(
           key: connectionKey,
           relay: Relay(url: url, connectionSource: connectionSource),
-          specificEngineData: engineAdditionalDataFactory?.call(),
         );
         globalState.relays[connectionKey] = relayConnectivity;
       }

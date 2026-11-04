@@ -3,8 +3,8 @@
 import 'dart:core';
 import 'dart:math';
 
-import 'package:ndk_core/config/bootstrap_relays.dart';
-import 'package:ndk_core/config/broadcast_defaults.dart';
+import 'package:ndk/config/bootstrap_relays.dart';
+import 'package:ndk/config/broadcast_defaults.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
