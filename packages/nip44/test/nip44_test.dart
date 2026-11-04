@@ -113,11 +113,7 @@ Future<String> decryptMessageWithConversationKey(
 
   verifyMac(hmacKey, nonce, ciphertext, mac);
 
-  final paddedPlaintext = decryptChaCha20(
-    chachaKey,
-    chachaNonce,
-    ciphertext,
-  );
+  final paddedPlaintext = decryptChaCha20(chachaKey, chachaNonce, ciphertext);
 
   final plaintextBytes = unpad(paddedPlaintext);
 
@@ -188,11 +184,7 @@ Future<String> encryptMessageWithConversationKey(
   final paddedPlaintext = pad(utf8.encode(plaintext));
 
   // Step 4: Encrypt
-  final ciphertext = encryptChaCha20(
-    chachaKey,
-    chachaNonce,
-    paddedPlaintext,
-  );
+  final ciphertext = encryptChaCha20(chachaKey, chachaNonce, paddedPlaintext);
 
   // Step 5: Calculate MAC
   final mac = calculateMac(hmacKey, nonce, ciphertext);

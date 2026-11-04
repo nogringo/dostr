@@ -1,13 +1,28 @@
 import 'dart:async';
 import 'dart:io' as io;
 
-import 'package:mocktail/mocktail.dart';
 import 'package:test/test.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
 
-class _MockBackoff extends Mock implements Backoff {}
+class _FakeBackoff implements Backoff {
+  _FakeBackoff(this.duration);
+
+  final Duration duration;
+  final _nextCalled = Completer<void>();
+
+  Future<void> get nextCalled => _nextCalled.future;
+
+  @override
+  Duration next() {
+    if (!_nextCalled.isCompleted) _nextCalled.complete();
+    return duration;
+  }
+
+  @override
+  void reset() {}
+}
 
 void main() {
   group('WebSocket', () {
@@ -86,10 +101,8 @@ void main() {
 
       test('emits [connecting, disconnected, reconnecting] '
           'when not able to establish a connection with retry.', () async {
-        final backoff = _MockBackoff();
+        final backoff = _FakeBackoff(Duration.zero);
         final socket = WebSocket(uri, backoff: backoff);
-
-        when(backoff.next).thenReturn(Duration.zero);
 
         await expectLater(
           socket.connection,
@@ -103,7 +116,7 @@ void main() {
           ]),
         );
         expect(socket.connection.state, equals(const Reconnecting()));
-        await untilCalled(backoff.next);
+        await backoff.nextCalled;
         expect(socket.connection.state, equals(const Reconnecting()));
 
         socket.close();
@@ -111,10 +124,11 @@ void main() {
 
       test('emits [connecting, disconnected] '
           'when not able to establish a connection due to timeout.', () async {
-        final backoff = _MockBackoff();
-        final socket = WebSocket(uri, backoff: backoff, timeout: Duration.zero);
-
-        when(backoff.next).thenReturn(Duration.zero);
+        final socket = WebSocket(
+          uri,
+          backoff: const ConstantBackoff(Duration.zero),
+          timeout: Duration.zero,
+        );
 
         await expectLater(
           socket.connection,
@@ -132,14 +146,11 @@ void main() {
         'emits [connecting, disconnected, reconnecting, disconnected] '
         'when not able to establish a connection due to timeout with retry.',
         () async {
-          final backoff = _MockBackoff();
           final socket = WebSocket(
             uri,
-            backoff: backoff,
+            backoff: const ConstantBackoff(Duration(milliseconds: 50)),
             timeout: const Duration(milliseconds: 50),
           );
-
-          when(backoff.next).thenReturn(const Duration(milliseconds: 50));
 
           await expectLater(
             socket.connection,
