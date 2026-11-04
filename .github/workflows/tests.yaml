@@ -40,7 +40,8 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           files: coverage.lcov
-          fail_ci_if_error: true   # fails only on upload errors, not coverage drops
+          # Forks have no token and Codecov rejects tokenless uploads on push.
+          fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
           verbose: true # optional (default = false)
 
   cli-tests:
