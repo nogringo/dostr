@@ -79,8 +79,10 @@ void main() {
   late _Factory factory;
   late RelayManager manager;
   late RequestState subscription;
-  Future<bool> connect() async =>
-      (await manager.connectRelay(dirtyUrl: url, connectTimeout: 1)).connected;
+  Future<bool> connect() async => (await manager.connectRelay(
+    dirtyUrl: url,
+    connectTimeout: const Duration(seconds: 1),
+  )).connected;
   int replays(_Transport transport) => transport.sent
       .where((data) => (data as String).startsWith('["REQ","live"'))
       .length;

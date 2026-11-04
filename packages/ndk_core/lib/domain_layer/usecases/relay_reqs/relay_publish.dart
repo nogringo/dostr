@@ -108,12 +108,12 @@ class RelayPublish {
   /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
   /// the publish is over, nor twice to a relay.
   ///
-  /// [connectTimeout] bounds the connecting, in seconds. [veto] is asked once
+  /// [connectTimeout] bounds the connecting. [veto] is asked once
   /// the connection is up: a reason it gives not to send after all fails the
   /// relay with that reason.
   bool send(
     String relayUrl, {
-    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     Future<String?> Function()? veto,
   }) {
     final signed = _signed;

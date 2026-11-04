@@ -64,7 +64,7 @@ class RelayManager {
 
   /// Tracks relay connect attempts that are still finishing setup so callers
   /// can wait for "socket open + listener attached", not just raw socket open.
-  final Map<RelayConnectionKey, Completer<({bool connected, String error})>>
+  final Map<RelayConnectionKey, Completer<({bool connected, String? error})>>
   _connectReadyCompleters = {};
 
   /// timeout for AUTH callbacks (how long to wait for AUTH OK)
@@ -117,7 +117,7 @@ class RelayManager {
     required this.nostrTransportFactory,
     AuthAccounts? accounts,
     List<String> bootstrapRelays = const [],
-    allowReconnect = true,
+    bool allowReconnect = true,
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     this.authChallengeTimeout = RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     this.authHandler,
@@ -153,8 +153,8 @@ class RelayManager {
     });
   }
 
-  /// Returns a list of fully connected relays, excluding connecting ones.
-  /// DO NOT USE THIS FOR CHECKING A SINGLE RELAY, use [isRelayConnected] INSTEAD
+  /// Every open connection, anonymous or bound, so a relay can show up more
+  /// than once. [isRelayConnected] checks a single relay.
   List<RelayConnectivity> get connectedRelays => _globalState.relays.values
       .where((connectivity) => connectivity.isConnected)
       .toList();
@@ -172,11 +172,11 @@ class RelayManager {
       .where((connectivity) => connectivity.isConnected)
       .toList();
 
-  /// checks if a relay is connected, avoid using this
+  /// Whether the anonymous connection to [url] is open.
   bool isRelayConnected(String url) =>
       isConnectionOpen(RelayConnectionKey.anonymous(url));
 
-  /// checks if a relay is connecting
+  /// Whether the anonymous connection to [url] is connecting.
   bool isRelayConnecting(String url) =>
       isConnectionConnecting(RelayConnectionKey.anonymous(url));
 
@@ -192,10 +192,10 @@ class RelayManager {
 
   Future<bool> _waitForTransportOpen(
     NostrTransport transport, {
-    required int timeoutSeconds,
+    required Duration timeout,
     bool Function()? stillOwned,
   }) async {
-    final deadline = DateTime.now().add(Duration(seconds: timeoutSeconds));
+    final deadline = DateTime.now().add(timeout);
 
     while (DateTime.now().isBefore(deadline)) {
       if (stillOwned?.call() == false) return false;
@@ -222,10 +222,10 @@ class RelayManager {
 
   /// Connects to a relay to the relay pool.
   /// Returns whether it is connected, and the error message if it is not.
-  Future<({bool connected, String error})> connectRelay({
+  Future<({bool connected, String? error})> connectRelay({
     required String dirtyUrl,
     String? authPubkey,
-    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
   }) async {
     String? url = cleanRelayUrl(dirtyUrl);
     if (url == null) {
@@ -244,7 +244,7 @@ class RelayManager {
     if (isConnectionOpen(connectionKey)) {
       Logger.log.t(() => "relay already connected: $connectionKey");
       _updateRelayConnectivity();
-      return (connected: true, error: "");
+      return (connected: true, error: null);
     }
 
     if (isConnectionConnecting(connectionKey) ||
@@ -260,7 +260,7 @@ class RelayManager {
       return (connected: false, error: "relay is still connecting");
     }
     RelayConnectivity? relayConnectivity = _globalState.relays[connectionKey];
-    final connectCompleter = Completer<({bool connected, String error})>();
+    final connectCompleter = Completer<({bool connected, String? error})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
     bool ownsTransport() => _isCurrent(relayConnectivity, transport);
@@ -323,20 +323,17 @@ class RelayManager {
       _startListeningToSocket(relayConnectivity);
       final opened = await _waitForTransportOpen(
         transport,
-        timeoutSeconds: connectTimeout,
+        timeout: connectTimeout,
         stillOwned: ownsTransport,
       );
       if (!opened || !ownsTransport()) {
-        throw TimeoutException(
-          "Future not completed",
-          Duration(seconds: connectTimeout),
-        );
+        throw TimeoutException("Future not completed", connectTimeout);
       }
 
       Logger.log.i(() => "connected to relay: $url");
       relayConnectivity.relay.succeededToConnect();
       relayConnectivity.stats.connections++;
-      final connected = (connected: true, error: "");
+      final connected = (connected: true, error: null);
       if (!connectCompleter.isCompleted) {
         connectCompleter.complete(connected);
       }
@@ -406,7 +403,7 @@ class RelayManager {
       try {
         final opened = await _waitForTransportOpen(
           relayConnectivity.relayTransport!,
-          timeoutSeconds: DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+          timeout: DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
         );
         if (opened && relayConnectivity.relayTransport!.isOpen()) {
           _updateRelayConnectivity();
@@ -455,8 +452,9 @@ class RelayManager {
   }
 
   /// Closes and clears only transport-scoped state of every connection to
-  /// [url], while keeping the entries and relay-scoped metadata in memory.
-  Future<void> resetTransport(String url) async {
+  /// [url], anonymous or bound, while keeping the entries and relay-scoped
+  /// metadata in memory.
+  Future<void> resetConnectionsTo(String url) async {
     await Future.wait(_connectionKeysForRelay(url).map(resetConnection));
   }
 
@@ -482,7 +480,7 @@ class RelayManager {
         .toList();
   }
 
-  /// Reconnects all given relays
+  /// Reconnects the anonymous connection to each of [urls].
   Future<void> reconnectRelays(Iterable<String> urls) async {
     final startTime = DateTime.now();
     Logger.log.d(() => "connecting ${urls.length} relays in parallel");
@@ -732,7 +730,7 @@ class RelayManager {
     BroadcastState state,
     String url,
     Nip01Event event, {
-    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     Future<String?> Function()? veto,
   }) async {
     _registerRelayBroadcast(
@@ -1033,7 +1031,7 @@ class RelayManager {
   Future<RelayConnectivity?> openConnectionAs(
     String url,
     Account account, {
-    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     TimeoutPausable? pausing,
   }) async {
     if (!account.signer.canSign()) {
@@ -1113,7 +1111,7 @@ class RelayManager {
   Future<RelayConnectivity?> _connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
-    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
     TimeoutPausable? pausing,
   }) async {
     if (auth is AuthPolicyRequire) {
@@ -1860,8 +1858,8 @@ class RelayManager {
     );
   }
 
-  /// Closes every connection towards [url] and forgets them
-  Future<void> closeTransport(String url) async {
+  /// Closes every connection to [url], anonymous or bound, and forgets them.
+  Future<void> closeConnectionsTo(String url) async {
     await Future.wait(_connectionKeysForRelay(url).map(closeConnection));
   }
 
@@ -1962,7 +1960,7 @@ class RelayManager {
     }
   }
 
-  /// return [RelayConnectivity] by url
+  /// The anonymous connection to [url], if there is one.
   RelayConnectivity? getRelayConnectivity(String url) {
     return _globalState.relays[RelayConnectionKey.anonymous(url)];
   }

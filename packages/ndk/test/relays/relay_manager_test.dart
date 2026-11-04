@@ -158,7 +158,7 @@ void main() async {
       await manager.connectRelay(dirtyUrl: relay1.url);
       expect(manager.connectivities, isNotEmpty);
 
-      await manager.resetTransport(relay1.url);
+      await manager.resetConnectionsTo(relay1.url);
       await manager.closeAllTransports();
 
       expect(

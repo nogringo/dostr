@@ -67,6 +67,31 @@ void main() {
     expect(manager.connectivities, isEmpty);
   });
 
+  test('connects to a relay with a null error', () async {
+    final relay = await startRelay();
+
+    expect(await manager.connectRelay(dirtyUrl: relay.url), (
+      connected: true,
+      error: null,
+    ));
+  });
+
+  test('closeConnectionsTo closes the anonymous and bound connections '
+      'to one relay only', () async {
+    final relay = await startRelay(challengeOnConnect: false);
+    final other = await startRelay();
+    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.openConnectionAs(relay.url, fakeAccount(alice));
+    await manager.connectRelay(dirtyUrl: other.url);
+    expect(manager.connectivities, hasLength(3));
+
+    await manager.closeConnectionsTo(relay.url);
+
+    expect(manager.connectivities.keys, [
+      RelayConnectionKey.anonymous(other.url),
+    ]);
+  });
+
   test('reports connectivity changes', () async {
     final relay = await startRelay();
     final updates = <List<RelayConnectivity>>[];

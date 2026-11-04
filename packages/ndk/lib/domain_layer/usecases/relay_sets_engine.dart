@@ -138,7 +138,7 @@ class RelaySetsEngine implements NetworkEngine {
     for (final url in cleanRelayUrls(relayUrls).toSet()) {
       send(
         url,
-        connectTimeout: 1,
+        connectTimeout: const Duration(seconds: 1),
         veto: () => obsoleteReplaceableVeto(_cacheManager, event),
       );
     }

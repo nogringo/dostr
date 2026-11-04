@@ -125,7 +125,7 @@ class BroadcastSender {
         for (final url in specificRelays) {
           publish.send(
             url,
-            connectTimeout: 1,
+            connectTimeout: const Duration(seconds: 1),
             veto: () => obsoleteReplaceableVeto(_cacheManager, signed),
           );
         }

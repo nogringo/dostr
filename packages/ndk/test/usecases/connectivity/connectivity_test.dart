@@ -101,7 +101,7 @@ void main() async {
         true,
       );
 
-      await ndk.relays.resetTransport(relay1.url);
+      await ndk.relays.resetConnectionsTo(relay1.url);
 
       await _waitForRelayConnectionState(ndk, relay1.url, false);
       expect(

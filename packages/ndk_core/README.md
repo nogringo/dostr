@@ -71,7 +71,8 @@ NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 
 `Helpers`, `Tuple` and `EventKindClassification` stay in `ndk` at their old
 paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
-`RelayManager.connectRelay` returns a `({bool connected, String error})` record.
+`RelayManager.connectRelay` returns a `({bool connected, String? error})` record,
+with a null `error` once connected.
 
 `RelayManager` keeps the plumbing behind `RelayReq` and broadcasts to itself.
 `sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`,
@@ -131,3 +132,11 @@ gets the signed event and only picks its relays.
 A subscription now reports `RelayRequestStatus.eose` on each relay that sent
 its EOSE, instead of staying `pending` until it is closed. It still runs until
 closed, and a CLOSED, a lost connection or its timeout replace that `eose`.
+
+`connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`,
+`RelayPublish.send` and `RelayPublishSend` in `ndk`, is a `Duration` instead of a
+number of seconds, and so is `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT`.
+`RelayManager.resetTransport` and `RelayManager.closeTransport` are now
+`resetConnectionsTo` and `closeConnectionsTo`: they act on every connection to
+the relay, anonymous or bound, where `isRelayConnected`, `reconnectRelay` and
+`getRelayConnectivity` only look at the anonymous one.

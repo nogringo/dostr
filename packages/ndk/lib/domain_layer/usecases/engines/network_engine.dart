@@ -6,12 +6,12 @@ import '../../entities/relay_set.dart';
 typedef RelaySend = void Function(String relayUrl, List<Filter> filters);
 
 /// Hands the event being broadcast to [relayUrl]. [connectTimeout] bounds the
-/// connecting, in seconds, and [veto] can still call the send off once the
-/// relay is connected.
+/// connecting, and [veto] can still call the send off once the relay is
+/// connected.
 typedef RelayPublishSend =
     void Function(
       String relayUrl, {
-      int connectTimeout,
+      Duration connectTimeout,
       Future<String?> Function()? veto,
     });
 
