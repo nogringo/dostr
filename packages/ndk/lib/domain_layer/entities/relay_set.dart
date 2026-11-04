@@ -2,8 +2,6 @@ import 'package:collection/collection.dart';
 
 import 'pubkey_mapping.dart';
 import 'read_write.dart';
-import 'relay_connection_key.dart';
-import 'request_state.dart';
 import 'filter.dart';
 
 class RelaySet {
@@ -42,63 +40,46 @@ class RelaySet {
 
   static const int kMaxAuthorsPerRequest = 100;
 
-  void splitIntoRequests(Filter filter, RequestState groupRequest) {
+  /// The filters each relay of this set gets for [filter]: the authors (outbox)
+  /// or the p tags (inbox) it covers.
+  Map<String, List<Filter>> filtersByRelay(Filter filter) {
+    final byRelay = <String, List<Filter>>{};
     for (final entry in relaysMap.entries) {
-      final String url = entry.key;
-      final connectionKey = RelayConnectionKey.forAuth(
-        url,
-        groupRequest.request.auth,
+      final url = entry.key;
+      final pubKeyMappings = entry.value;
+      bool covers(String pubKey) => pubKeyMappings.any(
+        (pubKeyMapping) =>
+            pubKey == pubKeyMapping.pubKey ||
+            notCoveredPubkeys.any((element) => element.pubKey == pubKey),
       );
-      if (connectionKey == null) {
-        continue;
-      }
-      List<PubkeyMapping> pubKeyMappings = entry.value;
+
       if (pubKeyMappings.isEmpty) {
-        groupRequest.addRequest(connectionKey, [filter]);
+        byRelay[url] = [filter];
       } else if (filter.authors != null &&
           filter.authors!.isNotEmpty &&
           direction == RelayDirection.outbox) {
-        List<String> pubKeysForRelay = [];
-        for (String pubKey in filter.authors!) {
-          if (pubKeyMappings.any(
-            (pubKeyMapping) =>
-                pubKey == pubKeyMapping.pubKey ||
-                notCoveredPubkeys.any((element) => element.pubKey == pubKey),
-          )) {
-            pubKeysForRelay.add(pubKey);
-          }
-        }
+        final pubKeysForRelay = filter.authors!.where(covers).toList();
         if (pubKeysForRelay.isNotEmpty) {
-          groupRequest.addRequest(
-            connectionKey,
-            sliceFilterAuthors(filter.cloneWithAuthors(pubKeysForRelay)),
+          byRelay[url] = sliceFilterAuthors(
+            filter.cloneWithAuthors(pubKeysForRelay),
           );
         }
       } else if (filter.pTags != null &&
           filter.pTags!.isNotEmpty &&
           direction == RelayDirection.inbox) {
-        List<String> pubKeysForRelay = [];
-        for (String pubKey in filter.pTags!) {
-          if (pubKeyMappings.any(
-            (pubKeyMapping) =>
-                pubKey == pubKeyMapping.pubKey ||
-                notCoveredPubkeys.any((element) => element.pubKey == pubKey),
-          )) {
-            pubKeysForRelay.add(pubKey);
-          }
-        }
+        final pubKeysForRelay = filter.pTags!.where(covers).toList();
         if (pubKeysForRelay.isNotEmpty) {
-          groupRequest.addRequest(
-            connectionKey,
-            sliceFilterAuthors(filter.cloneWithPTags(pubKeysForRelay)),
+          byRelay[url] = sliceFilterAuthors(
+            filter.cloneWithPTags(pubKeysForRelay),
           );
         }
       } else if (filter.eTags != null && direction == RelayDirection.inbox) {
-        groupRequest.addRequest(connectionKey, [filter]);
+        byRelay[url] = [filter];
       } else {
         /// TODO: Define what to do in this edge case
       }
     }
+    return byRelay;
   }
 
   static List<Filter> sliceFilterAuthors(Filter filter) {

@@ -38,7 +38,12 @@ void main() {
 
 class _UnreachableNetworkEngine implements NetworkEngine {
   @override
-  void handleRequest(requestState) {
+  Future<void> route(
+    List<Filter> filters,
+    RelaySend send, {
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  }) {
     throw UnimplementedError();
   }
 

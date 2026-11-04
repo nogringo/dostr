@@ -1,11 +1,27 @@
 import '../../entities/broadcast_response.dart';
 import '../../entities/broadcast_state.dart';
+import '../../entities/filter.dart';
 import '../../entities/nip_01_event.dart';
-import '../../entities/request_state.dart';
+import '../../entities/relay_set.dart';
 import '../../repositories/event_signer.dart';
 
+/// Hands [filters] to [relayUrl] in a single REQ.
+typedef RelaySend = void Function(String relayUrl, List<Filter> filters);
+
 abstract class NetworkEngine {
-  void handleRequest(RequestState requestState);
+  /// Picks the relays [filters] go to and hands each of them to [send], at
+  /// most once per relay: a second REQ with the same id would replace the first
+  /// on the relay (NIP-01).
+  ///
+  /// The request may end once the returned future completes and the relays
+  /// handed over so far answered. A relay handed over later, one the engine was
+  /// still connecting to, only gets the request if it is still running.
+  Future<void> route(
+    List<Filter> filters,
+    RelaySend send, {
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  });
 
   NdkBroadcastResponse handleEventBroadcast({
     required Nip01Event nostrEvent,

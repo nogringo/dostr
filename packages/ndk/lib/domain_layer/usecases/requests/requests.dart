@@ -484,7 +484,7 @@ class Requests {
       if (explicitRelays != null && explicitRelays.isNotEmpty) {
         _sendToExplicitRelays(state, explicitRelays);
       } else {
-        _engine.handleRequest(state);
+        await _route(state);
       }
     }
 
@@ -492,6 +492,29 @@ class Requests {
 
     // Return the response immediately
     return response;
+  }
+
+  /// Hands the filters the cache left to the relays the engine picks. The
+  /// request is held open until the engine is done picking.
+  Future<void> _route(RequestState state) async {
+    _relayManager.beginPendingConnection(state);
+    try {
+      await _engine.route(
+        List.of(state.unresolvedFilters),
+        (url, filters) =>
+            unawaited(_relayManager.sendRequestToRelay(state, url, filters)),
+        relaySet: state.request.relaySet,
+        desiredCoverage: state.request.desiredCoverage,
+      );
+    } catch (error, stackTrace) {
+      Logger.log.e(
+        () => "routing ${state.id} failed",
+        error: error,
+        stackTrace: stackTrace,
+      );
+    } finally {
+      _relayManager.endPendingConnection(state);
+    }
   }
 
   /// Explicit relays bypass outbox routing, so no engine is involved: each of

@@ -145,7 +145,6 @@ class Initialization {
 
         engine = RelaySetsEngine(
           cacheManager: _ndkConfig.cache,
-          globalState: _globalState,
           relayManager: relayManager,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
         );

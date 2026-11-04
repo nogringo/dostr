@@ -10,7 +10,8 @@ import '../../entities/jit_engine_relay_connectivity_data.dart';
 import '../../entities/nip_01_event.dart';
 import '../../entities/read_write_marker.dart';
 import '../../entities/relay_connectivity.dart';
-import '../../entities/request_state.dart';
+import '../../entities/filter.dart';
+import '../../entities/relay_set.dart';
 import '../../repositories/cache_manager.dart';
 import '../../repositories/event_signer.dart';
 import '../engines/network_engine.dart';
@@ -20,6 +21,7 @@ import 'relay_jit_broadcast_strategies/relay_jit_broadcast_specific.dart';
 import 'relay_jit_request_strategies/relay_jit_blast_all_strategy.dart';
 import 'relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import '../relay_manager.dart';
+import 'jit_request_plan.dart';
 
 /// Just In Time Network Engine
 /// This engine is responsible for handling all nostr network requests
@@ -48,89 +50,83 @@ class JitEngine with Logger implements NetworkEngine {
     required this.bootstrapRelays,
   });
 
-  /// If you request anything from the nostr network put it here and
-  /// the relay jit manager will try to find the right relay and use it
-  /// if no relay is found the request will be blasted to all connected relays (on start seed Relays)
+  /// Finds the right relays for each filter. The connected ones get the
+  /// request before this completes; the others are connected to afterwards,
+  /// without holding the request open. If no relay is found the request is
+  /// blasted to the connected bootstrap relays.
   @override
-  void handleRequest(RequestState requestState) async {
+  Future<void> route(
+    List<Filter> filters,
+    RelaySend send, {
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  }) async {
     await relayManagerLight.seedRelaysConnected;
-    await _handleFilters(requestState);
-    requestState.closeIfNoRelays();
-  }
 
-  Future<void> _handleFilters(RequestState requestState) async {
-    final ndkRequest = requestState.request;
+    final plan = JitRequestPlan(send);
+    final connectedRelays = relayManagerLight.connectedAnonymousRelays
+        .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
+        .toList();
+    final cleanIgnoreRelays = cleanRelayUrls(ignoreRelays);
+    final candidates = <JitRelayCandidate>[];
 
-    //clean ignore relays
-    List<String> cleanIgnoreRelays = cleanRelayUrls(ignoreRelays);
-
-    /// ["REQ", <subscription_id>, <filters1>, <filters2>, ...]
-    /// user can provide multiple filters
-    for (final filter in requestState.unresolvedFilters) {
-      // filter different types of filters/requests because each requires a different strategy
-
-      if ((filter.authors != null && filter.authors!.isNotEmpty)) {
-        await RelayJitPubkeyStrategy.handleRequest(
-          globalState: globalState,
-          relayManager: relayManagerLight,
-          requestState: requestState,
-          cacheManager: cache,
+    for (final filter in filters) {
+      final ReadWriteMarker direction;
+      if (filter.authors?.isNotEmpty ?? false) {
+        // the author should write on the persons write relays
+        direction = ReadWriteMarker.writeOnly;
+      } else if (filter.pTags?.isNotEmpty ?? false) {
+        // others should mention on the persons read relays
+        direction = ReadWriteMarker.readOnly;
+      } else {
+        if (filter.search != null) {
+          Logger.log.w(
+            () => "search filter not implemented yet, using blast all strategy",
+          );
+        }
+        RelayJitBlastAllStrategy.plan(
+          plan: plan,
           filter: filter,
-          connectedRelays: relayManagerLight.connectedAnonymousRelays
-              .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
-              .toList(),
+          connectedRelays: connectedRelays,
           bootstrapRelays: bootstrapRelays,
-          desiredCoverage: ndkRequest.desiredCoverage,
-          closeOnEOSE: ndkRequest.closeOnEOSE,
-          direction: ReadWriteMarker
-              .writeOnly, // the author should write on the persons write relays
-          ignoreRelays: cleanIgnoreRelays,
         );
         continue;
       }
 
-      if (filter.pTags?.isNotEmpty != null && filter.pTags!.isNotEmpty) {
-        await RelayJitPubkeyStrategy.handleRequest(
-          relayManager: relayManagerLight,
-          globalState: globalState,
-          requestState: requestState,
-          cacheManager: cache,
+      candidates.addAll(
+        await RelayJitPubkeyStrategy.plan(
+          plan: plan,
           filter: filter,
-          connectedRelays: relayManagerLight.connectedAnonymousRelays
-              .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
-              .toList(),
+          connectedRelays: connectedRelays,
           bootstrapRelays: bootstrapRelays,
-          desiredCoverage: ndkRequest.desiredCoverage,
-          closeOnEOSE: ndkRequest.closeOnEOSE,
-          direction: ReadWriteMarker
-              .readOnly, // others should mention on the persons read relays
+          cacheManager: cache,
+          desiredCoverage: desiredCoverage,
+          direction: direction,
           ignoreRelays: cleanIgnoreRelays,
-        );
-        continue;
-      }
-
-      if (filter.search != null) {
-        Logger.log.w(
-          () => "search filter not implemented yet, using blast all strategy",
-        );
-      }
-
-      // if (filter.ids != null) {
-      //   throw UnimplementedError("ids filter not implemented yet");
-      // }
-
-      /// unknown filter strategy, blast to all connected boostrap relays
-      RelayJitBlastAllStrategy.handleRequest(
-        relayManager: relayManagerLight,
-        requestState: requestState,
-        filter: filter,
-        connectedRelays: relayManagerLight.connectedAnonymousRelays
-            .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
-            .toList(),
-        bootstrapRelays: bootstrapRelays,
-        closeOnEOSE: ndkRequest.closeOnEOSE,
+        ),
       );
     }
+    plan.flush();
+
+    if (candidates.isEmpty) return;
+    final connecting = RelayJitPubkeyStrategy.connectCandidates(
+      candidates: candidates,
+      plan: plan,
+      relayManager: relayManagerLight,
+      globalState: globalState,
+      bootstrapRelays: bootstrapRelays,
+    );
+    // a request no relay serves yet has nothing to end on but these
+    if (!plan.hasSent) return connecting;
+    unawaited(
+      connecting.catchError((Object error, StackTrace stackTrace) {
+        Logger.log.e(
+          () => "connecting relay candidates failed",
+          error: error,
+          stackTrace: stackTrace,
+        );
+      }),
+    );
   }
 
   /// broadcasts given event using inbox/outbox (gossip) if explicit relays are given they are used instead

@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
 import '../../config/rx_defaults.dart';
-import '../../shared/logger/logger.dart';
 import 'filter.dart';
 import 'ndk_request.dart';
 import 'nip_01_event.dart';
 import 'auth_handler.dart';
-import 'auth_policy.dart';
 import 'relay_connection_key.dart';
 import 'relay_request_outcome.dart';
 
@@ -421,18 +419,6 @@ class RequestState implements TimeoutPausable {
     requests[request.key] = request;
     _requestsByUrl.putIfAbsent(request.url, () => []).add(request);
     _onRelayRequestChanged(request.url);
-  }
-
-  /// Adds a request towards [url] on the connection this request's [AuthPolicy]
-  /// allows. A relay no connection can satisfy is skipped: falling back to the
-  /// anonymous one is what the caller ruled out.
-  void addRequestForRelay(String url, List<Filter> filters) {
-    final key = RelayConnectionKey.forAuth(url, request.auth);
-    if (key == null) {
-      Logger.log.w(() => "No connection can carry ${request.id} to $url");
-      return;
-    }
-    addRequest(key, filters);
   }
 
   /// Closes the network stream if the request was not sent to any relay.

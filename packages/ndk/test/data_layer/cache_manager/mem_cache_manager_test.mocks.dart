@@ -6,7 +6,7 @@
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
-import 'package:ndk/domain_layer/entities/contact_list.dart' as _i14;
+import 'package:ndk/domain_layer/entities/contact_list.dart' as _i13;
 import 'package:ndk/domain_layer/entities/filter.dart' as _i12;
 import 'package:ndk/domain_layer/entities/metadata.dart' as _i4;
 import 'package:ndk/domain_layer/entities/nip_01_event.dart' as _i3;
@@ -16,7 +16,6 @@ import 'package:ndk/domain_layer/entities/pubkey_mapping.dart' as _i11;
 import 'package:ndk/domain_layer/entities/read_write.dart' as _i10;
 import 'package:ndk/domain_layer/entities/read_write_marker.dart' as _i8;
 import 'package:ndk/domain_layer/entities/relay_set.dart' as _i9;
-import 'package:ndk/domain_layer/entities/request_state.dart' as _i13;
 import 'package:ndk/domain_layer/entities/user_relay_list.dart' as _i6;
 
 // ignore_for_file: type=lint
@@ -270,13 +269,12 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
       );
 
   @override
-  void splitIntoRequests(
-    _i12.Filter? filter,
-    _i13.RequestState? groupRequest,
-  ) => super.noSuchMethod(
-    Invocation.method(#splitIntoRequests, [filter, groupRequest]),
-    returnValueForMissingStub: null,
-  );
+  Map<String, List<_i12.Filter>> filtersByRelay(_i12.Filter? filter) =>
+      (super.noSuchMethod(
+            Invocation.method(#filtersByRelay, [filter]),
+            returnValue: <String, List<_i12.Filter>>{},
+          )
+          as Map<String, List<_i12.Filter>>);
 
   @override
   void addMoreRelays(Map<String, List<_i11.PubkeyMapping>>? more) =>
@@ -289,7 +287,7 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
 /// A class which mocks [ContactList].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockContactList extends _i1.Mock implements _i14.ContactList {
+class MockContactList extends _i1.Mock implements _i13.ContactList {
   MockContactList() {
     _i1.throwOnMissingStub(this);
   }

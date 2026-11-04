@@ -12,12 +12,10 @@ import '../../shared/helpers/relay_helper.dart';
 import '../entities/broadcast_response.dart';
 import '../entities/broadcast_state.dart';
 import '../entities/filter.dart';
-import '../entities/global_state.dart';
 import '../entities/nip_01_event.dart';
 import '../entities/auth_policy.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_set.dart';
-import '../entities/request_state.dart';
 import '../repositories/cache_manager.dart';
 import '../repositories/event_signer.dart';
 import 'engines/network_engine.dart';
@@ -26,8 +24,6 @@ import 'user_relay_lists/user_relay_lists.dart';
 
 class RelaySetsEngine implements NetworkEngine {
   static const Duration kDefaultStreamIdleTimeout = Duration(seconds: 5);
-
-  late GlobalState _globalState;
 
   final RelayManager _relayManager;
 
@@ -40,12 +36,9 @@ class RelaySetsEngine implements NetworkEngine {
     required RelayManager relayManager,
     required CacheManager cacheManager,
     required List<String>? bootstrapRelays,
-    GlobalState? globalState,
   }) : _cacheManager = cacheManager,
        _relayManager = relayManager,
-       _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS {
-    _globalState = globalState ?? GlobalState();
-  }
+       _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS;
 
   /// =====================================================================================
   /// The flow:
@@ -146,68 +139,45 @@ class RelaySetsEngine implements NetworkEngine {
     return visibleEvents.single.id != event.id;
   }
 
-  Future<void> doNostrRequestWithRelaySet(
-    RequestState state, {
-    bool splitRequestsByPubKeyMappings = true,
-  }) async {
-    if (state.unresolvedFilters.isEmpty || state.request.relaySet == null) {
-      return;
-    }
-    RelaySet relaySet = state.request.relaySet!;
-    for (final filter in state.unresolvedFilters) {
-      if (splitRequestsByPubKeyMappings) {
-        relaySet.splitIntoRequests(filter, state);
-        print(
-          "request for ${filter.authors != null ? filter.authors!.length : 0} authors with kinds: ${filter.kinds} made requests to ${state.requests.length} relays",
-        );
-
-        if (state.requests.isEmpty && relaySet.fallbackToBootstrapRelays) {
-          print(
-            "making fallback requests to ${_bootstrapRelays.length} bootstrap relays for ${filter.authors != null ? filter.authors!.length : 0} authors with kinds: ${filter.kinds}",
-          );
-          for (final url in _bootstrapRelays) {
-            state.addRequestForRelay(url, RelaySet.sliceFilterAuthors(filter));
-          }
-        }
-      } else {
-        for (final url in relaySet.urls) {
-          state.addRequestForRelay(url, RelaySet.sliceFilterAuthors(filter));
-        }
-      }
-    }
-    _globalState.inFlightRequests[state.id] = state;
-
-    state.closeIfNoRelays();
-
-    for (final request in state.requests.values.toList()) {
-      _relayManager.sendTrackedRequest(state, request);
-    }
-  }
-
   @override
-  Future<void> handleRequest(RequestState state) async {
+  Future<void> route(
+    List<Filter> filters,
+    RelaySend send, {
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  }) async {
     await _relayManager.seedRelaysConnected;
 
-    if (state.request.relaySet != null) {
-      return await doNostrRequestWithRelaySet(state);
-    }
-    for (final url in cleanRelayUrls(_bootstrapRelays)) {
-      if (state.request.filters.isEmpty) {
-        throw Exception("cannot do request with empty filters");
+    final byRelay = <String, List<Filter>>{};
+    void add(String url, List<Filter> relayFilters) => byRelay
+        .putIfAbsent(cleanRelayUrl(url) ?? url, () => [])
+        .addAll(relayFilters);
+    void addToBootstrapRelays(Filter filter) {
+      for (final url in cleanRelayUrls(_bootstrapRelays)) {
+        add(url, RelaySet.sliceFilterAuthors(filter));
       }
-      final List<Filter> filters = [];
-      for (final filter in state.request.filters) {
-        filters.addAll(RelaySet.sliceFilterAuthors(filter));
+    }
+
+    for (final filter in filters) {
+      if (relaySet == null) {
+        addToBootstrapRelays(filter);
+        continue;
       }
-      state.addRequestForRelay(url, filters);
+      final fromSet = relaySet.filtersByRelay(filter);
+      Logger.log.d(
+        () =>
+            "request for ${filter.authors?.length ?? 0} authors with kinds: ${filter.kinds} made requests to ${fromSet.length} relays",
+      );
+      if (fromSet.isEmpty && relaySet.fallbackToBootstrapRelays) {
+        Logger.log.d(
+          () =>
+              "making fallback requests to ${_bootstrapRelays.length} bootstrap relays",
+        );
+        addToBootstrapRelays(filter);
+      }
+      fromSet.forEach(add);
     }
-    _globalState.inFlightRequests[state.id] = state;
-
-    state.closeIfNoRelays();
-
-    for (final request in state.requests.values.toList()) {
-      _relayManager.sendTrackedRequest(state, request);
-    }
+    byRelay.forEach(send);
   }
 
   @override

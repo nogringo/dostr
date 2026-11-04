@@ -4,9 +4,9 @@ import 'package:ndk/domain_layer/entities/connection_source.dart';
 import 'package:ndk/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/entities/jit_engine_relay_connectivity_data.dart';
 import 'package:ndk/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk/domain_layer/entities/request_state.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk/domain_layer/repositories/nostr_transport.dart';
+import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import 'package:ndk/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
@@ -229,35 +229,32 @@ void main() async {
         globalState: globalState,
         nostrTransportFactory: factory,
       );
-      final requestState = RequestState(
-        NdkRequest.query(
-          'concurrent-candidates',
-          timeoutDuration: const Duration(seconds: 2),
-          filters: [
-            Filter(authors: [key1.publicKey, key2.publicKey, key3.publicKey]),
-          ],
+      final plan = JitRequestPlan((_, _) {});
+      final candidates = await RelayJitPubkeyStrategy.plan(
+        plan: plan,
+        filter: Filter(
+          authors: [key1.publicKey, key2.publicKey, key3.publicKey],
         ),
-      );
-
-      final handling = RelayJitPubkeyStrategy.handleRequest(
-        requestState: requestState,
-        globalState: globalState,
-        filter: requestState.unresolvedFilters.single,
         connectedRelays: const [],
         bootstrapRelays: const [],
         cacheManager: cacheManager,
         desiredCoverage: 1,
-        closeOnEOSE: true,
         direction: ReadWriteMarker.writeOnly,
         ignoreRelays: const [],
+      );
+      final connecting = RelayJitPubkeyStrategy.connectCandidates(
+        candidates: candidates,
+        plan: plan,
         relayManager: relayManager,
+        globalState: globalState,
+        bootstrapRelays: const [],
       );
 
       await Future<void>.delayed(const Duration(milliseconds: 100));
       expect(factory.startedUrls, containsAll([delayedUrl, immediateUrl]));
 
       delayedTransport.open();
-      await handling;
+      await connecting;
     });
 
     test('blasts to bootstrap relays when relay-list cache throws', () async {
@@ -281,37 +278,25 @@ void main() async {
       );
       expect(connected.first, isTrue);
 
-      final requestState = RequestState(
-        NdkRequest.query(
-          'cache-error-fallback',
-          timeoutDuration: const Duration(seconds: 2),
-          filters: [
-            Filter(authors: [key1.publicKey]),
-          ],
-        ),
-      );
-      globalState.inFlightRequests[requestState.id] = requestState;
-
-      await RelayJitPubkeyStrategy.handleRequest(
-        requestState: requestState,
-        globalState: globalState,
-        filter: requestState.unresolvedFilters.single,
+      final sent = <String, List<Filter>>{};
+      final plan = JitRequestPlan((url, filters) => sent[url] = filters);
+      final candidates = await RelayJitPubkeyStrategy.plan(
+        plan: plan,
+        filter: Filter(authors: [key1.publicKey]),
         connectedRelays: relayManager.connectedAnonymousRelays
             .whereType<RelayConnectivity<JitEngineRelayConnectivityData>>()
             .toList(),
         bootstrapRelays: [fallbackUrl],
         cacheManager: _ThrowingUserRelayListCache(),
         desiredCoverage: 1,
-        closeOnEOSE: true,
         direction: ReadWriteMarker.writeOnly,
         ignoreRelays: const [],
-        relayManager: relayManager,
       );
-      await Future<void>.delayed(Duration.zero);
+      plan.flush();
 
-      expect(fallbackTransport.sentData, hasLength(1));
-      expect(fallbackTransport.sentData.single, contains('"REQ"'));
-      expect(fallbackTransport.sentData.single, contains(key1.publicKey));
+      expect(candidates, isEmpty);
+      expect(sent.keys, [fallbackUrl]);
+      expect(sent[fallbackUrl]!.single.authors, [key1.publicKey]);
     });
   });
 }

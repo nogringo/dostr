@@ -5,9 +5,11 @@ import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart
 import 'package:ndk/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/event_cache_records.dart';
+import 'package:ndk/domain_layer/entities/filter.dart';
 import 'package:ndk/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk/domain_layer/entities/pending_signer_request.dart';
+import 'package:ndk/domain_layer/entities/relay_set.dart';
 import 'package:ndk/domain_layer/entities/account.dart';
 import 'package:ndk/domain_layer/entities/auth_policy.dart';
 import 'package:ndk/data_layer/repositories/signers/bip340_event_signer.dart';
@@ -1407,7 +1409,12 @@ class RecordingBroadcastSender extends BroadcastSender {
 
 class _ThrowingNetworkEngine implements NetworkEngine {
   @override
-  void handleRequest(requestState) {
+  Future<void> route(
+    List<Filter> filters,
+    RelaySend send, {
+    RelaySet? relaySet,
+    required int desiredCoverage,
+  }) {
     throw UnimplementedError();
   }
 

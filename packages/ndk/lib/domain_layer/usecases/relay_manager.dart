@@ -1139,43 +1139,12 @@ class RelayManager<T> {
     }
   }
 
-  /// The connection [state] must go out on towards the relay an engine picked.
-  ///
-  /// [picked] is that relay's anonymous connection, which is how engines
-  /// discover relays. A request that requires an identity gets its own bound
-  /// connection instead, opened if it is not there yet. Null means the request
-  /// must not be sent to that relay at all: falling back to [picked] is exactly
-  /// what the caller ruled out.
-  Future<RelayConnectivity?> connectionForRequest(
-    RequestState state,
-    RelayConnectivity picked, {
-    ConnectionSource connectionSource = ConnectionSource.explicit,
-  }) async {
-    final auth = state.request.auth;
-    if (auth is! AuthPolicyRequire) {
-      return picked;
-    }
-    if (!auth.account.signer.canSign()) {
-      Logger.log.w(
-        () => "${state.id} requires ${auth.account.pubkey}, which cannot sign",
-      );
-      return null;
-    }
-    return openConnectionAs(
-      picked.url,
-      auth.account,
-      connectionSource: connectionSource,
-      pausing: state,
-    );
-  }
-
   /// The connection a broadcast under [auth] must go out on towards [url],
   /// opening it when it is not there yet. Null means nothing may be sent.
   ///
-  /// Mirrors [connectionForRequest] for the write path, and owns the connecting
-  /// too: a broadcast that requires an identity must not even open the
-  /// anonymous connection, because a socket we opened is one the relay saw,
-  /// whether or not anything was sent on it.
+  /// Owns the connecting too: a broadcast that requires an identity must not
+  /// even open the anonymous connection, because a socket we opened is one the
+  /// relay saw, whether or not anything was sent on it.
   Future<RelayConnectivity?> connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
@@ -1582,6 +1551,9 @@ class RelayManager<T> {
     String url,
     List<Filter> filters,
   ) async {
+    // a relay an engine handed over late, once the request is over, must not
+    // revive it: nothing would ever CLOSE that REQ
+    if (!isStillInFlight(state) || state.networkController.isClosed) return;
     final auth = state.request.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
@@ -1598,13 +1570,13 @@ class RelayManager<T> {
       throw StateError("${state.id} was already sent to $key");
     }
     state.addRequest(key, filters);
-    await sendTrackedRequest(state, state.requests[key]!);
+    await _sendTracked(state, state.requests[key]!);
   }
 
   /// Sends [request], already tracked by [state], to its relay. One it cannot
   /// be sent to is reported as notSent before the send path ends, so the
   /// request never closes on that relay as merely disconnected.
-  Future<void> sendTrackedRequest(
+  Future<void> _sendTracked(
     RequestState state,
     RelayRequestState request,
   ) async {

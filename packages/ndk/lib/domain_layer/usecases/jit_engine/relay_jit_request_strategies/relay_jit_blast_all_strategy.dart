@@ -1,62 +1,29 @@
-import 'dart:async';
-
-import '../../../../shared/nips/nip01/client_msg.dart';
 import '../../../entities/filter.dart';
-import '../../../entities/jit_engine_relay_connectivity_data.dart';
 import '../../../entities/relay_connectivity.dart';
-import '../../../entities/request_state.dart';
-import '../../relay_manager.dart';
+import '../jit_request_plan.dart';
 
 /// Strategy Description:
 ///
-/// blast the request to all connected relays without adding the pubkey to the relay
+/// blast the request to all connected bootstrap relays without adding the
+/// pubkey to the relay
 ///
 class RelayJitBlastAllStrategy {
-  /// send out the request
-  static void handleRequest({
-    required RequestState requestState,
+  /// Adds [filter] to [plan] for every connected bootstrap relay, restricted to
+  /// [pubkeys] when given.
+  static void plan({
+    required JitRequestPlan plan,
     required Filter filter,
-    required List<RelayConnectivity<JitEngineRelayConnectivityData>>
-    connectedRelays,
-    required bool closeOnEOSE,
-    required RelayManager relayManager,
+    Iterable<String>? pubkeys,
+    required Iterable<RelayConnectivity> connectedRelays,
     required List<String> bootstrapRelays,
   }) {
     for (final connectedRelay in connectedRelays) {
-      // skip if the relay is not in the bootstrap relays
       if (!bootstrapRelays.contains(connectedRelay.url)) continue;
-      unawaited(_blastTo(connectedRelay, requestState, filter, relayManager));
-    }
-  }
-
-  static Future<void> _blastTo(
-    RelayConnectivity<JitEngineRelayConnectivityData> connectedRelay,
-    RequestState requestState,
-    Filter filter,
-    RelayManager relayManager,
-  ) async {
-    relayManager.beginPendingConnection(requestState);
-    try {
-      final target = await relayManager.connectionForRequest(
-        requestState,
-        connectedRelay,
-      );
-      if (target == null || !relayManager.isStillInFlight(requestState)) {
-        return;
+      if (pubkeys == null) {
+        plan.addFilter(connectedRelay.url, filter);
+      } else {
+        plan.addPubkeys(connectedRelay.url, filter, pubkeys);
       }
-
-      /// register request
-      relayManager.registerRelayRequest(
-        reqId: requestState.id,
-        connectionKey: target.key,
-        filters: [filter],
-      );
-      relayManager.send(
-        target,
-        ClientMsg(ClientMsgType.kReq, id: requestState.id, filters: [filter]),
-      );
-    } finally {
-      relayManager.endPendingConnection(requestState);
     }
   }
 }
