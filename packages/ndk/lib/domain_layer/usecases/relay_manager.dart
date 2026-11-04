@@ -28,8 +28,8 @@ import '../entities/request_state.dart';
 import '../entities/tuple.dart';
 import '../repositories/nostr_transport.dart';
 import '../repositories/relay_info_repo.dart';
-import 'accounts/accounts.dart';
-import 'engines/network_engine.dart';
+import '../repositories/auth_accounts.dart';
+import '../entities/engine_additional_data_factory.dart';
 import 'nip42/auth_event.dart';
 
 ///  relay manager, responsible for lifecycle of relays, sending messages, \
@@ -45,7 +45,7 @@ class RelayManager<T> {
   GlobalState globalState;
 
   /// signer for nip-42 AUTH challenges from relays
-  final Accounts? _accounts;
+  final AuthAccounts? _accounts;
   final RelayInfoRepo? _relayInfoRepo;
   final Map<String, Future<RelayInfo?>> _relayInfoCache = {};
 
@@ -128,7 +128,7 @@ class RelayManager<T> {
   RelayManager({
     required this.globalState,
     required this.nostrTransportFactory,
-    Accounts? accounts,
+    AuthAccounts? accounts,
     this.engineAdditionalDataFactory,
     List<String>? bootstrapRelays,
     allowReconnect = true,
@@ -1244,9 +1244,9 @@ class RelayManager<T> {
   }
 
   /// The account [key] authenticates as. A registered account wins, because
-  /// [Accounts] owns its signer's lifetime; otherwise it is the one the caller
-  /// handed to [AuthPolicy], which never had to be registered. Both carry
-  /// [RelayConnectionKey.pubkey], so this only picks a signer, never an
+  /// [AuthAccounts] owns its signer's lifetime; otherwise it is the one the
+  /// caller handed to [AuthPolicy], which never had to be registered. Both
+  /// carry [RelayConnectionKey.pubkey], so this only picks a signer, never an
   /// identity.
   Account? _accountFor(RelayConnectionKey key) =>
       _accounts?.accounts[key.pubkey] ?? _boundAccounts[key];
@@ -1462,8 +1462,7 @@ class RelayManager<T> {
       if (state.networkController.isClosed) {
         // this might happen because relays even after we send a CLOSE subscription.id, they'll still send more events
         Logger.log.t(
-          () =>
-              "tried to add event to an already closed STREAM ${state.request.id} ${state.request.filters}",
+          () => "tried to add event to an already closed STREAM ${state.id}",
         );
       } else {
         state.networkController.add(eventWithSources);
@@ -1478,7 +1477,7 @@ class RelayManager<T> {
   ) {
     String id = eventJson[1];
     RequestState? state = globalState.inFlightRequests[id];
-    if (state != null && state.request.closeOnEOSE) {
+    if (state != null && state.closeOnEose) {
       Logger.log.t(
         () =>
             "⛁ received EOSE from ${relayConnectivity.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
@@ -1488,7 +1487,7 @@ class RelayManager<T> {
         request.receivedEOSE = true;
       }
 
-      if (state.request.closeOnEOSE) {
+      if (state.closeOnEose) {
         _sendCloseToRelay(relayConnectivity, state.id);
         _checkNetworkClose(state);
         _logActiveRequests();
@@ -1615,7 +1614,7 @@ class RelayManager<T> {
     // a relay an engine handed over late, once the request is over, must not
     // revive it: nothing would ever CLOSE that REQ
     if (!isStillInFlight(state) || state.networkController.isClosed) return;
-    final auth = state.request.auth;
+    final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
       final account = (auth as AuthPolicyRequire).account;
@@ -1671,7 +1670,7 @@ class RelayManager<T> {
       connectionSource:
           ConnectionSource.explicit, // TODO improve this connection source
       force: false,
-      as: state.request.auth?.account,
+      as: state.auth?.account,
       pausing: state,
     );
     // a timeout or a close may have ended the request while the connection
@@ -1715,8 +1714,7 @@ class RelayManager<T> {
       // a request the relay ended itself, with a CLOSED or with the EOSE of a
       // query, is already closed on its side
       final endedOnRelay =
-          request.receivedClosed ||
-          (state.request.closeOnEOSE && request.receivedEOSE);
+          request.receivedClosed || (state.closeOnEose && request.receivedEOSE);
       if (endedOnRelay) continue;
       sendCloseToConnection(relay.key, state.id);
     }
@@ -1834,8 +1832,7 @@ class RelayManager<T> {
   }
 
   /// Account a request authenticates as, null when it must stay unattributable.
-  Account? _accountForRequest(RequestState state) =>
-      accountForAuth(state.request.auth);
+  Account? _accountForRequest(RequestState state) => accountForAuth(state.auth);
 
   /// Account [auth] authenticates as, null when it must stay unattributable.
   Account? accountForAuth(AuthPolicy? auth) {
@@ -2114,13 +2111,13 @@ class RelayManager<T> {
       //   kind = state.requests.values.first.filters.first.kinds!.first;
       // }
       // int? kindCount = kindsMap[kind];
-      int? nameCount = namesMap[state.request.name];
+      int? nameCount = namesMap[state.name];
       // kindCount ??= 0;
       // kindCount++;
       nameCount ??= 0;
       nameCount++;
       // kindsMap[kind] = kindCount;
-      namesMap[state.request.name] = nameCount;
+      namesMap[state.name] = nameCount;
     });
     Logger.log.d(
       () =>

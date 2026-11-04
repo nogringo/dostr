@@ -6,7 +6,6 @@ import 'package:ndk/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/connection_source.dart';
 import 'package:ndk/domain_layer/entities/filter.dart';
 import 'package:ndk/domain_layer/entities/global_state.dart';
-import 'package:ndk/domain_layer/entities/ndk_request.dart';
 import 'package:ndk/domain_layer/entities/nip77_state.dart';
 import 'package:ndk/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk/domain_layer/entities/relay.dart';
@@ -97,11 +96,9 @@ void main() {
     final filters = [
       Filter(kinds: [1]),
     ];
-    final request = RequestState(
-      query
-          ? NdkRequest.query(id, filters: filters, timeoutDuration: null)
-          : NdkRequest.subscription(id, filters: filters),
-    );
+    final request = query
+        ? RequestState.query(id)
+        : RequestState.subscription(id);
     request.networkController.stream.listen((_) {});
     if (key != null) request.registerRequest(key, filters);
     state.inFlightRequests[id] = request;

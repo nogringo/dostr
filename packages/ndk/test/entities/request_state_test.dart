@@ -2,15 +2,12 @@ import 'package:ndk/domain_layer/entities/request_state.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-RequestState _query() => RequestState(
-  NdkRequest.query(
-    'a-query',
-    filters: [
-      Filter(kinds: [Nip01Event.kTextNodeKind]),
-    ],
-    timeoutDuration: const Duration(seconds: 5),
-  ),
-);
+final _filters = [
+  Filter(kinds: [Nip01Event.kTextNodeKind]),
+];
+
+RequestState _query() =>
+    RequestState.query('a-query', timeout: const Duration(seconds: 5));
 
 void main() {
   group('RequestState.didAllRequestsFinish', () {
@@ -22,8 +19,8 @@ void main() {
       final state = _query();
       final fast = RelayConnectionKey.anonymous('wss://fast.example.com');
       final slow = RelayConnectionKey.anonymous('wss://slow.example.com');
-      state.addRequest(fast, state.request.filters);
-      state.addRequest(slow, state.request.filters);
+      state.addRequest(fast, _filters);
+      state.addRequest(slow, _filters);
 
       state.requests[fast]!.receivedEOSE = true;
       expect(state.didAllRequestsFinish, isFalse);
@@ -39,7 +36,7 @@ void main() {
       // a second send path is resolving which connection to use, so it has no
       // entry yet. The relay that answered must not look like the only one
       state.pendingConnections++;
-      state.addRequest(fast, state.request.filters);
+      state.addRequest(fast, _filters);
       state.requests[fast]!.receivedEOSE = true;
 
       expect(state.didAllRequestsFinish, isFalse);
@@ -51,7 +48,7 @@ void main() {
     test('a relay that is authenticating is not finished', () {
       final state = _query();
       final key = RelayConnectionKey.anonymous('wss://relay.example.com');
-      state.addRequest(key, state.request.filters);
+      state.addRequest(key, _filters);
 
       state.requests[key]!.receivedClosed = true;
       state.requests[key]!.retryingAuth = true;
@@ -63,15 +60,8 @@ void main() {
   });
 
   group('RequestState timeout pauses', () {
-    RequestState withTimeout(Duration timeout) => RequestState(
-      NdkRequest.query(
-        'a-query',
-        filters: [
-          Filter(kinds: [Nip01Event.kTextNodeKind]),
-        ],
-        timeoutDuration: timeout,
-      ),
-    );
+    RequestState withTimeout(Duration timeout) =>
+        RequestState.query('a-query', timeout: timeout);
 
     test('the timer waits for every pause to resume', () async {
       final state = withTimeout(const Duration(milliseconds: 300));

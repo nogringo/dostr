@@ -1,4 +1,4 @@
-import '../usecases/engines/network_engine.dart';
+import 'engine_additional_data_factory.dart';
 import 'read_write_marker.dart';
 
 /// additional data for the JIT engine

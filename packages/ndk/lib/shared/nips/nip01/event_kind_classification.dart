@@ -1,14 +1,12 @@
-import '../../../domain_layer/entities/contact_list.dart';
-import '../../../domain_layer/entities/metadata.dart';
-import '../nip28/channel_metadata.dart';
-
 class EventKindClassification {
+  /// replaceable although below 10000: metadata (NIP-01), contact list
+  /// (NIP-02) and channel metadata (NIP-28)
+  static const legacyReplaceableKinds = {0, 3, 41};
+
   static bool isEphemeralKind(int kind) => kind >= 20000 && kind <= 29999;
 
   static bool isReplaceableKind(int kind) {
-    if (kind == Metadata.kKind ||
-        kind == ContactList.kKind ||
-        kind == ChannelMetadata.kKind) {
+    if (legacyReplaceableKinds.contains(kind)) {
       return true;
     }
 

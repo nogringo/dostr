@@ -1,3 +1,5 @@
+export '../../entities/engine_additional_data_factory.dart';
+
 import '../../entities/broadcast_response.dart';
 import '../../entities/broadcast_state.dart';
 import '../../entities/filter.dart';
@@ -30,9 +32,4 @@ abstract class NetworkEngine {
     required EventSigner? signer,
     required BroadcastState broadcastState,
   });
-}
-
-/// Factory for creating additional data for the engine
-abstract class EngineAdditionalDataFactory<T> {
-  T call();
 }

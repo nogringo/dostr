@@ -1,4 +1,4 @@
-import 'package:ndk/ndk.dart';
+import 'nip_01_event.dart';
 
 enum NostrMessageRawType {
   notice,

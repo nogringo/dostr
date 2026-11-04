@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:ndk/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
-import 'package:ndk/domain_layer/entities/ndk_request.dart';
 import 'package:ndk/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
 import 'package:test/test.dart';
@@ -235,15 +234,12 @@ void main() async {
         final requestId = "test_request_123";
 
         // Create a request state in globalState.inFlightRequests
-        final request = NdkRequest.query(
-          requestId,
-          name: "test_request",
-          filters: testFilters,
-          closeOnEOSE: false, // This is a subscription, not a one-time request
-          timeoutDuration: Duration(seconds: 30),
-        );
-
-        manager.globalState.inFlightRequests[requestId] = RequestState(request);
+        manager.globalState.inFlightRequests[requestId] =
+            RequestState.subscription(
+              requestId,
+              name: "test_request",
+              timeout: Duration(seconds: 30),
+            );
 
         // Register the request with both relays
         manager.registerRelayRequest(

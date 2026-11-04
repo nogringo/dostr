@@ -1,12 +1,9 @@
 import 'dart:convert';
 
-import '../../domain_layer/entities/contact_list.dart';
-import '../../domain_layer/entities/metadata.dart';
 import '../../domain_layer/entities/nip_01_event.dart';
 import '../../shared/helpers/list_casting.dart';
 import '../../shared/nips/nip01/event_kind_classification.dart';
 import '../../shared/nips/nip19/nip19.dart';
-import '../../shared/nips/nip28/channel_metadata.dart';
 
 /// Data model for NIP-01 Event
 /// Extends [Nip01Event] entity with serialization methods to/from JSON and other formats
@@ -168,8 +165,6 @@ class Nip01EventModel extends Nip01Event {
 
   bool _supportsCoordinate(int kind) {
     return EventKindClassification.isAddressableKind(kind) ||
-        kind == Metadata.kKind ||
-        kind == ContactList.kKind ||
-        kind == ChannelMetadata.kKind;
+        EventKindClassification.legacyReplaceableKinds.contains(kind);
   }
 }

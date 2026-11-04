@@ -3,7 +3,6 @@ import 'dart:async';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/auth_policy.dart';
 import '../../entities/filter.dart';
-import '../../entities/ndk_request.dart';
 import '../../entities/nip_01_event.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_request_outcome.dart';
@@ -60,7 +59,13 @@ class RelayReqs {
     }
 
     final req = RelayReq._(
-      RequestState(_ndkRequest(reqId, name, closeOnEose, auth, timeout)),
+      RequestState(
+        reqId,
+        name: name,
+        closeOnEose: closeOnEose,
+        auth: auth,
+        timeoutDuration: timeout,
+      ),
       relayManager: _relayManager,
       eventVerifier: _eventVerifier,
       verifiedEventCache: _verifiedEventCache,
@@ -75,35 +80,6 @@ class RelayReqs {
       req.seal();
     }
     return req;
-  }
-
-  static NdkRequest _ndkRequest(
-    String id,
-    String? name,
-    bool closeOnEose,
-    AuthPolicy? auth,
-    Duration? timeout,
-  ) {
-    final request = closeOnEose
-        ? NdkRequest.query(
-            id,
-            name: name,
-            filters: [],
-            timeoutDuration: timeout,
-            auth: auth,
-            cacheRead: false,
-            cacheWrite: false,
-          )
-        : NdkRequest.subscription(
-            id,
-            name: name,
-            filters: [],
-            auth: auth,
-            cacheRead: false,
-            cacheWrite: false,
-          );
-    // NdkRequest.subscription takes no timeout
-    return request..timeoutDuration = timeout;
   }
 }
 
@@ -154,7 +130,7 @@ class RelayReq {
   /// NIP-01 subscription id
   String get id => _state.id;
 
-  bool get closeOnEose => _state.request.closeOnEOSE;
+  bool get closeOnEose => _state.closeOnEose;
 
   /// Single-subscription: cancelling it closes the request, like [close].
   Stream<Nip01Event> get events => _events.stream;

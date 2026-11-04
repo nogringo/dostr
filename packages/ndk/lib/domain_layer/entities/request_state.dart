@@ -4,9 +4,9 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../config/rx_defaults.dart';
 import 'filter.dart';
-import 'ndk_request.dart';
 import 'nip_01_event.dart';
 import 'auth_handler.dart';
+import 'auth_policy.dart';
 import 'relay_connection_key.dart';
 import 'relay_request_outcome.dart';
 
@@ -150,11 +150,20 @@ class RequestState implements TimeoutPausable {
 
   Stream<Nip01Event> get stream => controller.stream;
 
-  /// request id
-  String get id => request.id;
+  /// subscription id sent to relays in REQ/CLOSE (NIP-01)
+  final String id;
+
+  /// request name, only shown in logs
+  final String? name;
+
+  /// should it close on receiving EOSE?
+  final bool closeOnEose;
+
+  /// which identity this request may be attributed to on the relays (NIP-42)
+  final AuthPolicy? auth;
 
   /// is this a subscription?
-  bool get isSubscription => !request.closeOnEOSE;
+  bool get isSubscription => !closeOnEose;
 
   ///! our requests tracking obj
   // key is the connection the request was sent on, value is RelayRequestState
@@ -169,11 +178,8 @@ class RequestState implements TimeoutPausable {
   // them instead of scanning every connection of the request
   final Map<String, List<RelayRequestState>> _requestsByUrl = {};
 
-  /// the original request
-  NdkRequest request;
-
   /// timeout duration, closes all streams
-  Duration? timeoutDuration;
+  final Duration? timeoutDuration;
 
   bool _timedOut = false;
 
@@ -201,11 +207,16 @@ class RequestState implements TimeoutPausable {
   }
 
   /// Creates a new [RequestState] instance
-  RequestState(this.request) {
-    // if we have a timeout set, we start it
-    if (request.timeoutDuration != null) {
-      timeoutDuration = request.timeoutDuration;
-      _startTimeout(timeoutDuration!);
+  RequestState(
+    this.id, {
+    this.name,
+    required this.closeOnEose,
+    this.auth,
+    this.timeoutDuration,
+  }) {
+    final timeout = timeoutDuration;
+    if (timeout != null) {
+      _startTimeout(timeout);
     }
     _streamSubscription = controller.listen(
       (e) {},
@@ -222,6 +233,34 @@ class RequestState implements TimeoutPausable {
       },
     );
   }
+
+  /// A query, ended once every relay sent its EOSE.
+  RequestState.query(
+    String id, {
+    String? name,
+    AuthPolicy? auth,
+    Duration? timeout,
+  }) : this(
+         id,
+         name: name,
+         closeOnEose: true,
+         auth: auth,
+         timeoutDuration: timeout,
+       );
+
+  /// A subscription, which runs until closed.
+  RequestState.subscription(
+    String id, {
+    String? name,
+    AuthPolicy? auth,
+    Duration? timeout,
+  }) : this(
+         id,
+         name: name,
+         closeOnEose: false,
+         auth: auth,
+         timeoutDuration: timeout,
+       );
 
   void _startTimeout(Duration duration) {
     _timeoutStartedAt = DateTime.now();

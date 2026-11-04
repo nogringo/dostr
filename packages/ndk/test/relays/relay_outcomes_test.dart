@@ -79,13 +79,10 @@ void deadConnectionTests() {
       );
 
       final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
-      final state = ndk_entities.RequestState(
-        NdkRequest.query(
-          "dead-connection-test",
-          filters: [filter],
-          // long enough that the timeout cannot be what ends the request
-          timeoutDuration: Duration(seconds: 60),
-        ),
+      final state = ndk_entities.RequestState.query(
+        "dead-connection-test",
+        // long enough that the timeout cannot be what ends the request
+        timeout: Duration(seconds: 60),
       );
       final key = RelayConnectionKey.anonymous(relay.url);
       state.addRequest(key, [filter]);
@@ -149,21 +146,11 @@ void notSentEndTests() {
       engineAdditionalDataFactory: JitEngineRelayConnectivityDataFactory(),
     );
 
-    ndk_entities.RequestState trackQuery(
-      RelayManager manager,
-      String id,
-      List<Filter> filters, {
-      List<String>? explicitRelays,
-    }) {
-      final state = ndk_entities.RequestState(
-        NdkRequest.query(
-          id,
-          filters: filters,
-          explicitRelays: explicitRelays,
-          cacheRead: false,
-          // long enough that the timeout cannot be what ends the request
-          timeoutDuration: Duration(seconds: 60),
-        ),
+    ndk_entities.RequestState trackQuery(RelayManager manager, String id) {
+      final state = ndk_entities.RequestState.query(
+        id,
+        // long enough that the timeout cannot be what ends the request
+        timeout: Duration(seconds: 60),
       );
       manager.globalState.inFlightRequests[state.id] = state;
       return state;
@@ -193,7 +180,7 @@ void notSentEndTests() {
         await manager.seedRelaysConnected;
 
         final filter = notesOf(key1);
-        final state = trackQuery(manager, "open-socket-test", [filter]);
+        final state = trackQuery(manager, "open-socket-test");
         final droppedKey = RelayConnectionKey.anonymous(dropped.url);
         state.addRequest(droppedKey, [filter]);
         await manager.sendOrThrow(
@@ -286,9 +273,8 @@ void collapseTests() {
     const url = "wss://relay.example.com";
     final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
 
-    ndk_entities.RequestState buildState() => ndk_entities.RequestState(
-      NdkRequest.subscription("outcome-test", filters: [filter]),
-    );
+    ndk_entities.RequestState buildState() =>
+        ndk_entities.RequestState.subscription("outcome-test");
 
     test('a connection that went away reports disconnected', () {
       final state = buildState();

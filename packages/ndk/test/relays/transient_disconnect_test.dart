@@ -279,8 +279,8 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   final filters = [
     Filter(kinds: [Nip01Event.kTextNodeKind]),
   ];
-  manager.globalState.inFlightRequests[_subId] = RequestState(
-    NdkRequest.subscription(_subId, filters: filters),
+  manager.globalState.inFlightRequests[_subId] = RequestState.subscription(
+    _subId,
   );
   manager.registerRelayRequest(
     reqId: _subId,
