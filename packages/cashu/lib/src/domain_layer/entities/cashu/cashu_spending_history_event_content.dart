@@ -1,4 +1,4 @@
-import 'package:ndk/domain_layer/entities/tuple.dart';
+import 'package:ndk_core/domain_layer/entities/tuple.dart';
 import 'cashu_spending_history_event.dart';
 
 class CashuSpendingHistoryEventContent {

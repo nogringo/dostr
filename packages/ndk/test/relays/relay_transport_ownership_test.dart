@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:ndk/domain_layer/entities/connection_source.dart';
-import 'package:ndk/domain_layer/entities/global_state.dart';
-import 'package:ndk/domain_layer/entities/relay_connection_key.dart';
-import 'package:ndk/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk/domain_layer/entities/relay_info.dart';
-import 'package:ndk/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk/domain_layer/usecases/relay_manager.dart';
+import 'package:ndk_core/domain_layer/entities/connection_source.dart';
+import 'package:ndk_core/domain_layer/entities/global_state.dart';
+import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
+import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
+import 'package:ndk_core/domain_layer/entities/relay_info.dart';
+import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:test/test.dart';
 
 class _Transport implements NostrTransport {

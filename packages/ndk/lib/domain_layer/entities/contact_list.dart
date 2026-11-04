@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import '../../shared/logger/logger.dart';
-import '../../shared/nips/nip01/helpers.dart';
-import 'nip_01_event.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'read_write_marker.dart';
 
 /// nip02 contact list
@@ -73,6 +73,7 @@ class ContactList {
         followedEvents.add(id);
       }
     }
+    // ignore: deprecated_member_use
     sources.addAll(event.sources);
   }
 

@@ -2,7 +2,7 @@ import 'package:collection/collection.dart';
 
 import 'pubkey_mapping.dart';
 import 'read_write.dart';
-import 'filter.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
 
 class RelaySet {
   String get id => buildId(name, pubKey);

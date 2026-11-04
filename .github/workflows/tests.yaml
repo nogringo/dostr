@@ -70,7 +70,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [wallets, nwc, cashu]
+        package: [ndk_core, wallets, nwc, cashu]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

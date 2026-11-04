@@ -10,6 +10,7 @@ dev_dependencies:
 
 workspace:
   - packages/ndk
+  - packages/ndk_core
   - packages/ndk_cache_manager_test_suite
   - packages/objectbox
   - packages/sembast
@@ -26,8 +27,8 @@ melos:
     version:
       hooks:
         preCommit: |
-          melos exec --fail-fast --scope="ndk" -- "dart run tool/update_version.dart"
-          git add packages/ndk/lib/src/version.dart
+          melos exec --fail-fast --scope="ndk_core" -- "dart run tool/update_version.dart"
+          git add packages/ndk_core/lib/src/version.dart
 
   scripts:
     analyze:

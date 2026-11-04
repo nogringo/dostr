@@ -1,6 +1,6 @@
 import '../../entities/cashu/cashu_mint_recommendation.dart';
-import 'package:ndk/domain_layer/entities/filter.dart';
-import 'package:ndk/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk/domain_layer/usecases/requests/requests.dart';
 
 /// Discovers and ranks Cashu mints using NIP-87 announcements and reviews.

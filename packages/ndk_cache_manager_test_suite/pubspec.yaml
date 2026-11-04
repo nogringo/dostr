@@ -11,6 +11,7 @@ resolution: workspace
 
 dependencies:
   ndk: ^0.11.0-dev.2
+  ndk_core: ^0.11.0-dev.2
   test: any
   ndk_cashu: ^0.1.0
   ndk_wallets: ^0.1.0

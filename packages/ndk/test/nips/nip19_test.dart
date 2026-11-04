@@ -3,11 +3,11 @@ import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:bech32/bech32.dart';
 import 'package:convert/convert.dart';
-import 'package:ndk/shared/nips/nip19/nip19.dart';
-import 'package:ndk/shared/nips/nip19/nip19_utils.dart' as nip19_utils;
-import 'package:ndk/domain_layer/entities/naddr.dart';
-import 'package:ndk/domain_layer/entities/nevent.dart';
-import 'package:ndk/domain_layer/entities/nprofile.dart';
+import 'package:ndk_core/shared/nips/nip19/nip19.dart';
+import 'package:ndk_core/shared/nips/nip19/nip19_utils.dart' as nip19_utils;
+import 'package:ndk_core/domain_layer/entities/naddr.dart';
+import 'package:ndk_core/domain_layer/entities/nevent.dart';
+import 'package:ndk_core/domain_layer/entities/nprofile.dart';
 
 void main() {
   group('Nip19Utils', () {

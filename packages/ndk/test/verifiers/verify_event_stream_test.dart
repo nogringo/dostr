@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk/domain_layer/usecases/requests/verify_event_stream.dart';
+import 'package:ndk_core/domain_layer/usecases/requests/verify_event_stream.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 

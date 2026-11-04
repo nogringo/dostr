@@ -1,5 +1,5 @@
-import '../../shared/helpers/relay_helper.dart';
-import 'nip_01_event.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'read_write_marker.dart';
 
 class Nip65 {

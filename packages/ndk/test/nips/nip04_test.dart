@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:ndk/shared/nips/nip01/bip340.dart';
-import 'package:ndk/data_layer/repositories/signers/bip340_event_signer.dart';
-import 'package:ndk/domain_layer/repositories/event_signer.dart';
-import 'package:ndk/shared/nips/nip01/key_pair.dart';
-import 'package:ndk/shared/nips/nip04/nip04.dart';
+import 'package:ndk_core/shared/nips/nip01/bip340.dart';
+import 'package:ndk_core/data_layer/repositories/signers/bip340_event_signer.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
+import 'package:ndk_core/shared/nips/nip04/nip04.dart';
 import 'package:test/test.dart';
 
 void main() {

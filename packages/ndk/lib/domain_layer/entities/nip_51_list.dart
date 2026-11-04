@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import '../../shared/helpers/list_casting.dart';
-import '../../shared/logger/logger.dart';
-import '../../shared/nips/nip01/helpers.dart';
-import '../repositories/event_signer.dart';
-import 'nip_01_event.dart';
+import 'package:ndk_core/shared/helpers/list_casting.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 
 class Nip51List {
   static const int kMute = 10000;
@@ -175,6 +175,7 @@ class Nip51List {
         final isNip04 = event.content.contains('?iv=');
         final json = isNip04
             // ignore: deprecated_member_use_from_same_package
+            // ignore: deprecated_member_use
             ? await signer.decrypt(event.content, signer.getPublicKey())
             : await signer.decryptNip44(
                 ciphertext: event.content,
@@ -321,6 +322,7 @@ class Nip51Set extends Nip51List {
         final isNip04 = event.content.contains('?iv=');
         final json = isNip04
             // ignore: deprecated_member_use_from_same_package
+            // ignore: deprecated_member_use
             ? await signer.decrypt(event.content, signer.getPublicKey())
             : await signer.decryptNip44(
                 ciphertext: event.content,

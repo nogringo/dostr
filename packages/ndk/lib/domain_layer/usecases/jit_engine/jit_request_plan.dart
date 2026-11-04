@@ -1,6 +1,6 @@
-import '../../../shared/helpers/relay_helper.dart';
-import '../../../shared/logger/logger.dart';
-import '../../entities/filter.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../engines/network_engine.dart';
 
 /// Where one request goes, so that each relay gets a single REQ (NIP-01: a

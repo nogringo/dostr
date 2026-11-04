@@ -2,30 +2,30 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import '../../../config/request_defaults.dart';
-import '../../../config/rx_defaults.dart';
+import 'package:ndk_core/config/request_defaults.dart';
+import 'package:ndk_core/config/rx_defaults.dart';
 import '../../../shared/helpers/bounded_lru_set.dart';
-import '../../../shared/helpers/relay_helper.dart';
-import '../../../shared/logger/logger.dart';
-import '../../../shared/nips/nip01/event_kind_classification.dart';
-import '../../../shared/nips/nip01/helpers.dart';
-import '../../entities/account.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/domain_layer/entities/account.dart';
 import '../../entities/event_filter.dart';
-import '../../entities/filter.dart';
-import '../../entities/global_state.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_core/domain_layer/entities/global_state.dart';
 import '../../entities/ndk_request.dart';
-import '../../entities/nip_01_event.dart';
-import '../../entities/auth_policy.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import '../../entities/relay_set.dart';
-import '../../entities/relay_request_outcome.dart';
+import 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 import '../../entities/request_response.dart';
 import '../../repositories/cache_manager.dart';
-import '../../repositories/event_verifier.dart';
+import 'package:ndk_core/domain_layer/repositories/event_verifier.dart';
 import '../cache_read/cache_read.dart';
 import '../fetched_ranges/fetched_ranges.dart';
 import '../engines/network_engine.dart';
-import '../relay_manager.dart';
-import '../relay_reqs/relay_reqs.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../stream_response_cleaner/stream_response_cleaner.dart';
 import 'concurrency_check.dart';
 
@@ -210,9 +210,11 @@ class Requests {
         }
       }
     }
+    // ignore: deprecated_member_use
     if (event.sources.isNotEmpty) {
       await _cacheManager.addEventSources(
         eventId: event.id,
+        // ignore: deprecated_member_use
         relayUrls: event.sources.toSet(),
       );
     }
@@ -501,6 +503,7 @@ class Requests {
     final trackedNetworkEvents = _fetchedRanges == null
         ? networkEvents
         : networkEvents.map((event) {
+            // ignore: deprecated_member_use
             for (final source in event.sources) {
               final oldest = oldestNetworkEventByRelay[source];
               if (oldest == null || event.createdAt < oldest) {

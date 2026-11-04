@@ -4,9 +4,9 @@ import 'package:test/test.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip01/bip340.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
-import 'package:ndk/shared/nips/nip01/key_pair.dart';
+import 'package:ndk_core/shared/nips/nip01/bip340.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip01/key_pair.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';

@@ -1,17 +1,17 @@
-import '../config/bootstrap_relays.dart';
+import 'package:ndk_core/config/bootstrap_relays.dart';
 import '../config/nip85_defaults.dart';
-import '../config/broadcast_defaults.dart';
-import '../config/logger_defaults.dart';
-import '../config/request_defaults.dart';
-import '../data_layer/repositories/signers/bip340_event_signer.dart';
-import '../domain_layer/entities/auth_handler.dart';
+import 'package:ndk_core/config/broadcast_defaults.dart';
+import 'package:ndk_core/config/logger_defaults.dart';
+import 'package:ndk_core/config/request_defaults.dart';
+import 'package:ndk_core/data_layer/repositories/signers/bip340_event_signer.dart';
+import 'package:ndk_core/domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/cache_eviction.dart';
 import '../domain_layer/entities/event_filter.dart';
 import '../domain_layer/entities/nip_85.dart';
 import '../domain_layer/repositories/cache_manager.dart';
-import '../domain_layer/repositories/event_signer.dart';
-import '../domain_layer/repositories/event_verifier.dart';
-import '../shared/logger/log_level.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_core/domain_layer/repositories/event_verifier.dart';
+import 'package:ndk_core/shared/logger/log_level.dart';
 
 /// Configuration class for the Nostr Development Kit (NDK)
 ///

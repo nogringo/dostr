@@ -2,13 +2,13 @@ import 'package:rxdart/rxdart.dart';
 
 import 'dart:convert';
 
-import '../../../shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import '../../entities/event_cache_records.dart';
-import '../../entities/filter.dart';
-import '../../entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../entities/nip_51_list.dart';
 import '../../repositories/cache_manager.dart';
-import '../../repositories/event_signer.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../accounts/accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../decrypted_event_payloads/decrypted_event_payloads.dart';
@@ -58,6 +58,7 @@ class Lists {
           : DecryptedPayloadScheme.nip44,
       decrypt: () => isNip04
           // ignore: deprecated_member_use_from_same_package
+          // ignore: deprecated_member_use
           ? signer.decrypt(event.content, signer.getPublicKey())
           : signer.decryptNip44(
               ciphertext: event.content,

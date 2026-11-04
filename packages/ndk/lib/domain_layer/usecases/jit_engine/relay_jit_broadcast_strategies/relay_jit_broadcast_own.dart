@@ -1,5 +1,5 @@
-import '../../../../shared/logger/logger.dart';
-import '../../../entities/nip_01_event.dart';
+import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../../repositories/cache_manager.dart';
 import '../../user_relay_lists/user_relay_lists.dart';
 

@@ -19,6 +19,7 @@ dependencies:
   equatable: ^3.0.0
   meta: ">=1.10.0 <2.0.0"
   ndk: ^0.11.0-dev.2
+  ndk_core: ^0.11.0-dev.2
   ndk_wallets: ^0.1.0
   rxdart: ^0.28.0
 

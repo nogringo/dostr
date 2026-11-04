@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:ndk/data_layer/data_sources/websocket.dart';
-import 'package:ndk/data_layer/repositories/nostr_transport/websocket_nostr_transport.dart';
+import 'package:ndk_core/data_layer/data_sources/websocket.dart';
+import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport.dart';
 import 'package:mockito/mockito.dart';
 import 'package:mockito/annotations.dart';
 

@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import '../../../../config/broadcast_defaults.dart';
+import 'package:ndk_core/config/broadcast_defaults.dart';
 import '../../../repositories/cache_manager.dart';
 import '../../user_relay_lists/user_relay_lists.dart';
 

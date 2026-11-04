@@ -7,7 +7,7 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/shared/nips/nip01/bip340.dart';
+import 'package:ndk_core/shared/nips/nip01/bip340.dart';
 import 'package:ndk_flutter/main/config.dart';
 import 'package:ndk_flutter/models/accounts.dart';
 import 'package:ndk_flutter/models/nip_05_result.dart';

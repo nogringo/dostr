@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import '../../shared/nips/nip01/helpers.dart';
-import 'nip_01_event.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 
 /// basic nostr metadata
 class Metadata {
@@ -215,6 +215,7 @@ class Metadata {
     }
     metadata.pubKey = event.pubKey;
     metadata.updatedAt = event.createdAt;
+    // ignore: deprecated_member_use
     metadata.sources = event.sources;
     metadata.tags = event.tags;
     return metadata;

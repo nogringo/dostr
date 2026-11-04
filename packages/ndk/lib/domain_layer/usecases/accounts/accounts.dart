@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../entities/account.dart';
-import '../../entities/nip_01_event.dart';
-import '../../repositories/auth_accounts.dart';
-import '../../repositories/event_signer.dart';
+import 'package:ndk_core/domain_layer/entities/account.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/repositories/auth_accounts.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../bunkers/bunkers.dart';
 import '../bunkers/models/bunker_connection.dart';
 import '../../entities/nip46_client_metadata.dart';

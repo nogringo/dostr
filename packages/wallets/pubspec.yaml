@@ -19,6 +19,7 @@ dependencies:
   collection: ^1.19.1
   http: ^1.6.0
   ndk: ^0.11.0-dev.2
+  ndk_core: ^0.11.0-dev.2
   rxdart: ^0.28.0
 
 dev_dependencies:

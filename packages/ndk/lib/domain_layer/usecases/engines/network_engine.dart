@@ -1,11 +1,11 @@
-export '../../entities/engine_additional_data_factory.dart';
+export 'package:ndk_core/domain_layer/entities/engine_additional_data_factory.dart';
 
-import '../../entities/broadcast_response.dart';
-import '../../entities/broadcast_state.dart';
-import '../../entities/filter.dart';
-import '../../entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
+import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../entities/relay_set.dart';
-import '../../repositories/event_signer.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 
 /// Hands [filters] to [relayUrl] in a single REQ.
 typedef RelaySend = void Function(String relayUrl, List<Filter> filters);

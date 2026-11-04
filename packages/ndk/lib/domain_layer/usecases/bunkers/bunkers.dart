@@ -6,15 +6,15 @@ import 'package:rxdart/rxdart.dart';
 import 'package:ndk/domain_layer/usecases/bunkers/models/nostr_connect.dart';
 
 import '../../../data_layer/repositories/signers/nip46_event_signer.dart';
-import '../../../domain_layer/repositories/event_signer.dart';
-import '../../../shared/helpers/relay_helper.dart';
+import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'models/bunker_request.dart';
 import 'models/bunker_connection.dart';
 import '../../entities/nip46_client_metadata.dart';
-import '../../entities/filter.dart';
-import '../../entities/nip_01_event.dart';
-import '../relay_reqs/relay_publishes.dart';
-import '../relay_reqs/relay_reqs.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart';
+import 'package:ndk_core/domain_layer/usecases/relay_reqs/relay_reqs.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {

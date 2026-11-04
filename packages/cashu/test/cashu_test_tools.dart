@@ -1,4 +1,4 @@
-import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_core/data_layer/data_sources/http_request.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 
