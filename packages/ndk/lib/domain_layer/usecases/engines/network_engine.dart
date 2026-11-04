@@ -23,11 +23,12 @@ abstract class NetworkEngine {
     required int desiredCoverage,
   });
 
+  /// Signs [nostrEvent] with [signer] when given, then publishes it to the
+  /// author's outbox relays and the inboxes it mentions.
   NdkBroadcastResponse handleEventBroadcast({
     required Nip01Event nostrEvent,
     required EventSigner? signer,
     required BroadcastState broadcastState,
-    Iterable<String>? specificRelays,
   });
 }
 

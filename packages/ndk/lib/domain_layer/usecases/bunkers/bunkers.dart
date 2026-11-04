@@ -13,27 +13,23 @@ import 'models/bunker_connection.dart';
 import '../../entities/nip46_client_metadata.dart';
 import '../../entities/filter.dart';
 import '../../entities/nip_01_event.dart';
-import '../broadcast/broadcast.dart';
+import '../relay_reqs/relay_publishes.dart';
 import '../relay_reqs/relay_reqs.dart';
-import '../requests/requests.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {
-  final Broadcast _broadcast;
-  final Requests _requests;
   final RelayReqs _relayReqs;
+  final RelayPublishes _relayPublishes;
   final LocalEventSignerFactory _eventSignerFactory;
 
   static const int kMaxWaitingTimeForConnectionSeconds = 600;
 
   Bunkers({
-    required Broadcast broadcast,
-    required Requests requests,
     required RelayReqs relayReqs,
+    required RelayPublishes relayPublishes,
     required LocalEventSignerFactory eventSignerFactory,
-  }) : _broadcast = broadcast,
-       _requests = requests,
-       _relayReqs = relayReqs,
+  }) : _relayReqs = relayReqs,
+       _relayPublishes = relayPublishes,
        _eventSignerFactory = eventSignerFactory;
 
   /// Connects to a bunker using a bunker URL (bunker://)
@@ -109,11 +105,9 @@ class Bunkers {
       ),
     );
 
-    final broadcastRes = _broadcast.broadcast(
-      nostrEvent: signedEvent,
-      specificRelays: relays,
-    );
-    await broadcastRes.broadcastDoneFuture;
+    await _relayPublishes
+        .publish(signedEvent, relays: relays)
+        .broadcastDoneFuture;
 
     try {
       await for (final event in _responses(subscription)) {
@@ -221,8 +215,8 @@ class Bunkers {
   }) {
     return Nip46EventSigner(
       connection: connection,
-      requests: _requests,
-      broadcast: _broadcast,
+      relayReqs: _relayReqs,
+      relayPublishes: _relayPublishes,
       authCallback: authCallback,
       eventSignerFactory: _eventSignerFactory,
     );

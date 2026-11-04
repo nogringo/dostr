@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:ndk/ndk.dart';
 
 import '../../../shared/helpers/relay_helper.dart';
 import '../../entities/broadcast_state.dart';
 import '../../entities/global_state.dart';
 import '../engines/network_engine.dart';
+import '../relay_manager.dart';
+import 'obsolete_replaceable.dart';
 
 /// Low-level broadcaster that sends events to relays immediately. \
 /// Has no queue, retry, or persistence logic. \
@@ -11,6 +15,7 @@ import '../engines/network_engine.dart';
 /// delegate here so the retry path never re-enters queue enrollment.
 class BroadcastSender {
   final NetworkEngine _engine;
+  final RelayManager _relayManager;
   final Accounts _accounts;
   final CacheManager _cacheManager;
   final GlobalState _globalState;
@@ -22,6 +27,7 @@ class BroadcastSender {
     required GlobalState globalState,
     required CacheManager cacheManager,
     required NetworkEngine networkEngine,
+    required RelayManager relayManager,
     required Accounts accounts,
     required double considerDonePercent,
     required Duration timeout,
@@ -29,6 +35,7 @@ class BroadcastSender {
   }) : _accounts = accounts,
        _cacheManager = cacheManager,
        _engine = networkEngine,
+       _relayManager = relayManager,
        _globalState = globalState,
        _considerDonePercent = considerDonePercent,
        _timeout = timeout,
@@ -81,36 +88,56 @@ class BroadcastSender {
       timeout: myTimeout,
       auth: auth,
     );
-    _globalState.inFlightBroadcasts
-        .putIfAbsent(nostrEvent.id, () => [])
-        .add(broadcastState);
-    void cleanupInFlightBroadcastState() {
-      final states = _globalState.inFlightBroadcasts[nostrEvent.id];
-      if (states == null) return;
-      states.remove(broadcastState);
-      if (states.isEmpty) {
-        _globalState.inFlightBroadcasts.remove(nostrEvent.id);
-      }
-    }
-
-    broadcastState.publishDoneFuture.then(
-      (_) => cleanupInFlightBroadcastState(),
-      onError: (_, _) => cleanupInFlightBroadcastState(),
-    );
+    _relayManager.trackBroadcast(nostrEvent, broadcastState);
 
     if (mySaveToCache) {
       _cacheManager.saveEvent(nostrEvent);
     }
 
-    final cleanedSpecificRelays = specificRelays != null
-        ? cleanRelayUrls(specificRelays.toList())
-        : null;
+    if (specificRelays != null) {
+      unawaited(
+        _sendToSpecificRelays(
+          nostrEvent,
+          signer,
+          broadcastState,
+          cleanRelayUrls(specificRelays.toList()).toSet(),
+        ),
+      );
+      return NdkBroadcastResponse.fromState(nostrEvent, broadcastState);
+    }
 
     return _engine.handleEventBroadcast(
       nostrEvent: nostrEvent,
       signer: signer,
-      specificRelays: cleanedSpecificRelays,
       broadcastState: broadcastState,
     );
+  }
+
+  /// Specific relays bypass outbox routing, so no engine is involved.
+  Future<void> _sendToSpecificRelays(
+    Nip01Event nostrEvent,
+    EventSigner? signer,
+    BroadcastState broadcastState,
+    Set<String> relays,
+  ) async {
+    final Nip01Event signed;
+    try {
+      signed = signer == null ? nostrEvent : await signer.sign(nostrEvent);
+    } catch (error, stackTrace) {
+      broadcastState.addError(error, stackTrace);
+      return;
+    }
+    broadcastState.startTimeout();
+    await Future.wait([
+      for (final url in relays)
+        _relayManager.publishToRelay(
+          broadcastState,
+          url,
+          signed,
+          connectTimeout: 1,
+          veto: () => obsoleteReplaceableVeto(_cacheManager, signed),
+        ),
+    ]);
+    broadcastState.closeIfNoRelays();
   }
 }

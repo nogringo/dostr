@@ -38,8 +38,8 @@ final signer = AmberEventSigner(publicKey: pubkey, amberFlutterDS: ds);
 // NIP-46 bunker
 final signer = Nip46EventSigner(
   connection: BunkerConnection.fromJson(jsonDecode(connectionJson)),
-  requests: ndk.requests,
-  broadcast: ndk.broadcast,
+  relayReqs: ndk.relayReqs,
+  relayPublishes: ndk.relayPublishes,
   eventSignerFactory: ndk.config.eventSignerFactory,
   cachedPublicKey: pubkey,
 );

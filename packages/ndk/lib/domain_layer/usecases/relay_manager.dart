@@ -743,6 +743,72 @@ class RelayManager<T> {
     );
   }
 
+  /// Tracks [state] as a broadcast of [event] until it is done, so the OK of
+  /// the relays reach it.
+  void trackBroadcast(Nip01Event event, BroadcastState state) {
+    globalState.inFlightBroadcasts.putIfAbsent(event.id, () => []).add(state);
+    void untrack() {
+      final states = globalState.inFlightBroadcasts[event.id];
+      if (states == null) return;
+      states.remove(state);
+      if (states.isEmpty) globalState.inFlightBroadcasts.remove(event.id);
+    }
+
+    state.publishDoneFuture.then(
+      (_) => untrack(),
+      onError: (_, _) => untrack(),
+    );
+  }
+
+  /// Sends [event] to [url] for [state], on the connection its [AuthPolicy]
+  /// allows. The relay is tracked before this returns, and reported as failed
+  /// when the EVENT cannot go out.
+  ///
+  /// [veto] is asked once the connection is up: a reason it gives not to send
+  /// after all fails the relay with that reason.
+  Future<void> publishToRelay(
+    BroadcastState state,
+    String url,
+    Nip01Event event, {
+    ConnectionSource connectionSource = ConnectionSource.broadcastSpecific,
+    int connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Future<String?> Function()? veto,
+  }) async {
+    registerRelayBroadcast(
+      broadcastState: state,
+      eventToPublish: event,
+      relayUrl: url,
+    );
+    try {
+      final relay = await connectionForBroadcast(
+        url,
+        state.auth,
+        connectionSource: connectionSource,
+        connectTimeout: connectTimeout,
+        pausing: state,
+      );
+      if (relay == null) {
+        final auth = state.auth;
+        failBroadcast(
+          state,
+          url,
+          auth is AuthPolicyRequire
+              ? "no connection bound to ${auth.account.pubkey} could be opened"
+              : "could not connect",
+        );
+        return;
+      }
+      final vetoed = await veto?.call();
+      if (vetoed != null) {
+        failBroadcast(state, url, vetoed);
+        return;
+      }
+      await sendOrThrow(relay, ClientMsg(ClientMsgType.kEvent, event: event));
+    } catch (error) {
+      failBroadcast(state, url, "broadcast error: $error");
+    }
+  }
+
   void _startListeningToSocket(RelayConnectivity relayConnectivity) {
     final transport = relayConnectivity.relayTransport;
     relayConnectivity.listen(

@@ -1,26 +1,16 @@
 import 'dart:math';
 
 import '../../../../config/broadcast_defaults.dart';
-import '../../../../shared/nips/nip01/client_msg.dart';
-import '../../../entities/connection_source.dart';
-import '../../../entities/nip_01_event.dart';
-import '../../../entities/broadcast_state.dart';
-import '../../../entities/relay_connectivity.dart';
 import '../../../repositories/cache_manager.dart';
-import '../../relay_manager.dart';
 import '../../user_relay_lists/user_relay_lists.dart';
 
 /// broadcast to other read relays
 class RelayJitBroadcastOtherReadStrategy {
-  /// publish event to nip65 inbox of specified people
-  /// [pubkeysOfInbox] list of pubkeys, the inbox relays of these pubkeys are used
-  /// [onMessage] callback for new connected relays
-  static Future broadcast({
-    required Nip01Event eventToPublish,
+  /// The nip65 inbox (read) relays of [pubkeysOfInbox], at most
+  /// [BroadcastDefaults.MAX_INBOX_RELAYS_TO_BROADCAST] for each of them.
+  static Future<List<String>> relays({
     required CacheManager cacheManager,
-    required RelayManager relayManager,
     required List<String> pubkeysOfInbox,
-    required BroadcastState broadcastState,
   }) async {
     final nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
       pubkeys: pubkeysOfInbox,
@@ -46,54 +36,6 @@ class RelayJitBroadcastOtherReadStrategy {
       );
       myWriteRelayUrls.addAll(maxList);
     }
-
-    // Deduplicate relay URLs
-    final uniqueRelayUrls = myWriteRelayUrls.toSet().toList();
-
-    // function to send message to relay
-    void sendToRelay({required RelayConnectivity relay}) {
-      final myClientMsg = ClientMsg(
-        ClientMsgType.kEvent,
-        event: eventToPublish,
-      );
-      relayManager.send(relay, myClientMsg);
-    }
-
-    // Function to handle broadcasting to a single relay
-    Future<void> sendToUrl(String relayUrl) async {
-      // register relay broadcast
-      relayManager.registerRelayBroadcast(
-        broadcastState: broadcastState,
-        eventToPublish: eventToPublish,
-        relayUrl: relayUrl,
-      );
-
-      try {
-        final relay = await relayManager.connectionForBroadcast(
-          relayUrl,
-          broadcastState.auth,
-          connectionSource: ConnectionSource.broadcastOther,
-          pausing: broadcastState,
-        );
-        if (relay == null) {
-          relayManager.failBroadcast(
-            broadcastState,
-            relayUrl,
-            "no connection could carry this broadcast",
-          );
-          return;
-        }
-        sendToRelay(relay: relay);
-      } catch (e) {
-        relayManager.failBroadcast(
-          broadcastState,
-          relayUrl,
-          "broadcast error: $e",
-        );
-      }
-    }
-
-    // Broadcast to all relays in parallel
-    await Future.wait(uniqueRelayUrls.map(sendToUrl), eagerError: false);
+    return myWriteRelayUrls;
   }
 }

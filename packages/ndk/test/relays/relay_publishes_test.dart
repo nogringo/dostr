@@ -1,0 +1,146 @@
+import 'package:ndk/domain_layer/entities/nip_65.dart';
+import 'package:ndk/domain_layer/entities/read_write_marker.dart';
+import 'package:ndk/domain_layer/entities/user_relay_list.dart';
+import 'package:ndk/ndk.dart';
+import 'package:ndk/shared/nips/nip01/bip340.dart';
+import 'package:test/test.dart';
+
+import '../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../mocks/mock_relay.dart';
+
+void main() {
+  final author = Bip340.generatePrivateKey();
+  final mentioned = Bip340.generatePrivateKey();
+
+  Nip01Event signedNote({List<List<String>> tags = const []}) =>
+      Nip01Utils.signWithPrivateKey(
+        event: Nip01Event(
+          pubKey: author.publicKey,
+          kind: Nip01Event.kTextNodeKind,
+          tags: tags,
+          content: 'a note',
+        ),
+        privateKey: author.privateKey!,
+      );
+
+  int received(MockRelay relay, Nip01Event event) =>
+      relay.receivedEvents.where((e) => e.id == event.id).length;
+
+  group('RelayPublishes', () {
+    late MockRelay relayA;
+    late MockRelay relayB;
+    late Ndk ndk;
+
+    setUp(() {
+      relayA = MockRelay(name: 'relay a');
+      relayB = MockRelay(name: 'relay b');
+      ndk = Ndk(
+        NdkConfig(
+          eventVerifier: MockEventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [],
+        ),
+      );
+    });
+
+    tearDown(() async {
+      await ndk.destroy();
+      await relayA.stopServer();
+      await relayB.stopServer();
+    });
+
+    test('collects the OK of every relay, each sent the event once', () async {
+      await relayA.startServer();
+      await relayB.startServer();
+      final note = signedNote();
+
+      final responses = await ndk.relayPublishes
+          .publish(note, relays: [relayA.url, relayB.url, relayA.url])
+          .broadcastDoneFuture;
+
+      expect(
+        responses.map((r) => r.relayUrl),
+        unorderedEquals([relayA.url, relayB.url]),
+      );
+      expect(responses.every((r) => r.broadcastSuccessful), isTrue);
+      expect(received(relayA, note), 1);
+      expect(received(relayB, note), 1);
+      expect(await ndk.config.cache.loadEvent(note.id), isNull);
+    });
+
+    test('a relay nothing listens on is reported as failed', () async {
+      final responses = await ndk.relayPublishes
+          .publish(signedNote(), relays: [relayA.url])
+          .broadcastDoneFuture;
+
+      expect(responses.single.broadcastSuccessful, isFalse);
+      expect(responses.single.msg, 'could not connect');
+    });
+
+    test('no relay at all is done right away', () async {
+      final responses = await ndk.relayPublishes
+          .publish(signedNote(), relays: const [])
+          .broadcastDoneFuture;
+
+      expect(responses, isEmpty);
+    });
+
+    test('an unsigned event is refused', () {
+      final unsigned = Nip01Event(
+        pubKey: author.publicKey,
+        kind: Nip01Event.kTextNodeKind,
+        tags: const [],
+        content: 'not signed',
+      );
+
+      expect(
+        () => ndk.relayPublishes.publish(unsigned, relays: [relayA.url]),
+        throwsArgumentError,
+      );
+    });
+  });
+
+  for (final engine in [NdkEngine.RELAY_SETS, NdkEngine.JIT]) {
+    test('[${engine.name}] a relay both in the outbox and an inbox gets the '
+        'event once', () async {
+      final relay = MockRelay(name: 'outbox and inbox');
+      await relay.startServer();
+      addTearDown(relay.stopServer);
+
+      // the relay lists with the events they come from: saving the note
+      // rebuilds the author's list from the cached kind 10002 events
+      final cache = MemCacheManager();
+      final nip65s = [
+        for (final key in [author, mentioned])
+          Nip65.fromMap(key.publicKey, {relay.url: ReadWriteMarker.readWrite}),
+      ];
+      await cache.saveEvents([for (final nip65 in nip65s) nip65.toEvent()]);
+      await cache.saveUserRelayLists(
+        nip65s.map(UserRelayList.fromNip65).toList(),
+      );
+      final ndk = Ndk(
+        NdkConfig(
+          eventVerifier: MockEventVerifier(),
+          cache: cache,
+          engine: engine,
+          bootstrapRelays: [],
+        ),
+      );
+      addTearDown(ndk.destroy);
+
+      final note = signedNote(
+        tags: [
+          ['p', mentioned.publicKey],
+        ],
+      );
+      final responses = await ndk.broadcast
+          .broadcast(nostrEvent: note)
+          .broadcastDoneFuture;
+
+      expect(responses.map((r) => r.relayUrl), [relay.url]);
+      // the first OK ends the broadcast, a second EVENT would come after it
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(received(relay, note), 1);
+    });
+  }
+}

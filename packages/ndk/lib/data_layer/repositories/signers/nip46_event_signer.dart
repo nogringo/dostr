@@ -7,6 +7,8 @@ import 'package:ndk/shared/nips/nip01/helpers.dart';
 import 'package:ndk/shared/nips/nip01/key_pair.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../shared/helpers/bounded_lru_set.dart';
+
 import '../../../domain_layer/usecases/bunkers/models/bunker_request.dart';
 
 /// Internal class to track a pending request with its completer and metadata
@@ -18,11 +20,14 @@ class _PendingRequestEntry {
 
 class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   BunkerConnection connection;
-  Requests requests;
-  Broadcast broadcast;
+  RelayReqs relayReqs;
+  RelayPublishes relayPublishes;
   Function(String)? authCallback;
 
-  NdkResponse? subscription;
+  RelayReq? subscription;
+
+  // every relay of the bunker delivers each response
+  final BoundedLruSet<String> _seenResponseIds = BoundedLruSet(maxSize: 1000);
 
   final _pendingRequests = <String, _PendingRequestEntry>{};
   final _pendingRequestsController =
@@ -43,8 +48,8 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
 
   Nip46EventSigner({
     required this.connection,
-    required this.requests,
-    required this.broadcast,
+    required this.relayReqs,
+    required this.relayPublishes,
     this.authCallback,
     this.cachedPublicKey,
     required this.eventSignerFactory,
@@ -67,16 +72,21 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   }
 
   Future<void> listenRelays() async {
-    subscription = requests.subscription(
-      explicitRelays: connection.relays,
-      filter: Filter(
-        authors: [connection.remotePubkey],
-        kinds: [BunkerRequest.kKind],
-        pTags: [localEventSigner.getPublicKey()],
-      ),
+    final filter = Filter(
+      authors: [connection.remotePubkey],
+      kinds: [BunkerRequest.kKind],
+      pTags: [localEventSigner.getPublicKey()],
+    );
+    subscription = relayReqs.req(
+      relays: {
+        for (final relay in connection.relays) relay: [filter],
+      },
+      closeOnEose: false,
     );
 
-    subscription!.stream.listen(onEvent);
+    subscription!.events
+        .where((event) => _seenResponseIds.add(event.id))
+        .listen(onEvent);
   }
 
   Future<void> onEvent(Nip01Event event) async {
@@ -169,10 +179,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
       final signedEvent = await localEventSigner.sign(requestEvent);
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
-      broadcast.broadcast(
-        nostrEvent: signedEvent,
-        specificRelays: connection.relays,
-      );
+      relayPublishes.publish(signedEvent, relays: connection.relays);
 
       return completer.future;
     });
@@ -315,9 +322,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     final previousSubscription = subscription;
     connection.relays = List<String>.from(relays);
     await listenRelays();
-    if (previousSubscription != null) {
-      await requests.closeSubscription(previousSubscription.requestId);
-    }
+    await previousSubscription?.close();
 
     return connection.relays;
   }
@@ -344,9 +349,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   @override
   Future<void> dispose() async {
     cancelAllQueued();
-    if (subscription != null) {
-      await requests.closeSubscription(subscription!.requestId);
-    }
+    await subscription?.close();
     await _pendingRequestsController.close();
   }
 }

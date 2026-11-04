@@ -20,7 +20,9 @@ import 'package:ndk/domain_layer/repositories/event_signer.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
+import 'package:ndk/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk/domain_layer/usecases/engines/network_engine.dart';
+import 'package:ndk/domain_layer/usecases/relay_manager.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1379,6 +1381,11 @@ class RecordingBroadcastSender extends BroadcastSender {
         globalState: GlobalState(),
         cacheManager: cacheManager,
         networkEngine: _ThrowingNetworkEngine(),
+        relayManager: RelayManager(
+          globalState: GlobalState(),
+          bootstrapRelays: const [],
+          nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+        ),
         accounts: Accounts(_DummySignerFactory()),
         considerDonePercent: 1,
         timeout: const Duration(seconds: 1),
@@ -1423,7 +1430,6 @@ class _ThrowingNetworkEngine implements NetworkEngine {
     required Nip01Event nostrEvent,
     required EventSigner? signer,
     required BroadcastState broadcastState,
-    Iterable<String>? specificRelays,
   }) {
     throw UnimplementedError();
   }

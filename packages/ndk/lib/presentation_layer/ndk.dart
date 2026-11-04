@@ -23,6 +23,7 @@ import '../domain_layer/usecases/dms/dms.dart';
 import '../domain_layer/usecases/nip77/nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
+import '../domain_layer/usecases/relay_reqs/relay_publishes.dart';
 import '../domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
@@ -87,6 +88,10 @@ class Ndk {
   /// NIP-01 REQs on relays you pick, below [requests]: no cache, no outbox
   /// routing, no dedup across relays.
   RelayReqs get relayReqs => _initialization.relayReqs;
+
+  /// Signed events published to relays you pick, below [broadcast]: no
+  /// signing, no cache, no outbox routing, no retry.
+  RelayPublishes get relayPublishes => _initialization.relayPublishes;
 
   /// Accounts
   Accounts get accounts => _initialization.accounts;

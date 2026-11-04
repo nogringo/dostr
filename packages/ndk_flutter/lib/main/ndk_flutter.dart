@@ -219,8 +219,8 @@ class NdkFlutter {
           connection: BunkerConnection.fromJson(
             jsonDecode(account.signerSeed!),
           ),
-          requests: ndk.requests,
-          broadcast: ndk.broadcast,
+          relayReqs: ndk.relayReqs,
+          relayPublishes: ndk.relayPublishes,
           eventSignerFactory: ndk.config.eventSignerFactory,
           cachedPublicKey: account.pubkey,
         );

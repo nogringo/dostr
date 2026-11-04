@@ -48,8 +48,8 @@ void main() {
 
       signer = Nip46EventSigner(
         connection: connection,
-        requests: ndk.requests,
-        broadcast: ndk.broadcast,
+        relayReqs: ndk.relayReqs,
+        relayPublishes: ndk.relayPublishes,
         eventSignerFactory: eventSignerFactory,
       );
       signerInitialized = true;
@@ -135,9 +135,8 @@ void main() {
 
       // Use bunkers to connect with the URL
       final bunkers = Bunkers(
-        requests: ndk.requests,
         relayReqs: ndk.relayReqs,
-        broadcast: ndk.broadcast,
+        relayPublishes: ndk.relayPublishes,
         eventSignerFactory: eventSignerFactory,
       );
 
@@ -159,8 +158,8 @@ void main() {
       // Create a signer with the connection and test signing
       final bunkerSigner = Nip46EventSigner(
         connection: bunkerConnection,
-        requests: ndk.requests,
-        broadcast: ndk.broadcast,
+        relayReqs: ndk.relayReqs,
+        relayPublishes: ndk.relayPublishes,
         eventSignerFactory: eventSignerFactory,
       );
 
@@ -188,9 +187,8 @@ void main() {
 
       // Create bunkers and accounts instances
       final bunkers = Bunkers(
-        requests: ndk.requests,
         relayReqs: ndk.relayReqs,
-        broadcast: ndk.broadcast,
+        relayPublishes: ndk.relayPublishes,
         eventSignerFactory: eventSignerFactory,
       );
 
@@ -243,9 +241,8 @@ void main() {
 
       // Create bunkers and accounts instances
       final bunkers = Bunkers(
-        requests: ndk.requests,
         relayReqs: ndk.relayReqs,
-        broadcast: ndk.broadcast,
+        relayPublishes: ndk.relayPublishes,
         eventSignerFactory: eventSignerFactory,
       );
 
@@ -432,8 +429,8 @@ void main() {
         remotePubkey: MockRelay.remoteSignerPublicKey,
         relays: [fastRelay.url, slowRelay.url],
       ),
-      requests: ndk.requests,
-      broadcast: ndk.broadcast,
+      relayReqs: ndk.relayReqs,
+      relayPublishes: ndk.relayPublishes,
       eventSignerFactory: eventSignerFactory,
     );
 

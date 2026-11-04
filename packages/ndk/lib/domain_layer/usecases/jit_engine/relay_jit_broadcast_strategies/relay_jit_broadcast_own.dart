@@ -1,93 +1,34 @@
 import '../../../../shared/logger/logger.dart';
-import '../../../../shared/nips/nip01/client_msg.dart';
-import '../../../entities/connection_source.dart';
 import '../../../entities/nip_01_event.dart';
-import '../../../entities/broadcast_state.dart';
-import '../../../entities/relay_connectivity.dart';
 import '../../../repositories/cache_manager.dart';
-import '../../relay_manager.dart';
 import '../../user_relay_lists/user_relay_lists.dart';
 
 /// broadcast to own outbox relays
 class RelayJitBroadcastOutboxStrategy {
-  /// publish event to nip65 outbox relays
-  static Future broadcast({
+  /// The nip65 outbox (write) relays of the author of [eventToPublish], or
+  /// [bootstrapRelays] when there is no nip65 data for them.
+  static Future<List<String>> relays({
     required Nip01Event eventToPublish,
     required CacheManager cacheManager,
-    required RelayManager relayManager,
     required List<String> bootstrapRelays,
-    required BroadcastState broadcastState,
   }) async {
     final nip65Data = await UserRelayLists.getUserRelayListCacheLatestSingle(
       pubkey: eventToPublish.pubKey,
       cacheManager: cacheManager,
     );
 
-    List<String> writeRelaysUrls;
-
     if (nip65Data == null) {
       Logger.log.w(
         () =>
             "broadcast - could not find nip65 data for ${eventToPublish.pubKey}, using DEFAULT_BOOTSTRAP_RELAYS for now. \nPlease ensure nip65Data exists to use outbox model => UserRelayLists usecase",
       );
-
-      writeRelaysUrls = bootstrapRelays;
-    } else {
-      /// get all relays where write marker is write
-
-      writeRelaysUrls = nip65Data.relays.entries
-          .where((element) => element.value.isWrite)
-          .map((e) => e.key)
-          .toList();
+      return bootstrapRelays;
     }
 
-    // Deduplicate relay URLs
-    final uniqueRelayUrls = writeRelaysUrls.toSet().toList();
-
-    // function to send message to relay
-    void sendToRelay({required RelayConnectivity relay}) {
-      final myClientMsg = ClientMsg(
-        ClientMsgType.kEvent,
-        event: eventToPublish,
-      );
-      relayManager.send(relay, myClientMsg);
-    }
-
-    // Function to handle broadcasting to a single relay
-    Future<void> sendToUrl(String relayUrl) async {
-      // register relay broadcast
-      relayManager.registerRelayBroadcast(
-        broadcastState: broadcastState,
-        eventToPublish: eventToPublish,
-        relayUrl: relayUrl,
-      );
-
-      try {
-        final relay = await relayManager.connectionForBroadcast(
-          relayUrl,
-          broadcastState.auth,
-          connectionSource: ConnectionSource.broadcastOwn,
-          pausing: broadcastState,
-        );
-        if (relay == null) {
-          relayManager.failBroadcast(
-            broadcastState,
-            relayUrl,
-            "no connection could carry this broadcast",
-          );
-          return;
-        }
-        sendToRelay(relay: relay);
-      } catch (e) {
-        relayManager.failBroadcast(
-          broadcastState,
-          relayUrl,
-          "broadcast error: $e",
-        );
-      }
-    }
-
-    // Broadcast to all relays in parallel
-    await Future.wait(uniqueRelayUrls.map(sendToUrl), eagerError: false);
+    /// get all relays where write marker is write
+    return nip65Data.relays.entries
+        .where((element) => element.value.isWrite)
+        .map((e) => e.key)
+        .toList();
   }
 }

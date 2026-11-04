@@ -44,6 +44,7 @@ import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import '../domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
+import '../domain_layer/usecases/relay_reqs/relay_publishes.dart';
 import '../domain_layer/usecases/relay_reqs/relay_reqs.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
@@ -76,6 +77,7 @@ class Initialization {
   late RelayManager relayManager;
   late CacheRead cacheRead;
   late RelayReqs relayReqs;
+  late RelayPublishes relayPublishes;
   late Requests requests;
   late Accounts accounts;
   late Bunkers bunkers;
@@ -190,6 +192,7 @@ class Initialization {
       relayManager: relayManager,
       eventVerifier: _ndkConfig.eventVerifier,
     );
+    relayPublishes = RelayPublishes(relayManager: relayManager);
 
     requests = Requests(
       defaultQueryTimeout: _ndkConfig.defaultQueryTimeout,
@@ -207,6 +210,7 @@ class Initialization {
     final broadcastSender = BroadcastSender(
       globalState: _globalState,
       networkEngine: engine,
+      relayManager: relayManager,
       cacheManager: _ndkConfig.cache,
       accounts: accounts,
       considerDonePercent: _ndkConfig.defaultBroadcastConsiderDonePercent,
@@ -240,9 +244,8 @@ class Initialization {
     }
 
     bunkers = Bunkers(
-      broadcast: broadcast,
-      requests: requests,
       relayReqs: relayReqs,
+      relayPublishes: relayPublishes,
       eventSignerFactory: _ndkConfig.eventSignerFactory,
     );
 

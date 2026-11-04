@@ -77,6 +77,7 @@ export 'data_layer/repositories/cache_manager/mem_cache_manager.dart';
  */
 
 export "domain_layer/usecases/jit_engine/jit_engine.dart";
+export "domain_layer/usecases/relay_reqs/relay_publishes.dart";
 export "domain_layer/usecases/relay_reqs/relay_reqs.dart";
 export "domain_layer/usecases/requests/requests.dart";
 export "domain_layer/usecases/follows/follows.dart";

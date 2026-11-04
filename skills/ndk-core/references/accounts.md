@@ -85,8 +85,8 @@ final connection = await ndk.bunkers.connect(
 final conn = BunkerConnection.fromJson(jsonString);
 final signer = Nip46EventSigner(
   connection: conn,
-  requests: ndk.requests,
-  broadcast: ndk.broadcast,
+  relayReqs: ndk.relayReqs,
+  relayPublishes: ndk.relayPublishes,
   eventSignerFactory: ndk.config.eventSignerFactory,
 );
 ```

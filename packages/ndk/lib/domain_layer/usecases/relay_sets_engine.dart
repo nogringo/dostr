@@ -6,19 +6,16 @@ import 'dart:math';
 import '../../config/bootstrap_relays.dart';
 import '../../config/broadcast_defaults.dart';
 import '../../shared/logger/logger.dart';
-import '../../shared/nips/nip01/event_kind_classification.dart';
-import '../../shared/nips/nip01/client_msg.dart';
 import '../../shared/helpers/relay_helper.dart';
 import '../entities/broadcast_response.dart';
 import '../entities/broadcast_state.dart';
 import '../entities/filter.dart';
 import '../entities/nip_01_event.dart';
-import '../entities/auth_policy.dart';
-import '../entities/relay_connectivity.dart';
 import '../entities/relay_set.dart';
 import '../repositories/cache_manager.dart';
 import '../repositories/event_signer.dart';
 import 'engines/network_engine.dart';
+import 'broadcast/obsolete_replaceable.dart';
 import 'relay_manager.dart';
 import 'user_relay_lists/user_relay_lists.dart';
 
@@ -39,105 +36,6 @@ class RelaySetsEngine implements NetworkEngine {
   }) : _cacheManager = cacheManager,
        _relayManager = relayManager,
        _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS;
-
-  /// =====================================================================================
-  /// The flow:
-  /// 1) register broadcast in relay manager's global state,
-  ///     so that even failed to connect relays will be taken into account for broadcast done logic
-  /// 2) make sure the relay is connected by calling reconnect
-  /// 3) if connected was successfull send the event
-  /// 4) otherwise call failBroadcast in order to publish a RelayBroadcastResponse
-  ///   for that specific relay with an error message
-  Future<void> doRelayBroadcast(
-    String relayUrl,
-    Nip01Event nostrEvent,
-    BroadcastState broadcastState,
-  ) async {
-    final auth = broadcastState.auth;
-    _relayManager.registerRelayBroadcast(
-      broadcastState: broadcastState,
-      eventToPublish: nostrEvent,
-      relayUrl: relayUrl,
-    );
-
-    RelayConnectivity? relayConnectivity;
-    Object? error;
-    try {
-      relayConnectivity = await _relayManager.connectionForBroadcast(
-        relayUrl,
-        auth,
-        connectTimeout: 1,
-        pausing: broadcastState,
-      );
-    } catch (e) {
-      Logger.log.w(
-        () => "Error during quick connect for $relayUrl in doRelayBroadcast",
-        error: e,
-      );
-      error = e;
-    }
-
-    if (relayConnectivity != null) {
-      // checked once the connection is there: a newer version may have been
-      // persisted while it was opening, and that one supersedes this send
-      if (await _shouldSkipObsoleteReplaceableBroadcast(nostrEvent)) {
-        Logger.log.d(
-          () =>
-              'skip obsolete specific-relay broadcast ${nostrEvent.id} for $relayUrl',
-        );
-        _relayManager.failBroadcast(
-          broadcastState,
-          relayUrl,
-          'obsolete replaceable event skipped',
-        );
-        return;
-      }
-
-      await _relayManager.sendOrThrow(
-        relayConnectivity,
-        ClientMsg(ClientMsgType.kEvent, event: nostrEvent),
-      );
-      return;
-    }
-    if (auth is AuthPolicyRequire) {
-      _relayManager.failBroadcast(
-        broadcastState,
-        relayUrl,
-        "no connection bound to ${auth.account.pubkey} could be opened",
-      );
-      return;
-    }
-    _relayManager.failBroadcast(
-      broadcastState,
-      relayUrl,
-      "Could not connect to relay $relayUrl $error",
-    );
-  }
-
-  Future<bool> _shouldSkipObsoleteReplaceableBroadcast(Nip01Event event) async {
-    if (!EventKindClassification.isReplaceableKind(event.kind)) {
-      return false;
-    }
-
-    final dTag = event.getDtag();
-    final visibleEvents = await _cacheManager.loadEvents(
-      pubKeys: [event.pubKey],
-      kinds: [event.kind],
-      tags:
-          EventKindClassification.isAddressableKind(event.kind) && dTag != null
-          ? {
-              'd': [dTag],
-            }
-          : null,
-      limit: 1,
-    );
-
-    if (visibleEvents.isEmpty) {
-      return false;
-    }
-
-    return visibleEvents.single.id != event.id;
-  }
 
   @override
   Future<void> route(
@@ -185,7 +83,6 @@ class RelaySetsEngine implements NetworkEngine {
     required Nip01Event nostrEvent,
     required EventSigner? signer,
     required BroadcastState broadcastState,
-    Iterable<String>? specificRelays,
   }) {
     Future<void> asyncStuff() async {
       final Nip01Event workingEvent;
@@ -203,103 +100,78 @@ class RelaySetsEngine implements NetworkEngine {
       broadcastState.startTimeout();
 
       // =====================================================================================
-      // specific relays
+      // own outbox
       // =====================================================================================
-      if (specificRelays != null) {
-        if (specificRelays.isNotEmpty) {
-          await Future.wait(
-            specificRelays.map(
-              (relayUrl) =>
-                  // broadcast async
-                  doRelayBroadcast(relayUrl, workingEvent, broadcastState),
-            ),
-          );
-        }
-      } else {
-        // =====================================================================================
-        // own outbox
-        // =====================================================================================
-        // TODO should not only depend on cached, but go fetch it if not present in cache
-        final nip65List = (await UserRelayLists.getUserRelayListCacheLatest(
-          pubkeys: [workingEvent.pubKey],
-          cacheManager: _cacheManager,
-        ));
-        // make a copy of the keys since connectRelay may mutate the underlying map
-        // several connections can share a url, and broadcasting twice to the
-        // same relay would duplicate the event
-        List<String> writeRelaysUrls = _relayManager.globalState.relays.keys
-            .map((key) => key.url)
-            .toSet()
+      // TODO should not only depend on cached, but go fetch it if not present in cache
+      final nip65List = (await UserRelayLists.getUserRelayListCacheLatest(
+        pubkeys: [workingEvent.pubKey],
+        cacheManager: _cacheManager,
+      ));
+      // make a copy of the keys since connectRelay may mutate the underlying map
+      // several connections can share a url, and broadcasting twice to the
+      // same relay would duplicate the event
+      List<String> writeRelaysUrls = _relayManager.globalState.relays.keys
+          .map((key) => key.url)
+          .toSet()
+          .toList();
+      if (nip65List.isNotEmpty) {
+        writeRelaysUrls = nip65List.first.relays.entries
+            .where((element) => element.value.isWrite)
+            .map((e) => e.key)
             .toList();
-        if (nip65List.isNotEmpty) {
-          writeRelaysUrls = nip65List.first.relays.entries
-              .where((element) => element.value.isWrite)
-              .map((e) => e.key)
-              .toList();
-        } else {
-          Logger.log.w(
-            () =>
-                "could not find user relay list from nip65, using default bootstrap relays",
-          );
-        }
+      } else {
+        Logger.log.w(
+          () =>
+              "could not find user relay list from nip65, using default bootstrap relays",
+        );
+      }
+      final relayUrls = [...writeRelaysUrls];
 
-        await Future.wait(
-          writeRelaysUrls.map(
-            (relayUrl) =>
-                doRelayBroadcast(relayUrl, workingEvent, broadcastState),
-          ),
+      // =====================================================================================
+      // other inbox
+      // =====================================================================================
+      if (workingEvent.pTags.isNotEmpty) {
+        final nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
+          pubkeys: workingEvent.pTags,
+          cacheManager: _cacheManager,
         );
 
-        // =====================================================================================
-        // other inbox
-        // =====================================================================================
-        if (workingEvent.pTags.isNotEmpty) {
-          final nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
-            pubkeys: workingEvent.pTags,
-            cacheManager: _cacheManager,
-          );
+        /// filter read relays
+        for (final userNip65 in nip65Data) {
+          final completeList = userNip65.relays.entries
+              .where((element) => element.value.isRead)
+              .map((e) => e.key)
+              .toList();
 
-          List<String> myWriteRelayUrlsOthers = [];
-
-          /// filter read relays
-          for (final userNip65 in nip65Data) {
-            final completeList = userNip65.relays.entries
-                .where((element) => element.value.isRead)
-                .map((e) => e.key)
-                .toList();
-
-            // cut list of at a certain threshold
-            final maxList = completeList.sublist(
+          // cut list of at a certain threshold
+          relayUrls.addAll(
+            completeList.sublist(
               0,
               min(
                 completeList.length,
                 BroadcastDefaults.MAX_INBOX_RELAYS_TO_BROADCAST,
               ),
-            );
-            myWriteRelayUrlsOthers.addAll(maxList);
-          }
-
-          await Future.wait(
-            myWriteRelayUrlsOthers.map(
-              (relayUrl) =>
-                  doRelayBroadcast(relayUrl, workingEvent, broadcastState),
             ),
           );
         }
       }
+
+      // a relay in an outbox and an inbox gets the event once
+      await Future.wait([
+        for (final url in cleanRelayUrls(relayUrls).toSet())
+          _relayManager.publishToRelay(
+            broadcastState,
+            url,
+            workingEvent,
+            connectTimeout: 1,
+            veto: () => obsoleteReplaceableVeto(_cacheManager, workingEvent),
+          ),
+      ]);
       broadcastState.closeIfNoRelays();
     }
 
     asyncStuff();
 
-    return NdkBroadcastResponse(
-      publishEvent: nostrEvent,
-      broadcastDoneStream: broadcastState.stateUpdates.map(
-        (state) => state.broadcasts.values.toList(),
-      ),
-      broadcastDoneFuture: broadcastState.publishDoneFuture.then(
-        (state) => state.broadcasts.values.toList(),
-      ),
-    );
+    return NdkBroadcastResponse.fromState(nostrEvent, broadcastState);
   }
 }

@@ -35,8 +35,8 @@ void main() {
         remotePubkey: MockRelay.remoteSignerPublicKey,
         relays: [relayA.url],
       ),
-      requests: ndk.requests,
-      broadcast: ndk.broadcast,
+      relayReqs: ndk.relayReqs,
+      relayPublishes: ndk.relayPublishes,
       eventSignerFactory: Bip340EventSignerFactory(),
     );
   });

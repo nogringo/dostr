@@ -1,17 +1,25 @@
 import 'package:ndk/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/global_state.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
+import 'package:ndk/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk/domain_layer/usecases/engines/network_engine.dart';
+import 'package:ndk/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 void main() {
   test('leaves no in-flight state behind when there is no signer', () async {
     final cache = MemCacheManager();
+    final globalState = GlobalState();
     final sender = BroadcastSender(
-      globalState: GlobalState(),
+      globalState: globalState,
       cacheManager: cache,
       networkEngine: _UnreachableNetworkEngine(),
+      relayManager: RelayManager(
+        globalState: globalState,
+        bootstrapRelays: const [],
+        nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+      ),
       accounts: Accounts(const Bip340EventSignerFactory()),
       considerDonePercent: 1,
       timeout: const Duration(seconds: 1),
@@ -52,7 +60,6 @@ class _UnreachableNetworkEngine implements NetworkEngine {
     required Nip01Event nostrEvent,
     required EventSigner? signer,
     required BroadcastState broadcastState,
-    Iterable<String>? specificRelays,
   }) {
     throw UnimplementedError();
   }
