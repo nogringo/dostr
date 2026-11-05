@@ -11,6 +11,10 @@ const String _name = 'home-relays';
 /// Where nmail.li serves its `home-relays` list.
 const String defaultHomeRelayListUrl = 'https://home-relays.nmail.li/list.json';
 
+/// The key nmail.li signs its `home-relays` list with.
+const String defaultHomeRelayListAuthor =
+    '7ecce29a3f482cccff9ca19432051af9b074939121ee414ef3d09135d79c5fad';
+
 /// A `home-relays` list, from which every client computes the same home
 /// relays for a user, as the Computed Home Relays NIP describes.
 class HomeRelayList {
@@ -35,23 +39,37 @@ class HomeRelayList {
     ]);
   }
 
-  /// Loads the list event served as JSON at [url].
+  /// Loads the list event served as JSON at [url], once [verifier] checked it
+  /// is signed by [author] (hex).
+  ///
+  /// Throws a [FormatException] for a list of another author, since anyone
+  /// can sign a forged one, or with an invalid id or signature.
   static Future<HomeRelayList> fetch({
+    required EventVerifier verifier,
     String url = defaultHomeRelayListUrl,
+    String author = defaultHomeRelayListAuthor,
     Duration timeout = const Duration(seconds: 5),
   }) async {
     final uri = Uri.parse(url);
     final client = http.Client();
+    final Nip01Event event;
     try {
       final response = await client.get(uri).timeout(timeout);
       if (response.statusCode != 200) {
         throw http.ClientException('HTTP ${response.statusCode}', uri);
       }
       final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
-      return HomeRelayList.fromEvent(Nip01EventModel.fromJson(json));
+      event = Nip01EventModel.fromJson(json);
     } finally {
       client.close();
     }
+    if (event.pubKey != author) {
+      throw FormatException('the list at $url is not signed by $author');
+    }
+    if (!await verifier.verify(event)) {
+      throw FormatException('the list at $url has an invalid signature');
+    }
+    return HomeRelayList.fromEvent(event);
   }
 
   /// The home relays of [pubKey] (hex): the [count] candidates closest to it,

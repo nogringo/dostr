@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
+import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_dart_package_1/ndk_dart_package_1.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
@@ -143,27 +144,76 @@ void main() {
       expect(() => HomeRelayList.fromEvent(other), throwsArgumentError);
     });
 
-    test('loads the list served at a url', () async {
-      final event = relayList([
-        ['d', 'home-relays'],
-        ['relay', 'wss://a.example.com'],
-      ], kind: 36205);
-      final url = await serve(
-        jsonEncode(Nip01EventModel.fromEntity(event).toJson()),
+    group('fetch', () {
+      final verifier = Bip340EventVerifier(useIsolate: false);
+      final author = Bip340.generatePrivateKey();
+      final other = Bip340.generatePrivateKey();
+
+      Nip01Event listEvent(String pubKey, KeyPair signer) => Bip340.signEvent(
+        event: Nip01Event(
+          pubKey: pubKey,
+          kind: 36205,
+          tags: [
+            ['d', 'home-relays'],
+            ['relay', 'wss://a.example.com'],
+          ],
+          content: '',
+        ),
+        privateKey: signer.privateKey!,
       );
 
-      expect((await HomeRelayList.fetch(url: url)).candidates, [
-        'wss://a.example.com',
-      ]);
-    });
+      Future<HomeRelayList> fetch(Nip01Event event) async =>
+          HomeRelayList.fetch(
+            verifier: verifier,
+            url: await serve(
+              jsonEncode(Nip01EventModel.fromEntity(event).toJson()),
+            ),
+            author: author.publicKey,
+          );
 
-    test('fails on an HTTP error', () async {
-      final url = await serve('', status: 404);
+      test('loads the list its author signed', () async {
+        final list = await fetch(listEvent(author.publicKey, author));
 
-      expect(
-        HomeRelayList.fetch(url: url),
-        throwsA(isA<http.ClientException>()),
-      );
+        expect(list.candidates, ['wss://a.example.com']);
+      });
+
+      test('rejects a list of another author', () {
+        expect(fetch(listEvent(other.publicKey, other)), throwsFormatException);
+      });
+
+      test('rejects a signature from another key', () {
+        expect(
+          fetch(listEvent(author.publicKey, other)),
+          throwsFormatException,
+        );
+      });
+
+      test('rejects a list changed after it was signed', () {
+        final signed = listEvent(author.publicKey, author);
+        final changed = Nip01Event(
+          id: signed.id,
+          sig: signed.sig,
+          pubKey: signed.pubKey,
+          createdAt: signed.createdAt,
+          kind: signed.kind,
+          tags: [
+            ...signed.tags,
+            ['relay', 'wss://b.example.com'],
+          ],
+          content: signed.content,
+        );
+
+        expect(fetch(changed), throwsFormatException);
+      });
+
+      test('fails on an HTTP error', () async {
+        final url = await serve('', status: 404);
+
+        expect(
+          HomeRelayList.fetch(verifier: verifier, url: url),
+          throwsA(isA<http.ClientException>()),
+        );
+      });
     });
   });
 

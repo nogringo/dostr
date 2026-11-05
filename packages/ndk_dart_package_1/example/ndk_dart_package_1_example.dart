@@ -6,12 +6,10 @@ Future<void> main() async {
   final relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
-  final homeRelayList = await HomeRelayList.fetch();
+  final verifier = Bip340EventVerifier(useIsolate: false);
+  final homeRelayList = await HomeRelayList.fetch(verifier: verifier);
   final fetcher = Nip65Fetcher(
-    reqs: RelayReqs(
-      relayManager: relayManager,
-      eventVerifier: Bip340EventVerifier(useIsolate: false),
-    ),
+    reqs: RelayReqs(relayManager: relayManager, eventVerifier: verifier),
     homeRelayList: homeRelayList,
   );
 
