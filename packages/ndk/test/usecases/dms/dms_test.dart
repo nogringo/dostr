@@ -150,16 +150,7 @@ void main() async {
         expect(event.content, isNot(contains('legacy compatibility text')));
         expect(event.tags, hasLength(1));
         expect(event.sig, isNotNull);
-        expect(
-          event.id,
-          Nip01Utils.calculateEventIdSync(
-            pubKey: event.pubKey,
-            createdAt: event.createdAt,
-            kind: event.kind,
-            tags: event.tags,
-            content: event.content,
-          ),
-        );
+        expect(Nip01Utils.isIdValid(event), isTrue);
 
         ndk.accounts.logout();
         ndk.accounts.loginPrivateKey(

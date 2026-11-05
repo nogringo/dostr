@@ -80,11 +80,12 @@ class Nip01Event {
 
   /// Reads a NIP-01 event JSON object, as `jsonDecode` returns it.
   ///
-  /// A missing `id`, `pubkey` or `content` reads as `''` and a missing `sig`
-  /// as null. Tag values that are not strings are turned into strings.
+  /// A missing `id` is computed from the payload, a missing `pubkey` or
+  /// `content` reads as `''` and a missing `sig` as null. Tag values that are
+  /// not strings are turned into strings.
   Nip01Event.fromJson(Map<dynamic, dynamic> data)
     : this._(
-        id: data['id'] as String? ?? '',
+        id: data['id'] as String?,
         pubKey: data['pubkey'] as String? ?? '',
         createdAt: data['created_at'] as int,
         kind: data['kind'] as int,
@@ -158,6 +159,8 @@ class Nip01Event {
   }
 
   /// The NIP-01 JSON object of this event, ready for `jsonEncode`.
+  ///
+  /// An unsigned event, such as a NIP-59 rumor, has no `sig` key.
   Map<String, dynamic> toJson() => {
     'id': id,
     'pubkey': pubKey,
@@ -165,7 +168,7 @@ class Nip01Event {
     'kind': kind,
     'tags': tags,
     'content': content,
-    'sig': sig,
+    if (sig != null) 'sig': sig,
   };
 
   String toJsonString() => json.encode(toJson());

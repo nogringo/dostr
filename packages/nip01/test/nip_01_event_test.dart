@@ -53,16 +53,6 @@ void main() {
       );
 
       expect(event.id, note['id']);
-      expect(
-        Nip01Utils.calculateEventIdSync(
-          pubKey: note['pubkey'],
-          createdAt: note['created_at'],
-          kind: note['kind'],
-          tags: note['tags'],
-          content: note['content'],
-        ),
-        note['id'],
-      );
     });
 
     group('copyWith', () {
@@ -260,7 +250,7 @@ void main() {
         ],
       });
 
-      expect(event.id, '');
+      expect(Nip01Utils.isIdValid(event), isTrue);
       expect(event.pubKey, '');
       expect(event.content, '');
       expect(event.sig, isNull);
@@ -269,6 +259,28 @@ void main() {
         ['p', ''],
       ]);
       expect(() => event.tags.first.add('x'), throwsUnsupportedError);
+    });
+
+    test('gives events read without an id their own ids', () {
+      final first = Nip01Event.fromJson({
+        'created_at': 1,
+        'kind': 1,
+        'content': 'a',
+      });
+      final second = Nip01Event.fromJson({
+        'created_at': 1,
+        'kind': 1,
+        'content': 'b',
+      });
+
+      expect({first, second}, hasLength(2));
+    });
+
+    test('writes no sig for an unsigned event', () {
+      final event = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
+
+      expect(event.toJson(), isNot(contains('sig')));
+      expect(Nip01Event.fromJson(event.toJson()).sig, isNull);
     });
   });
 }

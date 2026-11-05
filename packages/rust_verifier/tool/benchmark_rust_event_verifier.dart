@@ -12,21 +12,17 @@ Future<void> main() async {
   final keyPair = Bip340.generatePrivateKey();
   final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   const content = 'RustEventVerifier benchmark event';
-  final id = Nip01Utils.calculateEventIdSync(
-    pubKey: keyPair.publicKey,
-    createdAt: createdAt,
-    kind: 1,
-    tags: const [],
-    content: content,
-  );
-  final event = Nip01Event(
-    id: id,
-    pubKey: keyPair.publicKey,
-    createdAt: createdAt,
-    kind: 1,
-    tags: const [],
-    content: content,
-    sig: Bip340.sign(id, keyPair.privateKey!),
+  Nip01Event signed(Nip01Event event) =>
+      event.copyWith(sig: Bip340.sign(event.id, keyPair.privateKey!));
+
+  final event = signed(
+    Nip01Event(
+      pubKey: keyPair.publicKey,
+      createdAt: createdAt,
+      kind: 1,
+      tags: const [],
+      content: content,
+    ),
   );
   final verifier = RustEventVerifier();
 
@@ -40,21 +36,14 @@ Future<void> main() async {
     (index) => ['x', '$index-${'a' * 1024}'],
   );
   final largeContent = 'b' * (64 * 1024);
-  final largeId = Nip01Utils.calculateEventIdSync(
-    pubKey: keyPair.publicKey,
-    createdAt: createdAt,
-    kind: 1,
-    tags: largeTags,
-    content: largeContent,
-  );
-  final largeEvent = Nip01Event(
-    id: largeId,
-    pubKey: keyPair.publicKey,
-    createdAt: createdAt,
-    kind: 1,
-    tags: largeTags,
-    content: largeContent,
-    sig: Bip340.sign(largeId, keyPair.privateKey!),
+  final largeEvent = signed(
+    Nip01Event(
+      pubKey: keyPair.publicKey,
+      createdAt: createdAt,
+      kind: 1,
+      tags: largeTags,
+      content: largeContent,
+    ),
   );
   results.add(
     await _benchmark(

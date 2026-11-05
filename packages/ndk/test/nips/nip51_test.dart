@@ -77,16 +77,6 @@ void main() {
 
       Nip01Event event = await relaySet.toEvent(signer);
 
-      expect(
-        event.id,
-        Nip01Utils.calculateEventIdSync(
-          pubKey: event.pubKey,
-          createdAt: event.createdAt,
-          kind: event.kind,
-          tags: event.tags,
-          content: event.content,
-        ),
-      );
       expect(Nip01Utils.isIdValid(event), isTrue);
     });
 

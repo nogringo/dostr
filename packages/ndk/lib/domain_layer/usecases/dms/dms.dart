@@ -578,7 +578,7 @@ class Dms {
           result.seal.kind != GiftWrap.kSealEventKind ||
           result.seal.tags.isNotEmpty ||
           rumor.sig != null ||
-          !_hasCanonicalId(rumor) ||
+          !Nip01Utils.isIdValid(rumor) ||
           !_hasValidTimestamps(
             giftWrap: wrappedEvent,
             seal: result.seal,
@@ -621,17 +621,6 @@ class Dms {
     return recipientTags.length == 1 &&
         recipientTags.single.length >= 2 &&
         recipientTags.single[1] == expectedRecipient;
-  }
-
-  bool _hasCanonicalId(Nip01Event rumor) {
-    final expectedId = Nip01Utils.calculateEventIdSync(
-      pubKey: rumor.pubKey,
-      createdAt: rumor.createdAt,
-      kind: rumor.kind,
-      tags: rumor.tags,
-      content: rumor.content,
-    );
-    return rumor.id == expectedId;
   }
 
   bool _hasValidTimestamps({
@@ -717,7 +706,7 @@ class Dms {
         event.kind == kLegacyNip04MessageKind &&
         event.pubKey == senderPubKey &&
         event.sig != null &&
-        _hasCanonicalId(event) &&
+        Nip01Utils.isIdValid(event) &&
         event.createdAt > 0 &&
         event.createdAt <= now + _maximumFutureSkewSeconds &&
         recipientTags.length == 1 &&

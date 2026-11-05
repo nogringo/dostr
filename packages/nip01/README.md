@@ -50,7 +50,9 @@ event.toJsonString(); // the same as jsonEncode(event)
 ```
 
 `fromJson` keeps the id it reads, even a wrong one: check it with
-`Nip01Utils.isIdValid` or an `EventVerifier` before trusting the event.
+`Nip01Utils.isIdValid` or an `EventVerifier` before trusting the event. When
+the JSON has no id, `fromJson` computes it. `toJson` leaves `sig` out of an
+unsigned event, such as a NIP-59 rumor.
 
 To plug a verifier into NDK, implement `EventVerifier`:
 
@@ -72,3 +74,8 @@ class MyVerifier implements EventVerifier {
 `package:ndk/ndk.dart` still export `Nip01Event`, `Nip01Utils` and
 `EventVerifier`. `Nip01EventModel` stays in `ndk_core`, but its `fromJson`,
 `toJson` and `toJsonString` now come from `Nip01Event`.
+
+`Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
+and `Nip01Utils.calculateId` recomputes it from the payload. `fromJson` now
+computes a missing id instead of reading it as `''`, and `toJson` no longer
+writes `"sig": null` for an unsigned event.
