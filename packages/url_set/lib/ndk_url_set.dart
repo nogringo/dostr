@@ -2,4 +2,5 @@
 /// can be stored offline and resolved later from the lists accounts publish.
 library;
 
+export 'src/url_list_checks.dart';
 export 'src/url_set.dart';

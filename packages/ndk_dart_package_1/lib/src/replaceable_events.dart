@@ -10,7 +10,7 @@ const List<String> defaultIndexerRelays = [
 
 /// What [relays] send for the newest [kind] event of [pubKey] (hex), named
 /// [dTag] if addressable, until each of them answered or [timeout]. The REQ
-/// opens on listen.
+/// opens on listen. Once it ended, [outcomes] gets what each relay did.
 Stream<Nip01Event> askReplaceable(
   RelayReqs reqs, {
   required int kind,
@@ -19,6 +19,7 @@ Stream<Nip01Event> askReplaceable(
   required Iterable<String> relays,
   required String name,
   required Duration timeout,
+  Map<String, RelayRequestOutcome>? outcomes,
 }) async* {
   final filter = Filter(
     kinds: [kind],
@@ -34,10 +35,12 @@ Stream<Nip01Event> askReplaceable(
     timeout: timeout,
   );
   yield* req.events.map((received) => received.event);
+  outcomes?.addAll(await req.done);
 }
 
 /// The [kind] events of [pubKey] among [events], named [dTag] if addressable,
-/// each newer than the ones before it, the lowest id winning a tie (NIP-01).
+/// each newer than the ones before it and than [after], the lowest id winning
+/// a tie (NIP-01).
 ///
 /// Not an `async*`: one waiting in `await for` only stops on its next event,
 /// so cancelling it would wait for the slowest relay.
@@ -46,8 +49,9 @@ Stream<Nip01Event> newerVersions(
   required int kind,
   required String pubKey,
   String? dTag,
+  Nip01Event? after,
 }) {
-  Nip01Event? newest;
+  Nip01Event? newest = after;
   return events
       // a relay may send events that do not match the filter
       .where(

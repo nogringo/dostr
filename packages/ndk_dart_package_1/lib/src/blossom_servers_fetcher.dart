@@ -10,6 +10,9 @@ class BlossomServersFetcher extends OutboxFetcher {
     super.nip65Fetcher,
     super.relays,
     super.timeout,
+    super.cache,
+    super.checks,
+    super.maxAge,
   }) : super(kind: 10063, name: 'blossom-servers');
 }
 

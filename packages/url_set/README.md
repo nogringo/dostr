@@ -91,6 +91,17 @@ Resolution follows from that:
 `UrlsResolved.urls` keeps tree order and is not deduplicated or normalized:
 that is up to the consumer.
 
+## Remembering when a list was checked
+
+A `UrlListCheck` says when the relays last answered a query for one list of an
+account, and whether they held it. A lookup keeps them in a
+`UrlListCheckStore`, so a list checked recently is not asked again, and a list
+known to be absent stays `notFound` instead of `unavailable` while offline.
+
+`MemoryUrlListCheckStore` forgets everything on restart. To keep the checks,
+implement `UrlListCheckStore` on your database: `UrlListCheck.toMap()` gives a
+JSON-compatible record.
+
 ## Storage
 
 `toMap()` gives a JSON-compatible map and `UrlSet.fromMap()` reads it back.
@@ -99,6 +110,6 @@ The format is the one `RelaySet` used in `broadcast_queue_shim_for_ndk`
 
 ## Coming from `url_set_for_ndk`
 
-`UrlSet`, `resolveUrlSet` and the lookup types moved here unchanged.
-[`url_set_for_ndk`](https://pub.dev/packages/url_set_for_ndk) re-exports them
-and keeps `ndkUrlListFn`, `UrlListCheckStore` and `defaultIndexerRelays`.
+`UrlSet`, `resolveUrlSet`, the lookup types and `UrlListCheckStore` moved here
+unchanged. [`url_set_for_ndk`](https://pub.dev/packages/url_set_for_ndk)
+re-exports them and keeps `ndkUrlListFn` and `defaultIndexerRelays`.

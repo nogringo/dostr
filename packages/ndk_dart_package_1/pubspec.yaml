@@ -1,5 +1,5 @@
 name: ndk_dart_package_1
-description: Fetches a user's kind:0 metadata, NIP-65 relay list, NIP-17 DM relay list, Blossom server list and home-relays list on top of ndk_core.
+description: Fetches a user's kind:0 metadata, NIP-65 relay list, NIP-17 DM relay list, Blossom server list and home-relays list on top of ndk_core, and resolves a UrlSet with them.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 
@@ -13,6 +13,7 @@ dependencies:
   http: ^1.6.0
   ndk_core: ^0.11.0-dev.2
   ndk_nip19: ^0.1.0
+  ndk_url_set: ^0.1.0
   rxdart: ^0.28.0
 
 dev_dependencies:

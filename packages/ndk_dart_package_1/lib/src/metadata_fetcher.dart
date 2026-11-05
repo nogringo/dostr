@@ -8,5 +8,8 @@ class MetadataFetcher extends OutboxFetcher {
     super.nip65Fetcher,
     super.relays,
     super.timeout,
+    super.cache,
+    super.checks,
+    super.maxAge,
   }) : super(kind: 0, name: 'metadata');
 }

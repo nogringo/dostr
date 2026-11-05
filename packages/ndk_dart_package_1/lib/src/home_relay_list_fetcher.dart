@@ -10,6 +10,9 @@ class HomeRelayListFetcher extends OutboxFetcher {
     super.nip65Fetcher,
     super.relays,
     super.timeout,
+    super.cache,
+    super.checks,
+    super.maxAge,
   }) : super(
          kind: HomeRelayList.kind,
          dTag: HomeRelayList.dTag,
