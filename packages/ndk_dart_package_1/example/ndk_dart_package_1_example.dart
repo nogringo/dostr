@@ -7,22 +7,21 @@ Future<void> main() async {
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
   final verifier = Bip340EventVerifier(useIsolate: false);
+  final reqs = RelayReqs(relayManager: relayManager, eventVerifier: verifier);
   final homeRelayList = await HomeRelayList.fetch(verifier: verifier);
-  final fetcher = Nip65Fetcher(
-    reqs: RelayReqs(relayManager: relayManager, eventVerifier: verifier),
-    homeRelayList: homeRelayList,
+  final metadata = MetadataFetcher(
+    reqs: reqs,
+    nip65Fetcher: Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList),
   );
 
   const fiatjaf =
       '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d';
   print('home relays: ${homeRelayList.homeRelaysOf(fiatjaf)}');
-  final event = await fetcher.fetch(fiatjaf);
-  await relayManager.closeAllTransports();
-
-  if (event == null) {
-    print('no NIP-65 list found');
-    return;
+  final clock = Stopwatch()..start();
+  await for (final profile in metadata.watch(fiatjaf)) {
+    print('${clock.elapsedMilliseconds} ms, version of ${profile.createdAt}:');
+    print('  ${profile.content}');
   }
-  print('event: ${event.id}');
-  print('tags:  ${event.tags}');
+  print('${clock.elapsedMilliseconds} ms, every relay answered');
+  await relayManager.closeAllTransports();
 }

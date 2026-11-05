@@ -25,6 +25,19 @@ Nip01Event relayList(
   createdAt: createdAt,
 ).copyWith(sig: 'f' * 128);
 
+Nip01Event metadata(
+  String name, {
+  String pubKey = alice,
+  int createdAt = 1000,
+  int kind = 0,
+}) => Nip01Event(
+  pubKey: pubKey,
+  kind: kind,
+  tags: [],
+  content: jsonEncode({'name': name}),
+  createdAt: createdAt,
+).copyWith(sig: 'f' * 128);
+
 class AcceptAll implements EventVerifier {
   @override
   Future<bool> verify(Nip01Event event) async => true;
@@ -34,6 +47,7 @@ class AcceptAll implements EventVerifier {
 class LocalRelay {
   final List<Nip01Event> events;
   late final HttpServer _server;
+  int reqCount = 0;
 
   LocalRelay(this.events);
 
@@ -45,6 +59,7 @@ class LocalRelay {
       socket.listen((data) {
         final message = jsonDecode(data as String) as List;
         if (message[0] != 'REQ') return;
+        reqCount++;
         final id = message[1];
         for (final event in events) {
           socket.add(
@@ -77,6 +92,40 @@ Future<String> serve(String body, {int status = 200}) async {
 }
 
 void main() {
+  late RelayManager relayManager;
+  late RelayReqs reqs;
+  final relays = <LocalRelay>[];
+
+  Future<String> startRelay(List<Nip01Event> events) async {
+    final relay = LocalRelay(events);
+    await relay.start();
+    relays.add(relay);
+    return relay.url;
+  }
+
+  /// A relay that accepts the connection and never answers.
+  Future<String> startSilentRelay() async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.transform(WebSocketTransformer()).listen((_) {});
+    addTearDown(() => server.close(force: true));
+    return 'ws://127.0.0.1:${server.port}';
+  }
+
+  setUp(() {
+    relayManager = RelayManager(
+      nostrTransportFactory: WebSocketClientNostrTransportFactory(
+        pingInterval: null,
+      ),
+    );
+    reqs = RelayReqs(relayManager: relayManager, eventVerifier: AcceptAll());
+  });
+
+  tearDown(() async {
+    await relayManager.closeAllTransports();
+    await Future.wait(relays.map((relay) => relay.stop()));
+    relays.clear();
+  });
+
   group('HomeRelayList', () {
     test('computes the home relays of the NIP example', () {
       final list = HomeRelayList([
@@ -217,33 +266,22 @@ void main() {
     });
   });
 
+  test('writeRelaysOf keeps the r tags not marked read, each once', () {
+    final list = relayList([
+      ['r', 'wss://both.example.com/'],
+      ['r', 'wss://write.example.com', 'write'],
+      ['r', 'wss://read.example.com', 'read'],
+      ['r', 'wss://Both.example.com'],
+      ['relay', 'wss://other.example.com'],
+    ]);
+
+    expect(writeRelaysOf(list), [
+      'wss://both.example.com',
+      'wss://write.example.com',
+    ]);
+  });
+
   group('Nip65Fetcher', () {
-    late RelayManager relayManager;
-    late RelayReqs reqs;
-    final relays = <LocalRelay>[];
-
-    Future<String> startRelay(List<Nip01Event> events) async {
-      final relay = LocalRelay(events);
-      await relay.start();
-      relays.add(relay);
-      return relay.url;
-    }
-
-    setUp(() {
-      relayManager = RelayManager(
-        nostrTransportFactory: WebSocketClientNostrTransportFactory(
-          pingInterval: null,
-        ),
-      );
-      reqs = RelayReqs(relayManager: relayManager, eventVerifier: AcceptAll());
-    });
-
-    tearDown(() async {
-      await relayManager.closeAllTransports();
-      await Future.wait(relays.map((relay) => relay.stop()));
-      relays.clear();
-    });
-
     test('keeps the newest list across relays', () async {
       final old = relayList([
         ['r', 'wss://old.example.com'],
@@ -314,13 +352,175 @@ void main() {
     });
 
     test('gives up on a relay that never answers', () async {
-      final silent = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      silent.transform(WebSocketTransformer()).listen((_) {});
-      addTearDown(() => silent.close(force: true));
       final fetcher = Nip65Fetcher(
         reqs: reqs,
-        relays: ['ws://127.0.0.1:${silent.port}'],
+        relays: [await startSilentRelay()],
         timeout: const Duration(milliseconds: 200),
+      );
+
+      expect(await fetcher.fetch(alice), isNull);
+    });
+
+    test('watches each newer list, ending on the newest', () async {
+      final newest = relayList([], createdAt: 3000);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([
+            relayList([], createdAt: 2000),
+            relayList([], createdAt: 1000),
+            newest,
+          ]),
+        ],
+      );
+
+      final versions = await fetcher.watch(alice).toList();
+
+      expect(versions.last.id, newest.id);
+      for (var i = 1; i < versions.length; i++) {
+        expect(versions[i].createdAt, greaterThan(versions[i - 1].createdAt));
+      }
+    });
+
+    test('watches a list before a relay that never answers', () async {
+      final current = relayList([]);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([current]),
+          await startSilentRelay(),
+        ],
+        timeout: const Duration(minutes: 1),
+      );
+
+      expect((await fetcher.watch(alice).first).id, current.id);
+    }, timeout: const Timeout(Duration(seconds: 5)));
+  });
+
+  group('MetadataFetcher', () {
+    test('keeps the newest metadata across relays', () async {
+      final old = metadata('old', createdAt: 1000);
+      final current = metadata('new', createdAt: 2000);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([old]),
+          await startRelay([current]),
+        ],
+      );
+
+      expect((await fetcher.fetch(alice))?.id, current.id);
+    });
+
+    Future<Nip65Fetcher> nip65Listing(List<List<String>> tags) async =>
+        Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([relayList(tags)]),
+          ],
+        );
+
+    test('asks the write relays of the pubkey, not its read relays', () async {
+      final onWrite = metadata('write', createdAt: 1000);
+      final onRead = metadata('read', createdAt: 2000);
+      final writeRelay = await startRelay([onWrite]);
+      final readRelay = await startRelay([onRead]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [],
+        nip65Fetcher: await nip65Listing([
+          ['r', writeRelay, 'write'],
+          ['r', readRelay, 'read'],
+        ]),
+      );
+
+      expect((await fetcher.fetch(alice))?.id, onWrite.id);
+    });
+
+    test(
+      'keeps newer metadata from the write relays than the indexers',
+      () async {
+        final onIndexer = metadata('old', createdAt: 1000);
+        final onWrite = metadata('new', createdAt: 2000);
+        final writeRelay = await startRelay([onWrite]);
+        final fetcher = MetadataFetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([onIndexer]),
+          ],
+          nip65Fetcher: await nip65Listing([
+            ['r', writeRelay],
+          ]),
+        );
+
+        expect((await fetcher.fetch(alice))?.id, onWrite.id);
+      },
+    );
+
+    test('finds nothing for a pubkey without write relays', () async {
+      final readRelay = await startRelay([metadata('read')]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [],
+        nip65Fetcher: await nip65Listing([
+          ['r', readRelay, 'read'],
+        ]),
+      );
+
+      expect(await fetcher.fetch(alice), isNull);
+    });
+
+    test('asks the write relays as soon as a relay list arrives', () async {
+      final current = metadata('alice');
+      final writeRelay = await startRelay([current]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([
+              relayList([
+                ['r', writeRelay],
+              ]),
+            ]),
+            await startSilentRelay(),
+          ],
+          timeout: const Duration(minutes: 1),
+        ),
+      );
+
+      expect((await fetcher.watch(alice).first).id, current.id);
+    }, timeout: const Timeout(Duration(seconds: 5)));
+
+    test('asks a write relay that is also an indexer once', () async {
+      final relay = LocalRelay([metadata('alice')]);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [relay.url],
+        nip65Fetcher: await nip65Listing([
+          ['r', relay.url],
+        ]),
+      );
+
+      await fetcher.fetch(alice);
+
+      expect(relay.reqCount, 1);
+    });
+
+    test('ignores events that do not match the filter', () async {
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([
+            metadata('bob', pubKey: bob),
+            relayList([
+              ['r', 'wss://a.example.com'],
+            ]),
+          ]),
+        ],
       );
 
       expect(await fetcher.fetch(alice), isNull);
