@@ -223,3 +223,10 @@ neither it nor any of its tags can be changed: build another event with
 `copyWith`. Changing the list an event was created from used to change its
 tags without changing its id. `Metadata.tags` stays a list of its own, which
 can be changed.
+
+`copyWith` gives a copy whose `pubKey`, `createdAt`, `kind`, `tags` or
+`content` changed the id of its new payload, and drops a `sig` that no longer
+matches that id. It used to keep the old id and signature. Pass `id` to keep
+another one, such as the id a remote signer chose. `validSig` is only kept when
+the payload, the id and the signature all stay the same: a copy given another
+`sig` used to stay marked as verified, and was then trusted without a check.

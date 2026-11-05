@@ -36,7 +36,10 @@ void _runEventTests(
       tags: [],
       content: 'original',
     );
-    final replacement = original.copyWith(content: 'replacement');
+    final replacement = original.copyWith(
+      id: original.id,
+      content: 'replacement',
+    );
 
     expect(await cacheManager.saveEventIfAbsent(original), isTrue);
     expect(await cacheManager.saveEventIfAbsent(replacement), isFalse);
@@ -54,7 +57,7 @@ void _runEventTests(
       tags: [],
       content: 'first',
     );
-    final second = first.copyWith(content: 'second');
+    final second = first.copyWith(id: first.id, content: 'second');
 
     final results = await Future.wait([
       cacheManager.saveEventIfAbsent(first),

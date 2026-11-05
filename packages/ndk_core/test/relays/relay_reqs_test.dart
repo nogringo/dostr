@@ -70,13 +70,11 @@ void main() {
 
     test('drops events whose signature or id does not hold', () async {
       final relay = await startRelay();
+      final original = signedEvent(content: 'original', createdAt: 3);
       relay.events.addAll([
         signedEvent(content: 'good', createdAt: 1),
         signedEvent(content: 'forged', createdAt: 2).copyWith(sig: 'e' * 128),
-        signedEvent(
-          content: 'original',
-          createdAt: 3,
-        ).copyWith(content: 'tampered'),
+        original.copyWith(id: original.id, content: 'tampered'),
       ]);
 
       final events = await reqs.req(relays: {relay.url: notes}).events.toList();

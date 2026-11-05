@@ -640,7 +640,10 @@ void main() async {
         rumor: rumor,
         recipientPubkey: alice.publicKey,
       );
-      final tamperedWrap = wrap.copyWith(createdAt: wrap.createdAt + 1);
+      final tamperedWrap = wrap.copyWith(
+        id: wrap.id,
+        createdAt: wrap.createdAt + 1,
+      );
 
       ndk.accounts.logout();
       ndk.accounts.loginPrivateKey(
@@ -703,7 +706,10 @@ void main() async {
           ['p', alice.publicKey],
         ],
       );
-      final forged = original.copyWith(content: 'changed after id creation');
+      final forged = original.copyWith(
+        id: original.id,
+        content: 'changed after id creation',
+      );
       final wrap = await ndk.giftWrap.toGiftWrap(
         rumor: forged,
         recipientPubkey: alice.publicKey,

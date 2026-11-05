@@ -18,8 +18,7 @@ class Nip01EventModel extends Nip01Event {
     super.validSig,
   });
 
-  /// creates a copy of this event with the given fields replaced by the new values \
-  /// needed so other packages depending on the extened nip01_event.dart can use copyWith
+  /// [Nip01Event.copyWith], as a [Nip01EventModel]
   @override
   Nip01EventModel copyWith({
     String? id,
@@ -30,18 +29,18 @@ class Nip01EventModel extends Nip01Event {
     String? content,
     String? sig,
     bool? validSig,
-  }) {
-    return Nip01EventModel(
-      id: id ?? this.id,
-      pubKey: pubKey ?? this.pubKey,
-      createdAt: createdAt ?? this.createdAt,
-      kind: kind ?? this.kind,
-      tags: tags ?? this.tags,
-      content: content ?? this.content,
-      sig: sig ?? this.sig,
-      validSig: validSig ?? this.validSig,
-    );
-  }
+  }) => Nip01EventModel.fromEntity(
+    super.copyWith(
+      id: id,
+      pubKey: pubKey,
+      createdAt: createdAt,
+      kind: kind,
+      tags: tags,
+      content: content,
+      sig: sig,
+      validSig: validSig,
+    ),
+  );
 
   /**
    * encoding/decoding methods

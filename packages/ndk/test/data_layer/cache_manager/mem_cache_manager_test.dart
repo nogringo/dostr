@@ -124,7 +124,10 @@ void main() {
         tags: [],
         content: 'original',
       );
-      final replacement = original.copyWith(content: 'replacement');
+      final replacement = original.copyWith(
+        id: original.id,
+        content: 'replacement',
+      );
 
       expect(await cacheManager.saveEventIfAbsent(original), isTrue);
       expect(await cacheManager.saveEventIfAbsent(replacement), isFalse);

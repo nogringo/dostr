@@ -266,6 +266,7 @@ void main() {
     expect(value, isTrue);
 
     final invalidEvent = minedEvent.copyWith(
+      id: minedEvent.id,
       tags: [
         ['nonce', '123', '14'],
       ],
@@ -293,6 +294,7 @@ void main() {
     expect(value, isTrue);
 
     final invalidEvent = minedEvent.copyWith(
+      id: minedEvent.id,
       tags: [
         ['nonce', '123', '4'],
       ],

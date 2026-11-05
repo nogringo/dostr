@@ -61,6 +61,12 @@ class Nip01Event {
         );
   }
 
+  /// A copy with the given fields replaced.
+  ///
+  /// Changing [pubKey], [createdAt], [kind], [tags] or [content] gives the copy
+  /// the id of its new payload, and drops [sig] once that id differs. Pass [id]
+  /// to keep another one, such as a remote signer's. [validSig] is only kept
+  /// when the payload, the id and the signature all stay the same.
   Nip01Event copyWith({
     String? id,
     String? pubKey,
@@ -71,15 +77,40 @@ class Nip01Event {
     String? sig,
     bool? validSig,
   }) {
+    final payloadChanged =
+        pubKey != null ||
+        createdAt != null ||
+        kind != null ||
+        tags != null ||
+        content != null;
+    final nextPubKey = pubKey ?? this.pubKey;
+    final nextCreatedAt = createdAt ?? this.createdAt;
+    final nextKind = kind ?? this.kind;
+    final nextTags = tags ?? this.tags;
+    final nextContent = content ?? this.content;
+    final nextId =
+        id ??
+        (payloadChanged
+            ? Nip01Utils.calculateEventIdSync(
+                pubKey: nextPubKey,
+                createdAt: nextCreatedAt,
+                kind: nextKind,
+                tags: nextTags,
+                content: nextContent,
+              )
+            : this.id);
+    final nextSig = sig ?? (nextId == this.id ? this.sig : null);
+    final untouched =
+        !payloadChanged && nextId == this.id && nextSig == this.sig;
     return Nip01Event(
-      id: id ?? this.id,
-      pubKey: pubKey ?? this.pubKey,
-      createdAt: createdAt ?? this.createdAt,
-      kind: kind ?? this.kind,
-      tags: tags ?? this.tags,
-      content: content ?? this.content,
-      sig: sig ?? this.sig,
-      validSig: validSig ?? this.validSig,
+      id: nextId,
+      pubKey: nextPubKey,
+      createdAt: nextCreatedAt,
+      kind: nextKind,
+      tags: nextTags,
+      content: nextContent,
+      sig: nextSig,
+      validSig: validSig ?? (untouched ? this.validSig : null),
     );
   }
 

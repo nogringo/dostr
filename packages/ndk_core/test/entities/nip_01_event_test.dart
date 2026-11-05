@@ -35,13 +35,73 @@ void main() {
       expect(Nip01Utils.isIdValid(event), isTrue);
     });
 
-    test('copyWith keeps the id, so a changed payload no longer matches', () {
-      final event = signedEvent(content: 'original', createdAt: 1);
+    group('copyWith', () {
+      final event = signedEvent(
+        content: 'original',
+        createdAt: 1,
+      ).copyWith(validSig: true);
 
-      final changed = event.copyWith(content: 'changed');
+      test('gives a changed payload its own id and drops the signature', () {
+        final changes = [
+          event.copyWith(pubKey: bob),
+          event.copyWith(createdAt: 2),
+          event.copyWith(kind: 7),
+          event.copyWith(
+            tags: [
+              ['t', 'x'],
+            ],
+          ),
+          event.copyWith(content: 'changed'),
+        ];
 
-      expect(changed.id, event.id);
-      expect(Nip01Utils.isIdValid(changed), isFalse);
+        for (final changed in changes) {
+          expect(changed.id, isNot(event.id));
+          expect(Nip01Utils.isIdValid(changed), isTrue);
+          expect(changed.sig, isNull);
+          expect(changed.validSig, isNull);
+        }
+      });
+
+      test('keeps the signature when the payload hashes to the same id', () {
+        final same = event.copyWith(content: 'original');
+
+        expect(same.id, event.id);
+        expect(same.sig, event.sig);
+        expect(same.validSig, isNull);
+      });
+
+      test('keeps the signature of the new payload when given one', () {
+        final resigned = event.copyWith(content: 'changed', sig: 'e' * 128);
+
+        expect(Nip01Utils.isIdValid(resigned), isTrue);
+        expect(resigned.sig, 'e' * 128);
+        expect(resigned.validSig, isNull);
+      });
+
+      test('keeps an id it is given, even one the payload does not match', () {
+        final forged = event.copyWith(id: event.id, content: 'changed');
+
+        expect(forged.id, event.id);
+        expect(Nip01Utils.isIdValid(forged), isFalse);
+        expect(forged.sig, event.sig);
+        expect(forged.validSig, isNull);
+      });
+
+      test('forgets that the signature was valid once it changes', () {
+        final changed = event.copyWith(sig: 'e' * 128);
+
+        expect(changed.id, event.id);
+        expect(changed.validSig, isNull);
+      });
+
+      test('keeps everything when nothing signed changes', () {
+        final copy = event.copyWith();
+
+        expect(copy.id, event.id);
+        expect(copy.sig, event.sig);
+        expect(copy.validSig, isTrue);
+        expect(event.copyWith(validSig: false).validSig, isFalse);
+      });
     });
 
     test('takes the current time when created_at is omitted', () {
@@ -152,6 +212,18 @@ void main() {
       expect(decoded.sig, event.sig);
       expect(decoded.tags, event.tags);
       expect(decoded.validSig, isNull);
+    });
+
+    test('copyWith gives a changed payload its own id', () {
+      final model = Nip01EventModel.fromEntity(
+        signedEvent(content: 'original', createdAt: 1),
+      );
+
+      final changed = model.copyWith(content: 'changed');
+
+      expect(changed, isA<Nip01EventModel>());
+      expect(Nip01Utils.isIdValid(changed), isTrue);
+      expect(changed.sig, isNull);
     });
 
     test('an event created at 0 keeps its created_at and a valid id', () {

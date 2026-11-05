@@ -402,7 +402,10 @@ void main() async {
         final event = await signedEvent('canonical content', 1000);
         await receiveAndCacheFromRelay1(event);
 
-        final forgedEvent = event.copyWith(content: 'forged content');
+        final forgedEvent = event.copyWith(
+          id: event.id,
+          content: 'forged content',
+        );
         relay2.textNotes = {key1: forgedEvent};
 
         final received = await ndk.requests
