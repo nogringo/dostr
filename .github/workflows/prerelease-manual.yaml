@@ -29,6 +29,7 @@ on:
           - ndk_bip340
           - ndk_nip44
           - ndk_nip77
+          - ndk_url_set
           - ndk_wallets
           - ndk_nwc
           - ndk_cashu

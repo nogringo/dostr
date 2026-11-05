@@ -37,6 +37,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip77`: NIP-77 negentropy sync on top of `ndk_core`, with the Negentropy V1 codec.
 
+### [🔗 URL sets](./packages/url_set/)
+
+`ndk_url_set`: relay and Blossom server sets described rather than listed, stored offline and resolved later, in pure Dart.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.

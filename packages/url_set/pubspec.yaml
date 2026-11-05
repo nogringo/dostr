@@ -1,0 +1,20 @@
+name: ndk_url_set
+description: Relay and Blossom server sets for Nostr, described rather than listed so they can be stored offline and resolved later from the lists accounts publish.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - outbox
+  - offline-first
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any
