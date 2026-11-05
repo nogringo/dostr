@@ -21,7 +21,6 @@ void main() async {
       await relay1.startServer();
 
       RelayManager manager = RelayManager(
-        bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
       await manager.connectRelay(dirtyUrl: relay1.url).then((value) {}).onError(
@@ -38,7 +37,6 @@ void main() async {
       await closed.close();
 
       RelayManager manager = RelayManager(
-        bootstrapRelays: [],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
       final results = await Future.wait([
@@ -58,7 +56,6 @@ void main() async {
       await relay1.startServer();
 
       RelayManager manager = RelayManager(
-        bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
       await manager.connectRelay(dirtyUrl: relay1.url).then((value) {}).onError(
@@ -80,7 +77,6 @@ void main() async {
       await relay1.startServer();
 
       RelayManager manager = RelayManager(
-        bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
       await manager.connectRelay(dirtyUrl: relay1.url);
@@ -128,7 +124,6 @@ void main() async {
     test('Try to connect to dead relay', () async {
       RelayManager manager = RelayManager(
         nostrTransportFactory: webSocketNostrTransportFactory,
-        bootstrapRelays: [],
       );
 
       MockRelay relay1 = MockRelay(name: "relay 1");
@@ -144,7 +139,6 @@ void main() async {
       await relay1.startServer();
 
       RelayManager manager = RelayManager(
-        bootstrapRelays: [relay1.url],
         nostrTransportFactory: webSocketNostrTransportFactory,
       );
       await manager.connectRelay(dirtyUrl: relay1.url);
@@ -172,7 +166,6 @@ void main() async {
         await relay2.startServer();
 
         RelayManager manager = RelayManager(
-          bootstrapRelays: [],
           nostrTransportFactory: webSocketNostrTransportFactory,
         );
         await manager.connectRelay(dirtyUrl: relay1.url);

@@ -35,7 +35,7 @@ void main() {
         ),
       );
       ndkInitialized = true;
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
 
       connection = BunkerConnection(
         privateKey:
@@ -419,7 +419,7 @@ void main() {
         bootstrapRelays: [fastRelay.url, slowRelay.url],
       ),
     );
-    await ndk.relays.seedRelaysConnected;
+    await ndk.bootstrapRelaysConnected;
 
     final signer = Nip46EventSigner(
       connection: BunkerConnection(

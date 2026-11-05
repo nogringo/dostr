@@ -118,10 +118,7 @@ void main() {
   }
 
   setUp(() {
-    manager = RelayManager(
-      nostrTransportFactory: _NoConnections(),
-      bootstrapRelays: [],
-    );
+    manager = RelayManager(nostrTransportFactory: _NoConnections());
     parts = relayManagerParts(manager);
   });
 

@@ -59,7 +59,6 @@ void deadConnectionTests() {
       await relay.startServer();
 
       final manager = RelayManager(
-        bootstrapRelays: [relay.url],
         nostrTransportFactory: WebSocketClientNostrTransportFactory(),
       );
       await manager.connectRelay(dirtyUrl: relay.url);
@@ -120,10 +119,12 @@ void notSentEndTests() {
     Filter notesOf(KeyPair key) =>
         Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
 
-    RelayManager buildManager(List<String> seeds) => RelayManager(
-      bootstrapRelays: seeds,
+    RelayManager buildManager() => RelayManager(
       nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     );
+
+    Future<void> connectAll(RelayManager manager, List<String> urls) =>
+        Future.wait(urls.map((url) => manager.connectRelay(dirtyUrl: url)));
 
     test(
       'a notSent relay with an open socket does not hold the request once the others are gone',
@@ -136,13 +137,13 @@ void notSentEndTests() {
         );
         await notSent.startServer();
         await dropped.startServer();
-        final manager = buildManager([notSent.url, dropped.url]);
+        final manager = buildManager();
         addTearDown(() async {
           await manager.closeAllTransports();
           await notSent.stopServer();
           await dropped.stopServer();
         });
-        await manager.seedRelaysConnected;
+        await connectAll(manager, [notSent.url, dropped.url]);
 
         final filter = notesOf(key1);
         final req =
@@ -196,7 +197,7 @@ void notSentEndTests() {
           textNotes: {key2: connectingNote},
           delayConnection: Duration(seconds: 1),
         );
-        final manager = buildManager([connected.url]);
+        final manager = buildManager();
         Future<void>? opening;
         addTearDown(() async {
           // MockRelay fails a handshake it still holds once its server stops
@@ -205,7 +206,7 @@ void notSentEndTests() {
           await connected.stopServer();
           await connecting.stopServer();
         });
-        await manager.seedRelaysConnected;
+        await connectAll(manager, [connected.url]);
 
         // another request is already opening it
         opening = manager.connectRelay(dirtyUrl: connecting.url);

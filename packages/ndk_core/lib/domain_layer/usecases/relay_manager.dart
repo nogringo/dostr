@@ -27,11 +27,6 @@ export 'relay_reqs/relay_reqs.dart' show RelayReq, RelayReqs;
 ///  relay manager, responsible for lifecycle of relays, sending messages, \
 ///  and help with tracking of requests
 class RelayManager {
-  final Completer<void> _seedRelaysCompleter = Completer<void>();
-
-  /// completes when all seed relays are connected
-  Future<void> get seedRelaysConnected => _seedRelaysCompleter.future;
-
   late final RelayAuth _auth;
   late final RelayConnections _connections;
   late final RelayRequests _requests;
@@ -74,7 +69,6 @@ class RelayManager {
   RelayManager({
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
-    List<String> bootstrapRelays = const [],
     bool allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     Duration authCallbackTimeout =
@@ -115,7 +109,6 @@ class RelayManager {
         broadcasts: _broadcasts,
       ),
     );
-    _connectSeedRelays(bootstrapRelays);
   }
 
   /// Hands [handler] the messages, CLOSED and NOTICE this manager does not
@@ -127,17 +120,6 @@ class RelayManager {
   /// Stops handing messages to [handler].
   void removeProtocolHandler(RelayProtocolHandler handler) {
     _protocolHandlers.remove(handler);
-  }
-
-  /// Connects to the bootstrap relays, if any.
-  Future<void> _connectSeedRelays(Iterable<String> urls) async {
-    await Future.wait(
-      urls.map((url) => connectRelay(dirtyUrl: url)).toList(),
-    ).whenComplete(() {
-      if (!_seedRelaysCompleter.isCompleted) {
-        _seedRelaysCompleter.complete();
-      }
-    });
   }
 
   /// Every open connection, anonymous or bound, so a relay can show up more

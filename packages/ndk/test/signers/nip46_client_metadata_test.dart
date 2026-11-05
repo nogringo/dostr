@@ -25,7 +25,7 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {

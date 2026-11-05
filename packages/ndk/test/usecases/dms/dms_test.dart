@@ -38,7 +38,7 @@ void main() async {
         ignoreRelays: [],
       );
       ndk = Ndk(config);
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
 
       // Alice logs in
       ndk.accounts.loginPrivateKey(

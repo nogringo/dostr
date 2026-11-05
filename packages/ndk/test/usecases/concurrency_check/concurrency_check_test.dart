@@ -70,7 +70,7 @@ void main() async {
           pubkey: key1.publicKey,
           privkey: key1.privateKey!,
         );
-        await ndkJit.relays.seedRelaysConnected;
+        await ndkJit.bootstrapRelaysConnected;
 
         final myfilter = Filter(
           kinds: [Nip01Event.kTextNodeKind],
@@ -136,7 +136,7 @@ void main() async {
           pubkey: key.publicKey,
           privkey: key.privateKey!,
         );
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final filter = Filter(
           kinds: [Nip01Event.kTextNodeKind],

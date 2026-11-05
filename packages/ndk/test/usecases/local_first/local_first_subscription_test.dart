@@ -53,7 +53,7 @@ void main() {
         );
         await relay.startServer(textNotes: {remoteAuthor: cachedEvent});
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final initiallyCached = await ndk.requests
             .query(
@@ -129,7 +129,7 @@ void main() {
         );
         await relay.startServer(textNotes: {remoteAuthor: targetEvent});
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final cachedTarget = await ndk.requests
             .query(
@@ -224,7 +224,7 @@ void main() {
           metadatas: {remoteAuthor.publicKey: cachedVersion},
         );
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final cachedLoad = await ndk.requests
             .query(

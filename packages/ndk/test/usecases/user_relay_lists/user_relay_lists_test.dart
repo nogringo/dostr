@@ -46,7 +46,7 @@ void main() async {
 
       ndk = Ndk(config);
 
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
 
       cache.saveUserRelayList(cache0);
     });

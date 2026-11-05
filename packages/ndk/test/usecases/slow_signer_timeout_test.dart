@@ -21,7 +21,7 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
 
       ndk.accounts.loginExternalSigner(
         signer: MockSlowSigner(
@@ -86,7 +86,7 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
 
       ndk.accounts.loginExternalSigner(
         signer: MockSlowSigner(

@@ -33,13 +33,19 @@ class JitEngine with Logger implements NetworkEngine {
   /// ndk config
   List<String> bootstrapRelays;
 
+  final Future<void> _bootstrapRelaysConnected;
+
   /// Creates a new JIT engine.
+  ///
+  /// Requests and broadcasts wait for [bootstrapRelaysConnected], if given,
+  /// before they are routed.
   JitEngine({
     required this.relayManagerLight,
     required this.cache,
     required this.ignoreRelays,
     required this.bootstrapRelays,
-  });
+    Future<void>? bootstrapRelaysConnected,
+  }) : _bootstrapRelaysConnected = bootstrapRelaysConnected ?? Future.value();
 
   /// Finds the right relays for each filter. The connected ones get the
   /// request before this completes; the others are connected to afterwards,
@@ -52,7 +58,7 @@ class JitEngine with Logger implements NetworkEngine {
     RelaySet? relaySet,
     required int desiredCoverage,
   }) async {
-    await relayManagerLight.seedRelaysConnected;
+    await _bootstrapRelaysConnected;
 
     final plan = JitRequestPlan(send);
     final connectedRelays = relayManagerLight.connectedAnonymousRelays;
@@ -119,7 +125,7 @@ class JitEngine with Logger implements NetworkEngine {
 
   @override
   Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) async {
-    await relayManagerLight.seedRelaysConnected;
+    await _bootstrapRelaysConnected;
 
     final ownRelays = cleanRelayUrls(
       await RelayJitBroadcastOutboxStrategy.relays(

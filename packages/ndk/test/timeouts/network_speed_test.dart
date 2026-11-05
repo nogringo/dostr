@@ -279,7 +279,7 @@ void main() {
       );
 
       final ndk = Ndk(config);
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
       bool timeoutTriggered = false;
       bool timeoutUserTriggered = false;
       // Start the stopwatch

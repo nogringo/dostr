@@ -105,6 +105,8 @@ class Initialization {
 
   late final NetworkEngine engine;
 
+  late final Future<void> bootstrapRelaysConnected;
+
   /// [NdkConfig] is user defined
   Initialization({required NdkConfig ndkConfig}) : _ndkConfig = ndkConfig {
     // first, so what the use cases log while they are built respects it
@@ -120,38 +122,36 @@ class Initialization {
 
     accounts = Accounts(_ndkConfig.eventSignerFactory);
 
+    relayManager = RelayManager(
+      accounts: accounts,
+      nostrTransportFactory: _webSocketNostrTransportFactory,
+      authCallbackTimeout: _ndkConfig.authCallbackTimeout,
+      authHandler: _ndkConfig.authHandler,
+      reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
+    );
+    // connectRelay reports its failures in its record, so this never fails
+    bootstrapRelaysConnected = Future.wait(
+      _ndkConfig.bootstrapRelays.map(
+        (url) => relayManager.connectRelay(dirtyUrl: url),
+      ),
+    );
+
     switch (_ndkConfig.engine) {
       case NdkEngine.RELAY_SETS:
-        relayManager = RelayManager(
-          accounts: accounts,
-          nostrTransportFactory: _webSocketNostrTransportFactory,
-          bootstrapRelays: _ndkConfig.bootstrapRelays,
-          authCallbackTimeout: _ndkConfig.authCallbackTimeout,
-          authHandler: _ndkConfig.authHandler,
-          reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
-        );
-
         engine = RelaySetsEngine(
           cacheManager: _ndkConfig.cache,
           relayManager: relayManager,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
+          bootstrapRelaysConnected: bootstrapRelaysConnected,
         );
         break;
       case NdkEngine.JIT:
-        relayManager = RelayManager(
-          accounts: accounts,
-          nostrTransportFactory: _webSocketNostrTransportFactory,
-          bootstrapRelays: _ndkConfig.bootstrapRelays,
-          authCallbackTimeout: _ndkConfig.authCallbackTimeout,
-          authHandler: _ndkConfig.authHandler,
-          reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
-        );
-
         engine = JitEngine(
           cache: _ndkConfig.cache,
           ignoreRelays: _ndkConfig.ignoreRelays,
           relayManagerLight: relayManager,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
+          bootstrapRelaysConnected: bootstrapRelaysConnected,
         );
         break;
     }

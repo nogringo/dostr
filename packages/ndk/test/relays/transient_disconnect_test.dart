@@ -143,7 +143,6 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(
-      bootstrapRelays: [],
       nostrTransportFactory: factory,
       accounts: accounts,
     );
@@ -190,7 +189,6 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(
-      bootstrapRelays: [],
       nostrTransportFactory: factory,
       accounts: accounts,
       authCallbackTimeout: const Duration(seconds: 10),
@@ -310,10 +308,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   await relay.startServer();
 
   final factory = _FlakyTransportFactory();
-  final manager = RelayManager(
-    bootstrapRelays: [],
-    nostrTransportFactory: factory,
-  );
+  final manager = RelayManager(nostrTransportFactory: factory);
   await manager.connectRelay(dirtyUrl: relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);

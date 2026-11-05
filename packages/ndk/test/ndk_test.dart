@@ -57,7 +57,7 @@ void main() async {
             bootstrapRelays: [relay1.url],
           ),
         );
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
         ndk.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
           privkey: key1.privateKey!,
@@ -116,7 +116,7 @@ void main() async {
             bootstrapRelays: [relay1.url],
           ),
         );
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final response = ndk.requests.query(
           filters: [

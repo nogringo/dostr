@@ -118,7 +118,7 @@ void main() {
       );
 
       ndk = Ndk(config);
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {
@@ -171,7 +171,7 @@ void main() {
         ),
       );
 
-      await ndkNoProviders.relays.seedRelaysConnected;
+      await ndkNoProviders.bootstrapRelaysConnected;
 
       final metrics = await ndkNoProviders.ta.getUserMetrics(
         subjectKey.publicKey,

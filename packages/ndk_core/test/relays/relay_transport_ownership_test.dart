@@ -93,7 +93,7 @@ void main() {
   RelayRequestStatus status() => subscription.relayOutcomes[url]!.status;
   setUp(() {
     factory = _Factory();
-    manager = RelayManager(nostrTransportFactory: factory, bootstrapRelays: []);
+    manager = RelayManager(nostrTransportFactory: factory);
     parts = relayManagerParts(manager);
     subscription = RequestState.subscription('live')
       ..addRequest(key, [

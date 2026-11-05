@@ -98,7 +98,6 @@ void main() {
   test('a relay set relay gets every filter that maps to it', () async {
     const url = 'wss://relay.example.com';
     final manager = RelayManager(
-      bootstrapRelays: [],
       nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     );
     final engine = RelaySetsEngine(

@@ -44,7 +44,7 @@ void main() async {
           ),
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // Define filter with time bounds
         final since =
@@ -130,7 +130,7 @@ void main() async {
           ),
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // First query: 100-200
         final filter1 = Filter(
@@ -198,7 +198,7 @@ void main() async {
           ),
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // Query for 200-300
         final filter = Filter(
@@ -253,7 +253,7 @@ void main() async {
           ),
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // Query for 200-300
         final filter = Filter(
@@ -323,7 +323,7 @@ void main() async {
           pubkey: author.publicKey,
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // 30 events, one per second, oldest first
         final baseCreatedAt =
@@ -434,7 +434,7 @@ void main() async {
           pubkey: author.publicKey,
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         // 60 events, one per second, oldest first
         final baseCreatedAt =
@@ -530,7 +530,7 @@ void main() async {
           ),
         );
 
-        await ndk.relays.seedRelaysConnected;
+        await ndk.bootstrapRelaysConnected;
 
         final filter = Filter(
           kinds: [Nip01Event.kTextNodeKind],

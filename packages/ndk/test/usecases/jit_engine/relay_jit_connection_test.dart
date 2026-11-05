@@ -217,10 +217,7 @@ void main() async {
         relayLists.map(UserRelayList.fromNip65).toList(),
       );
 
-      final relayManager = RelayManager(
-        bootstrapRelays: const [],
-        nostrTransportFactory: factory,
-      );
+      final relayManager = RelayManager(nostrTransportFactory: factory);
       final plan = JitRequestPlan((_, _) {});
       final candidates = await RelayJitPubkeyStrategy.plan(
         plan: plan,
@@ -256,10 +253,7 @@ void main() async {
       });
       addTearDown(fallbackTransport.close);
 
-      final relayManager = RelayManager(
-        bootstrapRelays: const [],
-        nostrTransportFactory: factory,
-      );
+      final relayManager = RelayManager(nostrTransportFactory: factory);
       final result = await relayManager.connectRelay(dirtyUrl: fallbackUrl);
       expect(result.connected, isTrue);
 

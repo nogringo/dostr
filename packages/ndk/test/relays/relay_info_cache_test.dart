@@ -32,7 +32,7 @@ void main() {
   setUp(() {
     repo = _Repo();
     connectivity = Connectivy(
-      RelayManager(nostrTransportFactory: _NoTransport(), bootstrapRelays: []),
+      RelayManager(nostrTransportFactory: _NoTransport()),
       repo,
     );
   });

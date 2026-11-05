@@ -1378,7 +1378,6 @@ class RecordingBroadcastSender extends BroadcastSender {
         cacheManager: cacheManager,
         networkEngine: _ThrowingNetworkEngine(),
         relayManager: RelayManager(
-          bootstrapRelays: const [],
           nostrTransportFactory: WebSocketClientNostrTransportFactory(),
         ),
         accounts: Accounts(_DummySignerFactory()),

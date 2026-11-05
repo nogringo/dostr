@@ -12,7 +12,6 @@ void main() {
       cacheManager: cache,
       networkEngine: _UnreachableNetworkEngine(),
       relayManager: RelayManager(
-        bootstrapRelays: const [],
         nostrTransportFactory: WebSocketClientNostrTransportFactory(),
       ),
       accounts: Accounts(const Bip340EventSignerFactory()),

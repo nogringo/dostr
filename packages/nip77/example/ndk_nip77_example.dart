@@ -4,7 +4,6 @@ import 'package:ndk_nip77/ndk_nip77.dart';
 Future<void> main() async {
   final relays = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-    bootstrapRelays: [],
   );
 
   // nothing is stored yet, so every matching event on the relay is needed

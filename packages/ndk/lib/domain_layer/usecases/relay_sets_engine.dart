@@ -25,14 +25,21 @@ class RelaySetsEngine implements NetworkEngine {
 
   final List<String> _bootstrapRelays;
 
+  final Future<void> _bootstrapRelaysConnected;
+
   /// engine that pre-calculates relay sets for gossip
+  ///
+  /// Requests wait for [bootstrapRelaysConnected], if given, before they are
+  /// routed.
   RelaySetsEngine({
     required RelayManager relayManager,
     required CacheManager cacheManager,
     required List<String>? bootstrapRelays,
+    Future<void>? bootstrapRelaysConnected,
   }) : _cacheManager = cacheManager,
        _relayManager = relayManager,
-       _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS;
+       _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS,
+       _bootstrapRelaysConnected = bootstrapRelaysConnected ?? Future.value();
 
   @override
   Future<void> route(
@@ -41,7 +48,7 @@ class RelaySetsEngine implements NetworkEngine {
     RelaySet? relaySet,
     required int desiredCoverage,
   }) async {
-    await _relayManager.seedRelaysConnected;
+    await _bootstrapRelaysConnected;
 
     final byRelay = <String, List<Filter>>{};
     void add(String url, List<Filter> relayFilters) => byRelay

@@ -27,7 +27,6 @@ import 'package:ndk_core/ndk_core.dart';
 
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-  bootstrapRelays: [],
 );
 
 final reqs = RelayReqs(

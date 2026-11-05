@@ -45,12 +45,14 @@ alone and no longer rejects an event that misses the proof-of-work target its
 
 #### Defaults
 
-`RelayManager` connects to no relay unless you pass `bootstrapRelays`.
-`DEFAULT_BOOTSTRAP_RELAYS` stays in `ndk` at its old path, and `NdkConfig`
-still defaults to it. `RequestDefaults` and `BroadcastDefaults` keep only what
-`ndk_core` uses. `ndk` has both classes at their old paths with everything
-else, including `DEFAULT_QUERY_TIMEOUT`, `DEFAULT_USER_AGENT` and
-`MAX_INBOX_RELAYS_TO_BROADCAST`.
+`RelayManager` no longer takes `bootstrapRelays` and no longer has
+`seedRelaysConnected`: it opens no connection when it is built. Bootstrap
+relays belong to `ndk`, where `NdkConfig` still defaults to
+`DEFAULT_BOOTSTRAP_RELAYS` at its old path and `Ndk.bootstrapRelaysConnected`
+replaces `ndk.relays.seedRelaysConnected`. `RequestDefaults` and
+`BroadcastDefaults` keep only what `ndk_core` uses. `ndk` has both classes at
+their old paths with everything else, including `DEFAULT_QUERY_TIMEOUT`,
+`DEFAULT_USER_AGENT` and `MAX_INBOX_RELAYS_TO_BROADCAST`.
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`,
 `RelayPublish.send` and `RelayPublishSend` in `ndk`, is a `Duration` instead of a

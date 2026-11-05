@@ -52,7 +52,7 @@ void main() async {
 
       ndk = Ndk(config);
 
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
       await cache.saveEvent(cache0Metadata.toEvent());
       //cache.saveContactList(cache1ContactList);
     });

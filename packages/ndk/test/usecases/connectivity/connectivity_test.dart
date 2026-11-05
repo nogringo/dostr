@@ -31,7 +31,7 @@ void main() async {
 
       ndk = Ndk(config);
 
-      await ndk.relays.seedRelaysConnected;
+      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {

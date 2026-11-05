@@ -97,10 +97,7 @@ void main() {
     await relay.startServer();
 
     final factory = _FaultyTransportFactory();
-    final manager = RelayManager(
-      bootstrapRelays: [relay.url],
-      nostrTransportFactory: factory,
-    );
+    final manager = RelayManager(nostrTransportFactory: factory);
     await manager.connectRelay(dirtyUrl: relay.url);
 
     final connectivity =
@@ -137,7 +134,6 @@ void main() {
 
       final factory = _FaultyTransportFactory();
       final manager = RelayManager(
-        bootstrapRelays: [],
         nostrTransportFactory: factory,
         accounts: accounts,
       );

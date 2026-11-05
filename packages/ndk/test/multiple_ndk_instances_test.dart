@@ -53,8 +53,8 @@ void main() {
 
         try {
           await Future.wait([
-            first.relays.seedRelaysConnected,
-            second.relays.seedRelaysConnected,
+            first.bootstrapRelaysConnected,
+            second.bootstrapRelaysConnected,
           ]);
           await _waitUntil(
             () => relay.connectedClientCount == 2,
@@ -155,8 +155,8 @@ void main() {
 
       try {
         await Future.wait([
-          first.relays.seedRelaysConnected,
-          second.relays.seedRelaysConnected,
+          first.bootstrapRelaysConnected,
+          second.bootstrapRelaysConnected,
         ]);
 
         final key = Bip340.generatePrivateKey();
@@ -235,8 +235,8 @@ void main() {
         );
 
         await Future.wait([
-          first.relays.seedRelaysConnected,
-          second.relays.seedRelaysConnected,
+          first.bootstrapRelaysConnected,
+          second.bootstrapRelaysConnected,
         ]);
 
         final results = await Future.wait([

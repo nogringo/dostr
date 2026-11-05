@@ -26,7 +26,7 @@ void main() {
         bootstrapRelays: [relayA.url, relayB.url],
       ),
     );
-    await ndk.relays.seedRelaysConnected;
+    await ndk.bootstrapRelaysConnected;
 
     signer = Nip46EventSigner(
       connection: BunkerConnection(

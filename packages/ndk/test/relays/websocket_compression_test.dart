@@ -153,7 +153,7 @@ void main() {
           );
 
           try {
-            await ndk.relays.seedRelaysConnected;
+            await ndk.bootstrapRelaysConnected;
             expect(relay.extensionOffers[path], everyElement(isNull));
           } finally {
             await ndk.destroy();
@@ -176,8 +176,8 @@ void main() {
 
       try {
         await Future.wait([
-          compressed.relays.seedRelaysConnected,
-          uncompressed.relays.seedRelaysConnected,
+          compressed.bootstrapRelaysConnected,
+          uncompressed.bootstrapRelaysConnected,
         ]);
         expect(
           relay.extensionOffers['/compressed-instance']!.single,
