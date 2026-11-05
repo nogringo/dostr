@@ -9,7 +9,6 @@ import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import '../../../shared/nips/nip01/event_kind_classification.dart';
 import '../../../shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/domain_layer/entities/account.dart';
 import '../../entities/event_filter.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/ndk_request.dart';
@@ -239,7 +238,6 @@ class Requests {
   /// [timeoutCallbackUserFacing] A user facing timeout callback, this callback should be given to the lib user \
   /// [timeoutCallback] An internal timeout callback, this callback should be used for internal error handling \
   /// [auth] which identity this query may be attributed to on relays (NIP-42), see [AuthPolicy] \
-  /// [authenticateAs] @deprecated use [auth] instead; [auth] wins when both are given \
   /// [paginate] If true, automatically paginates backwards through time to fetch all events in the range \
   ///
   /// Returns an [NdkResponse] containing the query result stream, future
@@ -260,10 +258,6 @@ class Requests {
     Iterable<String>? explicitRelays,
     int? desiredCoverage,
     AuthPolicy? auth,
-    @Deprecated(
-      'Use auth: AuthPolicy.allow(account) instead. authenticateAs will be removed in a future version.',
-    )
-    List<Account>? authenticateAs,
     bool paginate = false,
   }) {
     if (filter == null && (filters == null || filters.isEmpty)) {
@@ -275,8 +269,6 @@ class Requests {
       throw ArgumentError('id cannot be combined with paginate');
     }
     final effectiveFilters = filter != null ? [filter] : filters!;
-    final effectiveAuth =
-        auth ?? AuthPolicy.fromDeprecatedAccounts(authenticateAs);
     timeout ??= _defaultQueryTimeout;
 
     if (paginate) {
@@ -291,7 +283,7 @@ class Requests {
         timeoutCallback: timeoutCallback,
         explicitRelays: explicitRelays,
         desiredCoverage: desiredCoverage,
-        auth: effectiveAuth,
+        auth: auth,
       );
     }
 
@@ -309,7 +301,7 @@ class Requests {
         explicitRelays: explicitRelays,
         desiredCoverage:
             desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
-        auth: effectiveAuth,
+        auth: auth,
       ),
     );
   }
@@ -326,7 +318,6 @@ class Requests {
   /// [explicitRelays] A list of specific relays to use, bypassing inbox/outbox \
   /// [desiredCoverage] The number of relays per pubkey to subscribe to, default: 2 \
   /// [auth] which identity this subscription may be attributed to on relays (NIP-42), see [AuthPolicy] \
-  /// [authenticateAs] @deprecated use [auth] instead; [auth] wins when both are given \
   ///
   /// Returns an [NdkResponse] containing the subscription results as stream
   NdkResponse subscription({
@@ -343,18 +334,12 @@ class Requests {
     Iterable<String>? explicitRelays,
     int? desiredCoverage,
     AuthPolicy? auth,
-    @Deprecated(
-      'Use auth: AuthPolicy.allow(account) instead. authenticateAs will be removed in a future version.',
-    )
-    List<Account>? authenticateAs,
   }) {
     if (filter == null && (filters == null || filters.isEmpty)) {
       throw ArgumentError('Either filter or filters must be provided');
     }
     _checkExplicitId(id);
     final effectiveFilters = filter != null ? [filter] : filters!;
-    final effectiveAuth =
-        auth ?? AuthPolicy.fromDeprecatedAccounts(authenticateAs);
     return requestNostrEvent(
       NdkRequest.subscription(
         id ?? _requestId(name),
@@ -366,7 +351,7 @@ class Requests {
         explicitRelays: explicitRelays,
         desiredCoverage:
             desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
-        auth: effectiveAuth,
+        auth: auth,
       ),
     );
   }

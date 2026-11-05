@@ -97,24 +97,22 @@ handler agrees.
 
 ### Migrating from `authenticateAs`
 
-`authenticateAs` is deprecated. It is translated into a policy, and `auth` wins
-when both are given:
+`authenticateAs` was removed. Replace it with `auth`:
 
-| `authenticateAs` | translated to |
+| `authenticateAs` | replace with |
 | --- | --- |
-| `[a]` | `AuthPolicy.allow(a)` |
-| `[a, b]` | `AuthPolicy.allow(a)`, the rest of the list is dropped |
-| a list where no account can sign | `const AuthPolicy.never()` |
-| not specified | nothing, the default above applies |
+| `[a]` | `auth: AuthPolicy.allow(a)` |
+| `[a, b]` | `auth: AuthPolicy.allow(a)`, and one more request per other identity |
+| a list where no account can sign | `auth: const AuthPolicy.never()` |
 
 A list never authenticated as more than one identity: only the first account
-that could sign was ever used, and that is now what it says. If you passed
-`[a, b]` expecting both to be covered, issue one request per identity, each
-with its own `auth`.
+that could sign was ever used. If you passed `[a, b]` expecting both to be
+covered, issue one request per identity, each with its own `auth`.
 
-One behaviour did change. `authenticateAs` opened an authenticated connection
-before any relay asked for one, which revealed the identity even to relays that
-would have served the request anonymously. `allow` waits for the refusal.
+`allow` also differs in one way. `authenticateAs` opened an authenticated
+connection before any relay asked for one, which revealed the identity even to
+relays that would have served the request anonymously. `allow` waits for the
+refusal.
 
 ## Event sources
 

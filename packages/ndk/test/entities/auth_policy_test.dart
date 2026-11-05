@@ -102,27 +102,4 @@ void main() {
       );
     });
   });
-
-  group('AuthPolicy.fromDeprecatedAccounts', () {
-    test('no account keeps the historical default', () {
-      expect(AuthPolicy.fromDeprecatedAccounts(null), isNull);
-      expect(AuthPolicy.fromDeprecatedAccounts([]), isNull);
-    });
-
-    test('the first signable account is the one that is used', () {
-      final signable = _signable(keyB);
-
-      expect(
-        AuthPolicy.fromDeprecatedAccounts([_watchOnly(keyA), signable]),
-        AuthPolicy.allow(signable),
-      );
-    });
-
-    test('a list where nobody can sign never authenticates', () {
-      expect(
-        AuthPolicy.fromDeprecatedAccounts([_watchOnly(keyA), _watchOnly(keyB)]),
-        const AuthPolicy.never(),
-      );
-    });
-  });
 }

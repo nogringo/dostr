@@ -21,20 +21,6 @@ sealed class AuthPolicy {
 
   /// stable representation, for logs and for telling two requests apart
   String get canonical;
-
-  /// The policy the deprecated `authenticateAs` list stands for: the first
-  /// account it names that can sign, and nobody when none can.
-  static AuthPolicy? fromDeprecatedAccounts(List<Account>? accounts) {
-    if (accounts == null || accounts.isEmpty) {
-      return null;
-    }
-    for (final account in accounts) {
-      if (account.signer.canSign()) {
-        return AuthPolicy.allow(account);
-      }
-    }
-    return const AuthPolicy.never();
-  }
 }
 
 /// Never authenticates, see [AuthPolicy.never].

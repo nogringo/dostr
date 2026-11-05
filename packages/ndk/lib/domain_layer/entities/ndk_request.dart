@@ -1,4 +1,3 @@
-import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import 'relay_set.dart';
@@ -61,12 +60,8 @@ class NdkRequest {
     this.explicitRelays,
     this.cacheRead = true,
     this.cacheWrite = true,
-    AuthPolicy? auth,
-    @Deprecated(
-      'Use auth: AuthPolicy.allow(account) instead. authenticateAs will be removed in a future version.',
-    )
-    List<Account>? authenticateAs,
-  }) : auth = auth ?? AuthPolicy.fromDeprecatedAccounts(authenticateAs);
+    this.auth,
+  });
 
   /// subscription
   NdkRequest.subscription(
@@ -79,12 +74,8 @@ class NdkRequest {
     this.explicitRelays,
     this.cacheRead = true,
     this.cacheWrite = true,
-    AuthPolicy? auth,
-    @Deprecated(
-      'Use auth: AuthPolicy.allow(account) instead. authenticateAs will be removed in a future version.',
-    )
-    List<Account>? authenticateAs,
-  }) : auth = auth ?? AuthPolicy.fromDeprecatedAccounts(authenticateAs);
+    this.auth,
+  });
 }
 
 // coverage:ignore-end

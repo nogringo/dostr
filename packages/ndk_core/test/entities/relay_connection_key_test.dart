@@ -95,21 +95,5 @@ void main() {
       expect(const AuthPolicy.never().canonical, 'never');
       expect(AuthPolicy.require(fakeAccount(bob)).canonical, 'require:$bob');
     });
-
-    test('fromDeprecatedAccounts allows the first account that can sign', () {
-      expect(AuthPolicy.fromDeprecatedAccounts(null), isNull);
-      expect(AuthPolicy.fromDeprecatedAccounts([]), isNull);
-      expect(
-        AuthPolicy.fromDeprecatedAccounts([
-          fakeAccount(alice, canSign: false),
-          fakeAccount(bob),
-        ]),
-        AuthPolicy.allow(fakeAccount(bob)),
-      );
-      expect(
-        AuthPolicy.fromDeprecatedAccounts([fakeAccount(alice, canSign: false)]),
-        const AuthPolicy.never(),
-      );
-    });
   });
 }

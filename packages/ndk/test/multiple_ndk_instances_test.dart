@@ -250,14 +250,14 @@ void main() {
               .query(
                 filter: Filter(ids: [note.id]),
                 explicitRelays: [relay.url],
-                authenticateAs: [first.accounts.getLoggedAccount()!],
+                auth: AuthPolicy.allow(first.accounts.getLoggedAccount()!),
               )
               .future,
           second.requests
               .query(
                 filter: Filter(ids: [note.id]),
                 explicitRelays: [relay.url],
-                authenticateAs: [second.accounts.getLoggedAccount()!],
+                auth: AuthPolicy.allow(second.accounts.getLoggedAccount()!),
               )
               .future,
         ]);
