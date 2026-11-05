@@ -12,6 +12,7 @@ Future<void> main() async {
   final nip65 = Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList);
   final metadata = MetadataFetcher(reqs: reqs, nip65Fetcher: nip65);
   final dmRelays = DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65);
+  final blossomServers = BlossomServersFetcher(reqs: reqs, nip65Fetcher: nip65);
 
   const fiatjaf =
       '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d';
@@ -28,6 +29,13 @@ Future<void> main() async {
     dmRelayList == null
         ? 'no DM relays'
         : 'DM relays: ${dmRelaysOf(dmRelayList)}',
+  );
+
+  final serverList = await blossomServers.fetch(fiatjaf);
+  print(
+    serverList == null
+        ? 'no Blossom servers'
+        : 'Blossom servers: ${blossomServersOf(serverList)}',
   );
   await relayManager.closeAllTransports();
 }

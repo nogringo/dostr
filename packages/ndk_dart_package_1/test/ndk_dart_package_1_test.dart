@@ -597,4 +597,82 @@ void main() {
       expect(await fetcher.fetch(alice), isNull);
     });
   });
+
+  test(
+    'blossomServersOf keeps the http(s) server tags, each once, in order',
+    () {
+      final list = relayList([
+        ['server', 'https://B.example.com/'],
+        ['r', 'https://r.example.com'],
+        ['server', 'wss://relay.example.com'],
+        ['server', 'not a url'],
+        ['server', 'http://a.example.com:80/media/'],
+        ['server', ' https://b.example.com '],
+      ], kind: 10063);
+
+      expect(blossomServersOf(list), [
+        'https://b.example.com',
+        'http://a.example.com/media',
+      ]);
+    },
+  );
+
+  group('BlossomServersFetcher', () {
+    Nip01Event serverList(String server, {int createdAt = 1000}) => relayList(
+      [
+        ['server', server],
+      ],
+      kind: 10063,
+      createdAt: createdAt,
+    );
+
+    test('keeps the newest list across write relays and indexers', () async {
+      final onIndexer = serverList('https://old.example.com', createdAt: 1000);
+      final onWrite = serverList('https://new.example.com', createdAt: 2000);
+      final writeRelay = await startRelay([onWrite]);
+      final fetcher = BlossomServersFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([onIndexer]),
+        ],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([
+              relayList([
+                ['r', writeRelay],
+              ]),
+            ]),
+          ],
+        ),
+      );
+
+      final list = await fetcher.fetch(alice);
+
+      expect(list?.id, onWrite.id);
+      expect(blossomServersOf(list!), ['https://new.example.com']);
+    });
+
+    test('ignores events that do not match the filter', () async {
+      final fetcher = BlossomServersFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([
+            relayList(
+              [
+                ['server', 'https://bob.example.com'],
+              ],
+              kind: 10063,
+              pubKey: bob,
+            ),
+            relayList([
+              ['server', 'https://a.example.com'],
+            ], kind: 10050),
+          ]),
+        ],
+      );
+
+      expect(await fetcher.fetch(alice), isNull);
+    });
+  });
 }
