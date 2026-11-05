@@ -675,4 +675,71 @@ void main() {
       expect(await fetcher.fetch(alice), isNull);
     });
   });
+
+  group('HomeRelayListFetcher', () {
+    Nip01Event homeRelayList(String relay, {int createdAt = 1000}) => relayList(
+      [
+        ['d', 'home-relays'],
+        ['relay', relay],
+      ],
+      kind: 36205,
+      createdAt: createdAt,
+    );
+
+    test('keeps the newest list across write relays and indexers', () async {
+      final onIndexer = homeRelayList('wss://old.example.com', createdAt: 1000);
+      final onWrite = homeRelayList('wss://new.example.com', createdAt: 2000);
+      final writeRelay = await startRelay([onWrite]);
+      final fetcher = HomeRelayListFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([onIndexer]),
+        ],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([
+              relayList([
+                ['r', writeRelay],
+              ]),
+            ]),
+          ],
+        ),
+      );
+
+      final list = await fetcher.fetch(alice);
+
+      expect(list?.id, onWrite.id);
+      expect(HomeRelayList.fromEvent(list!).candidates, [
+        'wss://new.example.com',
+      ]);
+    });
+
+    test('ignores events that do not match the filter', () async {
+      final fetcher = HomeRelayListFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([
+            relayList(
+              [
+                ['d', 'home-relays'],
+                ['relay', 'wss://bob.example.com'],
+              ],
+              kind: 36205,
+              pubKey: bob,
+            ),
+            relayList([
+              ['d', 'other'],
+              ['relay', 'wss://other.example.com'],
+            ], kind: 36205),
+            relayList([
+              ['relay', 'wss://a.example.com'],
+            ], kind: 10050),
+          ]),
+        ],
+      );
+
+      expect(await fetcher.fetch(alice), isNull);
+    });
+  });
 }

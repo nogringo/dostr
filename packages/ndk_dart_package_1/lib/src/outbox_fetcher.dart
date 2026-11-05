@@ -4,11 +4,13 @@ import 'package:rxdart/rxdart.dart';
 import 'nip65_fetcher.dart';
 import 'replaceable_events.dart';
 
-/// Fetches users' [kind] replaceable events from their write relays, which
-/// [nip65Fetcher] finds, and from [relays].
+/// Fetches users' [kind] replaceable events, or addressable ones named
+/// [dTag], from their write relays, which [nip65Fetcher] finds, and from
+/// [relays].
 class OutboxFetcher {
   final RelayReqs _reqs;
   final int kind;
+  final String? dTag;
   final Nip65Fetcher? nip65Fetcher;
   final List<String> relays;
   final Duration timeout;
@@ -19,6 +21,7 @@ class OutboxFetcher {
   OutboxFetcher({
     required this._reqs,
     required this.kind,
+    this.dTag,
     this.nip65Fetcher,
     this.relays = defaultIndexerRelays,
     this.timeout = const Duration(seconds: 5),
@@ -37,6 +40,7 @@ class OutboxFetcher {
       _reqs,
       kind: kind,
       pubKey: pubKey,
+      dTag: dTag,
       relays: [
         for (final url in cleanRelayUrls(urls))
           if (asked.add(url)) url,
@@ -54,6 +58,7 @@ class OutboxFetcher {
       ]),
       kind: kind,
       pubKey: pubKey,
+      dTag: dTag,
     );
   }
 

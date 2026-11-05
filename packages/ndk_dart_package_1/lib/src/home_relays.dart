@@ -5,9 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
 
-const int _kind = 36205;
-const String _name = 'home-relays';
-
 /// Where nmail.li serves its `home-relays` list.
 const String defaultHomeRelayListUrl = 'https://home-relays.nmail.li/list.json';
 
@@ -18,6 +15,9 @@ const String defaultHomeRelayListAuthor =
 /// A `home-relays` list, from which every client computes the same home
 /// relays for a user, as the Computed Home Relays NIP describes.
 class HomeRelayList {
+  static const int kind = 36205;
+  static const String dTag = 'home-relays';
+
   /// The normalized relay urls, each once.
   final List<String> candidates;
   final List<List<int>> _hashes;
@@ -30,7 +30,7 @@ class HomeRelayList {
 
   /// The `relay` tags of [event], a `kind:36205` named `home-relays`.
   factory HomeRelayList.fromEvent(Nip01Event event) {
-    if (event.kind != _kind || event.getDtag() != _name) {
+    if (event.kind != kind || event.getDtag() != dTag) {
       throw ArgumentError.value(event.id, 'event', 'is not a home-relays list');
     }
     return HomeRelayList([
