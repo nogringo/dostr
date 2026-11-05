@@ -1,17 +1,19 @@
-import 'nip_01_utils.dart';
+import 'dart:convert';
+
+import 'event_id.dart';
 
 /// basic nostr nip01 event data structure
 class Nip01Event {
   static const int kTextNoteKind = 1;
 
   /// The event ID is a 32-byte SHA256 hash of the serialised event data.
-  late final String id;
+  final String id;
 
   /// The event author's public key.
   final String pubKey;
 
   /// Event creation timestamp in Unix time.
-  late final int createdAt;
+  final int createdAt;
 
   /// Event kind identifier (e.g. text_note, set_metadata, etc).
   final int kind;
@@ -39,27 +41,68 @@ class Nip01Event {
   ///
   Nip01Event({
     String? id,
-    required this.pubKey,
-    required this.kind,
+    required String pubKey,
+    required int kind,
     required List<List<String>> tags,
-    required this.content,
-    this.sig,
-    this.validSig,
+    required String content,
+    String? sig,
+    bool? validSig,
     int? createdAt,
-  }) : tags = List.unmodifiable([
-         for (final tag in tags) List<String>.unmodifiable(tag),
-       ]) {
-    this.createdAt = createdAt ?? secondsSinceEpoch();
-    this.id =
-        id ??
-        Nip01Utils.calculateEventIdSync(
-          pubKey: pubKey,
-          createdAt: this.createdAt,
-          kind: kind,
-          tags: this.tags,
-          content: content,
-        );
-  }
+  }) : this._(
+         id: id,
+         pubKey: pubKey,
+         createdAt: createdAt ?? secondsSinceEpoch(),
+         kind: kind,
+         tags: _frozen(tags),
+         content: content,
+         sig: sig,
+         validSig: validSig,
+       );
+
+  Nip01Event._({
+    required String? id,
+    required this.pubKey,
+    required this.createdAt,
+    required this.kind,
+    required this.tags,
+    required this.content,
+    required this.sig,
+    required this.validSig,
+  }) : id =
+           id ??
+           computeEventId(
+             pubKey: pubKey,
+             createdAt: createdAt,
+             kind: kind,
+             tags: tags,
+             content: content,
+           );
+
+  /// Reads a NIP-01 event JSON object, as `jsonDecode` returns it.
+  ///
+  /// A missing `id`, `pubkey` or `content` reads as `''` and a missing `sig`
+  /// as null. Tag values that are not strings are turned into strings.
+  Nip01Event.fromJson(Map<dynamic, dynamic> data)
+    : this._(
+        id: data['id'] as String? ?? '',
+        pubKey: data['pubkey'] as String? ?? '',
+        createdAt: data['created_at'] as int,
+        kind: data['kind'] as int,
+        tags: _tagsFromJson(data['tags']),
+        content: data['content'] as String? ?? '',
+        sig: data['sig'] as String?,
+        validSig: null,
+      );
+
+  static List<List<String>> _frozen(List<List<String>> tags) =>
+      List.unmodifiable([
+        for (final tag in tags) List<String>.unmodifiable(tag),
+      ]);
+
+  static List<List<String>> _tagsFromJson(Object? tags) => _frozen([
+    for (final tag in (tags as List? ?? const []).whereType<List>())
+      [for (final value in tag) value?.toString() ?? ''],
+  ]);
 
   /// A copy with the given fields replaced.
   ///
@@ -86,12 +129,12 @@ class Nip01Event {
     final nextPubKey = pubKey ?? this.pubKey;
     final nextCreatedAt = createdAt ?? this.createdAt;
     final nextKind = kind ?? this.kind;
-    final nextTags = tags ?? this.tags;
+    final nextTags = tags == null ? this.tags : _frozen(tags);
     final nextContent = content ?? this.content;
     final nextId =
         id ??
         (payloadChanged
-            ? Nip01Utils.calculateEventIdSync(
+            ? computeEventId(
                 pubKey: nextPubKey,
                 createdAt: nextCreatedAt,
                 kind: nextKind,
@@ -102,7 +145,7 @@ class Nip01Event {
     final nextSig = sig ?? (nextId == this.id ? this.sig : null);
     final untouched =
         !payloadChanged && nextId == this.id && nextSig == this.sig;
-    return Nip01Event(
+    return Nip01Event._(
       id: nextId,
       pubKey: nextPubKey,
       createdAt: nextCreatedAt,
@@ -113,6 +156,19 @@ class Nip01Event {
       validSig: validSig ?? (untouched ? this.validSig : null),
     );
   }
+
+  /// The NIP-01 JSON object of this event, ready for `jsonEncode`.
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'pubkey': pubKey,
+    'created_at': createdAt,
+    'kind': kind,
+    'tags': tags,
+    'content': content,
+    'sig': sig,
+  };
+
+  String toJsonString() => json.encode(toJson());
 
   // Individual events with the same "id" are equivalent
   @override

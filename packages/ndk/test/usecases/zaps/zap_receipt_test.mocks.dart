@@ -6,7 +6,7 @@
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i3;
-import 'package:ndk_nip01/ndk_nip01.dart' as _i2;
+import 'package:ndk_nip01/src/nip_01_event.dart' as _i2;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -102,18 +102,6 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
           as List<String>);
 
   @override
-  set id(String? value) => super.noSuchMethod(
-    Invocation.setter(#id, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set createdAt(int? value) => super.noSuchMethod(
-    Invocation.setter(#createdAt, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   _i2.Nip01Event copyWith({
     String? id,
     String? pubKey,
@@ -150,6 +138,25 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
             ),
           )
           as _i2.Nip01Event);
+
+  @override
+  Map<String, dynamic> toJson() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJson, []),
+            returnValue: <String, dynamic>{},
+          )
+          as Map<String, dynamic>);
+
+  @override
+  String toJsonString() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJsonString, []),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.method(#toJsonString, []),
+            ),
+          )
+          as String);
 
   @override
   List<String> getTags(String? tag) =>

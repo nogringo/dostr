@@ -1,8 +1,8 @@
 # ndk_nip01
 
 The [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) Nostr
-event (`Nip01Event`), its id computation (`Nip01Utils`), and the
-`EventVerifier` interface that signature verifiers implement.
+event (`Nip01Event`), its JSON form, its id computation (`Nip01Utils`), and
+the `EventVerifier` interface that signature verifiers implement.
 
 Pure Dart, no relay or network code. A signature verifier such as
 [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) only needs
@@ -40,6 +40,18 @@ print(Nip01Utils.isIdValid(event));
 The constructor computes the id from the payload. `copyWith` gives a changed
 payload its new id and drops a signature that no longer matches it.
 
+To read and write the JSON form:
+
+```dart
+final event = Nip01Event.fromJson(jsonDecode(json));
+
+event.toJson(); // the JSON object, a Map
+event.toJsonString(); // the same as jsonEncode(event)
+```
+
+`fromJson` keeps the id it reads, even a wrong one: check it with
+`Nip01Utils.isIdValid` or an `EventVerifier` before trusting the event.
+
 To plug a verifier into NDK, implement `EventVerifier`:
 
 ```dart
@@ -58,5 +70,5 @@ class MyVerifier implements EventVerifier {
 `package:ndk_core/domain_layer/repositories/event_verifier.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`. `package:ndk_core/ndk_core.dart` and
 `package:ndk/ndk.dart` still export `Nip01Event`, `Nip01Utils` and
-`EventVerifier`. `Nip01EventModel`, the JSON form of the event, stays in
-`ndk_core`.
+`EventVerifier`. `Nip01EventModel` stays in `ndk_core`, but its `fromJson`,
+`toJson` and `toJsonString` now come from `Nip01Event`.

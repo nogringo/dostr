@@ -7,6 +7,31 @@ import 'package:test/test.dart';
 final String alice = 'a' * 64;
 final String bob = 'b' * 64;
 
+// A kind:1 note served by wss://relay.primal.net, its signature checked with nak.
+const realNote = r'''
+{
+  "id": "fcecca80ea3a2759a7e771ab132a6b82a731855cf5389850d04591fe24f65103",
+  "pubkey": "ac085cdadc37af0c6941cc45d4f30a1146b59e59c1796bb78d13970bfd1dc87b",
+  "created_at": 1793919623,
+  "kind": 1,
+  "tags": [
+    ["r", "https://yosuke4061.com/uranai/ema/"],
+    ["client", "midori373-stream-hub"],
+    ["t", "uranai"],
+    ["l", "en"],
+    ["t", "MidoriPhotoArt"],
+    ["t", "uranai"],
+    ["t", "fortune"],
+    ["t", "indiedev"],
+    ["t", "御神籤"],
+    ["image", "https://yosuke4061.com/uranai/ema/ogp.png"],
+    ["imeta", "url https://yosuke4061.com/uranai/ema/ogp.png", "m image/png"]
+  ],
+  "content": "🔮 Fortune\n\nHangs a virtual wooden ema on a rack and watches it sway in the wind.\nJust a quiet little shrine simulator called \"Ema Plaque Fortune Slip\".\n\n────\nhttps://yosuke4061.com/uranai/ema/\n\nhttps://yosuke4061.com/uranai/ema/ogp.png\n\n#MidoriPhotoArt #uranai #fortune #indiedev #御神籤",
+  "sig": "5d9722f97ccca4dd8f0fb10fb7d34a0782f1058ef376087f35b53f50c0d6bbf1aabb6d6edd2c2d474418021d7601ffc0090feff0ef030dfec578a774736f67ed"
+}
+''';
+
 Nip01Event signedEvent({String content = '', int? createdAt}) => Nip01Event(
   pubKey: alice,
   kind: 1,
@@ -17,31 +42,27 @@ Nip01Event signedEvent({String content = '', int? createdAt}) => Nip01Event(
 
 void main() {
   group('Nip01Event', () {
-    test('its id is the sha256 of the NIP-01 serialization', () {
+    test('gives a real note the id its author signed', () {
+      final note = jsonDecode(realNote) as Map<String, dynamic>;
       final event = Nip01Event(
-        pubKey: alice,
-        createdAt: 1700000000,
-        kind: 1,
-        tags: [
-          ['p', bob],
-          ['t', 'nostr'],
-        ],
-        content: 'a "quoted"\nline',
+        pubKey: note['pubkey'],
+        createdAt: note['created_at'],
+        kind: note['kind'],
+        tags: [for (final tag in note['tags']) List<String>.from(tag)],
+        content: note['content'],
       );
-      final serialized = jsonEncode([
-        0,
-        alice,
-        1700000000,
-        1,
-        [
-          ['p', bob],
-          ['t', 'nostr'],
-        ],
-        'a "quoted"\nline',
-      ]);
 
-      expect(event.id, sha256.convert(utf8.encode(serialized)).toString());
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.id, note['id']);
+      expect(
+        Nip01Utils.calculateEventIdSync(
+          pubKey: note['pubkey'],
+          createdAt: note['created_at'],
+          kind: note['kind'],
+          tags: note['tags'],
+          content: note['content'],
+        ),
+        note['id'],
+      );
     });
 
     group('copyWith', () {
@@ -200,6 +221,54 @@ void main() {
 
       expect(event.getTags('d'), ['MyList', ' padded ']);
       expect(event.replyETags, ['Parent']);
+    });
+  });
+
+  group('JSON', () {
+    final note = jsonDecode(realNote) as Map<String, dynamic>;
+
+    test('reads a real note', () {
+      final event = Nip01Event.fromJson(note);
+
+      expect(event.id, note['id']);
+      expect(event.pubKey, note['pubkey']);
+      expect(event.createdAt, note['created_at']);
+      expect(event.kind, note['kind']);
+      expect(event.tags, note['tags']);
+      expect(event.content, note['content']);
+      expect(event.sig, note['sig']);
+      expect(event.validSig, isNull);
+      expect(Nip01Utils.isIdValid(event), isTrue);
+    });
+
+    test('writes back the JSON it read', () {
+      final event = Nip01Event.fromJson(note);
+
+      expect(event.toJson(), note);
+      expect(jsonDecode(event.toJsonString()), note);
+      expect(jsonDecode(jsonEncode(event)), note);
+    });
+
+    test('reads unsigned and loosely typed JSON', () {
+      final event = Nip01Event.fromJson({
+        'created_at': 1,
+        'kind': 1,
+        'tags': [
+          ['t', 5],
+          'not a tag',
+          ['p', null],
+        ],
+      });
+
+      expect(event.id, '');
+      expect(event.pubKey, '');
+      expect(event.content, '');
+      expect(event.sig, isNull);
+      expect(event.tags, [
+        ['t', '5'],
+        ['p', ''],
+      ]);
+      expect(() => event.tags.first.add('x'), throwsUnsupportedError);
     });
   });
 }

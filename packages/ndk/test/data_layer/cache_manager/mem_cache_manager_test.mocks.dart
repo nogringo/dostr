@@ -730,18 +730,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
           as List<String>);
 
   @override
-  set id(String? value) => super.noSuchMethod(
-    Invocation.setter(#id, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set createdAt(int? value) => super.noSuchMethod(
-    Invocation.setter(#createdAt, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   _i3.Nip01Event copyWith({
     String? id,
     String? pubKey,
@@ -778,6 +766,25 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
             ),
           )
           as _i3.Nip01Event);
+
+  @override
+  Map<String, dynamic> toJson() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJson, []),
+            returnValue: <String, dynamic>{},
+          )
+          as Map<String, dynamic>);
+
+  @override
+  String toJsonString() =>
+      (super.noSuchMethod(
+            Invocation.method(#toJsonString, []),
+            returnValue: _i7.dummyValue<String>(
+              this,
+              Invocation.method(#toJsonString, []),
+            ),
+          )
+          as String);
 
   @override
   List<String> getTags(String? tag) =>
