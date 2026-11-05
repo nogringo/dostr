@@ -1395,6 +1395,7 @@ class RecordingBroadcastSender extends BroadcastSender {
     Duration? timeout,
     bool? saveToCache,
     AuthPolicy? auth,
+    void Function(Nip01Event signed, List<UrlSet> unavailable)? onUnavailable,
   }) {
     broadcastedEvents.add(nostrEvent);
     broadcastedAuth.add(auth);

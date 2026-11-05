@@ -8,7 +8,8 @@ import 'pending_broadcast_delivery.dart';
 
 /// Public-facing broadcast facade. \
 /// Delegates immediate sending to [BroadcastSender] and coordinates pending
-/// delivery enrollment for specific-relay broadcasts. \
+/// delivery enrollment for specific-relay broadcasts and for the unavailable
+/// parts of a [UrlSet]. \
 /// The retry path in [PendingBroadcastDelivery] calls [BroadcastSender] directly,
 /// so it never re-enters this facade's enrollment logic.
 class Broadcast {
@@ -41,7 +42,7 @@ class Broadcast {
   /// low level nostr broadcast using inbox/outbox (gossip) \
   /// [specificRelays] disables inbox/outbox (gossip) and broadcasts to the relays specified. Useful for NostrWalletConnect \
   /// [urlSet] where to broadcast instead of the author's outbox and the inboxes the event tags.
-  /// Unlike [specificRelays], it is not enrolled in pending delivery. Pass one of them, not both \
+  /// Only its parts that are unavailable are enrolled in pending delivery. Pass it or [specificRelays], not both \
   /// [customSigner] if you want to use a different signer than the one from currently logged in user in [Accounts] \
   /// [considerDonePercent] the percentage (0.0, 1.0) of relays that need to accept the event for the broadcast to be considered done (overrides the default value) \
   /// [timeout] the timeout for the broadcast (overrides the default timeout) \
@@ -53,8 +54,8 @@ class Broadcast {
   /// an identity that cannot sign \
   /// [retryDelivery] whether this broadcast is persisted and retried until every relay acked it.
   /// `false` sends once and forgets: nothing is enrolled in pending delivery, so no delivery
-  /// record is written and no retry happens, whatever the relays answer. Only specific-relay
-  /// broadcasts are ever enrolled, so this has no effect on a gossip broadcast. \
+  /// record is written and no retry happens, whatever the relays answer. A gossip broadcast is
+  /// only enrolled for the parts of its set whose lists were unavailable. \
   /// [returns] a [NdkBroadcastResponse] object containing the result => success per relay
   NdkBroadcastResponse broadcast({
     required Nip01Event nostrEvent,
@@ -75,6 +76,9 @@ class Broadcast {
         ? _checkSinger(customSigner: customSigner)
         : null;
 
+    final pendingDelivery = retryDelivery ? _pendingDelivery : null;
+    Future<void>? unresolvedEnrollment;
+
     // delegate immediate send to the sender
     final response = _sender.broadcast(
       nostrEvent: nostrEvent,
@@ -85,16 +89,25 @@ class Broadcast {
       timeout: timeout,
       saveToCache: saveToCache,
       auth: auth,
+      onUnavailable: pendingDelivery == null
+          ? null
+          : (signed, urlSets) {
+              unresolvedEnrollment = pendingDelivery.enqueueUnresolvedUrlSets(
+                event: signed,
+                urlSets: urlSets,
+                auth: auth,
+              );
+            },
     );
     final responseDoneFuture = response.broadcastDoneFuture;
 
+    if (pendingDelivery == null) {
+      return response;
+    }
+
     // enroll in pending delivery for specific-relay broadcasts
-    final pendingDelivery = _pendingDelivery;
     Future<void>? pendingEnrollment;
-    if (retryDelivery &&
-        pendingDelivery != null &&
-        cleanedSpecificRelays != null &&
-        cleanedSpecificRelays.isNotEmpty) {
+    if (cleanedSpecificRelays != null && cleanedSpecificRelays.isNotEmpty) {
       pendingEnrollment = pendingDelivery.enqueueSpecificRelayBroadcast(
         event: nostrEvent,
         relayUrls: cleanedSpecificRelays,
@@ -104,17 +117,16 @@ class Broadcast {
       );
     }
 
-    if (pendingEnrollment == null) {
-      return response;
-    }
-
     final broadcastDoneFuture = responseDoneFuture.then((responses) async {
       try {
-        await pendingEnrollment!;
-        await pendingDelivery!.persistSpecificRelayBroadcastResult(
-          nostrEvent,
-          responses,
-        );
+        await unresolvedEnrollment;
+        if (pendingEnrollment != null) {
+          await pendingEnrollment;
+          await pendingDelivery.persistSpecificRelayBroadcastResult(
+            nostrEvent,
+            responses,
+          );
+        }
       } catch (_) {}
       return responses;
     });

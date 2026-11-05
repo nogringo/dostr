@@ -14,6 +14,7 @@ import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../accounts/accounts.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import '../../../shared/nips/nip01/event_kind_classification.dart';
 import 'broadcast_sender.dart';
 import 'delivery_policy.dart';
@@ -45,6 +46,10 @@ class PendingBroadcastDelivery {
   /// without ever registering it only survives here. What outlives a restart is
   /// the canonical form on the target, see [_authForTarget].
   final Map<String, AuthPolicy> _authPolicies = {};
+
+  /// the same for an [UnresolvedUrlSet], handed to the targets it resolves to
+  final Map<String, AuthPolicy> _unresolvedAuthPolicies = {};
+  bool _resolvingUrlSets = false;
   Iterable<String> Function()? _connectedRelayUrlsProvider;
   Timer? _retryTimer;
   bool _stopped = false;
@@ -94,6 +99,7 @@ class PendingBroadcastDelivery {
     _retryTimer?.cancel();
     _retryTimer = null;
     _authPolicies.clear();
+    _unresolvedAuthPolicies.clear();
     final operations = _inFlightOperations.toList(growable: false);
     if (operations.isNotEmpty) {
       await Future.wait(operations);
@@ -118,6 +124,11 @@ class PendingBroadcastDelivery {
       return;
     }
     await _retryDueSigning(reconnectRelay: reconnectRelay);
+
+    if (_stopped) {
+      return;
+    }
+    await _resolveUnresolvedUrlSets();
 
     if (_stopped) {
       return;
@@ -288,6 +299,55 @@ class PendingBroadcastDelivery {
     }
 
     await _cacheManager.saveRelayDeliveryTargets(targets);
+  }
+
+  /// Keeps the parts of a broadcast's destinations that were unavailable, so
+  /// [retryDueDeliveries] sends to their relays once they resolve. [event] is
+  /// signed.
+  Future<void> enqueueUnresolvedUrlSets({
+    required Nip01Event event,
+    required List<UrlSet> urlSets,
+    AuthPolicy? auth,
+  }) async {
+    if (_stopped ||
+        DeliveryPolicy.forEvent(event).kind == DeliveryPolicyKind.doNotRetry) {
+      return;
+    }
+    Logger.log.d(() => 'enqueue unresolved delivery ${event.id}');
+    final existing = await _cacheManager.loadEventDeliveryRecord(event.id);
+    final unresolved = {
+      for (final set in existing?.unresolvedUrlSets ?? <UnresolvedUrlSet>[])
+        set.key: set,
+    };
+    for (final urlSet in urlSets) {
+      final set = UnresolvedUrlSet(
+        urlSet: urlSet,
+        authCanonical: auth?.canonical,
+      );
+      unresolved[set.key] = set;
+      if (auth != null) {
+        _unresolvedAuthPolicies[_unresolvedKey(event.id, set)] = auth;
+      }
+    }
+
+    final now = Nip01Event.secondsSinceEpoch();
+    final serializedEventJson = _serializeEvent(event);
+    await _saveSigningOutcome(
+      existing?.copyWith(
+            updatedAt: now,
+            serializedEventJson:
+                serializedEventJson ?? existing.serializedEventJson,
+            unresolvedUrlSets: unresolved.values.toList(),
+          ) ??
+          EventDeliveryRecord(
+            eventId: event.id,
+            createdAt: event.createdAt,
+            updatedAt: now,
+            serializedEventJson: serializedEventJson,
+            signedAt: now,
+            unresolvedUrlSets: unresolved.values.toList(),
+          ),
+    );
   }
 
   Future<void> persistSpecificRelayBroadcastResult(
@@ -687,6 +747,7 @@ class PendingBroadcastDelivery {
   Future<void> _discardEventDelivery(String eventId) async {
     final prefix = RelayDeliveryTarget.keyPrefixFor(eventId);
     _authPolicies.removeWhere((key, _) => key.startsWith(prefix));
+    _unresolvedAuthPolicies.removeWhere((key, _) => key.startsWith(prefix));
     await _cacheManager.removeRelayDeliveryTargets(eventId);
     await _cacheManager.removeEventDeliveryRecord(eventId);
   }
@@ -712,6 +773,119 @@ class PendingBroadcastDelivery {
   bool _isParkedForIdentity(RelayDeliveryTarget target) =>
       target.state == RelayDeliveryState.authRequired &&
       target.nextRetryAt == null;
+
+  static String _unresolvedKey(String eventId, UnresolvedUrlSet set) =>
+      '${RelayDeliveryTarget.keyPrefixFor(eventId)}${set.key}';
+
+  /// Turns each unresolved part whose lists can now be looked up into relay
+  /// targets, which the rest of the pass then delivers.
+  Future<void> _resolveUnresolvedUrlSets() async {
+    // a slow lookup must not let the next pass resolve the same parts again
+    if (_resolvingUrlSets) {
+      return;
+    }
+    _resolvingUrlSets = true;
+    try {
+      final records = await _cacheManager.loadEventDeliveryRecords();
+      await Future.wait([
+        for (final record in records)
+          if (record.unresolvedUrlSets.isNotEmpty &&
+              !_sender.isEventInFlight(record.eventId))
+            _resolveUrlSetsOf(record).catchError((
+              Object error,
+              StackTrace stackTrace,
+            ) {
+              Logger.log.w(
+                () => 'resolving pending delivery ${record.eventId} failed',
+                error: error,
+                stackTrace: stackTrace,
+              );
+            }),
+      ]);
+    } finally {
+      _resolvingUrlSets = false;
+    }
+  }
+
+  Future<void> _resolveUrlSetsOf(EventDeliveryRecord record) async {
+    final event = await _loadRecoverableEvent(record.eventId, record: record);
+    if (event == null ||
+        _isExpiredEvent(event) ||
+        await _isObsoleteReplaceableOrAddressableEvent(event)) {
+      await _discardEventDelivery(record.eventId);
+      return;
+    }
+
+    final resolutions = await Future.wait([
+      for (final set in record.unresolvedUrlSets) _sender.resolve(set.urlSet),
+    ]);
+    if (_stopped) {
+      return;
+    }
+
+    final targets = await _cacheManager.loadRelayDeliveryTargets(
+      eventId: record.eventId,
+    );
+    final relayUrls = {for (final target in targets) target.relayUrl};
+    final newTargets = <RelayDeliveryTarget>[];
+    final resolvedKeys = <String>{};
+    for (final (i, resolution) in resolutions.indexed) {
+      final set = record.unresolvedUrlSets[i];
+      if (resolution.unavailable.isNotEmpty) {
+        continue;
+      }
+      resolvedKeys.add(set.key);
+      final live = _unresolvedAuthPolicies.remove(
+        _unresolvedKey(record.eventId, set),
+      );
+      for (final relayUrl in cleanRelayUrls(resolution.relays)) {
+        // a relay this event already goes to keeps its delivery state
+        if (!relayUrls.add(relayUrl)) {
+          continue;
+        }
+        final target = RelayDeliveryTarget(
+          eventId: record.eventId,
+          relayUrl: relayUrl,
+          reason: RelayDeliveryReason.explicit,
+          authCanonical: set.authCanonical,
+        );
+        if (live != null) {
+          _authPolicies[target.key] = live;
+        }
+        newTargets.add(target);
+      }
+    }
+    if (resolvedKeys.isEmpty) {
+      return;
+    }
+    Logger.log.d(
+      () =>
+          'resolved delivery ${record.eventId} -> ${newTargets.map((t) => t.relayUrl).toList()}',
+    );
+
+    // read again, so a part enqueued during the lookups is kept
+    final current = await _cacheManager.loadEventDeliveryRecord(record.eventId);
+    if (current == null) {
+      return;
+    }
+    final stillUnresolved = [
+      for (final set in current.unresolvedUrlSets)
+        if (!resolvedKeys.contains(set.key)) set,
+    ];
+    if (relayUrls.isEmpty && stillUnresolved.isEmpty) {
+      await _discardEventDelivery(record.eventId);
+      return;
+    }
+    if (newTargets.isNotEmpty) {
+      await _cacheManager.saveRelayDeliveryTargets(newTargets);
+    }
+    await _saveSigningOutcome(
+      current.copyWith(
+        updatedAt: Nip01Event.secondsSinceEpoch(),
+        unresolvedUrlSets: stillUnresolved,
+      ),
+    );
+  }
 
   Future<Set<String>> _relayUrlsWithDuePendingTargets() async {
     final now = Nip01Event.secondsSinceEpoch();
@@ -1294,9 +1468,12 @@ class PendingBroadcastDelivery {
       return EventDeliveryStatus.pending;
     }
 
+    final waitsForUrlSets = record.unresolvedUrlSets.isNotEmpty;
     final allAcked = targets.every((t) => t.state == RelayDeliveryState.acked);
     if (allAcked) {
-      return EventDeliveryStatus.delivered;
+      return waitsForUrlSets
+          ? EventDeliveryStatus.partiallyDelivered
+          : EventDeliveryStatus.delivered;
     }
 
     if (targets.any((t) => t.state == RelayDeliveryState.authRequired)) {
@@ -1315,7 +1492,7 @@ class PendingBroadcastDelivery {
           t.state == RelayDeliveryState.acked ||
           t.state == RelayDeliveryState.permanentFailure,
     );
-    if (allTerminal) {
+    if (allTerminal && !waitsForUrlSets) {
       return ackedCount > 0
           ? EventDeliveryStatus.partiallyDelivered
           : EventDeliveryStatus.failed;

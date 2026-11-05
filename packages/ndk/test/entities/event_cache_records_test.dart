@@ -1,4 +1,5 @@
 import 'package:ndk/entities.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -93,12 +94,28 @@ void main() {
         lastSignAttemptAt: 1700001008,
         nextSignRetryAt: 1700001100,
         lastSignError: 'timed out',
+        unresolvedUrlSets: const [
+          UnresolvedUrlSet(
+            urlSet: UrlSet.first(5, UrlSet.inbox('bob')),
+            authCanonical: 'never',
+          ),
+        ],
       );
 
       final restored = EventDeliveryRecord.fromJson(original.toJson());
 
       expect(restored.toJson(), original.toJson());
       expect(restored.isComplete, isFalse);
+    });
+
+    test('a record stored before unresolved url sets has none', () {
+      final json = EventDeliveryRecord(
+        eventId: 'event-3',
+        createdAt: 1700001000,
+        updatedAt: 1700001010,
+      ).toJson()..remove('unresolvedUrlSets');
+
+      expect(EventDeliveryRecord.fromJson(json).unresolvedUrlSets, isEmpty);
     });
   });
 

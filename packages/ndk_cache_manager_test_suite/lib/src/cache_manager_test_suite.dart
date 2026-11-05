@@ -32,6 +32,7 @@ part 'cache_manager_test_suite_contact_list.dart';
 part 'cache_manager_test_suite_cashu.dart';
 part 'cache_manager_test_suite_eviction.dart';
 part 'cache_manager_test_suite_event.dart';
+part 'cache_manager_test_suite_event_delivery.dart';
 part 'cache_manager_test_suite_hidden_event.dart';
 part 'cache_manager_test_suite_metadata.dart';
 part 'cache_manager_test_suite_nip05.dart';
@@ -124,6 +125,10 @@ void runCacheManagerTestSuite({
 
     group('Eviction Operations', () {
       _runEvictionTests(() => cacheManager);
+    });
+
+    group('Event Delivery Operations', () {
+      _runEventDeliveryTests(() => cacheManager);
     });
   });
 }

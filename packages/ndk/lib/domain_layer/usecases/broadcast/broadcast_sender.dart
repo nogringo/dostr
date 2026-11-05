@@ -63,6 +63,7 @@ class BroadcastSender {
   /// [timeout] the timeout for the broadcast (overrides the default timeout) \
   /// [saveToCache] whether to save the event to cache (overrides the default value from config) \
   /// [auth] which identity this broadcast may be attributed to on relays (NIP-42), see [AuthPolicy] \
+  /// [onUnavailable] called with the signed event and the parts of the set still unavailable, before it is sent \
   /// [returns] a [NdkBroadcastResponse] object containing the result => success per relay
   NdkBroadcastResponse broadcast({
     required Nip01Event nostrEvent,
@@ -73,6 +74,7 @@ class BroadcastSender {
     Duration? timeout,
     bool? saveToCache,
     AuthPolicy? auth,
+    void Function(Nip01Event signed, List<UrlSet> unavailable)? onUnavailable,
   }) {
     if (specificRelays != null && urlSet != null) {
       throw ArgumentError('pass specificRelays or urlSet, not both');
@@ -107,6 +109,7 @@ class BroadcastSender {
         specificRelays == null
             ? urlSet
             : UrlSet.explicit(cleanRelayUrls(specificRelays.toList())),
+        onUnavailable,
       ),
     );
     return NdkBroadcastResponse(
@@ -124,25 +127,32 @@ class BroadcastSender {
     RelayPublish publish,
     EventSigner? signer,
     UrlSet? urlSet,
+    void Function(Nip01Event signed, List<UrlSet> unavailable)? onUnavailable,
   ) async {
     final Nip01Event signed;
-    final List<String> relays;
+    final UrlSetResolution resolution;
     try {
       signed = signer == null
           ? publish.event
           : await signer.sign(publish.event);
       // resolved before the timeout starts, which is for the relays to answer
-      relays = await _resolve(
+      resolution = await resolve(
         urlSet ?? broadcastUrlSet(signed, bootstrapRelays: _bootstrapRelays),
-        signed,
       );
+      if (resolution.unavailable.isNotEmpty) {
+        Logger.log.w(
+          () =>
+              'broadcast of ${signed.id} skips ${resolution.unavailableReasons}',
+        );
+        onUnavailable?.call(signed, resolution.unavailable);
+      }
       publish.start(signed);
     } catch (error, stackTrace) {
       publish.fail(error, stackTrace);
       return;
     }
     try {
-      for (final url in relays) {
+      for (final url in resolution.relays) {
         publish.send(
           url,
           connectTimeout: const Duration(seconds: 1),
@@ -154,22 +164,30 @@ class BroadcastSender {
     }
   }
 
-  /// The relays of each part of [set] that resolved. A part still unavailable
-  /// is skipped, so one unreachable inbox does not hold back the others.
-  Future<List<String>> _resolve(UrlSet set, Nip01Event event) async {
+  /// Resolves each part of the `union` [set] on its own, so one unreachable
+  /// inbox does not hold back the others.
+  Future<UrlSetResolution> resolve(UrlSet set) async {
+    final parts = _parts(set).toList();
     final resolutions = await Future.wait([
-      for (final part in _parts(set)) resolveUrlSet(part, _urlLists),
+      for (final part in parts) resolveUrlSet(part, _urlLists),
     ]);
     final relays = <String>[];
-    for (final resolution in resolutions) {
+    final unavailable = <UrlSet>[];
+    final reasons = <String>[];
+    for (final (i, resolution) in resolutions.indexed) {
       switch (resolution) {
         case UrlsResolved(:final urls):
           relays.addAll(urls);
         case UrlsUnavailable(:final reason):
-          Logger.log.w(() => 'broadcast of ${event.id} skips $reason');
+          unavailable.add(parts[i]);
+          reasons.add(reason);
       }
     }
-    return relays;
+    return UrlSetResolution(
+      relays: relays,
+      unavailable: unavailable,
+      unavailableReasons: reasons.join(', '),
+    );
   }
 
   static Iterable<UrlSet> _parts(UrlSet set) sync* {
@@ -181,4 +199,21 @@ class BroadcastSender {
       yield set;
     }
   }
+}
+
+/// What [BroadcastSender.resolve] found for each part of a set.
+class UrlSetResolution {
+  /// The relays of the parts that resolved, in order, not deduplicated.
+  final List<String> relays;
+
+  /// The parts whose lists are still unavailable.
+  final List<UrlSet> unavailable;
+
+  final String unavailableReasons;
+
+  const UrlSetResolution({
+    required this.relays,
+    required this.unavailable,
+    required this.unavailableReasons,
+  });
 }

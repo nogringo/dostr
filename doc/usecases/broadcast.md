@@ -36,7 +36,9 @@ Without `specificRelays`, a broadcast goes to:
 
 NDK fetches the lists it does not have from the bootstrap relays and keeps them
 in its cache. A list no relay answered for is skipped with a warning, and the
-rest of the broadcast goes out.
+rest of the broadcast goes out. The skipped part is kept in pending delivery:
+NDK looks the list up again on each retry, and once it is found, the relays it
+names are retried like specific relays.
 
 To pick the relays yourself, pass a `UrlSet`:
 
@@ -142,10 +144,9 @@ ndk.broadcast.broadcast(
 ```
 
 No delivery record is written for that event, so nothing retries it whatever the
-relays answer, and it never shows up in `loadPendingDeliveries()`. Only
-specific-relay broadcasts are ever enrolled, so a gossip broadcast is already
-never retried. `broadcastReaction()` and `broadcastDeletion()` take the same
-parameter.
+relays answer, and it never shows up in `loadPendingDeliveries()`. A gossip
+broadcast is only enrolled for the lists it could not look up, which this drops
+too. `broadcastReaction()` and `broadcastDeletion()` take the same parameter.
 
 To turn background retries off for the whole client instead, use
 `NdkConfig(pendingDeliveryRetriesEnabled: false)`. That one keeps persisting

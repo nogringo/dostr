@@ -1322,7 +1322,8 @@ class DriftCacheManager extends WalletsRepo
         record.signAttemptCount > 0 ||
         record.lastSignAttemptAt != null ||
         record.nextSignRetryAt != null ||
-        record.lastSignError != null;
+        record.lastSignError != null ||
+        record.unresolvedUrlSets.isNotEmpty;
     if (!hasSnapshotPayload) {
       await _removeEventDeliverySnapshot(record.eventId);
       return;

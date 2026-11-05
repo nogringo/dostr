@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import '../../shared/nips/nip01/event_kind_classification.dart';
 
 const _noChange = Object();
@@ -159,6 +162,33 @@ class RelayDeliveryTarget {
   }
 }
 
+/// A part of a broadcast's [UrlSet] whose lists were unavailable when it went
+/// out, kept until it resolves to relays.
+class UnresolvedUrlSet {
+  final UrlSet urlSet;
+
+  /// canonical form of the `AuthPolicy` the broadcast went out under, which
+  /// the relays this part resolves to inherit, see
+  /// [RelayDeliveryTarget.authCanonical].
+  final String? authCanonical;
+
+  const UnresolvedUrlSet({required this.urlSet, this.authCanonical});
+
+  /// Equal for the same set under the same policy.
+  String get key => '${authCanonical ?? ''}|${jsonEncode(urlSet.toMap())}';
+
+  Map<String, dynamic> toJson() {
+    return {'urlSet': urlSet.toMap(), 'authCanonical': authCanonical};
+  }
+
+  factory UnresolvedUrlSet.fromJson(Map<String, dynamic> json) {
+    return UnresolvedUrlSet(
+      urlSet: UrlSet.fromMap(json['urlSet'] as Map),
+      authCanonical: json['authCanonical'] as String?,
+    );
+  }
+}
+
 /// Persisted aggregate delivery record for one event.
 ///
 /// This record answers "what is the overall delivery state of this event?" and
@@ -179,6 +209,10 @@ class EventDeliveryRecord {
   final int? nextSignRetryAt;
   final String? lastSignError;
 
+  /// Parts of a broadcast's destinations still waiting for their lists. Once
+  /// a part resolves, its relays become [RelayDeliveryTarget]s.
+  final List<UnresolvedUrlSet> unresolvedUrlSets;
+
   const EventDeliveryRecord({
     required this.eventId,
     this.status = EventDeliveryStatus.pending,
@@ -193,6 +227,7 @@ class EventDeliveryRecord {
     this.lastSignAttemptAt,
     this.nextSignRetryAt,
     this.lastSignError,
+    this.unresolvedUrlSets = const [],
   });
 
   /// True once all known targets have been acknowledged.
@@ -218,6 +253,7 @@ class EventDeliveryRecord {
     Object? lastSignAttemptAt = _noChange,
     Object? nextSignRetryAt = _noChange,
     Object? lastSignError = _noChange,
+    List<UnresolvedUrlSet>? unresolvedUrlSets,
   }) {
     return EventDeliveryRecord(
       eventId: eventId ?? this.eventId,
@@ -246,6 +282,7 @@ class EventDeliveryRecord {
       lastSignError: identical(lastSignError, _noChange)
           ? this.lastSignError
           : lastSignError as String?,
+      unresolvedUrlSets: unresolvedUrlSets ?? this.unresolvedUrlSets,
     );
   }
 
@@ -264,6 +301,7 @@ class EventDeliveryRecord {
       'lastSignAttemptAt': lastSignAttemptAt,
       'nextSignRetryAt': nextSignRetryAt,
       'lastSignError': lastSignError,
+      'unresolvedUrlSets': [for (final set in unresolvedUrlSets) set.toJson()],
     };
   }
 
@@ -290,6 +328,10 @@ class EventDeliveryRecord {
       lastSignAttemptAt: json['lastSignAttemptAt'] as int?,
       nextSignRetryAt: json['nextSignRetryAt'] as int?,
       lastSignError: json['lastSignError'] as String?,
+      unresolvedUrlSets: [
+        for (final set in json['unresolvedUrlSets'] as List? ?? const [])
+          UnresolvedUrlSet.fromJson((set as Map).cast<String, dynamic>()),
+      ],
     );
   }
 }
