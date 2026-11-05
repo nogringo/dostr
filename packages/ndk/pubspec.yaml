@@ -35,9 +35,6 @@ dependencies:
   rxdart: ^0.28.0
   cryptography: ^2.9.0
   meta: ">=1.10.0 <2.0.0"
-  hooks: ">=1.0.0 <3.0.0"
-  native_toolchain_rust: ^1.0.7
-  ffi: ^2.2.0
   web: ^1.1.1
 
 dev_dependencies:

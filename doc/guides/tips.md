@@ -12,6 +12,7 @@ riverpod example:
 
 ```dart
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 import 'package:riverpod/riverpod.dart';
 
 final ndkProvider = Provider<Ndk>((ref) {

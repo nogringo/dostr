@@ -1,8 +1,10 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk/src/rust_lib.dart' as rust_lib;
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_rust/ndk_rust.dart';
+import 'package:ndk_rust/src/rust_lib.dart' as rust_lib;
 import 'package:test/test.dart';
 
 void main() {

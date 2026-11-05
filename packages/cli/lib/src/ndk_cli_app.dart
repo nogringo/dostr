@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 
 import 'cli_accounts_store.dart';

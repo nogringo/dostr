@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class Nip55SignerPage extends StatefulWidget {

@@ -3,9 +3,8 @@ import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ndk/data_layer/repositories/signers/qs_rust_event_signer.dart';
-import 'package:ndk/data_layer/repositories/verifiers/qs_rust_event_verifier.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 
 class QuantumSecurePage extends StatefulWidget {
   const QuantumSecurePage({super.key});

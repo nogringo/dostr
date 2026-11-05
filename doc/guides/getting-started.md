@@ -153,18 +153,19 @@ By default these widgets target the logged-in user; pass a `pubkey` to render an
 
 ## Pure Dart (non-Flutter)
 
-For Dart CLIs, servers, or any project without a Flutter dependency, use only the core `ndk` package.
+For Dart CLIs, servers, or any project without a Flutter dependency, use `ndk` directly. Add `ndk_rust` for the fast Rust verifier.
 
 ### Install
 
 ```bash
-dart pub add ndk
+dart pub add ndk ndk_rust
 ```
 
 ### Usage
 
 ```dart
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 
 final ndk = Ndk(
   NdkConfig(
@@ -189,5 +190,5 @@ await for (final event in response.stream) {
 ```
 
 !!!
-`RustEventVerifier()` requires the Rust toolchain (see the prerequisites above). For a pure-Dart setup with no native dependencies, use `Bip340EventVerifier()` instead — it is slower but needs no Rust.
+`RustEventVerifier()` comes from `ndk_rust` and requires the Rust toolchain (see the prerequisites above). For a pure-Dart setup with no native dependencies, skip `ndk_rust` and use `Bip340EventVerifier()` instead. It is slower but needs no Rust.
 !!!

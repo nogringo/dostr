@@ -61,7 +61,6 @@ export 'package:ndk_core/domain_layer/entities/account.dart';
 export 'package:ndk_core/domain_layer/repositories/event_verifier.dart';
 export 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 export 'package:ndk_bip340/ndk_bip340.dart';
-export 'data_layer/repositories/verifiers/rust_event_verifier.dart';
 export 'shared/helpers/concurrency_limiter_mixin.dart';
 export 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
 export 'domain_layer/entities/signer_request_cancelled_exception.dart';

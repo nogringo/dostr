@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ndk_core, nip19, bip340, nip44, nip49, nip77, url_set, fetchers, wallets, nwc, cashu]
+        package: [ndk_core, nip19, bip340, nip44, nip49, nip77, rust, url_set, fetchers, wallets, nwc, cashu]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

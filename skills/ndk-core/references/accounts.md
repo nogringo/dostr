@@ -62,7 +62,7 @@ ndk.accounts.hasAccount(pubkey) // bool
 // BIP-340 (schnorr) — default
 Bip340EventSignerFactory().create(privateKey: nsec, publicKey: npub)
 
-// Rust verifier — faster verification (requires native toolchain)
+// Rust verifier from ndk_rust, faster verification (requires native toolchain)
 RustEventVerifier()
 
 // Pure Dart verifier

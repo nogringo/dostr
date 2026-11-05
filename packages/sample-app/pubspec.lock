@@ -873,6 +873,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_rust:
+    dependency: "direct main"
+    description:
+      path: "../rust"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_url_set:
     dependency: "direct overridden"
     description:

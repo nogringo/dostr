@@ -9,6 +9,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_demo/router.dart';
 import 'package:ndk_drift/ndk_drift.dart';

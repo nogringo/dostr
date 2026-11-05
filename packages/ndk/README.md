@@ -81,14 +81,14 @@ Verify the installation with `ndk --version`. See [releases](https://github.com/
 
 - **Pluggable architecture**: Bring your own cache, verifier, or signer, replace any component
 - **Multiple database options**: In-memory, ObjectBox, Sembast
-- **Event verification**: BIP-340 or Rust-based (recommended for performance)
+- **Event verification**: BIP-340, or Rust-based with `ndk_rust` (recommended for performance)
 - **Comprehensive logging** with configurable log levels and outputs
 - **Clean architecture** for maintainability and extensibility
 
 ### Performance & Optimization
 
 - **Local caching** of events to minimize network requests and improve responsiveness
-- **Efficient event verification** Rust-based verifier available for high throughput
+- **Efficient event verification** Rust-based verifier in `ndk_rust` for high throughput
 - **Optimized relay selection** using inbox/outbox model to reduce latency and improve reliability
 - **Threading support** for offloading heavy operations like json encoding, compute to separate threads (isolate pool).
 

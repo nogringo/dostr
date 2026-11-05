@@ -1,6 +1,8 @@
 import 'dart:convert';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 
 const _warmupIterations = 1000;
 const _sampleIterations = 5000;

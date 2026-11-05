@@ -18,7 +18,7 @@ import 'package:ndk_core/shared/logger/log_level.dart';
 /// This class holds various settings and dependencies required for
 /// the NDK to function properly
 class NdkConfig {
-  /// The verifier used to validate Nostr events. E.g. RustEventVerifier(), Bip340EventVerifier
+  /// The verifier used to validate Nostr events. E.g. Bip340EventVerifier, or RustEventVerifier from ndk_rust
   EventVerifier eventVerifier;
 
   /// The cache manager (DB) used to store and retrieve Nostr data. E.g MemCacheManager()

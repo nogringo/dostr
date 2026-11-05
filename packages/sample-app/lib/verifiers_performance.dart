@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_rust/ndk_rust.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class MyVerifiers {
