@@ -367,9 +367,8 @@ class Initialization {
     // as soon as one of its connections is open
     final openByUrl = <String, bool>{};
     for (final connection in connections) {
-      final isOpen = connection.relayTransport?.isOpen() ?? false;
       openByUrl[connection.url] =
-          (openByUrl[connection.url] ?? false) || isOpen;
+          (openByUrl[connection.url] ?? false) || connection.isConnected;
     }
 
     for (final entry in openByUrl.entries) {

@@ -6,12 +6,12 @@ import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/broadcast_state.dart';
 import '../domain_layer/entities/nip_01_event.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import '../domain_layer/entities/relay_connectivity.dart';
 import '../shared/helpers/relay_helper.dart';
 import '../shared/logger/logger.dart';
 import 'broadcast_state.dart';
 import 'client_msg.dart';
 import 'relay_auth.dart';
+import 'relay_connection.dart';
 import 'relay_connections.dart';
 
 /// The EVENTs in flight on a `RelayManager`: sending them, routing each OK to
@@ -152,7 +152,7 @@ class RelayBroadcasts {
   /// Owns the connecting too: a broadcast that requires an identity must not
   /// even open the anonymous connection, because a socket we opened is one the
   /// relay saw, whether or not anything was sent on it.
-  Future<RelayConnectivity?> _connectionForBroadcast(
+  Future<RelayConnection?> _connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
     Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
@@ -191,7 +191,7 @@ class RelayBroadcasts {
   /// event, so it answers all of them; a refusal answers a single EVENT.
   void routeOk(
     String eventId,
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
     bool success,
     String msg,
   ) {
@@ -252,7 +252,7 @@ class RelayBroadcasts {
   /// callbacks.
   void _handleBroadcastAuthRequired(
     BroadcastState broadcastState,
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
   ) {
     final relayUrl = relayConnectivity.url;
     // the refusal of another broadcast of the same event reaches this one too

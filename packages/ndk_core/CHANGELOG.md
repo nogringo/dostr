@@ -96,6 +96,15 @@ connecting has `relay.connecting` set in `RelayManager.connectivities`.
 `authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and
 `nostrTransportFactory` are constructor parameters only, no longer fields.
 
+`RelayConnectivity`, `Relay` and `RelayStats` are read-only: only
+`RelayManager` changes them, and none has a public constructor anymore.
+`RelayConnectivity` no longer has `relayTransport`, `listen` or `close`: read
+`isConnected`, and close a connection with `RelayManager.closeConnection`.
+`Relay` loses its setters, `tryingToConnect`, `succeededToConnect` and
+`failedToConnect`. `RelayStats` loses its setters, `openRequestIds` and
+`incStatsByNewEvent`, and its maps are unmodifiable. `eventsWritten` and
+`dataWrittenBytes` are gone: nothing ever filled them.
+
 A relay message that misses a field or carries one of the wrong type, and a
 binary frame, are logged and dropped, and so is an exception a
 `RelayProtocolHandler` throws. They used to escape as uncaught errors, which

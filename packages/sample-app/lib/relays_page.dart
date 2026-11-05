@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 
@@ -246,20 +245,18 @@ class _RelaysPageState extends State<RelaysPage>
         }
 
         final entry = entries[index - 1];
-        final transport = ndk.relays
-            .getRelayConnectivity(entry.key)
-            ?.relayTransport as WebSocketClientNostrTransport?;
-        final stateColor = transport != null
-            ? transport.isConnecting()
+        final connectivity = ndk.relays.getRelayConnectivity(entry.key);
+        final stateColor = connectivity != null
+            ? connectivity.relay.connecting
                 ? Colors.orange
-                : transport.isOpen()
+                : connectivity.isConnected
                     ? Colors.green
                     : Colors.red
             : Colors.grey;
-        final stateLabel = transport != null
-            ? transport.isConnecting()
+        final stateLabel = connectivity != null
+            ? connectivity.relay.connecting
                 ? l10n.relayStateConnecting
-                : transport.isOpen()
+                : connectivity.isConnected
                     ? l10n.relayStateOnline
                     : l10n.relayStateOffline
             : l10n.relayStateUnknown;

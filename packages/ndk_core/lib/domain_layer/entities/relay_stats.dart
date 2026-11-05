@@ -1,48 +1,23 @@
-import 'nip_01_event.dart';
-
-/// relay stats
-class RelayStats {
+/// What a `RelayConnectivity` carried, counted by its `RelayManager`.
+abstract interface class RelayStats {
   /// number of connections
-  int connections = 0;
+  int get connections;
 
   /// number of connection errors
-  int connectionErrors = 0;
-
-  /// ids of the requests open on the connection, so that a request replayed on
-  /// a socket that came back is not counted twice and a CLOSE that lands late
-  /// does not count below what is open
-  final Set<String> openRequestIds = {};
+  int get connectionErrors;
 
   /// number of active requests on this relay
-  int get activeRequests => openRequestIds.length;
+  int get activeRequests;
 
   /// kind as keys, count as values
-  Map<int, int> eventsRead = {};
-
-  /// kind as keys, count as values
-  Map<int, int> eventsWritten = {};
+  Map<int, int> get eventsRead;
 
   /// kind as keys, bytes amount as values
-  Map<int, int> dataReadBytes = {};
-
-  /// kind as keys, bytes amount as values
-  Map<int, int> dataWrittenBytes = {};
+  Map<int, int> get dataReadBytes;
 
   /// Get total number of read events in this relay
-  int getTotalEventsRead() {
-    return eventsRead.values.fold(0, (a, b) => a + b);
-  }
+  int getTotalEventsRead();
 
   /// Get total bytes read this relay
-  int getTotalBytesRead() {
-    return dataReadBytes.values.fold(0, (a, b) => a + b);
-  }
-
-  /// increment stats by new event
-  void incStatsByNewEvent(Nip01Event event, int bytes) {
-    int eventsRead = this.eventsRead[event.kind] ?? 0;
-    this.eventsRead[event.kind] = eventsRead + 1;
-    int bytesRead = dataReadBytes[event.kind] ?? 0;
-    dataReadBytes[event.kind] = bytesRead + bytes;
-  }
+  int getTotalBytesRead();
 }

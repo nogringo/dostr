@@ -6,10 +6,9 @@ import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/src/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/src/relay_manager_parts.dart';
-import 'package:ndk_core/domain_layer/entities/relay.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';
+import 'package:ndk_core/src/relay_connection.dart';
 import 'package:ndk_core/src/request_state.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
@@ -83,9 +82,8 @@ void main() {
 
   _Transport connect(RelayConnectionKey key) {
     final transport = _Transport();
-    parts.connections.relays[key] = RelayConnectivity(
-      key: key,
-      relay: Relay(url: key.url),
+    parts.connections.relays[key] = RelayConnection(
+      key,
       relayTransport: transport,
     );
     return transport;

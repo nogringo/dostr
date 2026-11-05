@@ -1,44 +1,17 @@
-/// Basic relay info/status
-class Relay {
+/// Connection attempts of a `RelayConnectivity`, kept by its `RelayManager`.
+abstract interface class Relay {
   /// relay url
-  String url;
+  String get url;
 
   /// is it connecting
-  bool connecting = false;
+  bool get connecting;
 
   /// last connection try timestamp
-  int? lastConnectTry;
+  int? get lastConnectTry;
 
   /// last successful connection
-  int? lastSuccessfulConnect;
-
-  /// default constructor
-  Relay({required this.url});
-
-  /// set trying to connect
-  void tryingToConnect() {
-    lastConnectTry = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    connecting = true;
-  }
-
-  /// mark as succeded to connect
-  void succeededToConnect() {
-    lastSuccessfulConnect = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    connecting = false;
-  }
-
-  /// mark as failed to connect
-  void failedToConnect() {
-    connecting = false;
-  }
+  int? get lastSuccessfulConnect;
 
   /// was last connection try longer than given seconds
-  bool wasLastConnectTryLongerThanSeconds(int seconds) {
-    return lastConnectTry == null ||
-        lastConnectTry! <
-            DateTime.now()
-                    .add(Duration(seconds: -seconds))
-                    .millisecondsSinceEpoch ~/
-                1000;
-  }
+  bool wasLastConnectTryLongerThanSeconds(int seconds);
 }

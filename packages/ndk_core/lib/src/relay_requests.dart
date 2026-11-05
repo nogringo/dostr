@@ -4,12 +4,12 @@ import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/filter.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import '../domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/entities/relay_req_event.dart';
 import '../shared/logger/logger.dart';
 import 'client_msg.dart';
 import 'nostr_message_raw.dart';
 import 'relay_auth.dart';
+import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'request_state.dart';
 
@@ -33,7 +33,7 @@ class RelayRequests implements ConnectionListener {
   /// Puts back on [relayConnectivity] what the socket it replaces still owed us:
   /// its subscriptions, and the queries that never got their EOSE.
   @override
-  void replayOn(RelayConnectivity relayConnectivity) {
+  void replayOn(RelayConnection relayConnectivity) {
     final transport = relayConnectivity.relayTransport;
     if (transport == null || !transport.isOpen()) {
       return;
@@ -92,7 +92,7 @@ class RelayRequests implements ConnectionListener {
 
   void handleEvent(
     NostrMessageRaw nostrMsgRaw,
-    RelayConnectivity connectivity,
+    RelayConnection connectivity,
     int messageSize,
   ) {
     final requestId = nostrMsgRaw.requestId!;
@@ -128,10 +128,7 @@ class RelayRequests implements ConnectionListener {
   }
 
   /// handles EOSE messages
-  void handleEose(
-    List<dynamic> eventJson,
-    RelayConnectivity relayConnectivity,
-  ) {
+  void handleEose(List<dynamic> eventJson, RelayConnection relayConnectivity) {
     String id = eventJson[1];
     RequestState? state = inFlight[id];
     if (state == null) return;
@@ -151,7 +148,7 @@ class RelayRequests implements ConnectionListener {
   void handleClosed(
     String id,
     String? message,
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
   ) {
     // Check if this is an auth-required CLOSED message
     if (message != null && message.startsWith("auth-required")) {
@@ -177,7 +174,7 @@ class RelayRequests implements ConnectionListener {
 
   /// Sends [request] on [relayConnectivity] and tracks it as open there
   void _sendRequest(
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
     String reqId,
     RelayRequestState request,
   ) {
@@ -195,7 +192,7 @@ class RelayRequests implements ConnectionListener {
   /// Marks what the relay itself ended with a CLOSED. It stops counting as open
   /// on that connection, and there is no CLOSE left for us to send.
   void _endRequestOnRelay(
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
     String reqId,
     RelayRequestState request,
     String? message,
@@ -370,7 +367,7 @@ class RelayRequests implements ConnectionListener {
   /// bound one, while a bound connection answers the challenge itself.
   void _handleClosedAuthRequired(
     String reqId,
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
     String message,
   ) {
     final state = inFlight[reqId];
@@ -513,13 +510,13 @@ class RelayRequests implements ConnectionListener {
 
   /// sends a close message on the connection the subscription was sent on
   void _sendCloseToConnection(RelayConnectionKey key, String id) {
-    RelayConnectivity? connectivity = _connections.relays[key];
+    RelayConnection? connectivity = _connections.relays[key];
     if (connectivity != null) {
       _sendCloseToRelay(connectivity, id);
     }
   }
 
-  void _sendCloseToRelay(RelayConnectivity relayConnectivity, String id) {
+  void _sendCloseToRelay(RelayConnection relayConnectivity, String id) {
     try {
       _connections.sendTo(
         relayConnectivity,

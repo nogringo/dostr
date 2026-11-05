@@ -99,12 +99,6 @@ void main() {
             reason: 'destroying the second NDK affected the first NDK runtime',
           );
 
-          first
-                  .relays
-                  .connectivities[RelayConnectionKey.anonymous(relay.url)]!
-                  .relay
-                  .lastConnectTry =
-              0;
           await relay.closeClientSockets();
           await _waitUntil(
             () => relay.connectedClientCount == 0,

@@ -98,10 +98,6 @@ void main() async {
           manager.connectivities[RelayConnectionKey.anonymous(relay1.url)]!;
       expect(relayConnectivity.stats.connections, 1);
 
-      // Backdate the last connect attempt so the reconnect is not suppressed
-      // by the FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS throttle.
-      relayConnectivity.relay.lastConnectTry = 0;
-
       // Relay-side disconnect: the server stays up, only the socket dies.
       await relay1.closeClientSockets();
 
@@ -124,8 +120,7 @@ void main() async {
       // Keep the teardown from racing another reconnect attempt against the
       // stopped server.
       manager.allowReconnectRelays = false;
-      await manager.connectivities[RelayConnectionKey.anonymous(relay1.url)]
-          ?.close();
+      await manager.closeConnectionsTo(relay1.url);
       await relay1.stopServer();
     });
 

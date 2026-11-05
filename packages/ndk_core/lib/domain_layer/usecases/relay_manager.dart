@@ -7,6 +7,7 @@ import '../../shared/logger/logger.dart';
 import '../../src/nostr_message_raw.dart';
 import '../../src/relay_auth.dart';
 import '../../src/relay_broadcasts.dart';
+import '../../src/relay_connection.dart';
 import '../../src/relay_connections.dart';
 import '../../src/relay_manager_parts.dart';
 import '../../src/relay_requests.dart';
@@ -251,7 +252,7 @@ class RelayManager {
   /// Routes a message from [relayConnectivity] to whatever it answers.
   Future<void> _dispatch(
     NostrMessageRaw nostrMsg,
-    RelayConnectivity relayConnectivity,
+    RelayConnection relayConnectivity,
     dynamic message,
   ) {
     final key = relayConnectivity.key;

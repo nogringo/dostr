@@ -238,15 +238,6 @@ void main() {
 
       await waitForSubscriptionRegistration();
 
-      // Backdate the last connect attempt so the reconnect-on-close path is
-      // not suppressed by the FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS throttle.
-      ndkA
-              .relays
-              .connectivities[RelayConnectionKey.anonymous(mockRelay.url)]!
-              .relay
-              .lastConnectTry =
-          0;
-
       // Relay-side disconnect: the server stays up, only the sockets die.
       await mockRelay.closeClientSockets();
 
