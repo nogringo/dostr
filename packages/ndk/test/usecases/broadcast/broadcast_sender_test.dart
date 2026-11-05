@@ -1,24 +1,60 @@
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk/domain_layer/usecases/engines/network_engine.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';
 
+// nothing listens there, so each relay fails fast but still answers
+const outboxRelay = 'ws://localhost:1';
+const bobInbox = 'ws://localhost:2';
+const bootstrapRelay = 'ws://localhost:3';
+
 void main() {
+  late RelayManager relayManager;
+  late Map<String, UrlListLookup> lists;
+
+  BroadcastSender senderOf(MemCacheManager cache) => BroadcastSender(
+    cacheManager: cache,
+    urlLists: (pubkey, kind, _) async =>
+        lists['${kind.name}|$pubkey'] ?? const UrlListLookup.notFound(),
+    bootstrapRelays: const [bootstrapRelay],
+    relayManager: relayManager,
+    accounts: Accounts(const Bip340EventSignerFactory()),
+    considerDonePercent: 1,
+    timeout: const Duration(seconds: 5),
+    saveToCache: true,
+  );
+
+  final key = Bip340.generatePrivateKey();
+  Nip01Event signedNote({List<String> pTags = const []}) => Bip340.signEvent(
+    event: Nip01Event(
+      pubKey: key.publicKey,
+      kind: Nip01Event.kTextNoteKind,
+      tags: [
+        for (final p in pTags) ['p', p],
+      ],
+      content: 'note',
+    ),
+    privateKey: key.privateKey!,
+  );
+
+  Future<Set<String>> relaysOf(NdkBroadcastResponse response) async => {
+    for (final outcome in await response.broadcastDoneFuture) outcome.relayUrl,
+  };
+
+  setUp(() {
+    relayManager = RelayManager(
+      nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    );
+    lists = {};
+  });
+
+  tearDown(() => relayManager.closeAllTransports());
+
   test('leaves no in-flight state behind when there is no signer', () async {
     final cache = MemCacheManager();
-    final sender = BroadcastSender(
-      cacheManager: cache,
-      networkEngine: _UnreachableNetworkEngine(),
-      relayManager: RelayManager(
-        nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-      ),
-      accounts: Accounts(const Bip340EventSignerFactory()),
-      considerDonePercent: 1,
-      timeout: const Duration(seconds: 1),
-      saveToCache: true,
-    );
+    final sender = senderOf(cache);
     final unsigned = Nip01Event(
       pubKey: 'pubkey',
       kind: Nip01Event.kTextNoteKind,
@@ -36,21 +72,65 @@ void main() {
     expect(sender.isEventInFlight(unsigned.id), isFalse);
     expect(await cache.loadEvent(unsigned.id), isNull);
   });
-}
 
-class _UnreachableNetworkEngine implements NetworkEngine {
-  @override
-  Future<void> route(
-    List<Filter> filters,
-    RelaySend send, {
-    RelaySet? relaySet,
-    required int desiredCoverage,
-  }) {
-    throw UnimplementedError();
-  }
+  test('sends to the outbox and the inboxes the event tags', () async {
+    lists['outbox|${key.publicKey}'] = const UrlListLookup.found([outboxRelay]);
+    lists['inbox|bob'] = const UrlListLookup.found([bobInbox]);
 
-  @override
-  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) {
-    throw UnimplementedError();
-  }
+    final response = senderOf(
+      MemCacheManager(),
+    ).broadcast(nostrEvent: signedNote(pTags: ['bob']));
+
+    expect(await relaysOf(response), {outboxRelay, bobInbox});
+  });
+
+  test('an unavailable inbox does not hold back the rest', () async {
+    lists['outbox|${key.publicKey}'] = const UrlListLookup.found([outboxRelay]);
+    lists['inbox|bob'] = const UrlListLookup.found([bobInbox]);
+    lists['inbox|carol'] = const UrlListLookup.unavailable('offline');
+
+    final response = senderOf(
+      MemCacheManager(),
+    ).broadcast(nostrEvent: signedNote(pTags: ['bob', 'carol']));
+
+    expect(await relaysOf(response), {outboxRelay, bobInbox});
+  });
+
+  test('falls back to the bootstrap relays without a NIP-65', () async {
+    final response = senderOf(
+      MemCacheManager(),
+    ).broadcast(nostrEvent: signedNote());
+
+    expect(await relaysOf(response), {bootstrapRelay});
+  });
+
+  test('sends nowhere while the NIP-65 is unavailable', () async {
+    lists['outbox|${key.publicKey}'] = const UrlListLookup.unavailable();
+
+    final response = senderOf(
+      MemCacheManager(),
+    ).broadcast(nostrEvent: signedNote());
+
+    expect(await relaysOf(response), isEmpty);
+  });
+
+  test('sends to the url set it is given', () async {
+    final response = senderOf(MemCacheManager()).broadcast(
+      nostrEvent: signedNote(pTags: ['bob']),
+      urlSet: const UrlSet.explicit([bobInbox]),
+    );
+
+    expect(await relaysOf(response), {bobInbox});
+  });
+
+  test('takes specific relays or a url set, not both', () {
+    expect(
+      () => senderOf(MemCacheManager()).broadcast(
+        nostrEvent: signedNote(),
+        specificRelays: const [outboxRelay],
+        urlSet: const UrlSet.explicit([bobInbox]),
+      ),
+      throwsArgumentError,
+    );
+  });
 }

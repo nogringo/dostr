@@ -26,6 +26,8 @@ dependencies:
   ndk_bip340: ^0.1.0
   ndk_nip44: ^0.1.0
   ndk_nip77: ^0.1.0
+  ndk_url_set: ^0.1.0
+  ndk_fetchers: ^0.1.0
   http: ^1.6.0
   bech32: ^0.2.2
   crypto: ^3.0.7

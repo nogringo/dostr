@@ -34,6 +34,7 @@ void main() {
         UrlSet.dm('p4'),
         UrlSet.private('p6'),
         UrlSet.blossom('p7'),
+        UrlSet.first(2, UrlSet.inbox('p8')),
       ]);
       expect(UrlSet.fromMap(set.toMap()).toMap(), set.toMap());
     });
@@ -68,6 +69,17 @@ void main() {
 
     test('rejects an unknown type', () {
       expect(() => UrlSet.fromMap({'type': 'nope'}), throwsFormatException);
+    });
+
+    test('rejects a negative first count', () {
+      expect(
+        () => UrlSet.fromMap({
+          'type': 'first',
+          'count': -1,
+          'set': const UrlSet.explicit(['wss://a']).toMap(),
+        }),
+        throwsFormatException,
+      );
     });
 
     test('only lookups need a list function', () {
@@ -130,6 +142,52 @@ void main() {
       );
       expect(r, isA<UrlsUnavailable>());
       expect((r as UrlsUnavailable).reason, contains('dm list of p2'));
+    });
+
+    test('first keeps the first urls of its set', () async {
+      final lists = FakeUrlLists()
+        ..set(
+          'p1',
+          UrlListKind.inbox,
+          const UrlListLookup.found(['wss://a', 'wss://b', 'wss://c']),
+        );
+      Future<UrlResolution> first(int count) => resolveUrlSet(
+        UrlSet.first(count, const UrlSet.inbox('p1')),
+        lists.fn,
+      );
+
+      expect(resolvedUrls(await first(2)), ['wss://a', 'wss://b']);
+      expect(resolvedUrls(await first(5)), ['wss://a', 'wss://b', 'wss://c']);
+      expect(resolvedUrls(await first(0)), isEmpty);
+    });
+
+    test('first is unavailable when its set is', () async {
+      final r = await resolveUrlSet(
+        const UrlSet.first(2, UrlSet.inbox('p1')),
+        FakeUrlLists().fn,
+      );
+      expect(r, isA<UrlsUnavailable>());
+    });
+
+    test('first of none needs no lookup, even of an unavailable set', () async {
+      final lists = FakeUrlLists();
+      const set = UrlSet.first(0, UrlSet.inbox('p1'));
+
+      expect(set.needsLookup, isFalse);
+      expect(set.kinds, {UrlListKind.inbox});
+      expect(resolvedUrls(await resolveUrlSet(set, lists.fn)), isEmpty);
+      expect(lists.calls, isEmpty);
+    });
+
+    test('a fallback moves past a first of none', () async {
+      final r = await resolveUrlSet(
+        const UrlSet.fallback([
+          UrlSet.first(0, UrlSet.outbox('p1')),
+          UrlSet.explicit(['wss://default']),
+        ]),
+        FakeUrlLists().fn,
+      );
+      expect(resolvedUrls(r), ['wss://default']);
     });
 
     test('nip65 looks up every relay of the list', () async {

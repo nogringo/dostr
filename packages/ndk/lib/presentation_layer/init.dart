@@ -6,6 +6,7 @@ import '../shared/net/user_agent.dart';
 import '../data_layer/data_sources/http_request.dart';
 import '../data_layer/io/file_io_platform.dart';
 import '../data_layer/repositories/blossom/blossom_impl.dart';
+import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
@@ -36,7 +37,10 @@ import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import '../domain_layer/usecases/dms/dms.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart'
+    show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
+import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
@@ -139,8 +143,6 @@ class Initialization {
     switch (_ndkConfig.engine) {
       case NdkEngine.RELAY_SETS:
         engine = RelaySetsEngine(
-          cacheManager: _ndkConfig.cache,
-          relayManager: relayManager,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
           bootstrapRelaysConnected: bootstrapRelaysConnected,
         );
@@ -190,8 +192,35 @@ class Initialization {
       relayReqs: relayReqs,
     );
 
+    final listCache = CacheManagerReplaceableEvents(_ndkConfig.cache);
+    final listChecks = MemoryUrlListCheckStore();
+    final nip65Fetcher = Nip65Fetcher(
+      reqs: relayReqs,
+      relays: _ndkConfig.bootstrapRelays,
+      cache: listCache,
+      checks: listChecks,
+    );
+    final urlLists = fetcherUrlListFn(
+      nip65: nip65Fetcher,
+      dmRelays: DmRelaysFetcher(
+        reqs: relayReqs,
+        nip65Fetcher: nip65Fetcher,
+        relays: _ndkConfig.bootstrapRelays,
+        cache: listCache,
+        checks: listChecks,
+      ),
+      blossomServers: BlossomServersFetcher(
+        reqs: relayReqs,
+        nip65Fetcher: nip65Fetcher,
+        relays: _ndkConfig.bootstrapRelays,
+        cache: listCache,
+        checks: listChecks,
+      ),
+    );
+
     final broadcastSender = BroadcastSender(
-      networkEngine: engine,
+      urlLists: urlLists,
+      bootstrapRelays: _ndkConfig.bootstrapRelays,
       relayManager: relayManager,
       relayPublishes: relayPublishes,
       cacheManager: _ndkConfig.cache,

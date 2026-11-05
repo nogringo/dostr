@@ -28,29 +28,32 @@ class Nip65Fetcher {
   /// [EventNotFound] when there was none.
   final UrlListCheckStore? checks;
 
-  /// How long the result of a finished lookup is reused, the same as ndk's
-  /// refresh of users' relay lists. With [checks], across restarts too.
+  /// How long a finished lookup is trusted, the same as ndk's refresh of
+  /// users' relay lists. Without [checks], its result is reused that long.
+  /// With them, each lookup reads [cache] again, so a list saved there since
+  /// is seen, and the checks spare the relays across restarts too.
   final Duration maxAge;
 
   final Map<String, _Lookup> _lookups = {};
 
   Nip65Fetcher({
-    required this._reqs,
+    required RelayReqs reqs,
     this.relays = defaultIndexerRelays,
     this.homeRelayList,
     this.timeout = const Duration(seconds: 5),
     this.cache,
     this.checks,
     this.maxAge = const Duration(minutes: 10),
-  });
+  }) : _reqs = reqs;
 
   /// Each `kind:10002` event of [pubKey] (hex) found on [relays] and on its
   /// home relays, as soon as it arrives, if newer than the ones before it.
   /// The one in [cache] comes first, and [checks] may spare the relays.
   ///
-  /// A lookup still running, or finished less than [maxAge] ago, is reused,
-  /// starting on the newest list it found so far. Once started, a lookup runs
-  /// until every relay answered or [timeout], even with no one listening.
+  /// A lookup still running is reused, starting on the newest list it found
+  /// so far, and so is one finished less than [maxAge] ago when there are no
+  /// [checks]. Once started, a lookup runs until every relay answered or
+  /// [timeout], even with no one listening.
   Stream<Nip01Event> watch(String pubKey) => _lookupOf(pubKey).versions;
 
   /// The newest `kind:10002` event of [pubKey] (hex) found on [relays] and on
@@ -67,7 +70,10 @@ class Nip65Fetcher {
   _Lookup _lookupOf(String pubKey) {
     final lookup = _lookups[pubKey];
     if (lookup != null && !lookup.isStale) return lookup;
-    return _lookups[pubKey] = _Lookup(_lookUp(pubKey), maxAge);
+    return _lookups[pubKey] = _Lookup(
+      _lookUp(pubKey),
+      checks == null ? maxAge : Duration.zero,
+    );
   }
 
   ReplaceableLookup _lookUp(String pubKey) => lookUpReplaceable(

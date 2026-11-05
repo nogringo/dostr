@@ -40,6 +40,8 @@ class Broadcast {
 
   /// low level nostr broadcast using inbox/outbox (gossip) \
   /// [specificRelays] disables inbox/outbox (gossip) and broadcasts to the relays specified. Useful for NostrWalletConnect \
+  /// [urlSet] where to broadcast instead of the author's outbox and the inboxes the event tags.
+  /// Unlike [specificRelays], it is not enrolled in pending delivery. Pass one of them, not both \
   /// [customSigner] if you want to use a different signer than the one from currently logged in user in [Accounts] \
   /// [considerDonePercent] the percentage (0.0, 1.0) of relays that need to accept the event for the broadcast to be considered done (overrides the default value) \
   /// [timeout] the timeout for the broadcast (overrides the default timeout) \
@@ -57,6 +59,7 @@ class Broadcast {
   NdkBroadcastResponse broadcast({
     required Nip01Event nostrEvent,
     Iterable<String>? specificRelays,
+    UrlSet? urlSet,
     EventSigner? customSigner,
     double? considerDonePercent,
     Duration? timeout,
@@ -76,6 +79,7 @@ class Broadcast {
     final response = _sender.broadcast(
       nostrEvent: nostrEvent,
       specificRelays: specificRelays,
+      urlSet: urlSet,
       customSigner: customSigner,
       considerDonePercent: considerDonePercent,
       timeout: timeout,

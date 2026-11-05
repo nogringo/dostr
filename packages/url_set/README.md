@@ -31,6 +31,7 @@ dependencies:
 | `UrlSet.blossom(pubkey)` | BUD-03 Blossom servers (kind 10063) |
 | `UrlSet.union(sets)` | every URL of every set |
 | `UrlSet.fallback(sets)` | the first set that resolves to a non-empty list |
+| `UrlSet.first(count, set)` | the first `count` URLs of `set` |
 
 Every leaf reads the list of one account. Combine several with `union`:
 
@@ -106,7 +107,8 @@ JSON-compatible record.
 
 `toMap()` gives a JSON-compatible map and `UrlSet.fromMap()` reads it back.
 The format is the one `RelaySet` used in `broadcast_queue_shim_for_ndk`
-0.7.0, so queues stored by that version keep loading.
+0.7.0, so queues stored by that version keep loading. `UrlSet.first` is
+new: older readers reject a set that uses it.
 
 ## Coming from `url_set_for_ndk`
 

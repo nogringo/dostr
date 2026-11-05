@@ -85,12 +85,14 @@ UrlSet.dm(bob);
    builds it from the signed event:
    - `fallback([outbox(author), explicit(bootstrapRelays)])`, so the bootstrap relays
      are used only when the author's NIP-65 is known to be absent
-   - `inbox(p)` for each `p` tag, except on a `kind:3`
+   - `first(MAX_INBOX_RELAYS_TO_BROADCAST, inbox(p))` for each `p` tag, except on a
+     `kind:3`
    - for a gift wrap, `dm(p)` alone, since its author is a random key
 
-   `BroadcastSender` sends to each relay once and vetoes obsolete replaceables. When the
-   set is `unavailable`, `PendingBroadcastDelivery` stores it and resolves it once back
-   online. A use case with its own rule passes its own set.
+   `BroadcastSender` sends to each relay once and vetoes obsolete replaceables. Each
+   part of a `union` resolves on its own, so one unreachable inbox does not hold back
+   the others: `PendingBroadcastDelivery` stores the parts still `unavailable` and
+   resolves them once back online. A use case with its own rule passes its own set.
 5. **Feeds.** Covering many authors with few relays (`RelaySets.calculateRelaySet`)
    stays, as a tool the app calls for a feed: a `UrlSet` resolves to a list of relays,
    not to the authors each one covers. It no longer runs behind every request.
@@ -101,12 +103,14 @@ Each step ships on its own:
 
 1. `ndk_url_set`, re-exported by `url_set_for_ndk` so the queue shims keep working
 2. the `UrlListFn` of the fetchers, with the cache hook and the check store
-3. `BroadcastSender` and `PendingBroadcastDelivery` on a `UrlSet`, with the set built
-   from the event when none is given
-4. the streaming resolver, `Requests` on a `UrlSet`, and the `ndk` use cases ported to
+3. `BroadcastSender` on a `UrlSet`, with the set built from the event when none is
+   given, and the unavailable parts skipped
+4. `PendingBroadcastDelivery` storing the unavailable parts, which needs a column in
+   every `CacheManager`
+5. the streaming resolver, `Requests` on a `UrlSet`, and the `ndk` use cases ported to
    it (`Metadatas`, `UserRelayLists`, `Follows`, `Lists`, etc.)
-5. the feed coverage as an explicit tool
-6. removal of `NetworkEngine`, `JitEngine`, `RelaySetsEngine`, `NdkEngine`,
+6. the feed coverage as an explicit tool
+7. removal of `NetworkEngine`, `JitEngine`, `RelaySetsEngine`, `NdkEngine`,
    `desiredCoverage`, `NdkRequest.relaySet`, `ignoreRelays` and `jitEngineData`, and of
    their docs (`concepts/engines`, `guides/enabling-gossip.md`, `guides/tips.md`)
 
@@ -134,9 +138,4 @@ Contra:
 
 - Which `defaultIndexerRelays` stays: the fetchers and `url_set_for_ndk` each have their
   own list.
-- Whether a broadcast sends to the parts of its set that resolved while an unavailable
-  one waits. A `union` is unavailable as soon as one of its lists is, so one unreachable
-  inbox holds the whole broadcast.
-- Whether the cap of `MAX_INBOX_RELAYS_TO_BROADCAST` read relays per `p` tag stays,
-  which needs a node that keeps the first n URLs of a set.
 - Whether `ignoreRelays` survives as a filter applied by the fetchers, or goes.

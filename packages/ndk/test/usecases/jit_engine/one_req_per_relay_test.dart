@@ -1,12 +1,10 @@
 import 'dart:async';
 
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/pubkey_mapping.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/domain_layer/usecases/relay_sets_engine.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
@@ -97,14 +95,7 @@ void main() {
 
   test('a relay set relay gets every filter that maps to it', () async {
     const url = 'wss://relay.example.com';
-    final manager = RelayManager(
-      nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-    );
-    final engine = RelaySetsEngine(
-      relayManager: manager,
-      cacheManager: MemCacheManager(),
-      bootstrapRelays: [],
-    );
+    final engine = RelaySetsEngine(bootstrapRelays: []);
     final relaySet = RelaySet(
       name: 'test',
       pubKey: a.publicKey,

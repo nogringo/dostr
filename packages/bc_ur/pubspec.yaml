@@ -28,6 +28,10 @@ dependency_overrides:
     path: ../nip44
   ndk_nip77:
     path: ../nip77
+  ndk_url_set:
+    path: ../url_set
+  ndk_fetchers:
+    path: ../fetchers
   ndk_cashu:
     path: ../cashu
   ndk_wallets:

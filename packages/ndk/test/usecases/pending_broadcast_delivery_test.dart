@@ -5,10 +5,8 @@ import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart
 import 'package:ndk/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/event_cache_records.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
-import 'package:ndk/domain_layer/entities/relay_set.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
@@ -18,8 +16,8 @@ import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk/domain_layer/usecases/engines/network_engine.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -1376,7 +1374,8 @@ class RecordingBroadcastSender extends BroadcastSender {
   RecordingBroadcastSender({required MemCacheManager cacheManager})
     : super(
         cacheManager: cacheManager,
-        networkEngine: _ThrowingNetworkEngine(),
+        urlLists: (_, _, _) => throw UnimplementedError(),
+        bootstrapRelays: const [],
         relayManager: RelayManager(
           nostrTransportFactory: WebSocketClientNostrTransportFactory(),
         ),
@@ -1390,6 +1389,7 @@ class RecordingBroadcastSender extends BroadcastSender {
   NdkBroadcastResponse broadcast({
     required Nip01Event nostrEvent,
     Iterable<String>? specificRelays,
+    UrlSet? urlSet,
     EventSigner? customSigner,
     double? considerDonePercent,
     Duration? timeout,
@@ -1405,23 +1405,6 @@ class RecordingBroadcastSender extends BroadcastSender {
       publishEvent: nostrEvent,
       broadcastDoneStream: Stream.value(responses),
     );
-  }
-}
-
-class _ThrowingNetworkEngine implements NetworkEngine {
-  @override
-  Future<void> route(
-    List<Filter> filters,
-    RelaySend send, {
-    RelaySet? relaySet,
-    required int desiredCoverage,
-  }) {
-    throw UnimplementedError();
-  }
-
-  @override
-  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) {
-    throw UnimplementedError();
   }
 }
 

@@ -24,10 +24,31 @@ icon: arrow-up-right
 
 ```
 
-!!!
-You might encounter a warning about missing `nip65` data. You can ignore this warning to use NDK with your specified/default relays.\
-If you want to use the outbox model, check out the [enabling gossip](/guides/enabling-gossip.md#broadcast-using-outbox) guide (recommended).
-!!!
+## Where it goes
+
+Without `specificRelays`, a broadcast goes to:
+
+- the NIP-65 write relays of its author, or the bootstrap relays once the
+  author is known to have no NIP-65
+- the first 5 NIP-65 read relays of each `p` tag, except on a contact list
+  (kind 3)
+- for a gift wrap (kind 1059), only the NIP-17 DM relays of each `p` tag
+
+NDK fetches the lists it does not have from the bootstrap relays and keeps them
+in its cache. A list no relay answered for is skipped with a warning, and the
+rest of the broadcast goes out.
+
+To pick the relays yourself, pass a `UrlSet`:
+
+```dart
+final myBroadcast = ndk.broadcast.broadcast(
+  nostrEvent: event,
+  urlSet: UrlSet.union([
+    UrlSet.outbox(event.pubKey),
+    UrlSet.explicit(['wss://relay.example.com']),
+  ]),
+);
+```
 
 ## Relay authentication (NIP-42)
 

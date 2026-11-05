@@ -2,17 +2,13 @@ import 'dart:async';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
-import '../../entities/contact_list.dart';
 import '../../entities/jit_engine_relay_connectivity_data.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import '../../entities/read_write_marker.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/relay_set.dart';
 import '../../repositories/cache_manager.dart';
 import '../engines/network_engine.dart';
-import 'relay_jit_broadcast_strategies/relay_jit_broadcast_other_read.dart';
-import 'relay_jit_broadcast_strategies/relay_jit_broadcast_own.dart';
 import 'relay_jit_request_strategies/relay_jit_blast_all_strategy.dart';
 import 'relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
@@ -37,8 +33,8 @@ class JitEngine with Logger implements NetworkEngine {
 
   /// Creates a new JIT engine.
   ///
-  /// Requests and broadcasts wait for [bootstrapRelaysConnected], if given,
-  /// before they are routed.
+  /// Requests wait for [bootstrapRelaysConnected], if given, before they are
+  /// routed.
   JitEngine({
     required this.relayManagerLight,
     required this.cache,
@@ -121,35 +117,6 @@ class JitEngine with Logger implements NetworkEngine {
         );
       }),
     );
-  }
-
-  @override
-  Future<void> routeBroadcast(Nip01Event event, RelayPublishSend send) async {
-    await _bootstrapRelaysConnected;
-
-    final ownRelays = cleanRelayUrls(
-      await RelayJitBroadcastOutboxStrategy.relays(
-        eventToPublish: event,
-        cacheManager: cache,
-        bootstrapRelays: bootstrapRelays,
-      ),
-    ).toSet();
-
-    // check if we need to publish to others inboxes
-    final inboxRelays =
-        event.pTags.isNotEmpty && event.kind != ContactList.kKind
-        ? cleanRelayUrls(
-            await RelayJitBroadcastOtherReadStrategy.relays(
-              cacheManager: cache,
-              pubkeysOfInbox: event.pTags,
-            ),
-          ).toSet()
-        : <String>{};
-
-    // a relay in the outbox and an inbox gets the event once
-    for (final url in {...ownRelays, ...inboxRelays}) {
-      send(url);
-    }
   }
 
   /// checks if relay covers given pubkey in given direction

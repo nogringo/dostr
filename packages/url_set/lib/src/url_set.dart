@@ -117,6 +117,10 @@ sealed class UrlSet {
   /// resolution, so an offline lookup never falls through to the next set.
   const factory UrlSet.fallback(List<UrlSet> sets) = FallbackUrls;
 
+  /// The first [count] URLs [set] resolves to, such as a few of the many
+  /// inbox relays of an account. With a [count] of 0, [set] is not resolved.
+  const factory UrlSet.first(int count, UrlSet set) = FirstUrls;
+
   /// Whether resolving this set calls a [UrlListFn].
   bool get needsLookup;
 
@@ -147,6 +151,13 @@ sealed class UrlSet {
       'blossom' => BlossomUrls(map['pubkey'] as String),
       'union' => UnionUrls(sets()),
       'fallback' => FallbackUrls(sets()),
+      'first' => switch (map['count']) {
+        final int count when count >= 0 => FirstUrls(
+          count,
+          UrlSet.fromMap(map['set'] as Map),
+        ),
+        final count => throw FormatException('invalid first count: $count'),
+      },
       final type => throw FormatException('unknown url set type: $type'),
     };
   }
@@ -286,6 +297,33 @@ final class FallbackUrls extends UrlSet {
   };
 }
 
+/// See [UrlSet.first].
+final class FirstUrls extends UrlSet {
+  /// How many URLs to keep.
+  final int count;
+
+  /// Set the URLs come from.
+  final UrlSet set;
+
+  /// Creates a set of the first [count] URLs of [set].
+  const FirstUrls(this.count, this.set) : assert(count >= 0);
+
+  @override
+  bool get needsLookup => count > 0 && set.needsLookup;
+
+  /// Those of [set], even with a [count] of 0, so a consumer still rejects
+  /// the leaves it cannot use.
+  @override
+  Set<UrlListKind> get kinds => set.kinds;
+
+  @override
+  Map<String, Object?> toMap() => {
+    'type': 'first',
+    'count': count,
+    'set': set.toMap(),
+  };
+}
+
 /// Result of resolving a whole [UrlSet] tree.
 sealed class UrlResolution {
   const UrlResolution();
@@ -342,6 +380,13 @@ Future<UrlResolution> _resolve(UrlSet set, UrlListFn lookup) async {
         if ((resolution as UrlsResolved).urls.isNotEmpty) return resolution;
       }
       return const UrlsResolved([]);
+    case FirstUrls(count: 0):
+      return const UrlsResolved([]);
+    case FirstUrls(:final count, :final set):
+      return switch (await _resolve(set, lookup)) {
+        UrlsResolved(:final urls) => UrlsResolved(urls.take(count).toList()),
+        final UrlsUnavailable unavailable => unavailable,
+      };
   }
 }
 

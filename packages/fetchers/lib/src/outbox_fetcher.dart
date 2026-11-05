@@ -37,7 +37,7 @@ class OutboxFetcher {
   final String name;
 
   OutboxFetcher({
-    required this._reqs,
+    required RelayReqs reqs,
     required this.kind,
     this.dTag,
     this.nip65Fetcher,
@@ -47,7 +47,8 @@ class OutboxFetcher {
     this.checks,
     this.maxAge = const Duration(minutes: 10),
     String? name,
-  }) : name = name ?? 'kind-$kind';
+  }) : _reqs = reqs,
+       name = name ?? 'kind-$kind';
 
   /// Each [kind] event of [pubKey] (hex) found on its write relays and on
   /// [relays], as soon as it arrives, if newer than the ones before it. The

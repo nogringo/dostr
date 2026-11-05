@@ -610,8 +610,9 @@ void main() {
         await cache.save(cached);
         await checked(found: true, ago: const Duration(hours: 1));
 
-        final lookup = await fetcherOn([await startSilentRelay()])
-            .lookup(alice);
+        final lookup = await fetcherOn([
+          await startSilentRelay(),
+        ]).lookup(alice);
 
         expect((lookup as EventFound).event.id, cached.id);
       });
@@ -662,6 +663,18 @@ void main() {
         final relay = await startCountedRelay([relayList([])]);
 
         expect(await fetcherOn([relay.url]).fetch(alice), isNotNull);
+        expect(relay.reqCount, 1);
+      });
+
+      test('sees a list saved to the cache since the last lookup', () async {
+        final relay = await startCountedRelay([relayList([], createdAt: 1000)]);
+        final fetcher = fetcherOn([relay.url]);
+        await fetcher.fetch(alice);
+
+        final current = relayList([], createdAt: 2000);
+        await cache.save(current);
+
+        expect((await fetcher.fetch(alice))?.id, current.id);
         expect(relay.reqCount, 1);
       });
     });

@@ -89,6 +89,7 @@ export 'domain_layer/usecases/lists/lists.dart';
 export 'domain_layer/usecases/relay_sets/relay_sets.dart';
 export 'domain_layer/usecases/broadcast/broadcast.dart';
 export 'domain_layer/usecases/broadcast/broadcast_exceptions.dart';
+export 'package:ndk_url_set/ndk_url_set.dart' show UrlSet;
 export 'domain_layer/usecases/zaps/zaps.dart';
 export 'domain_layer/usecases/zaps/zap_request.dart';
 export 'domain_layer/usecases/zaps/zap_receipt.dart';

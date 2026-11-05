@@ -824,6 +824,13 @@ packages:
       relative: true
     source: path
     version: "0.2.1-dev.1"
+  ndk_fetchers:
+    dependency: "direct overridden"
+    description:
+      path: "../fetchers"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_flutter:
     dependency: "direct main"
     description:
@@ -856,6 +863,13 @@ packages:
     dependency: "direct main"
     description:
       path: "../nwc"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_url_set:
+    dependency: "direct overridden"
+    description:
+      path: "../url_set"
       relative: true
     source: path
     version: "0.1.0"

@@ -28,20 +28,8 @@ To make use of gossip you need to pass a `RelaySet` to the usecase.
 
 ## Broadcast using Outbox
 
-When you use ndk without getting `nip65` data first, you will get a warning like:
-
-```text
-broadcast - could not find nip65 data for ${eventToPublish.pubKey}, using DEFAULT_BOOTSTRAP_RELAYS for now.
-Please ensure nip65Data exists to use the outbox model => UserRelayLists use case
-```
-
-When nip65 data is in the cache ndk picks it up automatically. To populate the cache, you can use the `UserRelayLists` use case.
-
-```dart
-await ndk.userRelayLists.getSingleUserRelayList("<pubKey>");
-```
-
-You don't have to save the result, it's enough to call the method so the data is in the cache.
+Broadcasts use the outbox model with either engine: NDK fetches the `nip65`
+data it is missing, see [where a broadcast goes](/usecases/broadcast.md#where-it-goes).
 
 ### new account
 
