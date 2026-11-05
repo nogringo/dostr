@@ -200,7 +200,7 @@ void main() async {
           timeout: Duration(seconds: 30),
         );
         final List<Nip01Event> eventsReceived = [];
-        req.events.listen(eventsReceived.add);
+        req.events.listen((e) => eventsReceived.add(e.event));
         await Future.delayed(Duration(milliseconds: 100));
 
         relay1.sendClosed(req.id, message: "rate limited");

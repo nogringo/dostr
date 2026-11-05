@@ -104,9 +104,7 @@ class Bunkers {
       ),
     );
 
-    await _relayPublishes
-        .publish(signedEvent, relays: relays)
-        .broadcastDoneFuture;
+    await _relayPublishes.publish(signedEvent, relays: relays).done;
 
     try {
       await for (final event in _responses(subscription)) {
@@ -200,6 +198,7 @@ class Bunkers {
 
   /// Each response once, although every relay of the bunker delivers it.
   Stream<Nip01Event> _responses(RelayReq subscription) => subscription.events
+      .map((received) => received.event)
       .distinctUnique()
       .timeout(Duration(seconds: kMaxWaitingTimeForConnectionSeconds));
 

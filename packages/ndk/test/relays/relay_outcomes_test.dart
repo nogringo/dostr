@@ -242,7 +242,7 @@ void notSentEndTests() {
           connected.url: RelayRequestOutcome(RelayRequestStatus.eose),
           connecting.url: RelayRequestOutcome(RelayRequestStatus.eose),
         });
-        expect(received.map((e) => e.id), contains(connectingNote.id));
+        expect(received.map((e) => e.event.id), contains(connectingNote.id));
       },
     );
   });

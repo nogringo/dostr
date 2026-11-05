@@ -100,7 +100,15 @@ class BroadcastSender {
             : cleanRelayUrls(specificRelays.toList()).toSet(),
       ),
     );
-    return publish.response;
+    return NdkBroadcastResponse(
+      publishEvent: publish.event,
+      broadcastDoneStream: publish.outcomesStream.map(
+        (outcomes) => outcomes.values.toList(),
+      ),
+      broadcastDoneFuture: publish.done.then(
+        (outcomes) => outcomes.values.toList(),
+      ),
+    );
   }
 
   Future<void> _send(

@@ -76,6 +76,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     );
 
     subscription!.events
+        .map((received) => received.event)
         .where((event) => _seenResponseIds.add(event.id))
         .listen(onEvent);
   }

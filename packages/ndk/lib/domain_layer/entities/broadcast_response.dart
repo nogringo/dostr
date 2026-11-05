@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'broadcast_state.dart';
-import 'nip_01_event.dart';
+import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 
 /// the response to a low level broadcast request
 class NdkBroadcastResponse {

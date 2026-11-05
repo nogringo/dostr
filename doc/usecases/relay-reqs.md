@@ -55,14 +55,17 @@ Each relay takes one `send`. Its filters travel in a single REQ, since a second
 REQ with the same id replaces the first on the relay.
 
 A relay can still be added after `seal()` while the request runs: it then has
-to answer too before the request ends. Once the request is over, `send` sends
-nothing and returns `false`.
+to answer too before the request ends. `send` returns `false` and sends nothing
+once the request is over, for a url that is not a relay's, and for a relay the
+request was already sent to.
 
 ## What you get
 
 - Events are signature-checked, and invalid ones are dropped.
-- Events are not deduplicated: an event two relays hold arrives twice, each
-  copy with its relay in `sources`. `events.distinctUnique()` from rxdart keeps
+- Each event comes as a `RelayReqEvent`: the `event`, and the `relayUrl` that
+  sent it.
+- Events are not deduplicated: an event two relays hold arrives twice, once
+  from each. `events.map((e) => e.event).distinctUnique()` from rxdart keeps
   each one once.
 - `events` is a single-subscription stream.
 - `auth` takes the same `AuthPolicy` as [Requests](requests.md).

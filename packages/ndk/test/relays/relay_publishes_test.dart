@@ -55,13 +55,10 @@ void main() {
 
       final responses = await ndk.relayPublishes
           .publish(note, relays: [relayA.url, relayB.url, relayA.url])
-          .broadcastDoneFuture;
+          .done;
 
-      expect(
-        responses.map((r) => r.relayUrl),
-        unorderedEquals([relayA.url, relayB.url]),
-      );
-      expect(responses.every((r) => r.broadcastSuccessful), isTrue);
+      expect(responses.keys, unorderedEquals([relayA.url, relayB.url]));
+      expect(responses.values.every((r) => r.broadcastSuccessful), isTrue);
       expect(received(relayA, note), 1);
       expect(received(relayB, note), 1);
       expect(await ndk.config.cache.loadEvent(note.id), isNull);
@@ -70,16 +67,16 @@ void main() {
     test('a relay nothing listens on is reported as failed', () async {
       final responses = await ndk.relayPublishes
           .publish(signedNote(), relays: [relayA.url])
-          .broadcastDoneFuture;
+          .done;
 
-      expect(responses.single.broadcastSuccessful, isFalse);
-      expect(responses.single.msg, 'could not connect');
+      expect(responses[relayA.url]!.broadcastSuccessful, isFalse);
+      expect(responses[relayA.url]!.msg, 'could not connect');
     });
 
     test('no relay at all is done right away', () async {
       final responses = await ndk.relayPublishes
           .publish(signedNote(), relays: const [])
-          .broadcastDoneFuture;
+          .done;
 
       expect(responses, isEmpty);
     });

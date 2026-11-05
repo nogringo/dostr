@@ -10,7 +10,7 @@ export 'presentation_layer/ndk_config.dart';
 export 'package:ndk_core/ndk_core.dart' show packageVersion;
 export 'domain_layer/entities/ndk_request.dart';
 export 'domain_layer/entities/request_response.dart';
-export 'package:ndk_core/domain_layer/entities/broadcast_response.dart';
+export 'domain_layer/entities/broadcast_response.dart';
 
 /**
  * common entities
@@ -79,6 +79,7 @@ export "domain_layer/usecases/jit_engine/jit_engine.dart";
 export "package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart";
 export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
     show RelayReqs, RelayReq;
+export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
 export "domain_layer/usecases/requests/requests.dart";
 export "domain_layer/usecases/follows/follows.dart";
 export 'domain_layer/usecases/metadatas/metadatas.dart';

@@ -37,9 +37,8 @@ void main() {
       final req = reqs.req(relays: {relay.url: notes});
       final events = await req.events.toList();
 
-      expect(events.map((e) => e.id), [note.id]);
-      // ignore: deprecated_member_use_from_same_package
-      expect(events.single.sources, [relay.url]);
+      expect(events.map((e) => e.event.id), [note.id]);
+      expect(events.single.relayUrl, relay.url);
       expect(await req.done, {
         relay.url: const RelayRequestOutcome(RelayRequestStatus.eose),
       });
@@ -61,10 +60,9 @@ void main() {
           .events
           .toList();
 
-      expect(events.map((e) => e.id), [note.id, note.id]);
+      expect(events.map((e) => e.event.id), [note.id, note.id]);
       expect(
-        // ignore: deprecated_member_use_from_same_package
-        events.map((e) => e.sources.single),
+        events.map((e) => e.relayUrl),
         unorderedEquals([first.url, second.url]),
       );
       expect(verifier.verifications, 1);
@@ -83,7 +81,7 @@ void main() {
 
       final events = await reqs.req(relays: {relay.url: notes}).events.toList();
 
-      expect(events.map((e) => e.content), ['good']);
+      expect(events.map((e) => e.event.content), ['good']);
     });
 
     test('ends on its timeout when a relay never answers', () async {
@@ -138,14 +136,18 @@ void main() {
       expect(req.send(relay.url, notes), isFalse);
     });
 
-    test('sends to each relay once', () async {
+    test('sends to each relay once, and only to relays', () async {
       final relay = await startRelay();
       final req = reqs.req();
       req.events.listen((_) {});
 
-      req.send(relay.url, notes);
+      expect(req.send(relay.url, notes), isTrue);
+      expect(req.send('${relay.url}/', notes), isFalse);
+      expect(req.send('https://relay.example', notes), isFalse);
 
-      expect(() => req.send('${relay.url}/', notes), throwsStateError);
+      await eventually(() => relay.received('REQ').isNotEmpty);
+      expect(relay.received('REQ'), hasLength(1));
+      expect(req.outcomes.keys, [relay.url]);
       await req.close();
     });
 
@@ -166,13 +168,13 @@ void main() {
       final relay = await startRelay();
       final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
       final received = <Nip01Event>[];
-      req.events.listen(received.add);
+      req.events.listen((e) => received.add(e.event));
       await eventually(() => subscribed(relay, req));
 
       final live = signedEvent(content: 'live');
       await RelayPublishes(
         relayManager: manager,
-      ).publish(live, relays: [relay.url]).broadcastDoneFuture;
+      ).publish(live, relays: [relay.url]).done;
       await eventually(() => received.isNotEmpty);
       expect(received.single.id, live.id);
 
@@ -192,7 +194,7 @@ void main() {
         closeOnEose: false,
       );
       final received = <Nip01Event>[];
-      req.events.listen(received.add);
+      req.events.listen((e) => received.add(e.event));
 
       await eventually(
         () => req.outcomes[caughtUp.url]?.status == RelayRequestStatus.eose,
@@ -228,7 +230,7 @@ void main() {
       final relay = await startRelay();
       final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
       final received = <Nip01Event>[];
-      req.events.listen(received.add);
+      req.events.listen((e) => received.add(e.event));
       await eventually(() => subscribed(relay, req));
 
       await relay.dropConnections();

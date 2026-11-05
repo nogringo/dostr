@@ -185,9 +185,9 @@ void main() {
               relays: [relay.url],
               auth: AuthPolicy.allow(fakeAccount(bob)),
             )
-            .broadcastDoneFuture;
+            .done;
 
-        expect(responses.single.broadcastSuccessful, isTrue);
+        expect(responses.values.single.broadcastSuccessful, isTrue);
         expect(relay.events.single.id, event.id);
         expect(relay.clients.last.authenticatedAs, bob);
         expect(relay.clients.first.receivedOfType('AUTH'), isEmpty);
@@ -203,11 +203,11 @@ void main() {
             relays: [relay.url],
             auth: const AuthPolicy.never(),
           )
-          .broadcastDoneFuture;
+          .done;
 
-      expect(responses.single.broadcastSuccessful, isFalse);
+      expect(responses.values.single.broadcastSuccessful, isFalse);
       expect(
-        responses.single.msg,
+        responses.values.single.msg,
         'auth-required: this broadcast may not reveal an identity',
       );
       expect(relay.received('AUTH'), isEmpty);
@@ -222,9 +222,9 @@ void main() {
             relays: [relay.url],
             auth: AuthPolicy.require(fakeAccount(bob)),
           )
-          .broadcastDoneFuture;
+          .done;
 
-      expect(responses.single.broadcastSuccessful, isTrue);
+      expect(responses.values.single.broadcastSuccessful, isTrue);
       expect(relay.clients, hasLength(1));
     });
   });

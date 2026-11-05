@@ -18,7 +18,6 @@ import '../../src/global_state.dart';
 import '../../src/request_state.dart';
 import '../entities/account.dart';
 import '../entities/auth_handler.dart';
-import '../entities/broadcast_response.dart';
 import '../entities/broadcast_state.dart';
 import '../entities/filter.dart';
 import '../entities/nip_01_event.dart';
@@ -28,6 +27,7 @@ import '../entities/auth_policy.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_protocol_handler.dart';
+import '../entities/relay_req_event.dart';
 import '../entities/relay_request_outcome.dart';
 import '../repositories/auth_accounts.dart';
 import '../repositories/event_verifier.dart';
@@ -1207,17 +1207,13 @@ class RelayManager {
         return;
       }
 
-      final eventWithSources = event.copyWith(
-        sources: [...event.sources, connectivity.url],
-      );
-
       if (state.networkController.isClosed) {
         // this might happen because relays even after we send a CLOSE subscription.id, they'll still send more events
         Logger.log.t(
           () => "tried to add event to an already closed STREAM ${state.id}",
         );
       } else {
-        state.networkController.add(eventWithSources);
+        state.networkController.add(RelayReqEvent(event, connectivity.url));
       }
     }
   }

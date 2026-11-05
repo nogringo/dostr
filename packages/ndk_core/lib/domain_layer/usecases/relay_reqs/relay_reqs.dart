@@ -93,12 +93,12 @@ class RelayReqs {
 
 /// One REQ on the relays its caller picked, opened by [RelayReqs.req].
 ///
-/// [events] are verified and carry their relay in [Nip01Event.sources]. They
-/// are not deduplicated: an event two relays hold arrives twice.
+/// [events] are verified, each with the relay that sent it. They are not
+/// deduplicated: an event two relays hold arrives twice.
 class RelayReq {
   final RequestState _state;
   final RelayManager _relayManager;
-  late final StreamController<Nip01Event> _events = StreamController(
+  late final StreamController<RelayReqEvent> _events = StreamController(
     onCancel: close,
   );
   late final Future<Map<String, RelayRequestOutcome>> _done;
@@ -121,21 +121,33 @@ class RelayReq {
     open[id] = this;
     _done = _state.ended.then((_) => _state.relayOutcomes);
 
-    VerifyEventStream(
-      unverifiedStreamInput: _state.networkController.stream,
-      eventVerifier: eventVerifier,
-      verifiedEventCache: verifiedEventCache,
-    )().listen(
-      (event) {
-        if (!_events.isClosed) _events.add(event);
-      },
-      onDone: () {
-        unawaited(_events.close());
-        _state.end();
-        if (identical(inFlight[id], _state)) inFlight.remove(id);
-        if (identical(open[id], this)) open.remove(id);
-      },
-    );
+    _state.networkController.stream
+        .flatMap(
+          (received) => Stream.fromFuture(
+            verifyEvent(
+              received.event,
+              eventVerifier: eventVerifier,
+              cache: verifiedEventCache,
+            ).then(
+              (verified) => verified == null
+                  ? null
+                  : RelayReqEvent(verified, received.relayUrl),
+            ),
+          ),
+          maxConcurrent: 100,
+        )
+        .whereType<RelayReqEvent>()
+        .listen(
+          (event) {
+            if (!_events.isClosed) _events.add(event);
+          },
+          onDone: () {
+            unawaited(_events.close());
+            _state.end();
+            if (identical(inFlight[id], _state)) inFlight.remove(id);
+            if (identical(open[id], this)) open.remove(id);
+          },
+        );
   }
 
   /// NIP-01 subscription id
@@ -144,7 +156,7 @@ class RelayReq {
   bool get closeOnEose => _state.closeOnEose;
 
   /// Single-subscription: cancelling it closes the request, like [close].
-  Stream<Nip01Event> get events => _events.stream;
+  Stream<RelayReqEvent> get events => _events.stream;
 
   /// Where the request stands on each relay so far, keyed by relay url. A
   /// subscription shows [RelayRequestStatus.eose] on a relay that caught up.
@@ -161,20 +173,20 @@ class RelayReq {
   bool get timedOut => _state.timedOut;
 
   /// Sends [filters] to [relayUrl] on the connection the request's
-  /// [AuthPolicy] allows, and says whether it went out: once the request is
-  /// over, nothing is sent. One call per relay.
+  /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
+  /// the request is over, to a url that is not a relay's, nor twice to a relay.
   ///
   /// A relay sent to after [seal] still has to answer before the request ends.
   bool send(String relayUrl, List<Filter> filters) {
-    if (!_relayManager._isStillInFlight(_state) ||
-        _state.networkController.isClosed) {
+    final url = cleanRelayUrl(relayUrl);
+    if (url == null ||
+        !_relayManager._isStillInFlight(_state) ||
+        _state.networkController.isClosed ||
+        !_sentTo.add(url)) {
       return false;
     }
-    if (!_sentTo.add(RelayConnectionKey.anonymous(relayUrl).url)) {
-      throw StateError('$id was already sent to $relayUrl');
-    }
     unawaited(
-      _relayManager._sendRequestToRelay(_state, relayUrl, [
+      _relayManager._sendRequestToRelay(_state, url, [
         for (final filter in filters) filter.clone(),
       ]),
     );

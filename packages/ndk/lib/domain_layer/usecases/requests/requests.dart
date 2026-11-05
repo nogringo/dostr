@@ -477,8 +477,12 @@ class Requests {
     final cacheEvents = StreamController<Nip01Event>();
     final sentFilters = <String, List<Filter>>{};
 
+    // sources is deprecated for apps, but the cache provenance and the fetched
+    // ranges below still read it
     final networkEvents = _prepareNetworkStream(
-      relayReq.events,
+      relayReq.events.map(
+        (received) => received.event.copyWith(sources: [received.relayUrl]),
+      ),
       writeToCache: request.cacheWrite,
     );
 

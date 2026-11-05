@@ -74,9 +74,9 @@ void main() {
       );
       final events = await req.events.toList();
 
-      expect(events.map((e) => e.id), [note.id, note.id]);
+      expect(events.map((e) => e.event.id), [note.id, note.id]);
       expect(
-        events.expand((e) => e.sources),
+        events.map((e) => e.relayUrl),
         unorderedEquals([relayA.url, relayB.url]),
       );
       expect(await req.done, {
@@ -121,8 +121,8 @@ void main() {
         closeOnEose: false,
       );
       final received = Completer<Nip01Event>();
-      req.events.listen((event) {
-        if (!received.isCompleted) received.complete(event);
+      req.events.listen((e) {
+        if (!received.isCompleted) received.complete(e.event);
       });
       await _waitUntil(
         () => relayA.activeSubscriptionCount == 1,
@@ -206,7 +206,7 @@ void main() {
       final req = ndk.relayReqs.req();
 
       expect(req.send(relayA.url, [filter]), isTrue);
-      expect(() => req.send(relayA.url, [filter]), throwsStateError);
+      expect(req.send(relayA.url, [filter]), isFalse);
       req.seal();
       expect(req.send(relayB.url, [filter]), isTrue);
 

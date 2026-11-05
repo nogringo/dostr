@@ -28,10 +28,10 @@ void main() {
 
     final responses = await publishes
         .publish(event, relays: [first.url, second.url])
-        .broadcastDoneFuture;
+        .done;
 
     expect(
-      responses.map(summary),
+      responses.values.map(summary),
       unorderedEquals([
         (first.url, true, true, ''),
         (second.url, true, true, ''),
@@ -46,9 +46,11 @@ void main() {
 
     final responses = await publishes
         .publish(signedEvent(), relays: [relay.url])
-        .broadcastDoneFuture;
+        .done;
 
-    expect(responses.map(summary), [(relay.url, true, false, 'blocked: spam')]);
+    expect(responses.values.map(summary), [
+      (relay.url, true, false, 'blocked: spam'),
+    ]);
   });
 
   test('fails a relay it cannot connect to', () async {
@@ -57,9 +59,9 @@ void main() {
 
     final responses = await publishes
         .publish(signedEvent(), relays: [blocked])
-        .broadcastDoneFuture;
+        .done;
 
-    expect(responses.map(summary), [
+    expect(responses.values.map(summary), [
       (blocked, false, false, 'could not connect'),
     ]);
   });
@@ -76,7 +78,7 @@ void main() {
   test('is done right away without relays', () async {
     final responses = await publishes
         .publish(signedEvent(), relays: [])
-        .broadcastDoneFuture
+        .done
         .timeout(const Duration(seconds: 2));
 
     expect(responses, isEmpty);
@@ -87,7 +89,7 @@ void main() {
 
     await publishes
         .publish(signedEvent(), relays: [relay.url, '${relay.url}/'])
-        .broadcastDoneFuture;
+        .done;
 
     expect(relay.received('EVENT'), hasLength(1));
   });
@@ -97,14 +99,14 @@ void main() {
     final event = signedEvent();
 
     final broadcasts = [
-      publishes.publish(event, relays: [relay.url]).broadcastDoneFuture,
-      publishes.publish(event, relays: [relay.url]).broadcastDoneFuture,
+      publishes.publish(event, relays: [relay.url]).done,
+      publishes.publish(event, relays: [relay.url]).done,
     ];
     expect(manager.isBroadcasting(event.id), isTrue);
     final responses = await Future.wait(broadcasts);
 
     for (final response in responses) {
-      expect(response.single.broadcastSuccessful, isTrue);
+      expect(response.values.single.broadcastSuccessful, isTrue);
     }
     expect(manager.isBroadcasting(event.id), isFalse);
   });
@@ -119,11 +121,13 @@ void main() {
           relays: [fast.url, silent.url],
           considerDonePercent: 0.5,
         )
-        .broadcastDoneFuture
+        .done
         .timeout(const Duration(seconds: 3));
 
     expect(
-      responses.where((r) => r.broadcastSuccessful).map((r) => r.relayUrl),
+      responses.values
+          .where((r) => r.broadcastSuccessful)
+          .map((r) => r.relayUrl),
       [fast.url],
     );
   });
@@ -137,9 +141,9 @@ void main() {
           relays: [silent.url],
           timeout: const Duration(milliseconds: 500),
         )
-        .broadcastDoneFuture;
+        .done;
 
-    expect(responses.single.okReceived, isFalse);
+    expect(responses.values.single.okReceived, isFalse);
     expect(silent.events, hasLength(1));
   });
 
@@ -161,9 +165,9 @@ void main() {
       publish.start(event);
       expect(publish.send(relay.url), isTrue);
       publish.seal();
-      final responses = await publish.response.broadcastDoneFuture;
+      final responses = await publish.done;
 
-      expect(responses.single.broadcastSuccessful, isTrue);
+      expect(responses.values.single.broadcastSuccessful, isTrue);
       expect(relay.events.single.sig, event.sig);
       expect(manager.isBroadcasting(event.id), isFalse);
     });
@@ -176,7 +180,7 @@ void main() {
 
       publish.send(first.url);
       publish.seal();
-      await publish.response.broadcastDoneFuture;
+      await publish.done;
 
       expect(publish.send(late.url), isFalse);
       expect(late.received('EVENT'), isEmpty);
@@ -189,10 +193,28 @@ void main() {
 
       expect(publish.send(relay.url), isTrue);
       expect(publish.send('${relay.url}/'), isFalse);
+      expect(publish.send('https://relay.example'), isFalse);
       publish.seal();
-      await publish.response.broadcastDoneFuture;
+      await publish.done;
 
       expect(relay.received('EVENT'), hasLength(1));
+      expect(publish.outcomes.keys, [relay.url]);
+    });
+
+    test('reports the OK of each relay as it comes', () async {
+      final relay = await startRelay();
+      final event = signedEvent();
+      final publish = publishes.open(event)..start(event);
+      final updates = publish.outcomesStream.toList();
+
+      publish.send(relay.url);
+      expect(publish.outcomes[relay.url]!.okReceived, isFalse);
+      publish.seal();
+      final outcomes = await publish.done;
+
+      expect(outcomes[relay.url]!.broadcastSuccessful, isTrue);
+      expect(publish.outcomes, outcomes);
+      expect((await updates).last[relay.url]!.broadcastSuccessful, isTrue);
     });
 
     test('cannot be sent before it is started', () {
@@ -222,10 +244,10 @@ void main() {
       publish.send(relay.url);
       publish.seal();
       expect(manager.isBroadcasting(asked.id), isTrue);
-      final responses = await publish.response.broadcastDoneFuture;
+      final responses = await publish.done;
 
       expect(relay.events.single.id, signed.id);
-      expect(responses.single.broadcastSuccessful, isTrue);
+      expect(responses.values.single.broadcastSuccessful, isTrue);
       expect(manager.isBroadcasting(asked.id), isFalse);
       expect(manager.isBroadcasting(signed.id), isFalse);
     });
@@ -236,10 +258,7 @@ void main() {
 
       publish.fail(StateError('signer refused'));
 
-      await expectLater(
-        publish.response.broadcastDoneFuture,
-        throwsA(isA<StateError>()),
-      );
+      await expectLater(publish.done, throwsA(isA<StateError>()));
       expect(manager.isBroadcasting(event.id), isFalse);
     });
   });

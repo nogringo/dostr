@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
 import '../domain_layer/entities/filter.dart';
-import '../domain_layer/entities/nip_01_event.dart';
 import '../domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_req_event.dart';
 import '../domain_layer/entities/relay_request_outcome.dart';
 
 /// Single relay request state
@@ -136,8 +136,8 @@ class RelayRequestState {
 /// State per request for multiple relays
 class RequestState implements TimeoutPausable {
   /// [networkController] used by engines to write their response
-  StreamController<Nip01Event> networkController =
-      StreamController<Nip01Event>();
+  StreamController<RelayReqEvent> networkController =
+      StreamController<RelayReqEvent>();
 
   final Completer<void> _ended = Completer<void>();
 

@@ -16,7 +16,7 @@ class RelayPublishes {
   /// It is done once every relay answered or failed, once [considerDonePercent]
   /// of them accepted the event, or after [timeout], not counting NIP-42
   /// authentication.
-  NdkBroadcastResponse publish(
+  RelayPublish publish(
     Nip01Event event, {
     required Iterable<String> relays,
     AuthPolicy? auth,
@@ -26,15 +26,15 @@ class RelayPublishes {
     if (event.sig == null) {
       throw ArgumentError.value(event.id, 'event', 'must be signed');
     }
-    final publish = open(
+    final relayPublish = open(
       event,
       auth: auth,
       timeout: timeout,
       considerDonePercent: considerDonePercent,
     )..start(event);
-    relays.forEach(publish.send);
-    publish.seal();
-    return publish.response;
+    relays.forEach(relayPublish.send);
+    relayPublish.seal();
+    return relayPublish;
   }
 
   /// Opens the publish of [event], which may still have to be signed: it counts
@@ -58,7 +58,8 @@ class RelayPublishes {
   );
 }
 
-/// One EVENT on the relays its caller picked, opened by [RelayPublishes.open].
+/// One EVENT on the relays its caller picked, opened by [RelayPublishes.open]
+/// or [RelayPublishes.publish].
 class RelayPublish {
   /// the event as it was opened, signed or not
   final Nip01Event event;
@@ -68,16 +69,24 @@ class RelayPublish {
   final Set<String> _sentTo = {};
   Nip01Event? _signed;
 
-  /// The OK of each relay, as they come and once the publish is done.
-  late final NdkBroadcastResponse response = NdkBroadcastResponse(
-    publishEvent: event,
-    broadcastDoneStream: _state.stateUpdates.map(
-      (state) => state.broadcasts.values.toList(),
-    ),
-    broadcastDoneFuture: _state.publishDoneFuture.then(
-      (state) => state.broadcasts.values.toList(),
-    ),
-  );
+  /// The OK of each relay so far, keyed by relay url. A relay that did not
+  /// answer yet has neither [RelayBroadcastResponse.okReceived] nor a message.
+  Map<String, RelayBroadcastResponse> get outcomes => _outcomesOf(_state);
+
+  /// [outcomes] each time a relay answers, closed once the publish is done.
+  Stream<Map<String, RelayBroadcastResponse>> get outcomesStream =>
+      _state.stateUpdates.map(_outcomesOf);
+
+  /// [outcomes] once the publish is done, see [RelayPublishes.publish]. Fails
+  /// with the error the publish was [fail]ed on.
+  // late: an unawaited failure would otherwise surface as an uncaught error
+  late final Future<Map<String, RelayBroadcastResponse>> done = _state
+      .publishDoneFuture
+      .then(_outcomesOf);
+
+  static Map<String, RelayBroadcastResponse> _outcomesOf(
+    BroadcastState state,
+  ) => Map.unmodifiable(state.broadcasts);
 
   RelayPublish._(this.event, this._state, this._relayManager) {
     _relayManager._trackBroadcast(event.id, _state);
