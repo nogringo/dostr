@@ -159,7 +159,6 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
       );
 
       final requestEvent = Nip01Event(
-        createdAt: 0,
         pubKey: localEventSigner.getPublicKey(),
         kind: BunkerRequest.kKind,
         tags: [

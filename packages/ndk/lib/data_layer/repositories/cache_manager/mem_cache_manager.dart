@@ -704,12 +704,13 @@ class MemCacheManager implements CacheManager {
             tagKey = tagKey.substring(1);
           }
 
-          final eventTagValues = event.getTags(tagKey);
+          final eventTagValues = event
+              .getTags(tagKey)
+              .map((value) => value.trim().toLowerCase())
+              .toSet();
 
           return tagValues.any(
-            (value) =>
-                eventTagValues.contains(value) ||
-                eventTagValues.contains(value.toLowerCase()),
+            (value) => eventTagValues.contains(value.toLowerCase()),
           );
         });
         if (!matchesTags) {

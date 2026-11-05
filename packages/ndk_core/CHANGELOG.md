@@ -186,3 +186,13 @@ with no relay in its outcomes. In `ndk`, `Requests` asks neither the cache nor
 the relays for such a filter, and every cache manager reads and removes nothing
 for an empty list, where it used to ignore it. An empty tag list no longer
 means "has this tag".
+
+#### Events
+
+A `created_at` of 0 is kept. `Nip01Event` used to read it as "now", which
+rewrote the `created_at` of an event received with 0 and made its id invalid.
+Leave `createdAt` out to get the current time.
+
+`Nip01Event.getTags`, `pTags`, `tTags` and `replyETags` return the values as
+the event holds them, where they used to trim and lowercase them. The cache
+managers of `ndk` still match tags regardless of case.

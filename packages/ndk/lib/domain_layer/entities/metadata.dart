@@ -219,7 +219,7 @@ class Metadata {
       content: jsonEncode(content),
       kind: kKind,
       tags: tags,
-      createdAt: updatedAt ?? 0,
+      createdAt: updatedAt,
     );
   }
 

@@ -44,12 +44,30 @@ void main() {
       expect(Nip01Utils.isIdValid(changed), isFalse);
     });
 
-    test('takes the current time when created at 0', () {
+    test('takes the current time when created_at is omitted', () {
       final before = Nip01Event.secondsSinceEpoch();
 
       final event = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
 
       expect(event.createdAt, greaterThanOrEqualTo(before));
+    });
+
+    test('keeps a created_at of 0', () {
+      final event = Nip01Event(
+        pubKey: alice,
+        createdAt: 0,
+        kind: 1,
+        tags: [],
+        content: '',
+      );
+
+      expect(event.createdAt, 0);
+      expect(
+        event.id,
+        sha256
+            .convert(utf8.encode(jsonEncode([0, alice, 0, 1, [], ''])))
+            .toString(),
+      );
     });
 
     test('events with the same id are equal', () {
@@ -78,8 +96,24 @@ void main() {
       expect(event.replyETags, ['parent']);
       expect(event.pTags, [bob]);
       expect(event.getDtag(), 'slug');
-      expect(event.tTags, ['nostr']);
+      expect(event.tTags, ['Nostr']);
       expect(event.getFirstTag('x'), isNull);
+    });
+
+    test('getTags keeps values as the event holds them', () {
+      final event = Nip01Event(
+        pubKey: alice,
+        kind: 1,
+        tags: [
+          ['d', 'MyList'],
+          ['d', ' padded '],
+          ['e', 'Parent', '', 'reply'],
+        ],
+        content: '',
+      );
+
+      expect(event.getTags('d'), ['MyList', ' padded ']);
+      expect(event.replyETags, ['Parent']);
     });
   });
 
@@ -101,6 +135,25 @@ void main() {
       expect(decoded.sig, event.sig);
       expect(decoded.tags, event.tags);
       expect(decoded.validSig, isNull);
+    });
+
+    test('an event created at 0 keeps its created_at and a valid id', () {
+      final id = sha256
+          .convert(utf8.encode(jsonEncode([0, alice, 0, 1, [], ''])))
+          .toString();
+
+      final decoded = Nip01EventModel.fromJson({
+        'id': id,
+        'pubkey': alice,
+        'created_at': 0,
+        'kind': 1,
+        'tags': [],
+        'content': '',
+        'sig': fakeSig,
+      });
+
+      expect(decoded.createdAt, 0);
+      expect(Nip01Utils.isIdValid(decoded), isTrue);
     });
   });
 }

@@ -97,7 +97,7 @@ Nip01Event signedEvent({
   int kind = 1,
   String content = '',
   List<List<String>> tags = const [],
-  int createdAt = 0,
+  int? createdAt,
 }) => Nip01Event(
   pubKey: pubKey ?? alice,
   kind: kind,

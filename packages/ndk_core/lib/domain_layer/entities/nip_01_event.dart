@@ -45,11 +45,9 @@ class Nip01Event {
     required this.content,
     this.sig,
     this.validSig,
-    int createdAt = 0,
+    int? createdAt,
   }) {
-    this.createdAt = (createdAt == 0)
-        ? DateTime.now().millisecondsSinceEpoch ~/ 1000
-        : createdAt;
+    this.createdAt = createdAt ?? secondsSinceEpoch();
     this.id =
         id ??
         Nip01Utils.calculateEventIdSync(
@@ -100,7 +98,7 @@ class Nip01Event {
     return getFirstTag("e");
   }
 
-  /// return all tags that match given `tag` e.g. 'p'
+  /// values of all tags named [tag], e.g. 'p', exactly as the event holds them
   List<String> getTags(String tag) {
     List<String> foundTags = [];
     for (final e in tags) {
@@ -109,7 +107,7 @@ class Nip01Event {
         final value = e[1];
 
         if (key == tag) {
-          foundTags.add(value.toString().trim().toLowerCase());
+          foundTags.add(value);
         }
       }
     }
@@ -136,7 +134,7 @@ class Nip01Event {
         final marker = tag[3];
 
         if (key == "e" && marker == "reply") {
-          replyIds.add(value.toString().trim().toLowerCase());
+          replyIds.add(value);
         }
       }
     }

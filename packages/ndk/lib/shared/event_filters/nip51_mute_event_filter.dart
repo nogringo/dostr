@@ -40,7 +40,7 @@ class Nip51MuteEventFilter extends EventFilter {
     List<String> tTags = event.tTags;
     return tTags.isNotEmpty &&
         _mutedTags != null &&
-        tTags.any((tag) => _mutedTags!.contains(tag));
+        tTags.any((tag) => _mutedTags!.contains(tag.trim().toLowerCase()));
   }
 
   @override

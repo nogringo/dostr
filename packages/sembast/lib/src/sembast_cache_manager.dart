@@ -673,7 +673,10 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
             tagName = tagName.substring(1);
           }
 
-          final eventTags = event.getTags(tagName);
+          final eventTags = event
+              .getTags(tagName)
+              .map((value) => value.trim().toLowerCase())
+              .toSet();
 
           return tagValues.any(
             (value) => eventTags.contains(value.toLowerCase()),
@@ -887,7 +890,10 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
             tagName = tagName.substring(1);
           }
 
-          final eventTags = event.getTags(tagName);
+          final eventTags = event
+              .getTags(tagName)
+              .map((value) => value.trim().toLowerCase())
+              .toSet();
 
           return tagValues.any(
             (value) => eventTags.contains(value.toLowerCase()),

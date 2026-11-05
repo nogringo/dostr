@@ -385,7 +385,9 @@ class EventEvictionPlanner {
 
     for (final event in deletionEvents) {
       if (event.pubKey != target.pubKey) continue;
-      if (event.getTags('e').contains(target.id.toLowerCase())) {
+      if (event
+          .getTags('e')
+          .any((id) => id.trim().toLowerCase() == target.id.toLowerCase())) {
         return true;
       }
       if (conflictKey != null &&

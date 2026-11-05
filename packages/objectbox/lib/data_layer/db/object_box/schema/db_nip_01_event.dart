@@ -10,12 +10,8 @@ class DbNip01Event {
     required this.kind,
     required this.content,
     required this.nostrId,
-    int createdAt = 0,
-  }) {
-    this.createdAt = (createdAt == 0)
-        ? DateTime.now().millisecondsSinceEpoch ~/ 1000
-        : createdAt;
-  }
+    required this.createdAt,
+  });
 
   @Id()
   int dbId = 0;
@@ -27,7 +23,7 @@ class DbNip01Event {
   final String pubKey;
 
   @Property()
-  late int createdAt;
+  int createdAt;
 
   @Property()
   final int kind;
