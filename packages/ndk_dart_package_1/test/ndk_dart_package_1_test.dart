@@ -395,6 +395,68 @@ void main() {
 
       expect((await fetcher.watch(alice).first).id, current.id);
     }, timeout: const Timeout(Duration(seconds: 5)));
+
+    test('looks up a pubkey watched twice at the same time once', () async {
+      final current = relayList([]);
+      final relay = LocalRelay([current]);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = Nip65Fetcher(reqs: reqs, relays: [relay.url]);
+
+      final lists = await Future.wait([
+        fetcher.fetch(alice),
+        fetcher.fetch(alice),
+      ]);
+
+      expect([for (final list in lists) list?.id], [current.id, current.id]);
+      expect(relay.reqCount, 1);
+    });
+
+    test('reuses a lookup that finished less than maxAge ago', () async {
+      final current = relayList([]);
+      final relay = LocalRelay([current]);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = Nip65Fetcher(reqs: reqs, relays: [relay.url]);
+
+      await fetcher.fetch(alice);
+
+      expect((await fetcher.fetch(alice))?.id, current.id);
+      expect(relay.reqCount, 1);
+    });
+
+    test('looks up again once maxAge passed', () async {
+      final relay = LocalRelay([relayList([])]);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [relay.url],
+        maxAge: Duration.zero,
+      );
+
+      await fetcher.fetch(alice);
+      await fetcher.fetch(alice);
+
+      expect(relay.reqCount, 2);
+    });
+
+    test('keeps looking up after its last watcher left', () async {
+      final current = relayList([]);
+      final relay = LocalRelay([current]);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [relay.url, await startSilentRelay()],
+        timeout: const Duration(milliseconds: 500),
+      );
+
+      await fetcher.watch(alice).first;
+
+      expect((await fetcher.fetch(alice))?.id, current.id);
+      expect(relay.reqCount, 1);
+    });
   });
 
   group('MetadataFetcher', () {
