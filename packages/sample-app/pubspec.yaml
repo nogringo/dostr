@@ -43,7 +43,8 @@ dependencies:
   ndk: 0.7.0
   ndk_core: ^0.11.0-dev.2
   ndk_flutter: ^0.0.2-dev.2
-  ndk_rust: ^0.1.0
+  ndk_rust_verifier: ^0.6.0
+  ndk_pq: ^0.1.0
   ndk_drift: ^0.0.2-dev.0+1
   ndk_cashu: ^0.1.0
   ndk_nwc: ^0.1.0
@@ -85,8 +86,10 @@ dependency_overrides:
     path: ../nip49
   ndk_nip77:
     path: ../nip77
-  ndk_rust:
-    path: ../rust
+  ndk_rust_verifier:
+    path: ../rust_verifier
+  ndk_pq:
+    path: ../pq
   ndk_url_set:
     path: ../url_set
   ndk_fetchers:

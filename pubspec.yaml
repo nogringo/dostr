@@ -16,7 +16,8 @@ workspace:
   - packages/nip44
   - packages/nip49
   - packages/nip77
-  - packages/rust
+  - packages/rust_verifier
+  - packages/pq
   - packages/ndk_cache_manager_test_suite
   - packages/objectbox
   - packages/sembast

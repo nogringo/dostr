@@ -11,7 +11,7 @@ void main() async {
       // Configure the Ndk instance using NdkConfig
       NdkConfig(
         // Use Bip340EventVerifier for event verification
-        // in production RustEventVerifier() from ndk_rust is recommended
+        // in production RustEventVerifier() from ndk_rust_verifier is recommended
         eventVerifier: Bip340EventVerifier(),
 
         // Use in-memory cache for storing Nostr data

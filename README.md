@@ -41,9 +41,13 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip77`: NIP-77 negentropy sync on top of `ndk_core`, with the Negentropy V1 codec.
 
-### [🔗 Rust](./packages/rust/)
+### [🔗 Rust verifier](./packages/rust_verifier/)
 
-`ndk_rust`: native Rust event verifier, ML-DSA event signer and verifier, and post-quantum hybrid encryption, through FFI. Needs the Rust toolchain.
+`ndk_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI. Needs the Rust toolchain.
+
+### [🔗 Post-quantum](./packages/pq/)
+
+`ndk_pq`: ML-DSA event signer and verifier, and post-quantum hybrid encryption, in native Rust through FFI. Experimental, needs the Rust toolchain.
 
 ### [🔗 URL sets](./packages/url_set/)
 

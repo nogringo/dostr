@@ -5,10 +5,10 @@ on:
     branches: [master]
   pull_request:
     paths:
-      - packages/rust/lib/src/rust_event_verifier_native.dart
-      - packages/rust/lib/src/rust_lib.dart
-      - packages/rust/rust/**
-      - packages/rust/tool/benchmark_rust_event_verifier.dart
+      - packages/rust_verifier/lib/src/rust_event_verifier_native.dart
+      - packages/rust_verifier/lib/src/rust_lib.dart
+      - packages/rust_verifier/rust/**
+      - packages/rust_verifier/tool/benchmark_rust_event_verifier.dart
       - .github/workflows/rust-event-verifier-benchmark.yml
   workflow_dispatch:
 
@@ -28,7 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: packages/rust
+        working-directory: packages/rust_verifier
     steps:
       - uses: actions/checkout@v7
         with:
@@ -68,7 +68,7 @@ jobs:
         with:
           name: Rust event verifier
           tool: customSmallerIsBetter
-          output-file-path: packages/rust/benchmark-results.json
+          output-file-path: packages/rust_verifier/benchmark-results.json
           github-token: ${{ secrets.GITHUB_TOKEN }}
           gh-pages-branch: benchmark-data
           benchmark-data-dir-path: rust-event-verifier

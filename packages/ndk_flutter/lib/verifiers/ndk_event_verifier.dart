@@ -9,7 +9,7 @@ import 'ndk_event_verifier_stub.dart'
 ///
 /// - On **web**: uses [WebEventVerifier], which leverages native Web Crypto APIs
 ///   for fast signature verification.
-/// - On **native platforms** (Android, iOS, desktop): uses `RustEventVerifier` from `ndk_rust`.
+/// - On **native platforms** (Android, iOS, desktop): uses `RustEventVerifier` from `ndk_rust_verifier`.
 ///
 /// This removes the need for conditional imports or platform checks in
 /// application code.

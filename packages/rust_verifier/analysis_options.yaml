@@ -1,0 +1,5 @@
+analyzer:
+  exclude:
+    - build/**
+    - rust/**
+include: package:lints/recommended.yaml

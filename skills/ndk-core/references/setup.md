@@ -21,7 +21,7 @@ import 'package:ndk/ndk.dart';
 
 final ndk = Ndk(
   NdkConfig(
-    eventVerifier: Bip340EventVerifier(), // or RustEventVerifier() from ndk_rust for better perf
+    eventVerifier: Bip340EventVerifier(), // or RustEventVerifier() from ndk_rust_verifier for better perf
     cache: MemCacheManager(),             // or a persistent cache, see Cache options
   ),
 );
@@ -31,7 +31,7 @@ final ndk = Ndk(
 
 | Field | Type | Default | Notes |
 | ----- | ---- | ------- | ----- |
-| `eventVerifier` | `EventVerifier` | **required** | `Bip340EventVerifier`, or `RustEventVerifier` from `ndk_rust` |
+| `eventVerifier` | `EventVerifier` | **required** | `Bip340EventVerifier`, or `RustEventVerifier` from `ndk_rust_verifier` |
 | `cache` | `CacheManager` | **required** | `MemCacheManager` or `SembastCacheManager` (`ndk_sembast`) |
 | `engine` | `NdkEngine` | `RELAY_SETS` | `RELAY_SETS` (inbox/outbox) or `JIT` |
 | `bootstrapRelays` | `List<String>` | DEFAULT_BOOTSTRAP_RELAYS | Connect on start |

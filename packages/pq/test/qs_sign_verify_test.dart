@@ -1,7 +1,7 @@
 // ignore_for_file: avoid_print, non_constant_identifier_names
 
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_rust/ndk_rust.dart';
+import 'package:ndk_pq/ndk_pq.dart';
 import 'package:test/test.dart';
 
 import '../../cashu/test/tools/simple_profiler.dart';
