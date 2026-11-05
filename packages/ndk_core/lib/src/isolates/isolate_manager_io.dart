@@ -3,7 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math' as math;
 
-import '../logger/logger.dart';
+import '../../shared/logger/logger.dart';
 
 const int kMaxIsolatePoolSize = 32;
 const int kMinIsolatePoolSize = 1;

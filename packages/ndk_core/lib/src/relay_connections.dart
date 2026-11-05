@@ -6,16 +6,16 @@ import 'package:rxdart/rxdart.dart';
 import '../config/relay_defaults.dart';
 import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/auth_handler.dart';
-import '../domain_layer/entities/nostr_message_raw.dart';
 import '../domain_layer/entities/relay.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
-import '../shared/decode_nostr_msg/decode_nostr_msg.dart';
 import '../shared/helpers/relay_helper.dart';
 import '../shared/isolates/isolate_manager.dart';
 import '../shared/logger/logger.dart';
-import '../shared/nips/nip01/client_msg.dart';
+import 'client_msg.dart';
+import 'decode_nostr_msg.dart';
+import 'nostr_message_raw.dart';
 import 'relay_auth.dart';
 
 /// What the work riding on the connections of [RelayConnections] has to do
@@ -108,10 +108,6 @@ class RelayConnections {
   /// Whether the anonymous connection to [url] is open.
   bool isRelayConnected(String url) =>
       isConnectionOpen(RelayConnectionKey.anonymous(url));
-
-  /// Whether the anonymous connection to [url] is connecting.
-  bool isRelayConnecting(String url) =>
-      isConnectionConnecting(RelayConnectionKey.anonymous(url));
 
   /// checks if the connection identified by [key] is open
   bool isConnectionOpen(RelayConnectionKey key) =>
@@ -468,21 +464,6 @@ class RelayConnections {
     }
   }
 
-  /// Reconnects the anonymous connection to each of [urls].
-  Future<void> reconnectRelays(Iterable<String> urls) async {
-    final startTime = DateTime.now();
-    Logger.log.d(() => "connecting ${urls.length} relays in parallel");
-    List<bool> connected = await Future.wait(
-      urls.map((url) => reconnectRelay(url, force: true)),
-    );
-    final endTime = DateTime.now();
-    final duration = endTime.difference(startTime);
-    Logger.log.d(
-      () =>
-          "CONNECTED ${connected.where((element) => element).length} , ${connected.where((element) => !element).length} FAILED, took ${duration.inMilliseconds} ms",
-    );
-  }
-
   /// Reconnects every connection that is not connected, even one that just
   /// failed to, and replays the requests it was carrying.
   Future<void> reconnectClosedConnections() async {
@@ -710,23 +691,35 @@ class RelayConnections {
     final myCompleter = Completer<void>();
     _lastMessageCompleters[relayUrl] = myCompleter;
 
-    NostrMessageRaw nostrMsg;
-    try {
-      nostrMsg = await IsolateManager.instance
-          .runInEncodingIsolate<String, NostrMessageRaw>(
-            decodeNostrMsg,
-            message,
-          );
-    } catch (e) {
-      // Isolates not available on web
-      nostrMsg = decodeNostrMsg(message);
+    NostrMessageRaw? nostrMsg;
+    if (message is String) {
+      try {
+        nostrMsg = await IsolateManager.instance
+            .runInEncodingIsolate<String, NostrMessageRaw>(
+              decodeNostrMsg,
+              message,
+            );
+      } catch (e) {
+        // Isolates not available on web
+        nostrMsg = decodeNostrMsg(message);
+      }
     }
 
-    if (previousMessage != null) {
-      await previousMessage.future;
-    }
+    // a relay controls what it sends: nothing it sends may throw out of here,
+    // where it would kill a process that has no zone to catch it
     try {
+      await previousMessage?.future;
+      if (nostrMsg == null) {
+        Logger.log.w(() => "Ignoring a non-text frame from $relayUrl");
+        return;
+      }
       await _onMessage(nostrMsg, relayConnectivity, message);
+    } catch (error, stackTrace) {
+      Logger.log.e(
+        () => "Could not handle a message from $relayUrl: $message",
+        error: error,
+        stackTrace: stackTrace,
+      );
     } finally {
       if (!myCompleter.isCompleted) {
         myCompleter.complete();

@@ -4,6 +4,7 @@ import 'dart:collection';
 import '../../config/relay_defaults.dart';
 import '../../config/request_defaults.dart';
 import '../../shared/logger/logger.dart';
+import '../../src/nostr_message_raw.dart';
 import '../../src/relay_auth.dart';
 import '../../src/relay_broadcasts.dart';
 import '../../src/relay_connections.dart';
@@ -12,7 +13,6 @@ import '../../src/relay_requests.dart';
 import '../entities/account.dart';
 import '../entities/auth_handler.dart';
 import '../entities/auth_policy.dart';
-import '../entities/nostr_message_raw.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_protocol_handler.dart';
@@ -29,18 +29,6 @@ class RelayManager {
 
   /// completes when all seed relays are connected
   Future<void> get seedRelaysConnected => _seedRelaysCompleter.future;
-
-  /// timeout for AUTH callbacks (how long to wait for AUTH OK)
-  final Duration authCallbackTimeout;
-
-  /// how long to wait for a NIP-42 challenge once authentication was asked for
-  final Duration authChallengeTimeout;
-
-  /// asked before a connection bound to an identity is opened, see [AuthHandler]
-  final AuthHandler? authHandler;
-
-  /// nostr transport factory, to create new transports (usually websocket)
-  final NostrTransportFactory nostrTransportFactory;
 
   late final RelayAuth _auth;
   late final RelayConnections _connections;
@@ -70,14 +58,22 @@ class RelayManager {
   bool isBroadcasting(String eventId) => _broadcasts.isBroadcasting(eventId);
 
   /// Creates a new relay manager.
+  ///
+  /// [nostrTransportFactory] opens the sockets, usually websockets.
+  /// [authCallbackTimeout] is how long an AUTH waits for its OK, and
+  /// [authChallengeTimeout] how long a NIP-42 challenge is waited for once
+  /// authentication was asked for. [authHandler] is asked before a connection
+  /// bound to an identity is opened.
   RelayManager({
-    required this.nostrTransportFactory,
+    required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
     List<String> bootstrapRelays = const [],
     bool allowReconnect = true,
-    this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
-    this.authChallengeTimeout = RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
-    this.authHandler,
+    Duration authCallbackTimeout =
+        RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
+    Duration authChallengeTimeout =
+        RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
+    AuthHandler? authHandler,
   }) {
     _auth = RelayAuth(
       accounts: accounts,
@@ -144,26 +140,18 @@ class RelayManager {
   /// Whether the anonymous connection to [url] is open.
   bool isRelayConnected(String url) => _connections.isRelayConnected(url);
 
-  /// Whether the anonymous connection to [url] is connecting.
-  bool isRelayConnecting(String url) => _connections.isRelayConnecting(url);
-
   /// checks if the connection identified by [key] is open
   bool isConnectionOpen(RelayConnectionKey key) =>
       _connections.isConnectionOpen(key);
 
-  /// checks if the connection identified by [key] is connecting
-  bool isConnectionConnecting(RelayConnectionKey key) =>
-      _connections.isConnectionConnecting(key);
-
-  /// Connects to a relay to the relay pool.
-  /// Returns whether it is connected, and the error message if it is not.
+  /// Opens the anonymous connection to a relay. Returns whether it is
+  /// connected, and the error message if it is not. A connection bound to an
+  /// identity is opened with [openConnectionAs].
   Future<({bool connected, String? error})> connectRelay({
     required String dirtyUrl,
-    String? authPubkey,
     Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
   }) => _connections.connectRelay(
     dirtyUrl: dirtyUrl,
-    authPubkey: authPubkey,
     connectTimeout: connectTimeout,
   );
 
@@ -193,17 +181,10 @@ class RelayManager {
   /// [url], anonymous or bound, while keeping the entries and relay-scoped
   /// metadata in memory.
   Future<void> resetConnectionsTo(String url) async {
-    await Future.wait(_connections.keysFor(url).map(resetConnection));
+    await Future.wait(
+      _connections.keysFor(url).map(_connections.resetConnection),
+    );
   }
-
-  /// Closes and clears only transport-scoped state of one connection, while
-  /// keeping its entry and relay-scoped metadata in memory.
-  Future<void> resetConnection(RelayConnectionKey key) =>
-      _connections.resetConnection(key);
-
-  /// Reconnects the anonymous connection to each of [urls].
-  Future<void> reconnectRelays(Iterable<String> urls) =>
-      _connections.reconnectRelays(urls);
 
   /// Reconnects every connection that is not connected, even one that just
   /// failed to, and replays the requests it was carrying. Call this when the
@@ -226,9 +207,9 @@ class RelayManager {
   /// authenticated: relays are free to send their challenge whenever they want,
   /// and some only send it once a request needs it.
   ///
-  /// A new binding is first put to [authHandler], with [pausing] paused while
-  /// it decides. A connection that already exists was agreed to when it was
-  /// first opened, so reconnecting it does not ask again.
+  /// A new binding is first put to the [AuthHandler], with [pausing] paused
+  /// while it decides. A connection that already exists was agreed to when it
+  /// was first opened, so reconnecting it does not ask again.
   Future<RelayConnectivity?> openConnectionAs(
     String url,
     Account account, {
@@ -267,13 +248,18 @@ class RelayManager {
         }
         Logger.log.w(
           () =>
-              "Received non NostrMessageRaw message from ${relayConnectivity.url}: $nostrMsg",
+              "Received unhandled message from ${relayConnectivity.url}: ${nostrMsg.otherData}",
+        );
+      case NostrMessageRawType.invalid:
+        Logger.log.w(
+          () =>
+              "Received invalid message from ${relayConnectivity.url}: ${nostrMsg.otherData}",
         );
       case NostrMessageRawType.ok:
         final eventJson = nostrMsg.otherData;
         final String eventId = eventJson[1];
-        final bool success = eventJson[2] == true;
-        final String? msg = eventJson.length > 3 ? eventJson[3] : null;
+        final bool success = eventJson[2];
+        final msg = _stringAt(eventJson, 3);
 
         // an AUTH is only answered by the connection it was sent on
         final session = _auth.existingSessionOf(key);
@@ -295,7 +281,7 @@ class RelayManager {
         _broadcasts.routeOk(eventId, relayConnectivity, success, msg ?? '');
       case NostrMessageRawType.notice:
         final eventJson = nostrMsg.otherData;
-        final noticeMsg = eventJson[1] as String? ?? '';
+        final String noticeMsg = eventJson[1];
         Logger.log.w(() => "NOTICE from ${relayConnectivity.url}: $noticeMsg");
         _requests.logActive();
         for (final handler in List.of(_protocolHandlers)) {
@@ -316,7 +302,7 @@ class RelayManager {
       case NostrMessageRawType.closed:
         final eventJson = nostrMsg.otherData;
         final String id = eventJson[1];
-        final String? closedMsg = eventJson.length > 2 ? eventJson[2] : null;
+        final closedMsg = _stringAt(eventJson, 2);
         Logger.log.w(
           () =>
               " CLOSED subscription url: ${relayConnectivity.url} id: $id msg: ${closedMsg ?? ''}",
@@ -344,6 +330,11 @@ class RelayManager {
     }
     return Future.value();
   }
+
+  static String? _stringAt(List<dynamic> message, int index) =>
+      index < message.length && message[index] is String
+      ? message[index]
+      : null;
 
   /// Closes every connection to [url], anonymous or bound, and forgets them.
   Future<void> closeConnectionsTo(String url) async {

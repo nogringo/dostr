@@ -3,9 +3,9 @@ import 'dart:async';
 import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/nip_01_event.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import '../domain_layer/usecases/nip42/auth_event.dart';
 import '../shared/logger/logger.dart';
-import '../shared/nips/nip01/client_msg.dart';
+import 'auth_event.dart';
+import 'client_msg.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
 /// the AUTH waiting for its OK, and whether the relay accepted it.

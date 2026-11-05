@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:ndk_core/domain_layer/entities/nostr_message_raw.dart';
+import 'package:ndk_core/src/nostr_message_raw.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/decode_nostr_msg/decode_nostr_msg.dart';
+import 'package:ndk_core/src/decode_nostr_msg.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
@@ -44,19 +44,37 @@ void main() {
     expect(message.otherData, ['NEG-MSG', 'sub', 'abcd']);
   });
 
-  test('reads malformed input as unknown instead of throwing', () {
+  test('reads malformed input as invalid instead of throwing', () {
     for (final input in [
       'not json',
       '{}',
       '[]',
+      '[1]',
       '["EVENT","sub"]',
+      '["EVENT",null,{}]',
       '["EVENT","sub",{"id":"x"}]',
+      '["EOSE"]',
+      '["OK","id"]',
+      '["OK",1,true]',
+      '["OK","id","true"]',
+      '["CLOSED"]',
+      '["NOTICE",5]',
+      '["AUTH"]',
     ]) {
       expect(
         decodeNostrMsg(input).type,
-        NostrMessageRawType.unknown,
+        NostrMessageRawType.invalid,
         reason: input,
       );
     }
+  });
+
+  test('accepts the optional message of an OK or a CLOSED in any shape', () {
+    expect(decodeNostrMsg('["OK","id",true]').type, NostrMessageRawType.ok);
+    expect(
+      decodeNostrMsg('["OK","id",false,null]').type,
+      NostrMessageRawType.ok,
+    );
+    expect(decodeNostrMsg('["CLOSED","sub"]').type, NostrMessageRawType.closed);
   });
 }

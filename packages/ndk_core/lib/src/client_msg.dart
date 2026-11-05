@@ -1,7 +1,7 @@
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 
-import '../../../data_layer/models/nip_01_event_model.dart';
+import '../data_layer/models/nip_01_event_model.dart';
 
 /// this class is used to send messages from the client to the relay
 ///

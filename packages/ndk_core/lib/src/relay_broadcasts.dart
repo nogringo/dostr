@@ -9,8 +9,8 @@ import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
 import '../shared/helpers/relay_helper.dart';
 import '../shared/logger/logger.dart';
-import '../shared/nips/nip01/client_msg.dart';
 import 'broadcast_state.dart';
+import 'client_msg.dart';
 import 'relay_auth.dart';
 import 'relay_connections.dart';
 

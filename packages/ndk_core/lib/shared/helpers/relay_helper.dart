@@ -1,4 +1,4 @@
-import 'package:ndk_core/shared/helpers/url_normalizer.dart';
+import 'package:ndk_core/src/url_normalizer.dart';
 
 final RegExp relayUrlRegex = RegExp(
   r'^(wss?:\/\/)([a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9\-]*[a-zA-Z0-9])?)*|[0-9]{1,3}(?:\.[0-9]{1,3}){3}):?([0-9]{1,5})?(\/[^\s]*)?$',

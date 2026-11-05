@@ -11,6 +11,14 @@ package: `package:ndk/domain_layer/entities/filter.dart` is now
 `package:ndk_core/domain_layer/entities/filter.dart`. `package:ndk/ndk.dart`
 still exports what it did.
 
+What lives under `lib/src` is internal. These files moved there and can no
+longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
+`domain_layer/usecases/nip42/auth_event.dart`,
+`shared/decode_nostr_msg/decode_nostr_msg.dart`,
+`shared/helpers/url_normalizer.dart`, `shared/logger/log_color.dart`,
+`shared/nips/nip01/client_msg.dart`, and the two implementations behind
+`shared/isolates/isolate_manager.dart`, which still imports as before.
+
 `Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
@@ -19,8 +27,7 @@ still exports what it did.
 NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 `NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
 `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or
-`onNegClosed`, and `ClientMsgType` no longer has the `kNeg` constants. A
-protocol of its own, NIP-77 included, plugs in with
+`onNegClosed`. A protocol of its own, NIP-77 included, plugs in with
 `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
 
 `Helpers`, `Tuple` and `EventKindClassification` stay in `ndk` at their old
@@ -78,7 +85,21 @@ connection and the message as a JSON array, such as
 the requests that `reSubscribeInFlightSubscriptions` used to replay by hand.
 
 `RelayManager.connectRelay` returns a `({bool connected, String? error})`
-record, with a null `error` once connected.
+record, with a null `error` once connected. It no longer takes an
+`authPubkey` and only opens the anonymous connection: open one bound to an
+identity with `RelayManager.openConnectionAs`, which asks the `AuthHandler`
+first.
+
+`isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays` and the
+`resetConnection` of a single connection are gone. A connection that is still
+connecting has `relay.connecting` set in `RelayManager.connectivities`.
+`authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and
+`nostrTransportFactory` are constructor parameters only, no longer fields.
+
+A relay message that misses a field or carries one of the wrong type, and a
+binary frame, are logged and dropped, and so is an exception a
+`RelayProtocolHandler` throws. They used to escape as uncaught errors, which
+end a plain Dart process.
 
 `RelayManager.resetTransport` and `RelayManager.closeTransport` are now
 `resetConnectionsTo` and `closeConnectionsTo`: they act on every connection to
