@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:http/http.dart' as http;
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_dart_package_1/ndk_dart_package_1.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
 import 'package:test/test.dart';
 
 const alice =
@@ -60,7 +62,111 @@ class LocalRelay {
   Future<void> stop() => _server.close(force: true);
 }
 
+/// Serves [body] with [status] on every path, until the test ends.
+Future<String> serve(String body, {int status = 200}) async {
+  final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+  addTearDown(() => server.close(force: true));
+  server.listen((request) {
+    request.response
+      ..statusCode = status
+      ..write(body)
+      ..close();
+  });
+  return 'http://127.0.0.1:${server.port}/list.json';
+}
+
 void main() {
+  group('HomeRelayList', () {
+    test('computes the home relays of the NIP example', () {
+      final list = HomeRelayList([
+        'wss://indexer.coracle.social',
+        'wss://nostr-pub.wellorder.net',
+        'wss://nostr.bitcoiner.social',
+        'wss://nostr.data.haus',
+        'wss://nostr.oxtr.dev',
+        'wss://offchain.pub',
+        'wss://purplepag.es',
+        'wss://relay.angor.io',
+        'wss://relay.coinos.io',
+        'wss://relay.ditto.pub',
+        'wss://relay.nos.social',
+        'wss://relay.nostr.net',
+        'wss://relay.nostrplebs.com',
+        'wss://relay.primal.net',
+        'wss://user.kindpag.es',
+        'wss://yabu.me',
+      ]);
+      final pubKey = Nip19.decode(
+        'npub1jlp4rzsraw0nvvuyavgf2z497juw7y44v40ch23lnwzlnre3wuusjhmu65',
+      );
+
+      expect(list.homeRelaysOf(pubKey), [
+        'wss://relay.angor.io',
+        'wss://relay.primal.net',
+        'wss://yabu.me',
+        'wss://relay.ditto.pub',
+        'wss://purplepag.es',
+        'wss://relay.coinos.io',
+        'wss://nostr.data.haus',
+        'wss://indexer.coracle.social',
+      ]);
+    });
+
+    test('normalizes the candidates and keeps each once', () {
+      final list = HomeRelayList([
+        'wss://Relay.Example.com/',
+        'wss://relay.example.com',
+        'https://relay.example.com',
+      ]);
+
+      expect(list.candidates, ['wss://relay.example.com']);
+    });
+
+    test('reads the relay tags of a home-relays list', () {
+      final list = HomeRelayList.fromEvent(
+        relayList([
+          ['d', 'home-relays'],
+          ['relay', 'wss://a.example.com'],
+          ['r', 'wss://b.example.com'],
+        ], kind: 36205),
+      );
+
+      expect(list.candidates, ['wss://a.example.com']);
+    });
+
+    test('rejects another list', () {
+      final other = relayList([
+        ['d', 'other'],
+        ['relay', 'wss://a.example.com'],
+      ], kind: 36205);
+
+      expect(() => HomeRelayList.fromEvent(other), throwsArgumentError);
+    });
+
+    test('loads the list served at a url', () async {
+      final event = relayList([
+        ['d', 'home-relays'],
+        ['relay', 'wss://a.example.com'],
+      ], kind: 36205);
+      final url = await serve(
+        jsonEncode(Nip01EventModel.fromEntity(event).toJson()),
+      );
+
+      expect((await HomeRelayList.fetch(url: url)).candidates, [
+        'wss://a.example.com',
+      ]);
+    });
+
+    test('fails on an HTTP error', () async {
+      final url = await serve('', status: 404);
+
+      expect(
+        HomeRelayList.fetch(url: url),
+        throwsA(isA<http.ClientException>()),
+      );
+    });
+  });
+
   group('Nip65Fetcher', () {
     late RelayManager relayManager;
     late RelayReqs reqs;
@@ -122,6 +228,21 @@ void main() {
       );
 
       expect((await fetcher.fetch(alice))?.id, lowest.id);
+    });
+
+    test('also asks the home relays of the pubkey', () async {
+      final current = relayList([
+        ['r', 'wss://home.example.com'],
+      ]);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [],
+        homeRelayList: HomeRelayList([
+          await startRelay([current]),
+        ]),
+      );
+
+      expect((await fetcher.fetch(alice))?.id, current.id);
     });
 
     test('ignores events that do not match the filter', () async {

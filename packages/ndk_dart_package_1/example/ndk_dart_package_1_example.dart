@@ -6,15 +6,18 @@ Future<void> main() async {
   final relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
+  final homeRelayList = await HomeRelayList.fetch();
   final fetcher = Nip65Fetcher(
     reqs: RelayReqs(
       relayManager: relayManager,
       eventVerifier: Bip340EventVerifier(useIsolate: false),
     ),
+    homeRelayList: homeRelayList,
   );
 
   const fiatjaf =
       '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d';
+  print('home relays: ${homeRelayList.homeRelaysOf(fiatjaf)}');
   final event = await fetcher.fetch(fiatjaf);
   await relayManager.closeAllTransports();
 
