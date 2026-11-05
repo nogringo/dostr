@@ -4,7 +4,6 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
 import 'package:test/test.dart';
@@ -76,15 +75,12 @@ void main() async {
     });
 
     test('reconnects after relay-side socket close', () async {
-      // The plain WebSocketNostrTransport has no internal auto-reconnect, so
-      // recovering from a relay-side close relies entirely on the
-      // reconnect-on-close path in _startListeningToSocket's onDone handler.
       MockRelay relay1 = MockRelay(name: "relay 1", explicitPort: 5046);
       await relay1.startServer();
 
       RelayManager manager = RelayManager(
         bootstrapRelays: [relay1.url],
-        nostrTransportFactory: WebSocketNostrTransportFactory(),
+        nostrTransportFactory: webSocketNostrTransportFactory,
       );
       await manager.connectRelay(dirtyUrl: relay1.url);
       expect(manager.isRelayConnected(relay1.url), true);

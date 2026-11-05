@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
+import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
@@ -107,7 +107,7 @@ class _RefusedTransport implements NostrTransport {
 }
 
 class _FlakyTransportFactory implements NostrTransportFactory {
-  final _inner = WebSocketNostrTransportFactory();
+  final _inner = WebSocketClientNostrTransportFactory();
   final List<_FlakyTransport> created = [];
 
   /// refuses new sockets while set

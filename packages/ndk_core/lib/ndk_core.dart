@@ -4,7 +4,6 @@ library;
 
 export 'data_layer/models/nip_01_event_model.dart';
 export 'data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-export 'data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
 export 'domain_layer/entities/account.dart';
 export 'domain_layer/entities/auth_handler.dart';
 export 'domain_layer/entities/auth_policy.dart';

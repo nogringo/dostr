@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
+import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
@@ -80,7 +80,7 @@ class _FaultyTransport implements NostrTransport {
 }
 
 class _FaultyTransportFactory implements NostrTransportFactory {
-  final _inner = WebSocketNostrTransportFactory();
+  final _inner = WebSocketClientNostrTransportFactory();
   final List<_FaultyTransport> created = [];
 
   @override

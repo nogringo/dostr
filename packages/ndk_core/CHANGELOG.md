@@ -123,6 +123,11 @@ connection that drops within a minute of opening comes back too.
 `RelayManager` does, and `NdkConfig.webSocketReconnectMaximumStep` still sets
 it.
 
+`WebSocketNostrTransportFactory`, `WebSocketNostrTransport` and `WebsocketDS`
+are gone: they reported a socket open before its handshake, which skipped the
+connect timeout and kept `closeIdleConnections` from closing anything. Use
+`WebSocketClientNostrTransportFactory`.
+
 `reconnectClosedConnections` reconnects every connection at once instead of
 one after the other. `authenticateConnection` answers false for a connection
 that is not open.

@@ -1,6 +1,4 @@
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
-import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
@@ -50,8 +48,6 @@ Future<void> _waitUntil(
   fail(reason);
 }
 
-/// A socket that dies for good, which only the plain transport can be made to
-/// do: the reconnecting one keeps its message stream open across a drop.
 void deadConnectionTests() {
   group('relay outcomes on a dead connection', () {
     test('a request nothing will send again reports disconnected', () async {
@@ -64,7 +60,7 @@ void deadConnectionTests() {
 
       final manager = RelayManager(
         bootstrapRelays: [relay.url],
-        nostrTransportFactory: WebSocketNostrTransportFactory(),
+        nostrTransportFactory: WebSocketClientNostrTransportFactory(),
       );
       await manager.connectRelay(dirtyUrl: relay.url);
 
@@ -124,14 +120,9 @@ void notSentEndTests() {
     Filter notesOf(KeyPair key) =>
         Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
 
-    RelayManager buildManager(
-      List<String> seeds, {
-      NostrTransportFactory? factory,
-    }) => RelayManager(
+    RelayManager buildManager(List<String> seeds) => RelayManager(
       bootstrapRelays: seeds,
-      // the transport Ndk uses: the plain one reports a socket open before its
-      // handshake, so a relay nothing listens on would look reachable
-      nostrTransportFactory: factory ?? WebSocketClientNostrTransportFactory(),
+      nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     );
 
     test(
@@ -145,11 +136,7 @@ void notSentEndTests() {
         );
         await notSent.startServer();
         await dropped.startServer();
-        // the only transport whose socket can be made to die for good
-        final manager = buildManager([
-          notSent.url,
-          dropped.url,
-        ], factory: WebSocketNostrTransportFactory());
+        final manager = buildManager([notSent.url, dropped.url]);
         addTearDown(() async {
           await manager.closeAllTransports();
           await notSent.stopServer();
