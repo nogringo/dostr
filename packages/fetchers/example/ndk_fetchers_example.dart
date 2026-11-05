@@ -1,6 +1,6 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_dart_package_1/ndk_dart_package_1.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 
 Future<void> main() async {
   final relayManager = RelayManager(

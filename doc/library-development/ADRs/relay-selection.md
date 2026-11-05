@@ -35,7 +35,7 @@ and `ignoreRelays`, which only `JIT` reads. `JIT` keeps hidden state on connecti
 (`jitEngineData`). `NetworkEngine` is not an extension point either: `NdkConfig` only
 takes the enum, so a custom engine means editing `init.dart`.
 
-The fetchers in `ndk_dart_package_1` already pick relays per kind on `ndk_core` alone,
+The fetchers in `ndk_fetchers` already pick relays per kind on `ndk_core` alone,
 and fetch NIP-65 lists from the network as they arrive. They have no persistent cache,
 and `fetch` returns null both when no relay answered and when none holds the list.
 
@@ -128,11 +128,10 @@ Contra:
   unless they stay as a shorthand for `UrlSet.explicit`.
 - A use case not yet ported would send to the bootstrap relays only once the engines are
   gone, which is why removal comes last.
-- `ndk` depends on two more packages, `ndk_url_set` and the fetchers.
+- `ndk` depends on two more packages, `ndk_url_set` and `ndk_fetchers`.
 
 ## Open questions
 
-- A real name for `ndk_dart_package_1` before `ndk` depends on it.
 - Which `defaultIndexerRelays` stays: the fetchers and `url_set_for_ndk` each have their
   own list.
 - Whether a broadcast sends to the parts of its set that resolved while an unavailable

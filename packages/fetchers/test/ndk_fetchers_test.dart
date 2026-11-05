@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_dart_package_1/ndk_dart_package_1.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';

@@ -41,6 +41,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_url_set`: relay and Blossom server sets described rather than listed, stored offline and resolved later, in pure Dart.
 
+### [🔗 Fetchers](./packages/fetchers/)
+
+`ndk_fetchers`: an account's metadata, relay list, DM relays and Blossom servers, fetched from its write relays on top of `ndk_core`.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.
