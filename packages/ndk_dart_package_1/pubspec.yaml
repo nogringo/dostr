@@ -1,5 +1,5 @@
 name: ndk_dart_package_1
-description: Fetches a user's kind:0 metadata and NIP-65 relay list on top of ndk_core.
+description: Fetches a user's kind:0 metadata, NIP-65 relay list and NIP-17 DM relay list on top of ndk_core.
 version: 1.0.0
 # repository: https://github.com/my_org/my_repo
 

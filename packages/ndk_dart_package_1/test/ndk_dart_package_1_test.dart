@@ -526,4 +526,75 @@ void main() {
       expect(await fetcher.fetch(alice), isNull);
     });
   });
+
+  test('dmRelaysOf keeps the relay tags, each once, in order', () {
+    final list = relayList([
+      ['relay', 'wss://b.example.com/'],
+      ['r', 'wss://r.example.com'],
+      ['relay', 'wss://a.example.com'],
+      ['relay', 'wss://B.example.com'],
+    ], kind: 10050);
+
+    expect(dmRelaysOf(list), ['wss://b.example.com', 'wss://a.example.com']);
+  });
+
+  group('DmRelaysFetcher', () {
+    Nip01Event dmRelayList(String relay, {int createdAt = 1000}) => relayList(
+      [
+        ['relay', relay],
+      ],
+      kind: 10050,
+      createdAt: createdAt,
+    );
+
+    test('keeps the newest list across write relays and indexers', () async {
+      final onIndexer = dmRelayList('wss://old.example.com', createdAt: 1000);
+      final onWrite = dmRelayList('wss://new.example.com', createdAt: 2000);
+      final writeRelay = await startRelay([onWrite]);
+      final fetcher = DmRelaysFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([onIndexer]),
+        ],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([
+              relayList([
+                ['r', writeRelay],
+              ]),
+            ]),
+          ],
+        ),
+      );
+
+      final list = await fetcher.fetch(alice);
+
+      expect(list?.id, onWrite.id);
+      expect(dmRelaysOf(list!), ['wss://new.example.com']);
+    });
+
+    test('ignores events that do not match the filter', () async {
+      final fetcher = DmRelaysFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([
+            relayList(
+              [
+                ['relay', 'wss://bob.example.com'],
+              ],
+              kind: 10050,
+              pubKey: bob,
+            ),
+            metadata('alice'),
+            relayList([
+              ['relay', 'wss://a.example.com'],
+            ]),
+          ]),
+        ],
+      );
+
+      expect(await fetcher.fetch(alice), isNull);
+    });
+  });
 }

@@ -9,10 +9,9 @@ Future<void> main() async {
   final verifier = Bip340EventVerifier(useIsolate: false);
   final reqs = RelayReqs(relayManager: relayManager, eventVerifier: verifier);
   final homeRelayList = await HomeRelayList.fetch(verifier: verifier);
-  final metadata = MetadataFetcher(
-    reqs: reqs,
-    nip65Fetcher: Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList),
-  );
+  final nip65 = Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList);
+  final metadata = MetadataFetcher(reqs: reqs, nip65Fetcher: nip65);
+  final dmRelays = DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65);
 
   const fiatjaf =
       '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d';
@@ -23,5 +22,12 @@ Future<void> main() async {
     print('  ${profile.content}');
   }
   print('${clock.elapsedMilliseconds} ms, every relay answered');
+
+  final dmRelayList = await dmRelays.fetch(fiatjaf);
+  print(
+    dmRelayList == null
+        ? 'no DM relays'
+        : 'DM relays: ${dmRelaysOf(dmRelayList)}',
+  );
   await relayManager.closeAllTransports();
 }
