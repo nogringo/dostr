@@ -414,7 +414,9 @@ class NReleaseEngagementController extends ChangeNotifier {
           .broadcastDoneFuture;
       if (!responses.any((response) => response.broadcastSuccessful)) {
         final relayErrors = responses
-            .map((response) => response.msg.trim())
+            .map(
+              (response) => response.failure?.toString() ?? response.msg.trim(),
+            )
             .where((message) => message.isNotEmpty)
             .toSet()
             .join('; ');

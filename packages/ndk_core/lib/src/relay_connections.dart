@@ -7,6 +7,7 @@ import '../config/relay_defaults.dart';
 import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
 import '../shared/helpers/relay_helper.dart';
 import '../shared/isolates/isolate_manager.dart';
@@ -81,7 +82,10 @@ class RelayConnections {
 
   /// Tracks relay connect attempts that are still finishing setup so callers
   /// can wait for "socket open + listener attached", not just raw socket open.
-  final Map<RelayConnectionKey, Completer<({bool connected, String? error})>>
+  final Map<
+    RelayConnectionKey,
+    Completer<({bool connected, RelayFailure? failure})>
+  >
   _connectReadyCompleters = {};
 
   final Map<String, Set<Completer<void>>> _requestSentWaiters = {};
@@ -175,8 +179,8 @@ class RelayConnections {
   }
 
   /// Connects to a relay to the relay pool.
-  /// Returns whether it is connected, and the error message if it is not.
-  Future<({bool connected, String? error})> connectRelay({
+  /// Returns whether it is connected, and why if it is not.
+  Future<({bool connected, RelayFailure? failure})> connectRelay({
     required String dirtyUrl,
     String? authPubkey,
     Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
@@ -184,11 +188,17 @@ class RelayConnections {
     String? url = cleanRelayUrl(dirtyUrl);
     if (url == null) {
       notifyChanged();
-      return (connected: false, error: "unclean url");
+      return (
+        connected: false,
+        failure: const RelayFailure(RelayFailureKind.invalidUrl),
+      );
     }
     if (blockedRelays.contains(url)) {
       notifyChanged();
-      return (connected: false, error: "relay is blocked");
+      return (
+        connected: false,
+        failure: const RelayFailure(RelayFailureKind.blocked),
+      );
     }
 
     final connectionKey = authPubkey == null
@@ -198,7 +208,7 @@ class RelayConnections {
     if (isConnectionOpen(connectionKey)) {
       Logger.log.t(() => "relay already connected: $connectionKey");
       notifyChanged();
-      return (connected: true, error: null);
+      return (connected: true, failure: null);
     }
 
     if (isConnectionConnecting(connectionKey) ||
@@ -211,10 +221,14 @@ class RelayConnections {
         return result;
       }
       notifyChanged();
-      return (connected: false, error: "relay is still connecting");
+      return (
+        connected: false,
+        failure: const RelayFailure(RelayFailureKind.stillConnecting),
+      );
     }
     RelayConnection? relayConnectivity = relays[connectionKey];
-    final connectCompleter = Completer<({bool connected, String? error})>();
+    final connectCompleter =
+        Completer<({bool connected, RelayFailure? failure})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
     bool ownsTransport() => _isCurrent(relayConnectivity, transport);
@@ -274,7 +288,7 @@ class RelayConnections {
       Logger.log.i(() => "connected to relay: $url");
       relayConnectivity.relay.succeededToConnect();
       relayConnectivity.stats.connections++;
-      final connected = (connected: true, error: null);
+      final connected = (connected: true, failure: null);
       if (!connectCompleter.isCompleted) {
         connectCompleter.complete(connected);
       }
@@ -309,7 +323,7 @@ class RelayConnections {
     }
     final failed = (
       connected: false,
-      error: "could not connect to $url: $failure",
+      failure: RelayFailure(RelayFailureKind.unreachable, "$failure"),
     );
     if (!connectCompleter.isCompleted) {
       connectCompleter.complete(failed);
@@ -427,7 +441,7 @@ class RelayConnections {
     );
     final connectivity = relays[key];
     if (!result.connected || connectivity == null) {
-      Logger.log.w(() => "Could not open $key: ${result.error}");
+      Logger.log.w(() => "Could not open $key: ${result.failure}");
       return null;
     }
     return connectivity;

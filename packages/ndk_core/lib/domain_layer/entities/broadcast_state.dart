@@ -1,3 +1,5 @@
+import 'relay_failure.dart';
+
 /// hols information about a individual relay broadcast response \
 /// e.g. \
 /// ["OK", "b1a649ebe8...", true, "duplicate: already have this event"]
@@ -12,8 +14,12 @@ class RelayBroadcastResponse {
   /// true if publishing was successful
   bool broadcastSuccessful;
 
-  /// the response message usually an error message
+  /// the message of the relay's OK, usually an error message
   String msg;
+
+  /// what kept the event from reaching the relay, or from being accepted once
+  /// the relay asked for authentication
+  final RelayFailure? failure;
 
   /// creates a new [RelayBroadcastResponse] instance
   RelayBroadcastResponse({
@@ -21,6 +27,7 @@ class RelayBroadcastResponse {
     this.okReceived = false,
     this.broadcastSuccessful = false,
     this.msg = "",
+    this.failure,
   });
 
   @override

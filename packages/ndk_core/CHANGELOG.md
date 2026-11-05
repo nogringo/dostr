@@ -84,8 +84,9 @@ connection and the message as a JSON array, such as
 `ClientMsg`. `RelayManager.reconnectClosedConnections` reconnects and replays
 the requests that `reSubscribeInFlightSubscriptions` used to replay by hand.
 
-`RelayManager.connectRelay` returns a `({bool connected, String? error})`
-record, with a null `error` once connected. It no longer takes an
+`RelayManager.connectRelay` returns a
+`({bool connected, RelayFailure? failure})` record, with a null `failure` once
+connected. It no longer takes an
 `authPubkey` and only opens the anonymous connection: open one bound to an
 identity with `RelayManager.openConnectionAs`, which asks the `AuthHandler`
 first.
@@ -181,6 +182,17 @@ gets the signed event and only picks its relays.
 
 `considerDonePercent` counts the relays that accepted the event: a refusal no
 longer brings a publish closer to done.
+
+What `ndk_core` itself failed at comes as a `RelayFailure`, whose
+`RelayFailureKind` says what it was and whose `detail` may say more, instead
+of a sentence of its own in a message. `RelayRequestOutcome.failure` holds it
+for `notSent`, `RelayBroadcastResponse.failure` for a relay the event did not
+reach, and `connectRelay` returns it. `RelayRequestOutcome.message` and
+`RelayBroadcastResponse.msg` only hold what the relay sent in its CLOSED or OK,
+and a broadcast the relay refused for want of an identity it may not reveal
+reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its
+`detail`. In `ndk`, the retry of pending deliveries reads that kind instead of
+matching text.
 
 #### Filters
 

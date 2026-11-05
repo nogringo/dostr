@@ -58,21 +58,21 @@ void main() {
 
     expect(await manager.connectRelay(dirtyUrl: 'https://not.a.relay'), (
       connected: false,
-      error: 'unclean url',
+      failure: const RelayFailure(RelayFailureKind.invalidUrl),
     ));
     expect(await manager.connectRelay(dirtyUrl: 'wss://blocked.example/'), (
       connected: false,
-      error: 'relay is blocked',
+      failure: const RelayFailure(RelayFailureKind.blocked),
     ));
     expect(manager.connectivities, isEmpty);
   });
 
-  test('connects to a relay with a null error', () async {
+  test('connects to a relay with a null failure', () async {
     final relay = await startRelay();
 
     expect(await manager.connectRelay(dirtyUrl: relay.url), (
       connected: true,
-      error: null,
+      failure: null,
     ));
   });
 

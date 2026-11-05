@@ -51,12 +51,14 @@ void main() {
     );
 
     state.requests[anonymous]!.markSent();
-    state.requests[anonymous]!.markNotSent('relay is blocked');
+    state.requests[anonymous]!.markNotSent(
+      const RelayFailure(RelayFailureKind.blocked),
+    );
     expect(
       state.relayOutcomes[url],
       const RelayRequestOutcome(
         RelayRequestStatus.notSent,
-        message: 'relay is blocked',
+        failure: RelayFailure(RelayFailureKind.blocked),
       ),
     );
   });

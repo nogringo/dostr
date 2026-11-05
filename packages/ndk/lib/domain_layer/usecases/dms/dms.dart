@@ -362,7 +362,10 @@ class Dms {
     final recipientResponses = responses.first;
     if (!recipientResponses.any((response) => response.broadcastSuccessful)) {
       final detail = recipientResponses
-          .map((response) => '${response.relayUrl}: ${response.msg}')
+          .map(
+            (response) =>
+                '${response.relayUrl}: ${response.failure ?? response.msg}',
+          )
           .join('; ');
       throw Exception(
         'No recipient DM relay accepted the NIP-17 message'

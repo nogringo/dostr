@@ -4,6 +4,7 @@ import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/filter.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';
 import '../shared/logger/logger.dart';
 import 'client_msg.dart';
@@ -229,11 +230,11 @@ class RelayRequests implements ConnectionListener {
     RequestState state,
     RelayConnectionKey key,
     List<Filter> filters,
-    String reason,
+    RelayFailure failure,
   ) {
     if (!isStillInFlight(state)) return;
     state.addRequest(key, filters);
-    state.requests[key]!.markNotSent(reason);
+    state.requests[key]!.markNotSent(failure);
     _checkNetworkClose(state);
   }
 
@@ -259,7 +260,7 @@ class RelayRequests implements ConnectionListener {
         state,
         RelayConnectionKey.authenticated(url, account.pubkey),
         filters,
-        "requires ${account.pubkey}, which cannot sign",
+        const RelayFailure(RelayFailureKind.cannotSign),
       );
       return;
     }
@@ -281,9 +282,9 @@ class RelayRequests implements ConnectionListener {
     // _checkNetworkClose cannot tell them apart on its own
     beginPendingConnection(state);
     try {
-      final notSentReason = await _sendTrackedRequest(state, request);
-      if (notSentReason != null) {
-        _failRelayRequest(state, request.key, request.filters, notSentReason);
+      final failure = await _sendTrackedRequest(state, request);
+      if (failure != null) {
+        _failRelayRequest(state, request.key, request.filters, failure);
       }
     } finally {
       endPendingConnection(state);
@@ -291,7 +292,7 @@ class RelayRequests implements ConnectionListener {
   }
 
   /// Null once sent, otherwise what kept [request] from being sent.
-  Future<String?> _sendTrackedRequest(
+  Future<RelayFailure?> _sendTrackedRequest(
     RequestState state,
     RelayRequestState request,
   ) async {
@@ -299,7 +300,7 @@ class RelayRequests implements ConnectionListener {
       Logger.log.w(
         () => "COULD NOT SEND REQUEST TO ${request.url} since relay is blocked",
       );
-      return "relay is blocked";
+      return const RelayFailure(RelayFailureKind.blocked);
     }
 
     final connected = await _connections.reconnectConnection(
@@ -312,14 +313,14 @@ class RelayRequests implements ConnectionListener {
     // was opening: nothing tracks it anymore, so nothing would ever CLOSE what
     // we would send here
     if (!isStillInFlight(state)) {
-      return "request ended while connecting";
+      return const RelayFailure(RelayFailureKind.requestEnded);
     }
     if (!connected) {
       Logger.log.e(
         () =>
             "COULD NOT SEND REQUEST TO ${request.url} since socket seems to be not open",
       );
-      return "could not connect";
+      return const RelayFailure(RelayFailureKind.unreachable);
     }
     final relay = _connections.relays[request.key];
     if (relay == null) {
@@ -327,7 +328,7 @@ class RelayRequests implements ConnectionListener {
         () =>
             "COULD NOT SEND REQUEST TO ${request.url}, ${request.key} is gone",
       );
-      return "connection closed before sending";
+      return const RelayFailure(RelayFailureKind.connectionLost);
     }
     try {
       await _connections.sendOrThrow(
@@ -340,7 +341,7 @@ class RelayRequests implements ConnectionListener {
       );
     } catch (e) {
       Logger.log.e(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
-      return "$e";
+      return RelayFailure(RelayFailureKind.connectionLost, "$e");
     }
     return null;
   }

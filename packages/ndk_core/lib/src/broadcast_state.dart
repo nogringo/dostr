@@ -52,7 +52,7 @@ class BroadcastState implements TimeoutPausable {
 
     // Check if all relays have responded (success or failure)
     final allResponded = broadcasts.values.every(
-      (element) => element.okReceived || element.msg.isNotEmpty,
+      (element) => element.okReceived || element.failure != null,
     );
     if (allResponded) {
       return true;

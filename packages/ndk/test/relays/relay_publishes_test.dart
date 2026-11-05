@@ -70,7 +70,10 @@ void main() {
           .done;
 
       expect(responses[relayA.url]!.broadcastSuccessful, isFalse);
-      expect(responses[relayA.url]!.msg, 'could not connect');
+      expect(
+        responses[relayA.url]!.failure?.kind,
+        RelayFailureKind.unreachable,
+      );
     });
 
     test('no relay at all is done right away', () async {

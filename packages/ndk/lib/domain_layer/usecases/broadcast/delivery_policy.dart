@@ -2,6 +2,7 @@ import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../../entities/event_cache_records.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 import '../../../shared/nips/nip01/event_kind_classification.dart';
 import '../../../shared/nips/nip09/deletion.dart';
 
@@ -90,6 +91,18 @@ class DeliveryPolicy {
   }) {
     if (response.okReceived && response.broadcastSuccessful) {
       return RelayDeliveryState.acked;
+    }
+
+    final failure = response.failure;
+    if (failure != null) {
+      if (failure.kind == RelayFailureKind.identityNotAllowed) {
+        return auth is AuthPolicyNever
+            ? RelayDeliveryState.permanentFailure
+            : RelayDeliveryState.authRequired;
+      }
+      return kind == DeliveryPolicyKind.doNotRetry
+          ? RelayDeliveryState.permanentFailure
+          : RelayDeliveryState.transientFailure;
     }
 
     final normalizedMsg = response.msg.trim().toLowerCase();

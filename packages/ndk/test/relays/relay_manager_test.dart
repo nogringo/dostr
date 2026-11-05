@@ -48,7 +48,8 @@ void main() async {
 
       for (final result in results) {
         expect(result.connected, isFalse);
-        expect(result.error, contains('SocketException'));
+        expect(result.failure?.kind, RelayFailureKind.unreachable);
+        expect(result.failure?.detail, contains('SocketException'));
       }
     });
 

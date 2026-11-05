@@ -6,6 +6,7 @@ import '../domain_layer/entities/filter.dart';
 import '../domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';
 import '../domain_layer/entities/relay_request_outcome.dart';
 
@@ -70,10 +71,10 @@ class RelayRequestState {
   /// set when the request could not be sent on this connection
   bool get notSent => _notSent;
 
-  String? _notSentReason;
+  RelayFailure? _notSentFailure;
 
   /// what kept the request from being sent, see [markNotSent]
-  String? get notSentReason => _notSentReason;
+  RelayFailure? get notSentFailure => _notSentFailure;
 
   bool _retryingAuth = false;
 
@@ -103,11 +104,11 @@ class RelayRequestState {
     onOutcomeChanged?.call();
   }
 
-  /// The request could not be sent on this connection, because of [reason].
-  void markNotSent(String reason) {
-    if (_notSent && _notSentReason == reason) return;
+  /// The request could not be sent on this connection, because of [failure].
+  void markNotSent(RelayFailure failure) {
+    if (_notSent && _notSentFailure == failure) return;
     _notSent = true;
-    _notSentReason = reason;
+    _notSentFailure = failure;
     onOutcomeChanged?.call();
   }
 
@@ -127,7 +128,7 @@ class RelayRequestState {
     _closedMessage = null;
     _connectionGone = false;
     _notSent = false;
-    _notSentReason = null;
+    _notSentFailure = null;
     _retryingAuth = false;
     onOutcomeChanged?.call();
   }
@@ -383,7 +384,7 @@ class RequestState implements TimeoutPausable {
     if (request.notSent) {
       return RelayRequestOutcome(
         RelayRequestStatus.notSent,
-        message: request.notSentReason,
+        failure: request.notSentFailure,
       );
     }
     if (request.connectionGone) {

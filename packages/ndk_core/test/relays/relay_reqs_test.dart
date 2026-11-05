@@ -108,7 +108,7 @@ void main() {
       expect(await req.done, {
         blocked: const RelayRequestOutcome(
           RelayRequestStatus.notSent,
-          message: 'relay is blocked',
+          failure: RelayFailure(RelayFailureKind.blocked),
         ),
       });
     });

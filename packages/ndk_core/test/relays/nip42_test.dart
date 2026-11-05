@@ -228,10 +228,9 @@ void main() {
           .done;
 
       expect(responses.values.single.broadcastSuccessful, isFalse);
-      expect(
-        responses.values.single.msg,
-        'auth-required: this broadcast may not reveal an identity',
-      );
+      final failure = responses.values.single.failure!;
+      expect(failure.kind, RelayFailureKind.identityNotAllowed);
+      expect(failure.detail, startsWith('auth-required'));
       expect(relay.received('AUTH'), isEmpty);
     });
 

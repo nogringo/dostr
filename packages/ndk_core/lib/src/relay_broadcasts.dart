@@ -6,6 +6,7 @@ import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/broadcast_state.dart';
 import '../domain_layer/entities/nip_01_event.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/entities/relay_failure.dart';
 import '../shared/helpers/relay_helper.dart';
 import '../shared/logger/logger.dart';
 import 'broadcast_state.dart';
@@ -60,7 +61,11 @@ class RelayBroadcasts {
   }
 
   /// use this to signal a failed broadcast
-  void _failBroadcast(BroadcastState broadcastState, String relay, String msg) {
+  void _failBroadcast(
+    BroadcastState broadcastState,
+    String relay,
+    RelayFailure failure,
+  ) {
     if (broadcastState.networkController.isClosed) {
       Logger.log.w(
         () =>
@@ -70,12 +75,7 @@ class RelayBroadcasts {
     }
 
     broadcastState.networkController.add(
-      RelayBroadcastResponse(
-        relayUrl: relay,
-        okReceived: false,
-        broadcastSuccessful: false,
-        msg: msg,
-      ),
+      RelayBroadcastResponse(relayUrl: relay, failure: failure),
     );
   }
 
@@ -115,26 +115,37 @@ class RelayBroadcasts {
       relayUrl: url,
     );
     try {
-      final relay = await _connectionForBroadcast(
+      final (:relay, :failure) = await _connectionForBroadcast(
         url,
         state.auth,
         connectTimeout: connectTimeout,
         pausing: state,
       );
       if (relay == null) {
-        final auth = state.auth;
         _failBroadcast(
           state,
           url,
-          auth is AuthPolicyRequire
-              ? "no connection bound to ${auth.account.pubkey} could be opened"
-              : "could not connect",
+          failure ?? const RelayFailure(RelayFailureKind.unreachable),
         );
         return;
       }
-      final vetoed = await veto?.call();
+      final String? vetoed;
+      try {
+        vetoed = await veto?.call();
+      } catch (error) {
+        _failBroadcast(
+          state,
+          url,
+          RelayFailure(RelayFailureKind.vetoed, "$error"),
+        );
+        return;
+      }
       if (vetoed != null) {
-        _failBroadcast(state, url, vetoed);
+        _failBroadcast(
+          state,
+          url,
+          RelayFailure(RelayFailureKind.vetoed, vetoed),
+        );
         return;
       }
       await _connections.sendOrThrow(
@@ -142,17 +153,22 @@ class RelayBroadcasts {
         ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
       );
     } catch (error) {
-      _failBroadcast(state, url, "broadcast error: $error");
+      _failBroadcast(
+        state,
+        url,
+        RelayFailure(RelayFailureKind.connectionLost, "$error"),
+      );
     }
   }
 
   /// The connection a broadcast under [auth] must go out on towards [url],
-  /// opening it when it is not there yet. Null means nothing may be sent.
+  /// opening it when it is not there yet, or why nothing may be sent.
   ///
   /// Owns the connecting too: a broadcast that requires an identity must not
   /// even open the anonymous connection, because a socket we opened is one the
   /// relay saw, whether or not anything was sent on it.
-  Future<RelayConnection?> _connectionForBroadcast(
+  Future<({RelayConnection? relay, RelayFailure? failure})>
+  _connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
     Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
@@ -163,13 +179,22 @@ class RelayBroadcasts {
         Logger.log.w(
           () => "Broadcast requires ${auth.account.pubkey}, which cannot sign",
         );
-        return null;
+        return (
+          relay: null,
+          failure: const RelayFailure(RelayFailureKind.cannotSign),
+        );
       }
-      return _connections.openConnectionAs(
+      final bound = await _connections.openConnectionAs(
         url,
         auth.account,
         connectTimeout: connectTimeout,
         pausing: pausing,
+      );
+      return (
+        relay: bound,
+        failure: bound == null
+            ? const RelayFailure(RelayFailureKind.noBoundConnection)
+            : null,
       );
     }
 
@@ -179,11 +204,11 @@ class RelayBroadcasts {
         connectTimeout: connectTimeout,
       );
       if (!result.connected) {
-        Logger.log.w(() => "Could not connect to $url: ${result.error}");
-        return null;
+        Logger.log.w(() => "Could not connect to $url: ${result.failure}");
+        return (relay: null, failure: result.failure);
       }
     }
-    return _connections.getRelayConnectivity(url);
+    return (relay: _connections.getRelayConnectivity(url), failure: null);
   }
 
   /// A relay answers every EVENT it receives, and the same event can be in
@@ -210,7 +235,7 @@ class RelayBroadcasts {
         msg.startsWith("auth-required") &&
         !_auth.isAuthenticated(relayConnectivity.key)) {
       for (final broadcastState in waiting) {
-        _handleBroadcastAuthRequired(broadcastState, relayConnectivity);
+        _handleBroadcastAuthRequired(broadcastState, relayConnectivity, msg);
       }
       return;
     }
@@ -239,7 +264,7 @@ class RelayBroadcasts {
                 (response) =>
                     cleanRelayUrl(response.relayUrl) == relayUrl &&
                     !response.okReceived &&
-                    response.msg.isEmpty,
+                    response.failure == null,
               ),
         )
         .toList();
@@ -253,6 +278,7 @@ class RelayBroadcasts {
   void _handleBroadcastAuthRequired(
     BroadcastState broadcastState,
     RelayConnection relayConnectivity,
+    String refusal,
   ) {
     final relayUrl = relayConnectivity.url;
     // the refusal of another broadcast of the same event reaches this one too
@@ -283,7 +309,7 @@ class RelayBroadcasts {
       _failBroadcast(
         broadcastState,
         relayUrl,
-        'auth-required: this broadcast may not reveal an identity',
+        RelayFailure(RelayFailureKind.identityNotAllowed, refusal),
       );
       return;
     }
@@ -302,7 +328,11 @@ class RelayBroadcasts {
           return;
         }
         if (bound == null) {
-          _failBroadcast(broadcastState, relayUrl, 'auth connection failed');
+          _failBroadcast(
+            broadcastState,
+            relayUrl,
+            const RelayFailure(RelayFailureKind.noBoundConnection),
+          );
           return;
         }
 
@@ -323,7 +353,11 @@ class RelayBroadcasts {
           return;
         }
         if (!accepted) {
-          _failBroadcast(broadcastState, relayUrl, 'authentication failed');
+          _failBroadcast(
+            broadcastState,
+            relayUrl,
+            const RelayFailure(RelayFailureKind.authenticationFailed),
+          );
           return;
         }
         await _connections.sendOrThrow(
@@ -337,7 +371,11 @@ class RelayBroadcasts {
           stackTrace: stackTrace,
         );
         if (!broadcastState.networkController.isClosed) {
-          _failBroadcast(broadcastState, relayUrl, 'auth retry failed');
+          _failBroadcast(
+            broadcastState,
+            relayUrl,
+            RelayFailure(RelayFailureKind.connectionLost, "$error"),
+          );
         }
       } finally {
         broadcastState.retryingAuth.remove(relayUrl);

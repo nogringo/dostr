@@ -16,6 +16,7 @@ import '../entities/auth_handler.dart';
 import '../entities/auth_policy.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
+import '../entities/relay_failure.dart';
 import '../entities/relay_protocol_handler.dart';
 import '../repositories/auth_accounts.dart';
 import '../repositories/nostr_transport.dart';
@@ -160,10 +161,10 @@ class RelayManager {
       _connections.isConnectionOpen(key);
 
   /// Opens the anonymous connection to a relay. Returns whether it is
-  /// connected, and the error message if it is not. A refused connection is
-  /// tried again until [connectTimeout] runs out. A connection bound to an
+  /// connected, and why if it is not. A refused connection is tried
+  /// again until [connectTimeout] runs out. A connection bound to an
   /// identity is opened with [openConnectionAs].
-  Future<({bool connected, String? error})> connectRelay({
+  Future<({bool connected, RelayFailure? failure})> connectRelay({
     required String dirtyUrl,
     Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
   }) => _connections.connectRelay(

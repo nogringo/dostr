@@ -348,7 +348,9 @@ class PendingBroadcastDelivery {
           lastAttemptAt: attemptTimestamp,
           nextRetryAt: nextRetryAt,
           lastOkMessage: isAcked ? response.msg : current.lastOkMessage,
-          lastError: isAcked ? null : response.msg,
+          lastError: isAcked
+              ? null
+              : response.failure?.toString() ?? response.msg,
         ),
       );
     }

@@ -63,9 +63,56 @@ void main() {
         .publish(signedEvent(), relays: [blocked])
         .done;
 
-    expect(responses.values.map(summary), [
-      (blocked, false, false, 'could not connect'),
-    ]);
+    expect(responses.values.map(summary), [(blocked, false, false, '')]);
+    expect(
+      responses.values.single.failure,
+      const RelayFailure(RelayFailureKind.blocked),
+    );
+  });
+
+  test('fails a relay when the identity it requires cannot sign', () async {
+    final relay = await startRelay();
+
+    final responses = await publishes
+        .publish(
+          signedEvent(),
+          relays: [relay.url],
+          auth: AuthPolicy.require(fakeAccount(alice, canSign: false)),
+        )
+        .done;
+
+    expect(
+      responses.values.single.failure,
+      const RelayFailure(RelayFailureKind.cannotSign),
+    );
+    expect(relay.events, isEmpty);
+  });
+
+  test('reports the reason of a veto, and a veto that failed', () async {
+    final relay = await startRelay();
+    final event = signedEvent();
+
+    Future<Map<String, RelayBroadcastResponse>> publishWith(
+      Future<String?> Function() veto,
+    ) {
+      final publish = publishes.open(event)..start(event);
+      publish.send(relay.url, veto: veto);
+      publish.seal();
+      return publish.done;
+    }
+
+    final vetoed = await publishWith(() async => 'obsolete');
+    final failed = await publishWith(
+      () async => throw StateError('cache down'),
+    );
+
+    expect(
+      vetoed.values.single.failure,
+      const RelayFailure(RelayFailureKind.vetoed, 'obsolete'),
+    );
+    expect(failed.values.single.failure?.kind, RelayFailureKind.vetoed);
+    expect(failed.values.single.failure?.detail, contains('cache down'));
+    expect(relay.events, isEmpty);
   });
 
   test('refuses an unsigned event', () {

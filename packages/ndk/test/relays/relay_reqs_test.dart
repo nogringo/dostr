@@ -174,7 +174,7 @@ void main() {
       expect(await req.done, {
         relayA.url: RelayRequestOutcome(
           RelayRequestStatus.notSent,
-          message: 'could not connect',
+          failure: RelayFailure(RelayFailureKind.unreachable),
         ),
       });
     });

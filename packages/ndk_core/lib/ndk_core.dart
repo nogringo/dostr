@@ -15,6 +15,7 @@ export 'domain_layer/entities/pending_signer_request.dart';
 export 'domain_layer/entities/relay.dart';
 export 'domain_layer/entities/relay_connection_key.dart';
 export 'domain_layer/entities/relay_connectivity.dart';
+export 'domain_layer/entities/relay_failure.dart';
 export 'domain_layer/entities/relay_protocol_handler.dart';
 export 'domain_layer/entities/relay_req_event.dart';
 export 'domain_layer/entities/relay_request_outcome.dart';

@@ -42,12 +42,14 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!.markNotSent("could not connect");
+      state.requests[key]!.markNotSent(
+        const RelayFailure(RelayFailureKind.unreachable),
+      );
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(
           RelayRequestStatus.notSent,
-          message: "could not connect",
+          failure: RelayFailure(RelayFailureKind.unreachable),
         ),
       });
       expect(state.didAllRequestsFinish, isTrue);
@@ -57,7 +59,9 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!.markNotSent("could not connect");
+      state.requests[key]!.markNotSent(
+        const RelayFailure(RelayFailureKind.unreachable),
+      );
 
       state.requests[key]!.markSent();
 

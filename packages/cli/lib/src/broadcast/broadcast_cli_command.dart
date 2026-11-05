@@ -105,9 +105,14 @@ Output control:
     for (final r in results) {
       final status = r.broadcastSuccessful
           ? 'OK'
-          : (r.okReceived ? 'REJECTED' : 'NO-RESPONSE');
+          : r.okReceived
+          ? 'REJECTED'
+          : r.failure != null
+          ? 'FAILED'
+          : 'NO-RESPONSE';
+      final detail = r.failure?.toString() ?? r.msg;
       stdout.writeln(
-        '  ${r.relayUrl}: $status ${r.msg.isEmpty ? "" : '(${r.msg})'}',
+        '  ${r.relayUrl}: $status ${detail.isEmpty ? "" : '($detail)'}',
       );
       if (r.broadcastSuccessful) okCount++;
     }

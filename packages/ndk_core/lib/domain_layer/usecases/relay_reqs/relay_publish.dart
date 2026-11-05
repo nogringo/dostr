@@ -81,7 +81,8 @@ class RelayPublish {
   Nip01Event? _signed;
 
   /// The OK of each relay so far, keyed by relay url. A relay that did not
-  /// answer yet has neither [RelayBroadcastResponse.okReceived] nor a message.
+  /// answer yet has neither [RelayBroadcastResponse.okReceived] nor a
+  /// [RelayBroadcastResponse.failure].
   Map<String, RelayBroadcastResponse> get outcomes => _outcomesOf(_state);
 
   /// [outcomes] each time a relay answers, closed once the publish is done.

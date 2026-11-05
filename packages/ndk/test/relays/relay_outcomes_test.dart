@@ -437,7 +437,7 @@ void relayOutcomesTests(NdkEngine engine) {
           relay1.url: RelayRequestOutcome(RelayRequestStatus.eose),
           unreachable.url: RelayRequestOutcome(
             RelayRequestStatus.notSent,
-            message: "could not connect",
+            failure: RelayFailure(RelayFailureKind.unreachable),
           ),
         });
 
@@ -470,7 +470,7 @@ void relayOutcomesTests(NdkEngine engine) {
         expect(await response.relayOutcomesDone, {
           unreachable.url: RelayRequestOutcome(
             RelayRequestStatus.notSent,
-            message: "could not connect",
+            failure: RelayFailure(RelayFailureKind.unreachable),
           ),
         });
 

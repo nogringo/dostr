@@ -2,6 +2,7 @@ import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/event_cache_records.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/delivery_policy.dart';
 import 'package:test/test.dart';
 
@@ -102,6 +103,59 @@ void main() {
         policy.resolveNextState(refusal),
         RelayDeliveryState.authRequired,
         reason: 'a broadcast that named nobody may still authenticate',
+      );
+    });
+
+    test('classifies what ndk_core failed at by its kind, not its text', () {
+      Nip01Event eventOfKind(int kind) => Nip01Event(
+        id: 'event-$kind',
+        pubKey: 'pubkey',
+        createdAt: 1700000002,
+        kind: kind,
+        tags: const [],
+        content: 'text',
+        sig: 'sig',
+      );
+      RelayBroadcastResponse failed(RelayFailureKind kind, [String? detail]) =>
+          RelayBroadcastResponse(
+            relayUrl: 'wss://relay.example',
+            failure: RelayFailure(kind, detail),
+          );
+
+      final policy = DeliveryPolicy.forEvent(
+        eventOfKind(Nip01Event.kTextNodeKind),
+      );
+      final identityNotAllowed = failed(
+        RelayFailureKind.identityNotAllowed,
+        'auth-required: please authenticate',
+      );
+
+      expect(
+        policy.resolveNextState(
+          identityNotAllowed,
+          auth: const AuthPolicy.never(),
+        ),
+        RelayDeliveryState.permanentFailure,
+      );
+      expect(
+        policy.resolveNextState(identityNotAllowed),
+        RelayDeliveryState.authRequired,
+      );
+      expect(
+        policy.resolveNextState(
+          failed(RelayFailureKind.vetoed, 'invalid signature'),
+        ),
+        RelayDeliveryState.transientFailure,
+      );
+      expect(
+        policy.resolveNextState(failed(RelayFailureKind.unreachable)),
+        RelayDeliveryState.transientFailure,
+      );
+      expect(
+        DeliveryPolicy.forEvent(
+          eventOfKind(20001),
+        ).resolveNextState(failed(RelayFailureKind.unreachable)),
+        RelayDeliveryState.permanentFailure,
       );
     });
 

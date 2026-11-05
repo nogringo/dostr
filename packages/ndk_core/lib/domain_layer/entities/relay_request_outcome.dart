@@ -1,3 +1,5 @@
+import 'relay_failure.dart';
+
 /// What a relay did with a request.
 ///
 /// Declared in collapse precedence order: one request can run on several
@@ -30,16 +32,17 @@ class RelayRequestOutcome {
   /// what the relay did with the request
   final RelayRequestStatus status;
 
-  /// why, when there is a reason to give: the message of a CLOSED, or what
-  /// kept the request from being sent
+  /// the message of the relay's CLOSED, as it sent it
   final String? message;
 
+  /// what kept the request from being sent, for [RelayRequestStatus.notSent]
+  final RelayFailure? failure;
+
   /// creates a new [RelayRequestOutcome]
-  const RelayRequestOutcome(this.status, {this.message});
+  const RelayRequestOutcome(this.status, {this.message, this.failure});
 
   @override
-  String toString() =>
-      message == null ? status.name : '${status.name}: $message';
+  String toString() => [status.name, ?message, ?failure].join(': ');
 
   @override
   bool operator ==(Object other) =>
@@ -47,8 +50,9 @@ class RelayRequestOutcome {
       other is RelayRequestOutcome &&
           runtimeType == other.runtimeType &&
           status == other.status &&
-          message == other.message;
+          message == other.message &&
+          failure == other.failure;
 
   @override
-  int get hashCode => Object.hash(status, message);
+  int get hashCode => Object.hash(status, message, failure);
 }
