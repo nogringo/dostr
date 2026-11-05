@@ -60,7 +60,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -77,7 +77,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [key0.publicKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -85,7 +85,7 @@ void main() async {
 
       final event2 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "my content",
       );
@@ -102,7 +102,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [key0.publicKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -116,7 +116,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -134,7 +134,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [signedEvent.pubKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -147,7 +147,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [signedEvent.pubKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -161,7 +161,7 @@ void main() async {
       );
       Nip01Event event1 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "1",
       );
@@ -172,7 +172,7 @@ void main() async {
       );
       Nip01Event event2 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "2",
       );
@@ -194,7 +194,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [signedEvent1.pubKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -208,7 +208,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [signedEvent1.pubKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -222,7 +222,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -241,7 +241,7 @@ void main() async {
           .query(
             filter: Filter(
               authors: [signedEvent.pubKey],
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
             ),
           )
           .future;
@@ -304,7 +304,7 @@ void main() async {
         // Create and broadcast an event with a short timeout
         Nip01Event event = Nip01Event(
           pubKey: key0.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "testing timeout",
         );
@@ -339,7 +339,7 @@ void main() async {
             .query(
               filter: Filter(
                 authors: [key0.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
                 search: "testing timeout",
               ),
             )
@@ -385,7 +385,7 @@ void main() async {
         // This means it should complete after 2 of the 3 relays receive the event
         Nip01Event event = Nip01Event(
           pubKey: key0.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "testing considerDonePercent",
         );
@@ -442,7 +442,7 @@ void main() async {
 
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test cache save",
       );
@@ -473,7 +473,7 @@ void main() async {
 
         Nip01Event event = Nip01Event(
           pubKey: key0.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "test no cache save",
         );
@@ -499,7 +499,7 @@ void main() async {
 
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test offline broadcast",
       );
@@ -538,7 +538,7 @@ void main() async {
 
         Nip01Event textNote = Nip01Event(
           pubKey: key0.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "test event for NIP-09 deletion",
         );
@@ -565,7 +565,7 @@ void main() async {
           (t) => t.length >= 2 && t[0] == 'k',
         );
         expect(kTags.length, 1);
-        expect(kTags.first[1], Nip01Event.kTextNodeKind.toString());
+        expect(kTags.first[1], Nip01Event.kTextNoteKind.toString());
       },
     );
 
@@ -740,7 +740,7 @@ void main() async {
 
         Nip01Event textNote = Nip01Event(
           pubKey: key0.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "text note",
         );

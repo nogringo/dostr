@@ -32,14 +32,14 @@ class _UnreadableCache extends MemCacheManager {
 void main() {
   final key = Bip340.generatePrivateKey();
   final filter = Filter(
-    kinds: [Nip01Event.kTextNodeKind],
+    kinds: [Nip01Event.kTextNoteKind],
     authors: [key.publicKey],
   );
 
   Nip01Event note(String content) => Bip340.signEvent(
     event: Nip01Event(
       pubKey: key.publicKey,
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: [],
       content: content,
     ),

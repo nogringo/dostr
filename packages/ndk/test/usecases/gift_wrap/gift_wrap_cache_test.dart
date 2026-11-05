@@ -120,7 +120,7 @@ void main() {
     test('throws when event is not a gift wrap kind', () async {
       final notAWrap = Nip01Event(
         pubKey: alice.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'nope',
       );

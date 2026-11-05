@@ -68,7 +68,7 @@ void main() async {
 
   Future<Nip01Event> signedEvent(String content, int createdAt) => signer.sign(
     Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key1.publicKey,
       content: content,
       tags: [],
@@ -335,7 +335,7 @@ void main() async {
       final events = await ndk.requests
           .query(
             filter: Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key1.publicKey],
             ),
             explicitRelays: [relay1.url, relay2.url],
@@ -373,7 +373,7 @@ void main() async {
       cache.resetSaveIfAbsentCounts();
 
       final filter = Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key1.publicKey],
       );
 

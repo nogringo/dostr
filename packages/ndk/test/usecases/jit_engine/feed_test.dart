@@ -88,7 +88,7 @@ void main() async {
         filters: [
           Filter(
             authors: myContactList.contacts,
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             since:
                 (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 60 * 60 * 1,
           ),
@@ -104,7 +104,7 @@ void main() async {
           Filter(
             limit: 100,
             authors: myContactList.contacts,
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             since:
                 (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 60 * 60 * 4,
           ),

@@ -314,7 +314,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
   final connectivity = manager.connectivities[connectionKey]!;
   final filters = [
-    Filter(kinds: [Nip01Event.kTextNodeKind]),
+    Filter(kinds: [Nip01Event.kTextNoteKind]),
   ];
   final req = RelayReqs(
     relayManager: manager,

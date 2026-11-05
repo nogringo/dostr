@@ -23,7 +23,7 @@ void main() {
   Nip01Event note(KeyPair key) => Bip340.signEvent(
     event: Nip01Event(
       pubKey: key.publicKey,
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: [],
       content: 'live note',
     ),
@@ -65,7 +65,7 @@ void main() {
 
       final subscription = ndk.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [a.publicKey, b.publicKey],
         ),
         desiredCoverage: 1,
@@ -122,7 +122,7 @@ void main() {
     final sent = <String, List<Filter>>{};
     await engine.route(
       [
-        Filter(kinds: [Nip01Event.kTextNodeKind], authors: [a.publicKey]),
+        Filter(kinds: [Nip01Event.kTextNoteKind], authors: [a.publicKey]),
         Filter(kinds: [Metadata.kKind], authors: [a.publicKey]),
       ],
       (relayUrl, filters) {
@@ -135,14 +135,14 @@ void main() {
 
     expect(sent.keys, [url]);
     expect(sent[url]!.map((filter) => filter.kinds), [
-      [Nip01Event.kTextNodeKind],
+      [Nip01Event.kTextNoteKind],
       [Metadata.kKind],
     ]);
   });
 
   group('JitRequestPlan', () {
     final filter = Filter(
-      kinds: [Nip01Event.kTextNodeKind],
+      kinds: [Nip01Event.kTextNoteKind],
       authors: [a.publicKey, b.publicKey],
     );
 

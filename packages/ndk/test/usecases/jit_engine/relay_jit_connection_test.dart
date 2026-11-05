@@ -29,7 +29,7 @@ void main() async {
 
   Nip01Event textNote(KeyPair key2) {
     return Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key2.publicKey,
       content: "some note from key ${keyNames[key2]}",
       tags: [],
@@ -126,7 +126,7 @@ void main() async {
       final response = ndk.requests.query(
         name: 'debug-get-events',
         filters: [
-          Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key3.publicKey]),
+          Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key3.publicKey]),
         ],
       );
       expect(await response.stream.toList(), contains(key3TextNotes[key3]));
@@ -164,7 +164,7 @@ void main() async {
           name: "qInOut",
           filters: [
             Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [
                 key1.publicKey,
                 key2.publicKey,

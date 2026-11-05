@@ -15,7 +15,7 @@ void main() {
 
 Nip01Event _textNote(KeyPair key, String content) => Bip340.signEvent(
   event: Nip01Event(
-    kind: Nip01Event.kTextNodeKind,
+    kind: Nip01Event.kTextNoteKind,
     pubKey: key.publicKey,
     content: content,
     tags: [],
@@ -34,7 +34,7 @@ Account _signable(KeyPair key) => Account(
 );
 
 Filter _notesOf(KeyPair key) =>
-    Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
+    Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key.publicKey]);
 
 /// Records every question and answers with [answer].
 class _Handler {

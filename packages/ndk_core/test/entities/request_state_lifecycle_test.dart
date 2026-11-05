@@ -3,7 +3,7 @@ import 'package:ndk_core/src/request_state.dart';
 import 'package:test/test.dart';
 
 final _filters = [
-  Filter(kinds: [Nip01Event.kTextNodeKind]),
+  Filter(kinds: [Nip01Event.kTextNoteKind]),
 ];
 
 RequestState _query() =>

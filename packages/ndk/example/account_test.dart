@@ -23,7 +23,7 @@ void main() async {
     NdkBroadcastResponse response = ndk.broadcast.broadcast(
       nostrEvent: Nip01Event(
         pubKey: key1.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test",
       ),

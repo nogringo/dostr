@@ -62,7 +62,7 @@ void broadcastAuthTests(NdkEngine engine) {
 
     Nip01Event noteFrom(KeyPair k, String content) => Nip01Event(
       pubKey: k.publicKey,
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: [],
       content: content,
     );

@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 void main() {
   group('relay outcomes collapse', () {
     const url = "wss://relay.example.com";
-    final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
+    final filter = Filter(kinds: [Nip01Event.kTextNoteKind]);
 
     RequestState buildState() => RequestState.subscription("outcome-test");
 
@@ -131,7 +131,7 @@ void main() {
 
   group('a subscription after its EOSE', () {
     const url = "wss://relay.example.com";
-    final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
+    final filter = Filter(kinds: [Nip01Event.kTextNoteKind]);
     final key = RelayConnectionKey.anonymous(url);
 
     RequestState caughtUp() {

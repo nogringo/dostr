@@ -39,7 +39,7 @@ void main() {
     test('broadcast should throw SignerRequestRejectedException', () async {
       final event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test",
       );

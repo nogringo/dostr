@@ -27,7 +27,7 @@ void authTests(NdkEngine engine) {
             ).sign(
               Nip01Event(
                 pubKey: key.publicKey,
-                kind: Nip01Event.kTextNodeKind,
+                kind: Nip01Event.kTextNoteKind,
                 tags: [],
                 content: "test event",
               ),
@@ -52,7 +52,7 @@ void authTests(NdkEngine engine) {
 
         final result = await ndk.requests
             .query(
-              filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+              filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
               explicitRelays: [relay.url],
             )
             .future;
@@ -90,7 +90,7 @@ void authTests(NdkEngine engine) {
 
         final event = Nip01Event(
           pubKey: key.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "test broadcast",
         );
@@ -142,7 +142,7 @@ void authTests(NdkEngine engine) {
 
         final rumor = await ndk.giftWrap.createRumor(
           content: "gift wrap auth-required broadcast",
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [
             ["p", recipientKey.publicKey],
           ],
@@ -194,7 +194,7 @@ void authTests(NdkEngine engine) {
         Future<Nip01Event> wrap(String content) async {
           final rumor = await ndk.giftWrap.createRumor(
             content: content,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: [
               ["p", recipientKey.publicKey],
             ],
@@ -257,7 +257,7 @@ void authTests(NdkEngine engine) {
         final result = await ndk.requests
             .query(
               filter: Filter(
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
                 authors: [key.publicKey],
               ),
             )
@@ -301,7 +301,7 @@ void authTests(NdkEngine engine) {
         final result = await ndk.requests
             .query(
               filter: Filter(
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
                 authors: [key.publicKey],
               ),
             )

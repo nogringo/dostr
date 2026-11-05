@@ -19,7 +19,7 @@ void main() {
       relayName: 'tag-filter-test-relay',
       events: [matchingEvent, nonMatchingEvent],
       filter: Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         tags: {
           '#r': ['a'],
         },
@@ -49,7 +49,7 @@ void main() {
       port: 4081,
       relayName: 'p-tag-filter-test-relay',
       events: [matchingEvent, nonMatchingEvent],
-      filter: Filter(kinds: [Nip01Event.kTextNodeKind], pTags: [taggedPubkey]),
+      filter: Filter(kinds: [Nip01Event.kTextNoteKind], pTags: [taggedPubkey]),
     );
 
     expect(
@@ -75,7 +75,7 @@ void main() {
       port: 4082,
       relayName: 'e-tag-filter-test-relay',
       events: [matchingEvent, nonMatchingEvent],
-      filter: Filter(kinds: [Nip01Event.kTextNodeKind], eTags: [taggedEventId]),
+      filter: Filter(kinds: [Nip01Event.kTextNoteKind], eTags: [taggedEventId]),
     );
 
     expect(
@@ -105,7 +105,7 @@ void main() {
       relayName: 'multi-tag-filter-test-relay',
       events: [bothEvent, onlyREvent, onlyPEvent],
       filter: Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         tags: {
           '#r': ['a'],
           '#p': [taggedPubkey],
@@ -134,7 +134,7 @@ void main() {
       relayName: 'malformed-tag-filter-test-relay',
       events: [malformedEvent, validEvent],
       filter: Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         tags: {
           '#r': ['a'],
         },
@@ -153,7 +153,7 @@ Nip01Event _signedNote(KeyPair keyPair, List<List<String>> tags) {
   return Bip340.signEvent(
     event: Nip01Event(
       pubKey: keyPair.publicKey,
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: tags,
       content: 'test event',
     ),

@@ -53,7 +53,7 @@ void main() {
       );
 
       final response = ndk.requests.subscription(
-        filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+        filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
       );
       final subId = response.requestId;
 

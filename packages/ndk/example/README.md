@@ -32,7 +32,7 @@ final response = ndk.requests.query(
         '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d'
       ],
       // Query for text note events (kind 1)
-      kinds: [Nip01Event.kTextNodeKind],
+      kinds: [Nip01Event.kTextNoteKind],
       // Limit the results to 10 events
       limit: 10,
     ),

@@ -11,7 +11,7 @@ void main() {
     () async {
       final key1 = Bip340.generatePrivateKey();
       final note = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "note from key1",
         tags: [],
@@ -48,7 +48,7 @@ void main() {
 
       final response = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
       );

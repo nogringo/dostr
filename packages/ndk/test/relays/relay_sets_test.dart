@@ -24,7 +24,7 @@ void main() async {
 
   Nip01Event textNote(KeyPair key2) {
     return Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key2.publicKey,
       content: "some note from key ${keyNames[key2]}",
       tags: [],
@@ -57,7 +57,7 @@ void main() async {
       );
 
       Filter filter = Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key1.publicKey],
       );
 
@@ -198,7 +198,7 @@ void main() async {
 
       NdkResponse query = ndk.requests.query(
         filters: [
-          Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key4.publicKey]),
+          Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key4.publicKey]),
         ],
         relaySet: relaySet,
       );
@@ -223,7 +223,7 @@ void main() async {
     //     eventVerifier: eventVerifier,
     //     filters: [
     //       Filter(kinds: [
-    //         Nip01Event.kTextNodeKind
+    //         Nip01Event.kTextNoteKind
     //       ], authors: [
     //         key4.publicKey,
     //       ]),
@@ -285,19 +285,19 @@ void main() async {
         NdkResponse query = ndk.requests.query(
           filters: [
             Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key1.publicKey],
             ),
             Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key2.publicKey],
             ),
             Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key3.publicKey],
             ),
             Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key4.publicKey],
             ),
           ],
@@ -336,7 +336,7 @@ void main() async {
     //     eventVerifier: eventVerifier,
     //     filters: [
     //       Filter(kinds: [
-    //         Nip01Event.kTextNodeKind
+    //         Nip01Event.kTextNoteKind
     //       ], authors: [
     //         key1.publicKey,
     //         key2.publicKey,

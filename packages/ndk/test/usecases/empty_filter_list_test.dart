@@ -9,14 +9,14 @@ void main() {
   late MockRelay relay;
   late Ndk ndk;
 
-  final nobody = Filter(kinds: [Nip01Event.kTextNodeKind], authors: []);
+  final nobody = Filter(kinds: [Nip01Event.kTextNoteKind], authors: []);
 
   setUp(() async {
     final key = Bip340.generatePrivateKey();
     final note = Bip340.signEvent(
       event: Nip01Event(
         pubKey: key.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: 'a note from somebody',
       ),

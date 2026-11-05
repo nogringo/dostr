@@ -39,7 +39,7 @@ void main() {
 
       final stopwatch = Stopwatch()..start();
       final filter = Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key.publicKey],
       );
 

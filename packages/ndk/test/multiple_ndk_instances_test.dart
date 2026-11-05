@@ -66,7 +66,7 @@ void main() {
           final firstSubscription = first.requests.subscription(
             id: 'same-subscription-id',
             filter: Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key.publicKey],
             ),
             explicitRelays: [relay.url],
@@ -78,7 +78,7 @@ void main() {
           second.requests.subscription(
             id: 'same-subscription-id',
             filter: Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key.publicKey],
             ),
             explicitRelays: [relay.url],
@@ -114,7 +114,7 @@ void main() {
           final event = Bip340.signEvent(
             event: Nip01Event(
               pubKey: key.publicKey,
-              kind: Nip01Event.kTextNodeKind,
+              kind: Nip01Event.kTextNoteKind,
               tags: const [],
               content: 'first instance remains live',
             ),
@@ -163,7 +163,7 @@ void main() {
         final event = Bip340.signEvent(
           event: Nip01Event(
             pubKey: key.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'same event, independent broadcasts',
           ),
@@ -211,7 +211,7 @@ void main() {
       final note = Bip340.signEvent(
         event: Nip01Event(
           pubKey: noteKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'authenticated result',
         ),

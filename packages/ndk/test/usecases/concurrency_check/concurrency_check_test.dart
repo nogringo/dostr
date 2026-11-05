@@ -20,7 +20,7 @@ void main() async {
 
     Nip01Event textNote(KeyPair key2) {
       return Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key2.publicKey,
         content: "some note from key ${keyNames[key2]}",
         tags: [],
@@ -73,7 +73,7 @@ void main() async {
         await ndkJit.bootstrapRelaysConnected;
 
         final myfilter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         );
 
@@ -102,7 +102,7 @@ void main() async {
     final key = Bip340.generatePrivateKey();
 
     final note = Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key.publicKey,
       content: "a note only an authenticated request may see",
       tags: [],
@@ -139,7 +139,7 @@ void main() async {
         await ndk.bootstrapRelaysConnected;
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key.publicKey],
         );
 

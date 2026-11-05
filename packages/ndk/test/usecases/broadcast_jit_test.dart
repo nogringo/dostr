@@ -53,7 +53,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -71,7 +71,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key0.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -80,7 +80,7 @@ void main() async {
 
       final event2 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "my content",
       );
@@ -98,7 +98,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key0.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -113,7 +113,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -132,7 +132,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [signedEvent.pubKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -147,7 +147,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [signedEvent.pubKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -162,13 +162,13 @@ void main() async {
       );
       Nip01Event event1 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "1",
       );
       Nip01Event event2 = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "2",
       );
@@ -186,7 +186,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [event1.pubKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -202,7 +202,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [event1.pubKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -231,7 +231,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key0.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "",
       );
@@ -245,7 +245,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [event.pubKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -360,7 +360,7 @@ void main() async {
       );
       Nip01Event event = Nip01Event(
         pubKey: key1.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "hi there",
       );
@@ -377,7 +377,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key1.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -393,7 +393,7 @@ void main() async {
 
       Nip01Event event = Nip01Event(
         pubKey: key1.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [
           ["p", keyOther.publicKey],
         ],
@@ -409,7 +409,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key1.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -428,7 +428,7 @@ void main() async {
 
       Nip01Event event = Nip01Event(
         pubKey: key1.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test connection during broadcast",
       );
@@ -443,7 +443,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key1.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )
@@ -456,7 +456,7 @@ void main() async {
             filters: [
               Filter(
                 authors: [key1.publicKey],
-                kinds: [Nip01Event.kTextNodeKind],
+                kinds: [Nip01Event.kTextNoteKind],
               ),
             ],
           )

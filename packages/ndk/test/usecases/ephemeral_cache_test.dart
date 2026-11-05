@@ -234,7 +234,7 @@ void main() {
       final key = Bip340.generatePrivateKey();
 
       final textNote = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: 'regular text note — must be cached',
         tags: [],
@@ -257,7 +257,7 @@ void main() {
 
       final response = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key.publicKey],
         ),
         cacheRead: true,
@@ -311,7 +311,7 @@ void main() {
 
       final subscription = subscriberNdk.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind, ephemeralKind],
+          kinds: [Nip01Event.kTextNoteKind, ephemeralKind],
           authors: [key.publicKey],
         ),
         cacheWrite: true,
@@ -321,7 +321,7 @@ void main() {
       Nip01Event? receivedEphemeral;
 
       subscription.stream.listen((event) {
-        if (event.kind == Nip01Event.kTextNodeKind &&
+        if (event.kind == Nip01Event.kTextNoteKind &&
             !textNoteReceived.isCompleted) {
           receivedTextNote = event;
           textNoteReceived.complete();
@@ -337,7 +337,7 @@ void main() {
       // Broadcast a non-ephemeral text note from a separate NDK instance.
       final textNote = Bip340.signEvent(
         event: Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key.publicKey,
           content: 'text note in a mixed request',
           tags: [],

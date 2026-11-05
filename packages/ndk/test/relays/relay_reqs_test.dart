@@ -21,13 +21,13 @@ Future<void> _waitUntil(
 void main() {
   final key = Bip340.generatePrivateKey();
   final filter = Filter(
-    kinds: [Nip01Event.kTextNodeKind],
+    kinds: [Nip01Event.kTextNoteKind],
     authors: [key.publicKey],
   );
 
   Nip01Event textNote() => Bip340.signEvent(
     event: Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key.publicKey,
       content: 'a note',
       tags: [],

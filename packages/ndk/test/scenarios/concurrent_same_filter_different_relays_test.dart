@@ -7,7 +7,7 @@ import '../mocks/mock_relay.dart';
 void main() {
   Nip01Event textNote(KeyPair key, String content) {
     return Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key.publicKey,
       content: content,
       tags: [],
@@ -44,7 +44,7 @@ void main() {
       await _waitForRelayConnected(ndk: ndk, relayUrl: relay2.url);
 
       final filter = Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key.publicKey],
       );
 

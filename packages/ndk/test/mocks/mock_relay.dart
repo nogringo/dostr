@@ -867,8 +867,8 @@ class MockRelay {
           bool kindsMatch =
               filter.kinds == null ||
               filter.kinds!.contains(entry.value.kind) ||
-              (entry.value.kind == Nip01Event.kTextNodeKind &&
-                  filter.kinds!.contains(Nip01Event.kTextNodeKind)) ||
+              (entry.value.kind == Nip01Event.kTextNoteKind &&
+                  filter.kinds!.contains(Nip01Event.kTextNoteKind)) ||
               (filter.kinds!.any(
                 (k) =>
                     Nip51List.kPossibleKinds.contains(k) &&

@@ -15,7 +15,7 @@ void main() {
       Bip340.signEvent(
         event: Nip01Event(
           pubKey: author.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: tags,
           content: 'a note',
         ),
@@ -87,7 +87,7 @@ void main() {
     test('an unsigned event is refused', () {
       final unsigned = Nip01Event(
         pubKey: author.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'not signed',
       );

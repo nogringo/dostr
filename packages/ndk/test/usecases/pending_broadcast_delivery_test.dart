@@ -45,7 +45,7 @@ void main() {
         id: 'event-1',
         pubKey: 'pubkey',
         createdAt: 1700000000,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'note',
         sig: 'sig',
@@ -368,7 +368,7 @@ void main() {
         id: id,
         pubKey: 'pubkey',
         createdAt: 1700000000,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'note',
         sig: sig,
@@ -474,7 +474,7 @@ void main() {
         id: 'event-expired',
         pubKey: 'pubkey',
         createdAt: now - 120,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [
           ['expiration', '${now - 60}'],
         ],
@@ -861,7 +861,7 @@ void main() {
         id: 'event-remote-sign',
         pubKey: 'remote-pubkey',
         createdAt: 1700000100,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'needs signing',
       );
@@ -938,7 +938,7 @@ void main() {
           id: 'event-remote-rejected',
           pubKey: 'remote-pubkey-rejected',
           createdAt: 1700000200,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'needs approval',
         );
@@ -1003,7 +1003,7 @@ void main() {
           id: 'event-remote-timeout-stall',
           pubKey: 'remote-timeout-stall-pubkey',
           createdAt: 1700000250,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'first sign hangs forever',
         );
@@ -1081,7 +1081,7 @@ void main() {
           id: 'event-bunker-offline',
           pubKey: 'bunker-offline-pubkey',
           createdAt: 1700000300,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'offline bunker',
         );
@@ -1142,7 +1142,7 @@ void main() {
           id: 'event-bunker-online',
           pubKey: 'bunker-online-pubkey',
           createdAt: 1700000400,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'online bunker',
         );
@@ -1208,7 +1208,7 @@ void main() {
           id: 'event-bunker-other-relay',
           pubKey: 'bunker-other-relay-pubkey',
           createdAt: 1700000500,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'wrong relay',
         );
@@ -1265,7 +1265,7 @@ void main() {
           id: 'event-bunker-backoff',
           pubKey: 'bunker-backoff-pubkey',
           createdAt: 1700000600,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'backoff bunker',
         );
@@ -1318,7 +1318,7 @@ void main() {
           id: 'event-local-backoff',
           pubKey: 'local-backoff-pubkey',
           createdAt: 1700000700,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'backoff local',
         );

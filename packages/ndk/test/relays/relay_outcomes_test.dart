@@ -63,7 +63,7 @@ void deadConnectionTests() {
       );
       await manager.connectRelay(dirtyUrl: relay.url);
 
-      final filter = Filter(kinds: [Nip01Event.kTextNodeKind]);
+      final filter = Filter(kinds: [Nip01Event.kTextNoteKind]);
       final req =
           RelayReqs(
             relayManager: manager,
@@ -107,7 +107,7 @@ void notSentEndTests() {
 
     Nip01Event textNote(KeyPair key) => Bip340.signEvent(
       event: Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: "some note from ${key.publicKey}",
         tags: [],
@@ -117,7 +117,7 @@ void notSentEndTests() {
     );
 
     Filter notesOf(KeyPair key) =>
-        Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
+        Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key.publicKey]);
 
     RelayManager buildManager() => RelayManager(
       nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -211,7 +211,7 @@ void notSentEndTests() {
         // another request is already opening it
         opening = manager.connectRelay(dirtyUrl: connecting.url);
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey, key2.publicKey],
         );
         final req =
@@ -246,7 +246,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
     Nip01Event textNote(KeyPair key) => Bip340.signEvent(
       event: Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: "some note from key1",
         tags: [],
@@ -267,7 +267,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
     NdkResponse queryKey1({Duration? timeout}) => ndk.requests.query(
       filter: Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key1.publicKey],
       ),
       cacheRead: false,
@@ -302,7 +302,7 @@ void relayOutcomesTests(NdkEngine engine) {
         ndk = buildNdk();
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         );
         final first = ndk.requests.query(filter: filter);
@@ -357,7 +357,7 @@ void relayOutcomesTests(NdkEngine engine) {
         ndk = buildNdk();
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         );
         final first = ndk.requests.query(filter: filter);
@@ -422,7 +422,7 @@ void relayOutcomesTests(NdkEngine engine) {
         var timedOut = false;
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           explicitRelays: [relay1.url, unreachable.url],
@@ -457,7 +457,7 @@ void relayOutcomesTests(NdkEngine engine) {
         var timedOut = false;
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           explicitRelays: [unreachable.url],
@@ -491,7 +491,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           cacheRead: false,
@@ -527,7 +527,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
       final response = ndk.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         cacheRead: false,
@@ -552,7 +552,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
       final response = ndk.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         cacheRead: false,
@@ -579,7 +579,7 @@ void relayOutcomesTests(NdkEngine engine) {
 
       final response = ndk.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         cacheRead: false,

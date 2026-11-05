@@ -2,7 +2,7 @@ import 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 
 /// basic nostr nip01 event data structure
 class Nip01Event {
-  static const int kTextNodeKind = 1;
+  static const int kTextNoteKind = 1;
 
   /// The event ID is a 32-byte SHA256 hash of the serialised event data.
   late final String id;

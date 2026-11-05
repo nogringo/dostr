@@ -57,7 +57,7 @@ void main() {
       final receivedEvent = Completer<Nip01Event>();
       final subscription = ndkA.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [keyPair.publicKey],
         ),
       );
@@ -72,7 +72,7 @@ void main() {
 
       final event = Nip01Event(
         pubKey: keyPair.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: 'live subscription event',
       );
@@ -225,7 +225,7 @@ void main() {
       final eventAfterReconnect = Completer<Nip01Event>();
       final subscription = ndkA.requests.subscription(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [keyPair.publicKey],
         ),
       );
@@ -246,7 +246,7 @@ void main() {
 
       final event = Nip01Event(
         pubKey: keyPair.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: 'event after reconnect',
       );

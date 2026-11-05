@@ -47,7 +47,7 @@ void sameEventBroadcastTests(NdkEngine engine) {
 
     Nip01Event note(String content) => Nip01Event(
       pubKey: key.publicKey,
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: const [],
       content: content,
     );

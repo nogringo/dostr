@@ -9,7 +9,7 @@ import '../mocks/mock_relay.dart';
 void main() {
   Nip01Event textNote(KeyPair myKey) {
     return Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: myKey.publicKey,
       content: "some note from key $myKey}",
       tags: [],
@@ -55,7 +55,7 @@ void main() {
 
       final response = ndk.requests.query(
         filters: [
-          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNodeKind]),
+          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNoteKind]),
         ],
         timeout: Duration(milliseconds: timoutMiliseconds),
         timeoutCallback: () {
@@ -107,7 +107,7 @@ void main() {
 
       final response = ndk.requests.query(
         filters: [
-          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNodeKind]),
+          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNoteKind]),
         ],
         timeout: Duration(milliseconds: timoutMiliseconds),
         timeoutCallback: () {
@@ -296,7 +296,7 @@ void main() {
 
       final response2 = ndk.requests.query(
         filters: [
-          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNodeKind]),
+          Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNoteKind]),
         ],
       );
 

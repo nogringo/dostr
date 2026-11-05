@@ -14,7 +14,7 @@ void main() {
 
     final stopwatch = Stopwatch()..start();
     final response = ndk.requests.query(
-      filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+      filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
       timeout: queryTimeout,
       timeoutCallback: () {
         timeoutTriggered = true;

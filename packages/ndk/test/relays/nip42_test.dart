@@ -25,7 +25,7 @@ void nip42Tests(NdkEngine engine) {
 
     Nip01Event textNote(KeyPair key) {
       Nip01Event event = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: "some note from key ${keyNames[key1]}",
         tags: [],
@@ -68,7 +68,7 @@ void nip42Tests(NdkEngine engine) {
       await Future.delayed(Duration(seconds: 1));
       final response = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
       );
@@ -102,7 +102,7 @@ void nip42Tests(NdkEngine engine) {
         await Future.delayed(Duration(seconds: 1));
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
         );
@@ -120,7 +120,7 @@ void nip42Tests(NdkEngine engine) {
 
     Nip01Event textNote(KeyPair key, String content) {
       Nip01Event event = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: content,
         tags: [],
@@ -189,7 +189,7 @@ void nip42Tests(NdkEngine engine) {
         // First subscription with account1
         final response1 = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           auth: AuthPolicy.allow(account1),
@@ -201,7 +201,7 @@ void nip42Tests(NdkEngine engine) {
         // Second subscription with account2 - should use stored challenge
         final response2 = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key2.publicKey],
           ),
           auth: AuthPolicy.allow(account2),
@@ -264,7 +264,7 @@ void nip42Tests(NdkEngine engine) {
         // Authenticate only account1
         final response1 = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           auth: AuthPolicy.allow(account1),
@@ -280,7 +280,7 @@ void nip42Tests(NdkEngine engine) {
         // This should fail because key2 is not authenticated
         final response2 = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key2.publicKey],
           ),
           // NOT passing auth for key2, and key2 is not logged in
@@ -331,7 +331,7 @@ void nip42Tests(NdkEngine engine) {
         // Query without auth, the handler agrees to the logged account
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
         );
@@ -377,7 +377,7 @@ void nip42Tests(NdkEngine engine) {
 
         final response = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
         );
@@ -435,7 +435,7 @@ void nip42Tests(NdkEngine engine) {
       await ndk.requests
           .query(
             filter: Filter(
-              kinds: [Nip01Event.kTextNodeKind],
+              kinds: [Nip01Event.kTextNoteKind],
               authors: [key1.publicKey],
             ),
           )
@@ -465,7 +465,7 @@ void nip42Tests(NdkEngine engine) {
 
     Nip01Event textNote(KeyPair key, String content) {
       final event = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key.publicKey,
         content: content,
         tags: [],
@@ -493,7 +493,7 @@ void nip42Tests(NdkEngine engine) {
     );
 
     Filter notesOf(KeyPair key) =>
-        Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
+        Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key.publicKey]);
 
     test('never stays unattributable even when a relay refuses', () async {
       final relay1 = MockRelay(

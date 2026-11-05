@@ -37,7 +37,7 @@ void main() {
     );
 
     final response = ndk.requests.query(
-      filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+      filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
     );
     await response.future;
     await ndk.requests.closeSubscription(response.requestId);
@@ -74,7 +74,7 @@ void main() {
       );
 
       final response = ndk.requests.subscription(
-        filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+        filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
       );
       final subId = response.requestId;
 

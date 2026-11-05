@@ -92,7 +92,7 @@ final response = ndk.requests.query(
   filters: [
     Filter(
       authors: ['hexPubkey'],
-      kinds: [Nip01Event.kTextNodeKind],
+      kinds: [Nip01Event.kTextNoteKind],
       limit: 10,
     ),
   ],
@@ -177,7 +177,7 @@ final response = ndk.requests.query(
   filters: [
     Filter(
       authors: ['hexPubkey'],
-      kinds: [Nip01Event.kTextNodeKind],
+      kinds: [Nip01Event.kTextNoteKind],
       limit: 10,
     ),
   ],

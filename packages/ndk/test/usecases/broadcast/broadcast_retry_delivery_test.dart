@@ -36,7 +36,7 @@ void main() {
 
       event = Nip01Event(
         pubKey: key.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: const [],
         content: 'note',
         createdAt: 1700000000,

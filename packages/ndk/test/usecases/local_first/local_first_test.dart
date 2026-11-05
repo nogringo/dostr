@@ -44,7 +44,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'offline-first public api note',
           createdAt: 1_700_000_000,
@@ -112,7 +112,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'partial success note',
           createdAt: 1_700_000_010,
@@ -170,7 +170,7 @@ void main() {
         final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'root event',
             createdAt: 1_700_000_020,
@@ -370,7 +370,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'restart persistence note',
           createdAt: 1_700_000_035,
@@ -443,7 +443,7 @@ void main() {
         final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'event later deleted',
             createdAt: 1_700_000_050,
@@ -519,7 +519,7 @@ void main() {
         final rootEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'event that should stay tombstoned',
             createdAt: 1_700_000_060,
@@ -680,7 +680,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'connected retry note',
           createdAt: 1_700_000_040,
@@ -762,7 +762,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'permanent failure note',
           createdAt: 1_700_000_041,
@@ -834,7 +834,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'network signer offline then online',
           createdAt: 1_700_000_080,
@@ -911,7 +911,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'interactive signer restart persistence',
           createdAt: 1_700_000_081,
@@ -1009,7 +1009,7 @@ void main() {
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: const [],
           content: 'signed now publish later',
           createdAt: 1_700_000_082,

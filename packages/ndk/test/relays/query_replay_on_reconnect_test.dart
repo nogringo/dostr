@@ -28,7 +28,7 @@ void main() {
     () async {
       final author = Bip340.generatePrivateKey();
       final note = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: author.publicKey,
         content: "survived the reconnect",
         tags: [],

@@ -232,3 +232,5 @@ matches that id. It used to keep the old id and signature. Pass `id` to keep
 another one, such as the id a remote signer chose. `validSig` is only kept when
 the payload, the id and the signature all stay the same: a copy given another
 `sig` used to stay marked as verified, and was then trusted without a check.
+
+`Nip01Event.kTextNodeKind` is now `kTextNoteKind`.

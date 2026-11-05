@@ -54,7 +54,7 @@ void main() async {
       // Publish events to the relay
       for (final ts in timestamps) {
         final event = Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key1.publicKey,
           content: "Event at $ts",
           tags: [],
@@ -68,7 +68,7 @@ void main() async {
 
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         paginate: true,
@@ -92,7 +92,7 @@ void main() async {
       // Publish events
       for (final ts in timestamps) {
         final event = Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key1.publicKey,
           content: "Event at $ts",
           tags: [],
@@ -107,7 +107,7 @@ void main() async {
       // Query with since that excludes older events
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: now - 3500, // Should only get events from -3000, -2000, -1000
         ),
@@ -137,7 +137,7 @@ void main() async {
       // Publish events
       for (final ts in timestamps) {
         final event = Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key1.publicKey,
           content: "Event at $ts",
           tags: [],
@@ -152,7 +152,7 @@ void main() async {
       // Query with until that excludes recent events
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           until: now - 2500, // Should only get events from -5000, -4000, -3000
         ),
@@ -179,7 +179,7 @@ void main() async {
       // Publish events
       for (int i = 0; i < timestamps.length; i++) {
         final event = Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key1.publicKey,
           content: "Event $i at ${timestamps[i]}",
           tags: [],
@@ -193,7 +193,7 @@ void main() async {
 
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         paginate: true,
@@ -213,7 +213,7 @@ void main() async {
       for (var i = 0; i < count; i++) {
         final response = ndk.broadcast.broadcast(
           nostrEvent: Nip01Event(
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             pubKey: key1.publicKey,
             content: "Event $offset-$i",
             tags: [],
@@ -235,7 +235,7 @@ void main() async {
 
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         explicitRelays: [slow.url],
@@ -268,7 +268,7 @@ void main() async {
       var timeouts = 0;
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         explicitRelays: relays.map((relay) => relay.url),
@@ -290,7 +290,7 @@ void main() async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       final firstEvent = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "Event at $now",
         tags: [],
@@ -300,7 +300,7 @@ void main() async {
 
       final relay1EventTimeStamp = now - 3000;
       final relay1Event = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "Event at $relay1EventTimeStamp",
         tags: [],
@@ -310,7 +310,7 @@ void main() async {
 
       final middleEventTimeStamp = now - 5000;
       final middleEvent = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "Event at $middleEventTimeStamp",
         tags: [],
@@ -320,7 +320,7 @@ void main() async {
 
       final relay2EventTimeStamp = now - 7000;
       final relay2Event = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "Event at $relay2EventTimeStamp",
         tags: [],
@@ -330,7 +330,7 @@ void main() async {
 
       final lastEventTimeStamp = now - 10000;
       final lastEvent = Nip01Event(
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         pubKey: key1.publicKey,
         content: "Event at $lastEventTimeStamp",
         tags: [],
@@ -377,7 +377,7 @@ void main() async {
       // Query both relays with pagination
       final query = ndk.requests.query(
         filter: Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         ),
         explicitRelays: [relay1.url, relay2.url],
@@ -408,7 +408,7 @@ void main() async {
 
       Future<Nip01Event> signedEventAt(int createdAt) async => signer.sign(
         Nip01Event(
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           pubKey: key1.publicKey,
           content: "Event at $createdAt",
           tags: [],
@@ -452,7 +452,7 @@ void main() async {
 
         final query = ndk.requests.query(
           filter: Filter(
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
             authors: [key1.publicKey],
           ),
           relaySet: relaySet,

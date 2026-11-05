@@ -21,7 +21,7 @@ void main() {
     );
     final unsigned = Nip01Event(
       pubKey: 'pubkey',
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       tags: const [],
       content: 'note',
     );

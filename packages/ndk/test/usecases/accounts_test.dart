@@ -40,7 +40,7 @@ void main() async {
         () => ndk.accounts.sign(
           Nip01Event(
             pubKey: key0.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: [],
             content: "",
           ),

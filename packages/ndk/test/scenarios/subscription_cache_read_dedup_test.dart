@@ -55,7 +55,7 @@ void main() {
         addTearDown(publisher.destroy);
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key.publicKey],
         );
 
@@ -81,7 +81,7 @@ void main() {
         final event = Bip340.signEvent(
           event: Nip01Event(
             pubKey: key.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: [],
             content: 'event published after the query finished',
           ),
@@ -114,7 +114,7 @@ void main() {
       addTearDown(ndk.destroy);
 
       final filter = Filter(
-        kinds: [Nip01Event.kTextNodeKind],
+        kinds: [Nip01Event.kTextNoteKind],
         authors: [key.publicKey],
       );
 

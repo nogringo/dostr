@@ -20,7 +20,7 @@ void main() {
       final signedEvent = Bip340.signEvent(
         event: Nip01Event(
           pubKey: keyPair.publicKey,
-          kind: Nip01Event.kTextNodeKind,
+          kind: Nip01Event.kTextNoteKind,
           tags: [],
           content: "hello from cache",
         ),

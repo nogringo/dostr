@@ -35,7 +35,7 @@ void main() {
 
       final event = Nip01Event(
         pubKey: key.publicKey,
-        kind: Nip01Event.kTextNodeKind,
+        kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: "test",
       );
@@ -70,7 +70,7 @@ void main() {
           ).sign(
             Nip01Event(
               pubKey: key.publicKey,
-              kind: Nip01Event.kTextNodeKind,
+              kind: Nip01Event.kTextNoteKind,
               tags: [],
               content: "test event",
             ),
@@ -101,7 +101,7 @@ void main() {
       // timeout (10s) < signing (12s) → should fail without fix
       final result = await ndk.requests
           .query(
-            filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+            filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
             explicitRelays: [relay.url],
             timeout: const Duration(seconds: 10),
           )

@@ -46,7 +46,7 @@ void main() async {
       required Duration idleTimeout,
     }) => ndk.nip77.reconcile(
       relayUrl: relay.url,
-      filter: Filter(kinds: [Nip01Event.kTextNodeKind]),
+      filter: Filter(kinds: [Nip01Event.kTextNoteKind]),
       localIds: localIds,
       openTimeout: openTimeout,
       idleTimeout: idleTimeout,

@@ -8,7 +8,7 @@ void main() async {
 
   Nip01Event textNote(KeyPair key) {
     Nip01Event event = Nip01Event(
-      kind: Nip01Event.kTextNodeKind,
+      kind: Nip01Event.kTextNoteKind,
       pubKey: key.publicKey,
       content: "test note",
       tags: [],
@@ -55,7 +55,7 @@ void main() async {
         final until = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: since,
           until: until,
@@ -134,7 +134,7 @@ void main() async {
 
         // First query: 100-200
         final filter1 = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: 100,
           until: 200,
@@ -146,7 +146,7 @@ void main() async {
 
         // Second query: 201-300 (adjacent)
         final filter2 = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: 201,
           until: 300,
@@ -202,7 +202,7 @@ void main() async {
 
         // Query for 200-300
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: 200,
           until: 300,
@@ -257,7 +257,7 @@ void main() async {
 
         // Query for 200-300
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
           since: 200,
           until: 300,
@@ -282,7 +282,7 @@ void main() async {
         // First gap filter: 100-199
         expect(filters[0].since, equals(100));
         expect(filters[0].until, equals(199));
-        expect(filters[0].kinds, equals([Nip01Event.kTextNodeKind]));
+        expect(filters[0].kinds, equals([Nip01Event.kTextNoteKind]));
         expect(filters[0].authors, equals([key1.publicKey]));
 
         // Second gap filter: 301-500
@@ -334,7 +334,7 @@ void main() async {
           final broadcast = ndk.broadcast.broadcast(
             nostrEvent: Nip01Event(
               pubKey: author.publicKey,
-              kind: Nip01Event.kTextNodeKind,
+              kind: Nip01Event.kTextNoteKind,
               content: "note $createdAt",
               tags: [],
               createdAt: createdAt,
@@ -345,7 +345,7 @@ void main() async {
         }
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [author.publicKey],
           limit: 10,
         );
@@ -445,7 +445,7 @@ void main() async {
           final broadcast = ndk.broadcast.broadcast(
             nostrEvent: Nip01Event(
               pubKey: author.publicKey,
-              kind: Nip01Event.kTextNodeKind,
+              kind: Nip01Event.kTextNoteKind,
               content: "note $createdAt",
               tags: [],
               createdAt: createdAt,
@@ -456,7 +456,7 @@ void main() async {
         }
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [author.publicKey],
           limit: 50,
         );
@@ -533,7 +533,7 @@ void main() async {
         await ndk.bootstrapRelaysConnected;
 
         final filter = Filter(
-          kinds: [Nip01Event.kTextNodeKind],
+          kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
         );
 

@@ -50,7 +50,7 @@ void main() async {
     }
 
     Filter notesOf(KeyPair key) =>
-        Filter(kinds: [Nip01Event.kTextNodeKind], authors: [key.publicKey]);
+        Filter(kinds: [Nip01Event.kTextNoteKind], authors: [key.publicKey]);
 
     test('require reconciles on a bound connection from the start', () async {
       final relay = await negentropyRelay(port: portBase);

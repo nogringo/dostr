@@ -34,7 +34,7 @@ void main() {
         final cachedEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'cached event',
             createdAt: 1_700_000_080,
@@ -44,7 +44,7 @@ void main() {
         final liveEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'live event',
             createdAt: 1_700_000_081,
@@ -70,7 +70,7 @@ void main() {
         final subscription = ndk.requests.subscription(
           filter: Filter(
             authors: [remoteAuthor.publicKey],
-            kinds: [Nip01Event.kTextNodeKind],
+            kinds: [Nip01Event.kTextNoteKind],
           ),
           cacheRead: true,
           cacheWrite: true,
@@ -107,7 +107,7 @@ void main() {
         final targetEvent = Bip340.signEvent(
           event: Nip01Event(
             pubKey: remoteAuthor.publicKey,
-            kind: Nip01Event.kTextNodeKind,
+            kind: Nip01Event.kTextNoteKind,
             tags: const [],
             content: 'deleted target',
             createdAt: 1_700_000_090,
