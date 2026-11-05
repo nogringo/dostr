@@ -345,12 +345,18 @@ void _runEventTests(
     await cacheManager.saveEvents([article(1000), article(2000)]);
 
     expect(await cacheManager.loadEvents(pubKeys: [author]), hasLength(1));
-    expect(await cacheManager.loadHiddenEvents(pubKeys: [author]), hasLength(1));
+    expect(
+      await cacheManager.loadHiddenEvents(pubKeys: [author]),
+      hasLength(1),
+    );
 
     expect(await cacheManager.loadEvents(ids: []), isEmpty);
     expect(await cacheManager.loadEvents(pubKeys: []), isEmpty);
     expect(await cacheManager.loadEvents(kinds: []), isEmpty);
-    expect(await cacheManager.loadEvents(pubKeys: [author], kinds: []), isEmpty);
+    expect(
+      await cacheManager.loadEvents(pubKeys: [author], kinds: []),
+      isEmpty,
+    );
     expect(await cacheManager.loadEvents(tags: {'p': []}), isEmpty);
     expect(
       await cacheManager.loadEventIdsWithCreatedAt(Filter(authors: [])),

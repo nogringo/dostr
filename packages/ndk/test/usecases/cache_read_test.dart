@@ -269,5 +269,75 @@ void main() async {
 
       expect(unresolvedFilters, unorderedEquals([filter]));
     });
+
+    group('applies every field of the filter', () {
+      late CacheManager cache;
+      late CacheRead cacheRead;
+
+      Future<(List<Nip01Event>, List<Filter>)> read(Filter filter) => resolve(
+        cacheRead,
+        NdkRequest.query(
+          "every-field",
+          filters: [filter],
+          timeoutDuration: Duration(seconds: 5),
+        ),
+      );
+
+      final tagged = Nip01Event(
+        pubKey: "author",
+        kind: 1,
+        tags: [
+          ["t", "nostr"],
+        ],
+        content: "a tagged note",
+      );
+      final untagged = Nip01Event(
+        pubKey: "author",
+        kind: 1,
+        tags: [],
+        content: "another note",
+      );
+      final reaction = Nip01Event(
+        pubKey: "author",
+        kind: 7,
+        tags: [],
+        content: "+",
+      );
+
+      setUp(() async {
+        cache = MemCacheManager();
+        cacheRead = CacheRead(cache);
+        await cache.saveEvents([tagged, untagged, reaction]);
+      });
+
+      test('tags, next to authors', () async {
+        final (found, _) = await read(
+          Filter(authors: ["author"], kinds: [1], tTags: ["nostr"]),
+        );
+        expect(found.map((e) => e.id), [tagged.id]);
+      });
+
+      test('search, next to authors', () async {
+        final (found, _) = await read(
+          Filter(authors: ["author"], search: "another"),
+        );
+        expect(found.map((e) => e.id), [untagged.id]);
+      });
+
+      test('ids, next to authors', () async {
+        final (found, _) = await read(
+          Filter(ids: [tagged.id], authors: ["author"]),
+        );
+        expect(found.map((e) => e.id), [tagged.id]);
+      });
+
+      test('kinds, next to ids, which keeps the id that missed', () async {
+        final (found, remaining) = await read(
+          Filter(ids: [tagged.id, reaction.id], kinds: [1]),
+        );
+        expect(found.map((e) => e.id), [tagged.id]);
+        expect(remaining.single.ids, [reaction.id]);
+      });
+    });
   });
 }

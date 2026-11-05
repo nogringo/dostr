@@ -39,16 +39,19 @@ void main() {
     await relay.stopServer();
   });
 
-  test('a query nothing can match asks neither the cache nor the relays', () async {
-    final response = ndk.requests.query(
-      filter: nobody,
-      explicitRelays: [relay.url],
-    );
+  test(
+    'a query nothing can match asks neither the cache nor the relays',
+    () async {
+      final response = ndk.requests.query(
+        filter: nobody,
+        explicitRelays: [relay.url],
+      );
 
-    expect(await response.future, isEmpty);
-    expect(await response.relayOutcomesDone, isEmpty);
-    expect(relay.totalRequestedSubscriptionCount, 0);
-  });
+      expect(await response.future, isEmpty);
+      expect(await response.relayOutcomesDone, isEmpty);
+      expect(relay.totalRequestedSubscriptionCount, 0);
+    },
+  );
 
   test('so does a paginated one', () async {
     final response = ndk.requests.query(

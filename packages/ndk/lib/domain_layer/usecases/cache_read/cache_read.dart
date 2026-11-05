@@ -15,10 +15,13 @@ class CacheRead {
 
   CacheRead(this.cacheManager);
 
-  /// Finds matching visible events in cache, forwards them to [outController]
-  /// and closes it. Returns the filters the network still has to answer: an
-  /// id found here is removed from its filter, and a filter left without ids
-  /// is dropped.
+  /// Finds the visible events the cache holds for each filter with ids or
+  /// authors, every other field of the filter applying too, forwards them to
+  /// [outController] and closes it. A filter with neither is left to the
+  /// network.
+  ///
+  /// Returns the filters the network still has to answer: an id found here is
+  /// removed from its filter, and a filter left without ids is dropped.
   ///
   /// `loadEvents()` already applies visibility rules, so callers do not need to
   /// re-check replacement, expiration, or deletion here.
@@ -28,71 +31,27 @@ class CacheRead {
   }) async {
     final unresolved = List.of(filters);
     for (final filter in filters.toSet()) {
-      final List<Nip01Event> foundEvents = [];
+      final ids = filter.ids;
+      if (ids == null && filter.authors == null) continue;
 
-      // authors
-      if (filter.authors != null) {
-        final cached = await cacheManager.loadEvents(
-          pubKeys: filter.authors!,
-          kinds: filter.kinds,
-          since: filter.since,
-          until: filter.until,
-          limit: filter.limit,
-        );
+      final cached = await cacheManager.loadEvents(
+        ids: ids,
+        pubKeys: filter.authors,
+        kinds: filter.kinds,
+        tags: filter.tags,
+        since: filter.since,
+        until: filter.until,
+        search: filter.search,
+        limit: filter.limit,
+      );
 
-        foundEvents.addAll(cached);
-        // TODO Move this to a Github issue
-        // WE CANNOT DO THIS, BECAUSE 1) kinds.length > 1,  2) only replaceable events have 1 event per pubKey+kind, normal events can have many per pubKey+kind
-        // if kind.length == 1 and kind IS replaceable AND there is not limit/until/since AND it is NOT a subscription, then we can do some shit
-        //
-        //   // remove found authors from unresolved filter if it's not a subscription
-        //   if (!requestState.isSubscription && cached.isNotEmpty) {
-        //     if (filter.limit == null) {
-        //       // Keep track of whether we've kept one item
-        //       bool keptOne = false;
-        //       filter.authors!.removeWhere((author) {
-        //         if (!keptOne &&
-        //             foundEvents.any((event) => event.pubKey == author)) {
-        //           keptOne = true;
-        //           return false; // Keep the first matching item
-        //         }
-        //         return foundEvents.any((event) => event.pubKey == author);
-        //       });
-        //     } else if (foundEvents.length >= filter.limit!) {
-        //       // Keep track of whether we've kept one item
-        //       bool keptOne = false;
-        //       filter.authors!.removeWhere((author) {
-        //         if (!keptOne &&
-        //             foundEvents.any((event) => event.pubKey == author)) {
-        //           keptOne = true;
-        //           return false; // Keep the first matching item
-        //         }
-        //         return foundEvents.any((event) => event.pubKey == author);
-        //       });
-        //     }
-        //   }
+      if (ids != null) {
+        final found = {for (final event in cached) event.id};
+        ids.removeWhere(found.contains);
+        if (ids.isEmpty) unresolved.remove(filter);
       }
 
-      if (filter.ids != null) {
-        final foundIdEvents = await cacheManager.loadEvents(
-          ids: filter.ids!,
-          limit: filter.ids!.length,
-        );
-
-        filter.ids!.removeWhere((id) {
-          return foundIdEvents.any((event) => event.id == id);
-        });
-
-        foundEvents.addAll(foundIdEvents);
-        if (filter.ids!.isEmpty) {
-          // if we have not more ids in filter, remove the filter entirely,
-          // otherwise it will send too broad filter to relay
-          unresolved.remove(filter);
-        }
-      }
-
-      // write found events to response stream
-      for (final event in foundEvents) {
+      for (final event in cached) {
         Logger.log.t(() => "found event in cache $event ");
         outController.add(event);
       }
