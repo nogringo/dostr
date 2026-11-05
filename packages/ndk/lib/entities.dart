@@ -34,11 +34,6 @@ export 'package:ndk_core/domain_layer/entities/relay_stats.dart';
 export 'domain_layer/entities/request_response.dart';
 export 'domain_layer/entities/tuple.dart';
 export 'domain_layer/entities/user_relay_list.dart';
-export 'domain_layer/entities/blossom_blobs.dart';
-export 'domain_layer/entities/blossom_strategies.dart';
-export 'domain_layer/entities/blossom_authorization.dart';
-export 'domain_layer/entities/blob_upload_progress.dart';
-export 'domain_layer/entities/file_hash_progress.dart';
 export 'package:ndk_core/domain_layer/entities/account.dart';
 export 'domain_layer/entities/gift_wrap_unwrap_result.dart';
 export 'domain_layer/entities/nip_17_message.dart';
@@ -48,4 +43,3 @@ export 'domain_layer/entities/nip_85.dart';
 
 /// models
 export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
-export 'domain_layer/entities/ndk_file.dart';

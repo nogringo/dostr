@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:ndk/ndk.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:media_kit/media_kit.dart';
@@ -17,6 +18,9 @@ class BlossomMediaPage extends StatefulWidget {
 }
 
 class _BlossomMediaPageState extends State<BlossomMediaPage> {
+  late final Blossom _blossom = Blossom(widget.ndk);
+  late final Files _files = Files(widget.ndk);
+
   // Upload state
   bool _isUploading = false;
   double _uploadProgress = 0.0;
@@ -59,7 +63,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
     });
 
     try {
-      final response = await widget.ndk.blossom.getBlob(
+      final response = await _blossom.getBlob(
         sha256:
             'fc0066f8d123cf9cbe2bd95e3439cd91b5401e0560dab65a49695ab932ffec59',
         serverUrls: [
@@ -90,7 +94,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
     });
 
     try {
-      final url = await widget.ndk.blossom.checkBlob(
+      final url = await _blossom.checkBlob(
         sha256:
             '45c8bafeb9a53df7f491198d2e71529701bcf1cd51805782089fac1d32869f9b',
         serverUrls: [
@@ -142,7 +146,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
 
     try {
       // Use the uploadFromFile method with stream
-      final stream = widget.ndk.files.uploadFromFile(
+      final stream = _files.uploadFromFile(
         filePath: filePath,
         serverUrls: ["https://nostr.download", "https://cdn.hzrd149.com"],
         strategy: UploadStrategy.mirrorAfterSuccess,
@@ -214,7 +218,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
       }
 
       // Use the downloadToFile method
-      await widget.ndk.files.downloadToFile(
+      await _files.downloadToFile(
         url: _uploadedUrl!,
         outputPath: outputPath,
         serverUrls: ["https://nostr.download", "https://cdn.hzrd149.com"],

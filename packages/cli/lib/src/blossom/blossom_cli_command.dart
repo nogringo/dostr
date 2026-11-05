@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
 
 import '../cli_accounts_store.dart';
 import '../cli_command.dart';
@@ -96,7 +97,7 @@ Options:
     }
 
     stdout.writeln('Uploading $filePath ...');
-    final stream = ndk.blossom.uploadBlobFromFile(
+    final stream = Blossom(ndk).uploadBlobFromFile(
       filePath: filePath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       contentType: parsed.contentType,
@@ -139,7 +140,7 @@ Options:
     final outPath = parsed.positional[1];
 
     stdout.writeln('Downloading $sha -> $outPath ...');
-    await ndk.blossom.downloadBlobToFile(
+    await Blossom(ndk).downloadBlobToFile(
       sha256: sha,
       outputPath: outPath,
       auth: _authPolicy(parsed, ndk),
@@ -163,7 +164,7 @@ Options:
     if (sha == null) return 2;
 
     stdout.writeln('Deleting $sha ...');
-    final results = await ndk.blossom.deleteBlob(
+    final results = await Blossom(ndk).deleteBlob(
       sha256: sha,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
     );
@@ -197,7 +198,7 @@ Options:
     }
 
     stdout.writeln('Listing blobs for ${Nip19.encodePubKey(pubkey)} ...');
-    final blobs = await ndk.blossom.listBlobs(
+    final blobs = await Blossom(ndk).listBlobs(
       pubkey: pubkey,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       auth: _authPolicy(parsed, ndk),
@@ -237,10 +238,9 @@ Options:
     stdout.writeln(
       'Mirroring $source -> ${parsed.servers.length} server(s) ...',
     );
-    final results = await ndk.blossom.mirrorToServers(
-      blossomUrl: source,
-      targetServerUrls: parsed.servers,
-    );
+    final results = await Blossom(
+      ndk,
+    ).mirrorToServers(blossomUrl: source, targetServerUrls: parsed.servers);
     _printUploadResults(results);
     return results.every((r) => r.success) ? 0 : 1;
   }
@@ -257,7 +257,7 @@ Options:
     if (sha == null) return 2;
 
     stdout.writeln('Checking $sha ...');
-    final url = await ndk.blossom.checkBlob(
+    final url = await Blossom(ndk).checkBlob(
       sha256: sha,
       auth: _authPolicy(parsed, ndk),
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
@@ -307,9 +307,9 @@ Options:
       'Fetching blossom server list for '
       '${Nip19.encodePubKey(pubkey)} ...',
     );
-    final servers = await ndk.blossomUserServerList.getUserServerList(
-      pubkeys: [pubkey],
-    );
+    final servers = await BlossomUserServerList(
+      ndk,
+    ).getUserServerList(pubkeys: [pubkey]);
     if (servers == null || servers.isEmpty) {
       stdout.writeln('(no server list published)');
       return 0;
@@ -331,9 +331,9 @@ Options:
       return 2;
     }
     stdout.writeln('Publishing server list (${servers.length} server(s)) ...');
-    final responses = await ndk.blossomUserServerList.publishUserServerList(
-      serverUrlsOrdered: servers,
-    );
+    final responses = await BlossomUserServerList(
+      ndk,
+    ).publishUserServerList(serverUrlsOrdered: servers);
     var ok = 0;
     for (final r in responses) {
       final status = r.broadcastSuccessful ? 'OK' : 'FAILED';

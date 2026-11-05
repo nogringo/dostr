@@ -37,6 +37,7 @@ on:
           - ndk_wallets
           - ndk_nwc
           - ndk_cashu
+          - ndk_blossom
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

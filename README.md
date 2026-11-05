@@ -69,6 +69,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_cashu`: Cashu ecash wallet.
 
+### [🔗 Blossom](./packages/blossom/)
+
+`ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs and manage a user's server list.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

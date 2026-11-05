@@ -2,12 +2,13 @@ import 'dart:io';
 
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
 
 import '../cli_accounts_store.dart';
 import '../cli_command.dart';
 
 /// `ndk files` - high-level file management (Blossom-backed, transparent
-/// mirror of [Ndk.files]).
+/// mirror of [Files]).
 ///
 /// Sub-commands: `upload`, `download`, `delete`, `check`.
 class FilesCliCommand extends CliCommand {
@@ -82,7 +83,7 @@ Options:
     }
 
     stdout.writeln('Uploading $filePath ...');
-    final stream = ndk.files.uploadFromFile(
+    final stream = Files(ndk).uploadFromFile(
       filePath: filePath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       contentType: parsed.contentType,
@@ -125,7 +126,7 @@ Options:
     final outPath = parsed.positional[1];
 
     stdout.writeln('Downloading $url -> $outPath ...');
-    await ndk.files.downloadToFile(
+    await Files(ndk).downloadToFile(
       url: url,
       outputPath: outPath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
@@ -151,7 +152,7 @@ Options:
     }
 
     stdout.writeln('Deleting $sha ...');
-    final results = await ndk.files.delete(
+    final results = await Files(ndk).delete(
       sha256: sha,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
     );
@@ -176,7 +177,7 @@ Options:
     final url = parsed.positional[0];
 
     stdout.writeln('Checking $url ...');
-    final alive = await ndk.files.checkUrl(
+    final alive = await Files(ndk).checkUrl(
       url: url,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       pubkey: parsed.pubkey,

@@ -4,15 +4,12 @@ import 'package:http/http.dart' as http;
 
 import '../shared/net/user_agent.dart';
 import '../data_layer/data_sources/http_request.dart';
-import '../data_layer/io/file_io_platform.dart';
-import '../data_layer/repositories/blossom/blossom_impl.dart';
 import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import '../domain_layer/repositories/blossom.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
 import '../domain_layer/repositories/nip_05_repo.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
@@ -26,9 +23,6 @@ import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../domain_layer/usecases/engines/network_engine.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
-import '../domain_layer/usecases/files/blossom.dart';
-import '../domain_layer/usecases/files/blossom_user_server_list.dart';
-import '../domain_layer/usecases/files/files.dart';
 import '../domain_layer/usecases/follows/follows.dart';
 import '../domain_layer/usecases/gift_wrap/gift_wrap.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
@@ -88,9 +82,6 @@ class Initialization {
   late PendingBroadcastDelivery pendingBroadcastDelivery;
   late Zaps zaps;
   late Lnurl lnurl;
-  late Files files;
-  late Blossom blossom;
-  late BlossomUserServerList blossomUserServerList;
   late Search search;
   late Software software;
   late GiftWrap giftWrap;
@@ -161,11 +152,6 @@ class Initialization {
     /// repositories
     final Nip05Repository nip05repository = Nip05HttpRepositoryImpl(
       httpDS: _httpRequestDS,
-    );
-
-    final BlossomRepository blossomRepository = BlossomRepositoryImpl(
-      client: _httpRequestDS,
-      fileIO: createFileIO(),
     );
 
     ///   use cases
@@ -307,22 +293,6 @@ class Initialization {
     lnurl = Lnurl(transport: lnurlTransport);
 
     zaps = Zaps(requests: requests, lnurl: lnurl);
-
-    blossomUserServerList = BlossomUserServerList(
-      requests: requests,
-      broadcast: broadcast,
-      accounts: accounts,
-    );
-
-    blossom = Blossom(
-      blossomRepository: blossomRepository,
-      accounts: accounts,
-      blossomUserServerList: blossomUserServerList,
-      eventSignerFactory: _ndkConfig.eventSignerFactory,
-      authHandler: _ndkConfig.authHandler,
-    );
-
-    files = Files(blossom: blossom);
 
     search = Search(cacheManager: _ndkConfig.cache, requests: requests);
     software = Software(requests: requests);

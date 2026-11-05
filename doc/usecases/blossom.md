@@ -6,9 +6,20 @@ icon: file-zip
 
 [!badge text="CLI"](/guides/cli/blossom.md) — `ndk blossom upload|download|delete|list|mirror|check|servers`
 
+## Setup
+
+Blossom lives in the `ndk_blossom` package.
+
+```yaml
+dependencies:
+  ndk_blossom: ^0.1.0
+```
+
+`Blossom(ndk)` signs with the accounts of that NDK instance and asks its `NdkConfig.authHandler`.
+
 ## Example
 
-:::code source="../../packages/ndk/example/files/blossom_example_test.dart" language="dart" range="10-19" title="" :::
+:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="10-20" title="" :::
 
 ## When to use
 
@@ -18,7 +29,7 @@ For a simpler, more generic API, check out
 If no servers are specified the default user server list (kind `10063`) is used for upload and delete.
 
 The auth events get automatically signed and are valid for:
-:::code source="../../packages/ndk/lib/config/blossom_config.dart" language="dart" range="4-4" title="" :::
+:::code source="../../packages/blossom/lib/src/config/blossom_config.dart" language="dart" range="4-4" title="" :::
 
 ## Server authentication (BUD-01)
 
@@ -29,7 +40,7 @@ server may learn, as on
 [broadcasts](/usecases/broadcast.md#relay-authentication-nip-42):
 
 ```dart
-final response = await ndk.blossom.getBlob(
+final response = await Blossom(ndk).getBlob(
   sha256: hash,
   serverUrls: ['https://cdn.example.com'],
   auth: AuthPolicy.allow(account),
@@ -213,12 +224,12 @@ Future<int> report({
 
 ### methods - BlossomUserServerList
 
-To get and set the user server list e.g. on settings page, you can use `BlossomUserServerList`
+To get and set the user server list e.g. on settings page, you can use `BlossomUserServerList(ndk)`
 
 #### getUserServerList
 
-:::code source="../../packages/ndk/lib/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="23-28" title="" :::
+:::code source="../../packages/blossom/lib/src/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="31-36" title="" :::
 
 #### publishUserServerList
 
-:::code source="../../packages/ndk/lib/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="54-58" title="" :::
+:::code source="../../packages/blossom/lib/src/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="60-64" title="" :::

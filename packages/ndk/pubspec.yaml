@@ -35,7 +35,6 @@ dependencies:
   rxdart: ^0.28.0
   cryptography: ^2.9.0
   meta: ">=1.10.0 <2.0.0"
-  web: ^1.1.1
 
 dev_dependencies:
   bip340: ">=0.3.0 <0.4.0"
@@ -46,6 +45,3 @@ dev_dependencies:
   flutter_lints: ^6.0.0
   mockito: ">=5.6.3 <6.0.0"
   test: any
-  # shelf used for blossom mock server
-  shelf: ^1.4.2
-  shelf_router: ^1.1.4

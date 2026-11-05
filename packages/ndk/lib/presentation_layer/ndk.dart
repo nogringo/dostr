@@ -9,9 +9,6 @@ import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
-import '../domain_layer/usecases/files/blossom.dart';
-import '../domain_layer/usecases/files/blossom_user_server_list.dart';
-import '../domain_layer/usecases/files/files.dart';
 import '../domain_layer/usecases/follows/follows.dart';
 import '../domain_layer/usecases/gift_wrap/gift_wrap.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
@@ -123,22 +120,6 @@ class Ndk {
 
   /// NIP-05 operations (verify and fetch)
   Nip05Usecase get nip05 => _initialization.nip05;
-
-  /// manage files on nostr \
-  /// upload, download, delete files \
-  /// high level usecase, recommended for most users
-  Files get files => _initialization.files;
-
-  /// Blossom usecase \
-  /// upload, download, delete, list files \
-  /// low level usecase, recommended for advanced users
-  Blossom get blossom => _initialization.blossom;
-
-  /// Blossom User Server list \
-  /// used to manage the list of blossom servers for a user \
-  /// low level usecase, recommended for advanced users
-  BlossomUserServerList get blossomUserServerList =>
-      _initialization.blossomUserServerList;
 
   /// Gift wrap - NIP-59 \
   /// crate gift wraps \

@@ -17,9 +17,6 @@ All accessible via `ndk.<accessor>`.
 | `ndk.lists` | `Lists` | NIP-51 generic lists |
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model |
 | `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch |
-| `ndk.files` | `Files` | File upload/download (Blossom) |
-| `ndk.blossom` | `Blossom` | Blossom low-level (advanced) |
-| `ndk.blossomUserServerList` | `BlossomUserServerList` | Manage Blossom server list |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |
 | `ndk.connectivity` | `Connectivy` | Relay connectivity events |
 | `ndk.proofOfWork` | `ProofOfWork` | PoW event generation |
@@ -73,14 +70,18 @@ contactList?.contacts; // List<Contact>
 
 ## Files (Blossom)
 
+Lives in the `ndk_blossom` package: `Files(ndk)` (high level), `Blossom(ndk)` (low level) and `BlossomUserServerList(ndk)` (kind 10063).
+
 ```dart
-// Upload
-final result = await ndk.files.upload(
-  fileBytes: bytes,
-  mimeType: 'image/png',
-  signer: mySigner,
+import 'package:ndk_blossom/ndk_blossom.dart';
+
+final files = Files(ndk);
+
+// Upload to the logged-in user's server list
+final results = await files.upload(
+  file: NdkFile(data: bytes, mimeType: 'image/png'),
 );
 
 // Download
-final data = await ndk.files.download(url);
+final blob = await files.download(url: url);
 ```

@@ -28,6 +28,7 @@ workspace:
   - packages/wallets
   - packages/nwc
   - packages/cashu
+  - packages/blossom
   - packages/fetchers
   - packages/url_set
 

@@ -803,6 +803,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_blossom:
+    dependency: "direct main"
+    description:
+      path: "../blossom"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_cashu:
     dependency: "direct main"
     description:
