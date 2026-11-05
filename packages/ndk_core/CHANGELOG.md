@@ -19,6 +19,10 @@ longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
 `shared/nips/nip01/client_msg.dart`, and the two implementations behind
 `shared/isolates/isolate_manager.dart`, which still imports as before.
 
+`package:ndk_core/ndk_core.dart` exports `cleanRelayUrl` and `cleanRelayUrls`,
+the relay url normalization ndk_core connects with.
+`shared/helpers/relay_helper.dart` still imports as before.
+
 `Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
 `Bip340.signEvent`. `Nip04` and `Nip44` are in

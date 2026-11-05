@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_nip19/ndk_nip19.dart';
 
 const int _kind = 36205;

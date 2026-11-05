@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
 
 import 'negentropy.dart' as neg;
 import 'nip77_state.dart';
