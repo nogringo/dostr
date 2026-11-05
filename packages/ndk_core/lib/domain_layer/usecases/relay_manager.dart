@@ -389,7 +389,8 @@ class RelayManager {
 
   /// Closes one connection and forgets it. An entry that lost its transport, to
   /// a reset or to a failed connection attempt, is forgotten just the same:
-  /// leaving it behind keeps its auth state alive and makes it reconnect.
+  /// leaving it behind keeps its auth state alive and makes it reconnect. The
+  /// REQs still open on it end there as `RelayRequestStatus.disconnected`.
   Future<void> closeConnection(RelayConnectionKey key) =>
       _connections.closeConnection(key);
 

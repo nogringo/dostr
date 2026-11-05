@@ -251,6 +251,25 @@ void main() {
     });
   });
 
+  for (final closeOnEose in [true, false]) {
+    test('a ${closeOnEose ? 'query' : 'subscription'} ends as disconnected '
+        'once its connection is closed', () async {
+      final relay = await startRelay(answerRequests: false);
+      final req = reqs.req(
+        relays: {relay.url: notes},
+        closeOnEose: closeOnEose,
+      );
+      await eventually(() => subscribed(relay, req));
+
+      await manager.closeConnectionsTo(relay.url);
+
+      expect(await req.done, {
+        relay.url: const RelayRequestOutcome(RelayRequestStatus.disconnected),
+      });
+      expect(reqs.openIds, isEmpty);
+    });
+  }
+
   group('close by id', () {
     test('closes a REQ another RelayReqs opened, once', () async {
       final relay = await startRelay();

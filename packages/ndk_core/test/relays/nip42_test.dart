@@ -194,6 +194,28 @@ void main() {
       },
     );
 
+    test('an auth-required refusal once authenticated is final', () async {
+      final relay = await startRelay(
+        requireAuthForEvents: true,
+        rejectEventsWith: 'auth-required: not on the whitelist',
+      );
+
+      final responses = await publishes
+          .publish(
+            signedEvent(),
+            relays: [relay.url],
+            auth: AuthPolicy.allow(fakeAccount(bob)),
+          )
+          .done;
+
+      final response = responses.values.single;
+      expect(response.okReceived, isTrue);
+      expect(response.broadcastSuccessful, isFalse);
+      expect(response.msg, 'auth-required: not on the whitelist');
+      // anonymous, bound, and one resend if the bound EVENT raced the AUTH
+      expect(relay.received('EVENT').length, lessThanOrEqualTo(3));
+    });
+
     test('AuthPolicy.never fails an auth-required broadcast', () async {
       final relay = await startRelay(requireAuthForEvents: true);
 

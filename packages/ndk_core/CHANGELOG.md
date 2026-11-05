@@ -98,6 +98,10 @@ A subscription now reports `RelayRequestStatus.eose` on each relay that sent
 its EOSE, instead of staying `pending` until it is closed. It still runs until
 closed, and a CLOSED, a lost connection or its timeout replace that `eose`.
 
+Closing a connection, with `closeConnection`, `closeConnectionsTo` or
+`closeAllTransports`, ends the REQs still on it as `disconnected`, where they
+used to stay `pending` until their timeout, or for good without one.
+
 #### Publishes
 
 `RelayManager.trackBroadcast` and `RelayManager.publishToRelay` are gone, and

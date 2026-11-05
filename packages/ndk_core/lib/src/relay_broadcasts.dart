@@ -204,8 +204,11 @@ class RelayBroadcasts {
       return;
     }
 
-    // not an answer yet: each broadcast retries under its own auth policy
-    if (!success && msg.startsWith("auth-required")) {
+    // not an answer yet: each broadcast retries under its own auth policy,
+    // unless the relay refused the identity this connection already proved
+    if (!success &&
+        msg.startsWith("auth-required") &&
+        !_auth.isAuthenticated(relayConnectivity.key)) {
       for (final broadcastState in waiting) {
         _handleBroadcastAuthRequired(broadcastState, relayConnectivity);
       }

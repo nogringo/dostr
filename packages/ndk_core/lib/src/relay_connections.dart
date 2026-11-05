@@ -749,6 +749,7 @@ class RelayConnections {
     _auth.unbind(key);
     _auth.forget(key);
     listener.endAuthRetriesOn(key);
+    listener.endRequestsOn(key);
     return connectivity.close();
   }
 
