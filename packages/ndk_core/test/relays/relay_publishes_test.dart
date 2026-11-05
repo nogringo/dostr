@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
@@ -130,6 +132,27 @@ void main() {
           .map((r) => r.relayUrl),
       [fast.url],
     );
+  });
+
+  test('does not count a refusal towards considerDonePercent', () async {
+    final refusing = await startRelay(rejectEventsWith: 'blocked: no');
+    final silent = await startRelay(answerEvents: false);
+    final publish = publishes.publish(
+      signedEvent(),
+      relays: [refusing.url, silent.url],
+      considerDonePercent: 0.5,
+      timeout: const Duration(milliseconds: 500),
+    );
+    var done = false;
+    unawaited(publish.done.then((_) => done = true));
+
+    await eventually(() => publish.outcomes[refusing.url]!.okReceived);
+    await pumpEventQueue();
+    expect(done, isFalse, reason: 'the refusal made it look half done');
+
+    final responses = await publish.done;
+    expect(responses[refusing.url]!.broadcastSuccessful, isFalse);
+    expect(responses[silent.url]!.okReceived, isFalse);
   });
 
   test('ends on its timeout when a relay never answers', () async {

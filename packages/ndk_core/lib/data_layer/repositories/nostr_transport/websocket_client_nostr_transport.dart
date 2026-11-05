@@ -6,68 +6,51 @@ import '../../../domain_layer/repositories/nostr_transport.dart';
 import '../../../shared/logger/logger.dart';
 import '../../data_sources/websocket_client.dart';
 
-/// A WebSocket-based implementation of the NostrTransport interface.
-///
-/// This class provides a WebSocket transport layer for Nostr protocol
-/// communications, wrapping a WebsocketDS instance to handle the underlying
-/// WebSocket operations.
+/// A [NostrTransport] over the vendored WebSocket client, which must be
+/// created with `reconnect: false`.
 class WebSocketClientNostrTransport implements NostrTransport {
   /// The underlying WebSocket data source.
   final WebsocketDSClient _websocketDS;
-  late StreamSubscription<ConnectionState> _stateStreamSubscription;
+  late final StreamSubscription<ConnectionState> _stateStreamSubscription;
+  final Completer<void> _ready = Completer<void>();
 
-  /// Creates a new WebSocketNostrTransport instance.
+  /// Creates a new WebSocketClientNostrTransport instance.
   ///
   /// [_websocketDS] is the WebSocket data source to be used for communication.
-  WebSocketClientNostrTransport(
-    this._websocketDS, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) {
-    Completer completer = Completer();
-    ready = completer.future;
+  WebSocketClientNostrTransport(this._websocketDS) {
+    // a socket that fails before anyone waits for it must not raise
+    _ready.future.ignore();
     _stateStreamSubscription = _websocketDS.ws.connection.listen((state) {
       Logger.log.d(
         () => "${_websocketDS.url} connection state changed to $state",
       );
       switch (state) {
         case Connected() || Reconnected():
-          completer.complete();
-          if (state == Reconnected() && onReconnect != null) {
-            onReconnect.call();
-          }
-          break;
+          if (!_ready.isCompleted) _ready.complete();
         case Disconnected():
-          completer = Completer();
-          ready = completer.future;
-          if (onDisconnect != null) {
-            onDisconnect.call(state.code, state.error, state.reason);
-          }
-          break;
-        case Connecting():
-          // Do nothing, just waiting for connection to be established
-          break;
-        case Reconnecting():
-          // Do nothing, just waiting for reconnection to be established
-          break;
-        default:
-          Logger.log.w(
-            () =>
-                "${_websocketDS.url} connection state changed to unknown state: $state",
+          _failReady(
+            state.error ??
+                StateError("closed with ${state.code} ${state.reason}"),
           );
+        case Connecting() || Reconnecting() || Disconnecting():
+          break;
       }
     });
   }
 
-  /// A Future that completes when the WebSocket connection is ready.
   @override
-  late Future<void> ready;
+  Future<void> get ready => _ready.future;
+
+  void _failReady(Object error) {
+    if (!_ready.isCompleted) _ready.completeError(error);
+  }
 
   /// Closes the WebSocket connection.
   ///
   /// Returns a Future that completes when the connection has been closed.
   @override
   Future<void> close() async {
+    _failReady(StateError("closed before it opened"));
     await _stateStreamSubscription.cancel();
     return _websocketDS.close();
   }

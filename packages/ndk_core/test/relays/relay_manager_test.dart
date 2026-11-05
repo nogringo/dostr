@@ -158,6 +158,25 @@ void main() {
     await subscription.close();
   });
 
+  test('closeIdleConnections ignores work that never picked a relay', () async {
+    final idle = await startRelay();
+    final reqs = RelayReqs(
+      relayManager: manager,
+      eventVerifier: FakeVerifier(),
+    );
+    final forgotten = reqs.req();
+    final publishes = RelayPublishes(relayManager: manager);
+    final unsigned = publishes.open(signedEvent(content: 'never signed'));
+    await manager.connectRelay(dirtyUrl: idle.url);
+
+    await manager.closeIdleConnections();
+
+    expect(manager.isRelayConnected(idle.url), isFalse);
+    await forgotten.close();
+    unsigned.fail(StateError('test over'));
+    await unsigned.done.catchError((_) => <String, RelayBroadcastResponse>{});
+  });
+
   test('hands what it does not handle to protocol handlers', () async {
     final relay = await startRelay();
     final recorder = _Recorder();

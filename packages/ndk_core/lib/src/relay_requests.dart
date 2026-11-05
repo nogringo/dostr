@@ -40,6 +40,8 @@ class RelayRequests implements ConnectionListener {
     }
 
     inFlight.forEach((key, state) {
+      // the path that opened this socket may have sent it already
+      if (relayConnectivity.stats.openRequestIds.contains(state.id)) return;
       state.requests.values
           // by connection, not by relay: replaying a bound request on the
           // anonymous socket gets it refused, and replaying an anonymous one on
@@ -537,14 +539,6 @@ class RelayRequests implements ConnectionListener {
       () => "------------ IN FLIGHT REQUESTS: ${inFlight.length} || $namesMap",
     );
   }
-
-  /// Whether a request is still working out its connections, so pruning one
-  /// now would guess at what it is about to use.
-  bool get hasUnassignedWork => inFlight.values.any(
-    (state) =>
-        !state.networkController.isClosed &&
-        (state.pendingConnections > 0 || state.requests.isEmpty),
-  );
 
   /// Whether a request still needs the connection behind [key].
   bool hasWorkOn(RelayConnectionKey key) {

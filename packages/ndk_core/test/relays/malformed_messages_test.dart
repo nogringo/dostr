@@ -36,11 +36,7 @@ class _Factory implements NostrTransportFactory {
   late _Transport last;
 
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) => last = _Transport();
+  NostrTransport call(String url) => last = _Transport();
 }
 
 class _ThrowingHandler extends RelayProtocolHandler {

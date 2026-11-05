@@ -9,7 +9,8 @@ import '../domain_layer/entities/nip_01_event.dart';
 
 /// State of one broadcast. Internal to ndk_core.
 class BroadcastState implements TimeoutPausable {
-  /// value between 0 and 1, 1 =>  all relays have responded with "OK" the broadcast is considered done
+  /// share of the relays, between 0 and 1, that must accept the event for the
+  /// broadcast to be done before every relay answered
   final double considerDonePercent;
 
   final Duration timeout;
@@ -57,12 +58,12 @@ class BroadcastState implements TimeoutPausable {
       return true;
     }
 
-    final doneCount = broadcasts.values
-        .where((element) => element.okReceived)
+    final acceptedCount = broadcasts.values
+        .where((element) => element.broadcastSuccessful)
         .length
         .toDouble();
     final totalCount = broadcasts.length.toDouble();
-    return doneCount / totalCount >= considerDonePercent;
+    return acceptedCount / totalCount >= considerDonePercent;
   }
 
   /// completes when state update controller closes

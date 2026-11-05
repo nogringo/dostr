@@ -297,11 +297,7 @@ class _ControlledTransportFactory implements NostrTransportFactory {
   _ControlledTransportFactory(this.transports);
 
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) {
+  NostrTransport call(String url) {
     startedUrls.add(url);
     return transports[url]!;
   }

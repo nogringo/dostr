@@ -116,7 +116,6 @@ class Initialization {
     _webSocketNostrTransportFactory = WebSocketClientNostrTransportFactory(
       compressionEnabled: ndkConfig.webSocketCompression,
       pingInterval: ndkConfig.webSocketPingInterval,
-      reconnectMaximumStep: ndkConfig.webSocketReconnectMaximumStep,
     );
 
     accounts = Accounts(_ndkConfig.eventSignerFactory);
@@ -129,6 +128,7 @@ class Initialization {
           bootstrapRelays: _ndkConfig.bootstrapRelays,
           authCallbackTimeout: _ndkConfig.authCallbackTimeout,
           authHandler: _ndkConfig.authHandler,
+          reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
         );
 
         engine = RelaySetsEngine(
@@ -144,6 +144,7 @@ class Initialization {
           bootstrapRelays: _ndkConfig.bootstrapRelays,
           authCallbackTimeout: _ndkConfig.authCallbackTimeout,
           authHandler: _ndkConfig.authHandler,
+          reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
         );
 
         engine = JitEngine(

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
@@ -10,30 +11,21 @@ import 'package:test/test.dart';
 import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
-/// A transport that loses its connection the way web_socket_client does: the
-/// message stream stays open across the outage, so only onDisconnect fires,
-/// and a send issued while it is down waits on [ready] and flushes once the
-/// connection is back.
+/// A real transport whose socket can be cut the way a lost network does: its
+/// stream ends and it never comes back.
 class _FlakyTransport implements NostrTransport {
-  _FlakyTransport(this._inner, {this.onDisconnect, this.onReconnect});
+  _FlakyTransport(this._inner);
 
   final NostrTransport _inner;
-  final Function(int?, Object?, String?)? onDisconnect;
-  final Function? onReconnect;
-  bool _down = false;
-  Completer<void>? _downReady;
+  final StreamController _out = StreamController();
+  StreamSubscription? _innerSubscription;
+  bool _dropped = false;
 
   void dropConnection() {
-    _down = true;
-    _downReady = Completer<void>();
-    onDisconnect?.call(1006, null, "connection lost");
-  }
-
-  void restoreConnection() {
-    _down = false;
-    _downReady?.complete();
-    _downReady = null;
-    onReconnect?.call();
+    _dropped = true;
+    _innerSubscription?.cancel();
+    _inner.close();
+    _out.close();
   }
 
   @override
@@ -41,51 +33,90 @@ class _FlakyTransport implements NostrTransport {
     void Function(dynamic) onData, {
     Function? onError,
     void Function()? onDone,
-  }) => _inner.listen(onData, onError: onError, onDone: onDone);
-
-  @override
-  Future<void> close() => _inner.close();
-
-  @override
-  Future<void> get ready => _downReady?.future ?? _inner.ready;
-
-  @override
-  set ready(Future<void> value) => _inner.ready = value;
-
-  @override
-  bool isOpen() => !_down && _inner.isOpen();
-
-  @override
-  bool isConnecting() => _down || _inner.isConnecting();
-
-  @override
-  void send(data) {
-    if (_down) return;
-    _inner.send(data);
+  }) {
+    _innerSubscription = _inner.listen(
+      _out.add,
+      onError: _out.addError,
+      onDone: _out.close,
+    );
+    return _out.stream.listen(onData, onError: onError, onDone: onDone);
   }
 
   @override
-  int? closeCode() => _down ? 1006 : _inner.closeCode();
+  Future<void> close() async {
+    await _innerSubscription?.cancel();
+    if (!_out.isClosed) await _out.close();
+    await _inner.close();
+  }
 
   @override
-  String? closeReason() => _down ? "connection lost" : _inner.closeReason();
+  Future<void> get ready => _inner.ready;
+
+  @override
+  bool isOpen() => !_dropped && _inner.isOpen();
+
+  @override
+  bool isConnecting() => !_dropped && _inner.isConnecting();
+
+  @override
+  void send(data) {
+    if (!_dropped) _inner.send(data);
+  }
+
+  @override
+  int? closeCode() => _dropped ? 1006 : _inner.closeCode();
+
+  @override
+  String? closeReason() => _dropped ? "connection lost" : _inner.closeReason();
+}
+
+/// What a socket opened during an outage gets: a refusal.
+class _RefusedTransport implements NostrTransport {
+  final _out = StreamController();
+
+  @override
+  Future<void> get ready =>
+      Future.error(const SocketException("network is down"));
+
+  @override
+  bool isOpen() => false;
+
+  @override
+  bool isConnecting() => false;
+
+  @override
+  Future<void> close() async {
+    if (!_out.isClosed) await _out.close();
+  }
+
+  @override
+  StreamSubscription listen(
+    void Function(dynamic) onData, {
+    Function? onError,
+    void Function()? onDone,
+  }) => _out.stream.listen(onData, onError: onError, onDone: onDone);
+
+  @override
+  void send(data) {}
+
+  @override
+  int? closeCode() => null;
+
+  @override
+  String? closeReason() => null;
 }
 
 class _FlakyTransportFactory implements NostrTransportFactory {
   final _inner = WebSocketNostrTransportFactory();
   final List<_FlakyTransport> created = [];
 
+  /// refuses new sockets while set
+  bool down = false;
+
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) {
-    final transport = _FlakyTransport(
-      _inner(url, onReconnect: onReconnect, onDisconnect: onDisconnect),
-      onDisconnect: onDisconnect,
-      onReconnect: onReconnect,
-    );
+  NostrTransport call(String url) {
+    if (down) return _RefusedTransport();
+    final transport = _FlakyTransport(_inner(url));
     created.add(transport);
     return transport;
   }
@@ -101,7 +132,7 @@ void main() {
     accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
   });
 
-  test('an authentication does not survive a transient disconnect', () async {
+  test('an authentication does not survive a dropped socket', () async {
     final relay = MockRelay(
       name: "relay requiring auth",
       requireAuthForRequests: true,
@@ -122,6 +153,7 @@ void main() {
     expect(await manager.authenticateConnection(connectivity!.key), true);
     expect(relay.acceptedAuths, 1);
 
+    factory.down = true;
     factory.created.last.dropConnection();
 
     expect(manager.isConnectionOpen(connectivity.key), false);
@@ -131,6 +163,15 @@ void main() {
       reason:
           'the connection is down, so it cannot still claim the AUTH the relay '
           'accepted on it',
+    );
+
+    factory.down = false;
+    await _waitUntil(() => manager.isConnectionOpen(connectivity.key));
+    expect(await manager.authenticateConnection(connectivity.key), true);
+    expect(
+      relay.acceptedAuths,
+      2,
+      reason: 'the new socket has to authenticate on its own',
     );
 
     await manager.closeAllTransports();
@@ -164,6 +205,7 @@ void main() {
     }
 
     final elapsed = Stopwatch()..start();
+    factory.down = true;
     factory.created.last.dropConnection();
     expect(await authenticating, false);
     elapsed.stop();
@@ -181,19 +223,22 @@ void main() {
   }, timeout: const Timeout(Duration(seconds: 60)));
 
   test(
-    'a subscription replayed after a transient disconnect is counted once',
+    'a subscription replayed after a dropped socket is counted once',
     () async {
       final subscribed = await _subscribeOnFlakyRelay();
       final connectivity = subscribed.connectivity;
 
+      subscribed.factory.down = true;
       subscribed.transport.dropConnection();
+      await _waitUntil(() => connectivity.stats.connectionErrors >= 1);
       expect(
         connectivity.stats.activeRequests,
         0,
         reason: 'the requests died with the socket that carried them',
       );
 
-      subscribed.transport.restoreConnection();
+      subscribed.factory.down = false;
+      await _waitUntil(() => connectivity.isConnected);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(
         connectivity.stats.activeRequests,
@@ -211,22 +256,23 @@ void main() {
     timeout: const Timeout(Duration(seconds: 60)),
   );
 
-  test('a subscription closed during an outage is counted once', () async {
+  test('a subscription closed during an outage is not replayed', () async {
     final subscribed = await _subscribeOnFlakyRelay();
     final connectivity = subscribed.connectivity;
 
+    subscribed.factory.down = true;
     subscribed.transport.dropConnection();
-    // the CLOSE waits for the socket to come back, and by then nothing replays
-    // the subscription: it is not in flight anymore
+    await _waitUntil(() => connectivity.stats.connectionErrors >= 1);
     subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
     await subscribed.req.close();
 
-    subscribed.transport.restoreConnection();
+    subscribed.factory.down = false;
+    await _waitUntil(() => connectivity.isConnected);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(
       connectivity.stats.activeRequests,
       0,
-      reason: 'the late CLOSE counted below what the connection had open',
+      reason: 'a subscription closed while the relay was unreachable came back',
     );
 
     await subscribed.tearDown();
@@ -239,16 +285,18 @@ class _SubscribedOnFlakyRelay {
   _SubscribedOnFlakyRelay(
     this.manager,
     this.connectivity,
-    this.transport,
+    this.factory,
     this._relay,
     this.req,
   );
 
   final RelayManager manager;
   final RelayConnectivity connectivity;
-  final _FlakyTransport transport;
+  final _FlakyTransportFactory factory;
   final MockRelay _relay;
   final RelayReq req;
+
+  _FlakyTransport get transport => factory.created.last;
 
   Future<void> tearDown() async {
     await manager.closeAllTransports();
@@ -279,13 +327,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   ).req(id: _subId, relays: {relay.url: filters}, closeOnEose: false);
   await _waitUntil(() => connectivity.stats.activeRequests == 1);
 
-  return _SubscribedOnFlakyRelay(
-    manager,
-    connectivity,
-    factory.created.last,
-    relay,
-    req,
-  );
+  return _SubscribedOnFlakyRelay(manager, connectivity, factory, relay, req);
 }
 
 Future<void> _waitUntil(

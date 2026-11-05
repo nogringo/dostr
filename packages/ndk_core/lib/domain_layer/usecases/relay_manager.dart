@@ -64,17 +64,30 @@ class RelayManager {
   /// [authChallengeTimeout] how long a NIP-42 challenge is waited for once
   /// authentication was asked for. [authHandler] is asked before a connection
   /// bound to an identity is opened.
+  ///
+  /// A connection that drops is retried right away, then after a wait that
+  /// starts at 500 milliseconds and doubles each time, for an hour. The
+  /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
+  /// requests are replayed once it is back.
   RelayManager({
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
     List<String> bootstrapRelays = const [],
     bool allowReconnect = true,
+    int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     Duration authCallbackTimeout =
         RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     Duration authChallengeTimeout =
         RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     AuthHandler? authHandler,
   }) {
+    if (reconnectMaximumStep <= 0) {
+      throw ArgumentError.value(
+        reconnectMaximumStep,
+        'reconnectMaximumStep',
+        'must be positive',
+      );
+    }
     _auth = RelayAuth(
       accounts: accounts,
       authHandler: authHandler,
@@ -86,6 +99,7 @@ class RelayManager {
       auth: _auth,
       onMessage: _dispatch,
       allowReconnect: allowReconnect,
+      reconnectMaximumStep: reconnectMaximumStep,
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
     _broadcasts = RelayBroadcasts(connections: _connections, auth: _auth);
@@ -145,7 +159,8 @@ class RelayManager {
       _connections.isConnectionOpen(key);
 
   /// Opens the anonymous connection to a relay. Returns whether it is
-  /// connected, and the error message if it is not. A connection bound to an
+  /// connected, and the error message if it is not. A refused connection is
+  /// tried again until [connectTimeout] runs out. A connection bound to an
   /// identity is opened with [openConnectionAs].
   Future<({bool connected, String? error})> connectRelay({
     required String dirtyUrl,
@@ -223,9 +238,12 @@ class RelayManager {
   );
 
   /// Answers the challenge for [key] and completes once the relay accepted the
-  /// AUTH event. Concurrent callers share a single AUTH.
+  /// AUTH event. Concurrent callers share a single AUTH. False when the
+  /// connection is not open.
   Future<bool> authenticateConnection(RelayConnectionKey key) =>
-      _connections.authenticate(key);
+      _connections.isConnectionOpen(key)
+      ? _connections.authenticate(key)
+      : Future.value(false);
 
   /// Account [auth] authenticates as, null when it must stay unattributable.
   Account? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
@@ -348,8 +366,8 @@ class RelayManager {
   /// keeps its connection even after EOSE, and authentication/reconnect work
   /// keeps the exact connection it is preparing to use.
   ///
-  /// Request discovery does not yet identify every target connection. Defer
-  /// pruning while such work is in progress instead of guessing its targets.
+  /// A request or a broadcast that has yet to pick a relay keeps no connection
+  /// open: sending to the relay it picks reopens the connection when needed.
   /// Broadcasts track relay URLs rather than identities, so both anonymous and
   /// authenticated connections at an in-flight broadcast's URL are retained.
   Future<void> closeIdleConnections() async {
@@ -358,9 +376,6 @@ class RelayManager {
       for (final key in _connections.relays.keys.toList()) {
         // Re-evaluate after each asynchronous close. Another operation may
         // have claimed the next connection while the previous one was closing.
-        if (_requests.hasUnassignedWork || _broadcasts.hasUnassignedWork) {
-          break;
-        }
         if (_connectionHasWork(key)) continue;
         await closeConnection(key);
         changed = true;

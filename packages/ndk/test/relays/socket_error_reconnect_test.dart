@@ -64,9 +64,6 @@ class _FaultyTransport implements NostrTransport {
   Future<void> get ready => _inner.ready;
 
   @override
-  set ready(Future<void> value) => _inner.ready = value;
-
-  @override
   bool isOpen() => _inner.isOpen();
 
   @override
@@ -87,14 +84,8 @@ class _FaultyTransportFactory implements NostrTransportFactory {
   final List<_FaultyTransport> created = [];
 
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) {
-    final transport = _FaultyTransport(
-      _inner(url, onReconnect: onReconnect, onDisconnect: onDisconnect),
-    );
+  NostrTransport call(String url) {
+    final transport = _FaultyTransport(_inner(url));
     created.add(transport);
     return transport;
   }
@@ -115,9 +106,6 @@ void main() {
     final connectivity =
         manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
     expect(connectivity.stats.connections, 1);
-
-    // otherwise FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS suppresses the reconnect
-    connectivity.relay.lastConnectTry = 0;
 
     factory.created.last.breakStream();
 
@@ -160,7 +148,6 @@ void main() {
       expect(await manager.authenticateConnection(connectivity!.key), true);
       expect(relay.acceptedAuths, 1);
 
-      connectivity.relay.lastConnectTry = 0;
       factory.created.last.breakStream();
 
       await _waitUntil(

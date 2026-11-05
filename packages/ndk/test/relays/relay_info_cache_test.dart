@@ -20,11 +20,7 @@ class _Repo implements RelayInfoRepo {
 
 class _NoTransport implements NostrTransportFactory {
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) => throw UnimplementedError();
+  NostrTransport call(String url) => throw UnimplementedError();
 }
 
 void main() {

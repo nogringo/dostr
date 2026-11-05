@@ -37,7 +37,7 @@ Signing:
 Output control:
   --relay <url> (repeatable)     Target relays (also accepted positionally)
   --timeout <sec>                Per-event timeout (default 10)
-  --consider-done <0..1>         Fraction of OKs to wait for (default 0.5)
+  --consider-done <0..1>         Fraction of relays that must accept (default 0.5)
   --no-cache                     Don't save event to local cache
   -h, --help                     Show this help''';
 

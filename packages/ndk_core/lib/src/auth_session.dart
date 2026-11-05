@@ -10,8 +10,7 @@ import 'client_msg.dart';
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
 /// the AUTH waiting for its OK, and whether the relay accepted it.
 ///
-/// The transport reconnects under its connection, so a session lasts as long
-/// as one socket, not as long as the transport. Once [end]ed, nothing an
+/// A session lasts as long as one socket. Once [end]ed, nothing an
 /// authentication started on it can land on the socket that took its place.
 class AuthSession {
   AuthSession(

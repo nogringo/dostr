@@ -106,6 +106,31 @@ end a plain Dart process.
 the relay, anonymous or bound, where `isRelayConnected`, `reconnectRelay` and
 `getRelayConnectivity` only look at the anonymous one.
 
+#### Reconnecting
+
+`RelayManager` is the only thing that reconnects, and a `NostrTransport` is a
+single socket. `NostrTransportFactory` takes the url alone, without
+`onReconnect` or `onDisconnect`. `ready` completes once the socket is open and
+fails when it cannot connect or is closed first, instead of waiting forever.
+The end of `listen` means the socket is gone.
+
+A connection that drops is retried at once, then after a wait that doubles
+from 500 milliseconds, for an hour. Its requests are replayed once it is back,
+and given up as `disconnected` after that hour. `allowReconnect` set to false
+now stops these retries: the transport used to retry on its own regardless. A
+connection that drops within a minute of opening comes back too.
+`WebSocketClientNostrTransportFactory` no longer takes `reconnectMaximumStep`:
+`RelayManager` does, and `NdkConfig.webSocketReconnectMaximumStep` still sets
+it.
+
+`reconnectClosedConnections` reconnects every connection at once instead of
+one after the other. `authenticateConnection` answers false for a connection
+that is not open.
+
+`closeIdleConnections` no longer waits for the requests and broadcasts that
+have yet to pick a relay. A REQ never sealed, or a publish never started or
+failed, used to keep every connection open for good.
+
 #### REQs
 
 Open REQs with `RelayReqs`. Close one with `RelayReq.close`, by its id with
@@ -139,3 +164,6 @@ A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and
 returns it, and `NdkBroadcastResponse.fromState` is gone.
 `NetworkEngine.handleEventBroadcast` in `ndk` became `routeBroadcast`, which
 gets the signed event and only picks its relays.
+
+`considerDonePercent` counts the relays that accepted the event: a refusal no
+longer brings a publish closer to done.

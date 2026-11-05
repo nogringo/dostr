@@ -58,11 +58,8 @@ class _Transport implements NostrTransport {
 
 class _NoConnections implements NostrTransportFactory {
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) => throw StateError('Tests must not open network connections');
+  NostrTransport call(String url) =>
+      throw StateError('Tests must not open network connections');
 }
 
 class _Signer implements EventSigner {
@@ -251,49 +248,29 @@ void main() {
     },
   );
 
-  test(
-    'unassigned request discovery defers pruning until keys are known',
-    () async {
-      connect(anonymous);
-      final idle = connect(other);
-      final pending = request('discovering');
-      await manager.closeIdleConnections();
-      expect(idle.closed, isFalse);
-      pending.addRequest(anonymous, [
-        Filter(kinds: [1]),
-      ]);
-      await manager.closeIdleConnections();
-      expect(idle.closed, isTrue);
-      expect(parts.connections.relays.keys, [anonymous]);
-    },
-  );
+  test('a request that has not picked a relay keeps nothing open', () async {
+    connect(anonymous);
+    connect(other);
+    request('discovering').pendingConnections = 1;
+    await manager.closeIdleConnections();
+    expect(parts.connections.relays, isEmpty);
+  });
 
-  test(
-    'pending connection selection defers pruning even with other known keys',
-    () async {
-      connect(anonymous);
-      final idle = connect(other);
-      final pending = request('selecting', key: anonymous);
-      pending.pendingConnections = 1;
-      await manager.closeIdleConnections();
-      expect(idle.closed, isFalse);
-      pending.pendingConnections = 0;
-      await manager.closeIdleConnections();
-      expect(idle.closed, isTrue);
-    },
-  );
-
-  test('unassigned broadcast discovery defers pruning', () async {
+  test('a request still picking relays keeps only those it picked', () async {
     connect(anonymous);
     final idle = connect(other);
-    final pending = broadcast('discovering');
-    await manager.closeIdleConnections();
-    expect(idle.closed, isFalse);
-    pending.broadcasts[anonymous.url] = RelayBroadcastResponse(
-      relayUrl: anonymous.url,
-    );
+    request('selecting', key: anonymous).pendingConnections = 1;
     await manager.closeIdleConnections();
     expect(idle.closed, isTrue);
+    expect(parts.connections.relays.keys, [anonymous]);
+  });
+
+  test('a broadcast that has not picked a relay keeps nothing open', () async {
+    connect(anonymous);
+    connect(other);
+    broadcast('discovering');
+    await manager.closeIdleConnections();
+    expect(parts.connections.relays, isEmpty);
   });
 
   test('ongoing transport and relay connection setup are retained', () async {

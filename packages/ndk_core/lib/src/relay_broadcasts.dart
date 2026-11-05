@@ -348,15 +348,6 @@ class RelayBroadcasts {
     unawaited(retryOnBoundConnection());
   }
 
-  /// Whether a broadcast has yet to pick its relays, so pruning a connection
-  /// now would guess at what it is about to use.
-  bool get hasUnassignedWork => inFlight.values
-      .expand((states) => states)
-      .any(
-        (state) =>
-            !state.networkController.isClosed && state.broadcasts.isEmpty,
-      );
-
   /// Whether a broadcast still waits on the relay behind [key]. Broadcasts
   /// track relay urls rather than identities, so every connection to that
   /// relay counts.

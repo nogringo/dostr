@@ -28,6 +28,9 @@ class WebSocket {
   /// [compressionEnabled] controls native per-message compression negotiation.
   /// Defaults to true. Browser WebSocket APIs cannot control compression;
   /// this option has no effect on web.
+  ///
+  /// With [reconnect] false, the first failed connect or dropped connection
+  /// ends the socket for good, closing [messages] and [connection].
   WebSocket(
     Uri uri, {
     Iterable<String>? protocols,
@@ -37,6 +40,7 @@ class WebSocket {
     Duration? timeout,
     String? binaryType,
     bool compressionEnabled = true,
+    bool reconnect = true,
   }) : _uri = uri,
        _protocols = protocols,
        _pingInterval = pingInterval,
@@ -44,7 +48,8 @@ class WebSocket {
        _backoff = backoff ?? _defaultBackoff,
        _timeout = timeout ?? _defaultTimeout,
        _binaryType = binaryType,
-       _compressionEnabled = compressionEnabled {
+       _compressionEnabled = compressionEnabled,
+       _reconnects = reconnect {
     _connect();
   }
 
@@ -56,6 +61,7 @@ class WebSocket {
   final Duration _timeout;
   final String? _binaryType;
   final bool _compressionEnabled;
+  final bool _reconnects;
 
   final _messageController = StreamController<dynamic>.broadcast();
   final _connectionController = ConnectionController();
@@ -81,14 +87,15 @@ class WebSocket {
     return _connectionController.state == const Disconnecting();
   }
 
-  bool _isClosedByClient = false;
+  bool _isClosed = false;
   void Function()? _abortHandshake;
 
   Future<void> _connect() async {
-    if (_isClosedByClient || _isConnected) return;
+    if (_isClosed || _isConnected) return;
 
     void attemptToReconnect([Object? error, StackTrace? stackTrace]) {
-      if (_isClosedByClient || _isReconnecting || _isDisconnecting) return;
+      if (_isClosed || _isReconnecting || _isDisconnecting) return;
+      if (!_reconnects) return _end(error, stackTrace);
       if (_backoffDuration >= _timeout) return _closeWithTimeout();
       _connectionController.add(
         Disconnected(
@@ -127,7 +134,7 @@ class WebSocket {
               )
               .then<WebSocketChannel?>((ws) {
                 final channel = getWebSocketChannel(ws);
-                if (_isClosedByClient || timedOut) {
+                if (_isClosed || timedOut) {
                   channel.sink.close().ignore();
                   return null;
                 }
@@ -146,7 +153,7 @@ class WebSocket {
               );
       if (channel == null) return;
       // close() can also run between completion and this continuation.
-      if (_isClosedByClient) {
+      if (_isClosed) {
         channel.sink.close().ignore();
         return;
       }
@@ -165,6 +172,8 @@ class WebSocket {
           if (_messageController.isClosed) return;
           _messageController.add(message);
         },
+        // cancelOnError skips onDone, so an error has to end the socket too
+        onError: attemptToReconnect,
         onDone: attemptToReconnect,
         cancelOnError: true,
       );
@@ -179,13 +188,13 @@ class WebSocket {
 
   Future<void> _reconnect() async {
     if (_backoffDuration >= _timeout) return _closeWithTimeout();
-    if (_isClosedByClient || _isConnected) return;
+    if (_isClosed || _isConnected) return;
 
     _connectionController.add(const Reconnecting());
 
     await _connect();
 
-    if (_isClosedByClient || _isConnected) {
+    if (_isClosed || _isConnected) {
       _backoff.reset();
       _backoffTimer?.cancel();
       _backoffDuration = Duration.zero;
@@ -199,6 +208,22 @@ class WebSocket {
   }
 
   void _closeWithTimeout() => close(1006, 'connection timeout');
+
+  void _end(Object? error, StackTrace? stackTrace) {
+    _isClosed = true;
+    _connectionController.add(
+      Disconnected(
+        code: _channel?.closeCode,
+        reason: _channel?.closeReason,
+        error: error,
+        stackTrace: stackTrace,
+      ),
+    );
+    _channel = null;
+    _subscription?.cancel();
+    _messageController.close();
+    _connectionController.close();
+  }
 
   /// The stream of messages received from the WebSocket server.
   Stream<dynamic> get messages => _messageController.stream;
@@ -219,8 +244,8 @@ class WebSocket {
 
   /// Closes the connection and frees any resources.
   void close([int? code, String? reason]) {
-    if (_isClosedByClient) return;
-    _isClosedByClient = true;
+    if (_isClosed) return;
+    _isClosed = true;
     _abortHandshake?.call();
     _backoffTimer?.cancel();
     _backoffDuration = Duration.zero;

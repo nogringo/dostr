@@ -9,7 +9,6 @@ class WebSocketClientNostrTransportFactory implements NostrTransportFactory {
   WebSocketClientNostrTransportFactory({
     this.compressionEnabled = true,
     this.pingInterval = const Duration(seconds: 10),
-    this.reconnectMaximumStep = 4,
   }) {
     if (pingInterval != null && pingInterval! <= Duration.zero) {
       throw ArgumentError.value(
@@ -18,50 +17,29 @@ class WebSocketClientNostrTransportFactory implements NostrTransportFactory {
         'must be positive',
       );
     }
-    if (reconnectMaximumStep <= 0) {
-      throw ArgumentError.value(
-        reconnectMaximumStep,
-        'reconnectMaximumStep',
-        'must be positive',
-      );
-    }
   }
 
   final Duration? pingInterval;
-  final int reconnectMaximumStep;
 
   final bool compressionEnabled;
 
   @override
-  NostrTransport call(
-    String url, {
-    Function? onReconnect,
-    Function(int?, Object?, String?)? onDisconnect,
-  }) {
+  NostrTransport call(String url) {
     final myUrl = cleanRelayUrl(url);
 
     if (myUrl == null) {
       throw Exception("relayUrl is not parsable");
     }
 
-    final backoff = BinaryExponentialBackoff(
-      initial: Duration(milliseconds: 500),
-      maximumStep: reconnectMaximumStep,
-    );
     final client = WebSocket(
       Uri.parse(myUrl),
-      backoff: backoff,
-      timeout: Duration(seconds: 3600),
+      reconnect: false,
       pingInterval: pingInterval,
       binaryType: 'arraybuffer',
       compressionEnabled: compressionEnabled,
     );
 
     final WebsocketDSClient myDataSource = WebsocketDSClient(client, myUrl);
-    return WebSocketClientNostrTransport(
-      myDataSource,
-      onReconnect: onReconnect,
-      onDisconnect: onDisconnect,
-    );
+    return WebSocketClientNostrTransport(myDataSource);
   }
 }

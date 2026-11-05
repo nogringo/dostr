@@ -41,7 +41,7 @@ class Broadcast {
   /// low level nostr broadcast using inbox/outbox (gossip) \
   /// [specificRelays] disables inbox/outbox (gossip) and broadcasts to the relays specified. Useful for NostrWalletConnect \
   /// [customSigner] if you want to use a different signer than the one from currently logged in user in [Accounts] \
-  /// [considerDonePercent] the percentage (0.0, 1.0) of relays that need to respond with "OK" for the broadcast to be considered done (overrides the default value) \
+  /// [considerDonePercent] the percentage (0.0, 1.0) of relays that need to accept the event for the broadcast to be considered done (overrides the default value) \
   /// [timeout] the timeout for the broadcast (overrides the default timeout) \
   /// [saveToCache] whether to save the event to cache (overrides the default value from config) \
   /// [auth] which identity this broadcast may be attributed to on relays (NIP-42), see [AuthPolicy].
