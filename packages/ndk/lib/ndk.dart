@@ -159,4 +159,4 @@ export 'shared/nips/nip19/nip19_event_references.dart';
  *
  */
 
-export 'shared/nips/nip49/nip49.dart';
+export 'package:ndk_nip49/ndk_nip49.dart';

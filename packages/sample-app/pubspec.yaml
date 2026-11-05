@@ -80,6 +80,8 @@ dependency_overrides:
     path: ../bip340
   ndk_nip44:
     path: ../nip44
+  ndk_nip49:
+    path: ../nip49
   ndk_nip77:
     path: ../nip77
   ndk_url_set:

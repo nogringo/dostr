@@ -1,0 +1,26 @@
+name: ndk_nip49
+description: NIP-49 private key encryption for Nostr, to encrypt a key into an ncryptsec string with a password and decrypt it back.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - encryption
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  bech32: ^0.2.2
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  cryptography: ^2.9.0
+  unorm_dart: ^0.3.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any

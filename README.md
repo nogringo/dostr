@@ -33,6 +33,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip44`: NIP-44 encryption, and the deprecated NIP-04 encryption, in pure Dart.
 
+### [🔗 NIP-49](./packages/nip49/)
+
+`ndk_nip49`: NIP-49 private key encryption (`ncryptsec`) with a password.
+
 ### [🔗 NIP-77](./packages/nip77/)
 
 `ndk_nip77`: NIP-77 negentropy sync on top of `ndk_core`, with the Negentropy V1 codec.

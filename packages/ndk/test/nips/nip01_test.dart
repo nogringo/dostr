@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:typed_data';
 
-import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
@@ -11,10 +9,7 @@ void main() {
     test('sign and verify', () {
       final keyPair = Bip340.generatePrivateKey();
       const message = 'Hello, World!';
-      final messageSha256 = Uint8List.fromList(
-        sha256.convert(utf8.encode(message)).bytes,
-      );
-      final messageHex = hex.encode(messageSha256);
+      final messageHex = sha256.convert(utf8.encode(message)).toString();
       final signature = Bip340.sign(messageHex, keyPair.privateKey!);
       expect(Bip340.verify(messageHex, signature, keyPair.publicKey), isTrue);
     });

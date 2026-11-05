@@ -28,6 +28,7 @@ on:
           - ndk_nip19
           - ndk_bip340
           - ndk_nip44
+          - ndk_nip49
           - ndk_nip77
           - ndk_url_set
           - ndk_fetchers

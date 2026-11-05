@@ -7,8 +7,9 @@ import 'package:convert/convert.dart';
 import 'package:cryptography/cryptography.dart';
 import 'package:unorm_dart/unorm_dart.dart' as unorm;
 
-import 'package:ndk_core/shared/isolates/isolate_manager.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'convert_bits.dart';
+import 'run_off_main_thread_web.dart'
+    if (dart.library.io) 'run_off_main_thread.dart';
 import 'scrypt.dart';
 
 /// How the private key was handled before being encrypted.
@@ -27,6 +28,15 @@ enum Nip49KeySecurity {
   const Nip49KeySecurity(this.value);
 }
 
+/// Thrown by [Nip49.decrypt] when the password is wrong, or when the
+/// `ncryptsec` was altered after it was made.
+class Nip49WrongPasswordException implements Exception {
+  const Nip49WrongPasswordException();
+
+  @override
+  String toString() => 'Nip49WrongPasswordException: wrong password';
+}
+
 /// NIP-49 private key encryption (`ncryptsec`).
 /// https://github.com/nostr-protocol/nips/blob/master/49.md
 ///
@@ -37,6 +47,7 @@ class Nip49 {
   /// 1 GiB of scrypt memory, the same cap as nostr-tools.
   static const int maxLogN = 20;
 
+  static const String _hrp = 'ncryptsec';
   static const int _version = 0x02;
   static const int _payloadLength = 91;
 
@@ -85,8 +96,8 @@ class Nip49 {
       ...secretBox.cipherText,
       ...secretBox.mac.bytes,
     ];
-    final data = Nip19Utils.convertBits(payload, 8, 5, true);
-    final input = Bech32(Hrps.kNcryptsec, data);
+    final data = convertBits(payload, 8, 5, pad: true);
+    final input = Bech32(_hrp, data);
     return Bech32Encoder().convert(input, input.hrp.length + data.length + 10);
   }
 
@@ -97,21 +108,27 @@ class Nip49 {
   /// before any scrypt work. Lower it on memory-constrained devices: logN 20
   /// allocates 1 GiB.
   ///
-  /// Throws [SecretBoxAuthenticationError] when the password is wrong.
+  /// Throws [Nip49WrongPasswordException] when the password is wrong, and a
+  /// [FormatException] when [ncryptsec] is not a valid `ncryptsec`.
   static Future<String> decrypt(
     String ncryptsec,
     String password, {
     int maxLogN = Nip49.maxLogN,
   }) async {
-    final decoded = Bech32Decoder().convert(ncryptsec, ncryptsec.length);
-    if (decoded.hrp != Hrps.kNcryptsec) {
-      throw FormatException('Not an ${Hrps.kNcryptsec}', ncryptsec);
+    final Bech32 decoded;
+    try {
+      decoded = Bech32Decoder().convert(ncryptsec, ncryptsec.length);
+    } on Exception {
+      throw FormatException('Not a valid bech32 string', ncryptsec);
     }
-    final payload = Nip19Utils.convertBits(decoded.data, 5, 8, false);
+    if (decoded.hrp != _hrp) {
+      throw FormatException('Not an $_hrp', ncryptsec);
+    }
+    final payload = convertBits(decoded.data, 5, 8, pad: false);
     if (payload.length != _payloadLength ||
         payload[0] != _version ||
         !Nip49KeySecurity.values.any((s) => s.value == payload[42])) {
-      throw FormatException('Unsupported ${Hrps.kNcryptsec}', ncryptsec);
+      throw FormatException('Unsupported $_hrp', ncryptsec);
     }
 
     final logN = payload[1];
@@ -135,6 +152,8 @@ class Nip49 {
       final privateKeyHex = hex.encode(privateKey);
       privateKey.fillRange(0, privateKey.length, 0);
       return privateKeyHex;
+    } on SecretBoxAuthenticationError {
+      throw const Nip49WrongPasswordException();
     } finally {
       symmetricKey.destroy();
     }
@@ -145,7 +164,7 @@ class Nip49 {
     Uint8List salt,
     int logN,
   ) {
-    return IsolateManager.instance.runInComputeIsolate(_scrypt, (
+    return runOffMainThread(_scrypt, (
       password: password,
       salt: salt,
       logN: logN,

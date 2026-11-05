@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:bech32/bech32.dart';
 import 'package:convert/convert.dart';
-import 'package:cryptography/cryptography.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip49/scrypt.dart';
+import 'package:ndk_nip49/ndk_nip49.dart';
+import 'package:ndk_nip49/src/convert_bits.dart';
+import 'package:ndk_nip49/src/scrypt.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -35,7 +35,7 @@ void main() {
 
     expect(
       Nip49.decrypt(ncryptsec, 'wrong'),
-      throwsA(isA<SecretBoxAuthenticationError>()),
+      throwsA(isA<Nip49WrongPasswordException>()),
     );
   });
 
@@ -46,10 +46,20 @@ void main() {
   });
 
   test('rejects a string that is not an ncryptsec', () {
-    expect(
-      Nip49.decrypt(Nip19.encodePrivateKey(privateKey), 'password'),
-      throwsA(isA<FormatException>()),
-    );
+    const nsec =
+        'nsec1x5q52sf4q9z5zdgpg4qn2q298lhmqg38u3y72l856w3uupfhs6ps7q0j4y';
+
+    expect(Nip49.decrypt(nsec, 'password'), throwsA(isA<FormatException>()));
+  });
+
+  test('rejects a string with a bad bech32 checksum', () async {
+    final ncryptsec = await Nip49.encrypt(privateKey, 'password', logN: 8);
+    final last = ncryptsec[ncryptsec.length - 1];
+    final broken =
+        ncryptsec.substring(0, ncryptsec.length - 1) +
+        (last == 'q' ? 'p' : 'q');
+
+    expect(Nip49.decrypt(broken, 'password'), throwsA(isA<FormatException>()));
   });
 
   test('rejects a logN above maxLogN', () async {
@@ -64,10 +74,9 @@ void main() {
   test('rejects an unknown key security byte', () async {
     final ncryptsec = await Nip49.encrypt(privateKey, 'password', logN: 8);
     final decoded = Bech32Decoder().convert(ncryptsec, ncryptsec.length);
-    final payload = Nip19Utils.convertBits(decoded.data, 5, 8, false)
-      ..[42] = 0x03;
+    final payload = convertBits(decoded.data, 5, 8, pad: false)..[42] = 0x03;
     final tampered = Bech32Encoder().convert(
-      Bech32(decoded.hrp, Nip19Utils.convertBits(payload, 8, 5, true)),
+      Bech32(decoded.hrp, convertBits(payload, 8, 5, pad: true)),
       ncryptsec.length,
     );
 

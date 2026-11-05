@@ -25,14 +25,13 @@ dependencies:
   ndk_nip19: ^0.1.0
   ndk_bip340: ^0.1.0
   ndk_nip44: ^0.1.0
+  ndk_nip49: ^0.1.0
   ndk_nip77: ^0.1.0
   ndk_url_set: ^0.1.0
   ndk_fetchers: ^0.1.0
   http: ^1.6.0
-  bech32: ^0.2.2
   crypto: ^3.0.7
   collection: ^1.19.1
-  convert: ^3.1.2
   rxdart: ^0.28.0
   cryptography: ^2.9.0
   meta: ">=1.10.0 <2.0.0"
@@ -40,7 +39,6 @@ dependencies:
   native_toolchain_rust: ^1.0.7
   ffi: ^2.2.0
   web: ^1.1.1
-  unorm_dart: ^0.3.0
 
 dev_dependencies:
   bip340: ">=0.3.0 <0.4.0"
