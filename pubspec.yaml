@@ -11,6 +11,7 @@ dev_dependencies:
 workspace:
   - packages/ndk
   - packages/ndk_core
+  - packages/nip01
   - packages/nip19
   - packages/bip340
   - packages/nip44

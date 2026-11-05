@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
+import 'nip_01_utils.dart';
 
 /// basic nostr nip01 event data structure
 class Nip01Event {

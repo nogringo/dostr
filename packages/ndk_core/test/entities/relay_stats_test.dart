@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/relay_stats.dart';
 import 'package:ndk_core/src/relay_connection.dart';
 import 'package:test/test.dart';

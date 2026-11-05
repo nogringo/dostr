@@ -5,7 +5,7 @@ import 'package:ndk_core/shared/logger/logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/metadata.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/relay_set.dart';
 import '../../repositories/cache_manager.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';

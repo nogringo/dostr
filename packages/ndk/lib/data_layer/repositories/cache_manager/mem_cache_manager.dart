@@ -8,7 +8,7 @@ import '../../../domain_layer/entities/filter_fetched_ranges.dart';
 import '../../../domain_layer/entities/hidden_event.dart';
 import '../../../domain_layer/entities/metadata.dart';
 import '../../../domain_layer/entities/nip_65.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../../domain_layer/entities/nip_05.dart';
 import '../../../domain_layer/entities/relay_set.dart';
 import '../../../domain_layer/entities/user_relay_list.dart';

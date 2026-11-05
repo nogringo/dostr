@@ -19,7 +19,7 @@ export 'domain_layer/entities/broadcast_response.dart';
  * import 'package:ndk/entities.dart' as ndk_entities;
  * 
  */
-export 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/nip_51_list.dart';
@@ -53,7 +53,6 @@ export 'package:ndk_core/domain_layer/entities/account.dart';
  */
 
 /// signers / verifiers
-export 'package:ndk_core/domain_layer/repositories/event_verifier.dart';
 export 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 export 'package:ndk_bip340/ndk_bip340.dart';
 export 'shared/helpers/concurrency_limiter_mixin.dart';
@@ -104,7 +103,6 @@ export 'domain_layer/usecases/bunkers/models/nostr_connect.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'domain_layer/entities/filter_fetched_ranges.dart';
 export 'domain_layer/usecases/proof_of_work/proof_of_work.dart';
-export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show
         Nip77,

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import '../domain_layer/entities/account.dart';
-import '../domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../shared/logger/logger.dart';
 import 'auth_event.dart';

@@ -1,5 +1,5 @@
 import '../../../shared/nips/nip13/nip13.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 class ProofOfWork {
   /// Mine this event with proof of work

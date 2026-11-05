@@ -18,7 +18,7 @@ import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_authorization.dart';
 import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_strategies.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/blossom.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:ndk_core/shared/logger/logger.dart';
 import '../../shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'read_write_marker.dart';
 
 /// nip02 contact list

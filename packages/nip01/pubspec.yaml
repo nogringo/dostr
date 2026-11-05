@@ -1,0 +1,21 @@
+name: ndk_nip01
+description: The NIP-01 Nostr event for NDK (Nostr Development Kit), with its id computation and the EventVerifier interface that signature verifiers implement.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  crypto: ^3.0.7
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any

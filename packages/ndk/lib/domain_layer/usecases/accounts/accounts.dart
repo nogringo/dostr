@@ -4,7 +4,7 @@ import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'package:ndk_core/domain_layer/entities/account.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/repositories/auth_accounts.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
 import '../bunkers/bunkers.dart';

@@ -9,7 +9,7 @@ import '../../../domain_layer/entities/blossom_authorization.dart';
 import '../../../domain_layer/entities/blossom_blobs.dart';
 import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk/domain_layer/entities/tuple.dart';
 import '../../../domain_layer/repositories/blossom.dart';
 import 'package:ndk/data_layer/data_sources/http_request.dart';

@@ -5,7 +5,7 @@ import 'package:rxdart/rxdart.dart';
 import '../domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/auth_policy.dart';
 import '../domain_layer/entities/broadcast_state.dart';
-import '../domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// State of one broadcast. Internal to ndk_core.
 class BroadcastState implements TimeoutPausable {

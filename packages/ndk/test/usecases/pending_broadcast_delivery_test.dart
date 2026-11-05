@@ -5,7 +5,7 @@ import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart
 import 'package:ndk/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk/domain_layer/entities/event_cache_records.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
 import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';

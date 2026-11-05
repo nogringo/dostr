@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// Zap Request
 class ZapRequest extends Nip01Event {

@@ -5,7 +5,7 @@ import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../entities/filter_fetched_ranges.dart';
 import '../entities/hidden_event.dart';
 import '../entities/metadata.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../entities/nip_05.dart';
 import '../entities/relay_set.dart';
 import '../entities/user_relay_list.dart';

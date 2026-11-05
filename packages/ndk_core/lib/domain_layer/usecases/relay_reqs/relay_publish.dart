@@ -8,7 +8,7 @@ import '../../../src/relay_broadcasts.dart';
 import '../../../src/relay_manager_parts.dart';
 import '../../entities/auth_policy.dart';
 import '../../entities/broadcast_state.dart';
-import '../../entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../relay_manager.dart';
 
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).

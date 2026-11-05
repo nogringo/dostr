@@ -2,7 +2,7 @@
 import 'dart:async';
 
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_85.dart';
 import '../requests/requests.dart';
 

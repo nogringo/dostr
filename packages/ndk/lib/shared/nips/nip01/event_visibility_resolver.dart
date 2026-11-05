@@ -1,6 +1,6 @@
 import '../../../domain_layer/entities/event_cache_records.dart';
 import '../../../domain_layer/entities/hidden_event.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../nip09/deletion.dart';
 import 'event_kind_classification.dart';
 

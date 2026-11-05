@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
-import '../../data_layer/models/nip_01_event_model.dart';
 import 'nip_01_event.dart';
 
 class Nip01Utils {
@@ -43,14 +42,13 @@ class Nip01Utils {
   }
 
   static String calculateId(Nip01Event event) {
-    final model = Nip01EventModel.fromEntity(event);
     final jsonData = json.encode([
       0,
-      model.pubKey,
-      model.createdAt,
-      model.kind,
-      model.tags,
-      model.content,
+      event.pubKey,
+      event.createdAt,
+      event.kind,
+      event.tags,
+      event.content,
     ]);
     final bytes = utf8.encode(jsonData);
     final digest = sha256.convert(bytes);

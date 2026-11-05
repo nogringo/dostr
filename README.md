@@ -21,6 +21,10 @@ NDK ships as a small monorepo with focused packages for core, wallets, Flutter, 
 
 Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
+### [🔗 NIP-01](./packages/nip01/)
+
+`ndk_nip01`: the NIP-01 event (`Nip01Event`), its id computation, and the `EventVerifier` interface, in pure Dart.
+
 ### [🔗 NIP-19](./packages/nip19/)
 
 `ndk_nip19`: NIP-19 bech32 encoding and decoding (npub, nsec, note, nprofile, nevent, naddr), in pure Dart.

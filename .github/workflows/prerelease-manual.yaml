@@ -25,6 +25,7 @@ on:
           - ndk_sqlite3
           - ndk_flutter
           - ndk_core
+          - ndk_nip01
           - ndk_nip19
           - ndk_bip340
           - ndk_nip44

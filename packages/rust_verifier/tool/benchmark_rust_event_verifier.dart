@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
 
 const _warmupIterations = 1000;

@@ -4,7 +4,7 @@ import '../entities/blob_upload_progress.dart';
 import '../entities/blossom_authorization.dart';
 import '../entities/blossom_blobs.dart';
 import '../entities/file_hash_progress.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk/domain_layer/entities/tuple.dart';
 
 abstract class BlossomRepository {

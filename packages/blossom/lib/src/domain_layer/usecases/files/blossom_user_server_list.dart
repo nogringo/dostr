@@ -1,6 +1,6 @@
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast.dart';
 import 'package:ndk/domain_layer/usecases/requests/requests.dart';

@@ -1,8 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
-import '../../entities/nip_01_event.dart';
-import '../../repositories/event_verifier.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 typedef _VerificationKey = ({String id, String? signature});
 

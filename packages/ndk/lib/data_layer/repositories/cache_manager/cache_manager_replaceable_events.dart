@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart' show ReplaceableEventCache;
 
 import '../../../domain_layer/repositories/cache_manager.dart';

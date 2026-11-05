@@ -1,6 +1,6 @@
 import '../../../domain_layer/entities/cache_eviction.dart';
 import '../../../domain_layer/entities/event_cache_records.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'event_kind_classification.dart';
 
 /// Result of planning one eviction pass before the backend removes any rows.

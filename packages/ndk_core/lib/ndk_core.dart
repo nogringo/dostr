@@ -2,6 +2,7 @@
 /// EVENT on the relays you pick.
 library;
 
+export 'package:ndk_nip01/ndk_nip01.dart';
 export 'data_layer/models/nip_01_event_model.dart';
 export 'data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 export 'domain_layer/entities/account.dart';
@@ -9,8 +10,6 @@ export 'domain_layer/entities/auth_handler.dart';
 export 'domain_layer/entities/auth_policy.dart';
 export 'domain_layer/entities/broadcast_state.dart';
 export 'domain_layer/entities/filter.dart';
-export 'domain_layer/entities/nip_01_event.dart';
-export 'domain_layer/entities/nip_01_utils.dart';
 export 'domain_layer/entities/pending_signer_request.dart';
 export 'domain_layer/entities/relay.dart';
 export 'domain_layer/entities/relay_connection_key.dart';
@@ -22,7 +21,6 @@ export 'domain_layer/entities/relay_request_outcome.dart';
 export 'domain_layer/entities/relay_stats.dart';
 export 'domain_layer/repositories/auth_accounts.dart';
 export 'domain_layer/repositories/event_signer.dart';
-export 'domain_layer/repositories/event_verifier.dart';
 export 'domain_layer/repositories/nostr_transport.dart';
 export 'domain_layer/usecases/relay_manager.dart';
 export 'shared/helpers/relay_helper.dart' show cleanRelayUrl, cleanRelayUrls;

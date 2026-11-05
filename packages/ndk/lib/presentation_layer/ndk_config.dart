@@ -10,7 +10,7 @@ import '../domain_layer/entities/event_filter.dart';
 import '../domain_layer/entities/nip_85.dart';
 import '../domain_layer/repositories/cache_manager.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
-import 'package:ndk_core/domain_layer/repositories/event_verifier.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/shared/logger/log_level.dart';
 
 /// Configuration class for the Nostr Development Kit (NDK)

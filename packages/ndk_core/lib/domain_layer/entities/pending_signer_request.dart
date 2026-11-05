@@ -1,4 +1,4 @@
-import 'nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// Methods that can be called on a signer
 enum SignerMethod {

@@ -1,4 +1,4 @@
-import '../entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../entities/pending_signer_request.dart';
 
 /// Factory for creating [EventSigner] instances.

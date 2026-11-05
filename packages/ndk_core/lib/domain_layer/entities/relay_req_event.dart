@@ -1,4 +1,4 @@
-import 'nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// An event a `RelayReq` received, with the relay that sent it.
 class RelayReqEvent {

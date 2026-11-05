@@ -3,7 +3,7 @@ import 'dart:async';
 import '../domain_layer/entities/account.dart';
 import '../domain_layer/entities/auth_handler.dart';
 import '../domain_layer/entities/auth_policy.dart';
-import '../domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/repositories/auth_accounts.dart';
 import '../shared/logger/logger.dart';

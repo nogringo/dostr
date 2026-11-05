@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../../domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../shared/helpers/list_casting.dart';
 
 /// Data model for NIP-01 Event

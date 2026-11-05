@@ -1,5 +1,5 @@
 import '../../../shared/nips/nip01/event_kind_classification.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/cache_manager.dart';
 
 /// A reason not to send [event] after all: the cache now holds a newer version

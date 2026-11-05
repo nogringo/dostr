@@ -11,7 +11,7 @@ import '../../entities/auth_policy.dart';
 import '../../entities/filter.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
-import '../../repositories/event_verifier.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../relay_manager.dart';
 import '../requests/verified_event_cache.dart';
 import '../requests/verify_event_stream.dart';

@@ -20,6 +20,8 @@ dependency_overrides:
     path: ../ndk
   ndk_core:
     path: ../ndk_core
+  ndk_nip01:
+    path: ../nip01
   ndk_nip19:
     path: ../nip19
   ndk_bip340:

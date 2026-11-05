@@ -12,7 +12,7 @@ import 'models/bunker_request.dart';
 import 'models/bunker_connection.dart';
 import '../../entities/nip46_client_metadata.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations

@@ -5,7 +5,7 @@ import 'dart:convert';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/event_cache_records.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_51_list.dart';
 import '../../repositories/cache_manager.dart';
 import 'package:ndk_core/domain_layer/repositories/event_signer.dart';

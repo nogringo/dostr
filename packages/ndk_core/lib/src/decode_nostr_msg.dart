@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import '../domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'nostr_message_raw.dart';
 
 /// Decodes a relay message. One that misses a field, or carries one of the

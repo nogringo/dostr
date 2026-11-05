@@ -4,7 +4,7 @@ import 'dart:convert';
 import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../../entities/event_cache_records.dart';
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import '../../entities/signer_request_cancelled_exception.dart';

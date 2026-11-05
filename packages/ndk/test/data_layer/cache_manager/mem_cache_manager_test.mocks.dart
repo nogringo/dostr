@@ -16,7 +16,7 @@ import 'package:ndk/domain_layer/entities/read_write_marker.dart' as _i8;
 import 'package:ndk/domain_layer/entities/relay_set.dart' as _i9;
 import 'package:ndk/domain_layer/entities/user_relay_list.dart' as _i6;
 import 'package:ndk_core/domain_layer/entities/filter.dart' as _i12;
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart' as _i3;
+import 'package:ndk_nip01/ndk_nip01.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
