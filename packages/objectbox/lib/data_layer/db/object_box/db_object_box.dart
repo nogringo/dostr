@@ -551,6 +551,14 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     String? search,
     int? limit,
   }) async {
+    if (CacheManager.matchesNothing(
+      ids: ids,
+      pubKeys: pubKeys,
+      kinds: kinds,
+      tags: tags,
+    )) {
+      return [];
+    }
     await dbRdy;
     final eventBox = _objectBox.store.box<DbNip01Event>();
 
@@ -563,7 +571,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     }
 
     // Add ids filter
-    if (ids != null && ids.isNotEmpty) {
+    if (ids != null) {
       Condition<DbNip01Event> idsCondition = DbNip01Event_.nostrId.oneOf(ids);
       condition = (condition == null)
           ? idsCondition
@@ -571,7 +579,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     }
 
     // Add pubKeys filter
-    if (pubKeys != null && pubKeys.isNotEmpty) {
+    if (pubKeys != null) {
       Condition<DbNip01Event> pubKeysCondition = DbNip01Event_.pubKey.oneOf(
         pubKeys,
       );
@@ -581,7 +589,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     }
 
     // Add kinds filter
-    if (kinds != null && kinds.isNotEmpty) {
+    if (kinds != null) {
       Condition<DbNip01Event> kindsCondition = DbNip01Event_.kind.oneOf(kinds);
       condition = (condition == null)
           ? kindsCondition
@@ -1074,13 +1082,19 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
   }) async {
     await dbRdy;
 
-    // If all parameters are empty, return early (don't delete everything)
-    if ((ids == null || ids.isEmpty) &&
-        (pubKeys == null || pubKeys.isEmpty) &&
-        (kinds == null || kinds.isEmpty) &&
-        (tags == null || tags.isEmpty) &&
-        since == null &&
-        until == null) {
+    // nothing can match, or no parameter at all (don't delete everything)
+    if (CacheManager.matchesNothing(
+          ids: ids,
+          pubKeys: pubKeys,
+          kinds: kinds,
+          tags: tags,
+        ) ||
+        (ids == null &&
+            pubKeys == null &&
+            kinds == null &&
+            (tags == null || tags.isEmpty) &&
+            since == null &&
+            until == null)) {
       return;
     }
 
@@ -1089,13 +1103,13 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     // Build conditions list
     final conditions = <Condition<DbNip01Event>>[];
 
-    if (ids != null && ids.isNotEmpty) {
+    if (ids != null) {
       conditions.add(DbNip01Event_.nostrId.oneOf(ids));
     }
-    if (pubKeys != null && pubKeys.isNotEmpty) {
+    if (pubKeys != null) {
       conditions.add(DbNip01Event_.pubKey.oneOf(pubKeys));
     }
-    if (kinds != null && kinds.isNotEmpty) {
+    if (kinds != null) {
       conditions.add(DbNip01Event_.kind.oneOf(kinds));
     }
     if (since != null) {

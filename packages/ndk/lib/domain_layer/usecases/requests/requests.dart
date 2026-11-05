@@ -554,7 +554,15 @@ class Requests {
     StreamController<Nip01Event> cacheEvents,
     Map<String, List<Filter>> sentFilters,
   ) async {
-    var filters = request.filters;
+    var filters = [
+      for (final filter in request.filters)
+        if (!filter.matchesNothing) filter,
+    ];
+    if (filters.isEmpty) {
+      unawaited(cacheEvents.close());
+      relayReq.seal();
+      return;
+    }
     if (request.cacheRead) {
       try {
         filters = await _cacheRead.resolveUnresolvedFilters(
@@ -765,6 +773,7 @@ class Requests {
     }
 
     Future<void> paginate() async {
+      if (filter.matchesNothing) return;
       var filters = [filter.clone()];
       if (cacheRead) {
         final cached = StreamController<Nip01Event>();

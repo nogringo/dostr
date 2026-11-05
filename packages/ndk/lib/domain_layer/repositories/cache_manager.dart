@@ -28,7 +28,25 @@ import '../entities/user_relay_list.dart';
 /// - metadata/contact list loaders are convenience views over the generic event
 ///   store, not separate authoritative silos
 /// - provenance and delivery targets are separate concerns
+/// - an empty list in a read or a removal matches nothing, see [matchesNothing]
 abstract class CacheManager {
+  /// Whether a read or a removal with these lists can match no event: NIP-01
+  /// says an empty list matches nothing, it does not stand for an absent one.
+  static bool matchesNothing({
+    List<String>? ids,
+    List<String>? pubKeys,
+    List<int>? kinds,
+    Map<String, List<String>>? tags,
+    List<String>? coordinates,
+  }) =>
+      (coordinates?.isEmpty ?? false) ||
+      Filter(
+        ids: ids,
+        authors: pubKeys,
+        kinds: kinds,
+        tags: tags,
+      ).matchesNothing;
+
   /// closes the cache manger \
   /// used to close the db
   Future<void> close();
@@ -203,8 +221,8 @@ abstract class CacheManager {
 
   /// Remove events from cache with flexible filtering.
   ///
-  /// If all parameters are empty, implementations should return early instead
-  /// of deleting everything by accident.
+  /// Without any parameter, implementations should return early instead of
+  /// deleting everything by accident.
   Future<void> removeEvents({
     List<String>? ids,
     List<String>? pubKeys,

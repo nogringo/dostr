@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:ndk/ndk.dart' show CacheManager;
+
 /// Conditions joined with AND, with their positional arguments in order.
 class SqlWhere {
   final _conditions = <String>[];
@@ -33,8 +35,8 @@ const eventColumns =
     'e.valid_sig, e.sources';
 
 /// Filters on the `events` table aliased `e`, with the same semantics as the
-/// other NDK cache backends: empty lists are ignored and tag values compare
-/// trimmed and lowercased.
+/// other NDK cache backends: an empty list matches nothing and tag values
+/// compare trimmed and lowercased.
 SqlWhere eventFilter({
   List<String>? ids,
   List<String>? pubKeys,
@@ -44,7 +46,15 @@ SqlWhere eventFilter({
   int? until,
   String? search,
 }) {
-  final hasTagValues = tags?.values.any((v) => v.isNotEmpty) ?? false;
+  if (CacheManager.matchesNothing(
+    ids: ids,
+    pubKeys: pubKeys,
+    kinds: kinds,
+    tags: tags,
+  )) {
+    return SqlWhere()..add('0');
+  }
+  final hasTagValues = tags?.isNotEmpty ?? false;
   final where = SqlWhere()
     ..addIn('e.id', ids)
     ..addIn('e.pub_key', pubKeys)
@@ -57,17 +67,11 @@ SqlWhere eventFilter({
   }
   for (final MapEntry(:key, :value) in (tags ?? const {}).entries) {
     final name = key.startsWith('#') && key.length > 1 ? key.substring(1) : key;
-    if (value.isEmpty) {
-      where.add('e.id IN (SELECT event_id FROM event_tags WHERE name = ?)', [
-        name,
-      ]);
-    } else {
-      where.add(
-        'e.id IN (SELECT event_id FROM event_tags '
-        'WHERE name = ? AND value IN $jsonArray)',
-        [name, jsonEncode(value.map((v) => v.toLowerCase()).toList())],
-      );
-    }
+    where.add(
+      'e.id IN (SELECT event_id FROM event_tags '
+      'WHERE name = ? AND value IN $jsonArray)',
+      [name, jsonEncode(value.map((v) => v.toLowerCase()).toList())],
+    );
   }
   return where;
 }

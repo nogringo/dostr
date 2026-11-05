@@ -34,7 +34,7 @@ class CacheRead {
       if (filter.authors != null) {
         final cached = await cacheManager.loadEvents(
           pubKeys: filter.authors!,
-          kinds: filter.kinds ?? [],
+          kinds: filter.kinds,
           since: filter.since,
           until: filter.until,
           limit: filter.limit,

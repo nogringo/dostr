@@ -151,6 +151,35 @@ void main() {
       await req.close();
     });
 
+    test('leaves out the filters that match nothing', () async {
+      final relay = await startRelay();
+      final req = reqs.req();
+      req.events.listen((_) {});
+
+      expect(req.send(relay.url, [Filter(authors: [])]), isFalse);
+      expect(req.send(relay.url, [Filter(authors: []), ...notes]), isTrue);
+
+      await eventually(() => relay.received('REQ').isNotEmpty);
+      expect(relay.received('REQ'), [
+        ['REQ', req.id, notes.single.toMap()],
+      ]);
+      await req.close();
+    });
+
+    test('a request whose filters all match nothing ends at once', () async {
+      final relay = await startRelay();
+      final req = reqs.req(
+        relays: {
+          relay.url: [Filter(ids: [])],
+        },
+      );
+
+      expect(await req.events.toList(), isEmpty);
+      expect(await req.done, isEmpty);
+      await pumpEventQueue();
+      expect(relay.received('REQ'), isEmpty);
+    });
+
     test('takes a free id that relays accept', () async {
       final req = reqs.req(id: 'same');
 

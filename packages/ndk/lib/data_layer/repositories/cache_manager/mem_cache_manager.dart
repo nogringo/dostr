@@ -658,20 +658,26 @@ class MemCacheManager implements CacheManager {
     int? limit,
     required bool applyVisibilityRules,
   }) async {
+    if (CacheManager.matchesNothing(
+      ids: ids,
+      pubKeys: pubKeys,
+      kinds: kinds,
+      tags: tags,
+    )) {
+      return [];
+    }
     List<Nip01Event> result = [];
     for (var event in events.values) {
       // Filter by ids
-      if (ids != null && ids.isNotEmpty && !ids.contains(event.id)) {
+      if (ids != null && !ids.contains(event.id)) {
         continue;
       }
       // Filter by pubKeys
-      if (pubKeys != null &&
-          pubKeys.isNotEmpty &&
-          !pubKeys.contains(event.pubKey)) {
+      if (pubKeys != null && !pubKeys.contains(event.pubKey)) {
         continue;
       }
       // Filter by kinds
-      if (kinds != null && kinds.isNotEmpty && !kinds.contains(event.kind)) {
+      if (kinds != null && !kinds.contains(event.kind)) {
         continue;
       }
       // Filter by time range
@@ -699,11 +705,6 @@ class MemCacheManager implements CacheManager {
           }
 
           final eventTagValues = event.getTags(tagKey);
-
-          if (tagValues.isEmpty &&
-              event.tags.where((e) => e[0] == tagKey).isNotEmpty) {
-            return true;
-          }
 
           return tagValues.any(
             (value) =>
@@ -772,10 +773,10 @@ class MemCacheManager implements CacheManager {
     int? since,
     int? until,
   }) async {
-    // If all parameters are empty, return early (don't delete everything)
-    if ((ids == null || ids.isEmpty) &&
-        (pubKeys == null || pubKeys.isEmpty) &&
-        (kinds == null || kinds.isEmpty) &&
+    // without any parameter, return early (don't delete everything)
+    if (ids == null &&
+        pubKeys == null &&
+        kinds == null &&
         (tags == null || tags.isEmpty) &&
         since == null &&
         until == null) {

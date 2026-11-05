@@ -568,21 +568,30 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     int? limit,
     required bool applyVisibilityRules,
   }) async {
+    if (CacheManager.matchesNothing(
+      ids: ids,
+      pubKeys: pubKeys,
+      kinds: kinds,
+      tags: tags,
+    )) {
+      return [];
+    }
+
     // Build filter conditions
     final filters = <sembast.Filter>[];
 
     // Filter by event IDs
-    if (ids != null && ids.isNotEmpty) {
+    if (ids != null) {
       filters.add(sembast.Filter.inList('id', ids));
     }
 
     // Filter by authors (pubkeys)
-    if (pubKeys != null && pubKeys.isNotEmpty) {
+    if (pubKeys != null) {
       filters.add(sembast.Filter.inList('pubkey', pubKeys));
     }
 
     // Filter by kinds
-    if (kinds != null && kinds.isNotEmpty) {
+    if (kinds != null) {
       filters.add(sembast.Filter.inList('kind', kinds));
     }
 
@@ -630,11 +639,6 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
           }
 
           final eventTags = event.getTags(tagName);
-
-          if (tagValues.isEmpty &&
-              event.tags.where((e) => e[0] == tagName).isNotEmpty) {
-            return true;
-          }
 
           return tagValues.any(
             (value) => eventTags.contains(value.toLowerCase()),
@@ -791,26 +795,32 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     int? since,
     int? until,
   }) async {
-    // If all parameters are empty, return early (don't delete everything)
-    if ((ids == null || ids.isEmpty) &&
-        (pubKeys == null || pubKeys.isEmpty) &&
-        (kinds == null || kinds.isEmpty) &&
-        (tags == null || tags.isEmpty) &&
-        since == null &&
-        until == null) {
+    // nothing can match, or no parameter at all (don't delete everything)
+    if (CacheManager.matchesNothing(
+          ids: ids,
+          pubKeys: pubKeys,
+          kinds: kinds,
+          tags: tags,
+        ) ||
+        (ids == null &&
+            pubKeys == null &&
+            kinds == null &&
+            (tags == null || tags.isEmpty) &&
+            since == null &&
+            until == null)) {
       return;
     }
 
     // Build filter conditions
     final filters = <sembast.Filter>[];
 
-    if (ids != null && ids.isNotEmpty) {
+    if (ids != null) {
       filters.add(sembast.Filter.inList('id', ids));
     }
-    if (pubKeys != null && pubKeys.isNotEmpty) {
+    if (pubKeys != null) {
       filters.add(sembast.Filter.inList('pubkey', pubKeys));
     }
-    if (kinds != null && kinds.isNotEmpty) {
+    if (kinds != null) {
       filters.add(sembast.Filter.inList('kind', kinds));
     }
     if (since != null) {
@@ -843,11 +853,6 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
           }
 
           final eventTags = event.getTags(tagName);
-
-          if (tagValues.isEmpty &&
-              event.tags.where((e) => e[0] == tagName).isNotEmpty) {
-            return true;
-          }
 
           return tagValues.any(
             (value) => eventTags.contains(value.toLowerCase()),

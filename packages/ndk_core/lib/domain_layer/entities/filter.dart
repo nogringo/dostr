@@ -114,10 +114,17 @@ class Filter {
     tags = tagFilters.isEmpty ? null : tagFilters;
   }
 
+  /// Whether no event can match: NIP-01 says an empty list matches nothing.
+  bool get matchesNothing =>
+      (ids?.isEmpty ?? false) ||
+      (authors?.isEmpty ?? false) ||
+      (kinds?.isEmpty ?? false) ||
+      (_tags?.values.any((values) => values.isEmpty) ?? false);
+
   Map<String, dynamic> toMap() {
     var body = {
       "ids": ids,
-      "authors": authors != null && authors!.isNotEmpty ? authors : null,
+      "authors": authors,
       "kinds": kinds,
       "since": since,
       "until": until,
@@ -188,9 +195,7 @@ class Filter {
   Filter clone() {
     return Filter(
       ids: ids != null ? List<String>.from(ids!) : null,
-      authors: authors != null && authors!.isNotEmpty
-          ? List<String>.from(authors!)
-          : null,
+      authors: authors != null ? List<String>.from(authors!) : null,
       kinds: kinds != null ? List<int>.from(kinds!) : null,
       search: search,
       since: since,

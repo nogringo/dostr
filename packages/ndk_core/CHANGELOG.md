@@ -172,3 +172,17 @@ gets the signed event and only picks its relays.
 
 `considerDonePercent` counts the relays that accepted the event: a refusal no
 longer brings a publish closer to done.
+
+#### Filters
+
+An empty list in a `Filter` matches nothing, as NIP-01 requires, instead of
+standing for an absent one. `toMap`, `fromMap` and `clone` keep `authors: []`,
+where they used to drop it and leave a filter with no author constraint at
+all. `Filter.matchesNothing` tells whether a filter can match any event.
+
+`RelayReq.send` leaves out the filters that match nothing, and does not send to
+a relay left with none. A REQ whose filters all match nothing ends right away,
+with no relay in its outcomes. In `ndk`, `Requests` asks neither the cache nor
+the relays for such a filter, and every cache manager reads and removes nothing
+for an empty list, where it used to ignore it. An empty tag list no longer
+means "has this tag".

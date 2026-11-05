@@ -327,6 +327,39 @@ void _runEventTests(
     expect(loadedEvents.first.kind, equals(1));
   });
 
+  test('an empty list matches nothing (NIP-01)', () async {
+    final cacheManager = getCacheManager();
+    await cacheManager.removeAllEvents();
+
+    const author = 'empty_list_author';
+    Nip01Event article(int createdAt) => Nip01Event(
+      pubKey: author,
+      kind: 30023,
+      tags: const [
+        ['d', 'article'],
+        ['p', 'empty_list_target'],
+      ],
+      content: 'version $createdAt',
+      createdAt: createdAt,
+    );
+    await cacheManager.saveEvents([article(1000), article(2000)]);
+
+    expect(await cacheManager.loadEvents(pubKeys: [author]), hasLength(1));
+    expect(await cacheManager.loadHiddenEvents(pubKeys: [author]), hasLength(1));
+
+    expect(await cacheManager.loadEvents(ids: []), isEmpty);
+    expect(await cacheManager.loadEvents(pubKeys: []), isEmpty);
+    expect(await cacheManager.loadEvents(kinds: []), isEmpty);
+    expect(await cacheManager.loadEvents(pubKeys: [author], kinds: []), isEmpty);
+    expect(await cacheManager.loadEvents(tags: {'p': []}), isEmpty);
+    expect(
+      await cacheManager.loadEventIdsWithCreatedAt(Filter(authors: [])),
+      isEmpty,
+    );
+    expect(await cacheManager.loadHiddenEvents(pubKeys: []), isEmpty);
+    expect(await cacheManager.loadHiddenEvents(coordinates: []), isEmpty);
+  });
+
   test('loadEventIdsWithCreatedAt returns matching events', () async {
     final cacheManager = getCacheManager();
     await cacheManager.removeAllEvents();
@@ -582,6 +615,29 @@ void _runEventTests(
 
     await cacheManager.saveEvent(event);
     await cacheManager.removeEvents();
+
+    expect(await cacheManager.loadEvent(event.id), isNotNull);
+  });
+
+  test('removeEvents with an empty list removes nothing', () async {
+    final cacheManager = getCacheManager();
+    await cacheManager.removeAllEvents();
+
+    final event = Nip01Event(
+      pubKey: 'empty_list_remove_author',
+      kind: 1,
+      tags: const [
+        ['p', 'empty_list_remove_target'],
+      ],
+      content: 'Event 1',
+      createdAt: 1000,
+    );
+    await cacheManager.saveEvent(event);
+
+    await cacheManager.removeEvents(ids: []);
+    await cacheManager.removeEvents(pubKeys: [], kinds: [1]);
+    await cacheManager.removeEvents(kinds: [], until: 2000);
+    await cacheManager.removeEvents(tags: {'p': []});
 
     expect(await cacheManager.loadEvent(event.id), isNotNull);
   });

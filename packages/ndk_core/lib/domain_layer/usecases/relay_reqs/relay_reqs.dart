@@ -197,21 +197,24 @@ class RelayReq {
   /// Sends [filters] to [relayUrl] on the connection the request's
   /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
   /// the request is over, to a url that is not a relay's, nor twice to a relay.
+  /// A filter that [Filter.matchesNothing] is left out, and a relay left with
+  /// no filter is not sent to.
   ///
   /// A relay sent to after [seal] still has to answer before the request ends.
   bool send(String relayUrl, List<Filter> filters) {
     final url = cleanRelayUrl(relayUrl);
+    final matchable = [
+      for (final filter in filters)
+        if (!filter.matchesNothing) filter.clone(),
+    ];
     if (url == null ||
+        matchable.isEmpty ||
         !_requests.isStillInFlight(_state) ||
         _state.networkController.isClosed ||
         !_sentTo.add(url)) {
       return false;
     }
-    unawaited(
-      _requests.sendToRelay(_state, url, [
-        for (final filter in filters) filter.clone(),
-      ]),
-    );
+    unawaited(_requests.sendToRelay(_state, url, matchable));
     return true;
   }
 
