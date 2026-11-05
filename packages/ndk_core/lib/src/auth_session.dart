@@ -1,4 +1,11 @@
-part of '../relay_manager.dart';
+import 'dart:async';
+
+import '../domain_layer/entities/account.dart';
+import '../domain_layer/entities/nip_01_event.dart';
+import '../domain_layer/entities/relay_connection_key.dart';
+import '../domain_layer/usecases/nip42/auth_event.dart';
+import '../shared/logger/logger.dart';
+import '../shared/nips/nip01/client_msg.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
 /// the AUTH waiting for its OK, and whether the relay accepted it.
@@ -6,8 +13,8 @@ part of '../relay_manager.dart';
 /// The transport reconnects under its connection, so a session lasts as long
 /// as one socket, not as long as the transport. Once [end]ed, nothing an
 /// authentication started on it can land on the socket that took its place.
-class _AuthSession {
-  _AuthSession(
+class AuthSession {
+  AuthSession(
     this.key, {
     required this.challengeTimeout,
     required this.okTimeout,

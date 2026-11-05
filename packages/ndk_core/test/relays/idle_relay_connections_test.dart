@@ -5,7 +5,7 @@ import 'package:ndk_core/domain_layer/entities/account.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/src/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/src/global_state.dart';
+import 'package:ndk_core/src/relay_manager_parts.dart';
 import 'package:ndk_core/domain_layer/entities/relay.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
@@ -73,7 +73,7 @@ class _Signer implements EventSigner {
 }
 
 void main() {
-  late GlobalState state;
+  late RelayManagerParts parts;
   late RelayManager manager;
   final requests = <RequestState>[];
   final broadcasts = <BroadcastState>[];
@@ -86,7 +86,7 @@ void main() {
 
   _Transport connect(RelayConnectionKey key) {
     final transport = _Transport();
-    state.relays[key] = RelayConnectivity(
+    parts.connections.relays[key] = RelayConnectivity(
       key: key,
       relay: Relay(url: key.url),
       relayTransport: transport,
@@ -107,14 +107,14 @@ void main() {
         : RequestState.subscription(id);
     request.networkController.stream.listen((_) {});
     if (key != null) request.addRequest(key, filters);
-    state.inFlightRequests[id] = request;
+    parts.requests.inFlight[id] = request;
     requests.add(request);
     return request;
   }
 
   BroadcastState broadcast(String id, {String? url}) {
     final broadcast = BroadcastState(timeout: const Duration(minutes: 1));
-    state.inFlightBroadcasts[id] = [broadcast];
+    parts.broadcasts.inFlight[id] = [broadcast];
     broadcasts.add(broadcast);
     if (url != null) {
       broadcast.broadcasts[url] = RelayBroadcastResponse(relayUrl: url);
@@ -127,7 +127,7 @@ void main() {
       nostrTransportFactory: _NoConnections(),
       bootstrapRelays: [],
     );
-    state = relayManagerState(manager);
+    parts = relayManagerParts(manager);
   });
 
   tearDown(() async {
@@ -159,7 +159,7 @@ void main() {
     final anonTransport = connect(anonymous);
     final authTransport = connect(authenticated);
     await manager.closeIdleConnections();
-    expect(state.relays, isEmpty);
+    expect(parts.connections.relays, isEmpty);
     expect(anonTransport.closed, isTrue);
     expect(authTransport.closed, isTrue);
   });
@@ -192,7 +192,7 @@ void main() {
     await manager.closeIdleConnections();
     expect(anonTransport.closed, isTrue);
     expect(authTransport.closed, isFalse);
-    expect(state.relays.keys, [authenticated]);
+    expect(parts.connections.relays.keys, [authenticated]);
   });
 
   test('both identities stay when separate subscriptions own them', () async {
@@ -201,7 +201,10 @@ void main() {
     request('anonymous', key: anonymous);
     request('authenticated', key: authenticated);
     await manager.closeIdleConnections();
-    expect(state.relays.keys, unorderedEquals([anonymous, authenticated]));
+    expect(
+      parts.connections.relays.keys,
+      unorderedEquals([anonymous, authenticated]),
+    );
   });
 
   test(
@@ -229,7 +232,7 @@ void main() {
     final done = request('done-query', key: authenticated, query: true);
     done.requests[authenticated]!.receivedEOSE = true;
     await manager.closeIdleConnections();
-    expect(state.relays.keys, [anonymous]);
+    expect(parts.connections.relays.keys, [anonymous]);
   });
 
   test(
@@ -240,7 +243,10 @@ void main() {
       final unrelated = connect(other);
       broadcast('event', url: anonymous.url);
       await manager.closeIdleConnections();
-      expect(state.relays.keys, unorderedEquals([anonymous, authenticated]));
+      expect(
+        parts.connections.relays.keys,
+        unorderedEquals([anonymous, authenticated]),
+      );
       expect(unrelated.closed, isTrue);
     },
   );
@@ -258,7 +264,7 @@ void main() {
       ]);
       await manager.closeIdleConnections();
       expect(idle.closed, isTrue);
-      expect(state.relays.keys, [anonymous]);
+      expect(parts.connections.relays.keys, [anonymous]);
     },
   );
 
@@ -293,9 +299,12 @@ void main() {
   test('ongoing transport and relay connection setup are retained', () async {
     connect(anonymous).connecting = true;
     connect(authenticated);
-    state.relays[authenticated]!.relay.connecting = true;
+    parts.connections.relays[authenticated]!.relay.connecting = true;
     await manager.closeIdleConnections();
-    expect(state.relays.keys, unorderedEquals([anonymous, authenticated]));
+    expect(
+      parts.connections.relays.keys,
+      unorderedEquals([anonymous, authenticated]),
+    );
   });
 
   test(
@@ -314,7 +323,7 @@ void main() {
       );
       final attempt = manager.authenticateConnection(authenticated);
       await manager.closeIdleConnections();
-      expect(state.relays.keys, [authenticated]);
+      expect(parts.connections.relays.keys, [authenticated]);
       await manager.closeConnection(authenticated);
       expect(await attempt, isFalse);
     },
@@ -325,7 +334,7 @@ void main() {
     connect(authenticated);
     manager.addProtocolHandler(_NeedsConnection(authenticated));
     await manager.closeIdleConnections();
-    expect(state.relays.keys, [authenticated]);
+    expect(parts.connections.relays.keys, [authenticated]);
   });
 
   test('ownership is rechecked after each asynchronous close', () async {
@@ -333,6 +342,6 @@ void main() {
     connect(other);
     first.onClose = () => request('new-owner', key: other);
     await manager.closeIdleConnections();
-    expect(state.relays.keys, [other]);
+    expect(parts.connections.relays.keys, [other]);
   });
 }

@@ -1,14 +1,25 @@
-part of '../relay_manager.dart';
+import 'dart:async';
+
+import '../../../config/broadcast_defaults.dart';
+import '../../../config/relay_defaults.dart';
+import '../../../shared/helpers/relay_helper.dart';
+import '../../../src/broadcast_state.dart';
+import '../../../src/relay_broadcasts.dart';
+import '../../../src/relay_manager_parts.dart';
+import '../../entities/auth_policy.dart';
+import '../../entities/broadcast_state.dart';
+import '../../entities/nip_01_event.dart';
+import '../relay_manager.dart';
 
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).
 ///
 /// This is the layer below `Broadcast`: no signing, no cache, no outbox
 /// routing and no retry.
 class RelayPublishes {
-  final RelayManager _relayManager;
+  final RelayBroadcasts _broadcasts;
 
   RelayPublishes({required RelayManager relayManager})
-    : _relayManager = relayManager;
+    : _broadcasts = relayManagerParts(relayManager).broadcasts;
 
   /// Sends [event], which must be signed, to each of [relays] and collects
   /// their OK, on the connections [auth] allows.
@@ -54,7 +65,7 @@ class RelayPublishes {
       considerDonePercent: considerDonePercent,
       auth: auth,
     ),
-    _relayManager,
+    _broadcasts,
   );
 }
 
@@ -65,7 +76,7 @@ class RelayPublish {
   final Nip01Event event;
 
   final BroadcastState _state;
-  final RelayManager _relayManager;
+  final RelayBroadcasts _broadcasts;
   final Set<String> _sentTo = {};
   Nip01Event? _signed;
 
@@ -88,8 +99,8 @@ class RelayPublish {
     BroadcastState state,
   ) => Map.unmodifiable(state.broadcasts);
 
-  RelayPublish._(this.event, this._state, this._relayManager) {
-    _relayManager._trackBroadcast(event.id, _state);
+  RelayPublish._(this.event, this._state, this._broadcasts) {
+    _broadcasts.track(event.id, _state);
   }
 
   /// Starts the publish with [signed], [event] once signed. The timeout runs
@@ -105,7 +116,7 @@ class RelayPublish {
       throw ArgumentError.value(signed.id, 'signed', 'must be signed');
     }
     _signed = signed;
-    if (signed.id != event.id) _relayManager._trackBroadcast(signed.id, _state);
+    if (signed.id != event.id) _broadcasts.track(signed.id, _state);
     _state.startTimeout();
   }
 
@@ -134,7 +145,7 @@ class RelayPublish {
       return false;
     }
     unawaited(
-      _relayManager._publishToRelay(
+      _broadcasts.publishToRelay(
         _state,
         url,
         signed,

@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/src/global_state.dart';
+import 'package:ndk_core/src/relay_manager_parts.dart';
 import 'package:ndk_core/src/request_state.dart';
 import 'package:test/test.dart';
 
@@ -75,7 +75,7 @@ class _Factory implements NostrTransportFactory {
 void main() {
   const url = 'wss://relay.example';
   final key = RelayConnectionKey.anonymous(url);
-  late GlobalState state;
+  late RelayManagerParts parts;
   late _Factory factory;
   late RelayManager manager;
   late RequestState subscription;
@@ -90,13 +90,13 @@ void main() {
   setUp(() {
     factory = _Factory();
     manager = RelayManager(nostrTransportFactory: factory, bootstrapRelays: []);
-    state = relayManagerState(manager);
+    parts = relayManagerParts(manager);
     subscription = RequestState.subscription('live')
       ..addRequest(key, [
         Filter(kinds: [1]),
       ]);
     subscription.networkController.stream.listen((_) {});
-    state.inFlightRequests[subscription.id] = subscription;
+    parts.requests.inFlight[subscription.id] = subscription;
   });
   tearDown(() async {
     await subscription.close();
@@ -116,11 +116,11 @@ void main() {
       expect(await connect(), isTrue);
       old.recover();
       expect(factory.created.where((t) => t.isOpen()).length, 1);
-      expect(state.relays.length, 1);
+      expect(parts.connections.relays.length, 1);
       await manager.closeAllTransports();
       old.recover();
       expect(factory.created.where((t) => t.isOpen()), isEmpty);
-      expect(state.relays, isEmpty);
+      expect(parts.connections.relays, isEmpty);
     },
   );
 
@@ -153,7 +153,7 @@ void main() {
       old.closeGate!.complete();
       expect(await replacing, isFalse);
       expect(factory.created.length, 1);
-      expect(state.relays, isEmpty);
+      expect(parts.connections.relays, isEmpty);
     },
   );
 
@@ -163,7 +163,7 @@ void main() {
       await connect();
       final old = factory.created.single..open = false;
       await connect();
-      final current = state.relays[key]!;
+      final current = parts.connections.relays[key]!;
       current.stats.openRequestIds.add('live-request');
       final errors = current.stats.connectionErrors;
       old.disconnect?.call(1006, null, 'late disconnect');
@@ -176,7 +176,7 @@ void main() {
       old.reconnect?.call();
       await pumpEventQueue();
       expect(allReplays(), 0);
-      expect(state.relays, isEmpty);
+      expect(parts.connections.relays, isEmpty);
     },
   );
 
@@ -193,7 +193,7 @@ void main() {
       factory.readyGate!.complete();
       expect(await connecting.timeout(const Duration(seconds: 2)), isFalse);
       transport.reconnect?.call();
-      expect(state.relays, isEmpty);
+      expect(parts.connections.relays, isEmpty);
       expect(transport.closed, isTrue);
       await pumpEventQueue();
       expect(allReplays(), 0);
