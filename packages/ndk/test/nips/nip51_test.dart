@@ -33,12 +33,11 @@ void main() {
       ], nip51RelaySet!.publicRelays);
 
       Nip01Event toEvent = await nip51RelaySet.toEvent(null);
-      event.tags.removeLast();
       expect(event.pubKey, toEvent.pubKey);
       expect(event.content, toEvent.content);
       expect(event.kind, toEvent.kind);
       expect(event.createdAt, toEvent.createdAt);
-      expect(event.tags, toEvent.tags);
+      expect(event.tags.sublist(0, event.tags.length - 1), toEvent.tags);
     });
     test('fromEvent private', () async {
       KeyPair key1 = Bip340.generatePrivateKey();
@@ -140,12 +139,11 @@ void main() {
       ], nip51RelayList.publicRelays);
 
       Nip01Event toEvent = await nip51RelayList.toEvent(null);
-      event.tags.removeLast();
       expect(event.pubKey, toEvent.pubKey);
       expect(event.content, toEvent.content);
       expect(event.kind, toEvent.kind);
       expect(event.createdAt, toEvent.createdAt);
-      expect(event.tags, toEvent.tags);
+      expect(event.tags.sublist(0, event.tags.length - 1), toEvent.tags);
     });
     test('fromEvent private', () async {
       KeyPair key1 = Bip340.generatePrivateKey();

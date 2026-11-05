@@ -208,7 +208,7 @@ class Metadata {
     }
     metadata.pubKey = event.pubKey;
     metadata.updatedAt = event.createdAt;
-    metadata.tags = event.tags;
+    metadata.tags = [for (final tag in event.tags) List.of(tag)];
     return metadata;
   }
 

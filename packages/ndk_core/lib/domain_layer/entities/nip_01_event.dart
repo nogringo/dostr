@@ -16,8 +16,8 @@ class Nip01Event {
   /// Event kind identifier (e.g. text_note, set_metadata, etc).
   final int kind;
 
-  /// A JSON array of event tags.
-  final List<List<String>> tags; // Modified by proof-of-work
+  /// A JSON array of event tags, copied at construction and unmodifiable.
+  final List<List<String>> tags;
 
   /// Event content.
   final String content;
@@ -32,7 +32,7 @@ class Nip01Event {
   ///
   /// [pubKey] is the author's public key.
   /// [kind] is the event kind.
-  /// [tags] is a JSON object of event tags.
+  /// [tags] are the event tags; the event keeps its own copy of them.
   /// [content] is an arbitrary string.
   ///
   /// Nostr event `id` and `created_at` fields are calculated automatically.
@@ -41,12 +41,14 @@ class Nip01Event {
     String? id,
     required this.pubKey,
     required this.kind,
-    required this.tags,
+    required List<List<String>> tags,
     required this.content,
     this.sig,
     this.validSig,
     int? createdAt,
-  }) {
+  }) : tags = List.unmodifiable([
+         for (final tag in tags) List<String>.unmodifiable(tag),
+       ]) {
     this.createdAt = createdAt ?? secondsSinceEpoch();
     this.id =
         id ??
@@ -54,7 +56,7 @@ class Nip01Event {
           pubKey: pubKey,
           createdAt: this.createdAt,
           kind: kind,
-          tags: tags,
+          tags: this.tags,
           content: content,
         );
   }

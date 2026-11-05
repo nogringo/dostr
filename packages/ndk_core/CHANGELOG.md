@@ -205,3 +205,9 @@ Leave `createdAt` out to get the current time.
 `Nip01Event.getTags`, `pTags`, `tTags` and `replyETags` return the values as
 the event holds them, where they used to trim and lowercase them. The cache
 managers of `ndk` still match tags regardless of case.
+
+`Nip01Event.tags` is a copy of the tags the event was created with, and
+neither it nor any of its tags can be changed: build another event with
+`copyWith`. Changing the list an event was created from used to change its
+tags without changing its id. `Metadata.tags` stays a list of its own, which
+can be changed.

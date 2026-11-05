@@ -70,6 +70,23 @@ void main() {
       );
     });
 
+    test('copies its tags and refuses changes to them', () {
+      final tags = [
+        ['p', bob],
+      ];
+      final event = Nip01Event(pubKey: alice, kind: 1, tags: tags, content: '');
+
+      tags.add(['t', 'later']);
+      tags.first.add('extra');
+
+      expect(event.tags, [
+        ['p', bob],
+      ]);
+      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(() => event.tags.add(['t', 'x']), throwsUnsupportedError);
+      expect(() => event.tags.first.add('x'), throwsUnsupportedError);
+    });
+
     test('events with the same id are equal', () {
       final event = signedEvent(createdAt: 1);
 
