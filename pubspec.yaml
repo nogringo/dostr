@@ -25,6 +25,7 @@ workspace:
   - packages/wallets
   - packages/nwc
   - packages/cashu
+  - packages/ndk_dart_package_1
 
 melos:
   command:
