@@ -8,6 +8,7 @@ import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_sqlite3/ndk_sqlite3.dart';
 import 'package:ndk_sqlite3/src/migrations/v1.dart';
+import 'package:ndk_sqlite3/src/migrations/v2.dart';
 import 'package:ndk_sqlite3/src/sql.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
@@ -187,6 +188,36 @@ void main() {
 
     expect((await cacheManager.loadNip05('alice@a.com'))?.pubKey, 'pubkey');
     expect((await cacheManager.loadNip05('alice@b.com'))?.pubKey, 'pubkey');
+    await cacheManager.close();
+  });
+
+  test('v2 -> v3 moves events.sources to event_sources', () async {
+    final event = Nip01Event(pubKey: 'pubkey', kind: 1, tags: [], content: '');
+    final db = sqlite3.openInMemory()
+      ..execute(v1)
+      ..execute(v2)
+      ..execute(
+        'INSERT INTO events (id, pub_key, kind, created_at, content, tags, '
+        "sources) VALUES (?, 'pubkey', 1, 1, '', '[]', ?)",
+        [event.id, '["wss://a.example","wss://b.example"]'],
+      )
+      ..execute(
+        'INSERT INTO events (id, pub_key, kind, created_at, content, tags, '
+        "sources) VALUES ('malformed', 'pubkey', 1, 1, '', '[]', 'not json')",
+      )
+      ..execute('INSERT INTO event_sources VALUES (?, ?)', [
+        event.id,
+        'wss://a.example',
+      ])
+      ..userVersion = 2;
+    final cacheManager = SqliteCacheManager(db);
+
+    expect((await cacheManager.loadEvent(event.id))?.id, event.id);
+    expect(await cacheManager.loadEventSources(event.id), [
+      'wss://a.example',
+      'wss://b.example',
+    ]);
+    expect(await cacheManager.loadEventSources('malformed'), isEmpty);
     await cacheManager.close();
   });
 

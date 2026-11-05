@@ -93,8 +93,6 @@ class Metadata {
   /// refreshed timestamp
   int? refreshedTimestamp;
 
-  List<String> sources = [];
-
   /// event tags (e.g., NIP-39 identity tags)
   List<List<String>> tags = [];
 
@@ -159,10 +157,6 @@ class Metadata {
 
     refreshedTimestamp = json['refreshedTimestamp'] as int?;
 
-    if (json['sources'] != null) {
-      sources = (json['sources'] as List).map((e) => e as String).toList();
-    }
-
     updatedAt = json['updatedAt'] as int?;
   }
 
@@ -186,7 +180,6 @@ class Metadata {
     if (refreshedTimestamp != null) {
       data['refreshedTimestamp'] = refreshedTimestamp;
     }
-    if (sources.isNotEmpty) data['sources'] = sources;
     if (updatedAt != null) data['updatedAt'] = updatedAt;
     return data;
   }
@@ -215,8 +208,6 @@ class Metadata {
     }
     metadata.pubKey = event.pubKey;
     metadata.updatedAt = event.createdAt;
-    // ignore: deprecated_member_use
-    metadata.sources = event.sources;
     metadata.tags = event.tags;
     return metadata;
   }
@@ -320,11 +311,10 @@ class Metadata {
     String? lud06,
     int? updatedAt,
     int? refreshedTimestamp,
-    List<String>? sources,
     List<List<String>>? tags,
     Map<String, dynamic>? content,
   }) {
-    Metadata metadata = Metadata(
+    return Metadata(
       pubKey: pubKey ?? this.pubKey,
       name: name ?? this.name,
       displayName: displayName ?? this.displayName,
@@ -340,8 +330,5 @@ class Metadata {
       tags: tags ?? List.from(this.tags),
       content: content ?? this.content,
     );
-
-    metadata.sources = sources ?? List.from(this.sources);
-    return metadata;
   }
 }

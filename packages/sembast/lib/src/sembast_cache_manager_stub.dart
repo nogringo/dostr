@@ -11,6 +11,8 @@ final databaseFactory = throw UnsupportedError(
 Future<sembast.Database> openDatabase({
   String? databasePath,
   required String databaseName,
+  int? version,
+  sembast.OnVersionChangedFunction? onVersionChanged,
 }) {
   throw UnsupportedError(
     'Cannot open Sembast database without dart:io or dart:js_interop. '

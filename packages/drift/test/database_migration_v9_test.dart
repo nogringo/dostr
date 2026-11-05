@@ -50,6 +50,13 @@ void main() {
               value TEXT
             );
           ''');
+          db.execute('''
+            CREATE TABLE event_sources_table (
+              event_id TEXT NOT NULL,
+              relay_url TEXT NOT NULL,
+              PRIMARY KEY (event_id, relay_url)
+            );
+          ''');
           db.execute('PRAGMA user_version = 8;');
         },
       ),

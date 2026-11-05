@@ -102,8 +102,6 @@ class DriftCacheManager extends WalletsRepo
       sig: Value(event.sig),
       validSig: Value(event.validSig),
       tagsJson: jsonEncode(event.tags),
-      // ignore: deprecated_member_use
-      sourcesJson: jsonEncode(event.sources),
       conflictKey: Value(EventCacheStateRecord.conflictKeyFor(event)),
       expiration: Value(eventExpiration(event)),
     );
@@ -549,10 +547,6 @@ class DriftCacheManager extends WalletsRepo
     final tags = (jsonDecode(row.tagsJson) as List)
         .map((e) => (e as List).map((item) => item.toString()).toList())
         .toList();
-    final sources = (jsonDecode(row.sourcesJson) as List)
-        .map((e) => e.toString())
-        .toList();
-
     return Nip01Event(
       id: row.id,
       pubKey: row.pubKey,
@@ -562,7 +556,6 @@ class DriftCacheManager extends WalletsRepo
       sig: row.sig,
       validSig: row.validSig,
       tags: tags,
-      sources: sources,
     );
   }
 

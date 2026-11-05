@@ -24,7 +24,6 @@ void main() {
           ['i', 'github:alice', 'proof'],
         ],
         'refreshedTimestamp': 1234567890,
-        'sources': ['relay1', 'relay2'],
         'updatedAt': 9876543210,
       };
 
@@ -44,7 +43,6 @@ void main() {
       expect(metadata.tags.length, 1);
       expect(metadata.tags[0], ['i', 'github:alice', 'proof']);
       expect(metadata.refreshedTimestamp, 1234567890);
-      expect(metadata.sources, ['relay1', 'relay2']);
       expect(metadata.updatedAt, 9876543210);
     });
 
@@ -67,8 +65,6 @@ void main() {
         ],
         content: {'custom_field': 'custom_value'},
       );
-      metadata.sources = ['relay1', 'relay2'];
-
       final json = metadata.toJson();
 
       expect(json['pubKey'], 'testPubKey');
@@ -85,7 +81,6 @@ void main() {
       expect(json['tags'].length, 1);
       expect(json['tags'][0], ['i', 'github:alice', 'proof']);
       expect(json['refreshedTimestamp'], 9876543210);
-      expect(json['sources'], ['relay1', 'relay2']);
       expect(json['updatedAt'], 1234567890);
     });
 
@@ -101,8 +96,6 @@ void main() {
         ],
         content: {'custom_field': 'custom_value'},
       );
-      original.sources = ['relay1', 'relay2'];
-
       final json = original.toJson();
       final restored = Metadata.fromJson(json);
 
@@ -113,7 +106,6 @@ void main() {
       expect(restored.tags.length, 1);
       expect(restored.tags[0], ['i', 'github:alice', 'proof']);
       expect(restored.refreshedTimestamp, original.refreshedTimestamp);
-      expect(restored.sources, original.sources);
       expect(restored.updatedAt, original.updatedAt);
     });
 

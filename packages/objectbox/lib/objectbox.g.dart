@@ -246,7 +246,7 @@ final _entities = <obx_int.ModelEntity>[
       ),
       obx_int.ModelProperty(
         id: const obx_int.IdUid(9, 8183172291043781115),
-        name: 'sources',
+        name: 'legacySources',
         type: 30,
         flags: 0,
       ),
@@ -977,8 +977,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
         final sigOffset = object.sig == null
             ? null
             : fbb.writeString(object.sig!);
-        final sourcesOffset = fbb.writeList(
-          object.sources.map(fbb.writeString).toList(growable: false),
+        final legacySourcesOffset = fbb.writeList(
+          object.legacySources.map(fbb.writeString).toList(growable: false),
         );
         final tagsPackedOffset = fbb.writeList(
           object.tagsPacked.map(fbb.writeString).toList(growable: false),
@@ -995,7 +995,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addOffset(5, contentOffset);
         fbb.addOffset(6, sigOffset);
         fbb.addBool(7, object.validSig);
-        fbb.addOffset(8, sourcesOffset);
+        fbb.addOffset(8, legacySourcesOffset);
         fbb.addOffset(9, tagsPackedOffset);
         fbb.addOffset(10, tagsIndexOffset);
         fbb.finish(fbb.endTable());
@@ -1047,7 +1047,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
                 rootOffset,
                 18,
               )
-              ..sources = const fb.ListReader<String>(
+              ..legacySources = const fb.ListReader<String>(
                 fb.StringReader(asciiOptimization: true),
                 lazy: false,
               ).vTableGet(buffer, rootOffset, 20, [])
@@ -1718,8 +1718,8 @@ class DbNip01Event_ {
     _entities[3].properties[7],
   );
 
-  /// See [DbNip01Event.sources].
-  static final sources = obx.QueryStringVectorProperty<DbNip01Event>(
+  /// See [DbNip01Event.legacySources].
+  static final legacySources = obx.QueryStringVectorProperty<DbNip01Event>(
     _entities[3].properties[8],
   );
 

@@ -45,7 +45,7 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
   NdkCacheDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration {
@@ -121,6 +121,12 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
             await _backfillEventIndex();
           });
         }
+        if (from < 11) {
+          await transaction(() async {
+            await _moveEventSourcesToProvenance();
+            await m.dropColumn(events, 'sources_json');
+          });
+        }
       },
       // event_tags and deletion_targets follow their event through ON DELETE
       // CASCADE
@@ -163,6 +169,18 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
       });
       after = rows.last.read<String>('id');
     }
+  }
+
+  /// Copies the relays of the pre-v11 `sources_json` column into
+  /// `event_sources_table`, which holds the provenance since v5.
+  Future<void> _moveEventSourcesToProvenance() async {
+    await customStatement(
+      'INSERT OR IGNORE INTO event_sources_table (event_id, relay_url) '
+      'SELECT events.id, source.value FROM events, json_each('
+      "CASE WHEN json_valid(events.sources_json) THEN events.sources_json "
+      "ELSE '[]' END) AS source "
+      "WHERE source.type = 'text'",
+    );
   }
 
   /// Copies rows of the pre-v6 `metadatas` table into the events table as
@@ -255,23 +273,25 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
     return rows.isNotEmpty;
   }
 
+  /// Raw SQL because the events table still has its pre-v11 `sources_json`
+  /// column at this step, which the v11 step then moves to the provenance.
   Future<void> _insertProjectedEvent(
     Nip01Event event, {
     required List<String> sources,
   }) async {
-    await into(events).insert(
-      EventsCompanion.insert(
-        id: event.id,
-        pubKey: event.pubKey,
-        kind: event.kind,
-        createdAt: event.createdAt,
-        content: event.content,
-        sig: Value(event.sig),
-        validSig: Value(event.validSig),
-        tagsJson: jsonEncode(event.tags),
-        sourcesJson: jsonEncode(sources),
-      ),
-      mode: InsertMode.insertOrIgnore,
+    await customStatement(
+      'INSERT OR IGNORE INTO events (id, pub_key, kind, created_at, content, '
+      'sig, valid_sig, tags_json, sources_json) '
+      'VALUES (?, ?, ?, ?, ?, NULL, NULL, ?, ?)',
+      [
+        event.id,
+        event.pubKey,
+        event.kind,
+        event.createdAt,
+        event.content,
+        jsonEncode(event.tags),
+        jsonEncode(sources),
+      ],
     );
   }
 

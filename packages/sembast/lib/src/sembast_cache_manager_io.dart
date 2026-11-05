@@ -11,6 +11,8 @@ final databaseFactory = databaseFactoryIo;
 Future<sembast.Database> openDatabase({
   String? databasePath,
   required String databaseName,
+  int? version,
+  sembast.OnVersionChangedFunction? onVersionChanged,
 }) async {
   if (databasePath == null || databasePath.isEmpty) {
     throw ArgumentError.value(
@@ -24,5 +26,9 @@ Future<sembast.Database> openDatabase({
   await Directory(databasePath).create(recursive: true);
   final dbFileName = "$databaseName.db";
   final dbPath = p.join(databasePath, dbFileName);
-  return databaseFactory.openDatabase(dbPath);
+  return databaseFactory.openDatabase(
+    dbPath,
+    version: version,
+    onVersionChanged: onVersionChanged,
+  );
 }

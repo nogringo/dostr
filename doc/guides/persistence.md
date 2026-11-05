@@ -256,7 +256,6 @@ class NostrNoteModel extends NostrNote {
       sig: nip01event.sig,
       tags: myTags,
       sig_valid: nip01event.validSig,
-      sources: nip01event.sources,
     );
   }
   ...

@@ -14,8 +14,6 @@ extension Nip01EventExtension on Nip01Event {
       'content': content,
       'sig': sig,
       'validSig': validSig,
-      // ignore: deprecated_member_use
-      'sources': sources,
     };
   }
 
@@ -24,12 +22,7 @@ extension Nip01EventExtension on Nip01Event {
 
     final event = Nip01EventModel.fromJson(json);
 
-    return event.copyWith(
-      validSig: json['validSig'] as bool?,
-      sources: json['sources'] != null
-          ? List<String>.from(json['sources'] as List)
-          : const [],
-    );
+    return event.copyWith(validSig: json['validSig'] as bool?);
   }
 }
 
@@ -46,7 +39,6 @@ extension ContactListExtension on ContactList {
       'followedEvents': followedEvents,
       'createdAt': createdAt,
       'loadedTimestamp': loadedTimestamp,
-      'sources': sources,
     };
   }
 
@@ -69,7 +61,6 @@ extension ContactListExtension on ContactList {
     );
     contactList.createdAt = json['createdAt'] as int;
     contactList.loadedTimestamp = json['loadedTimestamp'] as int?;
-    contactList.sources = List<String>.from(json['sources'] as List);
 
     return contactList;
   }
@@ -91,7 +82,6 @@ extension MetadataExtension on Metadata {
       'lud06': lud06,
       'updatedAt': updatedAt,
       'refreshedTimestamp': refreshedTimestamp,
-      'sources': sources,
       'tags': tags,
       'content': content,
     };
@@ -114,7 +104,7 @@ extension MetadataExtension on Metadata {
       );
     }
 
-    final metadata = Metadata(
+    return Metadata(
       pubKey: json['pubKey'] as String? ?? '',
       name: json['name'] as String?,
       displayName: json['displayName'] as String?,
@@ -130,12 +120,6 @@ extension MetadataExtension on Metadata {
       tags: parsedTags,
       content: contentCopy,
     );
-
-    if (json['sources'] != null) {
-      metadata.sources = List<String>.from(json['sources'] as List);
-    }
-
-    return metadata;
   }
 }
 

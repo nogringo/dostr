@@ -444,8 +444,8 @@ class SqliteCacheManager extends WalletsRepo
     return _transaction(() {
       final insertEvent = _db.prepare(
         'INSERT OR IGNORE INTO events (id, pub_key, kind, created_at, content, '
-        'tags, sig, valid_sig, sources, conflict_key, expiration) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'tags, sig, valid_sig, conflict_key, expiration) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
       );
       final deleteEvent = _db.prepare('DELETE FROM events WHERE id = ?');
       final insertTag = _db.prepare(
@@ -525,8 +525,6 @@ class SqliteCacheManager extends WalletsRepo
       jsonEncode(event.tags),
       event.sig,
       event.validSig,
-      // ignore: deprecated_member_use
-      jsonEncode(event.sources),
       EventCacheStateRecord.conflictKeyFor(event),
       expiration == null ? null : int.tryParse(expiration),
     ];
@@ -545,10 +543,6 @@ class SqliteCacheManager extends WalletsRepo
       tags: [
         for (final tag in jsonDecode(row['tags'] as String) as List)
           [for (final value in tag as List) value as String],
-      ],
-      sources: [
-        for (final source in jsonDecode(row['sources'] as String) as List)
-          source as String,
       ],
     );
   }

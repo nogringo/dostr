@@ -15,6 +15,7 @@ import '../../entities/ndk_request.dart';
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart';
 import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
 import '../../entities/relay_set.dart';
+import 'package:ndk_core/domain_layer/entities/relay_req_event.dart';
 import 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 import '../../entities/request_response.dart';
 import '../../repositories/cache_manager.dart';
@@ -140,8 +141,8 @@ class Requests {
   /// Clears signature-verification reuse state owned by this NDK instance.
   void clearVerifiedEventCache() => _relayReqs.clearVerifiedEventCache();
 
-  Stream<Nip01Event> _prepareNetworkStream(
-    Stream<Nip01Event> verifiedNetworkStream, {
+  Stream<RelayReqEvent> _prepareNetworkStream(
+    Stream<RelayReqEvent> verifiedNetworkStream, {
     required bool writeToCache,
   }) {
     if (!writeToCache) {
@@ -155,23 +156,24 @@ class Requests {
 
     return verifiedNetworkStream
         .flatMap(
-          (event) => Stream.fromFuture(
+          (received) => Stream.fromFuture(
             _persistAndFilterVisibleNetworkEvent(
-              event,
+              received,
               persistedEventIds: persistedEventIds,
               persistenceInFlight: persistenceInFlight,
             ),
           ),
         )
-        .whereType<Nip01Event>()
+        .whereType<RelayReqEvent>()
         .shareReplay(maxSize: 1);
   }
 
-  Future<Nip01Event?> _persistAndFilterVisibleNetworkEvent(
-    Nip01Event event, {
+  Future<RelayReqEvent?> _persistAndFilterVisibleNetworkEvent(
+    RelayReqEvent received, {
     required BoundedLruSet<String> persistedEventIds,
     required Map<String, Future<void>> persistenceInFlight,
   }) async {
+    final event = received.event;
     // Ephemeral events (NIP-01 kinds 20000-29999) are non-persistent by
     // definition. They must not be written to cache — relays don't store them
     // either. Inbound events flow through to the subscriber but are not
@@ -179,7 +181,7 @@ class Requests {
     // events (broadcast / pending-delivery) bypass this path and remain cached
     // for local-first delivery and retry.
     if (EventKindClassification.isEphemeralKind(event.kind)) {
-      return event;
+      return received;
     }
 
     final existingPersistence = persistenceInFlight[event.id];
@@ -201,22 +203,20 @@ class Requests {
         }
       }
     }
-    // ignore: deprecated_member_use
-    if (event.sources.isNotEmpty) {
-      await _cacheManager.addEventSources(
-        eventId: event.id,
-        // ignore: deprecated_member_use
-        relayUrls: event.sources.toSet(),
-      );
-    }
+    await _cacheManager.addEventSource(
+      eventId: event.id,
+      relayUrl: received.relayUrl,
+    );
 
     if (event.kind == 5) {
-      return event;
+      return received;
     }
 
     final visible = await _cacheManager.loadEvents(ids: [event.id], limit: 1);
 
-    return visible.any((candidate) => candidate.id == event.id) ? event : null;
+    return visible.any((candidate) => candidate.id == event.id)
+        ? received
+        : null;
   }
 
   /// Set the fetched ranges tracker for automatic range recording
@@ -462,30 +462,24 @@ class Requests {
     final cacheEvents = StreamController<Nip01Event>();
     final sentFilters = <String, List<Filter>>{};
 
-    // sources is deprecated for apps, but the cache provenance and the fetched
-    // ranges below still read it
     final networkEvents = _prepareNetworkStream(
-      relayReq.events.map(
-        (received) => received.event.copyWith(sources: [received.relayUrl]),
-      ),
+      relayReq.events,
       writeToCache: request.cacheWrite,
     );
 
     // only the oldest timestamp per relay is needed, buffering the events
     // themselves would grow unbounded on long-lived subscriptions
     final oldestNetworkEventByRelay = <String, int>{};
-    final trackedNetworkEvents = _fetchedRanges == null
-        ? networkEvents
-        : networkEvents.map((event) {
-            // ignore: deprecated_member_use
-            for (final source in event.sources) {
-              final oldest = oldestNetworkEventByRelay[source];
-              if (oldest == null || event.createdAt < oldest) {
-                oldestNetworkEventByRelay[source] = event.createdAt;
-              }
-            }
-            return event;
-          });
+    final trackedNetworkEvents = networkEvents.map((received) {
+      final event = received.event;
+      if (_fetchedRanges != null) {
+        final oldest = oldestNetworkEventByRelay[received.relayUrl];
+        if (oldest == null || event.createdAt < oldest) {
+          oldestNetworkEventByRelay[received.relayUrl] = event.createdAt;
+        }
+      }
+      return event;
+    });
 
     StreamResponseCleaner(
       inputStreams: [trackedNetworkEvents, cacheEvents.stream],

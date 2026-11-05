@@ -2,8 +2,8 @@ import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
 
 void main() {
-  group('Nip01Event NIP-19 getters', () {
-    group('nevent getter', () {
+  group('Nip01Event NIP-19 references', () {
+    group('nevent', () {
       test('should encode regular event as nevent', () {
         final event = Nip01Event(
           pubKey:
@@ -16,7 +16,7 @@ void main() {
 
         final eventMode = Nip01EventModel.fromEntity(event);
 
-        final nevent = eventMode.nevent;
+        final nevent = eventMode.nevent();
 
         expect(nevent.startsWith('nevent1'), true);
 
@@ -27,8 +27,8 @@ void main() {
         expect(decoded.kind, event.kind);
       });
 
-      test('should use event sources as relay hints', () {
-        final eventInit = Nip01Event(
+      test('should use the given relays as hints', () {
+        final event = Nip01Event(
           pubKey:
               '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa',
           kind: 1,
@@ -36,19 +36,15 @@ void main() {
           content: 'Hello Nostr!',
           createdAt: 1234567890,
         );
-        final event = eventInit.copyWith(
-          sources: ['wss://relay.example.org/', 'wss://relay.primal.net/'],
-        );
+        const relays = ['wss://relay.example.org/', 'wss://relay.primal.net/'];
 
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final nevent = eventModel.nevent;
+        final nevent = event.nevent(relays: relays);
 
         final decoded = Nip19.decodeNevent(nevent);
-        expect(decoded.relays, eventModel.sources);
+        expect(decoded.relays, relays);
       });
 
-      test('should not include relays if sources is empty', () {
+      test('should not include relays if none are given', () {
         final event = Nip01Event(
           pubKey:
               '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa',
@@ -59,7 +55,7 @@ void main() {
         );
         final eventModel = Nip01EventModel.fromEntity(event);
 
-        final nevent = eventModel.nevent;
+        final nevent = eventModel.nevent();
 
         final decoded = Nip19.decodeNevent(nevent);
         expect(decoded.relays, null);
@@ -75,11 +71,11 @@ void main() {
           createdAt: 1234567890,
         );
 
-        expect(event.nevent, Nip01EventModel.fromEntity(event).nevent);
+        expect(event.nevent(), Nip01EventModel.fromEntity(event).nevent());
       });
     });
 
-    group('naddr getter', () {
+    group('naddr', () {
       test('should encode parameterized replaceable event as naddr', () {
         final event = Nip01Event(
           pubKey:
@@ -93,7 +89,7 @@ void main() {
         );
         final eventModel = Nip01EventModel.fromEntity(event);
 
-        final naddr = eventModel.naddr;
+        final naddr = eventModel.naddr();
 
         expect(naddr, isNotNull);
         expect(naddr!.startsWith('naddr1'), true);
@@ -118,7 +114,7 @@ void main() {
         );
         final eventModel = Nip01EventModel.fromEntity(event);
 
-        final naddr = eventModel.naddr;
+        final naddr = eventModel.naddr();
 
         expect(naddr, isNotNull);
         final decoded = Nip19.decodeNaddr(naddr!);
@@ -139,7 +135,7 @@ void main() {
         );
         final eventModel = Nip01EventModel.fromEntity(event);
 
-        final naddr = eventModel.naddr;
+        final naddr = eventModel.naddr();
 
         expect(naddr, isNull);
       });
@@ -155,12 +151,12 @@ void main() {
         );
         final eventModel = Nip01EventModel.fromEntity(event);
 
-        final naddr = eventModel.naddr;
+        final naddr = eventModel.naddr();
 
         expect(naddr, isNull);
       });
 
-      test('should use event sources as relay hints', () {
+      test('should use the given relays as hints', () {
         final event = Nip01Event(
           pubKey:
               '460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c',
@@ -171,17 +167,13 @@ void main() {
           content: '{}',
           createdAt: 1234567890,
         );
-        final eventWithSources = event.copyWith(
-          sources: ['wss://relay.example.com'],
-        );
+        const relays = ['wss://relay.example.com'];
 
-        final eventModel = Nip01EventModel.fromEntity(eventWithSources);
-
-        final naddr = eventModel.naddr;
+        final naddr = event.naddr(relays: relays);
 
         expect(naddr, isNotNull);
         final decoded = Nip19.decodeNaddr(naddr!);
-        expect(decoded.relays, eventModel.sources);
+        expect(decoded.relays, relays);
       });
     });
 
@@ -203,7 +195,7 @@ void main() {
 
           final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr,
+            eventModel.naddr(),
             isNotNull,
             reason: 'Kind $kind should be addressable',
           );
@@ -224,7 +216,7 @@ void main() {
 
           final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr,
+            eventModel.naddr(),
             isNotNull,
             reason: 'Kind $kind should be addressable',
           );
@@ -244,7 +236,7 @@ void main() {
           );
           final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr,
+            eventModel.naddr(),
             isNull,
             reason: 'Kind $kind should not be addressable',
           );

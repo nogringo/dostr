@@ -91,17 +91,6 @@ class $EventsTable extends Events with TableInfo<$EventsTable, DbEvent> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
-  static const VerificationMeta _sourcesJsonMeta = const VerificationMeta(
-    'sourcesJson',
-  );
-  @override
-  late final GeneratedColumn<String> sourcesJson = GeneratedColumn<String>(
-    'sources_json',
-    aliasedName,
-    false,
-    type: DriftSqlType.string,
-    requiredDuringInsert: true,
-  );
   static const VerificationMeta _conflictKeyMeta = const VerificationMeta(
     'conflictKey',
   );
@@ -134,7 +123,6 @@ class $EventsTable extends Events with TableInfo<$EventsTable, DbEvent> {
     sig,
     validSig,
     tagsJson,
-    sourcesJson,
     conflictKey,
     expiration,
   ];
@@ -207,17 +195,6 @@ class $EventsTable extends Events with TableInfo<$EventsTable, DbEvent> {
     } else if (isInserting) {
       context.missing(_tagsJsonMeta);
     }
-    if (data.containsKey('sources_json')) {
-      context.handle(
-        _sourcesJsonMeta,
-        sourcesJson.isAcceptableOrUnknown(
-          data['sources_json']!,
-          _sourcesJsonMeta,
-        ),
-      );
-    } else if (isInserting) {
-      context.missing(_sourcesJsonMeta);
-    }
     if (data.containsKey('conflict_key')) {
       context.handle(
         _conflictKeyMeta,
@@ -274,10 +251,6 @@ class $EventsTable extends Events with TableInfo<$EventsTable, DbEvent> {
         DriftSqlType.string,
         data['${effectivePrefix}tags_json'],
       )!,
-      sourcesJson: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}sources_json'],
-      )!,
       conflictKey: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}conflict_key'],
@@ -304,7 +277,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
   final String? sig;
   final bool? validSig;
   final String tagsJson;
-  final String sourcesJson;
   final String? conflictKey;
   final int? expiration;
   const DbEvent({
@@ -316,7 +288,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
     this.sig,
     this.validSig,
     required this.tagsJson,
-    required this.sourcesJson,
     this.conflictKey,
     this.expiration,
   });
@@ -335,7 +306,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
       map['valid_sig'] = Variable<bool>(validSig);
     }
     map['tags_json'] = Variable<String>(tagsJson);
-    map['sources_json'] = Variable<String>(sourcesJson);
     if (!nullToAbsent || conflictKey != null) {
       map['conflict_key'] = Variable<String>(conflictKey);
     }
@@ -357,7 +327,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
           ? const Value.absent()
           : Value(validSig),
       tagsJson: Value(tagsJson),
-      sourcesJson: Value(sourcesJson),
       conflictKey: conflictKey == null && nullToAbsent
           ? const Value.absent()
           : Value(conflictKey),
@@ -381,7 +350,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
       sig: serializer.fromJson<String?>(json['sig']),
       validSig: serializer.fromJson<bool?>(json['validSig']),
       tagsJson: serializer.fromJson<String>(json['tagsJson']),
-      sourcesJson: serializer.fromJson<String>(json['sourcesJson']),
       conflictKey: serializer.fromJson<String?>(json['conflictKey']),
       expiration: serializer.fromJson<int?>(json['expiration']),
     );
@@ -398,7 +366,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
       'sig': serializer.toJson<String?>(sig),
       'validSig': serializer.toJson<bool?>(validSig),
       'tagsJson': serializer.toJson<String>(tagsJson),
-      'sourcesJson': serializer.toJson<String>(sourcesJson),
       'conflictKey': serializer.toJson<String?>(conflictKey),
       'expiration': serializer.toJson<int?>(expiration),
     };
@@ -413,7 +380,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
     Value<String?> sig = const Value.absent(),
     Value<bool?> validSig = const Value.absent(),
     String? tagsJson,
-    String? sourcesJson,
     Value<String?> conflictKey = const Value.absent(),
     Value<int?> expiration = const Value.absent(),
   }) => DbEvent(
@@ -425,7 +391,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
     sig: sig.present ? sig.value : this.sig,
     validSig: validSig.present ? validSig.value : this.validSig,
     tagsJson: tagsJson ?? this.tagsJson,
-    sourcesJson: sourcesJson ?? this.sourcesJson,
     conflictKey: conflictKey.present ? conflictKey.value : this.conflictKey,
     expiration: expiration.present ? expiration.value : this.expiration,
   );
@@ -439,9 +404,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
       sig: data.sig.present ? data.sig.value : this.sig,
       validSig: data.validSig.present ? data.validSig.value : this.validSig,
       tagsJson: data.tagsJson.present ? data.tagsJson.value : this.tagsJson,
-      sourcesJson: data.sourcesJson.present
-          ? data.sourcesJson.value
-          : this.sourcesJson,
       conflictKey: data.conflictKey.present
           ? data.conflictKey.value
           : this.conflictKey,
@@ -462,7 +424,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
           ..write('sig: $sig, ')
           ..write('validSig: $validSig, ')
           ..write('tagsJson: $tagsJson, ')
-          ..write('sourcesJson: $sourcesJson, ')
           ..write('conflictKey: $conflictKey, ')
           ..write('expiration: $expiration')
           ..write(')'))
@@ -479,7 +440,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
     sig,
     validSig,
     tagsJson,
-    sourcesJson,
     conflictKey,
     expiration,
   );
@@ -495,7 +455,6 @@ class DbEvent extends DataClass implements Insertable<DbEvent> {
           other.sig == this.sig &&
           other.validSig == this.validSig &&
           other.tagsJson == this.tagsJson &&
-          other.sourcesJson == this.sourcesJson &&
           other.conflictKey == this.conflictKey &&
           other.expiration == this.expiration);
 }
@@ -509,7 +468,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
   final Value<String?> sig;
   final Value<bool?> validSig;
   final Value<String> tagsJson;
-  final Value<String> sourcesJson;
   final Value<String?> conflictKey;
   final Value<int?> expiration;
   final Value<int> rowid;
@@ -522,7 +480,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
     this.sig = const Value.absent(),
     this.validSig = const Value.absent(),
     this.tagsJson = const Value.absent(),
-    this.sourcesJson = const Value.absent(),
     this.conflictKey = const Value.absent(),
     this.expiration = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -536,7 +493,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
     this.sig = const Value.absent(),
     this.validSig = const Value.absent(),
     required String tagsJson,
-    required String sourcesJson,
     this.conflictKey = const Value.absent(),
     this.expiration = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -545,8 +501,7 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
        kind = Value(kind),
        createdAt = Value(createdAt),
        content = Value(content),
-       tagsJson = Value(tagsJson),
-       sourcesJson = Value(sourcesJson);
+       tagsJson = Value(tagsJson);
   static Insertable<DbEvent> custom({
     Expression<String>? id,
     Expression<String>? pubKey,
@@ -556,7 +511,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
     Expression<String>? sig,
     Expression<bool>? validSig,
     Expression<String>? tagsJson,
-    Expression<String>? sourcesJson,
     Expression<String>? conflictKey,
     Expression<int>? expiration,
     Expression<int>? rowid,
@@ -570,7 +524,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
       if (sig != null) 'sig': sig,
       if (validSig != null) 'valid_sig': validSig,
       if (tagsJson != null) 'tags_json': tagsJson,
-      if (sourcesJson != null) 'sources_json': sourcesJson,
       if (conflictKey != null) 'conflict_key': conflictKey,
       if (expiration != null) 'expiration': expiration,
       if (rowid != null) 'rowid': rowid,
@@ -586,7 +539,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
     Value<String?>? sig,
     Value<bool?>? validSig,
     Value<String>? tagsJson,
-    Value<String>? sourcesJson,
     Value<String?>? conflictKey,
     Value<int?>? expiration,
     Value<int>? rowid,
@@ -600,7 +552,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
       sig: sig ?? this.sig,
       validSig: validSig ?? this.validSig,
       tagsJson: tagsJson ?? this.tagsJson,
-      sourcesJson: sourcesJson ?? this.sourcesJson,
       conflictKey: conflictKey ?? this.conflictKey,
       expiration: expiration ?? this.expiration,
       rowid: rowid ?? this.rowid,
@@ -634,9 +585,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
     if (tagsJson.present) {
       map['tags_json'] = Variable<String>(tagsJson.value);
     }
-    if (sourcesJson.present) {
-      map['sources_json'] = Variable<String>(sourcesJson.value);
-    }
     if (conflictKey.present) {
       map['conflict_key'] = Variable<String>(conflictKey.value);
     }
@@ -660,7 +608,6 @@ class EventsCompanion extends UpdateCompanion<DbEvent> {
           ..write('sig: $sig, ')
           ..write('validSig: $validSig, ')
           ..write('tagsJson: $tagsJson, ')
-          ..write('sourcesJson: $sourcesJson, ')
           ..write('conflictKey: $conflictKey, ')
           ..write('expiration: $expiration, ')
           ..write('rowid: $rowid')
@@ -7658,7 +7605,6 @@ typedef $$EventsTableCreateCompanionBuilder =
       Value<String?> sig,
       Value<bool?> validSig,
       required String tagsJson,
-      required String sourcesJson,
       Value<String?> conflictKey,
       Value<int?> expiration,
       Value<int> rowid,
@@ -7673,7 +7619,6 @@ typedef $$EventsTableUpdateCompanionBuilder =
       Value<String?> sig,
       Value<bool?> validSig,
       Value<String> tagsJson,
-      Value<String> sourcesJson,
       Value<String?> conflictKey,
       Value<int?> expiration,
       Value<int> rowid,
@@ -7769,11 +7714,6 @@ class $$EventsTableFilterComposer
 
   ColumnFilters<String> get tagsJson => $composableBuilder(
     column: $table.tagsJson,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get sourcesJson => $composableBuilder(
-    column: $table.sourcesJson,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -7887,11 +7827,6 @@ class $$EventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get sourcesJson => $composableBuilder(
-    column: $table.sourcesJson,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<String> get conflictKey => $composableBuilder(
     column: $table.conflictKey,
     builder: (column) => ColumnOrderings(column),
@@ -7935,11 +7870,6 @@ class $$EventsTableAnnotationComposer
 
   GeneratedColumn<String> get tagsJson =>
       $composableBuilder(column: $table.tagsJson, builder: (column) => column);
-
-  GeneratedColumn<String> get sourcesJson => $composableBuilder(
-    column: $table.sourcesJson,
-    builder: (column) => column,
-  );
 
   GeneratedColumn<String> get conflictKey => $composableBuilder(
     column: $table.conflictKey,
@@ -8038,7 +7968,6 @@ class $$EventsTableTableManager
                 Value<String?> sig = const Value.absent(),
                 Value<bool?> validSig = const Value.absent(),
                 Value<String> tagsJson = const Value.absent(),
-                Value<String> sourcesJson = const Value.absent(),
                 Value<String?> conflictKey = const Value.absent(),
                 Value<int?> expiration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8051,7 +7980,6 @@ class $$EventsTableTableManager
                 sig: sig,
                 validSig: validSig,
                 tagsJson: tagsJson,
-                sourcesJson: sourcesJson,
                 conflictKey: conflictKey,
                 expiration: expiration,
                 rowid: rowid,
@@ -8066,7 +7994,6 @@ class $$EventsTableTableManager
                 Value<String?> sig = const Value.absent(),
                 Value<bool?> validSig = const Value.absent(),
                 required String tagsJson,
-                required String sourcesJson,
                 Value<String?> conflictKey = const Value.absent(),
                 Value<int?> expiration = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -8079,7 +8006,6 @@ class $$EventsTableTableManager
                 sig: sig,
                 validSig: validSig,
                 tagsJson: tagsJson,
-                sourcesJson: sourcesJson,
                 conflictKey: conflictKey,
                 expiration: expiration,
                 rowid: rowid,

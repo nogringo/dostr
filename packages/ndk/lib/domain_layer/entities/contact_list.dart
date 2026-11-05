@@ -36,9 +36,6 @@ class ContactList {
   /// loaded at timestamp
   int? loadedTimestamp;
 
-  /// relay sources
-  List<String> sources = [];
-
   ContactList({required this.pubKey, required this.contacts});
 
   ContactList.fromEvent(Nip01Event event) {
@@ -73,8 +70,6 @@ class ContactList {
         followedEvents.add(id);
       }
     }
-    // ignore: deprecated_member_use
-    sources.addAll(event.sources);
   }
 
   static Map<String, ReadWriteMarker> relaysFromContent(Nip01Event event) {

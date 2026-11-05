@@ -116,12 +116,32 @@ refusal.
 
 ## Event sources
 
-When events are cached, NDK may also persist source relay information.
+When a request writes to the cache (`cacheWrite`, on by default), NDK records
+every relay that sent each event. This provenance answers where an event was
+observed, and is separate from relay delivery targets.
 
-Current behavior:
+```dart
+final relays = await ndk.config.cache.loadEventSources(event.id);
+final nevent = event.nevent(relays: relays);
+```
 
-- source relays are optional provenance data
-- they answer where an event was observed
-- they are separate from relay delivery targets
+A request with `cacheWrite: false` records no provenance.
 
 For most apps, normal request and usecase APIs are enough and you do not need to access source relay data directly.
+
+### Migrating from `Nip01Event.sources`
+
+`Nip01Event.sources` was removed, along with `Metadata.sources` and
+`ContactList.sources`. It only held the first relay that sent the event, where
+`loadEventSources` returns all of them. `nevent` and `naddr` are now methods
+that take the relay hints:
+
+| before | now |
+| --- | --- |
+| `event.sources` | `await ndk.config.cache.loadEventSources(event.id)` |
+| `event.nevent` | `event.nevent(relays: relays)` |
+| `event.naddr` | `event.naddr(relays: relays)` |
+
+The cache managers move the relays they stored in each event into the
+provenance when they open an existing database (for sembast, when it is opened
+through `SembastCacheManager.create`).

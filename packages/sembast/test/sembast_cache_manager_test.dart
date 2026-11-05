@@ -3,6 +3,8 @@ import 'dart:io';
 import 'package:ndk/entities.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
+import 'package:path/path.dart' as p;
+import 'package:sembast/sembast_io.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -736,6 +738,42 @@ void main() {
       });
     });
   });
+
+  test(
+    'opening a version 1 database moves event sources to the provenance',
+    () async {
+      final tempDir = await Directory.systemTemp.createTemp('sembast_v1_test');
+      addTearDown(() => tempDir.delete(recursive: true));
+      final legacy = await databaseFactoryIo.openDatabase(
+        p.join(tempDir.path, 'sembast_cache_manager.db'),
+      );
+      await stringMapStoreFactory.store('events').record('event-1').put(
+        legacy,
+        {
+          'id': 'event-1',
+          'pubkey': 'pubkey',
+          'created_at': 1,
+          'kind': 1,
+          'tags': <List<String>>[],
+          'content': '',
+          'sig': null,
+          'sources': ['wss://a.example', 'wss://b.example'],
+        },
+      );
+      await legacy.close();
+
+      final cacheManager = await SembastCacheManager.create(
+        databasePath: tempDir.path,
+      );
+      addTearDown(cacheManager.close);
+
+      expect(await cacheManager.loadEventSources('event-1'), [
+        'wss://a.example',
+        'wss://b.example',
+      ]);
+      expect(await cacheManager.loadEvent('event-1'), isNotNull);
+    },
+  );
 
   // Run shared test suite for comprehensive coverage
   late Directory sharedTempDir;

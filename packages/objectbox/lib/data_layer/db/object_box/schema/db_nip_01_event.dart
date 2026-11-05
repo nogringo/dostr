@@ -41,8 +41,10 @@ class DbNip01Event {
   @Property()
   bool? validSig;
 
-  @Property()
-  List<String> sources = [];
+  /// Relays the event was seen on, stored here until provenance moved to the
+  /// key-values. Only read once, to move them there.
+  @Property(uid: 8183172291043781115)
+  List<String> legacySources = [];
 
   /// Tags stored as packed strings using \x1F separator.
   /// Each element is a single tag joined: "p\x1Fabc" or "e\x1Fdef\x1F\x1Freply"
@@ -125,11 +127,10 @@ class DbNip01Event {
 
   @override
   String toString() {
-    return 'Nip01Event{pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content, sources: $sources}';
+    return 'Nip01Event{pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
   }
 
   ndk_entities.Nip01Event toNdk() {
-    // ignore: deprecated_member_use
     return ndk_entities.Nip01Event(
       pubKey: pubKey,
       content: content,
@@ -139,7 +140,6 @@ class DbNip01Event {
       id: nostrId,
       sig: sig,
       validSig: validSig,
-      sources: sources,
     );
   }
 
@@ -154,8 +154,6 @@ class DbNip01Event {
     dbE.tags = ndkE.tags;
     dbE.sig = ndkE.sig;
     dbE.validSig = ndkE.validSig;
-    // ignore: deprecated_member_use
-    dbE.sources = ndkE.sources;
     return dbE;
   }
 }

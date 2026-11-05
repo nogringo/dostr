@@ -28,15 +28,6 @@ class Nip01Event {
   /// has signature been validated?
   final bool? validSig;
 
-  /// Relay hints attached to the event object.
-  ///
-  /// Deprecated: use cache provenance APIs such as
-  /// `CacheManager.addEventSource(s)` / `loadEventSources()` instead.
-  @Deprecated(
-    'Use CacheManager provenance methods instead of Nip01Event.sources.',
-  )
-  final List<String> sources;
-
   /// Creates a new Nostr event.
   ///
   /// [pubKey] is the author's public key.
@@ -54,7 +45,6 @@ class Nip01Event {
     required this.content,
     this.sig,
     this.validSig,
-    this.sources = const [],
     int createdAt = 0,
   }) {
     this.createdAt = (createdAt == 0)
@@ -80,7 +70,6 @@ class Nip01Event {
     String? content,
     String? sig,
     bool? validSig,
-    List<String>? sources,
   }) {
     return Nip01Event(
       id: id ?? this.id,
@@ -91,7 +80,6 @@ class Nip01Event {
       content: content ?? this.content,
       sig: sig ?? this.sig,
       validSig: validSig ?? this.validSig,
-      sources: sources ?? this.sources,
     );
   }
 
@@ -177,6 +165,6 @@ class Nip01Event {
 
   @override
   String toString() {
-    return 'Nip01Event{pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content, sources: $sources}';
+    return 'Nip01Event{pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
   }
 }

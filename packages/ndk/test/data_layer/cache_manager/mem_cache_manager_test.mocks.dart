@@ -7,9 +7,7 @@
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
 import 'package:ndk/domain_layer/entities/contact_list.dart' as _i13;
-import 'package:ndk_core/domain_layer/entities/filter.dart' as _i12;
 import 'package:ndk/domain_layer/entities/metadata.dart' as _i4;
-import 'package:ndk_core/domain_layer/entities/nip_01_event.dart' as _i3;
 import 'package:ndk/domain_layer/entities/nip_05.dart' as _i5;
 import 'package:ndk/domain_layer/entities/nip_65.dart' as _i2;
 import 'package:ndk/domain_layer/entities/pubkey_mapping.dart' as _i11;
@@ -17,6 +15,8 @@ import 'package:ndk/domain_layer/entities/read_write.dart' as _i10;
 import 'package:ndk/domain_layer/entities/read_write_marker.dart' as _i8;
 import 'package:ndk/domain_layer/entities/relay_set.dart' as _i9;
 import 'package:ndk/domain_layer/entities/user_relay_list.dart' as _i6;
+import 'package:ndk_core/domain_layer/entities/filter.dart' as _i12;
+import 'package:ndk_core/domain_layer/entities/nip_01_event.dart' as _i3;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -351,11 +351,6 @@ class MockContactList extends _i1.Mock implements _i13.ContactList {
           as int);
 
   @override
-  List<String> get sources =>
-      (super.noSuchMethod(Invocation.getter(#sources), returnValue: <String>[])
-          as List<String>);
-
-  @override
   set pubKey(String? value) => super.noSuchMethod(
     Invocation.setter(#pubKey, value),
     returnValueForMissingStub: null,
@@ -406,12 +401,6 @@ class MockContactList extends _i1.Mock implements _i13.ContactList {
   @override
   set loadedTimestamp(int? value) => super.noSuchMethod(
     Invocation.setter(#loadedTimestamp, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  set sources(List<String>? value) => super.noSuchMethod(
-    Invocation.setter(#sources, value),
     returnValueForMissingStub: null,
   );
 
@@ -469,11 +458,6 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
             returnValue: <String, dynamic>{},
           )
           as Map<String, dynamic>);
-
-  @override
-  List<String> get sources =>
-      (super.noSuchMethod(Invocation.getter(#sources), returnValue: <String>[])
-          as List<String>);
 
   @override
   List<List<String>> get tags =>
@@ -562,12 +546,6 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
   );
 
   @override
-  set sources(List<String>? value) => super.noSuchMethod(
-    Invocation.setter(#sources, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
   set tags(List<List<String>>? value) => super.noSuchMethod(
     Invocation.setter(#tags, value),
     returnValueForMissingStub: null,
@@ -635,7 +613,6 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
     String? lud06,
     int? updatedAt,
     int? refreshedTimestamp,
-    List<String>? sources,
     List<List<String>>? tags,
     Map<String, dynamic>? content,
   }) =>
@@ -653,7 +630,6 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
               #lud06: lud06,
               #updatedAt: updatedAt,
               #refreshedTimestamp: refreshedTimestamp,
-              #sources: sources,
               #tags: tags,
               #content: content,
             }),
@@ -672,7 +648,6 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
                 #lud06: lud06,
                 #updatedAt: updatedAt,
                 #refreshedTimestamp: refreshedTimestamp,
-                #sources: sources,
                 #tags: tags,
                 #content: content,
               }),
@@ -737,11 +712,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
           as String);
 
   @override
-  List<String> get sources =>
-      (super.noSuchMethod(Invocation.getter(#sources), returnValue: <String>[])
-          as List<String>);
-
-  @override
   List<String> get tTags =>
       (super.noSuchMethod(Invocation.getter(#tTags), returnValue: <String>[])
           as List<String>);
@@ -781,7 +751,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
     String? content,
     String? sig,
     bool? validSig,
-    List<String>? sources,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#copyWith, [], {
@@ -793,7 +762,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
               #content: content,
               #sig: sig,
               #validSig: validSig,
-              #sources: sources,
             }),
             returnValue: _FakeNip01Event_1(
               this,
@@ -806,7 +774,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
                 #content: content,
                 #sig: sig,
                 #validSig: validSig,
-                #sources: sources,
               }),
             ),
           )

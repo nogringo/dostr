@@ -38,7 +38,6 @@ class Nip01Utils {
         content: content,
         sig: null,
         validSig: null,
-        sources: [],
       ),
     );
   }

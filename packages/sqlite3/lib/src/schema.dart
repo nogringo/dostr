@@ -2,10 +2,11 @@ import 'package:sqlite3/sqlite3.dart';
 
 import 'migrations/v1.dart';
 import 'migrations/v2.dart';
+import 'migrations/v3.dart';
 
 // Append only: _migrations[i] upgrades user_version i to i + 1, so a shipped
 // migration must never be edited.
-const _migrations = [v1, v2];
+const _migrations = [v1, v2, v3];
 final _schemaVersion = _migrations.length;
 
 /// Brings [db] to the current schema, tracked with `PRAGMA user_version`.

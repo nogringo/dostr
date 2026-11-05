@@ -3,6 +3,7 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
+
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i3;
 import 'package:ndk_core/domain_layer/entities/nip_01_event.dart' as _i2;
@@ -83,11 +84,6 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
           as String);
 
   @override
-  List<String> get sources =>
-      (super.noSuchMethod(Invocation.getter(#sources), returnValue: <String>[])
-          as List<String>);
-
-  @override
   List<String> get tTags =>
       (super.noSuchMethod(Invocation.getter(#tTags), returnValue: <String>[])
           as List<String>);
@@ -127,7 +123,6 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
     String? content,
     String? sig,
     bool? validSig,
-    List<String>? sources,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#copyWith, [], {
@@ -139,7 +134,6 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
               #content: content,
               #sig: sig,
               #validSig: validSig,
-              #sources: sources,
             }),
             returnValue: _FakeNip01Event_0(
               this,
@@ -152,7 +146,6 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
                 #content: content,
                 #sig: sig,
                 #validSig: validSig,
-                #sources: sources,
               }),
             ),
           )

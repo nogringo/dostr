@@ -16,7 +16,6 @@ class Nip01EventModel extends Nip01Event {
     required super.content,
     required super.sig,
     super.validSig,
-    super.sources = const [],
   });
 
   /// creates a copy of this event with the given fields replaced by the new values \
@@ -31,7 +30,6 @@ class Nip01EventModel extends Nip01Event {
     String? content,
     String? sig,
     bool? validSig,
-    List<String>? sources,
   }) {
     return Nip01EventModel(
       id: id ?? this.id,
@@ -42,7 +40,6 @@ class Nip01EventModel extends Nip01Event {
       content: content ?? this.content,
       sig: sig ?? this.sig,
       validSig: validSig ?? this.validSig,
-      sources: sources ?? this.sources,
     );
   }
 
@@ -60,7 +57,6 @@ class Nip01EventModel extends Nip01Event {
       tags: event.tags,
       content: event.content,
       sig: event.sig,
-      sources: event.sources,
       validSig: event.validSig,
     );
   }

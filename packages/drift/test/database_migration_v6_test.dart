@@ -81,6 +81,13 @@ NdkCacheDatabase openV5Database({
         ''');
         if (version >= 5) {
           db.execute('''
+            CREATE TABLE event_sources_table (
+              event_id TEXT NOT NULL,
+              relay_url TEXT NOT NULL,
+              PRIMARY KEY (event_id, relay_url)
+            );
+          ''');
+          db.execute('''
             CREATE TABLE relay_delivery_targets_table (
               event_id TEXT NOT NULL,
               relay_url TEXT NOT NULL,
@@ -134,6 +141,11 @@ void main() {
     expect(metadata.picture, 'https://pic');
     expect(metadata.about, 'hi');
     expect(metadata.updatedAt, 1700000000);
+    final event = (await cacheManager.loadEvents(
+      pubKeys: [alice],
+      kinds: [Metadata.kKind],
+    )).single;
+    expect(await cacheManager.loadEventSources(event.id), ['wss://relay1']);
 
     await db.close();
   });

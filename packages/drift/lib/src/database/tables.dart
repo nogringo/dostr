@@ -25,7 +25,6 @@ class Events extends Table {
   TextColumn get sig => text().nullable()();
   BoolColumn get validSig => boolean().nullable()();
   TextColumn get tagsJson => text()(); // JSON encoded tags
-  TextColumn get sourcesJson => text()(); // JSON encoded sources
   // derived at insert time so that visibility runs in SQL
   TextColumn get conflictKey => text().nullable()();
   IntColumn get expiration => integer().nullable()();

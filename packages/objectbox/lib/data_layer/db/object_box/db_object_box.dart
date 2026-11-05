@@ -30,6 +30,8 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
   static const String _defaultWalletForSendingKey =
       'default_wallet_for_sending';
   static const String _eventSourcesKeyPrefix = 'event_sources:';
+  static const String _legacyEventSourcesMovedKey =
+      'legacy_event_sources_moved';
   static const String _eventDeliveryRecordKeyPrefix = 'event_delivery_record:';
   static const String _relayDeliveryTargetKeyPrefix = 'relay_delivery_target:';
   static const String _decryptedEventPayloadKeyPrefix =
@@ -64,7 +66,68 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     }
 
     _objectBox = objectbox;
+    // an attached instance shares the store of the one that opened it
+    if (!attach) _moveLegacyEventSources();
     _initCompleter.complete();
+  }
+
+  /// Copies [DbNip01Event.legacySources] into the provenance key-values, once.
+  void _moveLegacyEventSources() {
+    final keyValues = _objectBox.store.box<DbKeyValue>();
+    _objectBox.store.runInTransaction(TxMode.write, () {
+      final entries = {
+        for (final entry in keyValues.getAll()) entry.key: entry,
+      };
+      if (entries.containsKey(_legacyEventSourcesMovedKey)) return;
+
+      final legacy = <String, Set<String>>{};
+      final query = _objectBox.store.box<DbNip01Event>().query().build();
+      try {
+        const pageSize = 500;
+        for (var offset = 0; ; offset += pageSize) {
+          query
+            ..offset = offset
+            ..limit = pageSize;
+          final page = query.find();
+          if (page.isEmpty) break;
+          for (final event in page) {
+            if (event.legacySources.isEmpty) continue;
+            legacy
+                .putIfAbsent(event.nostrId, () => <String>{})
+                .addAll(event.legacySources);
+          }
+        }
+      } finally {
+        query.close();
+      }
+
+      keyValues.putMany([
+        for (final MapEntry(key: eventId, value: relays) in legacy.entries)
+          _mergedEventSources(
+            entries[_eventSourcesKey(eventId)],
+            eventId,
+            relays,
+          ),
+        DbKeyValue(key: _legacyEventSourcesMovedKey, value: '1'),
+      ]);
+    });
+  }
+
+  DbKeyValue _mergedEventSources(
+    DbKeyValue? existing,
+    String eventId,
+    Set<String> relays,
+  ) {
+    final stored = existing?.value;
+    final sources = {
+      if (stored != null)
+        ...(jsonDecode(stored) as List).map((entry) => entry.toString()),
+      ...relays,
+    }.toList()..sort();
+    return DbKeyValue(
+      key: _eventSourcesKey(eventId),
+      value: jsonEncode(sources),
+    )..dbId = existing?.dbId ?? 0;
   }
 
   close() async {
@@ -110,6 +173,8 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
     required Iterable<String> relayUrls,
   }) async {
     await dbRdy;
+    // so the relays stored by a previous session are kept
+    await loadEventSources(eventId);
     final sources = _eventSources.putIfAbsent(eventId, () => <String>{});
     sources.addAll(relayUrls);
     final sortedSources = sources.toList()..sort();

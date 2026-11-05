@@ -204,7 +204,7 @@ void main() async {
       );
 
       await for (final event in query.stream.take(4)) {
-        await expectLater(event.sources, [relay4.url]);
+        expect(await ndk.config.cache.loadEventSources(event.id), [relay4.url]);
         await expectLater(event, key4TextNotes[key4]);
         // print(event);
       }
@@ -304,9 +304,11 @@ void main() async {
           relaySet: relaySet,
         );
 
-        await for (final event in query.stream) {
+        final events = await query.stream.toList();
+        for (final event in events) {
           print(event);
-          if (event.sources.contains(relay3.url)) {
+          final sources = await ndk.config.cache.loadEventSources(event.id);
+          if (sources.contains(relay3.url)) {
             fail("should not use relay 3 (${relay3.url}) in gossip model");
           }
         }

@@ -8,6 +8,12 @@ final databaseFactory = databaseFactoryWeb;
 Future<sembast.Database> openDatabase({
   String? databasePath,
   required String databaseName,
+  int? version,
+  sembast.OnVersionChangedFunction? onVersionChanged,
 }) async {
-  return databaseFactory.openDatabase(databaseName);
+  return databaseFactory.openDatabase(
+    databaseName,
+    version: version,
+    onVersionChanged: onVersionChanged,
+  );
 }

@@ -32,9 +32,44 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     final database = await openDatabase(
       databasePath: databasePath,
       databaseName: databaseName,
+      version: _version,
+      onVersionChanged: _migrate,
     );
 
     return SembastCacheManager(database);
+  }
+
+  /// 2 since events no longer keep their relays in a `sources` field.
+  static const int _version = 2;
+
+  static Future<void> _migrate(
+    sembast.Database database,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    // 0 is a database created by this open
+    if (oldVersion == 1) await _moveEventSourcesToProvenance(database);
+  }
+
+  /// Copies the relays that events stored before version 2 kept in their
+  /// `sources` field into the `event_sources` store.
+  static Future<void> _moveEventSourcesToProvenance(
+    sembast.Database database,
+  ) async {
+    final events = sembast.stringMapStoreFactory.store('events');
+    final eventSources = sembast.stringMapStoreFactory.store('event_sources');
+    await database.transaction((txn) async {
+      for (final record in await events.find(txn)) {
+        final sources = record.value['sources'];
+        if (sources is! List) continue;
+        for (final relayUrl in sources.whereType<String>()) {
+          await eventSources.record(_eventSourceKey(record.key, relayUrl)).put(
+            txn,
+            {'eventId': record.key, 'relayUrl': relayUrl},
+          );
+        }
+      }
+    });
   }
 
   final sembast.Database _database;
@@ -1515,7 +1550,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     ]);
   }
 
-  String _eventSourceKey(String eventId, String relayUrl) {
+  static String _eventSourceKey(String eventId, String relayUrl) {
     return '$eventId|$relayUrl';
   }
 }
