@@ -5,20 +5,21 @@ import 'package:http/http.dart' as http;
 
 bool _isSuccessStatus(int statusCode) => statusCode >= 200 && statusCode < 300;
 
-HttpRequestException _failure(http.Response response, Uri url) =>
+HttpRequestException _failure(String method, http.Response response, Uri url) =>
     HttpRequestException(
+      method: method,
       statusCode: response.statusCode,
       body: response.body,
       url: url.toString(),
       headers: response.headers,
     );
 
-void _abort(Completer<void> trigger) {
-  if (!trigger.isCompleted) trigger.complete();
-}
+/// how much of the body [HttpRequestException.toString] shows
+const _bodyPreviewLength = 200;
 
 /// Exception thrown when an HTTP request completes with a non-2xx status code.
 class HttpRequestException implements Exception {
+  final String method;
   final int statusCode;
   final String body;
   final String url;
@@ -27,6 +28,7 @@ class HttpRequestException implements Exception {
   final Map<String, String> headers;
 
   const HttpRequestException({
+    required this.method,
     required this.statusCode,
     required this.body,
     required this.url,
@@ -34,7 +36,13 @@ class HttpRequestException implements Exception {
   });
 
   @override
-  String toString() => "error fetching STATUS: $statusCode, $body, Link: $url";
+  String toString() {
+    final preview = body.length > _bodyPreviewLength
+        ? '${body.substring(0, _bodyPreviewLength)}...'
+        : body;
+    return 'HttpRequestException: $method $url returned $statusCode'
+        '${preview.isEmpty ? '' : ': $preview'}';
+  }
 }
 
 /// Upload progress information
@@ -43,14 +51,12 @@ class UploadProgress {
   final int totalBytes;
   final bool isComplete;
   final http.Response? response;
-  final Object? error;
 
   UploadProgress({
     required this.sentBytes,
     required this.totalBytes,
     this.isComplete = false,
     this.response,
-    this.error,
   });
 
   double get progress => totalBytes > 0 ? sentBytes / totalBytes : 0;
@@ -74,10 +80,56 @@ class _UploadRequest extends http.BaseRequest with http.Abortable {
   }
 }
 
-/// Data source for making http requests
+/// Aborts a request when called, or once [timeout] passes after the last
+/// [startTimer].
+class _Abort {
+  final Uri url;
+  final Duration? timeout;
+  final _trigger = Completer<void>();
+  Timer? _timer;
+  var _timedOut = false;
+  var _finished = false;
+
+  _Abort(this.url, this.timeout);
+
+  Future<void> get trigger => _trigger.future;
+
+  void call() {
+    _timer?.cancel();
+    if (!_trigger.isCompleted) _trigger.complete();
+  }
+
+  void startTimer() {
+    _timer?.cancel();
+    final timeout = this.timeout;
+    if (timeout == null || _finished || _trigger.isCompleted) return;
+    _timer = Timer(timeout, () {
+      _timedOut = true;
+      call();
+    });
+  }
+
+  void stopTimer() => _timer?.cancel();
+
+  void finish() {
+    _finished = true;
+    _timer?.cancel();
+  }
+
+  /// the error to report: an abort the timer caused is a timeout
+  Object reason(Object error) =>
+      _timedOut && error is http.RequestAbortedException
+      ? TimeoutException('$url', timeout)
+      : error;
+}
+
+/// Data source for making http requests. A non-2xx response throws an
+/// [HttpRequestException]. A `timeout` bounds the whole request and an
+/// `idleTimeout` the time without data moving: either one ends the request
+/// with a [TimeoutException].
 class HttpRequestDS {
   final http.Client _client;
-  final Set<Completer<void>> _pendingAborts = {};
+  final Set<_Abort> _pending = {};
 
   /// create new instance of HttpRequestDS
   HttpRequestDS(this._client);
@@ -85,24 +137,24 @@ class HttpRequestDS {
   /// aborts every request still in flight. The client stays open: the app may
   /// share it through `http.runWithClient`
   void abortPending() {
-    _pendingAborts.forEach(_abort);
+    for (final abort in _pending) {
+      abort();
+    }
   }
 
   Future<http.Response> _send(
     String method,
     Uri url, {
-    Map<String, String>? headers,
+    Map<String, String> headers = const {},
     Object? body,
     bool followRedirects = true,
     Duration? timeout,
   }) async {
-    final trigger = Completer<void>();
-    final request = http.AbortableRequest(
-      method,
-      url,
-      abortTrigger: trigger.future,
-    )..followRedirects = followRedirects;
-    if (headers != null) request.headers.addAll(headers);
+    final abort = _Abort(url, timeout);
+    final request =
+        http.AbortableRequest(method, url, abortTrigger: abort.trigger)
+          ..followRedirects = followRedirects
+          ..headers.addAll(headers);
     switch (body) {
       case null:
         break;
@@ -120,35 +172,35 @@ class HttpRequestDS {
         );
     }
 
-    final timer = timeout == null
-        ? null
-        : Timer(timeout, () => _abort(trigger));
-    _pendingAborts.add(trigger);
+    _pending.add(abort);
+    abort.startTimer();
     try {
       final response = await http.Response.fromStream(
         await _client.send(request),
       );
       if (!_isSuccessStatus(response.statusCode)) {
-        throw _failure(response, url);
+        throw _failure(method, response, url);
       }
       return response;
+    } catch (error, stackTrace) {
+      Error.throwWithStackTrace(abort.reason(error), stackTrace);
     } finally {
-      timer?.cancel();
-      _pendingAborts.remove(trigger);
+      abort.finish();
+      _pending.remove(abort);
     }
   }
 
   /// make a get request to the given url and decode its JSON body. The url is
   /// used as given: the caller picks the scheme
   Future<Map<String, dynamic>> jsonRequest(
-    String url, {
+    Uri url, {
     bool followRedirects = true,
     Duration? timeout,
     Map<String, String> headers = const {"Accept": "application/json"},
   }) async {
     final response = await _send(
       'GET',
-      Uri.parse(url),
+      url,
       headers: headers,
       followRedirects: followRedirects,
       timeout: timeout,
@@ -158,11 +210,14 @@ class HttpRequestDS {
     return jsonDecode(utf8.decode(response.bodyBytes));
   }
 
+  /// [body] is a `String`, a `List<int>` or a `Map<String, String>` sent as
+  /// form fields
   Future<http.Response> put({
     required Uri url,
     required Object body,
-    required headers,
-  }) => _send('PUT', url, headers: headers, body: body);
+    Map<String, String> headers = const {},
+    Duration? timeout,
+  }) => _send('PUT', url, headers: headers, body: body, timeout: timeout);
 
   /// Uploads [body] without loading it into memory: the body is read as the
   /// connection sends it. The upload starts on listen, and cancelling the
@@ -170,22 +225,25 @@ class HttpRequestDS {
   Stream<UploadProgress> putStream({
     required Uri url,
     required Stream<List<int>> body,
-    required Map<String, String> headers,
+    Map<String, String> headers = const {},
     int? contentLength,
+    Duration? idleTimeout,
   }) {
-    final trigger = Completer<void>();
+    final abort = _Abort(url, idleTimeout);
     final totalBytes = contentLength ?? 0;
     late final StreamController<UploadProgress> progress;
 
     Future<void> upload() async {
       var sentBytes = 0;
       progress.add(UploadProgress(sentBytes: 0, totalBytes: totalBytes));
-      _pendingAborts.add(trigger);
+      _pending.add(abort);
+      abort.startTimer();
       try {
         final request =
             _UploadRequest(
                 url,
                 body.map((chunk) {
+                  abort.startTimer();
                   sentBytes += chunk.length;
                   // a client may still pull the body after an early response
                   if (!progress.isClosed) {
@@ -198,7 +256,7 @@ class HttpRequestDS {
                   }
                   return chunk;
                 }),
-                abortTrigger: trigger.future,
+                abortTrigger: abort.trigger,
               )
               ..headers.addAll(headers)
               ..contentLength = contentLength;
@@ -206,7 +264,7 @@ class HttpRequestDS {
           await _client.send(request),
         );
         if (!_isSuccessStatus(response.statusCode)) {
-          throw _failure(response, url);
+          throw _failure('PUT', response, url);
         }
         progress.add(
           UploadProgress(
@@ -217,61 +275,98 @@ class HttpRequestDS {
           ),
         );
       } catch (error, stackTrace) {
-        progress.addError(error, stackTrace);
+        progress.addError(abort.reason(error), stackTrace);
       } finally {
-        _pendingAborts.remove(trigger);
+        abort.finish();
+        _pending.remove(abort);
         unawaited(progress.close());
       }
     }
 
-    progress = StreamController(
-      onListen: upload,
-      onCancel: () => _abort(trigger),
-    );
+    progress = StreamController(onListen: upload, onCancel: abort.call);
     return progress.stream;
   }
 
+  /// [body] is a `String`, a `List<int>` or a `Map<String, String>` sent as
+  /// form fields
   Future<http.Response> post({
     required Uri url,
-
-    /// String, Uint8List
     required Object body,
-    required headers,
-  }) => _send('POST', url, headers: headers, body: body);
+    Map<String, String> headers = const {},
+    Duration? timeout,
+  }) => _send('POST', url, headers: headers, body: body, timeout: timeout);
 
-  Future<http.Response> head({required Uri url, headers}) =>
-      _send('HEAD', url, headers: headers);
+  Future<http.Response> head({
+    required Uri url,
+    Map<String, String> headers = const {},
+    Duration? timeout,
+  }) => _send('HEAD', url, headers: headers, timeout: timeout);
 
-  Future<http.Response> get({required Uri url, headers}) =>
-      _send('GET', url, headers: headers);
+  Future<http.Response> get({
+    required Uri url,
+    Map<String, String> headers = const {},
+    Duration? timeout,
+  }) => _send('GET', url, headers: headers, timeout: timeout);
 
-  /// Get data as a stream to avoid loading entire file into memory
-  /// Returns a stream of bytes that can be written directly to a file
+  /// Downloads [url] without loading it into memory, at the pace the listener
+  /// reads it. The download starts on listen, and cancelling the subscription
+  /// aborts it. A paused subscription does not count toward [idleTimeout].
   Stream<List<int>> getStream({
     required Uri url,
-    Map<String, String>? headers,
-  }) async* {
-    final trigger = Completer<void>();
-    final request = http.AbortableRequest(
-      'GET',
-      url,
-      abortTrigger: trigger.future,
-    );
-    if (headers != null) request.headers.addAll(headers);
+    Map<String, String> headers = const {},
+    Duration? idleTimeout,
+  }) {
+    final abort = _Abort(url, idleTimeout);
+    late final StreamController<List<int>> download;
 
-    _pendingAborts.add(trigger);
-    try {
-      final streamedResponse = await _client.send(request);
-      if (!_isSuccessStatus(streamedResponse.statusCode)) {
-        // reading the body drains the connection and keeps the server's reason
-        throw _failure(await http.Response.fromStream(streamedResponse), url);
+    Future<void> start() async {
+      final request = http.AbortableRequest(
+        'GET',
+        url,
+        abortTrigger: abort.trigger,
+      )..headers.addAll(headers);
+      _pending.add(abort);
+      abort.startTimer();
+      try {
+        final response = await _client.send(request);
+        if (!_isSuccessStatus(response.statusCode)) {
+          // reading the body drains the connection and keeps the server's reason
+          throw _failure('GET', await http.Response.fromStream(response), url);
+        }
+        abort.startTimer();
+        await download.addStream(
+          response.stream.transform(
+            StreamTransformer.fromHandlers(
+              handleData: (chunk, sink) {
+                abort.startTimer();
+                sink.add(chunk);
+              },
+              handleError: (error, stackTrace, sink) =>
+                  sink.addError(abort.reason(error), stackTrace),
+            ),
+          ),
+        );
+      } catch (error, stackTrace) {
+        download.addError(abort.reason(error), stackTrace);
+      } finally {
+        abort.finish();
+        _pending.remove(abort);
+        unawaited(download.close());
       }
-      yield* streamedResponse.stream;
-    } finally {
-      _pendingAborts.remove(trigger);
     }
+
+    download = StreamController(
+      onListen: start,
+      onPause: abort.stopTimer,
+      onResume: abort.startTimer,
+      onCancel: abort.call,
+    );
+    return download.stream;
   }
 
-  Future<http.Response> delete({required Uri url, required headers}) =>
-      _send('DELETE', url, headers: headers);
+  Future<http.Response> delete({
+    required Uri url,
+    Map<String, String> headers = const {},
+    Duration? timeout,
+  }) => _send('DELETE', url, headers: headers, timeout: timeout);
 }

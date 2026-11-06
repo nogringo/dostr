@@ -35,11 +35,11 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
 }
 
 /// NIP-11: the document is served over HTTP(S) on the relay's own url
-String _documentUrl(String relayUrl) {
+Uri _documentUrl(String relayUrl) {
   final uri = Uri.parse(relayUrl);
   return switch (uri.scheme) {
     'ws' => uri.replace(scheme: 'http'),
     'wss' => uri.replace(scheme: 'https'),
     _ => uri,
-  }.toString();
+  };
 }

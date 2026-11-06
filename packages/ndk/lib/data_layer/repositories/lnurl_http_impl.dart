@@ -33,4 +33,4 @@ class LnurlTransportHttpImpl implements LnurlTransport {
   }
 }
 
-String _https(String url) => Uri.parse(url).replace(scheme: 'https').toString();
+Uri _https(String url) => Uri.parse(url).replace(scheme: 'https');

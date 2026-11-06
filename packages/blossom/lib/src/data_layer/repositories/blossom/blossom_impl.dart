@@ -326,8 +326,6 @@ class BlossomRepositoryImpl implements BlossomRepository {
         ).map((progress) {
           if (progress.isComplete && progress.response != null) {
             results.add(_uploadSuccess(serverUrl, progress.response!));
-          } else if (progress.isComplete && progress.error != null) {
-            results.add(_uploadFailure(serverUrl, progress.error!));
           }
           return BlobUploadProgress(
             currentServer: serverUrl,
@@ -463,8 +461,6 @@ class BlossomRepositoryImpl implements BlossomRepository {
           final result = _uploadSuccess(serverUrl, progress.response!);
           results.add(result);
           onSuccess(result);
-        } else if (progress.isComplete && progress.error != null) {
-          results.add(_uploadFailure(serverUrl, progress.error!));
         }
         return update;
       });

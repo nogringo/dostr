@@ -6,7 +6,7 @@ Future<String?> nip05Pubkey(String name, String domain) async {
   final ds = HttpRequestDS(http.Client());
   try {
     final json = await ds.jsonRequest(
-      'https://$domain/.well-known/nostr.json?name=$name',
+      Uri.https(domain, '/.well-known/nostr.json', {'name': name}),
       timeout: const Duration(seconds: 5),
     );
     return (json['names'] as Map<String, dynamic>?)?[name] as String?;

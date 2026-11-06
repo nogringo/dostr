@@ -31,7 +31,7 @@ void main() {
       }),
     );
 
-    final json = await ds.jsonRequest('http://localhost:7777/x');
+    final json = await ds.jsonRequest(Uri.parse('http://localhost:7777/x'));
 
     expect(json, {'name': 'café'});
     expect(requested.scheme, 'http');
@@ -160,6 +160,95 @@ void main() {
     await aborted.future.timeout(const Duration(seconds: 1));
   });
 
+  test('cancelling getStream aborts the request before the response', () async {
+    final aborted = Completer<void>();
+    final ds = HttpRequestDS(_stalledClient((_) => aborted.complete()));
+
+    final subscription = ds.getStream(url: url).listen(null);
+    await subscription.cancel().timeout(const Duration(seconds: 1));
+
+    await aborted.future.timeout(const Duration(seconds: 1));
+  });
+
+  test('a timeout throws TimeoutException, not an abort', () async {
+    final ds = HttpRequestDS(_stalledClient((_) {}));
+    const timeout = Duration(milliseconds: 20);
+
+    await Future.wait([
+      for (final request in [
+        ds.jsonRequest(url, timeout: timeout),
+        ds.get(url: url, timeout: timeout),
+        ds.post(url: url, body: 'x', timeout: timeout),
+        ds.getStream(url: url, idleTimeout: timeout).toList(),
+        ds
+            .putStream(url: url, body: Stream.value([1]), idleTimeout: timeout)
+            .toList(),
+      ])
+        expectLater(request, throwsA(isA<TimeoutException>())),
+    ]);
+  });
+
+  test('getStream times out when the body stalls', () async {
+    final ds = HttpRequestDS(
+      MockClient.streaming((request, _) async {
+        final body = StreamController<List<int>>()..add([1]);
+        (request as http.Abortable).abortTrigger!.whenComplete(() {
+          body.addError(http.RequestAbortedException(request.url));
+          body.close();
+        });
+        return http.StreamedResponse(body.stream, 200);
+      }),
+    );
+
+    final received = <List<int>>[];
+    final failed = Completer<Object>();
+    ds
+        .getStream(url: url, idleTimeout: const Duration(milliseconds: 20))
+        .listen(received.add, onError: failed.complete);
+
+    expect(await failed.future, isA<TimeoutException>());
+    expect(received, [
+      [1],
+    ]);
+  });
+
+  test('idleTimeout does not cap a download that keeps moving', () async {
+    final ds = HttpRequestDS(
+      MockClient.streaming(
+        (_, _) async => http.StreamedResponse(
+          Stream.periodic(
+            const Duration(milliseconds: 10),
+            (i) => [i],
+          ).take(15),
+          200,
+        ),
+      ),
+    );
+
+    final chunks = await ds
+        .getStream(url: url, idleTimeout: const Duration(milliseconds: 100))
+        .toList();
+
+    expect(chunks, hasLength(15));
+  });
+
+  test('HttpRequestException names the request and shortens the body', () {
+    final error = HttpRequestException(
+      method: 'GET',
+      statusCode: 500,
+      body: 'x' * 10000,
+      url: 'https://example.com/blob',
+    );
+
+    expect(
+      error.toString(),
+      startsWith(
+        'HttpRequestException: GET https://example.com/blob returned 500: xxx',
+      ),
+    );
+    expect(error.toString().length, lessThan(300));
+  });
+
   test('abortPending aborts every request in flight', () async {
     final aborted = <String>[];
     final ds = HttpRequestDS(
@@ -167,7 +256,7 @@ void main() {
     );
 
     final requests = [
-      ds.jsonRequest('https://example.com/x'),
+      ds.jsonRequest(url),
       ds.get(url: url),
       ds.post(url: url, body: 'x', headers: const <String, String>{}),
       ds.getStream(url: url).toList(),

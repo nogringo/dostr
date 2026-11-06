@@ -62,7 +62,7 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
   }
 }
 
-({String name, String url})? _parseIdentifier(String nip05) {
+({String name, Uri url})? _parseIdentifier(String nip05) {
   final canonical = Nip05.canonicalIdentifier(nip05);
   if (canonical == null) {
     return null;
@@ -70,5 +70,5 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
   final [name, domain] = canonical.split("@");
 
   final url = Uri.https(domain, "/.well-known/nostr.json", {"name": name});
-  return (name: name, url: url.toString());
+  return (name: name, url: url);
 }
