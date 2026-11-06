@@ -14,11 +14,25 @@ NostrMessageRaw decodeNostrMsg(String msgJsonStr) {
         type: NostrMessageRawType.notice,
         otherData: decoded,
       ),
-      ['EVENT', String requestId, Map eventData, ...] => NostrMessageRaw(
-        type: NostrMessageRawType.event,
-        nip01Event: _decodeEvent(eventData),
-        requestId: requestId,
-      ),
+      [
+        'EVENT',
+        String requestId,
+        {
+              'pubkey': String _,
+              'created_at': int _,
+              'kind': int _,
+              'tags': List tags,
+              'content': String _,
+            } &&
+            Map eventData,
+        ...,
+      ]
+          when _areTags(tags) =>
+        NostrMessageRaw(
+          type: NostrMessageRawType.event,
+          nip01Event: Nip01Event.fromJson(eventData),
+          requestId: requestId,
+        ),
       ['EOSE', String requestId, ...] => NostrMessageRaw(
         type: NostrMessageRawType.eose,
         requestId: requestId,
@@ -55,15 +69,5 @@ NostrMessageRaw decodeNostrMsg(String msgJsonStr) {
   }
 }
 
-Nip01Event _decodeEvent(Map eventData) => Nip01Event(
-  id: eventData['id'],
-  pubKey: eventData['pubkey'],
-  createdAt: eventData['created_at'],
-  kind: eventData['kind'],
-  tags: (eventData['tags'] as List)
-      .map((tag) => List<String>.from(tag))
-      .toList(),
-  content: eventData['content'],
-  sig: eventData['sig'],
-  validSig: null,
-);
+bool _areTags(List tags) =>
+    tags.every((tag) => tag is List && tag.every((value) => value is String));
