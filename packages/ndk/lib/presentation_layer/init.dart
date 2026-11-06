@@ -6,12 +6,10 @@ import '../shared/net/user_agent.dart';
 import 'package:ndk_http/ndk_http.dart';
 import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
-import '../data_layer/repositories/nip_05_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
-import '../domain_layer/repositories/nip_05_repo.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
@@ -31,7 +29,7 @@ import '../domain_layer/usecases/jit_engine/jit_engine.dart';
 import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
-import '../domain_layer/usecases/nip05/nip_05.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
@@ -281,7 +279,7 @@ class Initialization {
     );
 
     nip05 = Nip05Usecase(
-      database: _ndkConfig.cache,
+      cache: _ndkConfig.cache,
       nip05Repository: nip05repository,
     );
 

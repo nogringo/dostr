@@ -7,7 +7,7 @@ import '../entities/filter_fetched_ranges.dart';
 import '../entities/hidden_event.dart';
 import '../entities/metadata.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../entities/nip_05.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 import '../entities/relay_set.dart';
 import '../entities/user_relay_list.dart';
 
@@ -21,6 +21,7 @@ import '../entities/user_relay_list.dart';
 ///   [DeliveryStore] of `ndk_broadcast_queue`
 /// - decrypted plaintext sidecars for encrypted events
 /// - convenience projections like metadata/contact list/user relay list
+/// - NIP-05 records, the [Nip05Cache] of `ndk_nip05`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a
@@ -31,7 +32,7 @@ import '../entities/user_relay_list.dart';
 ///   store, not separate authoritative silos
 /// - provenance and delivery targets are separate concerns
 /// - an empty list in a read or a removal matches nothing, see [matchesNothing]
-abstract class CacheManager implements DeliveryStore {
+abstract class CacheManager implements DeliveryStore, Nip05Cache {
   /// Whether a read or a removal with these lists can match no event: NIP-01
   /// says an empty list matches nothing, it does not stand for an absent one.
   static bool matchesNothing({
@@ -280,9 +281,11 @@ abstract class CacheManager implements DeliveryStore {
     int limit = 100,
   });
 
-  /// NIP-05 records are keyed by [Nip05.nip05], the canonical identifier
+  /// NIP-05 records are keyed by [Nip05.identifier], the canonical identifier
+  @override
   Future<void> saveNip05(Nip05 nip05);
   Future<void> saveNip05s(List<Nip05> nip05s);
+  @override
   Future<Nip05?> loadNip05(String identifier);
   Future<List<Nip05?>> loadNip05s(List<String> identifiers);
   Future<void> removeNip05(String identifier);

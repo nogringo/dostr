@@ -1,7 +1,6 @@
 // ignore_for_file: avoid_print
 import 'dart:io';
 
-import 'package:ndk/domain_layer/entities/nip_05.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:sembast/sembast_io.dart';

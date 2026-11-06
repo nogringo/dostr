@@ -43,6 +43,7 @@ workspace:
   - packages/nip46
   - packages/nip55
   - packages/nip82
+  - packages/nip05
   - packages/broadcast_queue
   - packages/fetchers
   - packages/http

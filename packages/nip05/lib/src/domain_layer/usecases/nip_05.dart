@@ -1,8 +1,8 @@
-import '../../../config/nip_05_defaults.dart';
-import '../../entities/nip_05.dart';
-import '../../entities/nip_05_resolve_result.dart';
-import '../../repositories/cache_manager.dart';
-import '../../repositories/nip_05_repo.dart';
+import '../../config/nip_05_defaults.dart';
+import '../entities/nip_05.dart';
+import '../entities/nip_05_resolve_result.dart';
+import '../repositories/nip_05_cache.dart';
+import '../repositories/nip_05_repo.dart';
 
 /// usecase to handle Nip05 operations (verify and fetch)
 class Nip05Usecase {
@@ -10,16 +10,16 @@ class Nip05Usecase {
   // instances may use different repositories and caches for the same NIP-05.
   final Map<String, Future<Nip05ResolveResult>> _inFlightResolves = {};
 
-  final CacheManager _database;
+  final Nip05Cache _cache;
   final Nip05Repository _nip05Repository;
 
   /// creates a new [Nip05Usecase] instance
-  /// [_database] the cache manager
-  /// [_nip05Repository] the nip05 repository
+  /// [cache] keeps the resolved identifiers
+  /// [nip05Repository] fetches them from the network
   Nip05Usecase({
-    required CacheManager database,
+    required Nip05Cache cache,
     required Nip05Repository nip05Repository,
-  }) : _database = database,
+  }) : _cache = cache,
        _nip05Repository = nip05Repository;
 
   /// checks the nip05 object for validity
@@ -62,7 +62,7 @@ class Nip05Usecase {
     }
 
     // Check cache first
-    final databaseResult = await _database.loadNip05(identifier);
+    final databaseResult = await _cache.loadNip05(identifier);
     if (databaseResult != null) {
       int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       int age = now - (databaseResult.networkFetchTime ?? 0);
@@ -98,7 +98,7 @@ class Nip05Usecase {
     try {
       final result = await _nip05Repository.fetchNip05(nip05);
       if (result == null) {
-        await _database.saveNip05(
+        await _cache.saveNip05(
           Nip05(
             pubKey: null,
             identifier: nip05,
@@ -107,7 +107,7 @@ class Nip05Usecase {
         );
         return const Nip05NotFound();
       }
-      await _database.saveNip05(result);
+      await _cache.saveNip05(result);
       return Nip05Found(result);
     } on FormatException catch (e) {
       return Nip05ResolveInvalidResponse(e);

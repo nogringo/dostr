@@ -87,6 +87,7 @@ export 'package:ndk_nip59/ndk_nip59.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
+export 'package:ndk_nip05/ndk_nip05.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'domain_layer/entities/filter_fetched_ranges.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'

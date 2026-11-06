@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:isolate';
 import 'dart:math';
 
-import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';

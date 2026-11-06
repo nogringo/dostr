@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk/domain_layer/entities/nip_05.dart';
 import 'package:ndk/domain_layer/entities/nip_65.dart';
 import 'package:ndk/domain_layer/entities/user_relay_list.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';

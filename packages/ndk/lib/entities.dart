@@ -25,8 +25,15 @@ export 'domain_layer/entities/hidden_event.dart';
 export 'domain_layer/entities/metadata.dart';
 export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
-export 'domain_layer/entities/nip_05.dart';
-export 'domain_layer/entities/nip_05_resolve_result.dart';
+export 'package:ndk_nip05/ndk_nip05.dart'
+    show
+        Nip05,
+        Nip05ResolveResult,
+        Nip05Found,
+        Nip05NotFound,
+        Nip05ResolveError,
+        Nip05ResolveNetworkError,
+        Nip05ResolveInvalidResponse;
 export 'domain_layer/entities/nip_51_list.dart';
 export 'domain_layer/entities/nip_65.dart';
 export 'domain_layer/entities/pubkey_mapping.dart';

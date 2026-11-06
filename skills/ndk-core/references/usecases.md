@@ -16,7 +16,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists |
 | `ndk.lists` | `Lists` | NIP-51 generic lists |
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model |
-| `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch |
+| `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch, from `ndk_nip05` |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |
 | `ndk.connectivity` | `Connectivy` | Relay connectivity events |
 

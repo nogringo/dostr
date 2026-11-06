@@ -1,8 +1,8 @@
+import 'package:ndk_http/ndk_http.dart';
+
 import '../../config/nip_05_defaults.dart';
 import '../../domain_layer/entities/nip_05.dart';
 import '../../domain_layer/repositories/nip_05_repo.dart';
-import 'package:ndk_http/ndk_http.dart';
-import '../models/nip_05_model.dart';
 
 /// implementation of the [Nip05Repository] interface with http
 class Nip05HttpRepositoryImpl implements Nip05Repository {
@@ -52,7 +52,7 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
       pRelays = List<String>.from(relays[pubkey]);
     }
 
-    return Nip05Model(
+    return Nip05(
       pubKey: pubkey,
       identifier: nip05,
       valid: true,

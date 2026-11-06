@@ -1,4 +1,4 @@
-import 'package:ndk/domain_layer/entities/nip_05.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:test/test.dart';
 
 void main() {

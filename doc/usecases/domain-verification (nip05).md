@@ -22,4 +22,8 @@ Uses caching so there are no repeated network requests if you call this multiple
 Use this when you need to verify a domain. \
 If you call this, the result is automatically used as inbox/outbox information.
 
-:::code source="../../packages/ndk/lib/config/nip_05_defaults.dart" language="dart" range="3-4" title="default cache time" :::
+:::code source="../../packages/nip05/lib/src/config/nip_05_defaults.dart" language="dart" range="3-4" title="default cache time" :::
+
+## Without NDK
+
+The usecase lives in the `ndk_nip05` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: give `Nip05Usecase` a `Nip05Cache` and a `Nip05HttpRepositoryImpl`, see its [README](https://pub.dev/packages/ndk_nip05).

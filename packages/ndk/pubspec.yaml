@@ -34,6 +34,7 @@ dependencies:
   ndk_nip77: ^0.1.0
   ndk_nip59: ^0.1.0
   ndk_nip46: ^0.1.0
+  ndk_nip05: ^0.1.0
   ndk_broadcast_queue: ^0.1.0
   ndk_url_set: ^0.1.0
   ndk_fetchers: ^0.1.0
