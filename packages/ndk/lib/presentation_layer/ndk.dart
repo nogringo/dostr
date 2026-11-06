@@ -3,7 +3,7 @@ import 'package:ndk_bip340/ndk_bip340.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
-import '../domain_layer/usecases/bunkers/bunkers.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';

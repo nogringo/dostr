@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../../shared/helpers/bounded_lru_set.dart';
-
-import '../../../domain_layer/usecases/bunkers/models/bunker_request.dart';
+import 'bunker_connection.dart';
+import 'bunker_request.dart';
 
 /// Internal class to track a pending request with its completer and metadata
 class _PendingRequestEntry {
@@ -52,11 +52,9 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     required this.eventSignerFactory,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
-    final privKey = connection.privateKey;
-
     localEventSigner = eventSignerFactory.create(
-      privateKey: privKey,
-      publicKey: Bip340.getPublicKey(privKey),
+      privateKey: connection.privateKey,
+      publicKey: eventSignerFactory.derivePublicKey(connection.privateKey),
     );
 
     listenRelays();

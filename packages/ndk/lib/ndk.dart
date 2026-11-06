@@ -88,10 +88,7 @@ export 'domain_layer/usecases/software/software.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
-export 'domain_layer/usecases/bunkers/bunkers.dart';
-export 'domain_layer/usecases/bunkers/models/bunker_connection.dart';
-export 'domain_layer/entities/nip46_client_metadata.dart';
-export 'domain_layer/usecases/bunkers/models/nostr_connect.dart';
+export 'package:ndk_nip46/ndk_nip46.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'domain_layer/entities/filter_fetched_ranges.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'

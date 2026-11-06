@@ -20,7 +20,7 @@ await ndkFlutter.saveAccountsState();
 | Public key (read-only) | `pubkey` | internal factory | no signing |
 | NIP-07 browser ext | `nip07` | `Nip07EventSigner` | web only, from `ndk_nip07` |
 | Amber (Android) | `amber` | `AmberEventSigner` | Android only |
-| NIP-46 bunker | `bunker` | `Nip46EventSigner` | remote signer |
+| NIP-46 bunker | `bunker` | `Nip46EventSigner` | remote signer, from `ndk_nip46` |
 
 ## Available signers
 

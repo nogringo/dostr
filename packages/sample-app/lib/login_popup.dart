@@ -33,7 +33,7 @@ Future<void> showNLoginPopup({
             child: NLogin(
               ndkFlutter: ndkFlutter,
               clientMetadata: _clientMetadata,
-              nostrConnect: NostrConnect(
+              nostrConnect: ndkFlutter.ndk.bunkers.createNostrConnect(
                 clientMetadata: _clientMetadata,
                 relays: [
                   "wss://promenade.fiatjaf.com",

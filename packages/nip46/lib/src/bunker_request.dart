@@ -1,7 +1,5 @@
-import '../../../../shared/nips/nip01/helpers.dart';
-
-import 'package:ndk_signer/ndk_signer.dart';
-export 'package:ndk_signer/ndk_signer.dart' show SignerMethod;
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 
 class BunkerRequest {
   static const int kKind = 24133;
@@ -11,7 +9,7 @@ class BunkerRequest {
   final List<String> params;
 
   BunkerRequest({required this.method, String? id, List<String>? params})
-    : id = id ?? Helpers.getRandomString(16),
+    : id = id ?? Helpers.getSecureRandomHex(8),
       params = params ?? [];
 
   Map<String, dynamic> toJson() {

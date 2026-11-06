@@ -5,7 +5,7 @@ import 'package:ndk/ndk.dart';
 Future<void> main() async {
   final ndk = Ndk.emptyBootstrapRelaysConfig();
 
-  final nostrConnect = NostrConnect(
+  final nostrConnect = ndk.bunkers.createNostrConnect(
     relays: [
       "wss://promenade.fiatjaf.com",
       "wss://relay.ditto.pub",

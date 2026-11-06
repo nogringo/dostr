@@ -1,17 +1,18 @@
-import 'package:ndk_bip340/ndk_bip340.dart';
-import '../../../../shared/nips/nip01/helpers.dart';
-import '../../../entities/nip46_client_metadata.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 
+import 'nip46_client_metadata.dart';
+
+/// A `nostrconnect://` invitation, from `Bunkers.createNostrConnect`.
 class NostrConnect {
   List<String> relays;
   Nip46ClientMetadata? clientMetadata;
 
-  final keyPair = Bip340.generatePrivateKey();
+  final String privateKey;
+  final String publicKey;
+
   final secret = Helpers.getSecureRandomHex(16);
 
   String get nostrConnectURL {
-    final pubkey = keyPair.publicKey;
-
     final params = <String>[];
 
     for (final relay in relays) {
@@ -29,10 +30,15 @@ class NostrConnect {
       params.add('$key=${Uri.encodeComponent(value)}');
     });
 
-    return 'nostrconnect://$pubkey?${params.join('&')}';
+    return 'nostrconnect://$publicKey?${params.join('&')}';
   }
 
-  NostrConnect({required this.relays, this.clientMetadata}) {
+  NostrConnect({
+    required this.relays,
+    required this.privateKey,
+    required this.publicKey,
+    this.clientMetadata,
+  }) {
     if (relays.isEmpty) {
       throw ArgumentError("At least one relay is required");
     }

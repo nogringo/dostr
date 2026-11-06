@@ -4,7 +4,7 @@ import 'package:rxdart/rxdart.dart';
 
 import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_core/config/rx_defaults.dart';
-import '../../../shared/helpers/bounded_lru_set.dart';
+import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import '../../../shared/nips/nip01/event_kind_classification.dart';

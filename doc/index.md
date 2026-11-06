@@ -47,7 +47,7 @@ features, usecases, and Flutter widgets end to end.
 
 ### Account & Authentication
 
-- **Multiple signer support**: Built-in (BIP-340), WebEventSigner (fast web crypto), NIP-55 external signers, NIP-07 (web) with `ndk_nip07`, and NIP-46 (remote signing/bunkers)
+- **Multiple signer support**: Built-in (BIP-340), WebEventSigner (fast web crypto), NIP-55 external signers, NIP-07 (web) with `ndk_nip07`, and NIP-46 (remote signing/bunkers) with `ndk_nip46`
 - **Account management** with state tracking and multiple account support
 - **Relay authentication** (NIP-42) for private relay access
 - **Delayed external signing support** so local-first publish can survive signer approval delays or temporary signer unavailability

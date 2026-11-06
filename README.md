@@ -121,6 +121,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip07`: NIP-07 signer, to sign and encrypt with the user's browser extension from any Dart web app, without depending on `ndk` or Flutter.
 
+### [🔗 NIP-46](./packages/nip46/)
+
+`ndk_nip46`: NIP-46 remote signing, to connect to a bunker with a `bunker://` or `nostrconnect://` URL and sign and encrypt through it, without depending on `ndk`. NDK exposes it as `ndk.bunkers`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

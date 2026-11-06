@@ -75,11 +75,11 @@ Bip340EventVerifier()
 
 ## Bunkers (NIP-46)
 
+`Bunkers`, `Nip46EventSigner`, `BunkerConnection` and `NostrConnect` live in the `ndk_nip46` package (pure Dart, on top of `ndk_core`, no `ndk` dependency). `ndk` re-exports it.
+
 ```dart
 // Connect to remote signer
-final connection = await ndk.bunkers.connect(
-  bunkerUri: 'bunker://...',
-);
+final connection = await ndk.bunkers.connectWithBunkerUrl('bunker://...');
 
 // Or parse connection from string
 final conn = BunkerConnection.fromJson(jsonString);

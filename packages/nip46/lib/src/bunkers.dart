@@ -1,19 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ndk_core/ndk_core.dart';
 import 'package:rxdart/rxdart.dart';
 
-import 'package:ndk/domain_layer/usecases/bunkers/models/nostr_connect.dart';
-
-import '../../../data_layer/repositories/signers/nip46_event_signer.dart';
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'models/bunker_request.dart';
-import 'models/bunker_connection.dart';
-import '../../entities/nip46_client_metadata.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+import 'bunker_connection.dart';
+import 'bunker_request.dart';
+import 'nip46_client_metadata.dart';
+import 'nip46_event_signer.dart';
+import 'nostr_connect.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {
@@ -138,6 +133,20 @@ class Bunkers {
     }
   }
 
+  /// Creates a nostr connect invitation (nostrconnect://) with a fresh key pair
+  NostrConnect createNostrConnect({
+    required List<String> relays,
+    Nip46ClientMetadata? clientMetadata,
+  }) {
+    final (privateKey, publicKey) = _eventSignerFactory.generateKeyPair();
+    return NostrConnect(
+      relays: relays,
+      privateKey: privateKey,
+      publicKey: publicKey,
+      clientMetadata: clientMetadata,
+    );
+  }
+
   /// Connects to a bunker using a nostr connect URL (nostrconnect://)
   /// authCallback is called with the auth URL if the bunker requires authentication
   Future<BunkerConnection?> connectWithNostrConnect(
@@ -151,10 +160,9 @@ class Bunkers {
       throw ArgumentError('At least one relay is required in bunker URL');
     }
 
-    final keyPair = nostrConnect.keyPair;
     final localEventSigner = _eventSignerFactory.create(
-      privateKey: keyPair.privateKey!,
-      publicKey: keyPair.publicKey,
+      privateKey: nostrConnect.privateKey,
+      publicKey: nostrConnect.publicKey,
     );
 
     final subscription = _subscribe(
@@ -177,7 +185,7 @@ class Bunkers {
 
         if (response["result"] == secret) {
           return BunkerConnection(
-            privateKey: nostrConnect.keyPair.privateKey!,
+            privateKey: nostrConnect.privateKey,
             remotePubkey: event.pubKey,
             relays: relays,
           );

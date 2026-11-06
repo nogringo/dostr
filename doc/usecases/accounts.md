@@ -14,6 +14,8 @@ icon: person
 
 ### External Signer (nip-46 bunker)
 
+`Bunkers`, `Nip46EventSigner`, `BunkerConnection`, `NostrConnect` and `Nip46ClientMetadata` live in the `ndk_nip46` package, which does not depend on `ndk`. `ndk` re-exports it and exposes `ndk.bunkers`.
+
 Pass the same `Nip46ClientMetadata` to both flows. A `bunker://` URL does not identify your app, so this metadata is the only way for the remote signer to label the connection.
 
 ```dart client metadata
@@ -34,7 +36,7 @@ final bunkerConnection = await ndk.accounts.loginWithBunkerUrl(
 ```
 
 ```dart login with nostr connect
-final nostrConnect = NostrConnect(
+final nostrConnect = ndk.bunkers.createNostrConnect(
     relays: ["wss://relay.example.com"],
     clientMetadata: clientMetadata,
 );

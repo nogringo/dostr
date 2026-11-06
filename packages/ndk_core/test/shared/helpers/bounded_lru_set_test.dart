@@ -1,4 +1,4 @@
-import 'package:ndk/shared/helpers/bounded_lru_set.dart';
+import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:test/test.dart';
 
 void main() {

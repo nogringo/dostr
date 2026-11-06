@@ -60,7 +60,7 @@ Verify the installation with `ndk --version`. See [releases](https://github.com/
 
 ### Account & Authentication
 
-- **Multiple signer support**: Built-in (BIP-340), NIP-55 external signers, NIP-07 (web) with `ndk_nip07`, and NIP-46 (remote signing/bunkers)
+- **Multiple signer support**: Built-in (BIP-340), NIP-55 external signers, NIP-07 (web) with `ndk_nip07`, and NIP-46 (remote signing/bunkers) with `ndk_nip46`
 - **Account management** with state tracking and multiple account support
 - **Relay authentication** (NIP-42) for private relay access
 

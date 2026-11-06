@@ -5,7 +5,6 @@ import 'dart:io';
 import 'dart:math' show Random;
 
 import 'package:bip340/bip340.dart';
-import 'package:ndk/domain_layer/usecases/bunkers/models/bunker_request.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
