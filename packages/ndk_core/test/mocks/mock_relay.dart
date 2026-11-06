@@ -13,7 +13,9 @@ class MockRelay {
     this.challengeOnConnect = true,
     this.answerRequests = true,
     this.answerEvents = true,
+    this.answerAuth = true,
     this.rejectEventsWith,
+    this.maxSubscriptions,
   });
 
   /// REQs on a connection that did not authenticate get a CLOSED auth-required
@@ -32,8 +34,18 @@ class MockRelay {
   /// false stores every EVENT without sending its OK
   bool answerEvents;
 
+  /// false leaves every AUTH without its OK
+  bool answerAuth;
+
   /// refuses every EVENT with this message
   String? rejectEventsWith;
+
+  /// refuses a REQ past this many open on one socket, like strfry: with a
+  /// NOTICE that names no subscription
+  int? maxSubscriptions;
+
+  /// REQs refused for [maxSubscriptions]
+  int refusedRequests = 0;
 
   /// called with the messages this relay does not handle itself
   void Function(MockRelayClient client, List<dynamic> message)? onUnknown;
@@ -143,7 +155,18 @@ class MockRelay {
       client.send(['CLOSED', id, 'auth-required: authenticate first']);
       return;
     }
+    final max = maxSubscriptions;
+    if (max != null &&
+        !client.subscriptions.containsKey(id) &&
+        client.subscriptions.length >= max) {
+      refusedRequests++;
+      client.send(['NOTICE', 'ERROR: too many concurrent REQs']);
+      return;
+    }
     client.subscriptions[id] = filters;
+    if (client.subscriptions.length > client.mostSubscriptions) {
+      client.mostSubscriptions = client.subscriptions.length;
+    }
     if (!answerRequests) return;
     for (final event in _matching(filters)) {
       client.send(['EVENT', id, event.toJson()]);
@@ -152,6 +175,7 @@ class MockRelay {
   }
 
   void _onAuth(MockRelayClient client, Nip01Event event) {
+    if (!answerAuth) return;
     final accepted =
         event.kind == 22242 &&
         event.getFirstTag('challenge') == client.challenge &&
@@ -217,6 +241,9 @@ class MockRelayClient {
 
   /// live subscriptions, by subscription id
   final Map<String, List<Filter>> subscriptions = {};
+
+  /// the most [subscriptions] this socket ever held at once
+  int mostSubscriptions = 0;
 
   final List<List<dynamic>> received = [];
 

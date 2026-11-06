@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/filter.dart';
@@ -13,9 +14,29 @@ import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'request_state.dart';
 
+/// A request waiting for a slot on a connection, [order] telling which came
+/// first.
+typedef _Queued = ({int order, RequestState state, RelayRequestState request});
+
+/// The requests waiting for a slot on one connection. Queries and
+/// subscriptions wait apart, so a subscription held back by its share is
+/// passed over without scanning the queries behind it.
+class _Waiting {
+  final queries = Queue<_Queued>();
+  final subscriptions = Queue<_Queued>();
+
+  bool get isEmpty => queries.isEmpty && subscriptions.isEmpty;
+
+  Queue<_Queued> of(RequestState state) =>
+      state.isSubscription ? subscriptions : queries;
+}
+
 /// The REQs in flight on a `RelayManager`: sending them, following what each
 /// relay answers, replaying them on a new socket and moving them to a bound
 /// connection when a relay asks for authentication. Internal to ndk_core.
+///
+/// A connection carries at most as many REQs as its relay accepts, the
+/// others wait in its queue for a slot.
 class RelayRequests implements ConnectionListener {
   final RelayConnections _connections;
   final RelayAuth _auth;
@@ -23,6 +44,14 @@ class RelayRequests implements ConnectionListener {
   /// holds the state of all in flight requests
   /// key: request Id
   final Map<String, RequestState> inFlight = {};
+
+  final Map<RelayConnectionKey, _Waiting> _waiting = {};
+
+  /// every request [_waiting] holds. One taken out of here stays in its queue
+  /// until it reaches the head, where it is dropped.
+  final Set<RelayRequestState> _queued = Set.identity();
+
+  int _queuedSoFar = 0;
 
   RelayRequests({
     required RelayConnections connections,
@@ -39,9 +68,9 @@ class RelayRequests implements ConnectionListener {
       return;
     }
 
+    // what waited on the previous socket waits again below, in order
+    _dropQueue(relayConnectivity.key);
     inFlight.forEach((key, state) {
-      // the path that opened this socket may have sent it already
-      if (relayConnectivity.stats.openRequestIds.contains(state.id)) return;
       state.requests.values
           // by connection, not by relay: replaying a bound request on the
           // anonymous socket gets it refused, and replaying an anonymous one on
@@ -56,7 +85,7 @@ class RelayRequests implements ConnectionListener {
                 // subscription outlives its EOSE and has to go back up
                 (state.isSubscription || !req.receivedEOSE),
           )
-          .forEach((req) => _sendRequest(relayConnectivity, state.id, req));
+          .forEach((req) => unawaited(_admit(relayConnectivity, state, req)));
     });
   }
 
@@ -80,6 +109,9 @@ class RelayRequests implements ConnectionListener {
   /// waiting for a completion event no relay will send, or for the timeout.
   @override
   void endRequestsOn(RelayConnectionKey key) {
+    // a request waiting there ends as disconnected too: the connection died,
+    // it was not full
+    _dropQueue(key);
     for (final state in inFlight.values.toList()) {
       final request = state.requests[key];
       if (request == null || request.retryingAuth || state.endedOn(request)) {
@@ -172,21 +204,145 @@ class RelayRequests implements ConnectionListener {
     }
   }
 
-  /// Sends [request] on [relayConnectivity] and tracks it as open there
-  void _sendRequest(
-    RelayConnection relayConnectivity,
-    String reqId,
+  /// Most slots of [limit] that subscriptions may hold. strfry caps the
+  /// database query and the live subscription apart, so a connection full of
+  /// subscriptions still answers queries there: the rest stays theirs.
+  static int _subscriptionShare(int limit) => limit - limit ~/ 4;
+
+  int _subscriptionsIn(Set<String> slots) =>
+      slots.where((id) => inFlight[id]?.isSubscription ?? false).length;
+
+  /// Writes [request] on [connectivity] when a slot is free there, otherwise
+  /// queues it until one is. Completes with what kept it from being written
+  /// right away.
+  Future<RelayFailure?> _admit(
+    RelayConnection connectivity,
+    RequestState state,
     RelayRequestState request,
   ) {
-    request.markSent();
-    _connections.sendTo(
-      relayConnectivity,
-      ClientMsg(
-        ClientMsgType.kReq,
-        id: reqId,
-        filters: request.filters,
-      ).toJson(),
-    );
+    // a REQ open there already is not sent twice, nor queued twice
+    if (connectivity.holdsSlot(state.id) || _queued.contains(request)) {
+      return Future.value();
+    }
+    // before queueing too: a CLOSED auth-required it still carried would make
+    // it look ended while it waits, and dropped from its queue
+    request.forgetAnswers();
+    final limit = connectivity.subscriptionLimit;
+    var heldByShare = false;
+    if (limit != null && connectivity.isConnected) {
+      final slots = connectivity.heldSlots;
+      heldByShare =
+          state.isSubscription &&
+          _subscriptionsIn(slots) >= _subscriptionShare(limit);
+      if (slots.length < limit && !heldByShare) {
+        return _write(connectivity, state, request);
+      }
+    }
+    if (heldByShare) {
+      Logger.log.w(
+        () =>
+            "REQ ${state.id} waits on ${connectivity.key}: subscriptions hold "
+            "${_subscriptionShare(limit!)} of its $limit slots",
+      );
+    } else {
+      Logger.log.d(
+        () => "REQ ${state.id} waits for a slot on ${connectivity.key}",
+      );
+    }
+    _waiting.putIfAbsent(connectivity.key, _Waiting.new).of(state).add((
+      order: _queuedSoFar++,
+      state: state,
+      request: request,
+    ));
+    _queued.add(request);
+    return Future.value();
+  }
+
+  /// Writes [request] on [connectivity], where it holds a slot from now on.
+  Future<RelayFailure?> _write(
+    RelayConnection connectivity,
+    RequestState state,
+    RelayRequestState request,
+  ) async {
+    final write = Object();
+    connectivity.reservedRequestIds[state.id] = write;
+    try {
+      await _connections.sendOrThrow(
+        connectivity,
+        ClientMsg(
+          ClientMsgType.kReq,
+          id: state.id,
+          filters: request.filters,
+        ).toJson(),
+      );
+      return null;
+    } catch (e) {
+      Logger.log.w(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
+      return RelayFailure(RelayFailureKind.connectionLost, "$e");
+    } finally {
+      if (identical(connectivity.reservedRequestIds[state.id], write)) {
+        connectivity.reservedRequestIds.remove(state.id);
+      }
+      // a write that did not land frees its slot
+      if (!connectivity.holdsSlot(state.id)) admitQueuedOn(connectivity);
+    }
+  }
+
+  @override
+  void admitQueuedOn(RelayConnection connectivity) {
+    final waiting = _waiting[connectivity.key];
+    final limit = connectivity.subscriptionLimit;
+    if (waiting == null || limit == null || !connectivity.isConnected) return;
+    final slots = connectivity.heldSlots;
+    final share = _subscriptionShare(limit);
+    var held = slots.length;
+    var subscriptions = _subscriptionsIn(slots);
+    while (held < limit) {
+      final query = _head(waiting.queries);
+      final subscription = subscriptions < share
+          ? _head(waiting.subscriptions)
+          : null;
+      final next = query == null
+          ? subscription
+          : subscription == null || query.order < subscription.order
+          ? query
+          : subscription;
+      if (next == null) break;
+      waiting.of(next.state).removeFirst();
+      _queued.remove(next.request);
+      if (connectivity.holdsSlot(next.state.id)) continue;
+      held++;
+      if (next.state.isSubscription) subscriptions++;
+      unawaited(_write(connectivity, next.state, next.request));
+    }
+    if (waiting.isEmpty && identical(_waiting[connectivity.key], waiting)) {
+      _waiting.remove(connectivity.key);
+    }
+  }
+
+  /// The first request of [queue] still waiting, once those that stopped
+  /// waiting are dropped.
+  _Queued? _head(Queue<_Queued> queue) {
+    while (queue.isNotEmpty) {
+      final entry = queue.first;
+      if (_queued.contains(entry.request) &&
+          isStillInFlight(entry.state) &&
+          !entry.state.networkController.isClosed &&
+          !entry.state.endedOn(entry.request)) {
+        return entry;
+      }
+      queue.removeFirst();
+      _queued.remove(entry.request);
+    }
+    return null;
+  }
+
+  void _dropQueue(RelayConnectionKey key) {
+    final waiting = _waiting.remove(key);
+    if (waiting == null) return;
+    for (final entry in [...waiting.queries, ...waiting.subscriptions]) {
+      _queued.remove(entry.request);
+    }
   }
 
   /// Marks what the relay itself ended with a CLOSED. It stops counting as open
@@ -198,7 +354,9 @@ class RelayRequests implements ConnectionListener {
     String? message,
   ) {
     request.markClosed(message);
-    relayConnectivity.stats.openRequestIds.remove(reqId);
+    if (relayConnectivity.stats.openRequestIds.remove(reqId)) {
+      admitQueuedOn(relayConnectivity);
+    }
   }
 
   /// Whether [state] is still the request tracked under its id. A request
@@ -329,28 +487,26 @@ class RelayRequests implements ConnectionListener {
       );
       return const RelayFailure(RelayFailureKind.connectionLost);
     }
-    try {
-      await _connections.sendOrThrow(
-        relay,
-        ClientMsg(
-          ClientMsgType.kReq,
-          id: state.id,
-          filters: request.filters,
-        ).toJson(),
-      );
-    } catch (e) {
-      Logger.log.e(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
-      return RelayFailure(RelayFailureKind.connectionLost, "$e");
-    }
-    return null;
+    return _admit(relay, state, request);
   }
 
   /// Sends a CLOSE wherever [state] is still open on a relay, then ends it.
   Future<void> close(RequestState state) async {
+    for (final request in state.requests.values) {
+      if (_queued.remove(request)) {
+        request.markNotSent(
+          const RelayFailure(RelayFailureKind.connectionFull),
+        );
+      }
+    }
     for (final relay in _connections.connectedRelays) {
       final request = state.requests[relay.key];
       // a request the relay ended itself, or never got, needs no CLOSE
-      if (request == null || state.endedOn(request)) continue;
+      if (request == null ||
+          state.endedOn(request) ||
+          !relay.holdsSlot(state.id)) {
+        continue;
+      }
       _sendCloseToConnection(relay.key, state.id);
     }
 
@@ -415,7 +571,7 @@ class RelayRequests implements ConnectionListener {
           _checkNetworkClose(state);
           return;
         }
-        _sendRequest(relayConnectivity, reqId, request);
+        unawaited(_admit(relayConnectivity, state, request));
       });
       return;
     }
@@ -455,7 +611,7 @@ class RelayRequests implements ConnectionListener {
         // sent without waiting for the AUTH: a relay that only challenges on
         // demand needs this request as the trigger, and the refusal that may
         // follow lands on the branch above
-        _sendRequest(bound, reqId, retry);
+        unawaited(_admit(bound, state, retry));
       } finally {
         endPendingConnection(state);
       }

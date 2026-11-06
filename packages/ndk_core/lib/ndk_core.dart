@@ -19,6 +19,7 @@ export 'domain_layer/entities/relay_protocol_handler.dart';
 export 'domain_layer/entities/relay_req_event.dart';
 export 'domain_layer/entities/relay_request_outcome.dart';
 export 'domain_layer/entities/relay_stats.dart';
+export 'domain_layer/entities/subscription_limit.dart';
 export 'domain_layer/entities/timeout_pausable.dart';
 export 'domain_layer/repositories/nostr_transport.dart';
 export 'domain_layer/usecases/relay_manager.dart';

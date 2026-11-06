@@ -27,6 +27,17 @@ class RelayConnection implements RelayConnectivity {
 
   StreamSubscription? _streamSubscription;
 
+  /// how many REQs the relay keeps open on this socket, null until known
+  int? subscriptionLimit;
+
+  /// tells a late answer for a previous socket from the current one
+  int subscriptionLimitGeneration = 0;
+
+  /// ids of the REQs that hold a slot here but are not written yet, each with
+  /// the write it waits for, see [MutableRelayStats.openRequestIds] for the
+  /// written ones
+  final Map<String, Object> reservedRequestIds = {};
+
   RelayConnection(this.key, {this.relayTransport})
     : relay = MutableRelay(url: key.url);
 
@@ -35,6 +46,16 @@ class RelayConnection implements RelayConnectivity {
 
   @override
   bool get isConnected => relayTransport?.isOpen() ?? false;
+
+  /// Whether the REQ [id] holds a slot here, written or not.
+  bool holdsSlot(String id) =>
+      stats.openRequestIds.contains(id) || reservedRequestIds.containsKey(id);
+
+  /// ids of every REQ holding a slot here
+  Set<String> get heldSlots => {
+    ...stats.openRequestIds,
+    ...reservedRequestIds.keys,
+  };
 
   /// starts listening on nostr transport
   void listen(
@@ -58,6 +79,7 @@ class RelayConnection implements RelayConnectivity {
     relayTransport = null;
     // the socket carried them, they die with it
     stats.openRequestIds.clear();
+    reservedRequestIds.clear();
 
     if (streamSubscription != null) {
       await streamSubscription.cancel();

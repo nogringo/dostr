@@ -17,6 +17,7 @@ import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_failure.dart';
 import '../entities/relay_protocol_handler.dart';
+import '../entities/subscription_limit.dart';
 import '../repositories/nostr_transport.dart';
 
 export 'relay_reqs/relay_publish.dart' show RelayPublish, RelayPublishes;
@@ -64,6 +65,12 @@ class RelayManager {
   /// starts at 500 milliseconds and doubles each time, for an hour. The
   /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
   /// requests are replayed once it is back.
+  ///
+  /// A connection keeps at most as many REQs open as [subscriptionLimit] says
+  /// its relay accepts, asked each time its socket opens. The others wait for
+  /// a slot, and subscriptions leave a quarter of them to queries. No answer
+  /// within [SUBSCRIPTION_LIMIT_TIMEOUT], or none at all, gives
+  /// [DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION].
   RelayManager({
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
@@ -74,6 +81,7 @@ class RelayManager {
     Duration authChallengeTimeout =
         RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     AuthHandler? authHandler,
+    SubscriptionLimit? subscriptionLimit,
   }) {
     if (reconnectMaximumStep <= 0) {
       throw ArgumentError.value(
@@ -94,6 +102,7 @@ class RelayManager {
       onMessage: _dispatch,
       allowReconnect: allowReconnect,
       reconnectMaximumStep: reconnectMaximumStep,
+      subscriptionLimit: subscriptionLimit,
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
     _broadcasts = RelayBroadcasts(connections: _connections, auth: _auth);

@@ -50,7 +50,7 @@ void main() {
       ),
     );
 
-    state.requests[anonymous]!.markSent();
+    state.requests[anonymous]!.forgetAnswers();
     state.requests[anonymous]!.markNotSent(
       const RelayFailure(RelayFailureKind.blocked),
     );

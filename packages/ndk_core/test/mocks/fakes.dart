@@ -110,12 +110,14 @@ RelayManager newRelayManager({
   AuthAccounts? accounts,
   AuthHandler? authHandler,
   NostrTransportFactory? transportFactory,
+  SubscriptionLimit? subscriptionLimit,
 }) => RelayManager(
   nostrTransportFactory:
       transportFactory ??
       WebSocketClientNostrTransportFactory(pingInterval: null),
   accounts: accounts,
   authHandler: authHandler,
+  subscriptionLimit: subscriptionLimit,
 );
 
 /// Starts a [MockRelay] for the current test and stops it afterwards.
@@ -125,7 +127,9 @@ Future<MockRelay> startRelay({
   bool challengeOnConnect = true,
   bool answerRequests = true,
   bool answerEvents = true,
+  bool answerAuth = true,
   String? rejectEventsWith,
+  int? maxSubscriptions,
 }) async {
   final relay = MockRelay(
     requireAuthForRequests: requireAuthForRequests,
@@ -133,7 +137,9 @@ Future<MockRelay> startRelay({
     challengeOnConnect: challengeOnConnect,
     answerRequests: answerRequests,
     answerEvents: answerEvents,
+    answerAuth: answerAuth,
     rejectEventsWith: rejectEventsWith,
+    maxSubscriptions: maxSubscriptions,
   );
   await relay.start();
   addTearDown(relay.stop);

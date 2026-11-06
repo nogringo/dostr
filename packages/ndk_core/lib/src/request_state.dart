@@ -112,9 +112,9 @@ class RelayRequestState {
     onOutcomeChanged?.call();
   }
 
-  /// The request is on its way to the relay again, so nothing the relay
-  /// answered the last time holds anymore.
-  void markSent() {
+  /// The request goes to the relay again, written now or queued for a slot,
+  /// so nothing the relay answered the last time holds anymore.
+  void forgetAnswers() {
     if (!_receivedEOSE &&
         !_receivedClosed &&
         _closedMessage == null &&

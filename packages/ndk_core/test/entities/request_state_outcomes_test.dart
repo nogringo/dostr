@@ -63,7 +63,7 @@ void main() {
         const RelayFailure(RelayFailureKind.unreachable),
       );
 
-      state.requests[key]!.markSent();
+      state.requests[key]!.forgetAnswers();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.pending),
@@ -77,7 +77,7 @@ void main() {
       state.requests[key]!.connectionGone = true;
 
       // what a subscription replayed on a replacement socket goes through
-      state.requests[key]!.markSent();
+      state.requests[key]!.forgetAnswers();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.pending),
@@ -175,7 +175,7 @@ void main() {
 
     test('is pending again once sent again', () {
       final state = caughtUp();
-      state.requests[key]!.markSent();
+      state.requests[key]!.forgetAnswers();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.pending),

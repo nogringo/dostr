@@ -17,6 +17,10 @@ enum RelayFailureKind {
   /// the connection went away before the message could be written
   connectionLost,
 
+  /// the request ended while it waited for a slot on its connection, which
+  /// held as many REQs as its relay accepts or had yet to learn how many
+  connectionFull,
+
   /// the request was over before its connection opened
   requestEnded,
 

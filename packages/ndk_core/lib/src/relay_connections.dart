@@ -8,6 +8,7 @@ import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
+import '../domain_layer/entities/subscription_limit.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
 import '../shared/helpers/relay_helper.dart';
 import 'package:ndk_isolates/ndk_isolates.dart';
@@ -31,6 +32,10 @@ abstract interface class ConnectionListener {
 
   /// Gives up on what [key] still owed, once nothing will bring it back.
   void endRequestsOn(RelayConnectionKey key);
+
+  /// Writes the queued REQs that now fit on [connectivity]: a slot was freed
+  /// there, or its limit became known.
+  void admitQueuedOn(RelayConnection connectivity);
 }
 
 /// A decoded relay message, in the order its relay sent it.
@@ -65,6 +70,7 @@ class RelayConnections {
   final RelayAuth _auth;
   final RelayMessageHandler _onMessage;
   final int _reconnectMaximumStep;
+  final SubscriptionLimit? _subscriptionLimit;
 
   /// told when a socket comes back or goes away, set before any connection
   late final ConnectionListener listener;
@@ -104,9 +110,11 @@ class RelayConnections {
     required RelayMessageHandler onMessage,
     this.allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
+    SubscriptionLimit? subscriptionLimit,
   }) : _auth = auth,
        _onMessage = onMessage,
-       _reconnectMaximumStep = reconnectMaximumStep;
+       _reconnectMaximumStep = reconnectMaximumStep,
+       _subscriptionLimit = subscriptionLimit;
 
   /// every connection on each change, the latest one cached
   Stream<List<RelayConnection>> get changes => _updates.stream;
@@ -255,6 +263,7 @@ class RelayConnections {
           'Connection was removed while replacing its transport',
         );
       }
+      _askSubscriptionLimit(relayConnectivity);
       final elapsed = Stopwatch()..start();
       final backoff = BinaryExponentialBackoff(
         initial: RECONNECT_INITIAL_DELAY,
@@ -333,6 +342,57 @@ class RelayConnections {
     }
     notifyChanged();
     return failed;
+  }
+
+  /// Asks the [SubscriptionLimit] for the socket [connectivity] is about to
+  /// open. Its REQs wait in their queue until it answers, or until
+  /// [SUBSCRIPTION_LIMIT_TIMEOUT] gives them the default.
+  void _askSubscriptionLimit(RelayConnection connectivity) {
+    final generation = ++connectivity.subscriptionLimitGeneration;
+    connectivity.subscriptionLimit = null;
+    final provider = _subscriptionLimit;
+    if (provider == null) {
+      _setSubscriptionLimit(connectivity, generation, null);
+      return;
+    }
+    FutureOr<int?> answer;
+    try {
+      answer = provider(connectivity.url);
+    } catch (error) {
+      Logger.log.w(
+        () => "No subscription limit for ${connectivity.url}",
+        error: error,
+      );
+      answer = null;
+    }
+    if (answer is! Future<int?>) {
+      _setSubscriptionLimit(connectivity, generation, answer);
+      return;
+    }
+    answer
+        .timeout(SUBSCRIPTION_LIMIT_TIMEOUT)
+        .then(
+          (limit) => _setSubscriptionLimit(connectivity, generation, limit),
+          onError: (Object error) {
+            Logger.log.w(
+              () => "No subscription limit for ${connectivity.url}",
+              error: error,
+            );
+            _setSubscriptionLimit(connectivity, generation, null);
+          },
+        );
+  }
+
+  void _setSubscriptionLimit(
+    RelayConnection connectivity,
+    int generation,
+    int? limit,
+  ) {
+    if (connectivity.subscriptionLimitGeneration != generation) return;
+    connectivity.subscriptionLimit = limit != null && limit > 0
+        ? limit
+        : DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION;
+    listener.admitQueuedOn(connectivity);
   }
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
@@ -609,7 +669,9 @@ class RelayConnections {
           waiter.complete();
         }
       case [ClientMsgType.kClose, final String id, ...]:
-        relayConnectivity.stats.openRequestIds.remove(id);
+        if (relayConnectivity.stats.openRequestIds.remove(id)) {
+          listener.admitQueuedOn(relayConnectivity);
+        }
     }
   }
 
