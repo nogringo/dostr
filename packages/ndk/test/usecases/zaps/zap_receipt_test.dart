@@ -26,7 +26,6 @@ void main() {
         [
           'description',
           jsonEncode({
-            'id': 'duparomana',
             'pubkey': 'testSender',
             'kind': ZapRequest.kZapRequestKind,
             'sig': "sig",
@@ -78,7 +77,6 @@ void main() {
         [
           'description',
           jsonEncode({
-            'id': 'duparomana',
             'pubkey': 'testSender',
             'kind': ZapRequest.kZapRequestKind,
             'sig': "sig",
@@ -111,7 +109,6 @@ void main() {
         [
           'description',
           jsonEncode({
-            'id': 'duparomana',
             'pubkey': 'testSender',
             'kind': ZapRequest.kZapRequestKind,
             'sig': "sig",
@@ -144,7 +141,6 @@ void main() {
         [
           'description',
           jsonEncode({
-            'id': 'duparomana',
             'pubkey': 'testSender',
             'kind': ZapRequest.kZapRequestKind,
             'sig': "sig",
@@ -177,7 +173,6 @@ void main() {
         [
           'description',
           jsonEncode({
-            'id': 'duparomana',
             'pubkey': 'testSender',
             'kind': ZapRequest.kZapRequestKind,
             'sig': "sig",

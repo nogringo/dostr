@@ -44,9 +44,9 @@ class Bip340 {
     required Nip01Event event,
     required String privateKey,
   }) {
-    final id = Nip01Utils.calculateId(event);
+    final id = event.payloadId;
 
     final signature = sign(id, privateKey);
-    return event.copyWith(sig: signature);
+    return event.copyWith(id: id, sig: signature);
   }
 }

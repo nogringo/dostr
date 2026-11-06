@@ -82,8 +82,10 @@ class _Nip55SignerPageState extends State<Nip55SignerPage> {
               eventJson: eventJson,
             );
             EventVerifier eventVerifier = RustEventVerifier();
-            eventVerifier
-                .verify(Nip01EventModel.fromJson(json.decode(value['event'])))
+            final signed = Nip01Event.tryFromJson(json.decode(value['event']));
+            (signed == null
+                    ? Future.value(false)
+                    : eventVerifier.verify(signed))
                 .then((valid) {
               setState(() {
                 _text = valid ? "✅ Valid" : "❌ Invalid";

@@ -16,8 +16,8 @@ extension Nip01EventExtension on Nip01Event {
     };
   }
 
-  static Nip01Event fromJsonStorage(Map<String, Object?> json) =>
-      Nip01EventModel.fromJson(json);
+  static Nip01Event? fromJsonStorage(Map<String, Object?> json) =>
+      Nip01Event.tryFromJson(json);
 }
 
 // Extension for ContactList to add JSON serialization support

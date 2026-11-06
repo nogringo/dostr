@@ -39,6 +39,11 @@ print(event.hasValidId);
 
 The constructor computes the id from the payload. `copyWith` gives a changed
 payload its new id and drops a signature that no longer matches it.
+`withoutSig` gives an unsigned copy, and `payloadId` the id of the payload,
+whatever id the event holds.
+
+Two events with the same id are `==`, whatever their payload: check the id
+before deduplicating events that are not verified yet.
 
 To read and write the JSON form:
 
@@ -49,12 +54,13 @@ event.toJson(); // the JSON object, a Map
 event.toJsonString(); // the same as jsonEncode(event)
 ```
 
-`tryFromJson` takes only a well-formed event: string `pubkey` and `content`,
-int `created_at` and `kind`, tags made of strings. Use it for JSON from
-outside, such as a relay, a remote signer or a seal. `fromJson` is lenient:
-it reads a missing `pubkey` or `content` as `''` and turns tag values into
-strings, and throws a `FormatException` when `created_at` or `kind` is missing
-or a field has the wrong type.
+Both read only a well-formed event: string `pubkey` and `content`, int
+`created_at` and `kind`, tags made of strings, and a string `id` and `sig`
+when there are some. `fromJson` throws a `FormatException` where
+`tryFromJson` returns null, like `int.parse` and `int.tryParse`. Prefer
+`tryFromJson` for JSON from outside, such as a relay, a remote signer or a
+seal. Both check the shape only, so that they read back whatever `toJson`
+wrote.
 
 Both keep the id they read, even a wrong one: check it with `hasValidId` or
 an `EventVerifier` before trusting the event. When the JSON has no id, they
@@ -83,9 +89,13 @@ class MyVerifier implements EventVerifier {
 `toJson` and `toJsonString` now come from `Nip01Event`.
 
 `Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
-and `Nip01Utils.calculateId` recomputes it from the payload. `fromJson` now
-computes a missing id instead of reading it as `''`, and `toJson` no longer
-writes `"sig": null` for an unsigned event. `validSig` is gone: NDK only hands
+and `event.payloadId` recomputes it from the payload. `toJson` no longer
+writes `"sig": null` for an unsigned event.
+
+`fromJson` is now strict. It used to read a missing `pubkey` or `content` as
+`''`, missing `tags` as none, and to turn tag values into strings. It now
+throws a `FormatException` for these. A missing `id`, which it read as `''`,
+is now computed. `validSig` is gone: NDK only hands
 out events it verified, and nothing read the flag.
 
 Deprecated, with their replacements:
@@ -93,6 +103,7 @@ Deprecated, with their replacements:
 | Deprecated | Use |
 | --- | --- |
 | `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
+| `Nip01Utils.calculateId(event)` | `event.payloadId` |
 | `event.getDtag()` | `event.dTag` |
 | `event.getEId()` | `event.getFirstTag('e')` |
 | `event.replyETags` | the NIP-10 `reply` marker, read from `event.tags` |

@@ -38,6 +38,11 @@ class Nip01EventModel extends Nip01Event {
     ),
   );
 
+  /// [Nip01Event.withoutSig], as a [Nip01EventModel]
+  @override
+  Nip01EventModel withoutSig() =>
+      Nip01EventModel.fromEntity(super.withoutSig());
+
   /**
    * encoding/decoding methods
    */

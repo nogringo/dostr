@@ -124,13 +124,14 @@ Output control:
 
   Future<Nip01Event> _buildEvent(_BroadcastArgs parsed, Ndk ndk) async {
     if (parsed.eventJson != null) {
-      final decoded = jsonDecode(parsed.eventJson!);
-      if (decoded is! Map) {
+      final event = Nip01Event.tryFromJson(jsonDecode(parsed.eventJson!));
+      if (event == null) {
         throw ArgumentError(
-          'Event JSON must decode to an object, got ${decoded.runtimeType}',
+          'Event JSON must be a NIP-01 event object with pubkey, created_at, '
+          'kind, tags and content',
         );
       }
-      return Nip01EventModel.fromJson(decoded.cast<String, dynamic>());
+      return event;
     }
 
     if (parsed.kind != null) {

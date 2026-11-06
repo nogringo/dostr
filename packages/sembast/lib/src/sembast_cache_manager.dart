@@ -655,6 +655,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     final records = await _eventsStore.find(_database, finder: finder);
     final events = records
         .map((record) => Nip01EventExtension.fromJsonStorage(record.value))
+        .nonNulls
         .toList();
 
     var result = applyVisibilityRules

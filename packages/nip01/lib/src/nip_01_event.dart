@@ -74,47 +74,50 @@ class Nip01Event {
 
   /// Reads a NIP-01 event JSON object, as `jsonDecode` returns it.
   ///
-  /// A missing `id` is computed from the payload, a missing `pubkey` or
-  /// `content` reads as `''` and a missing `sig` as null. Tag values that are
-  /// not strings are turned into strings. A missing `created_at` or `kind`,
-  /// or a field of the wrong type, throws a [FormatException].
+  /// The object needs a string `pubkey` and `content`, an int `created_at`
+  /// and `kind`, and `tags` that are lists of strings. An `id` and a `sig`
+  /// are strings when present: a missing id is computed from the payload and
+  /// a missing sig reads as null. Anything else throws a [FormatException],
+  /// where [tryFromJson] returns null.
   ///
-  /// For JSON that comes from outside, such as a relay, a remote signer or a
-  /// seal, use [tryFromJson], which takes only well-formed events.
+  /// Only the shape is checked, so that it reads back whatever [toJson]
+  /// wrote. The id is not checked against the payload, nor the sig against
+  /// the pubkey: use [hasValidId] or an [EventVerifier] for that.
   Nip01Event.fromJson(Map<dynamic, dynamic> data)
     : this._(
         id: _optional<String>(data, 'id'),
-        pubKey: _optional<String>(data, 'pubkey') ?? '',
+        pubKey: _required<String>(data, 'pubkey'),
         createdAt: _required<int>(data, 'created_at'),
         kind: _required<int>(data, 'kind'),
-        tags: _tagsFromJson(_optional<List>(data, 'tags')),
-        content: _optional<String>(data, 'content') ?? '',
+        tags: _tagsFromJson(data),
+        content: _required<String>(data, 'content'),
         sig: _optional<String>(data, 'sig'),
       );
 
-  /// The event in [data] when it is a well-formed NIP-01 event JSON object,
-  /// null otherwise.
+  /// The event that [fromJson] reads from [data], or null where it throws or
+  /// [data] is not a map.
   ///
-  /// Well-formed means a string `pubkey` and `content`, an int `created_at`
-  /// and `kind`, `tags` that are lists of strings, and an `id` and a `sig`
-  /// that are strings when present. A missing `id` is computed from the
-  /// payload. Neither the id nor the sig is checked: use [hasValidId] or an
-  /// [EventVerifier] for that.
-  static Nip01Event? tryFromJson(Object? data) => switch (data) {
-    {
-              'pubkey': String _,
-              'created_at': int _,
-              'kind': int _,
-              'tags': List tags,
-              'content': String _,
-            } &&
-            final Map json
-        when _areTags(tags) &&
-            (json['id'] is String?) &&
-            (json['sig'] is String?) =>
-      Nip01Event.fromJson(json),
-    _ => null,
-  };
+  /// Use it for JSON that comes from outside, such as a relay, a remote
+  /// signer or a seal.
+  static Nip01Event? tryFromJson(Object? data) {
+    if (data is! Map) return null;
+    try {
+      return Nip01Event.fromJson(data);
+    } on FormatException {
+      return null;
+    }
+  }
+
+  static List<List<String>> _tagsFromJson(Map<dynamic, dynamic> data) =>
+      switch (_required<List>(data, 'tags')) {
+        final tags when _areTags(tags) => List.unmodifiable([
+          for (final List tag in tags) List<String>.unmodifiable(tag),
+        ]),
+        final tags => throw FormatException(
+          '"tags" is not a list of string lists',
+          tags,
+        ),
+      };
 
   static bool _areTags(List tags) =>
       tags.every((tag) => tag is List && tag.every((value) => value is String));
@@ -133,11 +136,6 @@ class Nip01Event {
       List.unmodifiable([
         for (final tag in tags) List<String>.unmodifiable(tag),
       ]);
-
-  static List<List<String>> _tagsFromJson(List? tags) => _frozen([
-    for (final tag in (tags ?? const []).whereType<List>())
-      [for (final value in tag) value?.toString() ?? ''],
-  ]);
 
   /// A copy with the given fields replaced.
   ///
@@ -186,6 +184,17 @@ class Nip01Event {
     );
   }
 
+  /// A copy with the same [id] and no [sig], such as a NIP-59 rumor.
+  Nip01Event withoutSig() => Nip01Event._(
+    id: id,
+    pubKey: pubKey,
+    createdAt: createdAt,
+    kind: kind,
+    tags: tags,
+    content: content,
+    sig: null,
+  );
+
   /// The NIP-01 JSON object of this event, ready for `jsonEncode`.
   ///
   /// An unsigned event, such as a NIP-59 rumor, has no `sig` key.
@@ -201,7 +210,9 @@ class Nip01Event {
 
   String toJsonString() => json.encode(toJson());
 
-  // Individual events with the same "id" are equivalent
+  /// Events with the same [id] are equal, whatever their payload or [sig]: an
+  /// event with a forged id equals the real one, so check it before using it
+  /// to deduplicate events that are not verified yet.
   @override
   bool operator ==(other) => other is Nip01Event && id == other.id;
   @override
@@ -213,16 +224,17 @@ class Nip01Event {
     return secondsSinceEpoch;
   }
 
+  /// The id of this event's payload (NIP-01), whatever [id] it holds.
+  String get payloadId => computeEventId(
+    pubKey: pubKey,
+    createdAt: createdAt,
+    kind: kind,
+    tags: tags,
+    content: content,
+  );
+
   /// Whether [id] is the hash of this event's payload (NIP-01).
-  bool get hasValidId =>
-      id ==
-      computeEventId(
-        pubKey: pubKey,
-        createdAt: createdAt,
-        kind: kind,
-        tags: tags,
-        content: content,
-      );
+  bool get hasValidId => id == payloadId;
 
   @Deprecated('Use getFirstTag("e")')
   String? getEId() => getFirstTag('e');
@@ -294,6 +306,6 @@ class Nip01Event {
 
   @override
   String toString() {
-    return 'Nip01Event{pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
+    return 'Nip01Event{id: $id, pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
   }
 }

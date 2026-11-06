@@ -55,6 +55,34 @@ void main() {
       expect(event.id, note['id']);
     });
 
+    // Reference id: sha256 of Node's JSON.stringify of the same payload.
+    test('escapes its payload like JSON.stringify', () {
+      final event = Nip01Event(
+        pubKey: alice,
+        createdAt: 1,
+        kind: 1,
+        tags: [
+          ['t', '\u0007 \u001b'],
+        ],
+        content: '\u0000\u0001\u001f\b\t\n\f\r"\\/\u007f  \ud800é🔮',
+      );
+
+      expect(
+        event.id,
+        'eefa2a992d927c92f37c74732db72849b577bbac028b719cec437d9e96e4edb9',
+      );
+    });
+
+    test('withoutSig keeps the id and drops the signature', () {
+      final event = signedEvent(createdAt: 1);
+
+      final unsigned = event.withoutSig();
+
+      expect(unsigned.id, event.id);
+      expect(unsigned.sig, isNull);
+      expect(unsigned.toJson(), isNot(contains('sig')));
+    });
+
     group('copyWith', () {
       final event = signedEvent(content: 'original', createdAt: 1);
 
@@ -197,6 +225,45 @@ void main() {
 
   group('JSON', () {
     final note = jsonDecode(realNote) as Map<String, dynamic>;
+    final payload = {
+      'pubkey': alice,
+      'created_at': 1,
+      'kind': 1,
+      'tags': [
+        ['t', 'x'],
+      ],
+      'content': '',
+    };
+    final malformed = <Map<String, Object?>>[
+      {...payload}..remove('pubkey'),
+      {...payload}..remove('created_at'),
+      {...payload}..remove('kind'),
+      {...payload}..remove('tags'),
+      {...payload}..remove('content'),
+      {...payload, 'pubkey': 5},
+      {...payload, 'created_at': 1.5},
+      {...payload, 'kind': '1'},
+      {...payload, 'tags': 't'},
+      {
+        ...payload,
+        'tags': ['t'],
+      },
+      {
+        ...payload,
+        'tags': [
+          ['t', 5],
+        ],
+      },
+      {
+        ...payload,
+        'tags': [
+          ['p', null],
+        ],
+      },
+      {...payload, 'content': 5},
+      {...payload, 'id': 5},
+      {...payload, 'sig': 5},
+    ];
 
     test('reads a real note', () {
       final event = Nip01Event.fromJson(note);
@@ -209,6 +276,7 @@ void main() {
       expect(event.content, note['content']);
       expect(event.sig, note['sig']);
       expect(event.hasValidId, isTrue);
+      expect(() => event.tags.first.add('x'), throwsUnsupportedError);
     });
 
     test('writes back the JSON it read', () {
@@ -219,41 +287,38 @@ void main() {
       expect(jsonDecode(jsonEncode(event)), note);
     });
 
-    test('reads unsigned and loosely typed JSON', () {
-      final event = Nip01Event.fromJson({
-        'created_at': 1,
-        'kind': 1,
-        'tags': [
-          ['t', 5],
-          'not a tag',
-          ['p', null],
-        ],
-      });
-
-      expect(event.hasValidId, isTrue);
-      expect(event.pubKey, '');
-      expect(event.content, '');
-      expect(event.sig, isNull);
-      expect(event.tags, [
-        ['t', '5'],
-        ['p', ''],
-      ]);
-      expect(() => event.tags.first.add('x'), throwsUnsupportedError);
+    test('reads an event without id or sig', () {
+      for (final data in [
+        payload,
+        {...payload, 'id': null, 'sig': null},
+      ]) {
+        final event = Nip01Event.fromJson(data);
+        expect(event.hasValidId, isTrue);
+        expect(event.sig, isNull);
+      }
     });
 
     test('gives events read without an id their own ids', () {
-      final first = Nip01Event.fromJson({
-        'created_at': 1,
-        'kind': 1,
-        'content': 'a',
-      });
-      final second = Nip01Event.fromJson({
-        'created_at': 1,
-        'kind': 1,
-        'content': 'b',
-      });
+      final first = Nip01Event.fromJson(payload);
+      final second = Nip01Event.fromJson({...payload, 'content': 'other'});
 
       expect({first, second}, hasLength(2));
+    });
+
+    test('reads back whatever toJson wrote, even an id that is not hex', () {
+      final event = Nip01Event(
+        id: 'local-1',
+        pubKey: '',
+        createdAt: 1,
+        kind: 70000,
+        tags: [],
+        content: '',
+      );
+
+      final read = Nip01Event.fromJson(event.toJson());
+
+      expect(read.toJson(), event.toJson());
+      expect(read.hasValidId, isFalse);
     });
 
     test('writes no sig for an unsigned event', () {
@@ -263,17 +328,8 @@ void main() {
       expect(Nip01Event.fromJson(event.toJson()).sig, isNull);
     });
 
-    test('throws a FormatException for a field it cannot read', () {
-      for (final data in [
-        {'kind': 1},
-        {'created_at': 1},
-        {'created_at': 1.5, 'kind': 1},
-        {'created_at': 1, 'kind': '1'},
-        {'created_at': 1, 'kind': 1, 'id': 5},
-        {'created_at': 1, 'kind': 1, 'pubkey': 5},
-        {'created_at': 1, 'kind': 1, 'sig': 5},
-        {'created_at': 1, 'kind': 1, 'tags': 't'},
-      ]) {
+    test('throws a FormatException for a malformed event', () {
+      for (final data in malformed) {
         expect(
           () => Nip01Event.fromJson(data),
           throwsFormatException,
@@ -282,64 +338,17 @@ void main() {
       }
     });
 
-    test('tryFromJson reads a real note', () {
-      final event = Nip01Event.tryFromJson(note)!;
-
-      expect(event.toJson(), note);
-      expect(event.hasValidId, isTrue);
+    test('tryFromJson reads what fromJson reads', () {
+      expect(Nip01Event.tryFromJson(note)!.toJson(), note);
+      expect(Nip01Event.tryFromJson(payload)!.hasValidId, isTrue);
     });
 
-    test('tryFromJson reads an event without id or sig', () {
-      final payload = {
-        'pubkey': alice,
-        'created_at': 1,
-        'kind': 1,
-        'tags': [
-          ['t', 'x'],
-        ],
-        'content': '',
-      };
-
-      for (final data in [
-        payload,
-        {...payload, 'sig': null},
-      ]) {
-        final event = Nip01Event.tryFromJson(data)!;
-        expect(event.hasValidId, isTrue);
-        expect(event.sig, isNull);
-      }
-    });
-
-    test('tryFromJson refuses what is not a well-formed event', () {
-      final payload = {
-        'pubkey': alice,
-        'created_at': 1,
-        'kind': 1,
-        'tags': <Object?>[],
-        'content': '',
-      };
-
+    test('tryFromJson returns null where fromJson throws', () {
       for (final data in <Object?>[
         null,
         'event',
         [payload],
-        {...payload}..remove('pubkey'),
-        {...payload}..remove('content'),
-        {...payload}..remove('tags'),
-        {...payload, 'created_at': 1.5},
-        {...payload, 'kind': '1'},
-        {
-          ...payload,
-          'tags': [
-            ['t', 5],
-          ],
-        },
-        {
-          ...payload,
-          'tags': ['t'],
-        },
-        {...payload, 'id': 5},
-        {...payload, 'sig': 5},
+        ...malformed,
       ]) {
         expect(Nip01Event.tryFromJson(data), isNull, reason: '$data');
       }
@@ -348,8 +357,10 @@ void main() {
 
   test('hasValidId tells a forged id apart', () {
     final note = jsonDecode(realNote) as Map<String, dynamic>;
+    final forged = Nip01Event.fromJson({...note, 'id': 'f' * 64});
 
     expect(Nip01Event.fromJson(note).hasValidId, isTrue);
-    expect(Nip01Event.fromJson({...note, 'id': 'f' * 64}).hasValidId, isFalse);
+    expect(forged.hasValidId, isFalse);
+    expect(forged.payloadId, note['id']);
   });
 }
