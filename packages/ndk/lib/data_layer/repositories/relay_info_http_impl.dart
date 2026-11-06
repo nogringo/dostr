@@ -6,7 +6,7 @@ import 'package:ndk_http/ndk_http.dart';
 
 /// implementation of the [RelayInfoRepo] interface with http
 class RelayInfoHttpRepoImpl implements RelayInfoRepo {
-  final HttpRequestDS httpDS;
+  final NdkHttp httpDS;
 
   /// deadline covering connection setup and the entire response body, so a
   /// stalled relay does not retain an HTTP socket

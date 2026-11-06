@@ -18,7 +18,7 @@ import 'package:ndk_http/ndk_http.dart';
 final headers = {'Content-Type': 'application/json'};
 
 class CashuRepoImpl implements CashuRepo {
-  final HttpRequestDS client;
+  final NdkHttp client;
 
   CashuRepoImpl({required this.client});
   @override

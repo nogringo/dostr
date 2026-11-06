@@ -13,7 +13,7 @@ class CashuTestTools {
   }) {
     final MockCashuHttpClient mockClient =
         customMockClient ?? MockCashuHttpClient();
-    final HttpRequestDS httpRequestDS = HttpRequestDS(mockClient);
+    final NdkHttp httpRequestDS = NdkHttp(mockClient);
 
     final CashuRepo cashuRepo =
         customRepo ?? CashuRepoImpl(client: httpRequestDS);

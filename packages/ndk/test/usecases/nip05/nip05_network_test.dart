@@ -34,7 +34,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -59,7 +59,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -81,7 +81,7 @@ void main() {
       final client = MockClient(requestHandlerErr);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -99,7 +99,7 @@ void main() {
     test('result is invalid', () async {
       final client = MockClient(requestHandler);
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -118,7 +118,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -137,7 +137,7 @@ void main() {
       final client = MockClient(requestHandler2);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -156,7 +156,7 @@ void main() {
       final client = MockClient(requestHandler2);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -175,7 +175,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
 
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
@@ -212,9 +212,7 @@ void main() {
         final client = MockClient(requestHandler);
 
         final cache = MemCacheManager();
-        final nip05Repos = Nip05HttpRepositoryImpl(
-          httpDS: HttpRequestDS(client),
-        );
+        final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
         final recentTimestamp =
             (DateTime.now()
                 .subtract(
@@ -252,9 +250,7 @@ void main() {
         final client = MockClient(requestHandler);
 
         final cache = MemCacheManager();
-        final nip05Repos = Nip05HttpRepositoryImpl(
-          httpDS: HttpRequestDS(client),
-        );
+        final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
         Nip05Usecase nip05Usecase = Nip05Usecase(
           database: cache,
           nip05Repository: nip05Repos,
@@ -288,7 +284,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -324,7 +320,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -342,7 +338,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -369,9 +365,7 @@ void main() {
         final client = MockClient(notFoundHandler);
 
         final cache = MemCacheManager();
-        final nip05Repos = Nip05HttpRepositoryImpl(
-          httpDS: HttpRequestDS(client),
-        );
+        final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
         Nip05Usecase nip05Usecase = Nip05Usecase(
           database: cache,
           nip05Repository: nip05Repos,
@@ -387,7 +381,7 @@ void main() {
       final client = MockClient(requestHandler2);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -406,7 +400,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -423,7 +417,7 @@ void main() {
 
       final cache = MemCacheManager();
       final nip05Repos = Nip05HttpRepositoryImpl(
-        httpDS: HttpRequestDS(client),
+        httpDS: NdkHttp(client),
         timeout: const Duration(milliseconds: 50),
       );
       Nip05Usecase nip05Usecase = Nip05Usecase(
@@ -450,7 +444,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -471,7 +465,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -491,7 +485,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -510,7 +504,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -526,7 +520,7 @@ void main() {
       final client = MockClient((request) async => http.Response('', 404));
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -544,9 +538,7 @@ void main() {
         final client = MockClient(requestHandler);
 
         final cache = MemCacheManager();
-        final nip05Repos = Nip05HttpRepositoryImpl(
-          httpDS: HttpRequestDS(client),
-        );
+        final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
         Nip05Usecase nip05Usecase = Nip05Usecase(
           database: cache,
           nip05Repository: nip05Repos,
@@ -573,9 +565,7 @@ void main() {
         final client = MockClient(requestHandler);
 
         final cache = MemCacheManager();
-        final nip05Repos = Nip05HttpRepositoryImpl(
-          httpDS: HttpRequestDS(client),
-        );
+        final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
         Nip05Usecase nip05Usecase = Nip05Usecase(
           database: cache,
           nip05Repository: nip05Repos,
@@ -600,7 +590,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -622,7 +612,7 @@ void main() {
       final client = MockClient(notFoundHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -641,7 +631,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -663,7 +653,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       await Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -682,7 +672,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -717,7 +707,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -743,7 +733,7 @@ void main() {
       });
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -759,7 +749,7 @@ void main() {
       final client = MockClient(requestHandlerErr);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -779,7 +769,7 @@ void main() {
       final client = MockClient(malformedHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -794,7 +784,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -807,7 +797,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,
@@ -828,7 +818,7 @@ void main() {
       final client = MockClient(requestHandler);
 
       final cache = MemCacheManager();
-      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: HttpRequestDS(client));
+      final nip05Repos = Nip05HttpRepositoryImpl(httpDS: NdkHttp(client));
       Nip05Usecase nip05Usecase = Nip05Usecase(
         database: cache,
         nip05Repository: nip05Repos,

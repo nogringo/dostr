@@ -25,7 +25,7 @@ void main() {
 
         // Create wallet1
         final httpClient1 = http.Client();
-        final httpRequestDS1 = HttpRequestDS(httpClient1);
+        final httpRequestDS1 = NdkHttp(httpClient1);
         final cashuRepo1 = CashuRepoImpl(client: httpRequestDS1);
         final cacheManager1 = MemCashuStorage();
         final keyDerivation1 = DartCashuKeyDerivation();
@@ -123,7 +123,7 @@ void main() {
         print('\nStep 3: Creating wallet2 with same seed phrase...');
 
         final httpClient2 = http.Client();
-        final httpRequestDS2 = HttpRequestDS(httpClient2);
+        final httpRequestDS2 = NdkHttp(httpClient2);
         final cashuRepo2 = CashuRepoImpl(client: httpRequestDS2);
         final cacheManager2 = MemCashuStorage(); // Fresh cache - empty!
         final keyDerivation2 = DartCashuKeyDerivation();

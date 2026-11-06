@@ -167,7 +167,7 @@ void main() {
       final cache = MemCashuStorage();
       final cache2 = MemCashuStorage();
 
-      final client = HttpRequestDS(http.Client());
+      final client = NdkHttp(http.Client());
       final cashuRepo = CashuRepoImpl(client: client);
       final cashuRepo2 = CashuRepoImpl(client: client);
       final derivation = DartCashuKeyDerivation();

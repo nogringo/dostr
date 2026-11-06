@@ -111,7 +111,7 @@ class Cashu {
     bool autoVerifyMintCounters = false,
   }) {
     final cache = ndk.config.cache;
-    final httpDS = HttpRequestDS(http.Client());
+    final httpDS = NdkHttp(http.Client());
     ndk.addLifecycleHooks(onDestroy: () async => httpDS.abortPending());
     return Cashu.withDependencies(
       cashuRepo: CashuRepoImpl(client: httpDS),

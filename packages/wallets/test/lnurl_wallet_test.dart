@@ -13,7 +13,7 @@ void main() {
       final link = Lnurl.getLud16LinkFromLud16(identifier)!;
       final endpoint = _LnurlEndpoint(link, http.Response('not found', 404));
       final lnurl = Lnurl(
-        transport: LnurlTransportHttpImpl(HttpRequestDS(endpoint.client)),
+        transport: LnurlTransportHttpImpl(NdkHttp(endpoint.client)),
       );
       final repository = MemWalletsRepo();
       final wallets = Wallets.withDependencies(
@@ -41,7 +41,7 @@ void main() {
       final link = Lnurl.getLud16LinkFromLud16(identifier)!;
       final endpoint = _LnurlEndpoint(link, http.Response('unavailable', 503));
       final lnurl = Lnurl(
-        transport: LnurlTransportHttpImpl(HttpRequestDS(endpoint.client)),
+        transport: LnurlTransportHttpImpl(NdkHttp(endpoint.client)),
       );
       final repository = MemWalletsRepo();
       final wallet = LnurlWallet(

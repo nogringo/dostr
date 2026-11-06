@@ -29,7 +29,7 @@ void main() {
     test('parse mint info', () async {
       final mintUrl = 'http://127.0.0.1:8085';
 
-      final HttpRequestDS httpRequestDS = HttpRequestDS(http.Client());
+      final NdkHttp httpRequestDS = NdkHttp(http.Client());
 
       final repo = CashuRepoImpl(client: httpRequestDS);
 

@@ -29,7 +29,7 @@ void main() {
 
   setUp(() {
     repo = BlossomRepositoryImpl(
-      client: HttpRequestDS(http.Client()),
+      client: NdkHttp(http.Client()),
       fileIO: createFileIO(),
     );
   });

@@ -56,7 +56,7 @@ class Initialization {
 
   /// data sources
 
-  final HttpRequestDS _httpRequestDS = HttpRequestDS(http.Client());
+  final NdkHttp _httpRequestDS = NdkHttp(http.Client());
 
   /// repositories with no dependencies
 

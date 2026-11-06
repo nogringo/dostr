@@ -33,7 +33,7 @@ void main() {
         }
         return http.Response('unexpected request', 500);
       });
-      final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
+      final transport = LnurlTransportHttpImpl(NdkHttp(client));
       final Lnurl lnurl = Lnurl(transport: transport);
 
       var lnurlResponse = await lnurl.getLnurlResponse(link);
@@ -43,7 +43,7 @@ void main() {
 
     test('getLnurlResponse returns null for invalid link', () async {
       final client = MockClient((_) async => http.Response('not found', 404));
-      final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
+      final transport = LnurlTransportHttpImpl(NdkHttp(client));
       final Lnurl lnurl = Lnurl(transport: transport);
 
       final link = 'https://invalid.com';

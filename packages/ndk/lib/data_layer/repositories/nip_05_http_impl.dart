@@ -6,7 +6,7 @@ import '../models/nip_05_model.dart';
 
 /// implementation of the [Nip05Repository] interface with http
 class Nip05HttpRepositoryImpl implements Nip05Repository {
-  final HttpRequestDS httpDS;
+  final NdkHttp httpDS;
 
   /// how long to wait for a nostr.json response
   final Duration timeout;

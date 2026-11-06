@@ -51,7 +51,7 @@ Cashu _cashu({
   bool autoVerifyMintCounters = false,
 }) {
   final repo = CashuRepoImpl(
-    client: HttpRequestDS(mockClient ?? MockCashuHttpClient()),
+    client: NdkHttp(mockClient ?? MockCashuHttpClient()),
   );
   return Cashu.withDependencies(
     cashuRepo: repo,
@@ -76,7 +76,7 @@ Cashu _realCashu({
   required CashuUserSeedphrase seedPhrase,
 }) {
   return Cashu.withDependencies(
-    cashuRepo: CashuRepoImpl(client: HttpRequestDS(client)),
+    cashuRepo: CashuRepoImpl(client: NdkHttp(client)),
     walletsRepo: wallets,
     storage: cache,
     cashuKeyDerivation: DartCashuKeyDerivation(),

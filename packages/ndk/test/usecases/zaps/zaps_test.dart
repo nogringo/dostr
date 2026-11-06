@@ -57,7 +57,7 @@ void main() {
       final amount = 1000;
 
       final ndk = Ndk.defaultConfig();
-      final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
+      final transport = LnurlTransportHttpImpl(NdkHttp(client));
       final Lnurl lnurl = Lnurl(transport: transport);
       final zaps = Zaps(requests: ndk.requests, lnurl: lnurl);
       // Logger.setLogLevel(Logger.logLevels.trace);

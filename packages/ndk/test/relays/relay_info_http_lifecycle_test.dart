@@ -76,7 +76,7 @@ void main() {
           await server.close();
         });
         final result = RelayInfoHttpRepoImpl(
-          httpDS: HttpRequestDS(client),
+          httpDS: NdkHttp(client),
           timeout: const Duration(milliseconds: 300),
         ).getRelayInfo('wss://127.0.0.1:${server.port}');
         await connected.future.timeout(const Duration(seconds: 2));
@@ -105,7 +105,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await RelayInfoHttpRepoImpl(
-      httpDS: HttpRequestDS(client),
+      httpDS: NdkHttp(client),
     ).getRelayInfo('wss://127.0.0.1:${server.port}');
     expect(info?.name, 'Test relay ⚡');
     expect(info?.supportsNip('11'), isTrue);
@@ -124,7 +124,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await RelayInfoHttpRepoImpl(
-      httpDS: HttpRequestDS(client),
+      httpDS: NdkHttp(client),
     ).getRelayInfo('ws://127.0.0.1:${server.port}');
     expect(info?.name, 'Local relay');
   });
@@ -141,7 +141,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await RelayInfoHttpRepoImpl(
-      httpDS: HttpRequestDS(client),
+      httpDS: NdkHttp(client),
     ).getRelayInfo('wss://127.0.0.1:${server.port}');
     expect(info, isNull);
   });

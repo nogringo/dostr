@@ -26,7 +26,7 @@ dependencies:
 import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 
-final ds = HttpRequestDS(http.Client());
+final ds = NdkHttp(http.Client());
 
 final json = await ds.jsonRequest(
   url: Uri.parse('https://example.com/.well-known/nostr.json?name=bob'),
@@ -46,7 +46,8 @@ where `BrowserClient` fails it with a plain `ClientException`.
 `putStream` uploads a stream without loading it into memory: the body is read
 only as fast as the connection sends it, and `UploadProgress` follows the bytes
 as they go out. The upload starts when the stream is listened to, cancelling
-the subscription aborts it, and the last event carries the response.
+the subscription aborts it, and the last event carries the response. Without
+a `contentLength`, its `totalBytes` and `progress` are null.
 `getStream` downloads the same way, at the pace the listener reads the
 stream.
 
@@ -59,7 +60,9 @@ before the bytes go out.
 Every request takes a `timeout` that bounds it as a whole. `getStream` and
 `putStream` take an `idleTimeout` instead: it only counts the time without data
 moving, so it never cuts a large transfer short, and a paused download does not
-count. Either one ends the request with a `TimeoutException`, while
+count. On an upload, the wait for the response after the last byte counts too,
+so the timeout must cover the time the server takes to process the body, such
+as hashing it. Either one ends the request with a `TimeoutException`, while
 `abortPending` ends it with a `RequestAbortedException`, so a caller can tell
 them apart.
 
@@ -73,6 +76,7 @@ timeout and keep running after `abortPending`.
 `package:ndk/data_layer/data_sources/http_request.dart` is now
 `package:ndk_http/ndk_http.dart`. Besides the import:
 
+- `HttpRequestDS` is now `NdkHttp`.
 - `jsonRequest` takes a named `url`, a `Uri`, and no longer forces `https`.
 - `jsonRequest` throws `FormatException` instead of `TypeError` when the body
   is not a JSON object.
@@ -80,4 +84,6 @@ timeout and keep running after `abortPending`.
 - `HttpRequestException` is a `ClientException` with a required `method`, and
   its `url` string is now `uri`, a `Uri`.
 - `UploadProgress.error` is gone: a failed upload is an error on the stream.
+- `UploadProgress.totalBytes`, `progress` and `percentage` are null instead of
+  0 when the upload has no content length.
 - `headers` are typed `Map<String, String>` and optional on every method.

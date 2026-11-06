@@ -84,7 +84,7 @@ Nip01Event? _initial(BlossomAuthorization authorization, String serverUrl) =>
     authorization.upfront ?? authorization.resolvedFor(serverUrl);
 
 class BlossomRepositoryImpl implements BlossomRepository {
-  final HttpRequestDS client;
+  final NdkHttp client;
   final FileIO fileIO;
 
   /// how many times [abortPending] ran
@@ -330,7 +330,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           return BlobUploadProgress(
             currentServer: serverUrl,
             sentBytes: progress.sentBytes,
-            totalBytes: progress.totalBytes,
+            totalBytes: contentLength,
             completedUploads: List.from(results),
             phase: UploadPhase.uploading,
             progressPhase: progress.progress,
@@ -452,7 +452,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         final update = BlobUploadProgress(
           currentServer: serverUrl,
           sentBytes: progress.sentBytes,
-          totalBytes: progress.totalBytes,
+          totalBytes: contentLength,
           completedUploads: results,
           phase: UploadPhase.uploading,
           progressPhase: progress.progress,

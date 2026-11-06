@@ -107,7 +107,7 @@ void main() {
         // Use a Cashu instance with a real HTTP client (not mock) and our custom cache
         // This will attempt real network calls and timeout quickly
         final cashu = Cashu.withDependencies(
-          cashuRepo: CashuRepoImpl(client: HttpRequestDS(http.Client())),
+          cashuRepo: CashuRepoImpl(client: NdkHttp(http.Client())),
           walletsRepo: walletsRepo,
           storage: cache,
           cashuKeyDerivation: DartCashuKeyDerivation(),
@@ -329,7 +329,7 @@ void main() {
 
       // Use the mock repo that simulates melt failure after proofs are spent
       final mockRepo = CashuRepoMeltFailAfterSpendMock(
-        client: HttpRequestDS(myHttpMock),
+        client: NdkHttp(myHttpMock),
       );
 
       final cashu = CashuTestTools.mockHttpCashu(

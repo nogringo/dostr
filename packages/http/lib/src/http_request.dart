@@ -61,19 +61,30 @@ class HttpRequestException extends http.ClientException {
 /// Upload progress information
 class UploadProgress {
   final int sentBytes;
-  final int totalBytes;
+
+  /// null when the upload has no content length
+  final int? totalBytes;
   final bool isComplete;
   final http.Response? response;
 
-  UploadProgress({
+  const UploadProgress({
     required this.sentBytes,
-    required this.totalBytes,
+    this.totalBytes,
     this.isComplete = false,
     this.response,
   });
 
-  double get progress => totalBytes > 0 ? sentBytes / totalBytes : 0;
-  double get percentage => progress * 100;
+  /// null when [totalBytes] is unknown
+  double? get progress => switch (totalBytes) {
+    null => null,
+    final total when total > 0 => sentBytes / total,
+    _ => 0,
+  };
+
+  double? get percentage => switch (progress) {
+    final progress? => progress * 100,
+    null => null,
+  };
 }
 
 /// A PUT whose body the client pulls itself, so the body is read only as fast
@@ -151,12 +162,12 @@ class _Abort {
 /// [HttpRequestException]. A `timeout` bounds the whole request and an
 /// `idleTimeout` the time without data moving: either one ends the request
 /// with a [TimeoutException].
-class HttpRequestDS {
+class NdkHttp {
   final http.Client _client;
   final Set<_Abort> _pending = {};
 
-  /// create new instance of HttpRequestDS
-  HttpRequestDS(this._client);
+  /// create new instance of NdkHttp
+  NdkHttp(this._client);
 
   /// aborts every request still in flight. The client stays open: the app may
   /// share it through `http.runWithClient`
@@ -254,6 +265,8 @@ class HttpRequestDS {
   /// Uploads [body] without loading it into memory: the body is read as the
   /// connection sends it. The upload starts on listen, and cancelling the
   /// subscription aborts it. The last [UploadProgress] carries the response.
+  /// [idleTimeout] also runs while the server processes the body before it
+  /// answers.
   Stream<UploadProgress> putStream({
     required Uri url,
     required Stream<List<int>> body,
@@ -262,12 +275,11 @@ class HttpRequestDS {
     Duration? idleTimeout,
   }) {
     final abort = _Abort(url, idleTimeout);
-    final totalBytes = contentLength ?? 0;
     late final StreamController<UploadProgress> progress;
 
     Future<void> upload() async {
       var sentBytes = 0;
-      progress.add(UploadProgress(sentBytes: 0, totalBytes: totalBytes));
+      progress.add(UploadProgress(sentBytes: 0, totalBytes: contentLength));
       _pending.add(abort);
       abort.startTimer();
       try {
@@ -282,7 +294,7 @@ class HttpRequestDS {
                     progress.add(
                       UploadProgress(
                         sentBytes: sentBytes,
-                        totalBytes: totalBytes,
+                        totalBytes: contentLength,
                       ),
                     );
                   }
@@ -301,7 +313,7 @@ class HttpRequestDS {
         progress.add(
           UploadProgress(
             sentBytes: sentBytes,
-            totalBytes: totalBytes,
+            totalBytes: contentLength,
             isComplete: true,
             response: response,
           ),
@@ -375,11 +387,11 @@ class HttpRequestDS {
       abort.startTimer();
       try {
         final response = await _client.send(request);
+        abort.startTimer();
         if (!_isSuccessStatus(response.statusCode)) {
           // reading the body drains the connection and keeps the server's reason
           throw _failure('GET', await http.Response.fromStream(response), url);
         }
-        abort.startTimer();
         await download.addStream(
           response.stream.transform(
             StreamTransformer.fromHandlers(

@@ -24,10 +24,8 @@ class _StalledServers {
   });
 }
 
-BlossomRepositoryImpl _repo(http.Client client) => BlossomRepositoryImpl(
-  client: HttpRequestDS(client),
-  fileIO: createFileIO(),
-);
+BlossomRepositoryImpl _repo(http.Client client) =>
+    BlossomRepositoryImpl(client: NdkHttp(client), fileIO: createFileIO());
 
 /// lets the operation reach its first request, or whatever it waits on
 Future<void> _settle() => Future<void>.delayed(Duration.zero);

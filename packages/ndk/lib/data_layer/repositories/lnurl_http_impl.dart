@@ -6,7 +6,7 @@ import 'package:ndk_http/ndk_http.dart';
 
 /// implementation of the [LnurlTransport] interface with http
 class LnurlTransportHttpImpl implements LnurlTransport {
-  final HttpRequestDS httpDS;
+  final NdkHttp httpDS;
 
   /// constructor
   LnurlTransportHttpImpl(this.httpDS);

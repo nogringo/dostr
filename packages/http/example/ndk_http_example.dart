@@ -7,7 +7,7 @@ import 'package:ndk_http/ndk_http.dart';
 Future<String?> nip05Pubkey(String name, String domain) async {
   final client = http.Client();
   try {
-    final json = await HttpRequestDS(client).jsonRequest(
+    final json = await NdkHttp(client).jsonRequest(
       url: Uri.https(domain, '/.well-known/nostr.json', {'name': name}),
       followRedirects: false,
       timeout: const Duration(seconds: 5),

@@ -70,7 +70,7 @@ class Blossom {
        _blossomImpl =
            blossomRepository ??
            BlossomRepositoryImpl(
-             client: HttpRequestDS(http.Client()),
+             client: NdkHttp(http.Client()),
              fileIO: createFileIO(),
            ),
        _eventSignerFactory = eventSignerFactory,

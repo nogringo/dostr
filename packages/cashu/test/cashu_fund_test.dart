@@ -466,7 +466,7 @@ void main() {
 
       final myHttpMock = MockCashuHttpClient();
 
-      final cashuRepo = CashuRepoMock(client: HttpRequestDS(myHttpMock));
+      final cashuRepo = CashuRepoMock(client: NdkHttp(myHttpMock));
 
       final derivation = DartCashuKeyDerivation();
 

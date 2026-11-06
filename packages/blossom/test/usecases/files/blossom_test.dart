@@ -476,7 +476,7 @@ void main() {
 
   group("stream blobs", () {
     final BlossomRepository blossomRepo = BlossomRepositoryImpl(
-      client: HttpRequestDS(http.Client()),
+      client: NdkHttp(http.Client()),
       fileIO: createFileIO(),
     );
     test(
