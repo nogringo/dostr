@@ -36,7 +36,6 @@ import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
-import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
@@ -90,7 +89,6 @@ class Initialization {
   late DecryptedEventPayloads decryptedEventPayloads;
   late FetchedRanges fetchedRanges;
   CacheEvictionScheduler? cacheEvictionScheduler;
-  late ProofOfWork proofOfWork;
   StreamSubscription<List<RelayConnectivity>>? _relayConnectivitySubscription;
   final Map<String, bool> _relayOpenStates = {};
 
@@ -320,8 +318,6 @@ class Initialization {
       relayManager,
       RelayInfoHttpRepoImpl(httpDS: _httpRequestDS),
     );
-
-    proofOfWork = ProofOfWork();
 
     nip77 = Nip77(
       relayManager: relayManager,

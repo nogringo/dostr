@@ -19,7 +19,6 @@ All accessible via `ndk.<accessor>`.
 | `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |
 | `ndk.connectivity` | `Connectivy` | Relay connectivity events |
-| `ndk.proofOfWork` | `ProofOfWork` | PoW event generation |
 
 ## Experimental
 
@@ -134,6 +133,19 @@ final ta = TrustedAssertions(
 
 final user = await ta.getUserMetrics(pubkey, metrics: {Nip85Metric.rank});
 user?.rank;
+```
+
+## Proof of work (NIP-13)
+
+Lives in the `ndk_nip13` package and does not depend on `ndk`: static methods on `Nip13`. `mineEvent` runs in the `ndk_isolates` compute pool and returns an unsigned event with a `nonce` tag, so broadcast it after mining.
+
+```dart
+import 'package:ndk_nip13/ndk_nip13.dart';
+
+final mined = await Nip13.mineEvent(event, 20);
+Nip13.getDifficulty(mined.id); // >= 20
+Nip13.validateEvent(mined); // meets its nonce target
+await ndk.broadcast.broadcast(nostrEvent: mined);
 ```
 
 ## Files (Blossom)

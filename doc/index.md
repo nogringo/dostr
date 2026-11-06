@@ -64,7 +64,7 @@ features, usecases, and Flutter widgets end to end.
 - **Domain verification** (NIP-05): Verify and cache Nostr addresses
 - **File management**: Upload, download, and delete files on Blossom servers with `ndk_blossom`
 - **Connectivity**: Get notified about connection issues
-- **Proof of Work** (NIP-13): Create and verify PoW events
+- **Proof of Work** (NIP-13): Create and verify PoW events with `ndk_nip13`
 
 ### Developer Experience
 

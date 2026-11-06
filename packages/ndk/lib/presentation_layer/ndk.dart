@@ -15,7 +15,6 @@ import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
-import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
@@ -141,8 +140,6 @@ class Ndk {
   /// so remote signers do not need to decrypt the same event repeatedly.
   DecryptedEventPayloads get decryptedEventPayloads =>
       _initialization.decryptedEventPayloads;
-
-  ProofOfWork get proofOfWork => _initialization.proofOfWork;
 
   /// Registers callbacks run by [setBackgrounded] and [destroy], in
   /// registration order. Add-on packages such as ndk_nwc and ndk_wallets use

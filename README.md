@@ -113,6 +113,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip85`: NIP-85 trusted assertions, to fetch and stream the metrics trusted providers compute for users, events and addresses, without depending on `ndk`.
 
+### [🔗 NIP-13](./packages/nip13/)
+
+`ndk_nip13`: NIP-13 proof of work, to mine, measure and validate the difficulty of event ids off the main isolate, without depending on `ndk`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

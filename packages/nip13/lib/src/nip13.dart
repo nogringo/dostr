@@ -40,6 +40,9 @@ class Nip13 {
     return getDifficulty(eventId) >= targetDifficulty;
   }
 
+  /// Returns an unsigned copy of [event] with a `nonce` tag, replacing any
+  /// existing one, whose id meets [targetDifficulty]. Throws after
+  /// [maxIterations] tries (1,000,000 by default).
   static Future<Nip01Event> mineEvent(
     Nip01Event event,
     int targetDifficulty, {
@@ -103,6 +106,7 @@ class Nip13 {
     return null;
   }
 
+  /// True when [event] meets the target of its `nonce` tag, or has none.
   static bool validateEvent(Nip01Event event) {
     final targetDifficulty = getTargetDifficultyFromEvent(event);
     if (targetDifficulty == null) {
@@ -112,8 +116,9 @@ class Nip13 {
     return checkDifficulty(event.id, targetDifficulty);
   }
 
-  static int calculateCommitment(String eventId) {
+  /// The work behind [eventId]: 2^difficulty, or 0 for a difficulty of 0.
+  static BigInt calculateCommitment(String eventId) {
     final difficulty = getDifficulty(eventId);
-    return difficulty > 0 ? (1 << difficulty) : 0;
+    return difficulty > 0 ? BigInt.one << difficulty : BigInt.zero;
   }
 }

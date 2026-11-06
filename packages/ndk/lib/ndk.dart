@@ -95,7 +95,6 @@ export 'domain_layer/entities/nip46_client_metadata.dart';
 export 'domain_layer/usecases/bunkers/models/nostr_connect.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'domain_layer/entities/filter_fetched_ranges.dart';
-export 'domain_layer/usecases/proof_of_work/proof_of_work.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show
         Nip77,
