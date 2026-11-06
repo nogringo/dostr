@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
-import '../../../cashu/test/tools/simple_profiler.dart';
+import '../tools/simple_profiler.dart';
 
 void main() async {
   group("multiple filters (external REAL)", skip: true, () {

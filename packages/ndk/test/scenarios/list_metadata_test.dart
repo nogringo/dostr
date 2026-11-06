@@ -2,7 +2,7 @@ import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import '../../../cashu/test/mocks/mock_event_verifier.dart';
-import '../../../cashu/test/tools/simple_profiler.dart';
+import '../tools/simple_profiler.dart';
 
 void main() async {
   group("list + metadata (external REAL)", skip: true, () {

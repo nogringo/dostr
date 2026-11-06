@@ -4,7 +4,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_pq/ndk_pq.dart';
 import 'package:test/test.dart';
 
-import '../../cashu/test/tools/simple_profiler.dart';
+import '../../ndk/test/tools/simple_profiler.dart';
 
 void main() async {
   group("qs_sign + qs_verify", skip: true, () {
