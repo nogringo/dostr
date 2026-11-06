@@ -10,11 +10,9 @@ import 'package:ndk_flutter/main/config.dart';
 import 'package:ndk_flutter/models/accounts.dart';
 import 'package:ndk_flutter/models/nip_05_result.dart';
 import 'package:ndk_nip07/ndk_nip07.dart';
+import 'package:ndk_nip55/ndk_nip55.dart';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-
-import '../data_layer/data_sources/nip55_signer.dart';
-import '../data_layer/repositories/signers/nip55_event_signer.dart';
 
 class NdkFlutter {
   final Ndk ndk;

@@ -132,6 +132,8 @@ dependency_overrides:
     path: ../nip07
   ndk_nip46:
     path: ../nip46
+  ndk_nip55:
+    path: ../nip55
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

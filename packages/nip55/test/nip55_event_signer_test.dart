@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk_flutter/data_layer/data_sources/nip55_signer.dart';
-import 'package:ndk_flutter/data_layer/repositories/signers/nip55_event_signer.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip55/ndk_nip55.dart';
 
 class _FakeNip55Signer extends Nip55Signer {
   _FakeNip55Signer(this.response);

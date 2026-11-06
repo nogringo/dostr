@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../data_sources/nip55_signer.dart';
+import 'nip55_signer.dart';
 
 /// Internal class to track a pending request with its completer
 class _PendingRequestEntry {

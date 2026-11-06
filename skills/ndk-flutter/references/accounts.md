@@ -19,7 +19,7 @@ await ndkFlutter.saveAccountsState();
 | Private key | `privkey` | internal factory | nsec stored encrypted |
 | Public key (read-only) | `pubkey` | internal factory | no signing |
 | NIP-07 browser ext | `nip07` | `Nip07EventSigner` | web only, from `ndk_nip07` |
-| Amber (Android) | `amber` | `AmberEventSigner` | Android only |
+| NIP-55 signer app | `nip55` | `Nip55EventSigner` | Android only, from `ndk_nip55` |
 | NIP-46 bunker | `bunker` | `Nip46EventSigner` | remote signer, from `ndk_nip46` |
 
 ## Available signers
@@ -30,10 +30,12 @@ import 'package:ndk_flutter/ndk_flutter.dart';
 // NIP-07 (browser extension, web), from ndk_nip07 and exported by ndk_flutter
 final signer = Nip07EventSigner(cachedPublicKey: pubkey);
 
-// Amber (Android external signer)
-final amber = Amberflutter();
-final ds = AmberFlutterDS(amber);
-final signer = AmberEventSigner(publicKey: pubkey, amberFlutterDS: ds);
+// NIP-55 signer app (Android), from ndk_nip55 and exported by ndk_flutter
+final login = await const Nip55Signer().login();
+final signer = Nip55EventSigner(
+  publicKey: login!.pubkey,
+  nip55Signer: Nip55Signer(package: login.package),
+);
 
 // NIP-46 bunker
 final signer = Nip46EventSigner(

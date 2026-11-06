@@ -929,6 +929,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip55:
+    dependency: "direct overridden"
+    description:
+      path: "../nip55"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nip59:
     dependency: "direct overridden"
     description:

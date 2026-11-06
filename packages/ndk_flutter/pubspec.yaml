@@ -37,12 +37,11 @@ dependencies:
   ndk: ^0.11.0-dev.2
   ndk_core: ^0.11.0-dev.2
   ndk_nip07: ^0.1.0
+  ndk_nip55: ^0.1.0
   ndk_rust_verifier: ^0.6.0
   pretty_qr_code: ">=3.6.0 <4.0.0"
   url_launcher: ">=6.0.0 <7.0.0"
   web: ">=1.0.0 <2.0.0"
-  plugin_platform_interface: ^2.1.8
-  convert: ^3.1.2
   rxdart: ^0.28.0
   shared_preferences: ^2.5.5
   ndk_cashu: ^0.1.0

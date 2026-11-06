@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:flutter/services.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
 
 /// A permission that can be requested when logging in with a NIP-55 external
 /// signer, so the signer can pre-authorize silent (ContentResolver) responses.
@@ -37,14 +37,12 @@ class Nip55LoginResult {
 ///
 /// NIP-55 is a protocol implemented by several external signer apps.
 /// This class talks to whichever compatible signer is installed through the
-/// native `ndk` method channel
-/// ([DartNdkPlugin]).
+/// native `ndk_nip55` method channel (`Nip55Plugin` on Android).
 ///
 /// Every method resolves to a `Map` that contains (at least) a `signature`
 /// key with the result, mirroring the historical external-signer plugin API.
 class Nip55Signer {
-  /// The method channel shared with the native [DartNdkPlugin].
-  static const MethodChannel _channel = MethodChannel('ndk');
+  static const MethodChannel _channel = MethodChannel('ndk_nip55');
 
   /// Default permissions requested at login so common operations can be
   /// answered silently (via ContentResolver) without reopening the signer.

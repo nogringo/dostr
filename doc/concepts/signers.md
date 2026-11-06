@@ -11,7 +11,7 @@ Signers are responsible for cryptographic operations: signing events, encrypting
 | `NdkEventSigner` | Automatic platform selection (web/native) | No (instant) |
 | `Nip46EventSigner` | Remote signer via NIP-46 bunker, from `ndk_nip46` | Yes |
 | `Nip07EventSigner` | Browser extension (NIP-07), from `ndk_nip07` | Yes |
-| `Nip55EventSigner` | Android NIP-55 external signer app | Yes |
+| `Nip55EventSigner` | Android NIP-55 external signer app, from `ndk_nip55` | Yes |
 
 ## Pending Requests
 

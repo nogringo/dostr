@@ -71,7 +71,7 @@ Bip340EventVerifier()
 
 ## NIP-07 / Amber / NIP-46 signers
 
-`Nip07EventSigner` lives in the `ndk_nip07` package (pure Dart, web only, no `ndk` or Flutter dependency). Amber/NIP-55 is in `ndk_flutter`, which also exports `Nip07EventSigner`. See [[ndk-flutter]] accounts reference.
+`Nip07EventSigner` lives in the `ndk_nip07` package (pure Dart, web only, no `ndk` or Flutter dependency). `Nip55EventSigner` and `Nip55Signer` live in the `ndk_nip55` package (Flutter plugin, Android only, no `ndk` or `ndk_flutter` dependency). `ndk_flutter` exports both. See [[ndk-flutter]] accounts reference.
 
 ## Bunkers (NIP-46)
 

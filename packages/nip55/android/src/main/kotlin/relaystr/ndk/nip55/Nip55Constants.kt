@@ -1,4 +1,4 @@
-package relaystr.ndk
+package relaystr.ndk.nip55
 
 /// Constants for the NIP-55 "Android Signer Application" protocol.
 ///

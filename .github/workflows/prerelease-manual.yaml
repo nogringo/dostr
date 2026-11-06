@@ -51,6 +51,7 @@ on:
           - ndk_nip13
           - ndk_nip07
           - ndk_nip46
+          - ndk_nip55
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

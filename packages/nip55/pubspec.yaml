@@ -1,0 +1,41 @@
+name: ndk_nip55
+description: NIP-55 Android signer for NDK (Nostr Development Kit), to log in, sign and encrypt with a signer app from a Flutter app, without depending on ndk or ndk_flutter.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - nip55
+  - signer
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+  flutter: ">=3.40.0"
+
+resolution: workspace
+
+platforms:
+  android:
+
+dependencies:
+  flutter:
+    sdk: flutter
+  ndk_nip01: ^0.1.0
+  ndk_nip19: ^0.1.0
+  ndk_signer: ^0.1.0
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  ndk_bip340: ^0.1.0
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: relaystr.ndk.nip55
+        pluginClass: Nip55Plugin

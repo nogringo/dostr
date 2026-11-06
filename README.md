@@ -125,6 +125,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip46`: NIP-46 remote signing, to connect to a bunker with a `bunker://` or `nostrconnect://` URL and sign and encrypt through it, without depending on `ndk`. NDK exposes it as `ndk.bunkers`.
 
+### [🔗 NIP-55](./packages/nip55/)
+
+`ndk_nip55`: NIP-55 signer, to log in, sign and encrypt with a signer app on Android, as a Flutter plugin that does not depend on `ndk` or `ndk_flutter`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.
@@ -135,7 +139,7 @@ Sembast cache manager and wallets repository, in pure Dart.
 
 ### [🔗 Ndk Flutter](./packages/ndk_flutter/)
 
-Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `ndk_nip07`.
+Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `ndk_nip07` and the NIP-55 signer of `ndk_nip55`.
 
 ### [🔗 CLI](./packages/cli/)
 

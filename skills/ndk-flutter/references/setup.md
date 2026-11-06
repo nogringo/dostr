@@ -57,5 +57,5 @@ void main() async {
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 // Includes:
-// NdkFlutter class, widgets, signers, verifiers, utils, AmberFlutter
+// NdkFlutter class, widgets, signers, verifiers, utils, ndk_nip07 and ndk_nip55
 ```
