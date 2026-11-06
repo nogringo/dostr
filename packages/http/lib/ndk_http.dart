@@ -2,4 +2,4 @@
 /// into an [HttpRequestException] and reports upload progress.
 library;
 
-export 'src/http_request.dart';
+export 'src/ndk_http.dart';

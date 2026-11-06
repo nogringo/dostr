@@ -36,7 +36,8 @@ final json = await ds.jsonRequest(
 
 `jsonRequest` uses the url as given, so the caller picks the scheme, and
 decodes the body as UTF-8. A body that is not a JSON object throws a
-`FormatException`. `abortPending` aborts every request still in flight without
+`FormatException`. Its `headers` add to `Accept: application/json`, which they
+can replace. `abortPending` aborts every request still in flight without
 closing the client.
 
 `get`, `head`, `getStream` and `jsonRequest` take `followRedirects`. With it
@@ -48,8 +49,27 @@ only as fast as the connection sends it, and `UploadProgress` follows the bytes
 as they go out. The upload starts when the stream is listened to, cancelling
 the subscription aborts it, and the last event carries the response. Without
 a `contentLength`, its `totalBytes` and `progress` are null.
-`getStream` downloads the same way, at the pace the listener reads the
-stream.
+
+`postStream` does the same with a POST. For a multipart form, such as a NIP-96
+upload, let `http.MultipartRequest` encode it:
+
+```dart
+final form = http.MultipartRequest('POST', url)
+  ..files.add(http.MultipartFile('file', fileStream, fileLength));
+final body = form.finalize();
+final progress = ds.postStream(
+  url: url,
+  body: body,
+  headers: form.headers,
+  contentLength: form.contentLength,
+);
+```
+
+`getStream` completes once the status and headers arrive, with an
+`http.StreamedResponse` whose `stream` downloads the body at the pace the
+listener reads it. Cancelling that subscription aborts the download, and
+completing `abortTrigger` aborts it at any point. Read or cancel the body:
+until its stream is listened to, the request holds its connection.
 
 On the web, `BrowserClient` reads the whole body before it sends anything, so
 `putStream` holds the upload in memory there and its progress reaches the total
@@ -57,10 +77,10 @@ before the bytes go out.
 
 ## Timeouts
 
-Every request takes a `timeout` that bounds it as a whole. `getStream` and
-`putStream` take an `idleTimeout` instead: it only counts the time without data
-moving, so it never cuts a large transfer short, and a paused download does not
-count. On an upload, the wait for the response after the last byte counts too,
+Every request takes a `timeout` that bounds it as a whole. `getStream`,
+`putStream` and `postStream` take an `idleTimeout` instead: it only counts the
+time without data moving, so it never cuts a large transfer short. A paused
+download does not count, but a body nobody listens to yet does. On an upload, the wait for the response after the last byte counts too,
 so the timeout must cover the time the server takes to process the body, such
 as hashing it. Either one ends the request with a `TimeoutException`, while
 `abortPending` ends it with a `RequestAbortedException`, so a caller can tell
@@ -80,6 +100,11 @@ timeout and keep running after `abortPending`.
 - `jsonRequest` takes a named `url`, a `Uri`, and no longer forces `https`.
 - `jsonRequest` throws `FormatException` instead of `TypeError` when the body
   is not a JSON object.
+- `jsonRequest`'s `headers` add to `Accept: application/json` instead of
+  replacing it.
+- `getStream` returns a `Future<http.StreamedResponse>` that completes with the
+  status and headers. The body is its `stream`, and `abortTrigger` aborts the
+  request before the response.
 - A timeout throws `TimeoutException` instead of `RequestAbortedException`.
 - `HttpRequestException` is a `ClientException` with a required `method`, and
   its `url` string is now `uri`, a `Uri`.

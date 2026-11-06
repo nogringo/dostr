@@ -989,6 +989,23 @@ void main() {
       expect(downloadedContent, equals(testContent));
     });
 
+    test('directDownloadToFile streams a url to disk', () async {
+      final testContent = 'Test content for direct download to file';
+      final uploadResponse = await client.uploadBlob(
+        data: Uint8List.fromList(utf8.encode(testContent)),
+        serverUrls: ['http://localhost:$primaryServerPort'],
+      );
+      final sha256 = uploadResponse.first.descriptor!.sha256;
+
+      final downloadFile = File('${tempDir.path}/test_direct_download.txt');
+      await client.directDownloadToFile(
+        url: Uri.parse('http://localhost:$primaryServerPort/$sha256'),
+        outputPath: downloadFile.path,
+      );
+
+      expect(await downloadFile.readAsString(), equals(testContent));
+    });
+
     test('uploadBlobFromFile and downloadBlobToFile round trip', () async {
       // Create a test file with binary content
       final uploadFile = File('${tempDir.path}/test_binary_upload.bin');

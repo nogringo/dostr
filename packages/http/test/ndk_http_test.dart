@@ -20,6 +20,18 @@ MockClient _drainingClient() => MockClient.streaming((_, body) async {
   return http.StreamedResponse(const Stream.empty(), 200);
 });
 
+/// Answers 200 with [body], which fails once the request is aborted, as
+/// IOClient's does.
+MockClient _bodyClient(StreamController<List<int>> body) =>
+    MockClient.streaming((request, _) async {
+      (request as http.Abortable).abortTrigger!.whenComplete(() {
+        if (body.isClosed) return;
+        body.addError(http.RequestAbortedException(request.url));
+        body.close();
+      });
+      return http.StreamedResponse(body.stream, 200);
+    });
+
 /// Keeps the request as sent, which MockClient rebuilds.
 class _RecordingClient extends http.BaseClient {
   final requests = <http.Request>[];
@@ -29,6 +41,25 @@ class _RecordingClient extends http.BaseClient {
     requests.add(request as http.Request);
     return http.StreamedResponse(const Stream.empty(), 200);
   }
+}
+
+class _RedirectedResponse extends http.StreamedResponse
+    implements http.BaseResponseWithUrl {
+  @override
+  final Uri url;
+
+  _RedirectedResponse(this.url) : super(Stream.value([1]), 200);
+}
+
+/// Answers like a client that followed a redirect to [to].
+class _RedirectingClient extends http.BaseClient {
+  final Uri to;
+
+  _RedirectingClient(this.to);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async =>
+      _RedirectedResponse(to);
 }
 
 void main() {
@@ -56,6 +87,32 @@ void main() {
 
     expect(ds.jsonRequest(url: url), throwsFormatException);
   });
+
+  test(
+    'jsonRequest headers add to its Accept, which they can replace',
+    () async {
+      final sent = <Map<String, String>>[];
+      final ds = NdkHttp(
+        MockClient((request) async {
+          sent.add(request.headers);
+          return http.Response('{}', 200);
+        }),
+      );
+
+      await ds.jsonRequest(
+        url: url,
+        headers: const {'Authorization': 'Nostr x'},
+      );
+      await ds.jsonRequest(
+        url: url,
+        headers: const {'accept': 'application/nostr+json'},
+      );
+
+      expect(sent[0]['accept'], 'application/json');
+      expect(sent[0]['authorization'], 'Nostr x');
+      expect(sent[1]['accept'], 'application/nostr+json');
+    },
+  );
 
   test('a non-2xx response throws HttpRequestException', () async {
     final blob = Uri.parse('https://example.com/blob');
@@ -98,13 +155,46 @@ void main() {
     );
   });
 
+  test('getStream gives the status and headers before the body', () async {
+    final body = StreamController<List<int>>();
+    final ds = NdkHttp(
+      MockClient.streaming(
+        (_, _) async => http.StreamedResponse(
+          body.stream,
+          200,
+          contentLength: 3,
+          headers: {'content-type': 'image/png'},
+        ),
+      ),
+    );
+
+    final response = await ds.getStream(url: url);
+
+    expect(response.statusCode, 200);
+    expect(response.contentLength, 3);
+    expect(response.headers['content-type'], 'image/png');
+    body
+      ..add([1, 2, 3])
+      ..close();
+    expect(await response.stream.toBytes(), [1, 2, 3]);
+  });
+
+  test('getStream keeps the url a redirect led to', () async {
+    final cdn = Uri.parse('https://cdn.example.com/blob');
+    final response = await NdkHttp(_RedirectingClient(cdn)).getStream(url: url);
+
+    expect(response, isA<http.BaseResponseWithUrl>());
+    expect((response as http.BaseResponseWithUrl).url, cdn);
+    expect(await response.stream.toBytes(), [1]);
+  });
+
   test('getStream keeps the body of a non-2xx response', () async {
     final ds = NdkHttp(
       MockClient((_) async => http.Response('blob not found', 404)),
     );
 
     expect(
-      ds.getStream(url: Uri.parse('https://example.com/blob')).toList(),
+      ds.getStream(url: Uri.parse('https://example.com/blob')),
       throwsA(
         isA<HttpRequestException>()
             .having((e) => e.statusCode, 'statusCode', 404)
@@ -134,9 +224,7 @@ void main() {
     );
 
     expect(
-      ds
-          .getStream(url: url, idleTimeout: const Duration(milliseconds: 150))
-          .toList(),
+      ds.getStream(url: url, idleTimeout: const Duration(milliseconds: 150)),
       throwsA(
         isA<HttpRequestException>().having(
           (e) => e.body,
@@ -246,6 +334,65 @@ void main() {
     );
   });
 
+  test('an early error response aborts the upload at once', () async {
+    final aborted = Completer<void>();
+    final ds = NdkHttp(
+      MockClient.streaming((request, _) async {
+        (request as http.Abortable).abortTrigger!.whenComplete(
+          aborted.complete,
+        );
+        return http.StreamedResponse(Stream.value(utf8.encode('too big')), 413);
+      }),
+    );
+
+    final subscription = ds
+        .putStream(url: url, body: Stream.value([1]))
+        .listen(null, onError: (_) {});
+    subscription.pause();
+
+    await aborted.future.timeout(const Duration(seconds: 1));
+    await subscription.cancel();
+  });
+
+  test('postStream sends a multipart form that http encodes', () async {
+    late String method;
+    late String contentType;
+    late String received;
+    final ds = NdkHttp(
+      MockClient.streaming((request, body) async {
+        method = request.method;
+        contentType = request.headers['content-type']!;
+        received = utf8.decode(await body.toBytes());
+        return http.StreamedResponse(const Stream.empty(), 201);
+      }),
+    );
+    final form = http.MultipartRequest('POST', url)
+      ..files.add(
+        http.MultipartFile(
+          'file',
+          Stream.value(utf8.encode('cat')),
+          3,
+          filename: 'cat.txt',
+        ),
+      );
+    final body = form.finalize();
+
+    final progress = await ds
+        .postStream(
+          url: url,
+          body: body,
+          headers: form.headers,
+          contentLength: form.contentLength,
+        )
+        .toList();
+
+    expect(method, 'POST');
+    expect(contentType, startsWith('multipart/form-data; boundary='));
+    expect(received, contains('filename="cat.txt"'));
+    expect(progress.last.isComplete, isTrue);
+    expect(progress.last.sentBytes, form.contentLength);
+  });
+
   test('idleTimeout does not cap an upload that keeps moving', () async {
     final progress = await NdkHttp(_drainingClient())
         .putStream(
@@ -274,12 +421,31 @@ void main() {
     await aborted.future.timeout(const Duration(seconds: 1));
   });
 
-  test('cancelling getStream aborts the request before the response', () async {
+  test('abortTrigger aborts getStream before the response', () async {
     final aborted = Completer<void>();
+    final cancel = Completer<void>();
     final ds = NdkHttp(_stalledClient((_) => aborted.complete()));
 
-    final subscription = ds.getStream(url: url).listen(null);
-    await subscription.cancel().timeout(const Duration(seconds: 1));
+    final download = ds.getStream(url: url, abortTrigger: cancel.future);
+    cancel.complete();
+
+    await expectLater(download, throwsA(isA<http.RequestAbortedException>()));
+    await aborted.future.timeout(const Duration(seconds: 1));
+  });
+
+  test('cancelling the getStream body aborts the download', () async {
+    final aborted = Completer<void>();
+    final ds = NdkHttp(
+      MockClient.streaming((request, _) async {
+        (request as http.Abortable).abortTrigger!.whenComplete(
+          aborted.complete,
+        );
+        return http.StreamedResponse(StreamController<List<int>>().stream, 200);
+      }),
+    );
+
+    final response = await ds.getStream(url: url);
+    await response.stream.listen(null).cancel();
 
     await aborted.future.timeout(const Duration(seconds: 1));
   });
@@ -293,7 +459,7 @@ void main() {
         ds.jsonRequest(url: url, timeout: timeout),
         ds.get(url: url, timeout: timeout),
         ds.post(url: url, body: 'x', timeout: timeout),
-        ds.getStream(url: url, idleTimeout: timeout).toList(),
+        ds.getStream(url: url, idleTimeout: timeout),
         ds
             .putStream(url: url, body: Stream.value([1]), idleTimeout: timeout)
             .toList(),
@@ -303,27 +469,32 @@ void main() {
   });
 
   test('getStream times out when the body stalls', () async {
-    final ds = NdkHttp(
-      MockClient.streaming((request, _) async {
-        final body = StreamController<List<int>>()..add([1]);
-        (request as http.Abortable).abortTrigger!.whenComplete(() {
-          body.addError(http.RequestAbortedException(request.url));
-          body.close();
-        });
-        return http.StreamedResponse(body.stream, 200);
-      }),
-    );
+    final ds = NdkHttp(_bodyClient(StreamController()..add([1])));
 
+    final response = await ds.getStream(
+      url: url,
+      idleTimeout: const Duration(milliseconds: 20),
+    );
     final received = <List<int>>[];
     final failed = Completer<Object>();
-    ds
-        .getStream(url: url, idleTimeout: const Duration(milliseconds: 20))
-        .listen(received.add, onError: failed.complete);
+    response.stream.listen(received.add, onError: failed.complete);
 
     expect(await failed.future, isA<TimeoutException>());
     expect(received, [
       [1],
     ]);
+  });
+
+  test('a getStream body nobody listens to times out', () async {
+    final ds = NdkHttp(_bodyClient(StreamController()));
+
+    final response = await ds.getStream(
+      url: url,
+      idleTimeout: const Duration(milliseconds: 20),
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+
+    expect(response.stream.toList(), throwsA(isA<TimeoutException>()));
   });
 
   test('idleTimeout does not cap a download that keeps moving', () async {
@@ -339,54 +510,41 @@ void main() {
       ),
     );
 
-    final chunks = await ds
-        .getStream(url: url, idleTimeout: const Duration(milliseconds: 100))
-        .toList();
+    final response = await ds.getStream(
+      url: url,
+      idleTimeout: const Duration(milliseconds: 100),
+    );
 
-    expect(chunks, hasLength(15));
+    expect(await response.stream.toList(), hasLength(15));
   });
 
-  test(
-    'a paused getStream does not time out, even before the response',
-    () async {
-      final respond = Completer<void>();
-      final body = StreamController<List<int>>();
-      final ds = NdkHttp(
-        MockClient.streaming((request, _) async {
-          await respond.future;
-          (request as http.Abortable).abortTrigger!.whenComplete(() {
-            if (body.isClosed) return;
-            body.addError(http.RequestAbortedException(request.url));
-            body.close();
-          });
-          return http.StreamedResponse(body.stream, 200);
-        }),
-      );
+  test('a paused getStream body does not time out', () async {
+    final body = StreamController<List<int>>();
+    final ds = NdkHttp(_bodyClient(body));
 
-      final received = <List<int>>[];
-      final done = Completer<void>();
-      final subscription = ds
-          .getStream(url: url, idleTimeout: const Duration(milliseconds: 20))
-          .listen(
-            received.add,
-            onError: done.completeError,
-            onDone: done.complete,
-          );
-      await Future<void>.delayed(Duration.zero);
-      subscription.pause();
-      respond.complete();
-      await Future<void>.delayed(const Duration(milliseconds: 100));
-      subscription.resume();
-      body
-        ..add([1])
-        ..close();
+    final response = await ds.getStream(
+      url: url,
+      idleTimeout: const Duration(milliseconds: 20),
+    );
+    final received = <List<int>>[];
+    final done = Completer<void>();
+    final subscription = response.stream.listen(
+      received.add,
+      onError: done.completeError,
+      onDone: done.complete,
+    );
+    subscription.pause();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    subscription.resume();
+    body
+      ..add([1])
+      ..close();
 
-      await done.future;
-      expect(received, [
-        [1],
-      ]);
-    },
-  );
+    await done.future;
+    expect(received, [
+      [1],
+    ]);
+  });
 
   test('a byte body is sent as given', () async {
     final client = _RecordingClient();
@@ -401,23 +559,33 @@ void main() {
   });
 
   test('a map body is sent as form fields', () async {
-    late http.Request sent;
+    final sent = <Map<String, String>>[];
     final ds = NdkHttp(
       MockClient((request) async {
-        sent = request;
+        sent.add(request.bodyFields);
         return http.Response('', 200);
       }),
     );
 
     await ds.post(url: url, body: {'name': 'bob smith'});
+    await ds.post(url: url, body: <dynamic, dynamic>{'name': 'alice'});
 
-    expect(sent.bodyFields, {'name': 'bob smith'});
+    expect(sent, [
+      {'name': 'bob smith'},
+      {'name': 'alice'},
+    ]);
   });
 
-  test('a body of another type throws ArgumentError', () {
+  test('a body of another type throws ArgumentError', () async {
     final ds = NdkHttp(_drainingClient());
 
-    expect(ds.post(url: url, body: 42), throwsArgumentError);
+    for (final body in [
+      42,
+      {'count': 1},
+      <dynamic>[1, 'x'],
+    ]) {
+      await expectLater(ds.post(url: url, body: body), throwsArgumentError);
+    }
   });
 
   test('head and delete send their method', () async {
@@ -449,7 +617,7 @@ void main() {
         ds.jsonRequest(url: url, followRedirects: false),
         ds.get(url: url, followRedirects: false),
         ds.head(url: url, followRedirects: false),
-        ds.getStream(url: url, followRedirects: false).toList(),
+        ds.getStream(url: url, followRedirects: false),
       ])
         expectLater(
           request,
@@ -492,7 +660,7 @@ void main() {
       ds.jsonRequest(url: url),
       ds.get(url: url),
       ds.post(url: url, body: 'x', headers: const <String, String>{}),
-      ds.getStream(url: url).toList(),
+      ds.getStream(url: url),
       ds
           .putStream(url: url, body: Stream.value([1]), headers: const {})
           .toList(),

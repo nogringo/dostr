@@ -923,10 +923,10 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required Uri url,
     required String outputPath,
   }) async {
-    final response = client.getStream(url: url);
+    final response = await client.getStream(url: url);
     await fileIO.writeFileStream(
       outputPath,
-      response.map((chunk) => Uint8List.fromList(chunk)),
+      response.stream.map((chunk) => Uint8List.fromList(chunk)),
     );
   }
 

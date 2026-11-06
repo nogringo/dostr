@@ -87,21 +87,45 @@ class UploadProgress {
   };
 }
 
-/// A PUT whose body the client pulls itself, so the body is read only as fast
-/// as the connection sends it.
+/// A request whose body the client pulls itself, so the body is read only as
+/// fast as the connection sends it.
 class _UploadRequest extends http.BaseRequest with http.Abortable {
   final Stream<List<int>> _body;
 
   @override
   final Future<void>? abortTrigger;
 
-  _UploadRequest(Uri url, this._body, {this.abortTrigger}) : super('PUT', url);
+  _UploadRequest(super.method, super.url, this._body, {this.abortTrigger});
 
   @override
   http.ByteStream finalize() {
     super.finalize();
     return http.ByteStream(_body);
   }
+}
+
+/// [response] with [stream] for its body
+class _StreamedResponse extends http.StreamedResponse {
+  _StreamedResponse(Stream<List<int>> stream, http.StreamedResponse response)
+    : super(
+        stream,
+        response.statusCode,
+        contentLength: response.contentLength,
+        request: response.request,
+        headers: response.headers,
+        isRedirect: response.isRedirect,
+        persistentConnection: response.persistentConnection,
+        reasonPhrase: response.reasonPhrase,
+      );
+}
+
+/// keeps the url a redirect led to, as `BaseRequest.send` does in `http`
+class _StreamedResponseWithUrl extends _StreamedResponse
+    implements http.BaseResponseWithUrl {
+  @override
+  final Uri url;
+
+  _StreamedResponseWithUrl(super.stream, super.response, this.url);
 }
 
 /// Aborts a request when called, or once [timeout] passes after the last
@@ -198,9 +222,13 @@ class NdkHttp {
       // cast() would hide a Uint8List from http, which then copies it
       case final List<int> bytes:
         request.bodyBytes = bytes;
-      case final List<dynamic> bytes:
+      // cast() is lazy: a wrong element would only fail inside http
+      case final List<dynamic> bytes when bytes.every((byte) => byte is int):
         request.bodyBytes = bytes.cast<int>();
-      case final Map<dynamic, dynamic> fields:
+      case final Map<dynamic, dynamic> fields
+          when fields.entries.every(
+            (field) => field.key is String && field.value is String,
+          ):
         request.bodyFields = fields.cast<String, String>();
       default:
         throw ArgumentError.value(
@@ -228,19 +256,89 @@ class NdkHttp {
     }
   }
 
+  Stream<UploadProgress> _sendStream(
+    String method,
+    Uri url, {
+    required Stream<List<int>> body,
+    required Map<String, String> headers,
+    required int? contentLength,
+    required Duration? idleTimeout,
+  }) {
+    final abort = _Abort(url, idleTimeout);
+    late final StreamController<UploadProgress> progress;
+
+    Future<void> upload() async {
+      var sentBytes = 0;
+      progress.add(UploadProgress(sentBytes: 0, totalBytes: contentLength));
+      _pending.add(abort);
+      abort.startTimer();
+      try {
+        final request =
+            _UploadRequest(
+                method,
+                url,
+                body.map((chunk) {
+                  abort.startTimer();
+                  sentBytes += chunk.length;
+                  // a client may still pull the body after an early response
+                  if (!progress.isClosed) {
+                    progress.add(
+                      UploadProgress(
+                        sentBytes: sentBytes,
+                        totalBytes: contentLength,
+                      ),
+                    );
+                  }
+                  return chunk;
+                }),
+                abortTrigger: abort.trigger,
+              )
+              ..headers.addAll(headers)
+              ..contentLength = contentLength;
+        final response = await http.Response.fromStream(
+          await _client.send(request),
+        );
+        if (!_isSuccessStatus(response.statusCode)) {
+          throw _failure(method, response, url);
+        }
+        progress.add(
+          UploadProgress(
+            sentBytes: sentBytes,
+            totalBytes: contentLength,
+            isComplete: true,
+            response: response,
+          ),
+        );
+      } catch (error, stackTrace) {
+        // stops a body still going out, without waiting for the listener
+        abort();
+        progress.addError(abort.reason(error), stackTrace);
+      } finally {
+        abort.finish();
+        _pending.remove(abort);
+        unawaited(progress.close());
+      }
+    }
+
+    progress = StreamController(onListen: upload, onCancel: abort.call);
+    return progress.stream;
+  }
+
   /// make a get request to the given url and decode its JSON body, which must
   /// be an object: anything else throws a [FormatException]. The url is used
-  /// as given: the caller picks the scheme
+  /// as given: the caller picks the scheme. [headers] add to
+  /// `Accept: application/json`, which they can replace
   Future<Map<String, dynamic>> jsonRequest({
     required Uri url,
     bool followRedirects = true,
     Duration? timeout,
-    Map<String, String> headers = const {"Accept": "application/json"},
+    Map<String, String> headers = const {},
   }) async {
     final response = await _send(
       'GET',
       url,
-      headers: headers,
+      // request headers ignore case, so the caller's accept replaces this one
+      headers: {'Accept': 'application/json', ...headers},
       followRedirects: followRedirects,
       timeout: timeout,
     );
@@ -273,63 +371,14 @@ class NdkHttp {
     Map<String, String> headers = const {},
     int? contentLength,
     Duration? idleTimeout,
-  }) {
-    final abort = _Abort(url, idleTimeout);
-    late final StreamController<UploadProgress> progress;
-
-    Future<void> upload() async {
-      var sentBytes = 0;
-      progress.add(UploadProgress(sentBytes: 0, totalBytes: contentLength));
-      _pending.add(abort);
-      abort.startTimer();
-      try {
-        final request =
-            _UploadRequest(
-                url,
-                body.map((chunk) {
-                  abort.startTimer();
-                  sentBytes += chunk.length;
-                  // a client may still pull the body after an early response
-                  if (!progress.isClosed) {
-                    progress.add(
-                      UploadProgress(
-                        sentBytes: sentBytes,
-                        totalBytes: contentLength,
-                      ),
-                    );
-                  }
-                  return chunk;
-                }),
-                abortTrigger: abort.trigger,
-              )
-              ..headers.addAll(headers)
-              ..contentLength = contentLength;
-        final response = await http.Response.fromStream(
-          await _client.send(request),
-        );
-        if (!_isSuccessStatus(response.statusCode)) {
-          throw _failure('PUT', response, url);
-        }
-        progress.add(
-          UploadProgress(
-            sentBytes: sentBytes,
-            totalBytes: contentLength,
-            isComplete: true,
-            response: response,
-          ),
-        );
-      } catch (error, stackTrace) {
-        progress.addError(abort.reason(error), stackTrace);
-      } finally {
-        abort.finish();
-        _pending.remove(abort);
-        unawaited(progress.close());
-      }
-    }
-
-    progress = StreamController(onListen: upload, onCancel: abort.call);
-    return progress.stream;
-  }
+  }) => _sendStream(
+    'PUT',
+    url,
+    body: body,
+    headers: headers,
+    contentLength: contentLength,
+    idleTimeout: idleTimeout,
+  );
 
   /// [body] is a `String`, a `List<int>` or a `Map<String, String>` sent as
   /// form fields
@@ -339,6 +388,23 @@ class NdkHttp {
     Map<String, String> headers = const {},
     Duration? timeout,
   }) => _send('POST', url, headers: headers, body: body, timeout: timeout);
+
+  /// [putStream] with a POST, such as a multipart form that
+  /// `http.MultipartRequest` encodes
+  Stream<UploadProgress> postStream({
+    required Uri url,
+    required Stream<List<int>> body,
+    Map<String, String> headers = const {},
+    int? contentLength,
+    Duration? idleTimeout,
+  }) => _sendStream(
+    'POST',
+    url,
+    body: body,
+    headers: headers,
+    contentLength: contentLength,
+    idleTimeout: idleTimeout,
+  );
 
   Future<http.Response> head({
     required Uri url,
@@ -366,33 +432,49 @@ class NdkHttp {
     timeout: timeout,
   );
 
-  /// Downloads [url] without loading it into memory, at the pace the listener
-  /// reads it. The download starts on listen, and cancelling the subscription
-  /// aborts it. A paused subscription does not count toward [idleTimeout].
-  Stream<List<int>> getStream({
+  /// Downloads [url] without loading it into memory. The future completes with
+  /// the status and headers, and the response's `stream` reads the body at the
+  /// pace the listener reads it. Cancelling its subscription aborts the
+  /// download, and completing [abortTrigger] aborts it at any point. A paused
+  /// subscription does not count toward [idleTimeout], but a body nobody
+  /// listens to yet does.
+  Future<http.StreamedResponse> getStream({
     required Uri url,
     bool followRedirects = true,
     Map<String, String> headers = const {},
     Duration? idleTimeout,
-  }) {
+    Future<void>? abortTrigger,
+  }) async {
     final abort = _Abort(url, idleTimeout);
-    late final StreamController<List<int>> download;
+    abortTrigger?.whenComplete(abort.call).ignore();
+    final request =
+        http.AbortableRequest('GET', url, abortTrigger: abort.trigger)
+          ..followRedirects = followRedirects
+          ..headers.addAll(headers);
+    void finish() {
+      abort.finish();
+      _pending.remove(abort);
+    }
 
-    Future<void> start() async {
-      final request =
-          http.AbortableRequest('GET', url, abortTrigger: abort.trigger)
-            ..followRedirects = followRedirects
-            ..headers.addAll(headers);
-      _pending.add(abort);
+    _pending.add(abort);
+    abort.startTimer();
+    final http.StreamedResponse response;
+    try {
+      response = await _client.send(request);
       abort.startTimer();
-      try {
-        final response = await _client.send(request);
-        abort.startTimer();
-        if (!_isSuccessStatus(response.statusCode)) {
-          // reading the body drains the connection and keeps the server's reason
-          throw _failure('GET', await http.Response.fromStream(response), url);
-        }
-        await download.addStream(
+      if (!_isSuccessStatus(response.statusCode)) {
+        // reading the body drains the connection and keeps the server's reason
+        throw _failure('GET', await http.Response.fromStream(response), url);
+      }
+    } catch (error, stackTrace) {
+      finish();
+      Error.throwWithStackTrace(abort.reason(error), stackTrace);
+    }
+
+    late final StreamController<List<int>> body;
+    body = StreamController(
+      onListen: () async {
+        await body.addStream(
           response.stream.transform(
             StreamTransformer.fromHandlers(
               handleData: (chunk, sink) {
@@ -404,22 +486,21 @@ class NdkHttp {
             ),
           ),
         );
-      } catch (error, stackTrace) {
-        download.addError(abort.reason(error), stackTrace);
-      } finally {
-        abort.finish();
-        _pending.remove(abort);
-        unawaited(download.close());
-      }
-    }
-
-    download = StreamController(
-      onListen: start,
+        finish();
+        unawaited(body.close());
+      },
       onPause: abort.pause,
       onResume: abort.resume,
       onCancel: abort.call,
     );
-    return download.stream;
+    return switch (response) {
+      http.BaseResponseWithUrl(url: final finalUrl) => _StreamedResponseWithUrl(
+        body.stream,
+        response,
+        finalUrl,
+      ),
+      _ => _StreamedResponse(body.stream, response),
+    };
   }
 
   Future<http.Response> delete({
