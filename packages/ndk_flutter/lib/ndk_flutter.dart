@@ -3,6 +3,7 @@ export 'main/ndk_flutter.dart';
 export 'repositories/flutter_secure_storage_wallets_repo.dart';
 export 'repositories/cashu_seed_store.dart';
 export 'package:ndk_nip55/ndk_nip55.dart';
+export 'package:ndk_nip82/ndk_nip82.dart';
 export 'widgets/widgets.dart';
 export 'verifiers/ndk_event_verifier.dart';
 export 'verifiers/web_event_verifier.dart';

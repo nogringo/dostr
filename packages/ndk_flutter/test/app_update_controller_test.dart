@@ -36,18 +36,17 @@ class _PendingInstaller extends UpdateInstaller {
       throw UnimplementedError();
 }
 
-class _UnusedRequests implements Requests {
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw StateError('Requests must not be called directly');
-}
-
 class _ReleaseSoftware extends Software {
   final List<SoftwareRelease> releases;
   final Map<String, List<SoftwareAsset>> assets;
 
   _ReleaseSoftware(this.releases, {this.assets = const {}})
-    : super(requests: _UnusedRequests());
+    : super(
+        query: (filter, {relays, timeout}) =>
+            throw StateError('Relays must not be queried directly'),
+        subscribe: (filter, {relays}) =>
+            throw StateError('Relays must not be subscribed to directly'),
+      );
 
   @override
   Future<List<SoftwareRelease>> getReleases({
@@ -63,20 +62,6 @@ class _ReleaseSoftware extends Software {
     Iterable<String>? relays,
     Duration? timeout,
   }) async => assets;
-}
-
-class _ReleaseNdk implements Ndk {
-  @override
-  final Software software;
-
-  _ReleaseNdk(
-    List<SoftwareRelease> releases, {
-    Map<String, List<SoftwareAsset>> assets = const {},
-  }) : software = _ReleaseSoftware(releases, assets: assets);
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) =>
-      throw StateError('Unexpected NDK call: ${invocation.memberName}');
 }
 
 class _ControllableInstaller extends UpdateInstaller {
@@ -207,7 +192,8 @@ void main() {
     final releases = [_release('2.0.0', 2), _release('1.0.0', 1)];
     final readOnlyInstaller = _ReadOnlyInstaller();
     final readOnlyController = NAppUpdateController(
-      ndkFlutter: NdkFlutter(ndk: _ReleaseNdk(releases)),
+      ndkFlutter: NdkFlutter(ndk: _UnusedNdk()),
+      software: _ReleaseSoftware(releases),
       app: const SoftwareAppRef(publisher: 'publisher', identifier: 'app'),
       installer: readOnlyInstaller,
       currentVersion: '1.0.0',
@@ -242,13 +228,12 @@ void main() {
       ),
     );
     final oldAndroidController = NAppUpdateController(
-      ndkFlutter: NdkFlutter(
-        ndk: _ReleaseNdk(
-          [release],
-          assets: {
-            release.event.id: [asset],
-          },
-        ),
+      ndkFlutter: NdkFlutter(ndk: _UnusedNdk()),
+      software: _ReleaseSoftware(
+        [release],
+        assets: {
+          release.event.id: [asset],
+        },
       ),
       app: const SoftwareAppRef(publisher: 'publisher', identifier: 'app'),
       installer: oldAndroidInstaller,
@@ -279,13 +264,12 @@ void main() {
       ),
     );
     final activeController = NAppUpdateController(
-      ndkFlutter: NdkFlutter(
-        ndk: _ReleaseNdk(
-          [release],
-          assets: {
-            release.event.id: [asset],
-          },
-        ),
+      ndkFlutter: NdkFlutter(ndk: _UnusedNdk()),
+      software: _ReleaseSoftware(
+        [release],
+        assets: {
+          release.event.id: [asset],
+        },
       ),
       app: const SoftwareAppRef(publisher: 'publisher', identifier: 'app'),
       installer: activeInstaller,

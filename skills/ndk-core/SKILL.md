@@ -18,7 +18,7 @@ Core Dart library for building Nostr apps. Not a binary — this is library deve
 | Setup + Ndk init (NdkConfig, engines, cache) | [references/setup.md](references/setup.md) |
 | Requests + subscriptions (query relays) | [references/requests.md](references/requests.md) |
 | Accounts + signers | [references/accounts.md](references/accounts.md) |
-| Usecases overview (all ndk.* accessors, files with ndk_blossom, DMs with ndk_nip17, trusted assertions with ndk_nip85, proof of work with ndk_nip13) | [references/usecases.md](references/usecases.md) |
+| Usecases overview (all ndk.* accessors, files with ndk_blossom, DMs with ndk_nip17, trusted assertions with ndk_nip85, proof of work with ndk_nip13, software updates with ndk_nip82) | [references/usecases.md](references/usecases.md) |
 | Wallets (NWC + Cashu, separate packages) | [references/wallets.md](references/wallets.md) |
 
 ## One-Line Summary

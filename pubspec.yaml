@@ -42,6 +42,7 @@ workspace:
   - packages/nip07
   - packages/nip46
   - packages/nip55
+  - packages/nip82
   - packages/fetchers
   - packages/http
   - packages/url_set

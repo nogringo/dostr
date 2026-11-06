@@ -1,41 +1,69 @@
 import 'dart:async';
 
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+
 import '../../entities/software.dart';
-import '../requests/requests.dart';
 
+/// The [events] a query got, and whether at least one relay answered it up to
+/// EOSE. An empty answer without that is a failure, not a missing event.
+typedef SoftwareQueryResult = ({
+  List<Nip01Event> events,
+  bool anyRelayCompleted,
+});
+
+/// The events matching [filter] on [relays]. Null or empty [relays] leave the
+/// choice of relays to the caller.
+typedef SoftwareQuery =
+    Future<SoftwareQueryResult> Function(
+      Filter filter, {
+      Iterable<String>? relays,
+      Duration? timeout,
+    });
+
+/// A live subscription: the [events] it receives, and [close] to end it.
+typedef SoftwareSubscription = ({
+  Stream<Nip01Event> events,
+  Future<void> Function() close,
+});
+
+/// Opens a live subscription to [filter] on [relays], chosen as for
+/// [SoftwareQuery].
+typedef SoftwareSubscribe =
+    SoftwareSubscription Function(Filter filter, {Iterable<String>? relays});
+
+/// NIP-82 software application, release and asset discovery.
 class Software {
-  final Requests _requests;
+  final SoftwareQuery _query;
+  final SoftwareSubscribe _subscribe;
 
-  Software({required Requests requests}) : _requests = requests;
+  /// [query] answers the `get*` and `resolve*` methods and [subscribe]
+  /// [watchReleases].
+  Software({required SoftwareQuery query, required SoftwareSubscribe subscribe})
+    : _query = query,
+      _subscribe = subscribe;
 
   Future<SoftwareApp?> getApp({
     required SoftwareAppRef app,
     Iterable<String>? relays,
     Duration? timeout,
   }) async {
-    final response = _requests.query(
-      filter: Filter(
+    final result = await _query(
+      Filter(
         authors: [app.publisher],
         kinds: const [softwareApplicationKind],
         dTags: [app.identifier],
         limit: 1,
       ),
-      explicitRelays: relays,
+      relays: relays,
       timeout: timeout,
-      name: 'software-app',
     );
-    final events = await response.future;
-    if (events.isEmpty &&
-        !response.relayOutcomes.values.any(
-          (outcome) => outcome.status == RelayRequestStatus.eose,
-        )) {
+    if (result.events.isEmpty && !result.anyRelayCompleted) {
       throw const SoftwareDiscoveryException(
         'No relay completed software application discovery',
       );
     }
-    final parsed = events
+    final parsed = result.events
         .map(_parseApp)
         .whereType<SoftwareApp>()
         .where((candidate) => candidate.ref.identifier == app.identifier)
@@ -50,29 +78,17 @@ class Software {
     Iterable<String>? relays,
     Duration? timeout,
   }) async {
-    final response = _requests.query(
-      filter: Filter(
-        authors: [app.publisher],
-        kinds: const [softwareReleaseKind],
-        tags: {
-          '#i': [app.identifier],
-          '#c': [channel],
-        },
-      ),
-      explicitRelays: relays,
+    final result = await _query(
+      _releasesFilter(app, channel),
+      relays: relays,
       timeout: timeout,
-      name: 'software-releases',
     );
-    final events = await response.future;
-    if (events.isEmpty &&
-        !response.relayOutcomes.values.any(
-          (outcome) => outcome.status == RelayRequestStatus.eose,
-        )) {
+    if (result.events.isEmpty && !result.anyRelayCompleted) {
       throw const SoftwareDiscoveryException(
         'No relay completed software release discovery',
       );
     }
-    return _validReleases(events, app, channel);
+    return _validReleases(result.events, app, channel);
   }
 
   Stream<List<SoftwareRelease>> watchReleases({
@@ -80,26 +96,17 @@ class Software {
     String channel = 'main',
     Iterable<String>? relays,
   }) {
-    final response = _requests.subscription(
-      filter: Filter(
-        authors: [app.publisher],
-        kinds: const [softwareReleaseKind],
-        tags: {
-          '#i': [app.identifier],
-          '#c': [channel],
-        },
-      ),
-      explicitRelays: relays,
-      cacheRead: true,
-      cacheWrite: true,
-      name: 'software-release-watch',
-    );
     final byCoordinate = <String, SoftwareRelease>{};
-    StreamSubscription<dynamic>? subscription;
+    SoftwareSubscription? subscription;
+    StreamSubscription<Nip01Event>? listener;
     late final StreamController<List<SoftwareRelease>> controller;
     controller = StreamController<List<SoftwareRelease>>(
       onListen: () {
-        subscription = response.stream.listen(
+        subscription = _subscribe(
+          _releasesFilter(app, channel),
+          relays: relays,
+        );
+        listener = subscription!.events.listen(
           (event) {
             final release = _parseRelease(event);
             if (release != null &&
@@ -125,11 +132,8 @@ class Software {
         );
       },
       onCancel: () async {
-        await subscription?.cancel();
-        await _requests.closeSubscription(
-          response.requestId,
-          debugLabel: 'software release watcher cancelled',
-        );
+        await listener?.cancel();
+        await subscription?.close();
       },
     );
     return controller.stream;
@@ -167,29 +171,23 @@ class Software {
         .whereType<String>()
         .toSet();
     final resolvedRelays = {...?relays};
-    final responses = [
-      _requests.query(
-        filter: Filter(ids: ids.toList(), kinds: const [softwareAssetKind]),
-        explicitRelays: resolvedRelays.isEmpty
+    Filter assetsFilter() =>
+        Filter(ids: ids.toList(), kinds: const [softwareAssetKind]);
+    final results = await Future.wait([
+      _query(
+        assetsFilter(),
+        relays: resolvedRelays.isEmpty
             ? null
             : {...resolvedRelays, ...hintedRelays},
         timeout: timeout,
-        name: 'software-assets',
       ),
       if (resolvedRelays.isEmpty && hintedRelays.isNotEmpty)
-        _requests.query(
-          filter: Filter(ids: ids.toList(), kinds: const [softwareAssetKind]),
-          explicitRelays: hintedRelays,
-          timeout: timeout,
-          name: 'software-assets-hints',
-        ),
-    ];
-    final events = (await Future.wait(
-      responses.map((response) => response.future),
-    )).expand((events) => events);
+        _query(assetsFilter(), relays: hintedRelays, timeout: timeout),
+    ]);
     final assetsById = <String, SoftwareAsset>{
       for (final asset
-          in events
+          in results
+              .expand((result) => result.events)
               .where((event) => ids.contains(event.id))
               .map(_parseAsset)
               .whereType<SoftwareAsset>())
@@ -252,6 +250,15 @@ class Software {
     return candidates.firstOrNull;
   }
 
+  Filter _releasesFilter(SoftwareAppRef app, String channel) => Filter(
+    authors: [app.publisher],
+    kinds: const [softwareReleaseKind],
+    tags: {
+      '#i': [app.identifier],
+      '#c': [channel],
+    },
+  );
+
   bool _supportsPlatform(List<String> asset, List<String> installed) =>
       asset.isEmpty || asset.any(installed.contains);
 
@@ -261,12 +268,12 @@ class Software {
   }
 
   List<SoftwareRelease> _validReleases(
-    Iterable<dynamic> events,
+    Iterable<Nip01Event> events,
     SoftwareAppRef app,
     String channel,
   ) {
     final parsed = events
-        .map((event) => _parseRelease(event))
+        .map(_parseRelease)
         .whereType<SoftwareRelease>()
         .where(
           (release) =>
@@ -287,7 +294,7 @@ class Software {
     return releases;
   }
 
-  SoftwareApp? _parseApp(dynamic event) {
+  SoftwareApp? _parseApp(Nip01Event event) {
     try {
       return SoftwareApp.fromEvent(event);
     } on SoftwareParseException {
@@ -295,7 +302,7 @@ class Software {
     }
   }
 
-  SoftwareRelease? _parseRelease(dynamic event) {
+  SoftwareRelease? _parseRelease(Nip01Event event) {
     try {
       return SoftwareRelease.fromEvent(event);
     } on SoftwareParseException {
@@ -303,7 +310,7 @@ class Software {
     }
   }
 
-  SoftwareAsset? _parseAsset(dynamic event) {
+  SoftwareAsset? _parseAsset(Nip01Event event) {
     try {
       return SoftwareAsset.fromEvent(event);
     } on SoftwareParseException {

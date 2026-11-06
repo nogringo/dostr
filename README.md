@@ -129,6 +129,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip55`: NIP-55 signer, to log in, sign and encrypt with a signer app on Android, as a Flutter plugin that does not depend on `ndk` or `ndk_flutter`.
 
+### [🔗 NIP-82](./packages/nip82/)
+
+`ndk_nip82`: NIP-82 software applications, to discover a trusted publisher's application, release and asset events and pick a compatible Android update, without depending on `ndk`. `ndk_flutter` builds its app update widgets on it.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

@@ -35,7 +35,6 @@ export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'domain_layer/entities/relay_set.dart';
 export 'domain_layer/entities/metadata.dart';
 export 'domain_layer/entities/event_filter.dart';
-export 'domain_layer/entities/software.dart';
 
 export 'domain_layer/entities/cache_eviction.dart';
 export 'domain_layer/entities/event_cache_records.dart';
@@ -84,7 +83,6 @@ export 'domain_layer/usecases/lnurl/lnurl_response.dart';
 export 'domain_layer/usecases/accounts/accounts.dart';
 export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 export 'domain_layer/usecases/search/search.dart';
-export 'domain_layer/usecases/software/software.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';

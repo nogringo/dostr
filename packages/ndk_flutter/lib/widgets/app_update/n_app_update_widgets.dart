@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 
 import '../picture/n_picture.dart';
@@ -725,6 +725,7 @@ class _ReleaseSummaryTileState extends State<_ReleaseSummaryTile> {
   void _createEngagement() {
     engagement = NReleaseEngagementController(
       ndk: widget.controller.ndkFlutter.ndk,
+      software: widget.controller.software,
       release: widget.release,
       relays: widget.controller.relays,
       zapTargetApp: widget.controller.zapTargetApp,
@@ -892,6 +893,7 @@ class _NReleaseDetailsSheetState extends State<NReleaseDetailsSheet> {
         widget.engagement ??
         NReleaseEngagementController(
           ndk: widget.controller.ndkFlutter.ndk,
+          software: widget.controller.software,
           release: widget.release,
           relays: widget.controller.relays,
           zapTargetApp: widget.controller.zapTargetApp,

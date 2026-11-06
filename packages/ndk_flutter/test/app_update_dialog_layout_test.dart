@@ -48,6 +48,14 @@ class _DialogController extends ChangeNotifier implements NAppUpdateController {
   @override
   final NdkFlutter ndkFlutter;
 
+  @override
+  final Software software = Software(
+    query: (filter, {relays, timeout}) =>
+        throw StateError('Relays are not needed for this layout test'),
+    subscribe: (filter, {relays}) =>
+        throw StateError('Relays are not needed for this layout test'),
+  );
+
   final bool notifyOnCheck;
   int checkCount = 0;
 

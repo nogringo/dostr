@@ -41,7 +41,6 @@ import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
-import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'package:ndk_logger/ndk_logger.dart';
@@ -83,7 +82,6 @@ class Initialization {
   late Lnurl lnurl;
   late BlossomUserServerList blossomUserServerList;
   late Search search;
-  late Software software;
   late GiftWrap giftWrap;
   late Connectivy connectivity;
   late DecryptedEventPayloads decryptedEventPayloads;
@@ -298,7 +296,6 @@ class Initialization {
     );
 
     search = Search(cacheManager: _ndkConfig.cache, requests: requests);
-    software = Software(requests: requests);
 
     fetchedRanges = FetchedRanges(cacheManager: _ndkConfig.cache);
 

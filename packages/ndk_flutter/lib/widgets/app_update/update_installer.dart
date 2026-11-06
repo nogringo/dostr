@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/services.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
 
 enum UpdateInstallResult { permissionRequired, awaitingUserAction, cancelled }
 

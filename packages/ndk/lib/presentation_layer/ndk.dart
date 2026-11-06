@@ -19,7 +19,6 @@ import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
-import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'init.dart';
@@ -179,9 +178,6 @@ class Ndk {
   ///
   /// Experimental: the API might change.
   Search get search => _initialization.search;
-
-  /// NIP-82 software application, release, and asset discovery.
-  Software get software => _initialization.software;
 
   /// Fetched ranges tracking
   /// Track which time ranges have been fetched from which relays for each filter

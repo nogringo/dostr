@@ -950,6 +950,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip82:
+    dependency: "direct overridden"
+    description:
+      path: "../nip82"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nwc:
     dependency: "direct main"
     description:

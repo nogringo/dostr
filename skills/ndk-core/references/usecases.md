@@ -148,6 +148,45 @@ Nip13.validateEvent(mined); // meets its nonce target
 await ndk.broadcast.broadcast(nostrEvent: mined);
 ```
 
+## Software updates (NIP-82)
+
+Lives in the `ndk_nip82` package and does not depend on `ndk`: `Software` discovers a trusted publisher's application (kind 32267), releases (kind 30063) and assets (kind 3063), and `selectUpdate` picks a compatible Android APK. `ndk_flutter` re-exports it and builds `NAppUpdateController` on it.
+
+```dart
+import 'package:ndk_nip82/ndk_nip82.dart';
+
+final software = Software(
+  query: (filter, {relays, timeout}) async {
+    final response = ndk.requests.query(
+      filter: filter,
+      explicitRelays: relays,
+      timeout: timeout,
+    );
+    final events = await response.future;
+    return (
+      events: events,
+      anyRelayCompleted: response.relayOutcomes.values.any(
+        (outcome) => outcome.status == RelayRequestStatus.eose,
+      ),
+    );
+  },
+  subscribe: (filter, {relays}) {
+    final response = ndk.requests.subscription(
+      filter: filter,
+      explicitRelays: relays,
+    );
+    return (
+      events: response.stream,
+      close: () => ndk.requests.closeSubscription(response.requestId),
+    );
+  },
+);
+
+final app = SoftwareAppRef(publisher: publisherPubkey, identifier: 'com.example.app');
+final releases = await software.getReleases(app: app, relays: catalogRelays);
+final assets = await software.resolveAssetsForReleases(releases, relays: catalogRelays);
+```
+
 ## Files (Blossom)
 
 Lives in the `ndk_blossom` package: `Files(ndk)` (high level), `Blossom(ndk)` (low level) and `BlossomUserServerList(ndk)` (kind 10063).

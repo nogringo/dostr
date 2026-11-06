@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
+
+import 'software_for_ndk.dart';
 
 @immutable
 class NReleaseComment {
@@ -86,6 +89,7 @@ class NReleaseEngagementState {
 
 class NReleaseEngagementController extends ChangeNotifier {
   final Ndk ndk;
+  final Software software;
   final SoftwareRelease release;
   final List<String> relays;
   final SoftwareAppRef? zapTargetApp;
@@ -97,14 +101,16 @@ class NReleaseEngagementController extends ChangeNotifier {
   bool _disposed = false;
   Future<void>? _loadFuture;
 
+  /// [software] defaults to one answered by [ndk].
   NReleaseEngagementController({
     required this.ndk,
     required this.release,
+    Software? software,
     this.relays = const [],
     this.zapTargetApp,
     this.queryTimeout = const Duration(seconds: 4),
     this.metadataTimeout = const Duration(seconds: 3),
-  });
+  }) : software = software ?? softwareForNdk(ndk);
 
   String get releaseAddress =>
       '$softwareReleaseKind:${release.event.pubKey}:'
@@ -334,7 +340,7 @@ class NReleaseEngagementController extends ChangeNotifier {
     final releases = <SoftwareRelease>{if (isCurrentRelease) release};
     final releasesFuture = () async {
       try {
-        return await ndk.software.getReleases(
+        return await software.getReleases(
           app: targetApp,
           channel: release.channel,
           relays: relays,
@@ -346,7 +352,7 @@ class NReleaseEngagementController extends ChangeNotifier {
     }();
     final applicationFuture = () async {
       try {
-        return await ndk.software.getApp(
+        return await software.getApp(
           app: targetApp,
           relays: relays,
           timeout: queryTimeout,

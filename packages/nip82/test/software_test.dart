@@ -1,83 +1,37 @@
+import 'dart:async';
+
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
 import 'package:test/test.dart';
 
-import '../../../cashu/test/mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
+import 'mocks/mock_relay.dart';
+import 'mocks/software_for_ndk.dart';
 
-class _WatchRequests implements Requests {
-  final NdkResponse response;
-  String? closedRequestId;
-
-  _WatchRequests(Stream<Nip01Event> events)
-    : response = NdkResponse('software-watch-test', events);
-
+class _AcceptingVerifier implements EventVerifier {
   @override
-  Future<void> closeSubscription(String subId, {String debugLabel = ''}) async {
-    closedRequestId = subId;
-  }
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #subscription) return response;
-    return super.noSuchMethod(invocation);
-  }
+  Future<bool> verify(Nip01Event event) async => true;
 }
 
-class _QueryRequests implements Requests {
-  final NdkResponse response;
+Never _unusedSubscribe(Filter filter, {Iterable<String>? relays}) =>
+    throw StateError('subscribe must not be called');
 
-  _QueryRequests(RelayRequestStatus status)
-    : response = NdkResponse(
-        'software-query-test',
-        const Stream<Nip01Event>.empty(),
-        relayOutcomes: () => {
-          'wss://relay.example': RelayRequestOutcome(status),
-        },
-      );
+Never _unusedQuery(
+  Filter filter, {
+  Iterable<String>? relays,
+  Duration? timeout,
+}) => throw StateError('query must not be called');
 
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #query) return response;
-    return super.noSuchMethod(invocation);
-  }
-}
-
-class _EventQueryRequests implements Requests {
-  final NdkResponse response;
-
-  _EventQueryRequests(Iterable<Nip01Event> events)
-    : response = NdkResponse(
-        'software-event-query-test',
-        Stream.fromIterable(events),
-        relayOutcomes: () => const {
-          'wss://relay.example': RelayRequestOutcome(RelayRequestStatus.eose),
-        },
-      );
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #query) return response;
-    return super.noSuchMethod(invocation);
-  }
-}
-
-class _CapturingRequests implements Requests {
-  final List<Set<String>?> explicitRelayCalls = [];
-
-  @override
-  dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #query) {
-      final relays =
-          invocation.namedArguments[#explicitRelays] as Iterable<String>?;
-      explicitRelayCalls.add(relays?.toSet());
-      return NdkResponse(
-        'software-query-${explicitRelayCalls.length}',
-        const Stream<Nip01Event>.empty(),
-      );
-    }
-    return super.noSuchMethod(invocation);
-  }
-}
+Software _answering(
+  List<Nip01Event> events, {
+  bool anyRelayCompleted = true,
+  List<Iterable<String>?>? relayCalls,
+}) => Software(
+  query: (filter, {relays, timeout}) async {
+    relayCalls?.add(relays);
+    return (events: events, anyRelayCompleted: anyRelayCompleted);
+  },
+  subscribe: _unusedSubscribe,
+);
 
 void main() {
   const publisher =
@@ -122,14 +76,9 @@ void main() {
   );
 
   test('getApp distinguishes missing application from relay failure', () async {
-    final missing = Software(requests: _QueryRequests(RelayRequestStatus.eose));
-    expect(await missing.getApp(app: appRef), isNull);
-
-    final failed = Software(
-      requests: _QueryRequests(RelayRequestStatus.timedOut),
-    );
+    expect(await _answering(const []).getApp(app: appRef), isNull);
     expect(
-      failed.getApp(app: appRef),
+      _answering(const [], anyRelayCompleted: false).getApp(app: appRef),
       throwsA(isA<SoftwareDiscoveryException>()),
     );
   });
@@ -159,32 +108,37 @@ void main() {
       final first = release();
       final newer = release(createdAt: 200);
       final otherVersion = release(createdAt: 150, version: '2.0.0');
-      final requests = _WatchRequests(
-        Stream.fromIterable([
-          event(softwareReleaseKind, []),
-          release(author: hash),
-          release(identifier: 'com.other.app'),
-          release(channel: 'beta'),
-          first,
-          first,
-          release(createdAt: 99),
-          release(channel: 'beta'),
-          event(softwareReleaseKind, []),
-          release(author: hash),
-          release(identifier: 'com.other.app'),
-          newer,
-          otherVersion,
-          release(createdAt: 200),
-        ]),
+      var subscribed = 0;
+      var closed = 0;
+      final software = Software(
+        query: _unusedQuery,
+        subscribe: (filter, {relays}) {
+          subscribed++;
+          return (
+            events: Stream.fromIterable([
+              event(softwareReleaseKind, []),
+              release(author: hash),
+              release(identifier: 'com.other.app'),
+              release(channel: 'beta'),
+              first,
+              first,
+              release(createdAt: 99),
+              release(channel: 'beta'),
+              event(softwareReleaseKind, []),
+              release(author: hash),
+              release(identifier: 'com.other.app'),
+              newer,
+              otherVersion,
+              release(createdAt: 200),
+            ]),
+            close: () async => closed++,
+          );
+        },
       );
-      final snapshots = await Software(requests: requests)
-          .watchReleases(
-            app: const SoftwareAppRef(
-              publisher: publisher,
-              identifier: 'com.example.app',
-            ),
-          )
-          .toList();
+
+      final watch = software.watchReleases(app: appRef);
+      expect(subscribed, 0);
+      final snapshots = await watch.toList();
 
       expect(
         snapshots.map(
@@ -196,7 +150,8 @@ void main() {
           [newer.id, otherVersion.id],
         ],
       );
-      expect(requests.closedRequestId, requests.response.requestId);
+      expect(subscribed, 1);
+      expect(closed, 1);
     },
   );
 
@@ -213,9 +168,11 @@ void main() {
     final oldCopy = release('1.0.0', 100);
     final newCopy = release('1.0.0', 200);
     final otherVersion = release('2.0.0', 150);
-    final releases = await Software(
-      requests: _EventQueryRequests([oldCopy, otherVersion, newCopy]),
-    ).getReleases(app: appRef);
+    final releases = await _answering([
+      oldCopy,
+      otherVersion,
+      newCopy,
+    ]).getReleases(app: appRef);
 
     expect(releases.map((release) => release.event.id), [
       newCopy.id,
@@ -272,7 +229,7 @@ void main() {
   );
 
   test('asset relay hints supplement default relay resolution', () async {
-    final requests = _CapturingRequests();
+    final relayCalls = <Iterable<String>?>[];
     final release = SoftwareRelease.fromEvent(
       event(softwareReleaseKind, [
         ['i', 'com.example.app'],
@@ -283,9 +240,9 @@ void main() {
       ]),
     );
 
-    await Software(requests: requests).resolveAssets(release);
+    await _answering(const [], relayCalls: relayCalls).resolveAssets(release);
 
-    expect(requests.explicitRelayCalls, [
+    expect(relayCalls.map((relays) => relays?.toSet()), [
       null,
       {'wss://hint.example'},
     ]);
@@ -350,9 +307,8 @@ void main() {
         ['apk_certificate_hash', certificate],
       ]),
     );
-    final ndk = Ndk.emptyBootstrapRelaysConfig();
-    addTearDown(ndk.destroy);
-    final update = ndk.software.selectUpdate(
+    final software = Software(query: _unusedQuery, subscribe: _unusedSubscribe);
+    final update = software.selectUpdate(
       releases: [release],
       assetsByReleaseId: {
         release.event.id: [unusableNewerAsset, asset],
@@ -376,7 +332,7 @@ void main() {
       platforms: ['android-arm64-v8a'],
       certificateHashes: [certificate],
     );
-    final latestPublished = ndk.software.selectLatestCompatible(
+    final latestPublished = software.selectLatestCompatible(
       releases: [release],
       assetsByReleaseId: {
         release.event.id: [asset],
@@ -385,7 +341,7 @@ void main() {
     );
     expect(latestPublished?.asset.versionCode, 12);
     expect(
-      ndk.software.selectUpdate(
+      software.selectUpdate(
         releases: [release],
         assetsByReleaseId: {
           release.event.id: [asset],
@@ -396,71 +352,116 @@ void main() {
     );
   });
 
-  group('software discovery', () {
+  group('software discovery through ndk', () {
     late MockRelay relay;
     late Ndk ndk;
+    late Software software;
 
     setUp(() async {
-      relay = MockRelay(name: 'software discovery');
-      await relay.startServer();
+      relay = MockRelay(challengeOnConnect: false);
+      await relay.start();
       ndk = Ndk(
         NdkConfig(
           cache: MemCacheManager(),
-          eventVerifier: MockEventVerifier(),
+          eventVerifier: _AcceptingVerifier(),
           bootstrapRelays: [relay.url],
         ),
       );
+      software = softwareFor(ndk);
     });
 
     tearDown(() async {
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('gets application and sorted valid releases', () async {
-      relay.textNotes = {
-        Bip340.generatePrivateKey(): networkEvent(softwareApplicationKind, [
+      relay.events.add(
+        networkEvent(softwareApplicationKind, [
           ['d', 'com.example.app'],
           ['name', 'Example'],
         ], content: 'Description'),
-      };
-
-      final ref = SoftwareAppRef(
-        publisher: publisher,
-        identifier: 'com.example.app',
       );
-      final app = await ndk.software.getApp(app: ref, relays: [relay.url]);
+
+      final app = await software.getApp(app: appRef, relays: [relay.url]);
       expect(app?.name, 'Example');
 
-      relay.textNotes = {
-        Bip340.generatePrivateKey(): networkEvent(softwareReleaseKind, [
-          ['i', 'com.example.app'],
-          ['version', '1.0.0'],
-          ['d', 'com.example.app@1.0.0'],
-          ['c', 'main'],
-          ['e', hash],
-        ], createdAt: 100),
-        Bip340.generatePrivateKey(): networkEvent(softwareReleaseKind, [
-          ['i', 'com.example.app'],
-          ['version', '2.0.0'],
-          ['d', 'com.example.app@2.0.0'],
-          ['c', 'main'],
-          ['e', hash],
-        ], createdAt: 200),
-        Bip340.generatePrivateKey(): networkEvent(softwareReleaseKind, [
-          ['i', 'com.example.app'],
-          ['version', 'broken'],
-          ['d', 'wrong'],
-          ['c', 'main'],
-          ['e', hash],
-        ]),
-      };
+      relay.events
+        ..clear()
+        ..addAll([
+          networkEvent(softwareReleaseKind, [
+            ['i', 'com.example.app'],
+            ['version', '1.0.0'],
+            ['d', 'com.example.app@1.0.0'],
+            ['c', 'main'],
+            ['e', hash],
+          ], createdAt: 100),
+          networkEvent(softwareReleaseKind, [
+            ['i', 'com.example.app'],
+            ['version', '2.0.0'],
+            ['d', 'com.example.app@2.0.0'],
+            ['c', 'main'],
+            ['e', hash],
+          ], createdAt: 200),
+          networkEvent(softwareReleaseKind, [
+            ['i', 'com.example.app'],
+            ['version', 'broken'],
+            ['d', 'wrong'],
+            ['c', 'main'],
+            ['e', hash],
+          ]),
+        ]);
 
-      final releases = await ndk.software.getReleases(
-        app: ref,
+      final releases = await software.getReleases(
+        app: appRef,
         relays: [relay.url],
       );
       expect(releases.map((release) => release.version), ['2.0.0', '1.0.0']);
+    });
+
+    test('reports a relay that never completes as a failure', () async {
+      relay.answerRequests = false;
+
+      await expectLater(
+        software.getApp(
+          app: appRef,
+          relays: [relay.url],
+          timeout: const Duration(milliseconds: 300),
+        ),
+        throwsA(isA<SoftwareDiscoveryException>()),
+      );
+    });
+
+    test('watches releases a relay receives after the subscription', () async {
+      final updates = StreamIterator(
+        software.watchReleases(app: appRef, relays: [relay.url]),
+      );
+      final next = updates.moveNext();
+      await Future.doWhile(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        return relay.received('REQ').isEmpty;
+      });
+
+      final release = networkEvent(softwareReleaseKind, [
+        ['i', 'com.example.app'],
+        ['version', '1.0.0'],
+        ['d', 'com.example.app@1.0.0'],
+        ['c', 'main'],
+        ['e', hash],
+      ]);
+      relay.sendToAll([
+        'EVENT',
+        relay.received('REQ').single[1],
+        release.toJson(),
+      ]);
+
+      expect(await next, isTrue);
+      expect(updates.current.single.event.id, release.id);
+      await updates.cancel();
+      await Future.doWhile(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+        return relay.received('CLOSE').isEmpty;
+      });
     });
 
     test(
@@ -501,13 +502,13 @@ void main() {
             ['e', independentVersionAsset.id, relay.url],
           ], id: 'release'),
         );
-        relay.textNotes = {
-          Bip340.generatePrivateKey(): assetEvent,
-          Bip340.generatePrivateKey(): independentIdentifierAsset,
-          Bip340.generatePrivateKey(): independentVersionAsset,
-        };
+        relay.events.addAll([
+          assetEvent,
+          independentIdentifierAsset,
+          independentVersionAsset,
+        ]);
 
-        final assets = await ndk.software.resolveAssets(
+        final assets = await software.resolveAssets(
           release,
           relays: [relay.url],
         );
@@ -554,20 +555,17 @@ void main() {
           ['e', secondAsset.id, relay.url],
         ], id: 'release-2'),
       );
-      relay.textNotes = {
-        Bip340.generatePrivateKey(): firstAsset,
-        Bip340.generatePrivateKey(): secondAsset,
-      };
-      final requestsBefore = relay.totalRequestedSubscriptionCount;
+      relay.events.addAll([firstAsset, secondAsset]);
+      final requestsBefore = relay.received('REQ').length;
 
-      final assets = await ndk.software.resolveAssetsForReleases(
+      final assets = await software.resolveAssetsForReleases(
         [firstRelease, secondRelease],
         relays: [relay.url],
       );
 
       expect(assets[firstRelease.event.id]?.single.event.id, firstAsset.id);
       expect(assets[secondRelease.event.id]?.single.event.id, secondAsset.id);
-      expect(relay.totalRequestedSubscriptionCount - requestsBefore, 1);
+      expect(relay.received('REQ').length - requestsBefore, 1);
     });
   });
 }

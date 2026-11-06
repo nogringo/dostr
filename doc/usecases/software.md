@@ -5,9 +5,10 @@ label: Software updates
 
 # Software discovery and Android updates
 
-NDK's `software` use case discovers NIP-82 application, release, and asset
-events from trusted publishers. `ndk_flutter` adds a controller, reusable
-widgets, and a verified Android APK installer.
+The `ndk_nip82` package discovers NIP-82 application, release, and asset
+events from trusted publishers. It does not depend on `ndk`. `ndk_flutter`
+re-exports it and adds a controller, reusable widgets, and a verified Android
+APK installer.
 
 ## Published event requirements
 
@@ -32,7 +33,51 @@ use one of `android-arm64-v8a`, `android-armeabi-v7a`, `android-x86`, or
 `android-x86_64` as its `f` tag. `selectUpdate` chooses a compatible asset with
 a newer Android version code and matching certificate.
 
-## Core NDK API
+## Discovery API
+
+```yaml
+dependencies:
+  ndk: ^0.11.0-dev.2
+  ndk_nip82: ^0.1.0
+```
+
+`Software` asks how to query and subscribe to relays. With `ndk`:
+
+```dart
+import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
+
+final software = Software(
+  query: (filter, {relays, timeout}) async {
+    final response = ndk.requests.query(
+      filter: filter,
+      explicitRelays: relays,
+      timeout: timeout,
+    );
+    final events = await response.future;
+    return (
+      events: events,
+      anyRelayCompleted: response.relayOutcomes.values.any(
+        (outcome) => outcome.status == RelayRequestStatus.eose,
+      ),
+    );
+  },
+  subscribe: (filter, {relays}) {
+    final response = ndk.requests.subscription(
+      filter: filter,
+      explicitRelays: relays,
+    );
+    return (
+      events: response.stream,
+      close: () => ndk.requests.closeSubscription(response.requestId),
+    );
+  },
+);
+```
+
+`anyRelayCompleted` separates an application or release that does not exist
+from relays that never finished answering: `getApp` and `getReleases` throw
+`SoftwareDiscoveryException` for the latter.
 
 ```dart
 const app = SoftwareAppRef(
@@ -40,7 +85,7 @@ const app = SoftwareAppRef(
   identifier: 'com.example.app',
 );
 
-final metadata = await ndk.software.getApp(
+final metadata = await software.getApp(
   app: app,
   relays: const [
     'wss://catalog.example',
@@ -48,7 +93,7 @@ final metadata = await ndk.software.getApp(
   ],
 );
 
-final releases = await ndk.software.getReleases(
+final releases = await software.getReleases(
   app: app,
   channel: 'main',
   relays: const [
@@ -57,7 +102,7 @@ final releases = await ndk.software.getReleases(
   ],
 );
 
-final subscription = ndk.software
+final subscription = software
     .watchReleases(
       app: app,
       channel: 'main',
@@ -89,8 +134,9 @@ are used to discover application and release events. `NAppUpdateController`
 also uses them to resolve asset metadata, load release comments, reactions, and
 zap receipts, and publish new comments.
 
-An empty relay list does not mean “use Zapstore.” It delegates relay selection
-to the configured NDK engine and bootstrap/routing data. That may be useful in
+An empty relay list does not mean "use Zapstore." It leaves relay selection to
+the `query` and `subscribe` callbacks: with the ones above, to the configured
+NDK engine and bootstrap/routing data. That may be useful in
 a general Nostr client, but an application updater should normally provide at
 least one explicit catalog relay so release discovery remains predictable.
 
@@ -125,7 +171,8 @@ needing redundancy should use a resilient endpoint or CDN in that URL.
 ## Flutter controller
 
 Create one controller for the application, start it after NDK initialization,
-and dispose it with the owning widget or application service:
+and dispose it with the owning widget or application service. It answers its
+`Software` with the `NdkFlutter` ndk unless given one as `software`:
 
 ```dart
 late final NAppUpdateController appUpdater;

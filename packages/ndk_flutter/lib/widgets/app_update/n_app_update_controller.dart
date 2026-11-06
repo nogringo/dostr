@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../main/ndk_flutter.dart';
+import 'software_for_ndk.dart';
 import 'update_installer.dart';
 
 enum NAppUpdateStatus {
@@ -87,6 +89,7 @@ class NAppUpdateState {
 
 class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
   final NdkFlutter ndkFlutter;
+  final Software software;
   final SoftwareAppRef app;
   final SoftwareAppRef? zapTargetApp;
   final String channel;
@@ -113,10 +116,13 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
   bool _installOperationActive = false;
   int _evaluationGeneration = 0;
   int? _previousInstalledVersionCode;
+
+  /// [software] defaults to one answered by [ndkFlutter]'s ndk.
   NAppUpdateController({
     required this.ndkFlutter,
     required this.app,
     required this.installer,
+    Software? software,
     this.currentVersion,
     this.externalUpdateUrl,
     bool? installationEnabled,
@@ -126,7 +132,8 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
     this.queryTimeout = const Duration(seconds: 5),
     this.engagementQueryTimeout = const Duration(seconds: 4),
     this.engagementMetadataTimeout = const Duration(seconds: 3),
-  }) : installationEnabled =
+  }) : software = software ?? softwareForNdk(ndkFlutter.ndk),
+       installationEnabled =
            installationEnabled ??
            (!kIsWeb && defaultTargetPlatform == TargetPlatform.android);
 
@@ -140,6 +147,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
     String channel = 'main',
     List<String> relays = const [],
     UpdateInstaller? installer,
+    Software? software,
     Duration queryTimeout = const Duration(seconds: 5),
     Duration engagementQueryTimeout = const Duration(seconds: 4),
     Duration engagementMetadataTimeout = const Duration(seconds: 3),
@@ -153,6 +161,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
     channel: channel,
     relays: relays,
     installer: installer ?? AndroidPackageInstaller(),
+    software: software,
     queryTimeout: queryTimeout,
     engagementQueryTimeout: engagementQueryTimeout,
     engagementMetadataTimeout: engagementMetadataTimeout,
@@ -206,7 +215,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
 
   void _ensureReleaseSubscription() {
     if (_disposed || _releaseSubscription != null) return;
-    _releaseSubscription = ndkFlutter.ndk.software
+    _releaseSubscription = software
         .watchReleases(app: app, channel: channel, relays: relays)
         .listen(
           _evaluate,
@@ -249,7 +258,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
         _setState(_state.copyWith(installed: installed));
       }
       final releasesTimer = Stopwatch()..start();
-      final releases = await ndkFlutter.ndk.software.getReleases(
+      final releases = await software.getReleases(
         app: app,
         channel: channel,
         relays: relays,
@@ -354,7 +363,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
           releasesWithAssets.add(release);
         }
       }
-      final latestCompatible = ndkFlutter.ndk.software.selectLatestCompatible(
+      final latestCompatible = software.selectLatestCompatible(
         releases: releasesWithAssets,
         assetsByReleaseId: assets,
         installed: installed,
@@ -436,7 +445,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
   SoftwareAsset? assetForRelease(SoftwareRelease release) {
     final installed = _state.installed;
     if (installed == null) return null;
-    return ndkFlutter.ndk.software
+    return software
         .selectLatestCompatible(
           releases: [release],
           assetsByReleaseId: _state.assetsByReleaseId,
@@ -457,7 +466,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
     final resolved = <String, List<SoftwareAsset>>{};
     var unresolved = releases;
     for (var attempt = 0; attempt < 3; attempt++) {
-      final batch = await ndkFlutter.ndk.software.resolveAssetsForReleases(
+      final batch = await software.resolveAssetsForReleases(
         unresolved,
         relays: relays,
         timeout: queryTimeout,
@@ -479,7 +488,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
               (reference) => resolvedIds.contains(reference.eventId),
             );
             final hasCompatibleAsset =
-                ndkFlutter.ndk.software.selectLatestCompatible(
+                software.selectLatestCompatible(
                   releases: [release],
                   assetsByReleaseId: resolved,
                   installed: installed,
@@ -488,7 +497,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
             return !allReferencesResolved && !hasCompatibleAsset;
           })
           .toList(growable: false);
-      final update = ndkFlutter.ndk.software.selectUpdate(
+      final update = software.selectUpdate(
         releases: releases,
         assetsByReleaseId: resolved,
         installed: installed,
