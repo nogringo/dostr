@@ -4,51 +4,10 @@ version: 0.1.0
 homepage: https://github.com/bukata-sa/dart-bc-ur
 
 environment:
-  sdk: '>3.0.0'
+  sdk: ">=3.9.0 <4.0.0"
 
-dependencies:
-  cbor: ^6.5.1
-  ndk: '>0.7.1'
-  ndk_cashu: ^0.1.0
+resolution: workspace
 
 dev_dependencies:
   test: ^1.16.0
-  lints: ^4.0.0
-
-dependency_overrides:
-  ndk:
-    path: ../ndk
-  ndk_core:
-    path: ../ndk_core
-  ndk_nip01:
-    path: ../nip01
-  ndk_signer:
-    path: ../signer
-  ndk_auth:
-    path: ../auth
-  ndk_isolates:
-    path: ../isolates
-  ndk_logger:
-    path: ../logger
-  ndk_http:
-    path: ../http
-  ndk_nip19:
-    path: ../nip19
-  ndk_bip340:
-    path: ../bip340
-  ndk_nip44:
-    path: ../nip44
-  ndk_nip49:
-    path: ../nip49
-  ndk_nip77:
-    path: ../nip77
-  ndk_url_set:
-    path: ../url_set
-  ndk_fetchers:
-    path: ../fetchers
-  ndk_cashu:
-    path: ../cashu
-  ndk_cashu_protocol:
-    path: ../cashu_protocol
-  ndk_wallets:
-    path: ../wallets
+  lints: ^6.1.0

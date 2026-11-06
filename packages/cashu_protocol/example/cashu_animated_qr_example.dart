@@ -1,7 +1,5 @@
 // ignore_for_file: avoid_print
-import 'package:ndk_cashu/ndk_cashu.dart';
-
-import 'cashu_token_ur_encoder.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 /// Example demonstrating NUT-16 Animated QR codes using UR encoding
 ///
@@ -13,7 +11,7 @@ void main() {
   // Example 1: Single-part UR (for small tokens - static QR code)
   singlePartExample();
 
-  print('\n' + '=' * 60 + '\n');
+  print('\n${'=' * 60}\n');
 
   // Example 2: Multi-part UR (for large tokens - animated QR codes)
   multiPartExample();

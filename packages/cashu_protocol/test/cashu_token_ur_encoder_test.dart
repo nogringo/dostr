@@ -1,8 +1,10 @@
-import 'package:ndk_cashu/ndk_cashu.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 
-import '../lib/cashu_token_ur_encoder.dart';
-
+import 'package:cbor/cbor.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import 'package:test/test.dart';
+import 'package:ur/ur.dart';
 
 void main() {
   group('CashuTokenUrEncoder - Single Part', () {
@@ -410,6 +412,56 @@ void main() {
       expect(decodedToken, isNotNull);
       expect(decodedToken!.proofs[0].secret, equals('特殊字符-🎉-émojis-тест'));
       expect(decodedToken.memo, equals('unicode test 测试 🚀'));
+    });
+  });
+
+  group('CashuTokenUrEncoder - NUT-16 payload', () {
+    final token = CashuToken(
+      proofs: [
+        CashuProof(
+          amount: 8,
+          secret: 'test-secret',
+          unblindedSig:
+              '02a9acc1e48c25eeeb9289b5031cc57da9fe72f3fe2861d264bdc074209b107ba2',
+          keysetId: '009a1f293253e41e',
+        ),
+      ],
+      memo: 'interop',
+      unit: 'sat',
+      mintUrl: 'https://mint.example.com',
+    );
+
+    test('holds the serialized cashuB token as a CBOR byte string', () {
+      final ur = URDecoder.decode(
+        CashuTokenUrEncoder.encodeSinglePart(token: token),
+      );
+      final payload = cbor.decode(ur.cbor);
+
+      expect(ur.type, 'bytes');
+      expect(payload, isA<CborBytes>());
+      expect(
+        utf8.decode((payload as CborBytes).bytes),
+        CashuTokenEncoder.encodeTokenV4(token: token),
+      );
+    });
+
+    test('reads an animated QR code that cashu.me writes', () {
+      // cashu.me: new UREncoder(UR.fromBuffer(Buffer.from(token)), size, 0)
+      final serialized = CashuTokenEncoder.encodeTokenV4(token: token);
+      final ur = UR(
+        'bytes',
+        Uint8List.fromList(cbor.encode(CborBytes(utf8.encode(serialized)))),
+      );
+      final encoder = UREncoder(ur, 30);
+      final decoder = CashuTokenUrEncoder.createMultiPartDecoder();
+      while (!decoder.isComplete()) {
+        decoder.receivePart(encoder.nextPart());
+      }
+
+      final decoded = CashuTokenUrEncoder.decodeFromMultiPartDecoder(decoder);
+
+      expect(decoded, isNotNull);
+      expect(CashuTokenEncoder.encodeTokenV4(token: decoded!), serialized);
     });
   });
 }

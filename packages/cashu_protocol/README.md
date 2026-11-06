@@ -88,6 +88,33 @@ derives an output the mint already signed. This example ignores input fees:
 with a keyset whose `inputFeePPK` is not 0, the outputs must add up to the
 inputs minus the fee.
 
+Show a token too large for one QR code as an animated QR code (NUT-16):
+
+```dart
+final encoder = CashuTokenUrEncoder.createMultiPartEncoder(token: token);
+Timer.periodic(const Duration(milliseconds: 200), (_) {
+  showQrCode(encoder.nextPart());
+});
+```
+
+And scan one:
+
+```dart
+final decoder = CashuTokenUrEncoder.createMultiPartDecoder();
+
+void onScan(String frame) {
+  decoder.receivePart(frame);
+  if (!decoder.isComplete()) return;
+  final token = CashuTokenUrEncoder.decodeFromMultiPartDecoder(decoder);
+}
+```
+
+The frames can come in any order and some can be missed: the decoder only
+needs enough of them, and `estimatedPercentComplete()` tells how far it is.
+Each frame is a `ur:bytes` Uniform Resource that holds the serialized
+`cashuB` token, as cashu.me writes and reads it. A token that fits in one QR
+code goes in as its `cashuB` string.
+
 ## What it covers
 
 - NUT-00: blind signatures (`CashuBdhke`, `CashuTools.hashToCurve`) and v4
@@ -100,6 +127,8 @@ inputs minus the fee.
 - NUT-09: restore.
 - NUT-13: deterministic secrets from a BIP-39 seed phrase (`CashuSeed`,
   `DartCashuKeyDerivation`), for both keyset id versions.
+- NUT-16: animated QR codes (`CashuTokenUrEncoder`), on the Uniform Resources
+  of the `ur` package.
 - NUT-20: mint quotes locked to a key that `CashuKeyDerivation.deriveQuoteKey`
   derives from the seed, and signed when minting.
 

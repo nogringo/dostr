@@ -17,3 +17,7 @@
    amounts the mint imprinted.
  - `CashuRepoImpl.swap` sends the outputs in the order it gets them instead of
    sorting the caller's list in place.
+ - `CashuTokenUrEncoder` (NUT-16 animated QR codes) moved here from the `ur`
+   package, which no longer depends on `ndk` and `ndk_cashu`. Its UR holds the
+   serialized `cashuB` token as a CBOR byte string, as cashu.me does. It held
+   the token's CBOR map, so neither wallet could read the other's QR codes.
