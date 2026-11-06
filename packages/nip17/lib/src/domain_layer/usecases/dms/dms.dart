@@ -1,10 +1,43 @@
-import 'package:ndk/ndk.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip59/ndk_nip59.dart';
 
 import '../../entities/nip_17_conversation.dart';
 import '../../entities/nip_17_file_message.dart';
 import '../../entities/nip_17_message.dart';
+
+/// The relays in [pubKey]'s DM relay list (kind 10050), or null when they have
+/// none. [forceRefresh] skips any cached list, and [discoveryRelays] are asked
+/// for it too.
+typedef Nip17DmRelaysResolver =
+    Future<List<String>?> Function(
+      String pubKey, {
+      bool forceRefresh,
+      Iterable<String>? discoveryRelays,
+    });
+
+/// The events matching [filter] on [relays], authenticating as [auth] allows,
+/// until [timeout]. When [cacheRead] is true, cached events may answer too.
+/// The events the relays send should be cached.
+typedef Nip17Query =
+    Future<List<Nip01Event>> Function(
+      Filter filter, {
+      required List<String> relays,
+      required AuthPolicy auth,
+      required bool cacheRead,
+      required Duration timeout,
+    });
+
+/// Publishes the signed [event] to [relays], or to its author's outbox relays
+/// when [relays] is null, and completes with what each relay answered.
+typedef Nip17Publish =
+    Future<List<RelayBroadcastResponse>> Function(
+      Nip01Event event, {
+      Iterable<String>? relays,
+    });
+
+/// The cached gift wraps (kind 1059) whose `p` tag is [pubKey].
+typedef Nip17CachedGiftWrapsLoader =
+    Future<List<Nip01Event>> Function(String pubKey);
 
 /// Direct-messages usecase built on NIP-17 gift-wrapped messages.
 ///
@@ -14,14 +47,17 @@ import '../../entities/nip_17_message.dart';
 /// - loading one conversation with a specific peer
 /// - parsing a wrapped event into a DM message model
 ///
-/// Conversation loading uses the logged-in user's DM relay list and can reuse
-/// cached decrypted payload sidecars for fast repeated reads.
+/// Conversation loading uses the logged-in user's DM relay list and reuses
+/// the plaintext the [GiftWrap] cache keeps for fast repeated reads.
 class Dms {
   /// Message rumor kind used by this DM usecase.
   static const int kMessageKind = 14;
 
   /// Encrypted file rumor kind defined by NIP-17.
   static const int kFileMessageKind = 15;
+
+  /// DM relay list kind defined by NIP-17.
+  static const int kDmRelayListKind = 10050;
 
   /// Legacy NIP-04 encrypted direct-message event kind.
   ///
@@ -30,41 +66,33 @@ class Dms {
   /// that must interoperate with a peer that has no NIP-17 inbox relay list.
   static const int kLegacyNip04MessageKind = 4;
 
-  final Accounts _accounts;
-  final Requests _requests;
-  final Broadcast _broadcast;
+  final AuthAccounts _accounts;
   final GiftWrap _giftWrap;
-  final UserRelayLists _userRelayLists;
-  final CacheManager _cacheManager;
   final EventVerifier _eventVerifier;
+  final Nip17DmRelaysResolver _getDmRelays;
+  final Nip17Query _query;
+  final Nip17Publish _publish;
+  final Nip17CachedGiftWrapsLoader _loadCachedGiftWraps;
 
-  /// Creates the direct-messages usecase on top of [ndk]: its accounts,
-  /// requests, broadcast, gift wrap, user relay lists, cache and verifier.
-  factory Dms(Ndk ndk) => Dms.withDependencies(
-    accounts: ndk.accounts,
-    requests: ndk.requests,
-    broadcast: ndk.broadcast,
-    giftWrap: ndk.giftWrap,
-    userRelayLists: ndk.userRelayLists,
-    cacheManager: ndk.config.cache,
-    eventVerifier: ndk.config.eventVerifier,
-  );
-
-  Dms.withDependencies({
-    required Accounts accounts,
-    required Requests requests,
-    required Broadcast broadcast,
+  /// [accounts] gives the logged-in account, which signs, decrypts and
+  /// authenticates. [getDmRelays] reads a user's kind 10050 list, [query] and
+  /// [publish] talk to the relays, and [loadCachedGiftWraps] answers
+  /// [loadConversationsSnapshot].
+  Dms({
+    required AuthAccounts accounts,
     required GiftWrap giftWrap,
-    required UserRelayLists userRelayLists,
-    required CacheManager cacheManager,
     required EventVerifier eventVerifier,
+    required Nip17DmRelaysResolver getDmRelays,
+    required Nip17Query query,
+    required Nip17Publish publish,
+    required Nip17CachedGiftWrapsLoader loadCachedGiftWraps,
   }) : _accounts = accounts,
-       _requests = requests,
-       _broadcast = broadcast,
        _giftWrap = giftWrap,
-       _userRelayLists = userRelayLists,
-       _cacheManager = cacheManager,
-       _eventVerifier = eventVerifier;
+       _eventVerifier = eventVerifier,
+       _getDmRelays = getDmRelays,
+       _query = query,
+       _publish = publish,
+       _loadCachedGiftWraps = loadCachedGiftWraps;
 
   /// Sends a direct message to [recipientPubKey].
   ///
@@ -136,18 +164,18 @@ class Dms {
     if (encrypted == null || encrypted.isEmpty) {
       throw StateError('The signer did not produce a NIP-04 ciphertext.');
     }
-    final event = Nip01Event(
-      pubKey: account.pubkey,
-      kind: kLegacyNip04MessageKind,
-      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      content: encrypted,
-      tags: [
-        ['p', recipientPubKey],
-      ],
+    final event = await account.signer.sign(
+      Nip01Event(
+        pubKey: account.pubkey,
+        kind: kLegacyNip04MessageKind,
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        content: encrypted,
+        tags: [
+          ['p', recipientPubKey],
+        ],
+      ),
     );
-    await _broadcast
-        .broadcast(nostrEvent: event, specificRelays: relays)
-        .broadcastDoneFuture;
+    await _publish(event, relays: relays);
   }
 
   /// Loads and decrypts legacy NIP-04 messages with [peerPubKey] from the
@@ -179,34 +207,14 @@ class Dms {
 
     final me = account.pubkey;
     final responses = await Future.wait([
-      _requests
-          .query(
-            name: 'legacy-nip04-outgoing',
-            explicitRelays: relays,
-            auth: AuthPolicy.allow(account),
-            cacheRead: !forceRefresh,
-            cacheWrite: true,
-            timeout: timeout,
-            filter: Filter(
-              kinds: const [kLegacyNip04MessageKind],
-              authors: [me],
-            ),
-          )
-          .future,
-      _requests
-          .query(
-            name: 'legacy-nip04-incoming',
-            explicitRelays: relays,
-            auth: AuthPolicy.allow(account),
-            cacheRead: !forceRefresh,
-            cacheWrite: true,
-            timeout: timeout,
-            filter: Filter(
-              kinds: const [kLegacyNip04MessageKind],
-              authors: [peerPubKey],
-            ),
-          )
-          .future,
+      for (final author in [me, peerPubKey])
+        _query(
+          Filter(kinds: const [kLegacyNip04MessageKind], authors: [author]),
+          relays: relays,
+          auth: AuthPolicy.allow(account),
+          cacheRead: !forceRefresh,
+          timeout: timeout,
+        ),
     ]);
 
     final byId = <String, LegacyNip04Message>{};
@@ -272,18 +280,18 @@ class Dms {
       );
     }
 
-    final event = Nip01Event(
-      pubKey: owner.pubkey,
-      kind: Nip51List.kDmRelays,
-      createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      content: '',
-      tags: [
-        for (final relay in cleaned) [Nip51List.kRelay, relay],
-      ],
+    final event = await owner.signer.sign(
+      Nip01Event(
+        pubKey: owner.pubkey,
+        kind: kDmRelayListKind,
+        createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+        content: '',
+        tags: [
+          for (final relay in cleaned) ['relay', relay],
+        ],
+      ),
     );
-    return _broadcast
-        .broadcast(nostrEvent: event, specificRelays: broadcastRelays)
-        .broadcastDoneFuture;
+    return _publish(event, relays: broadcastRelays);
   }
 
   /// Sends an already-uploaded encrypted file as a NIP-17 kind-15 message.
@@ -322,14 +330,14 @@ class Dms {
     required String senderPubKey,
     Iterable<String>? recipientDmRelayDiscoveryRelays,
   }) async {
-    final senderDmRelays = await _userRelayLists.getDmRelays(senderPubKey);
+    final senderDmRelays = await _getDmRelays(senderPubKey);
     if (senderDmRelays == null || senderDmRelays.isEmpty) {
       throw Exception(
         'Sender has no NIP-17 DM relays (kind 10050). Publish one first.',
       );
     }
 
-    final recipientDmRelays = await _userRelayLists.getDmRelays(
+    final recipientDmRelays = await _getDmRelays(
       recipientPubKey,
       forceRefresh: true,
       discoveryRelays: recipientDmRelayDiscoveryRelays,
@@ -347,18 +355,9 @@ class Dms {
       recipientPubkey: senderPubKey,
     );
 
-    final recipientBroadcast = _broadcast.broadcast(
-      nostrEvent: recipientWrap,
-      specificRelays: recipientDmRelays,
-    );
-    final senderBroadcast = _broadcast.broadcast(
-      nostrEvent: senderWrap,
-      specificRelays: senderDmRelays,
-    );
-
     final responses = await Future.wait([
-      recipientBroadcast.broadcastDoneFuture,
-      senderBroadcast.broadcastDoneFuture,
+      _publish(recipientWrap, relays: recipientDmRelays),
+      _publish(senderWrap, relays: senderDmRelays),
     ]);
     final recipientResponses = responses.first;
     if (!recipientResponses.any((response) => response.broadcastSuccessful)) {
@@ -450,38 +449,24 @@ class Dms {
     required bool forceRefresh,
     required Duration timeout,
   }) async {
-    final dmRelays = await _userRelayLists.getDmRelays(
-      myPubKey,
-      forceRefresh: forceRefresh,
-    );
+    final dmRelays = await _getDmRelays(myPubKey, forceRefresh: forceRefresh);
 
     if (dmRelays == null || dmRelays.isEmpty) {
       throw Exception('Logged in user has no NIP-17 DM relays (kind 10050).');
     }
 
-    final response = _requests.query(
-      name: 'dm-conversations',
-      explicitRelays: dmRelays,
+    return _query(
+      Filter(kinds: [GiftWrap.kGiftWrapEventkind], pTags: [myPubKey]),
+      relays: dmRelays,
       auth: AuthPolicy.allow(_accounts.getLoggedAccount()!),
       cacheRead: !forceRefresh,
-      cacheWrite: true,
       timeout: timeout,
-      filter: Filter(kinds: [GiftWrap.kGiftWrapEventkind], pTags: [myPubKey]),
     );
-
-    return response.future;
   }
 
   Future<List<Nip01Event>> _loadWrappedEventsFromCache({
     required String myPubKey,
-  }) {
-    return _cacheManager.loadEvents(
-      kinds: const [GiftWrap.kGiftWrapEventkind],
-      tags: {
-        'p': [myPubKey],
-      },
-    );
-  }
+  }) => _loadCachedGiftWraps(myPubKey);
 
   Future<List<Nip17Message>> _parseMessages({
     required List<Nip01Event> wrappedEvents,
@@ -676,7 +661,7 @@ class Dms {
   }
 
   String _requireLoggedPubKey() {
-    final pubKey = _accounts.getPublicKey();
+    final pubKey = _accounts.getLoggedAccount()?.pubkey;
     if (pubKey == null) {
       throw Exception('NIP-17 requires a logged in account.');
     }

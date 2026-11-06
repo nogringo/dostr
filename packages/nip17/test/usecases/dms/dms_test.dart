@@ -6,6 +6,7 @@ import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 
+import '../../mocks/dms_for_ndk.dart';
 import '../../mocks/mock_relay.dart';
 
 /// Tests for the NIP-17 [Dms] usecase.
@@ -41,7 +42,7 @@ void main() async {
       );
       ndk = Ndk(config);
       await ndk.bootstrapRelaysConnected;
-      dms = Dms(ndk);
+      dms = dmsFor(ndk);
 
       // Alice logs in
       ndk.accounts.loginPrivateKey(

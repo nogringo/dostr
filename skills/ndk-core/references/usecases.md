@@ -70,12 +70,42 @@ contactList?.contacts; // List<Contact>
 
 ## DMs (NIP-17)
 
-Lives in the `ndk_nip17` package: `Dms(ndk)` sends and loads NIP-17 gift-wrapped messages and publishes the DM relay list (kind 10050).
+Lives in the `ndk_nip17` package, which does not depend on `ndk`: `Dms` sends and loads NIP-17 gift-wrapped messages and publishes the DM relay list (kind 10050). It is built from the parts of the NDK instance it uses.
 
 ```dart
 import 'package:ndk_nip17/ndk_nip17.dart';
 
-final dms = Dms(ndk);
+final dms = Dms(
+  accounts: ndk.accounts,
+  giftWrap: ndk.giftWrap,
+  eventVerifier: ndk.config.eventVerifier,
+  getDmRelays: ndk.userRelayLists.getDmRelays,
+  query:
+      (
+        filter, {
+        required relays,
+        required auth,
+        required cacheRead,
+        required timeout,
+      }) => ndk.requests
+          .query(
+            filter: filter,
+            explicitRelays: relays,
+            auth: auth,
+            cacheRead: cacheRead,
+            timeout: timeout,
+          )
+          .future,
+  publish: (event, {relays}) => ndk.broadcast
+      .broadcast(nostrEvent: event, specificRelays: relays)
+      .broadcastDoneFuture,
+  loadCachedGiftWraps: (pubKey) => ndk.config.cache.loadEvents(
+    kinds: [GiftWrap.kGiftWrapEventkind],
+    tags: {
+      'p': [pubKey],
+    },
+  ),
+);
 
 await dms.sendMessage(recipientPubKey: pubkey, content: 'hello');
 final conversations = await dms.loadConversations();
