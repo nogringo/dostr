@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -658,13 +659,19 @@ void main() {
 
         expect(uploadResponse.first.success, true);
         final sha256 = uploadResponse.first.descriptor!.sha256;
+        final tailRelease = Completer<void>();
+        server.blobTailRelease = tailRelease.future;
 
         final stream = await blossomRepo.getBlobStream(
           sha256: sha256,
           serverUrls: ['http://localhost:${server.port}'],
         );
 
-        final chunks = await stream.toList();
+        final chunks = <BlobResponse>[];
+        await for (final chunk in stream) {
+          chunks.add(chunk);
+          if (!tailRelease.isCompleted) tailRelease.complete();
+        }
         expect(chunks.length, greaterThan(1));
         expect(chunks.first.contentLength, equals(testData.length));
         expect(

@@ -69,6 +69,11 @@ class MockBlossomServer {
   /// overlap
   final Duration? responseDelay;
 
+  /// when set, a whole-blob GET sends the first half of the blob and the rest
+  /// only once this completes, so a test can tell a streamed body from a
+  /// buffered one whatever the socket coalesces
+  Future<void>? blobTailRelease;
+
   /// largest blob `/upload` takes, in bytes, null for no limit
   final int? maxUploadSize;
 
@@ -222,6 +227,17 @@ class MockBlossomServer {
             },
           );
         }
+      }
+
+      final tailRelease = blobTailRelease;
+      if (tailRelease != null && request.method == 'GET') {
+        return Response.ok(
+          _withHeldTail(entry.data, tailRelease),
+          headers: {
+            'Content-Type': entry.contentType,
+            'Content-Length': entry.data.length.toString(),
+          },
+        );
       }
 
       // shelf_router answers HEAD with the GET handler, so this is also what a
@@ -572,6 +588,13 @@ class MockBlossomServer {
 
   /// the hash a `/<sha256>` path names, less its optional extension [BUD-01]
   String _hashOf(String name) => name.split('.').first;
+
+  Stream<List<int>> _withHeldTail(Uint8List data, Future<void> release) async* {
+    final half = data.length ~/ 2;
+    yield data.sublist(0, half);
+    await release;
+    yield data.sublist(half);
+  }
 
   String _computeSha256(List<int> data) {
     return sha256.convert(data).toString();
