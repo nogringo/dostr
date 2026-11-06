@@ -82,47 +82,8 @@ class MyVerifier implements EventVerifier {
 }
 ```
 
-## Coming from `ndk_core`
+## Coming from `ndk`
 
-`package:ndk_core/domain_layer/entities/nip_01_event.dart` and
-`package:ndk_core/domain_layer/repositories/event_verifier.dart` are now
-`package:ndk_nip01/ndk_nip01.dart`. `package:ndk_core/ndk_core.dart` and
-`package:ndk/ndk.dart` still export `Nip01Event` and `EventVerifier`.
-
-`Nip01EventModel` is now a deprecated alias of `Nip01Event`, in `ndk_core`.
-`Nip01EventModel.fromEntity(event)` is gone: use `event` itself. `toBase64()`
-is now an extension member, in
-`package:ndk_core/data_layer/models/nip_01_event_model.dart`, which
-`package:ndk_core/ndk_core.dart` and `package:ndk/ndk.dart` export.
-
-`EventVerifier` is now an interface: implement it, `extends EventVerifier` no
-longer compiles.
-
-`Nip01Event` is now a final class: it can no longer be extended, implemented
-or mocked. Build the events you need, in tests too, with its constructor or
-`fromJson`.
-
-`Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
-and `event.payloadId` recomputes it from the payload. `toJson` no longer
-writes `"sig": null` for an unsigned event.
-
-`fromJson` is now strict. It used to read a missing `pubkey` or `content` as
-`''`, missing `tags` as none, and to turn tag values into strings. It now
-throws a `FormatException` for these. A missing `id`, which it read as `''`,
-is now computed. `validSig` is gone: NDK only hands
-out events it verified, and nothing read the flag.
-
-The deprecated members are not in `ndk_nip01`. They stay in `ndk_core`, in
-`package:ndk_core/domain_layer/entities/nip_01_utils.dart`, which
-`package:ndk_core/ndk_core.dart` and `package:ndk/ndk.dart` export. The event
-members are now extension members.
-
-| Deprecated | Use |
-| --- | --- |
-| `Nip01EventModel` | `Nip01Event` |
-| `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
-| `Nip01Utils.calculateId(event)` | `event.payloadId` |
-| `event.getDtag()` | `event.dTag` |
-| `event.getEId()` | `event.getFirstTag('e')` |
-| `event.tTags` | `event.getTags('t')` |
-| `event.replyETags` | the NIP-10 `reply` marker, read from `event.tags` |
+`Nip01Event` and `EventVerifier` used to be in `ndk`. What changed, and the
+deprecated members that `ndk_core` keeps, are in the
+[`ndk_core` changelog](https://pub.dev/packages/ndk_core/changelog).

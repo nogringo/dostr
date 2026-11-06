@@ -33,7 +33,7 @@ final class Nip01Event {
     String? id,
     required String pubKey,
     required int kind,
-    required List<List<String>> tags,
+    List<List<String>> tags = const [],
     required String content,
     String? sig,
     int? createdAt,

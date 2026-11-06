@@ -35,7 +35,6 @@ const realNote = r'''
 Nip01Event signedEvent({String content = '', int? createdAt}) => Nip01Event(
   pubKey: alice,
   kind: 1,
-  tags: const [],
   content: content,
   createdAt: createdAt,
 ).copyWith(sig: 'f' * 128);
@@ -139,7 +138,7 @@ void main() {
     test('takes the current time when created_at is omitted', () {
       final before = Nip01Event.secondsSinceEpoch();
 
-      final event = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
+      final event = Nip01Event(pubKey: alice, kind: 1, content: '');
 
       expect(event.createdAt, greaterThanOrEqualTo(before));
     });
@@ -149,7 +148,6 @@ void main() {
         pubKey: alice,
         createdAt: 0,
         kind: 1,
-        tags: [],
         content: '',
       );
 
@@ -311,7 +309,6 @@ void main() {
         pubKey: '',
         createdAt: 1,
         kind: 70000,
-        tags: [],
         content: '',
       );
 
@@ -322,7 +319,7 @@ void main() {
     });
 
     test('writes no sig for an unsigned event', () {
-      final event = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
+      final event = Nip01Event(pubKey: alice, kind: 1, content: '');
 
       expect(event.toJson(), isNot(contains('sig')));
       expect(Nip01Event.fromJson(event.toJson()).sig, isNull);

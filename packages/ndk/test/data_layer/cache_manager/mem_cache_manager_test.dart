@@ -6,13 +6,7 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 
 // This will generate mock classes for our entities
-@GenerateMocks([
-  UserRelayList,
-  RelaySet,
-  ContactList,
-  Metadata,
-  Nip05,
-])
+@GenerateMocks([UserRelayList, RelaySet, ContactList, Metadata, Nip05])
 import 'mem_cache_manager_test.mocks.dart';
 
 void main() {

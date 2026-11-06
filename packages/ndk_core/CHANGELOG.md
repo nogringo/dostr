@@ -28,6 +28,13 @@ the relay url normalization ndk_core connects with.
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
 [`ndk_nip44`](https://pub.dev/packages/ndk_nip44).
 
+`Nip01Event` and `EventVerifier` are in
+[`ndk_nip01`](https://pub.dev/packages/ndk_nip01):
+`package:ndk/domain_layer/entities/nip_01_event.dart` and
+`package:ndk/domain_layer/repositories/event_verifier.dart` are now
+`package:ndk_nip01/ndk_nip01.dart`, which `package:ndk_core/ndk_core.dart`
+exports.
+
 NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 `NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
 `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or
@@ -44,8 +51,10 @@ documents, and the deprecated `RelayInfo.get` is gone.
 
 `Nip13` stays in `ndk` at its old path. `Nip01Utils.isIdValid` checks the id
 alone and no longer rejects an event that misses the proof-of-work target its
-`nonce` tag declares. `Nip01Utils.createEventCalculateId` and
-`Nip01Utils.calculateEventId` are gone: `Nip01Event` computes its own id.
+`nonce` tag declares. `Nip01Utils.createEventCalculateId`,
+`Nip01Utils.calculateEventId` and `Nip01Utils.calculateEventIdSync` are gone:
+`Nip01Event` computes its own id, and `payloadId` recomputes it from the
+payload.
 
 #### Defaults
 
@@ -241,13 +250,33 @@ read the flag. The cache managers no longer store it.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
 
-`Nip01Event.tTags` is deprecated: use `getTags('t')`. It is now an extension
-member, like the other deprecated ones (`getEId`, `getDtag`, `replyETags`), in
-`domain_layer/entities/nip_01_utils.dart` with `Nip01Utils`, which
-`package:ndk_core/ndk_core.dart` exports.
+`Nip01Event` is a final class: it can no longer be extended, implemented or
+mocked. Build the events a test needs with its constructor or `fromJson`.
 
-`Nip01EventModel` is now a deprecated alias of `Nip01Event`.
-`Nip01EventModel.fromEntity(event)` is gone: use `event` itself. `toBase64()`
-is an extension member, in `data_layer/models/nip_01_event_model.dart`.
+`Nip01EventModel` is now a deprecated alias of `Nip01Event`, which has its
+`fromJson`, `toJson` and `toJsonString`. `Nip01EventModel.fromEntity(event)`
+is gone: use `event` itself. `toBase64()` is an extension member, in
+`data_layer/models/nip_01_event_model.dart`.
+
+`fromJson` is strict. It used to read a missing `pubkey` or `content` as `''`
+and missing `tags` as none, to skip a tag that is not a list and to turn tag
+values into strings: it now throws a `FormatException` for all of these, and
+for a missing `created_at` or `kind` instead of a `TypeError`. A missing `id`,
+which it read as `''`, is now computed. `Nip01Event.tryFromJson` returns null
+where `fromJson` throws. `toJson` no longer writes `"sig": null` for an
+unsigned event.
+
+The other deprecated members are in `domain_layer/entities/nip_01_utils.dart`,
+which `package:ndk_core/ndk_core.dart` exports: the event ones are extension
+members of `Nip01Event`. `ndk_nip01` has none of them.
+
+| Deprecated | Use |
+| --- | --- |
+| `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
+| `Nip01Utils.calculateId(event)` | `event.payloadId` |
+| `event.getDtag()` | `event.dTag` |
+| `event.getEId()` | `event.getFirstTag('e')` |
+| `event.tTags` | `event.getTags('t')` |
+| `event.replyETags` | the NIP-10 `reply` marker, read from `event.tags` |
 
 `EventVerifier` is now an interface: implement it instead of extending it.
