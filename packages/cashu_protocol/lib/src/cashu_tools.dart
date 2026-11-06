@@ -3,9 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:bip340/bip340.dart' as bip340;
-import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
-import 'package:pointycastle/export.dart' hide Digest;
+import 'package:pointycastle/export.dart';
 
 import 'entities/cashu_keyset.dart';
 import 'entities/cashu_blinded_message.dart';
@@ -96,7 +94,7 @@ class CashuTools {
       Uint8List hash = digest.process(bytesToHash);
 
       try {
-        String pointXHex = '02${hex.encode(hash)}';
+        String pointXHex = '02${bytesToHex(hash)}';
         ECPoint point = pointFromHexString(pointXHex);
         return point;
       } catch (_) {
@@ -109,16 +107,13 @@ class CashuTools {
 
   static ECPoint pointFromHexString(String hexString) {
     final curve = ECCurve_secp256k1();
-    final bytes = hex.decode(hexString);
+    final bytes = hexToBytes(hexString);
 
     return curve.curve.decodePoint(bytes)!;
   }
 
   static String ecPointToHex(ECPoint point, {bool compressed = true}) {
-    return point
-        .getEncoded(compressed)
-        .map((byte) => byte.toRadixString(16).padLeft(2, '0'))
-        .join();
+    return bytesToHex(point.getEncoded(compressed));
   }
 
   static String createMintSignature({
@@ -140,13 +135,14 @@ class CashuTools {
 
     // hash the message
     final Uint8List messageBytes = utf8.encode(messageToSign);
-    final Digest messageHash = sha256.convert(messageBytes);
-    final String messageHashHex = messageHash.toString();
+    final String messageHashHex = bytesToHex(
+      SHA256Digest().process(messageBytes),
+    );
 
     return bip340.sign(
       privateKeyHex,
       messageHashHex,
-      hex.encode(randomBytes(32)),
+      bytesToHex(randomBytes(32)),
     );
   }
 
@@ -157,18 +153,26 @@ class CashuTools {
   static BigInt randomScalar() {
     final n = ECCurve_secp256k1().n;
     while (true) {
-      final scalar = BigInt.parse(hex.encode(randomBytes(32)), radix: 16);
+      final scalar = BigInt.parse(bytesToHex(randomBytes(32)), radix: 16);
       if (scalar > BigInt.zero && scalar < n) return scalar;
     }
   }
 
   static Uint8List hexToBytes(String hex) {
-    return Uint8List.fromList(
-      List.generate(
-        hex.length ~/ 2,
-        (i) => int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16),
-      ),
-    );
+    if (hex.length.isOdd) {
+      throw FormatException('Hex string has an odd length', hex);
+    }
+    final bytes = Uint8List(hex.length ~/ 2);
+    for (var i = 0; i < bytes.length; i++) {
+      bytes[i] = _hexDigit(hex, 2 * i) << 4 | _hexDigit(hex, 2 * i + 1);
+    }
+    return bytes;
+  }
+
+  static int _hexDigit(String hex, int index) {
+    final digit = int.tryParse(hex[index], radix: 16);
+    if (digit == null) throw FormatException('Invalid hex digit', hex, index);
+    return digit;
   }
 
   static String bytesToHex(Uint8List bytes) {

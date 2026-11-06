@@ -1,4 +1,3 @@
-import 'package:convert/convert.dart';
 import 'package:pointycastle/export.dart';
 
 import 'cashu_tools.dart';
@@ -11,9 +10,7 @@ class CashuKeypair {
 
   /// Builds a keypair from a private key hex string by deriving the public key.
   static CashuKeypair fromPrivateKeyHex(String privateKeyHex) {
-    final pubKeyHex = hex.encode(
-      derivePublicKey(privateKeyHex).getEncoded(true),
-    );
+    final pubKeyHex = CashuTools.ecPointToHex(derivePublicKey(privateKeyHex));
     return CashuKeypair(privateKey: privateKeyHex, publicKey: pubKeyHex);
   }
 
@@ -22,12 +19,7 @@ class CashuKeypair {
         .toRadixString(16)
         .padLeft(64, '0');
 
-    // derive the public key as an EC point
-    final pubKeyPoint = derivePublicKey(privKey);
-
-    // convert the EC point to hex format (compressed)
-    final pubKey = pubKeyPoint.getEncoded(true);
-    final pubKeyHex = hex.encode(pubKey);
+    final pubKeyHex = CashuTools.ecPointToHex(derivePublicKey(privKey));
 
     return CashuKeypair(privateKey: privKey, publicKey: pubKeyHex);
   }

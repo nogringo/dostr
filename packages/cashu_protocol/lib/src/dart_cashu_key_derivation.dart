@@ -1,14 +1,13 @@
 import 'dart:typed_data';
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
-
-import 'package:convert/convert.dart';
 import 'package:bip32_keys/bip32_keys.dart';
+import 'package:pointycastle/export.dart' show HMac, KeyParameter, SHA256Digest;
 
 import 'cashu_key_derivation.dart';
 import 'cashu_keypair.dart';
 import 'cashu_seed.dart';
+import 'cashu_tools.dart';
 
 enum DerivationType {
   secret(0),
@@ -99,7 +98,7 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
 
     final child = parent.derivePath("$counter");
 
-    return hex.encode(child.private!);
+    return CashuTools.bytesToHex(child.private!);
   }
 
   /// Modern derivation method with explicit seed parameter
@@ -123,8 +122,8 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     );
 
     return CashuSeedDeriveSecretResult(
-      secretHex: hex.encode(secret),
-      blindingHex: hex.encode(blinding),
+      secretHex: CashuTools.bytesToHex(secret),
+      blindingHex: CashuTools.bytesToHex(blinding),
     );
   }
 
@@ -142,7 +141,7 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     messageBuilder.add(utf8.encode('Cashu_KDF_HMAC_SHA256'));
 
     // Add keyset ID (hex to bytes)
-    messageBuilder.add(_hexToBytes(keysetId));
+    messageBuilder.add(CashuTools.hexToBytes(keysetId));
 
     // Add counter as big-endian 64-bit integer
     messageBuilder.add(_bigUint64BE(counter));
@@ -164,8 +163,8 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     final message = messageBuilder.toBytes();
 
     // Compute HMAC-SHA256
-    final hmacSha256 = Hmac(sha256, seed);
-    final hmacDigest = Uint8List.fromList(hmacSha256.convert(message).bytes);
+    final hmacSha256 = HMac(SHA256Digest(), 64)..init(KeyParameter(seed));
+    final hmacDigest = hmacSha256.process(message);
 
     // For blinding factor, ensure it's a valid secp256k1 scalar
     if (derivationType == DerivationType.blindingFactor) {
@@ -204,8 +203,8 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     final pathKeySecret = sharedParent.derivePath("0");
     final pathKeyBlinding = sharedParent.derivePath("1");
 
-    final pathKeySecretHex = hex.encode(pathKeySecret.private!.toList());
-    final pathKeyBlindingHex = hex.encode(pathKeyBlinding.private!.toList());
+    final pathKeySecretHex = CashuTools.bytesToHex(pathKeySecret.private!);
+    final pathKeyBlindingHex = CashuTools.bytesToHex(pathKeyBlinding.private!);
 
     return CashuSeedDeriveSecretResult(
       secretHex: pathKeySecretHex,
@@ -223,11 +222,6 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     BigInt keysetIdInt = number % modulus;
 
     return keysetIdInt.toInt();
-  }
-
-  /// Convert hex string to bytes
-  static Uint8List _hexToBytes(String hexString) {
-    return Uint8List.fromList(hex.decode(hexString));
   }
 
   /// Convert bytes to BigInt (big-endian)

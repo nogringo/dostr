@@ -1,9 +1,8 @@
 // ignore_for_file: avoid_print
 import 'dart:typed_data';
 
-import 'package:convert/convert.dart';
-import 'package:crypto/crypto.dart';
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:pointycastle/export.dart' show HMac, KeyParameter, SHA256Digest;
 import 'package:test/test.dart';
 
 import 'tools/simple_profiler.dart';
@@ -495,7 +494,7 @@ void main() {
 
         for (var counter = 0; counter < 100; counter++) {
           var sw = Stopwatch()..start();
-          final keysetBytes = hex.decode(keysetId);
+          final keysetBytes = CashuTools.hexToBytes(keysetId);
           timings['hex_decode'] =
               (timings['hex_decode'] ?? 0) + sw.elapsedMicroseconds;
 
@@ -513,12 +512,12 @@ void main() {
               (timings['allocate'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();
-          final hmac = Hmac(sha256, cachedSeed);
-          final result = hmac.convert(message);
+          final hmac = HMac(SHA256Digest(), 64)..init(KeyParameter(cachedSeed));
+          final result = hmac.process(message);
           timings['hmac'] = (timings['hmac'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();
-          final x = BigInt.parse(hex.encode(result.bytes), radix: 16);
+          final x = BigInt.parse(CashuTools.bytesToHex(result), radix: 16);
           timings['bigint_parse'] =
               (timings['bigint_parse'] ?? 0) + sw.elapsedMicroseconds;
 
