@@ -50,7 +50,7 @@ void main() {
           publicKey: stalePublicKey,
           nip55Signer: _FakeNip55Signer({
             'signature': actuallySigned.sig,
-            'event': Nip01EventModel.fromEntity(actuallySigned).toJsonString(),
+            'event': actuallySigned.toJsonString(),
           }),
         );
         addTearDown(signer.dispose);

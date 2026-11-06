@@ -382,7 +382,7 @@ class MockRelay {
                 silenceFirstAuths--;
                 return;
               }
-              Nip01Event event = Nip01EventModel.fromJson(eventJson[1]);
+              Nip01Event event = Nip01Event.fromJson(eventJson[1]);
               bool authSuccess = false;
               if (verify(event.pubKey, event.id, event.sig!)) {
                 String? relay = event.getFirstTag("relay");
@@ -406,7 +406,7 @@ class MockRelay {
               return;
             }
             if (eventJson[0] == "EVENT") {
-              Nip01Event newEvent = Nip01EventModel.fromJson(eventJson[1]);
+              Nip01Event newEvent = Nip01Event.fromJson(eventJson[1]);
               if (verify(newEvent.pubKey, newEvent.id, newEvent.sig!)) {
                 _receivedEvents.add(newEvent);
                 _receivedEventConnections.add(
@@ -915,14 +915,7 @@ class MockRelay {
     }
 
     for (final event in eventsToSend) {
-      _send(
-        webSocket,
-        jsonEncode([
-          "EVENT",
-          requestId,
-          Nip01EventModel.fromEntity(event).toJson(),
-        ]),
-      );
+      _send(webSocket, jsonEncode(["EVENT", requestId, event.toJson()]));
     }
 
     _send(webSocket, jsonEncode(["EOSE", requestId]));
@@ -959,14 +952,10 @@ class MockRelay {
     }
 
     final eventToSend = signedEvent ?? event;
-    final eventToSendModel = Nip01EventModel.fromEntity(eventToSend);
 
     // Send to all connected clients
     for (var clientSocket in _clientSubscriptions.keys) {
-      _send(
-        clientSocket,
-        jsonEncode(["EVENT", subId, eventToSendModel.toJson()]),
-      );
+      _send(clientSocket, jsonEncode(["EVENT", subId, eventToSend.toJson()]));
     }
   }
 
@@ -1015,11 +1004,7 @@ class MockRelay {
           if (_eventMatchesFilter(event, filter)) {
             _send(
               clientSocket,
-              jsonEncode([
-                "EVENT",
-                subscriptionId,
-                Nip01EventModel.fromEntity(event).toJson(),
-              ]),
+              jsonEncode(["EVENT", subscriptionId, event.toJson()]),
             );
             break; // Only send once per subscription
           }
@@ -1245,9 +1230,7 @@ class MockRelay {
             privateKey: _remoteSignerPrivateKey,
           );
 
-          return {
-            'result': Nip01EventModel.fromEntity(signedEvent).toJsonString(),
-          };
+          return {'result': signedEvent.toJsonString()};
 
         case 'nip04_encrypt':
           if (params == null || params.length < 2) {

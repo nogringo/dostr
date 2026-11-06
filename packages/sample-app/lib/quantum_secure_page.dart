@@ -105,7 +105,7 @@ class _QuantumSecurePageState extends State<QuantumSecurePage> {
       setState(() {
         // Manually construct JSON-like representation from Nip01Event fields
         _lastEventJson = jsonEncode(
-          Nip01EventModel.fromEntity(lastSignedEvent).toJson(),
+          lastSignedEvent.toJson(),
         );
         // Store all signed events globally for verification
         _signedEvents = List.from(signedEvents);

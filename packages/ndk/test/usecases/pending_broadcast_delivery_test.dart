@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart';
 import 'package:ndk/domain_layer/entities/broadcast_response.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
@@ -909,7 +908,7 @@ void main() {
           status: EventDeliveryStatus.pending,
           createdAt: event.createdAt,
           updatedAt: event.createdAt,
-          serializedEventJson: Nip01EventModel.fromEntity(event).toJsonString(),
+          serializedEventJson: event.toJsonString(),
         );
         await cacheManager.saveEventDeliveryRecord(serializedRecord);
         await cacheManager.saveRelayDeliveryTarget(

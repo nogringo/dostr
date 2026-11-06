@@ -98,7 +98,7 @@ void main() {
       viewerPubKey: viewer,
       scheme: DecryptedPayloadScheme.giftWrap,
       status: DecryptedPayloadStatus.ready,
-      plaintextContent: Nip01EventModel.fromEntity(seal).toJsonString(),
+      plaintextContent: seal.toJsonString(),
       createdAt: now(),
       updatedAt: now(),
     );
@@ -112,7 +112,7 @@ void main() {
       viewerPubKey: viewer,
       scheme: DecryptedPayloadScheme.seal,
       status: DecryptedPayloadStatus.ready,
-      plaintextContent: Nip01EventModel.fromEntity(rumor).toJsonString(),
+      plaintextContent: rumor.toJsonString(),
       createdAt: now(),
       updatedAt: now(),
     );

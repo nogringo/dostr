@@ -45,6 +45,10 @@ whatever id the event holds.
 Two events with the same id are `==`, whatever their payload: check the id
 before deduplicating events that are not verified yet.
 
+`getTags` and `getFirstTag` read any tag. Only `p` and `d` have their own
+getters, `pTags` and `dTag`, because NDK reads them everywhere: `p` names the
+recipients of an event, `d` identifies an addressable event.
+
 To read and write the JSON form:
 
 ```dart
@@ -84,8 +88,15 @@ class MyVerifier implements EventVerifier {
 `package:ndk_core/domain_layer/repositories/event_verifier.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`. `package:ndk_core/ndk_core.dart` and
 `package:ndk/ndk.dart` still export `Nip01Event` and `EventVerifier`.
-`Nip01EventModel` stays in `ndk_core`, but its `fromJson`, `toJson` and
-`toJsonString` now come from `Nip01Event`.
+
+`Nip01EventModel` is now a deprecated alias of `Nip01Event`, in `ndk_core`.
+`Nip01EventModel.fromEntity(event)` is gone: use `event` itself. `toBase64()`
+is now an extension member, in
+`package:ndk_core/data_layer/models/nip_01_event_model.dart`, which
+`package:ndk_core/ndk_core.dart` and `package:ndk/ndk.dart` export.
+
+`EventVerifier` is now an interface: implement it, `extends EventVerifier` no
+longer compiles.
 
 `Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
 and `event.payloadId` recomputes it from the payload. `toJson` no longer
@@ -104,6 +115,7 @@ members are now extension members.
 
 | Deprecated | Use |
 | --- | --- |
+| `Nip01EventModel` | `Nip01Event` |
 | `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
 | `Nip01Utils.calculateId(event)` | `event.payloadId` |
 | `event.getDtag()` | `event.dTag` |

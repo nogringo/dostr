@@ -14,9 +14,7 @@ void main() {
           createdAt: 1234567890,
         );
 
-        final eventMode = Nip01EventModel.fromEntity(event);
-
-        final nevent = eventMode.nevent();
+        final nevent = event.nevent();
 
         expect(nevent.startsWith('nevent1'), true);
 
@@ -53,25 +51,10 @@ void main() {
           content: 'Hello Nostr!',
           createdAt: 1234567890,
         );
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final nevent = eventModel.nevent();
+        final nevent = event.nevent();
 
         final decoded = Nip19.decodeNevent(nevent);
         expect(decoded.relays, null);
-      });
-
-      test('should work on a plain Nip01Event', () {
-        final event = Nip01Event(
-          pubKey:
-              '76c71aae3a491f1d9eec47cba17e229cda4113a0bbb6e6ae1776d7643e29cafa',
-          kind: 1,
-          tags: [],
-          content: 'Hello Nostr!',
-          createdAt: 1234567890,
-        );
-
-        expect(event.nevent(), Nip01EventModel.fromEntity(event).nevent());
       });
     });
 
@@ -87,9 +70,7 @@ void main() {
           content: 'Article content',
           createdAt: 1234567890,
         );
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final naddr = eventModel.naddr();
+        final naddr = event.naddr();
 
         expect(naddr, isNotNull);
         expect(naddr!.startsWith('naddr1'), true);
@@ -97,8 +78,8 @@ void main() {
         // Verify we can decode it back
         final decoded = Nip19.decodeNaddr(naddr);
         expect(decoded.identifier, 'my-article');
-        expect(decoded.pubkey, eventModel.pubKey);
-        expect(decoded.kind, eventModel.kind);
+        expect(decoded.pubkey, event.pubKey);
+        expect(decoded.kind, event.kind);
       });
 
       test('should encode replaceable event (kind 0) as naddr', () {
@@ -112,9 +93,7 @@ void main() {
           content: '{"name":"Alice"}',
           createdAt: 1234567890,
         );
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final naddr = eventModel.naddr();
+        final naddr = event.naddr();
 
         expect(naddr, isNotNull);
         final decoded = Nip19.decodeNaddr(naddr!);
@@ -133,9 +112,7 @@ void main() {
           content: 'Hello',
           createdAt: 1234567890,
         );
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final naddr = eventModel.naddr();
+        final naddr = event.naddr();
 
         expect(naddr, isNull);
       });
@@ -149,9 +126,7 @@ void main() {
           content: 'Article content',
           createdAt: 1234567890,
         );
-        final eventModel = Nip01EventModel.fromEntity(event);
-
-        final naddr = eventModel.naddr();
+        final naddr = event.naddr();
 
         expect(naddr, isNull);
       });
@@ -193,9 +168,8 @@ void main() {
             content: '',
           );
 
-          final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr(),
+            event.naddr(),
             isNotNull,
             reason: 'Kind $kind should be addressable',
           );
@@ -214,9 +188,8 @@ void main() {
             content: '',
           );
 
-          final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr(),
+            event.naddr(),
             isNotNull,
             reason: 'Kind $kind should be addressable',
           );
@@ -234,9 +207,8 @@ void main() {
             ],
             content: '',
           );
-          final eventModel = Nip01EventModel.fromEntity(event);
           expect(
-            eventModel.naddr(),
+            event.naddr(),
             isNull,
             reason: 'Kind $kind should not be addressable',
           );

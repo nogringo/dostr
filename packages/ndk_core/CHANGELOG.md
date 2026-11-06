@@ -245,3 +245,9 @@ read the flag. The cache managers no longer store it.
 member, like the other deprecated ones (`getEId`, `getDtag`, `replyETags`), in
 `domain_layer/entities/nip_01_utils.dart` with `Nip01Utils`, which
 `package:ndk_core/ndk_core.dart` exports.
+
+`Nip01EventModel` is now a deprecated alias of `Nip01Event`.
+`Nip01EventModel.fromEntity(event)` is gone: use `event` itself. `toBase64()`
+is an extension member, in `data_layer/models/nip_01_event_model.dart`.
+
+`EventVerifier` is now an interface: implement it instead of extending it.

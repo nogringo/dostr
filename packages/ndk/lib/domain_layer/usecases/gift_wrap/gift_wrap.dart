@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 import '../../entities/event_cache_records.dart';
 import '../../entities/gift_wrap_unwrap_result.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -226,7 +225,7 @@ class GiftWrap {
     final signer = _getSigner(customSigner: customSigner);
 
     final encryptedContent = await signer.encryptNip44(
-      plaintext: Nip01EventModel.fromEntity(rumor).toJsonString(),
+      plaintext: rumor.toJsonString(),
       recipientPubKey: recipientPubkey,
     );
 
@@ -312,7 +311,7 @@ class GiftWrap {
     final ephemeralSigner = eventSignerFactory.createWithNewKeyPair();
 
     final encryptedSeal = await ephemeralSigner.encryptNip44(
-      plaintext: Nip01EventModel.fromEntity(sealEvent).toJsonString(),
+      plaintext: sealEvent.toJsonString(),
       recipientPubKey: recipientPublicKey,
     );
 

@@ -96,7 +96,7 @@ class MockRelay {
     client.received.add(message);
     switch (message[0]) {
       case 'EVENT':
-        _onEvent(client, Nip01EventModel.fromJson(message[1]));
+        _onEvent(client, Nip01Event.fromJson(message[1]));
       case 'REQ':
         _onReq(client, message[1] as String, [
           for (final filter in message.skip(2))
@@ -105,7 +105,7 @@ class MockRelay {
       case 'CLOSE':
         client.subscriptions.remove(message[1]);
       case 'AUTH':
-        _onAuth(client, Nip01EventModel.fromJson(message[1]));
+        _onAuth(client, Nip01Event.fromJson(message[1]));
       default:
         onUnknown?.call(client, message);
     }
@@ -131,7 +131,7 @@ class MockRelay {
     for (final other in openClients) {
       for (final subscription in other.subscriptions.entries) {
         if (subscription.value.any((filter) => _matches(filter, event))) {
-          other.send(['EVENT', subscription.key, _toJson(event)]);
+          other.send(['EVENT', subscription.key, event.toJson()]);
         }
       }
     }
@@ -146,7 +146,7 @@ class MockRelay {
     client.subscriptions[id] = filters;
     if (!answerRequests) return;
     for (final event in _matching(filters)) {
-      client.send(['EVENT', id, _toJson(event)]);
+      client.send(['EVENT', id, event.toJson()]);
     }
     client.send(['EOSE', id]);
   }
@@ -201,9 +201,6 @@ class MockRelay {
     }
     return true;
   }
-
-  static Map<String, dynamic> _toJson(Nip01Event event) =>
-      Nip01EventModel.fromEntity(event).toJson();
 }
 
 /// One socket a client opened on a [MockRelay].

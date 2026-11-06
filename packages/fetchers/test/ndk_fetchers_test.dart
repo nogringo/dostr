@@ -82,13 +82,7 @@ class LocalRelay {
         reqCount++;
         final id = message[1];
         for (final event in events) {
-          socket.add(
-            jsonEncode([
-              'EVENT',
-              id,
-              Nip01EventModel.fromEntity(event).toJson(),
-            ]),
-          );
+          socket.add(jsonEncode(['EVENT', id, event.toJson()]));
         }
         socket.add(jsonEncode(['EOSE', id]));
       });
@@ -241,9 +235,7 @@ void main() {
       Future<HomeRelayList> fetch(Nip01Event event) async =>
           HomeRelayList.fetch(
             verifier: verifier,
-            url: await serve(
-              jsonEncode(Nip01EventModel.fromEntity(event).toJson()),
-            ),
+            url: await serve(jsonEncode(event.toJson())),
             author: author.publicKey,
           );
 

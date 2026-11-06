@@ -248,7 +248,7 @@ void main() {
   });
 
   test('validate event: greater POW', () {
-    final minedEvent = Nip01EventModel.fromJson({
+    final minedEvent = Nip01Event.fromJson({
       "id": "00302f635d4e2059c5cdddca2c00b5f455ec6706cfd960a410acc3e9abe36100",
       "pubkey":
           "6d46059232af4d121456d1fff7fa8dadc32b02510e46e85b912b0585cf038574",

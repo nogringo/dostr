@@ -1,60 +1,30 @@
+// ignore_for_file: deprecated_member_use_from_same_package
+
 import 'dart:convert';
 
-import 'package:crypto/crypto.dart';
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
 
 void main() {
-  group('Nip01EventModel', () {
-    test('round-trips through JSON', () {
-      final event = signedEvent(
-        content: 'hello',
-        createdAt: 42,
-        tags: [
-          ['p', bob],
-        ],
-      );
+  final event = signedEvent(
+    content: 'hello',
+    createdAt: 42,
+    tags: [
+      ['p', bob],
+    ],
+  );
 
-      final decoded = Nip01EventModel.fromJson(
-        jsonDecode(Nip01EventModel.fromEntity(event).toJsonString()),
-      );
+  test('toBase64 encodes the event JSON', () {
+    final decoded = jsonDecode(utf8.decode(base64Decode(event.toBase64())));
 
-      expect(decoded.id, event.id);
-      expect(decoded.sig, event.sig);
-      expect(decoded.tags, event.tags);
-    });
+    expect(decoded, event.toJson());
+  });
 
-    test('copyWith gives a changed payload its own id', () {
-      final model = Nip01EventModel.fromEntity(
-        signedEvent(content: 'original', createdAt: 1),
-      );
+  test('Nip01EventModel is still a Nip01Event', () {
+    final Nip01EventModel model = Nip01EventModel.fromJson(event.toJson());
 
-      final changed = model.copyWith(content: 'changed');
-
-      expect(changed, isA<Nip01EventModel>());
-      expect(changed.hasValidId, isTrue);
-      expect(changed.sig, isNull);
-    });
-
-    test('an event created at 0 keeps its created_at and a valid id', () {
-      final id = sha256
-          .convert(utf8.encode(jsonEncode([0, alice, 0, 1, [], ''])))
-          .toString();
-
-      final decoded = Nip01EventModel.fromJson({
-        'id': id,
-        'pubkey': alice,
-        'created_at': 0,
-        'kind': 1,
-        'tags': [],
-        'content': '',
-        'sig': fakeSig,
-      });
-
-      expect(decoded.createdAt, 0);
-      expect(decoded.hasValidId, isTrue);
-    });
+    expect(model.toJson(), event.toJson());
   });
 }

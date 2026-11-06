@@ -230,11 +230,7 @@ void main() {
       expect(caughtUp.received('CLOSE'), isEmpty);
 
       final live = signedEvent(content: 'after the eose');
-      caughtUp.sendToAll([
-        'EVENT',
-        req.id,
-        Nip01EventModel.fromEntity(live).toJson(),
-      ]);
+      caughtUp.sendToAll(['EVENT', req.id, live.toJson()]);
       await eventually(() => received.any((e) => e.id == live.id));
       expect(reqs.openIds, [req.id]);
       await req.close();
@@ -268,11 +264,7 @@ void main() {
       expect(relay.clients, hasLength(2));
 
       final live = signedEvent(content: 'after the drop');
-      relay.sendToAll([
-        'EVENT',
-        req.id,
-        Nip01EventModel.fromEntity(live).toJson(),
-      ]);
+      relay.sendToAll(['EVENT', req.id, live.toJson()]);
       await eventually(() => received.any((e) => e.id == live.id));
       await req.close();
     });

@@ -18,8 +18,7 @@ import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 
 bool _isSuccessStatus(int statusCode) => statusCode >= 200 && statusCode < 300;
 
-String _authHeader(Nip01Event event) =>
-    "Nostr ${Nip01EventModel.fromEntity(event).toBase64()}";
+String _authHeader(Nip01Event event) => "Nostr ${event.toBase64()}";
 
 int? _statusCode(Object error) =>
     error is HttpRequestException ? error.statusCode : null;
@@ -939,9 +938,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String sha256,
     required Nip01Event reportEvent,
   }) async {
-    final String myBody = jsonEncode(
-      Nip01EventModel.fromEntity(reportEvent).toJson(),
-    );
+    final String myBody = jsonEncode(reportEvent.toJson());
 
     final response = await client.put(
       url: Uri.parse('$serverUrl/report'),

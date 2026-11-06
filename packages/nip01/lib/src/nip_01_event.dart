@@ -8,7 +8,8 @@ class Nip01Event {
 
   /// The id the event was given, or else the hash of its payload: check it
   /// with [hasValidId].
-  final String id;
+  String get id => _id ?? payloadId;
+  final String? _id;
 
   final String pubKey;
 
@@ -54,15 +55,9 @@ class Nip01Event {
     required this.tags,
     required this.content,
     required this.sig,
-  }) : id =
-           id ??
-           computeEventId(
-             pubKey: pubKey,
-             createdAt: createdAt,
-             kind: kind,
-             tags: tags,
-             content: content,
-           );
+    String? payloadId,
+  }) : _id = id,
+       _payloadId = payloadId;
 
   /// Reads a NIP-01 event JSON object, as `jsonDecode` returns it.
   ///
@@ -154,17 +149,16 @@ class Nip01Event {
     final nextKind = kind ?? this.kind;
     final nextTags = tags == null ? this.tags : _frozen(tags);
     final nextContent = content ?? this.content;
-    final nextId =
-        id ??
-        (payloadChanged
-            ? computeEventId(
-                pubKey: nextPubKey,
-                createdAt: nextCreatedAt,
-                kind: nextKind,
-                tags: nextTags,
-                content: nextContent,
-              )
-            : this.id);
+    final nextPayloadId = payloadChanged
+        ? computeEventId(
+            pubKey: nextPubKey,
+            createdAt: nextCreatedAt,
+            kind: nextKind,
+            tags: nextTags,
+            content: nextContent,
+          )
+        : null;
+    final nextId = id ?? nextPayloadId ?? this.id;
     return Nip01Event._(
       id: nextId,
       pubKey: nextPubKey,
@@ -173,18 +167,20 @@ class Nip01Event {
       tags: nextTags,
       content: nextContent,
       sig: sig ?? (nextId == this.id ? this.sig : null),
+      payloadId: nextPayloadId ?? _payloadId,
     );
   }
 
   /// A copy with the same [id] and no [sig], such as a NIP-59 rumor.
   Nip01Event withoutSig() => Nip01Event._(
-    id: id,
+    id: _id,
     pubKey: pubKey,
     createdAt: createdAt,
     kind: kind,
     tags: tags,
     content: content,
     sig: null,
+    payloadId: _payloadId,
   );
 
   /// The NIP-01 JSON object of this event, ready for `jsonEncode`, with no
@@ -213,13 +209,14 @@ class Nip01Event {
       DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
   /// The id of this event's payload (NIP-01), whatever [id] it holds.
-  late final String payloadId = computeEventId(
+  String get payloadId => _payloadId ??= computeEventId(
     pubKey: pubKey,
     createdAt: createdAt,
     kind: kind,
     tags: tags,
     content: content,
   );
+  String? _payloadId;
 
   /// Whether [id] is the hash of this event's payload (NIP-01).
   bool get hasValidId => id == payloadId;

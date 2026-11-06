@@ -419,7 +419,7 @@ void main() {
 
 /// A mock event verifier that introduces variable delays based on event content
 /// Used to test completion-order processing rather than input-order processing
-class DelayedMockEventVerifier extends EventVerifier {
+class DelayedMockEventVerifier implements EventVerifier {
   @override
   Future<bool> verify(Nip01Event event) async {
     // Introduce different delays based on event content to test completion order

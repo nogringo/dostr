@@ -127,7 +127,7 @@ class Nip55EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     return _trackRequest(SignerMethod.signEvent, (requestId) async {
       final map = await nip55Signer.signEvent(
         currentUser: _currentUser,
-        eventJson: Nip01EventModel.fromEntity(event).toJsonString(),
+        eventJson: event.toJsonString(),
         id: requestId,
       );
       final signature = _extractResult(map);

@@ -1,8 +1,6 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 
-import '../data_layer/models/nip_01_event_model.dart';
-
 /// this class is used to send messages from the client to the relay
 ///
 /// "EVENT", &lt;event JSON as defined above&gt;
@@ -53,8 +51,7 @@ class ClientMsg {
   }
 
   List<Object> _eventToJson() {
-    final model = Nip01EventModel.fromEntity(event!);
-    return [type, model.toJson()];
+    return [type, event!.toJson()];
   }
 
   List _reqToJson() {

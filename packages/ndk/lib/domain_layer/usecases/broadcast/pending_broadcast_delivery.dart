@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import '../../entities/event_cache_records.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -1423,7 +1422,7 @@ class PendingBroadcastDelivery {
     }
 
     try {
-      final parsedEvent = Nip01EventModel.fromJson(
+      final parsedEvent = Nip01Event.fromJson(
         jsonDecode(serializedEventJson) as Map<String, dynamic>,
       );
       await _cacheManager.saveEvent(parsedEvent);
@@ -1440,7 +1439,7 @@ class PendingBroadcastDelivery {
 
   String? _serializeEvent(Nip01Event event) {
     try {
-      return Nip01EventModel.fromEntity(event).toJsonString();
+      return event.toJsonString();
     } catch (_) {
       return null;
     }
