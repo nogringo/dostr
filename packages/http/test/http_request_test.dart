@@ -43,13 +43,24 @@ void main() {
       }),
     );
 
-    final json = await ds.jsonRequest(Uri.parse('http://localhost:7777/x'));
+    final json = await ds.jsonRequest(
+      url: Uri.parse('http://localhost:7777/x'),
+    );
 
     expect(json, {'name': 'café'});
     expect(requested.scheme, 'http');
   });
 
+  test('jsonRequest throws FormatException unless the body is an object', () {
+    final ds = HttpRequestDS(
+      MockClient((_) async => http.Response('["bob"]', 200)),
+    );
+
+    expect(ds.jsonRequest(url: url), throwsFormatException);
+  });
+
   test('a non-2xx response throws HttpRequestException', () async {
+    final blob = Uri.parse('https://example.com/blob');
     final ds = HttpRequestDS(
       MockClient(
         (_) async =>
@@ -58,11 +69,33 @@ void main() {
     );
 
     expect(
-      ds.get(url: Uri.parse('https://example.com/blob')),
+      ds.get(url: blob),
       throwsA(
         isA<HttpRequestException>()
             .having((e) => e.statusCode, 'statusCode', 401)
+            .having((e) => e.uri, 'uri', blob)
             .having((e) => e.headers['x-reason'], 'x-reason', 'auth required'),
+      ),
+    );
+  });
+
+  test('an error body that breaks its charset keeps the status', () {
+    final ds = HttpRequestDS(
+      MockClient(
+        (_) async => http.Response.bytes(
+          [0xff, ...utf8.encode('quota')],
+          507,
+          headers: {'content-type': 'text/plain; charset=utf-8'},
+        ),
+      ),
+    );
+
+    expect(
+      ds.get(url: url),
+      throwsA(
+        isA<HttpRequestException>()
+            .having((e) => e.statusCode, 'statusCode', 507)
+            .having((e) => e.body, 'body', endsWith('quota')),
       ),
     );
   });
@@ -160,6 +193,41 @@ void main() {
     expect(errors, [isA<StateError>()]);
   });
 
+  test('putStream reports a non-2xx response as an error', () {
+    final ds = HttpRequestDS(
+      MockClient.streaming((_, body) async {
+        await body.drain<void>();
+        return http.StreamedResponse(Stream.value(utf8.encode('too big')), 413);
+      }),
+    );
+
+    expect(
+      ds.putStream(url: url, body: Stream.value([1])).last,
+      throwsA(
+        isA<HttpRequestException>()
+            .having((e) => e.method, 'method', 'PUT')
+            .having((e) => e.statusCode, 'statusCode', 413)
+            .having((e) => e.body, 'body', 'too big'),
+      ),
+    );
+  });
+
+  test('idleTimeout does not cap an upload that keeps moving', () async {
+    final progress = await HttpRequestDS(_drainingClient())
+        .putStream(
+          url: url,
+          body: Stream.periodic(
+            const Duration(milliseconds: 10),
+            (i) => [i],
+          ).take(15),
+          idleTimeout: const Duration(milliseconds: 100),
+        )
+        .toList();
+
+    expect(progress.last.isComplete, isTrue);
+    expect(progress.last.sentBytes, 15);
+  });
+
   test('cancelling putStream aborts the upload', () async {
     final aborted = Completer<void>();
     final ds = HttpRequestDS(_stalledClient((_) => aborted.complete()));
@@ -188,7 +256,7 @@ void main() {
 
     await Future.wait([
       for (final request in [
-        ds.jsonRequest(url, timeout: timeout),
+        ds.jsonRequest(url: url, timeout: timeout),
         ds.get(url: url, timeout: timeout),
         ds.post(url: url, body: 'x', timeout: timeout),
         ds.getStream(url: url, idleTimeout: timeout).toList(),
@@ -298,12 +366,77 @@ void main() {
     expect(client.requests[1].bodyBytes, [4, 5]);
   });
 
+  test('a map body is sent as form fields', () async {
+    late http.Request sent;
+    final ds = HttpRequestDS(
+      MockClient((request) async {
+        sent = request;
+        return http.Response('', 200);
+      }),
+    );
+
+    await ds.post(url: url, body: {'name': 'bob smith'});
+
+    expect(sent.bodyFields, {'name': 'bob smith'});
+  });
+
+  test('a body of another type throws ArgumentError', () {
+    final ds = HttpRequestDS(_drainingClient());
+
+    expect(ds.post(url: url, body: 42), throwsArgumentError);
+  });
+
+  test('head and delete send their method', () async {
+    final methods = <String>[];
+    final ds = HttpRequestDS(
+      MockClient((request) async {
+        methods.add(request.method);
+        return http.Response('', 200);
+      }),
+    );
+
+    await ds.head(url: url);
+    await ds.delete(url: url);
+
+    expect(methods, ['HEAD', 'DELETE']);
+  });
+
+  test('a redirect not followed throws its 3xx', () async {
+    final followed = <bool>[];
+    final ds = HttpRequestDS(
+      MockClient((request) async {
+        followed.add(request.followRedirects);
+        return http.Response('', 302);
+      }),
+    );
+
+    await Future.wait([
+      for (final request in [
+        ds.jsonRequest(url: url, followRedirects: false),
+        ds.get(url: url, followRedirects: false),
+        ds.head(url: url, followRedirects: false),
+        ds.getStream(url: url, followRedirects: false).toList(),
+      ])
+        expectLater(
+          request,
+          throwsA(
+            isA<HttpRequestException>().having(
+              (e) => e.statusCode,
+              'statusCode',
+              302,
+            ),
+          ),
+        ),
+    ]);
+    expect(followed, [false, false, false, false]);
+  });
+
   test('HttpRequestException names the request and shortens the body', () {
     final error = HttpRequestException(
       method: 'GET',
       statusCode: 500,
       body: 'x' * 10000,
-      url: 'https://example.com/blob',
+      uri: Uri.parse('https://example.com/blob'),
     );
 
     expect(
@@ -322,7 +455,7 @@ void main() {
     );
 
     final requests = [
-      ds.jsonRequest(url),
+      ds.jsonRequest(url: url),
       ds.get(url: url),
       ds.post(url: url, body: 'x', headers: const <String, String>{}),
       ds.getStream(url: url).toList(),

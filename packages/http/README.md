@@ -4,7 +4,9 @@ The HTTP data source that NDK packages share, on top of
 [`http`](https://pub.dev/packages/http). Every call turns a non-2xx response
 into an `HttpRequestException` that keeps the method, the status code, the
 body and the response headers (names in lowercase), so a caller can read a
-reason such as Blossom's `x-reason`.
+reason such as Blossom's `x-reason`. It is an `http.ClientException`, like the
+failure of a request that got no response, so catching `ClientException`
+covers both.
 
 A package that talks HTTP the way NDK does, such as
 [`ndk_blossom`](https://pub.dev/packages/ndk_blossom) or
@@ -27,14 +29,19 @@ import 'package:ndk_http/ndk_http.dart';
 final ds = HttpRequestDS(http.Client());
 
 final json = await ds.jsonRequest(
-  Uri.parse('https://example.com/.well-known/nostr.json?name=bob'),
+  url: Uri.parse('https://example.com/.well-known/nostr.json?name=bob'),
   timeout: const Duration(seconds: 5),
 );
 ```
 
 `jsonRequest` uses the url as given, so the caller picks the scheme, and
-decodes the body as UTF-8. `abortPending` aborts every request still in
-flight without closing the client.
+decodes the body as UTF-8. A body that is not a JSON object throws a
+`FormatException`. `abortPending` aborts every request still in flight without
+closing the client.
+
+`get`, `head`, `getStream` and `jsonRequest` take `followRedirects`. With it
+off, a redirect throws its 3xx as an `HttpRequestException`, except on the web,
+where `BrowserClient` fails it with a plain `ClientException`.
 
 `putStream` uploads a stream without loading it into memory: the body is read
 only as fast as the connection sends it, and `UploadProgress` follows the bytes
@@ -66,8 +73,11 @@ timeout and keep running after `abortPending`.
 `package:ndk/data_layer/data_sources/http_request.dart` is now
 `package:ndk_http/ndk_http.dart`. Besides the import:
 
-- `jsonRequest` takes a `Uri` and no longer forces `https`.
+- `jsonRequest` takes a named `url`, a `Uri`, and no longer forces `https`.
+- `jsonRequest` throws `FormatException` instead of `TypeError` when the body
+  is not a JSON object.
 - A timeout throws `TimeoutException` instead of `RequestAbortedException`.
-- `HttpRequestException` has a required `method`.
+- `HttpRequestException` is a `ClientException` with a required `method`, and
+  its `url` string is now `uri`, a `Uri`.
 - `UploadProgress.error` is gone: a failed upload is an error on the stream.
 - `headers` are typed `Map<String, String>` and optional on every method.

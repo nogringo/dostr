@@ -27,7 +27,7 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
     final Map<String, dynamic> json;
     try {
       json = await httpDS.jsonRequest(
-        identifier.url,
+        url: identifier.url,
         followRedirects: false,
         timeout: timeout,
       );

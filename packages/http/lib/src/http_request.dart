@@ -9,38 +9,51 @@ HttpRequestException _failure(String method, http.Response response, Uri url) =>
     HttpRequestException(
       method: method,
       statusCode: response.statusCode,
-      body: response.body,
-      url: url.toString(),
+      body: _bodyText(response),
+      uri: url,
       headers: response.headers,
     );
+
+/// a body whose bytes do not match its charset must not hide the error
+String _bodyText(http.Response response) {
+  try {
+    return response.body;
+  } on FormatException {
+    return utf8.decode(response.bodyBytes, allowMalformed: true);
+  }
+}
 
 /// how much of the body [HttpRequestException.toString] shows
 const _bodyPreviewLength = 200;
 
 /// Exception thrown when an HTTP request completes with a non-2xx status code.
-class HttpRequestException implements Exception {
+/// It is a [http.ClientException], like the failure of a request that got no
+/// response.
+class HttpRequestException extends http.ClientException {
   final String method;
   final int statusCode;
   final String body;
-  final String url;
 
   /// response headers, names in lowercase
   final Map<String, String> headers;
 
-  const HttpRequestException({
+  HttpRequestException({
     required this.method,
     required this.statusCode,
     required this.body,
-    required this.url,
+    required Uri uri,
     this.headers = const {},
-  });
+  }) : super('$method $uri returned $statusCode', uri);
+
+  @override
+  Uri get uri => super.uri!;
 
   @override
   String toString() {
     final preview = body.length > _bodyPreviewLength
         ? '${body.substring(0, _bodyPreviewLength)}...'
         : body;
-    return 'HttpRequestException: $method $url returned $statusCode'
+    return 'HttpRequestException: $message'
         '${preview.isEmpty ? '' : ': $preview'}';
   }
 }
@@ -204,10 +217,11 @@ class HttpRequestDS {
     }
   }
 
-  /// make a get request to the given url and decode its JSON body. The url is
-  /// used as given: the caller picks the scheme
-  Future<Map<String, dynamic>> jsonRequest(
-    Uri url, {
+  /// make a get request to the given url and decode its JSON body, which must
+  /// be an object: anything else throws a [FormatException]. The url is used
+  /// as given: the caller picks the scheme
+  Future<Map<String, dynamic>> jsonRequest({
+    required Uri url,
     bool followRedirects = true,
     Duration? timeout,
     Map<String, String> headers = const {"Accept": "application/json"},
@@ -221,7 +235,11 @@ class HttpRequestDS {
     );
     // JSON is UTF-8 (RFC 8259); `body` would fall back to latin1 for media
     // types such as application/nostr+json that carry no charset.
-    return jsonDecode(utf8.decode(response.bodyBytes));
+    final json = jsonDecode(utf8.decode(response.bodyBytes));
+    if (json is! Map<String, dynamic>) {
+      throw FormatException('$url did not return a JSON object');
+    }
+    return json;
   }
 
   /// [body] is a `String`, a `List<int>` or a `Map<String, String>` sent as
@@ -312,21 +330,36 @@ class HttpRequestDS {
 
   Future<http.Response> head({
     required Uri url,
+    bool followRedirects = true,
     Map<String, String> headers = const {},
     Duration? timeout,
-  }) => _send('HEAD', url, headers: headers, timeout: timeout);
+  }) => _send(
+    'HEAD',
+    url,
+    headers: headers,
+    followRedirects: followRedirects,
+    timeout: timeout,
+  );
 
   Future<http.Response> get({
     required Uri url,
+    bool followRedirects = true,
     Map<String, String> headers = const {},
     Duration? timeout,
-  }) => _send('GET', url, headers: headers, timeout: timeout);
+  }) => _send(
+    'GET',
+    url,
+    headers: headers,
+    followRedirects: followRedirects,
+    timeout: timeout,
+  );
 
   /// Downloads [url] without loading it into memory, at the pace the listener
   /// reads it. The download starts on listen, and cancelling the subscription
   /// aborts it. A paused subscription does not count toward [idleTimeout].
   Stream<List<int>> getStream({
     required Uri url,
+    bool followRedirects = true,
     Map<String, String> headers = const {},
     Duration? idleTimeout,
   }) {
@@ -334,11 +367,10 @@ class HttpRequestDS {
     late final StreamController<List<int>> download;
 
     Future<void> start() async {
-      final request = http.AbortableRequest(
-        'GET',
-        url,
-        abortTrigger: abort.trigger,
-      )..headers.addAll(headers);
+      final request =
+          http.AbortableRequest('GET', url, abortTrigger: abort.trigger)
+            ..followRedirects = followRedirects
+            ..headers.addAll(headers);
       _pending.add(abort);
       abort.startTimer();
       try {

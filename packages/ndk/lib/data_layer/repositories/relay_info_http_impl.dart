@@ -22,7 +22,7 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
   Future<RelayInfo?> getRelayInfo(String url) async {
     try {
       final json = await httpDS.jsonRequest(
-        _documentUrl(url),
+        url: _documentUrl(url),
         timeout: timeout,
         headers: const {'Accept': 'application/nostr+json'},
       );
