@@ -45,7 +45,7 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
   NdkCacheDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration {
@@ -126,6 +126,10 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
             await _moveEventSourcesToProvenance();
             await m.dropColumn(events, 'sources_json');
           });
+        }
+        // Nip01Event.validSig is gone, nothing read it
+        if (from < 12) {
+          await m.dropColumn(events, 'valid_sig');
         }
       },
       // event_tags and deletion_targets follow their event through ON DELETE

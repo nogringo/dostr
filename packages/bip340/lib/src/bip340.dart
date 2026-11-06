@@ -47,6 +47,6 @@ class Bip340 {
     final id = Nip01Utils.calculateId(event);
 
     final signature = sign(id, privateKey);
-    return event.copyWith(sig: signature, validSig: true);
+    return event.copyWith(sig: signature);
   }
 }

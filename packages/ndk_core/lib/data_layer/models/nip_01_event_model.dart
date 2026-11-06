@@ -14,7 +14,6 @@ class Nip01EventModel extends Nip01Event {
     required super.tags,
     required super.content,
     required super.sig,
-    super.validSig,
   });
 
   /// [Nip01Event.copyWith], as a [Nip01EventModel]
@@ -27,7 +26,6 @@ class Nip01EventModel extends Nip01Event {
     List<List<String>>? tags,
     String? content,
     String? sig,
-    bool? validSig,
   }) => Nip01EventModel.fromEntity(
     super.copyWith(
       id: id,
@@ -37,7 +35,6 @@ class Nip01EventModel extends Nip01Event {
       tags: tags,
       content: content,
       sig: sig,
-      validSig: validSig,
     ),
   );
 
@@ -55,7 +52,6 @@ class Nip01EventModel extends Nip01Event {
       tags: event.tags,
       content: event.content,
       sig: event.sig,
-      validSig: event.validSig,
     );
   }
 

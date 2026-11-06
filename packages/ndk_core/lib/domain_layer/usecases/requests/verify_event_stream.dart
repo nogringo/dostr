@@ -33,8 +33,8 @@ class VerifyEventStream {
   }
 }
 
-/// [data] with [Nip01Event.validSig] set, or null when its id or signature is
-/// wrong. [cache] spares checking the same id and signature twice.
+/// [data], or null when its id or signature is wrong. [cache] spares checking
+/// the same id and signature twice.
 Future<Nip01Event?> verifyEvent(
   Nip01Event data, {
   required EventVerifier eventVerifier,
@@ -49,15 +49,8 @@ Future<Nip01Event?> verifyEvent(
     return null;
   }
 
-  // validSig is trusted internal provenance, but still seed the exact
-  // id/signature pair so later network copies can be compared safely.
-  if (data.validSig == true) {
-    cache.markVerified(data.id, data.sig);
-    return data;
-  }
-
   if (cache.hasVerifiedSignature(data.id, data.sig)) {
-    return data.copyWith(validSig: true);
+    return data;
   }
 
   if (!await cache.verifyOnce(data, eventVerifier)) {
@@ -67,5 +60,5 @@ Future<Nip01Event?> verifyEvent(
     return null;
   }
 
-  return data.copyWith(validSig: true);
+  return data;
 }

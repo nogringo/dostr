@@ -17,7 +17,6 @@ class ZapRequest extends Nip01Event {
         id: event.id,
         sig: event.sig,
         kind: kZapRequestKind,
-        validSig: event.validSig,
       );
 
   /// creates a zap request \
@@ -31,5 +30,5 @@ class ZapRequest extends Nip01Event {
     required super.tags,
     required super.content,
     super.sig,
-  }) : super(kind: kZapRequestKind, validSig: null);
+  }) : super(kind: kZapRequestKind);
 }

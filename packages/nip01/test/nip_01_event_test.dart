@@ -56,10 +56,7 @@ void main() {
     });
 
     group('copyWith', () {
-      final event = signedEvent(
-        content: 'original',
-        createdAt: 1,
-      ).copyWith(validSig: true);
+      final event = signedEvent(content: 'original', createdAt: 1);
 
       test('gives a changed payload its own id and drops the signature', () {
         final changes = [
@@ -78,7 +75,6 @@ void main() {
           expect(changed.id, isNot(event.id));
           expect(Nip01Utils.isIdValid(changed), isTrue);
           expect(changed.sig, isNull);
-          expect(changed.validSig, isNull);
         }
       });
 
@@ -87,7 +83,6 @@ void main() {
 
         expect(same.id, event.id);
         expect(same.sig, event.sig);
-        expect(same.validSig, isNull);
       });
 
       test('keeps the signature of the new payload when given one', () {
@@ -95,7 +90,6 @@ void main() {
 
         expect(Nip01Utils.isIdValid(resigned), isTrue);
         expect(resigned.sig, 'e' * 128);
-        expect(resigned.validSig, isNull);
       });
 
       test('keeps an id it is given, even one the payload does not match', () {
@@ -104,14 +98,6 @@ void main() {
         expect(forged.id, event.id);
         expect(Nip01Utils.isIdValid(forged), isFalse);
         expect(forged.sig, event.sig);
-        expect(forged.validSig, isNull);
-      });
-
-      test('forgets that the signature was valid once it changes', () {
-        final changed = event.copyWith(sig: 'e' * 128);
-
-        expect(changed.id, event.id);
-        expect(changed.validSig, isNull);
       });
 
       test('keeps everything when nothing signed changes', () {
@@ -119,8 +105,6 @@ void main() {
 
         expect(copy.id, event.id);
         expect(copy.sig, event.sig);
-        expect(copy.validSig, isTrue);
-        expect(event.copyWith(validSig: false).validSig, isFalse);
       });
     });
 
@@ -227,7 +211,6 @@ void main() {
       expect(event.tags, note['tags']);
       expect(event.content, note['content']);
       expect(event.sig, note['sig']);
-      expect(event.validSig, isNull);
       expect(Nip01Utils.isIdValid(event), isTrue);
     });
 

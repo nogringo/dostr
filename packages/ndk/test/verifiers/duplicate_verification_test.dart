@@ -208,27 +208,6 @@ void main() async {
     });
 
     test(
-      'does not verify an event that already carries validSig true',
-      () async {
-        final event = (await signedEvent(
-          "cached",
-          1000,
-        )).copyWith(validSig: true);
-
-        await VerifyEventStream(
-          unverifiedStreamInput: Stream.fromIterable([event]),
-          eventVerifier: verifier,
-        )().toList();
-
-        expect(
-          verifier.countFor(event.id),
-          equals(0),
-          reason: 'validSig true means the signature was already checked',
-        );
-      },
-    );
-
-    test(
       'does not trust a concurrent duplicate before verification rejects it',
       () async {
         final event = (await signedEvent(

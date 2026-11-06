@@ -1,25 +1,21 @@
 import 'dart:convert';
 
 import 'package:ndk_core/src/nostr_message_raw.dart';
-import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_core/src/decode_nostr_msg.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
 
 void main() {
-  test('decodes an EVENT, never trusting a signature it carries', () {
+  test('decodes an EVENT', () {
     final event = signedEvent(content: 'hi', createdAt: 1);
-    final json = Nip01EventModel.fromEntity(event).toJson()
-      ..['validSig'] = true;
 
-    final message = decodeNostrMsg(jsonEncode(['EVENT', 'sub', json]));
+    final message = decodeNostrMsg(jsonEncode(['EVENT', 'sub', event]));
 
     expect(message.type, NostrMessageRawType.event);
     expect(message.requestId, 'sub');
     expect(message.nip01Event!.id, event.id);
     expect(message.nip01Event!.sig, fakeSig);
-    expect(message.nip01Event!.validSig, isNull);
   });
 
   test('decodes the other relay messages', () {

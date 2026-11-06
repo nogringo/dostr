@@ -444,8 +444,8 @@ class SqliteCacheManager extends WalletsRepo
     return _transaction(() {
       final insertEvent = _db.prepare(
         'INSERT OR IGNORE INTO events (id, pub_key, kind, created_at, content, '
-        'tags, sig, valid_sig, conflict_key, expiration) '
-        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'tags, sig, conflict_key, expiration) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
       );
       final deleteEvent = _db.prepare('DELETE FROM events WHERE id = ?');
       final insertTag = _db.prepare(
@@ -524,14 +524,12 @@ class SqliteCacheManager extends WalletsRepo
       event.content,
       jsonEncode(event.tags),
       event.sig,
-      event.validSig,
       EventCacheStateRecord.conflictKeyFor(event),
       expiration == null ? null : int.tryParse(expiration),
     ];
   }
 
   Nip01Event _eventFromRow(Row row) {
-    final validSig = row['valid_sig'] as int?;
     return Nip01Event(
       id: row['id'] as String,
       pubKey: row['pub_key'] as String,
@@ -539,7 +537,6 @@ class SqliteCacheManager extends WalletsRepo
       createdAt: row['created_at'] as int,
       content: row['content'] as String,
       sig: row['sig'] as String?,
-      validSig: validSig == null ? null : validSig == 1,
       tags: [
         for (final tag in jsonDecode(row['tags'] as String) as List)
           [for (final value in tag as List) value as String],

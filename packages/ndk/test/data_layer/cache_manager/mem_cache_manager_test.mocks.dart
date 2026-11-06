@@ -738,7 +738,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
     List<List<String>>? tags,
     String? content,
     String? sig,
-    bool? validSig,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#copyWith, [], {
@@ -749,7 +748,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
               #tags: tags,
               #content: content,
               #sig: sig,
-              #validSig: validSig,
             }),
             returnValue: _FakeNip01Event_1(
               this,
@@ -761,7 +759,6 @@ class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
                 #tags: tags,
                 #content: content,
                 #sig: sig,
-                #validSig: validSig,
               }),
             ),
           )

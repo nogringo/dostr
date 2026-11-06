@@ -239,12 +239,6 @@ final _entities = <obx_int.ModelEntity>[
         flags: 0,
       ),
       obx_int.ModelProperty(
-        id: const obx_int.IdUid(8, 1275059100315384016),
-        name: 'validSig',
-        type: 1,
-        flags: 0,
-      ),
-      obx_int.ModelProperty(
         id: const obx_int.IdUid(9, 8183172291043781115),
         name: 'legacySources',
         type: 30,
@@ -745,6 +739,7 @@ obx_int.ModelDefinition getObjectBoxModel() {
       9036410895671859279,
       3929789748611864129,
       2030042811439309784,
+      1275059100315384016,
     ],
     retiredRelationUids: const [],
     modelVersion: 5,
@@ -994,7 +989,6 @@ obx_int.ModelDefinition getObjectBoxModel() {
         fbb.addInt64(4, object.kind);
         fbb.addOffset(5, contentOffset);
         fbb.addOffset(6, sigOffset);
-        fbb.addBool(7, object.validSig);
         fbb.addOffset(8, legacySourcesOffset);
         fbb.addOffset(9, tagsPackedOffset);
         fbb.addOffset(10, tagsIndexOffset);
@@ -1042,11 +1036,6 @@ obx_int.ModelDefinition getObjectBoxModel() {
               ..sig = const fb.StringReader(
                 asciiOptimization: true,
               ).vTableGetNullable(buffer, rootOffset, 16)
-              ..validSig = const fb.BoolReader().vTableGetNullable(
-                buffer,
-                rootOffset,
-                18,
-              )
               ..legacySources = const fb.ListReader<String>(
                 fb.StringReader(asciiOptimization: true),
                 lazy: false,
@@ -1713,24 +1702,19 @@ class DbNip01Event_ {
     _entities[3].properties[6],
   );
 
-  /// See [DbNip01Event.validSig].
-  static final validSig = obx.QueryBooleanProperty<DbNip01Event>(
-    _entities[3].properties[7],
-  );
-
   /// See [DbNip01Event.legacySources].
   static final legacySources = obx.QueryStringVectorProperty<DbNip01Event>(
-    _entities[3].properties[8],
+    _entities[3].properties[7],
   );
 
   /// See [DbNip01Event.tagsPacked].
   static final tagsPacked = obx.QueryStringVectorProperty<DbNip01Event>(
-    _entities[3].properties[9],
+    _entities[3].properties[8],
   );
 
   /// See [DbNip01Event.tagsIndex].
   static final tagsIndex = obx.QueryStringVectorProperty<DbNip01Event>(
-    _entities[3].properties[10],
+    _entities[3].properties[9],
   );
 }
 

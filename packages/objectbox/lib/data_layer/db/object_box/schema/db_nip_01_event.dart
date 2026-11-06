@@ -34,9 +34,6 @@ class DbNip01Event {
   @Property()
   String? sig;
 
-  @Property()
-  bool? validSig;
-
   /// Relays the event was seen on, stored here until provenance moved to the
   /// key-values. Only read once, to move them there.
   @Property(uid: 8183172291043781115)
@@ -135,7 +132,6 @@ class DbNip01Event {
       tags: tags,
       id: nostrId,
       sig: sig,
-      validSig: validSig,
     );
   }
 
@@ -149,7 +145,6 @@ class DbNip01Event {
     );
     dbE.tags = ndkE.tags;
     dbE.sig = ndkE.sig;
-    dbE.validSig = ndkE.validSig;
     return dbE;
   }
 }

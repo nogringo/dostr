@@ -13,17 +13,11 @@ extension Nip01EventExtension on Nip01Event {
       'tags': tags,
       'content': content,
       'sig': sig,
-      'validSig': validSig,
     };
   }
 
-  static Nip01Event fromJsonStorage(Map<String, Object?> json) {
-    // Restore additional properties not handled by fromJson
-
-    final event = Nip01EventModel.fromJson(json);
-
-    return event.copyWith(validSig: json['validSig'] as bool?);
-  }
+  static Nip01Event fromJsonStorage(Map<String, Object?> json) =>
+      Nip01EventModel.fromJson(json);
 }
 
 // Extension for ContactList to add JSON serialization support

@@ -9,6 +9,7 @@ import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_sqlite3/ndk_sqlite3.dart';
 import 'package:ndk_sqlite3/src/migrations/v1.dart';
 import 'package:ndk_sqlite3/src/migrations/v2.dart';
+import 'package:ndk_sqlite3/src/migrations/v3.dart';
 import 'package:ndk_sqlite3/src/sql.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
@@ -218,6 +219,28 @@ void main() {
       'wss://b.example',
     ]);
     expect(await cacheManager.loadEventSources('malformed'), isEmpty);
+    await cacheManager.close();
+  });
+
+  test('v3 -> v4 drops events.valid_sig', () async {
+    final event = Nip01Event(pubKey: 'pubkey', kind: 1, tags: [], content: '');
+    final db = sqlite3.openInMemory()
+      ..execute(v1)
+      ..execute(v2)
+      ..execute(v3)
+      ..execute(
+        'INSERT INTO events (id, pub_key, kind, created_at, content, tags, '
+        "valid_sig) VALUES (?, 'pubkey', 1, ?, '', '[]', 1)",
+        [event.id, event.createdAt],
+      )
+      ..userVersion = 3;
+    final cacheManager = SqliteCacheManager(db);
+
+    expect((await cacheManager.loadEvent(event.id))?.toJson(), event.toJson());
+    expect(
+      db.select('PRAGMA table_info(events)').map((column) => column['name']),
+      isNot(contains('valid_sig')),
+    );
     await cacheManager.close();
   });
 

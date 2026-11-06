@@ -100,7 +100,6 @@ class DriftCacheManager extends WalletsRepo
       createdAt: event.createdAt,
       content: event.content,
       sig: Value(event.sig),
-      validSig: Value(event.validSig),
       tagsJson: jsonEncode(event.tags),
       conflictKey: Value(EventCacheStateRecord.conflictKeyFor(event)),
       expiration: Value(eventExpiration(event)),
@@ -554,7 +553,6 @@ class DriftCacheManager extends WalletsRepo
       createdAt: row.createdAt,
       content: row.content,
       sig: row.sig,
-      validSig: row.validSig,
       tags: tags,
     );
   }

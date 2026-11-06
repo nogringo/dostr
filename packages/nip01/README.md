@@ -78,4 +78,5 @@ class MyVerifier implements EventVerifier {
 `Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
 and `Nip01Utils.calculateId` recomputes it from the payload. `fromJson` now
 computes a missing id instead of reading it as `''`, and `toJson` no longer
-writes `"sig": null` for an unsigned event.
+writes `"sig": null` for an unsigned event. `validSig` is gone: NDK only hands
+out events it verified, and nothing read the flag.

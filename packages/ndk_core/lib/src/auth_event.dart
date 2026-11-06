@@ -7,5 +7,5 @@ class AuthEvent extends Nip01Event {
   static const int KIND = 22242;
 
   AuthEvent({required super.pubKey, required super.tags})
-    : super(kind: KIND, content: '', sig: null, validSig: null);
+    : super(kind: KIND, content: '', sig: null);
 }

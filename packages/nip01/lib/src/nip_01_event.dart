@@ -27,9 +27,6 @@ class Nip01Event {
   /// 64-byte Schnorr signature of [Nip01Event.id].
   final String? sig;
 
-  /// has signature been validated?
-  final bool? validSig;
-
   /// Creates a new Nostr event.
   ///
   /// [pubKey] is the author's public key.
@@ -46,7 +43,6 @@ class Nip01Event {
     required List<List<String>> tags,
     required String content,
     String? sig,
-    bool? validSig,
     int? createdAt,
   }) : this._(
          id: id,
@@ -56,7 +52,6 @@ class Nip01Event {
          tags: _frozen(tags),
          content: content,
          sig: sig,
-         validSig: validSig,
        );
 
   Nip01Event._({
@@ -67,7 +62,6 @@ class Nip01Event {
     required this.tags,
     required this.content,
     required this.sig,
-    required this.validSig,
   }) : id =
            id ??
            computeEventId(
@@ -92,7 +86,6 @@ class Nip01Event {
         tags: _tagsFromJson(data['tags']),
         content: data['content'] as String? ?? '',
         sig: data['sig'] as String?,
-        validSig: null,
       );
 
   static List<List<String>> _frozen(List<List<String>> tags) =>
@@ -109,8 +102,7 @@ class Nip01Event {
   ///
   /// Changing [pubKey], [createdAt], [kind], [tags] or [content] gives the copy
   /// the id of its new payload, and drops [sig] once that id differs. Pass [id]
-  /// to keep another one, such as a remote signer's. [validSig] is only kept
-  /// when the payload, the id and the signature all stay the same.
+  /// to keep another one, such as a remote signer's.
   Nip01Event copyWith({
     String? id,
     String? pubKey,
@@ -119,7 +111,6 @@ class Nip01Event {
     List<List<String>>? tags,
     String? content,
     String? sig,
-    bool? validSig,
   }) {
     final payloadChanged =
         pubKey != null ||
@@ -143,9 +134,6 @@ class Nip01Event {
                 content: nextContent,
               )
             : this.id);
-    final nextSig = sig ?? (nextId == this.id ? this.sig : null);
-    final untouched =
-        !payloadChanged && nextId == this.id && nextSig == this.sig;
     return Nip01Event._(
       id: nextId,
       pubKey: nextPubKey,
@@ -153,8 +141,7 @@ class Nip01Event {
       kind: nextKind,
       tags: nextTags,
       content: nextContent,
-      sig: nextSig,
-      validSig: validSig ?? (untouched ? this.validSig : null),
+      sig: sig ?? (nextId == this.id ? this.sig : null),
     );
   }
 

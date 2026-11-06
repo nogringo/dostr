@@ -24,7 +24,6 @@ void main() {
       expect(decoded.id, event.id);
       expect(decoded.sig, event.sig);
       expect(decoded.tags, event.tags);
-      expect(decoded.validSig, isNull);
     });
 
     test('copyWith gives a changed payload its own id', () {

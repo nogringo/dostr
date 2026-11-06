@@ -146,7 +146,6 @@ void main() async {
         content: "content0",
         id: "id0",
         sig: null,
-        validSig: null,
       );
 
       final eventId1 = Nip01Event(
@@ -156,7 +155,6 @@ void main() async {
         content: "content1",
         id: "id1",
         sig: null,
-        validSig: null,
       );
 
       final eventId2 = Nip01Event(
@@ -166,7 +164,6 @@ void main() async {
         content: "content2",
         id: "id2",
         sig: null,
-        validSig: null,
       );
 
       final List<Nip01Event> idEvents = [eventId0, eventId1, eventId2];
@@ -204,7 +201,6 @@ void main() async {
         content: "content0",
         id: "id0",
         sig: null,
-        validSig: null,
       );
 
       final eventId1 = Nip01Event(
@@ -214,7 +210,6 @@ void main() async {
         content: "content1",
         id: "id1",
         sig: null,
-        validSig: null,
       );
 
       final eventId2 = Nip01Event(
@@ -224,7 +219,6 @@ void main() async {
         content: "content2",
         id: "id2",
         sig: null,
-        validSig: null,
       );
 
       final List<Nip01Event> idEvents = [eventId0, eventId1, eventId2];

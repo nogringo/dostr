@@ -41,7 +41,6 @@ void main() {
       final results = await verifyStream().toList();
 
       expect(results.length, equals(3));
-      expect(results.every((e) => e.validSig == true), isTrue);
       expect(results[0].content, equals('content1'));
       expect(results[1].content, equals('content2'));
       expect(results[2].content, equals('content3'));
@@ -67,7 +66,6 @@ void main() {
       final results = await verifyStream().toList();
 
       expect(results.length, equals(6));
-      expect(results.every((e) => e.validSig == true), isTrue);
       expect(results[0].content, equals('content1'));
       expect(results[1].content, equals('content2'));
       expect(results[2].content, equals('content3'));
@@ -167,22 +165,6 @@ void main() {
       final results = await verifyStream().toList();
 
       expect(results.length, equals(5));
-      expect(results.every((e) => e.validSig == true), isTrue);
-    });
-
-    test('should set validSig property correctly', () async {
-      final events = [createMockEvent('1')];
-      final inputStream = Stream.fromIterable(events);
-
-      final verifyStream = VerifyEventStream(
-        unverifiedStreamInput: inputStream,
-        eventVerifier: mockVerifier,
-      );
-
-      final results = await verifyStream().toList();
-
-      expect(results.length, equals(1));
-      expect(results[0].validSig, equals(true));
     });
 
     test('should handle large number of events', () async {

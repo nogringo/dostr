@@ -31,8 +31,7 @@ class SqlWhere {
 }
 
 const eventColumns =
-    'e.id, e.pub_key, e.kind, e.created_at, e.content, e.tags, e.sig, '
-    'e.valid_sig';
+    'e.id, e.pub_key, e.kind, e.created_at, e.content, e.tags, e.sig';
 
 /// Filters on the `events` table aliased `e`, with the same semantics as the
 /// other NDK cache backends: an empty list matches nothing and tag values
