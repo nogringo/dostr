@@ -10,7 +10,7 @@ import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
 import '../shared/helpers/relay_helper.dart';
-import '../shared/isolates/isolate_manager.dart';
+import 'package:ndk_isolates/ndk_isolates.dart';
 import '../shared/logger/logger.dart';
 import 'client_msg.dart';
 import 'decode_nostr_msg.dart';

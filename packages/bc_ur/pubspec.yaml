@@ -24,6 +24,8 @@ dependency_overrides:
     path: ../nip01
   ndk_signer:
     path: ../signer
+  ndk_isolates:
+    path: ../isolates
   ndk_nip19:
     path: ../nip19
   ndk_bip340:

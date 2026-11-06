@@ -4,7 +4,7 @@ import 'dart:math';
 import 'package:crypto/crypto.dart';
 
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/shared/isolates/isolate_manager.dart';
+import 'package:ndk_isolates/ndk_isolates.dart';
 
 /// A time range that has been fetched from a relay
 class TimeRange {

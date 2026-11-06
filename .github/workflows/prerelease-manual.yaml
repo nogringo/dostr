@@ -27,6 +27,7 @@ on:
           - ndk_core
           - ndk_nip01
           - ndk_signer
+          - ndk_isolates
           - ndk_nip19
           - ndk_bip340
           - ndk_nip44

@@ -15,9 +15,14 @@ What lives under `lib/src` is internal. These files moved there and can no
 longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
 `domain_layer/usecases/nip42/auth_event.dart`,
 `shared/decode_nostr_msg/decode_nostr_msg.dart`,
-`shared/helpers/url_normalizer.dart`, `shared/logger/log_color.dart`,
-`shared/nips/nip01/client_msg.dart`, and the two implementations behind
-`shared/isolates/isolate_manager.dart`, which still imports as before.
+`shared/helpers/url_normalizer.dart`, `shared/logger/log_color.dart` and
+`shared/nips/nip01/client_msg.dart`.
+
+`IsolateManager` is in [`ndk_isolates`](https://pub.dev/packages/ndk_isolates):
+`package:ndk/shared/isolates/isolate_manager.dart` is now
+`package:ndk_isolates/ndk_isolates.dart`, which exports only `IsolateManager`
+and `StreamComputeTask`. The pool no longer logs when it starts. When it fails
+to start, the error still reaches every task that waits for it.
 
 `package:ndk_core/ndk_core.dart` exports `cleanRelayUrl` and `cleanRelayUrls`,
 the relay url normalization ndk_core connects with.

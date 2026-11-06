@@ -29,6 +29,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, in pure Dart.
 
+### [🔗 Isolates](./packages/isolates/)
+
+`ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.
+
 ### [🔗 NIP-19](./packages/nip19/)
 
 `ndk_nip19`: NIP-19 bech32 encoding and decoding (npub, nsec, note, nprofile, nevent, naddr), in pure Dart.
