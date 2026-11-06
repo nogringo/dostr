@@ -1,10 +1,14 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip59/ndk_nip59.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
 
-import '../../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../../mocks/memory_gift_wrap_cache.dart';
+import '../../mocks/mock_event_verifier.dart';
 
 void main() {
-  late Ndk ndk;
+  EventSigner? loggedSigner;
   late GiftWrap giftWrapService;
 
   // Test keys
@@ -12,28 +16,19 @@ void main() {
   final key2 = Bip340.generatePrivateKey();
   final key3 = Bip340.generatePrivateKey(); // For custom signer tests
 
+  EventSigner signerOf(KeyPair key) =>
+      Bip340EventSigner(privateKey: key.privateKey, publicKey: key.publicKey);
+
+  GiftWrap giftWrapWith({GiftWrapCache? cache}) => GiftWrap(
+    signer: () => loggedSigner,
+    eventVerifier: MockEventVerifier(),
+    eventSignerFactory: const Bip340EventSignerFactory(),
+    cache: cache,
+  );
+
   setUp(() {
-    ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [],
-      ),
-    );
-
-    // Login with test key
-    ndk.accounts.loginPrivateKey(
-      pubkey: key1.publicKey,
-      privkey: key1.privateKey!,
-    );
-
-    // Create the service
-    giftWrapService = GiftWrap(
-      accounts: ndk.accounts,
-      eventVerifier: MockEventVerifier(),
-      eventSignerFactory: ndk.config.eventSignerFactory,
-      decryptedEventPayloads: ndk.decryptedEventPayloads,
-    );
+    loggedSigner = signerOf(key1);
+    giftWrapService = giftWrapWith();
   });
 
   group('GiftWrapService', () {
@@ -61,10 +56,7 @@ void main() {
         );
 
         // login as the recipient to unwrap
-        ndk.accounts.loginPrivateKey(
-          pubkey: key2.publicKey,
-          privkey: key2.privateKey!,
-        );
+        loggedSigner = signerOf(key2);
 
         // Unwrap the gift wrap
         final unwrappedRumor = await giftWrapService.fromGiftWrap(
@@ -110,7 +102,7 @@ void main() {
         recipientPublicKey: key2.publicKey,
         sealEvent: seal,
         additionalTags: additionalTags,
-        eventSignerFactory: ndk.config.eventSignerFactory,
+        eventSignerFactory: const Bip340EventSignerFactory(),
       );
 
       // Verify additional tags were included
@@ -156,10 +148,7 @@ void main() {
         );
         expect(giftWrap.createdAt, lessThan(baseCreatedAt));
 
-        ndk.accounts.loginPrivateKey(
-          pubkey: key2.publicKey,
-          privkey: key2.privateKey!,
-        );
+        loggedSigner = signerOf(key2);
 
         final seal = await giftWrapService.unwrapEvent(wrappedEvent: giftWrap);
 
@@ -261,10 +250,7 @@ void main() {
       );
 
       // Login as recipient to unwrap
-      ndk.accounts.loginPrivateKey(
-        pubkey: key2.publicKey,
-        privkey: key2.privateKey!,
-      );
+      loggedSigner = signerOf(key2);
 
       // Unwrap the gift wrap to get the seal
       final seal = await giftWrapService.unwrapEvent(wrappedEvent: giftWrap);
@@ -285,10 +271,7 @@ void main() {
           rumor: rumor,
           recipientPubkey: key2.publicKey,
         );
-        ndk.accounts.loginPrivateKey(
-          pubkey: key2.publicKey,
-          privkey: key2.privateKey!,
-        );
+        loggedSigner = signerOf(key2);
         return giftWrap;
       }
 
@@ -333,6 +316,49 @@ void main() {
         );
         expect(result.isRumorIdValid, isFalse);
         expect(result.isCryptographicallyValid, isFalse);
+      });
+    });
+
+    group('cache', () {
+      Future<Nip01Event> wrapForKey2() async {
+        final rumor = await giftWrapService.createRumor(
+          content: 'cached',
+          kind: 14,
+          tags: const [],
+        );
+        final wrap = await giftWrapService.toGiftWrap(
+          rumor: rumor,
+          recipientPubkey: key2.publicKey,
+        );
+        loggedSigner = signerOf(key2);
+        return wrap;
+      }
+
+      test('the cache-only unwrap returns null without a cache', () async {
+        final wrap = await wrapForKey2();
+
+        expect(
+          await giftWrapService.tryFromGiftWrapFromCache(giftWrap: wrap),
+          isNull,
+        );
+      });
+
+      test('an unwrap fills the cache, later unwraps reuse it', () async {
+        final cache = MemoryGiftWrapCache();
+        final cached = giftWrapWith(cache: cache);
+        final wrap = await wrapForKey2();
+
+        expect(await cached.tryFromGiftWrapFromCache(giftWrap: wrap), isNull);
+
+        final rumor = await cached.fromGiftWrap(giftWrap: wrap);
+        expect(cache.decryptions, 2);
+        expect(
+          (await cached.tryFromGiftWrapFromCache(giftWrap: wrap))?.id,
+          rumor.id,
+        );
+
+        await cached.fromGiftWrap(giftWrap: wrap);
+        expect(cache.decryptions, 2);
       });
     });
   });

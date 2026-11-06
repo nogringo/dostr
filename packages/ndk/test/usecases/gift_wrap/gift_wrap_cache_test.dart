@@ -38,12 +38,7 @@ void main() {
       );
       cache = ndk.config.cache;
 
-      giftWrap = GiftWrap(
-        accounts: ndk.accounts,
-        eventVerifier: MockEventVerifier(),
-        eventSignerFactory: ndk.config.eventSignerFactory,
-        decryptedEventPayloads: ndk.decryptedEventPayloads,
-      );
+      giftWrap = ndk.giftWrap;
 
       ndk.accounts.loginPrivateKey(
         pubkey: alice.publicKey,
@@ -197,10 +192,10 @@ void main() {
 
       // GiftWrap whose verifier always rejects signatures.
       final strictGiftWrap = GiftWrap(
-        accounts: ndk.accounts,
+        signer: giftWrap.signer,
         eventVerifier: MockEventVerifier(result: false),
-        eventSignerFactory: ndk.config.eventSignerFactory,
-        decryptedEventPayloads: ndk.decryptedEventPayloads,
+        eventSignerFactory: giftWrap.eventSignerFactory,
+        cache: giftWrap.cache,
       );
 
       expect(
@@ -251,10 +246,10 @@ void main() {
 
         // Verifier rejects everything, but verification is bypassed.
         final lenientGiftWrap = GiftWrap(
-          accounts: ndk.accounts,
+          signer: giftWrap.signer,
           eventVerifier: MockEventVerifier(result: false),
-          eventSignerFactory: ndk.config.eventSignerFactory,
-          decryptedEventPayloads: ndk.decryptedEventPayloads,
+          eventSignerFactory: giftWrap.eventSignerFactory,
+          cache: giftWrap.cache,
         );
 
         final result = await lenientGiftWrap.tryFromGiftWrapFromCache(

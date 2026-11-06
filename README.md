@@ -105,6 +105,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip17`: NIP-17 private direct messages, with text and encrypted file messages, conversations and DM relay lists.
 
+### [🔗 NIP-59](./packages/nip59/)
+
+`ndk_nip59`: NIP-59 gift wrap, to create, seal, wrap and unwrap rumors, without depending on `ndk`. NDK exposes it as `ndk.giftWrap`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

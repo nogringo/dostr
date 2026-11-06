@@ -22,10 +22,11 @@ import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/cache_read/cache_read.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
+import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_gift_wrap_cache.dart';
 import '../domain_layer/usecases/engines/network_engine.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 import '../domain_layer/usecases/follows/follows.dart';
-import '../domain_layer/usecases/gift_wrap/gift_wrap.dart';
+import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
 import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
@@ -311,10 +312,10 @@ class Initialization {
     }
 
     giftWrap = GiftWrap(
-      accounts: accounts,
+      signer: () => accounts.getLoggedAccount()?.signer,
       eventVerifier: _ndkConfig.eventVerifier,
       eventSignerFactory: _ndkConfig.eventSignerFactory,
-      decryptedEventPayloads: decryptedEventPayloads,
+      cache: DecryptedPayloadsGiftWrapCache(decryptedEventPayloads),
     );
 
     connectivity = Connectivy(

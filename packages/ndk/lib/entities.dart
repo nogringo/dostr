@@ -35,7 +35,7 @@ export 'package:ndk_core/domain_layer/entities/relay_stats.dart';
 export 'domain_layer/entities/request_response.dart';
 export 'domain_layer/entities/tuple.dart';
 export 'domain_layer/entities/user_relay_list.dart';
-export 'domain_layer/entities/gift_wrap_unwrap_result.dart';
+export 'package:ndk_nip59/ndk_nip59.dart' show GiftWrapUnwrapResult;
 export 'domain_layer/entities/nip_85.dart';
 
 /// models

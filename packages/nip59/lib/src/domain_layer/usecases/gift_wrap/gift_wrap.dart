@@ -1,12 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
 
-import '../../entities/event_cache_records.dart';
-import '../../entities/gift_wrap_unwrap_result.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import '../accounts/accounts.dart';
-import '../decrypted_event_payloads/decrypted_event_payloads.dart';
+
+import '../../entities/gift_wrap_unwrap_result.dart';
+import '../../repositories/gift_wrap_cache.dart';
 
 class GiftWrap {
   static const int kSealEventKind = 13;
@@ -14,30 +13,41 @@ class GiftWrap {
   static const int _createdAtRandomizationWindowSeconds = 172800;
   static final Random _random = Random.secure();
 
-  final Accounts accounts;
+  /// Signer used when a call gets no `customSigner`, such as the logged-in
+  /// account's, or null when there is none.
+  final EventSigner? Function() signer;
   final EventVerifier eventVerifier;
   final LocalEventSignerFactory eventSignerFactory;
-  final DecryptedEventPayloads decryptedEventPayloads;
+
+  /// Without it, every unwrap decrypts again.
+  final GiftWrapCache? cache;
 
   GiftWrap({
-    required this.accounts,
+    required this.signer,
     required this.eventVerifier,
     required this.eventSignerFactory,
-    required this.decryptedEventPayloads,
+    this.cache,
   });
 
-  /// Returns the signer to use for signing operations.
-  /// Uses [customSigner] if provided, otherwise falls back to logged-in account's signer.
   EventSigner _getSigner({EventSigner? customSigner}) {
-    if (customSigner != null) {
-      return customSigner;
-    }
-    final account = accounts.getLoggedAccount();
-    if (account == null) {
+    final resolved = customSigner ?? signer();
+    if (resolved == null) {
       throw Exception("cannot sign without account or custom signer");
     }
-    return account.signer;
+    return resolved;
   }
+
+  Future<String?> _loadOrDecrypt(
+    Nip01Event event,
+    String viewerPubKey,
+    Future<String?> Function() decrypt,
+  ) =>
+      cache?.loadOrDecrypt(
+        event: event,
+        viewerPubKey: viewerPubKey,
+        decrypt: decrypt,
+      ) ??
+      decrypt();
 
   /// converts a Nip01Event to a giftWrap Nip01Event \
   /// [rumor] the event you want to wrap \
@@ -97,8 +107,8 @@ class GiftWrap {
 
   /// Attempts to unwrap a gift wrap using only cached decrypted payloads.
   ///
-  /// Returns `null` when either the wrapped seal payload or the sealed rumor
-  /// payload is not available in the decrypted payload sidecar cache.
+  /// Returns `null` without a [cache], or when either the wrapped seal payload
+  /// or the sealed rumor payload is not cached.
   /// [verifySignature] works as in [fromGiftWrap].
   Future<Nip01Event?> tryFromGiftWrapFromCache({
     required Nip01Event giftWrap,
@@ -109,10 +119,13 @@ class GiftWrap {
       throw Exception("Event is not a gift wrap (kind:1059)");
     }
 
-    final signer = _getSigner(customSigner: customSigner);
-    final viewerPubKey = signer.getPublicKey();
+    final viewerPubKey = _getSigner(customSigner: customSigner).getPublicKey();
+    final cache = this.cache;
+    if (cache == null) {
+      return null;
+    }
 
-    final cachedSealJson = await decryptedEventPayloads.loadCachedPlaintext(
+    final cachedSealJson = await cache.loadCachedPlaintext(
       eventId: giftWrap.id,
       viewerPubKey: viewerPubKey,
     );
@@ -129,7 +142,7 @@ class GiftWrap {
       }
     }
 
-    final cachedRumorJson = await decryptedEventPayloads.loadCachedPlaintext(
+    final cachedRumorJson = await cache.loadCachedPlaintext(
       eventId: sealEvent.id,
       viewerPubKey: viewerPubKey,
     );
@@ -195,9 +208,7 @@ class GiftWrap {
     required int kind,
     required List<List<String>> tags,
   }) async {
-    final myPubkey = accounts.getPublicKey();
-
-    final usedPubkey = customPubkey ?? myPubkey;
+    final usedPubkey = customPubkey ?? signer()?.getPublicKey();
 
     if (usedPubkey == null) {
       throw Exception("cannot create crumor: no pubkey provided");
@@ -271,11 +282,10 @@ class GiftWrap {
 
     final signer = _getSigner(customSigner: customSigner);
 
-    final decryptedRumorJson = await decryptedEventPayloads.loadOrDecrypt(
-      event: sealedEvent,
-      viewerPubKey: signer.getPublicKey(),
-      scheme: DecryptedPayloadScheme.nip44,
-      decrypt: () => signer.decryptNip44(
+    final decryptedRumorJson = await _loadOrDecrypt(
+      sealedEvent,
+      signer.getPublicKey(),
+      () => signer.decryptNip44(
         ciphertext: sealedEvent.content,
         senderPubKey: sealedEvent.pubKey,
       ),
@@ -357,11 +367,10 @@ class GiftWrap {
   }) async {
     final signer = _getSigner(customSigner: customSigner);
 
-    final decryptedEventJson = await decryptedEventPayloads.loadOrDecrypt(
-      event: wrappedEvent,
-      viewerPubKey: signer.getPublicKey(),
-      scheme: DecryptedPayloadScheme.giftWrap,
-      decrypt: () => signer.decryptNip44(
+    final decryptedEventJson = await _loadOrDecrypt(
+      wrappedEvent,
+      signer.getPublicKey(),
+      () => signer.decryptNip44(
         ciphertext: wrappedEvent.content,
         senderPubKey: wrappedEvent.pubKey,
       ),

@@ -15,6 +15,8 @@ label: Gift Wrap
 Gift Wrap depends on the logged in user (accounts usecase) make sure you are logged in with the right user
 !!!
 
+`GiftWrap` lives in the `ndk_nip59` package, which does not depend on `ndk`, so it can also run on its own with any `EventSigner`. `ndk` re-exports it.
+
 ## When to use
 
 You can use Gift Wrap to obscure metadata. It also encrypts the content using `nip44`. \

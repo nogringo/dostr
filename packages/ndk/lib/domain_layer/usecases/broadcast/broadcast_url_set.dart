@@ -3,7 +3,7 @@ import 'package:ndk_url_set/ndk_url_set.dart';
 
 import '../../../config/broadcast_defaults.dart';
 import '../../entities/contact_list.dart';
-import '../gift_wrap/gift_wrap.dart';
+import 'package:ndk_nip59/ndk_nip59.dart';
 
 /// Where [event] goes when its broadcast is given no relays:
 /// - the author's outbox, or [bootstrapRelays] once the author is known to
