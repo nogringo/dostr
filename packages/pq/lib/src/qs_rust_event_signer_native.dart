@@ -100,9 +100,10 @@ class QsRustEventSigner implements EventSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    final msgBytes = _hexToBytes(event.id);
+    final unsigned = event.copyWith(pubKey: _keypair.publicKeyHex);
+    final msgBytes = _hexToBytes(unsigned.id);
     if (msgBytes == null) {
-      throw ArgumentError('Invalid event id hex: ${event.id}');
+      throw ArgumentError('Invalid event id hex: ${unsigned.id}');
     }
 
     final skPtr = calloc<Uint8>(_keypair.keypairBytes.length);
@@ -134,15 +135,7 @@ class QsRustEventSigner implements EventSigner {
 
       rust_lib.qsFreeBuffer(outSig.ref);
 
-      return Nip01Event(
-        id: event.id,
-        pubKey: _keypair.publicKeyHex,
-        createdAt: event.createdAt,
-        kind: event.kind,
-        tags: event.tags,
-        content: event.content,
-        sig: sigHex,
-      );
+      return unsigned.copyWith(sig: sigHex);
     } finally {
       calloc.free(skPtr);
       calloc.free(msgPtr);

@@ -19,7 +19,7 @@ class QsRustEventVerifier implements EventVerifier {
 
   @override
   Future<bool> verify(Nip01Event event) async {
-    if (event.sig == null) {
+    if (event.sig == null || !Nip01Utils.isIdValid(event)) {
       return false;
     }
 
