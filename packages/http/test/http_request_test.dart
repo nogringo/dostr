@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -18,6 +19,17 @@ MockClient _drainingClient() => MockClient.streaming((_, body) async {
   await body.drain<void>();
   return http.StreamedResponse(const Stream.empty(), 200);
 });
+
+/// Keeps the request as sent, which MockClient rebuilds.
+class _RecordingClient extends http.BaseClient {
+  final requests = <http.Request>[];
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    requests.add(request as http.Request);
+    return http.StreamedResponse(const Stream.empty(), 200);
+  }
+}
 
 void main() {
   final url = Uri.parse('https://example.com/upload');
@@ -230,6 +242,60 @@ void main() {
         .toList();
 
     expect(chunks, hasLength(15));
+  });
+
+  test(
+    'a paused getStream does not time out, even before the response',
+    () async {
+      final respond = Completer<void>();
+      final body = StreamController<List<int>>();
+      final ds = HttpRequestDS(
+        MockClient.streaming((request, _) async {
+          await respond.future;
+          (request as http.Abortable).abortTrigger!.whenComplete(() {
+            if (body.isClosed) return;
+            body.addError(http.RequestAbortedException(request.url));
+            body.close();
+          });
+          return http.StreamedResponse(body.stream, 200);
+        }),
+      );
+
+      final received = <List<int>>[];
+      final done = Completer<void>();
+      final subscription = ds
+          .getStream(url: url, idleTimeout: const Duration(milliseconds: 20))
+          .listen(
+            received.add,
+            onError: done.completeError,
+            onDone: done.complete,
+          );
+      await Future<void>.delayed(Duration.zero);
+      subscription.pause();
+      respond.complete();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      subscription.resume();
+      body
+        ..add([1])
+        ..close();
+
+      await done.future;
+      expect(received, [
+        [1],
+      ]);
+    },
+  );
+
+  test('a byte body is sent as given', () async {
+    final client = _RecordingClient();
+    final ds = HttpRequestDS(client);
+    final bytes = Uint8List.fromList([1, 2, 3]);
+
+    await ds.put(url: url, body: bytes);
+    await ds.post(url: url, body: <dynamic>[4, 5]);
+
+    expect(client.requests[0].bodyBytes, same(bytes));
+    expect(client.requests[1].bodyBytes, [4, 5]);
   });
 
   test('HttpRequestException names the request and shortens the body', () {

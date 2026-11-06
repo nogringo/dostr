@@ -81,13 +81,14 @@ class _UploadRequest extends http.BaseRequest with http.Abortable {
 }
 
 /// Aborts a request when called, or once [timeout] passes after the last
-/// [startTimer].
+/// [startTimer]. A [pause] holds the timer until [resume].
 class _Abort {
   final Uri url;
   final Duration? timeout;
   final _trigger = Completer<void>();
   Timer? _timer;
   var _timedOut = false;
+  var _paused = false;
   var _finished = false;
 
   _Abort(this.url, this.timeout);
@@ -102,14 +103,24 @@ class _Abort {
   void startTimer() {
     _timer?.cancel();
     final timeout = this.timeout;
-    if (timeout == null || _finished || _trigger.isCompleted) return;
+    if (timeout == null || _paused || _finished || _trigger.isCompleted) {
+      return;
+    }
     _timer = Timer(timeout, () {
       _timedOut = true;
       call();
     });
   }
 
-  void stopTimer() => _timer?.cancel();
+  void pause() {
+    _paused = true;
+    _timer?.cancel();
+  }
+
+  void resume() {
+    _paused = false;
+    startTimer();
+  }
 
   void finish() {
     _finished = true;
@@ -160,6 +171,9 @@ class HttpRequestDS {
         break;
       case final String text:
         request.body = text;
+      // cast() would hide a Uint8List from http, which then copies it
+      case final List<int> bytes:
+        request.bodyBytes = bytes;
       case final List<dynamic> bytes:
         request.bodyBytes = bytes.cast<int>();
       case final Map<dynamic, dynamic> fields:
@@ -357,8 +371,8 @@ class HttpRequestDS {
 
     download = StreamController(
       onListen: start,
-      onPause: abort.stopTimer,
-      onResume: abort.startTimer,
+      onPause: abort.pause,
+      onResume: abort.resume,
       onCancel: abort.call,
     );
     return download.stream;

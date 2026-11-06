@@ -56,6 +56,11 @@ count. Either one ends the request with a `TimeoutException`, while
 `abortPending` ends it with a `RequestAbortedException`, so a caller can tell
 them apart.
 
+Timeouts and `abortPending` work by aborting the request, so they need a
+client that honors `Abortable.abortTrigger`, as `IOClient`, `BrowserClient`
+and `RetryClient` do. With a client that ignores it, a request can outlive its
+timeout and keep running after `abortPending`.
+
 ## Coming from `ndk`
 
 `package:ndk/data_layer/data_sources/http_request.dart` is now
