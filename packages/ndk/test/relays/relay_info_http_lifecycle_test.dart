@@ -112,6 +112,23 @@ void main() {
     expect(client.aborted, isFalse);
   });
 
+  test('a ws relay serves its document over http', () async {
+    final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    server.listen((request) async {
+      request.response.write(jsonEncode({'name': 'Local relay'}));
+      await request.response.close();
+    });
+    final client = IOClient();
+    addTearDown(() async {
+      client.close();
+      await server.close(force: true);
+    });
+    final info = await RelayInfoHttpRepoImpl(
+      httpDS: HttpRequestDS(client),
+    ).getRelayInfo('ws://127.0.0.1:${server.port}');
+    expect(info?.name, 'Local relay');
+  });
+
   test('malformed response returns null', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.listen((request) async {

@@ -1,17 +1,12 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
+import 'package:http/testing.dart';
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk/data_layer/repositories/lnurl_http_impl.dart';
 import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:test/test.dart';
 
-import 'lnurl_test.mocks.dart';
-
-// Mock classes
-@GenerateMocks([http.Client])
 void main() {
   group('Lnurl', () {
     test('getLud16LinkFromLud16 returns correct URL', () {
@@ -26,21 +21,20 @@ void main() {
     });
 
     test('getLnurlResponse returns LnurlResponse for valid link', () async {
-      final client = MockClient();
-      final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
-      final Lnurl lnurl = Lnurl(transport: transport);
-      // Logger.setLogLevel(Logger.logLevels.trace);
-
       final link = 'https://domain.com/.well-known/lnurlp/name';
       final response = {
         'callback': 'https://domain.com/callback',
         'commentAllowed': 100,
       };
-
-      // Mock the client.get method
-      when(
-        client.get(Uri.parse(link), headers: {"Accept": "application/json"}),
-      ).thenAnswer((_) async => http.Response(jsonEncode(response), 200));
+      final client = MockClient((request) async {
+        if (request.url == Uri.parse(link) &&
+            request.headers['Accept'] == 'application/json') {
+          return http.Response(jsonEncode(response), 200);
+        }
+        return http.Response('unexpected request', 500);
+      });
+      final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
+      final Lnurl lnurl = Lnurl(transport: transport);
 
       var lnurlResponse = await lnurl.getLnurlResponse(link);
       expect(lnurlResponse, isNotNull);
@@ -48,14 +42,11 @@ void main() {
     });
 
     test('getLnurlResponse returns null for invalid link', () async {
-      final client = MockClient();
+      final client = MockClient((_) async => http.Response('not found', 404));
       final transport = LnurlTransportHttpImpl(HttpRequestDS(client));
       final Lnurl lnurl = Lnurl(transport: transport);
 
       final link = 'https://invalid.com';
-      when(
-        client.get(Uri.parse(link), headers: {"Accept": "application/json"}),
-      ).thenAnswer((_) async => http.Response('not found', 404));
 
       var lnurlResponse = await lnurl.getLnurlResponse(link);
       expect(lnurlResponse, isNull);

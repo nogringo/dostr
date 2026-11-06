@@ -14,7 +14,7 @@ class LnurlTransportHttpImpl implements LnurlTransport {
   @override
   Future<LnurlResponse?> requestLnurlResponse(String lnurl) async {
     try {
-      final response = await httpDS.jsonRequest(lnurl);
+      final response = await httpDS.jsonRequest(_https(lnurl));
       return LnurlResponse.fromJson(response);
     } catch (e) {
       Logger.log.w(() => e);
@@ -25,10 +25,12 @@ class LnurlTransportHttpImpl implements LnurlTransport {
   @override
   Future<Map<String, dynamic>?> fetchInvoice(String callbacklink) async {
     try {
-      return await httpDS.jsonRequest(callbacklink);
+      return await httpDS.jsonRequest(_https(callbacklink));
     } catch (e) {
       Logger.log.d(() => e);
       return null;
     }
   }
 }
+
+String _https(String url) => Uri.parse(url).replace(scheme: 'https').toString();

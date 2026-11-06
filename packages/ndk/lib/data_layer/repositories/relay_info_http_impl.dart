@@ -22,7 +22,7 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
   Future<RelayInfo?> getRelayInfo(String url) async {
     try {
       final json = await httpDS.jsonRequest(
-        url,
+        _documentUrl(url),
         timeout: timeout,
         headers: const {'Accept': 'application/nostr+json'},
       );
@@ -32,4 +32,14 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
       return null;
     }
   }
+}
+
+/// NIP-11: the document is served over HTTP(S) on the relay's own url
+String _documentUrl(String relayUrl) {
+  final uri = Uri.parse(relayUrl);
+  return switch (uri.scheme) {
+    'ws' => uri.replace(scheme: 'http'),
+    'wss' => uri.replace(scheme: 'https'),
+    _ => uri,
+  }.toString();
 }

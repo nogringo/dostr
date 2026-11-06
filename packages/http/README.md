@@ -32,12 +32,14 @@ final json = await ds.jsonRequest(
 );
 ```
 
-`jsonRequest` always uses https and decodes the body as UTF-8. With a
-`timeout`, or with `followRedirects: false`, the request can be cut short,
-and `abortPending` aborts those still in flight without closing the client.
+`jsonRequest` uses the url as given, so the caller picks the scheme, and
+decodes the body as UTF-8. `abortPending` aborts every request still in
+flight without closing the client.
 
-`putStream` uploads a stream without loading it into memory and reports
-`UploadProgress` as the bytes go out. Its last event carries the response.
+`putStream` uploads a stream without loading it into memory: the body is read
+only as fast as the connection sends it, and `UploadProgress` follows the bytes
+as they go out. The upload starts when the stream is listened to, cancelling
+the subscription aborts it, and the last event carries the response.
 `getStream` downloads the same way.
 
 ## Coming from `ndk`

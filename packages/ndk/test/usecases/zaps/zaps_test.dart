@@ -1,8 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
+import 'package:http/testing.dart';
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk/data_layer/repositories/lnurl_http_impl.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
@@ -15,10 +14,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_slow_signer.dart';
-import '../lnurl/lnurl_test.mocks.dart';
 
-// Mock classes
-@GenerateMocks([http.Client])
 void main() {
   EventSigner eventSignerFactory({
     String? privateKey,
@@ -29,41 +25,35 @@ void main() {
     KeyPair key = Bip340.generatePrivateKey();
 
     test('fetchInvoice returns invoice code for valid input', () async {
-      final client = MockClient();
       final response = {
         'callback': 'https://domain.com/callback',
         'commentAllowed': 100,
         'allowsNostr': true,
       };
       final link = 'https://domain.com/.well-known/lnurlp/name';
-
-      // Mock the client.get method
-      when(
-        client.get(Uri.parse(link), headers: {"Accept": "application/json"}),
-      ).thenAnswer((_) async => http.Response(jsonEncode(response), 200));
-
-      when(
-        client.get(
-          argThat(
-            TypeMatcher<Uri>().having(
-              (uri) => uri.toString(),
-              'uri',
-              startsWith('https://domain.com/callback'),
-            ),
-          ),
-          headers: {"Accept": "application/json"},
-        ),
-      ).thenAnswer(
-        (_) async => http.Response(
-          jsonEncode({
-            "status": "OK",
-            "successAction": {"tag": "message", "message": "Payment Received!"},
-            "routes": [],
-            "pr": "lnbc1000....",
-          }),
-          200,
-        ),
-      );
+      final client = MockClient((request) async {
+        if (request.headers['Accept'] != 'application/json') {
+          return http.Response('unexpected request', 500);
+        }
+        if (request.url == Uri.parse(link)) {
+          return http.Response(jsonEncode(response), 200);
+        }
+        if (request.url.toString().startsWith('https://domain.com/callback')) {
+          return http.Response(
+            jsonEncode({
+              "status": "OK",
+              "successAction": {
+                "tag": "message",
+                "message": "Payment Received!",
+              },
+              "routes": [],
+              "pr": "lnbc1000....",
+            }),
+            200,
+          );
+        }
+        return http.Response('unexpected request', 500);
+      });
       final amount = 1000;
 
       final ndk = Ndk.defaultConfig();
