@@ -36,6 +36,40 @@ BlobUploadResult _uploadFailure(String serverUrl, Object error) =>
       reason: _reason(error),
     );
 
+BlobUploadResult _uploadSuccess(String serverUrl, http.Response response) =>
+    BlobUploadResult(
+      serverUrl: serverUrl,
+      success: true,
+      descriptor: BlobDescriptor.fromJson(jsonDecode(response.body)),
+      statusCode: response.statusCode,
+    );
+
+/// The first error of a stream delegated with `yield*`. Unlike `await for`,
+/// which only notices a cancelled listener at the next event, `yield*` cancels
+/// the stream at once, even while it waits on a server. But it forwards errors
+/// instead of raising them in the generator, so they are kept here.
+class _Caught {
+  Object? error;
+  StackTrace? _stackTrace;
+
+  Stream<T> from<T>(Stream<T> stream) =>
+      stream.handleError((Object error, StackTrace stackTrace) {
+        this.error ??= error;
+        _stackTrace ??= stackTrace;
+      });
+
+  Never raise() => Error.throwWithStackTrace(error!, _stackTrace!);
+
+  /// Adds the failed upload to [results], unless it was aborted, which ends
+  /// the whole operation instead.
+  void recordUploadFailure(String serverUrl, List<BlobUploadResult> results) {
+    final error = this.error;
+    if (error == null) return;
+    if (error is http.RequestAbortedException) raise();
+    results.add(_uploadFailure(serverUrl, error));
+  }
+}
+
 /// Whether a server refused for want of an identity, which is an invitation to
 /// try again with one. BUD-01 says 401 and some servers say 403, but a 403 on
 /// a request that already carried an authorization refuses that identity
@@ -191,53 +225,29 @@ class BlossomRepositoryImpl implements BlossomRepository {
 
     // Try servers until we get a successful upload
     for (final serverUrl in serverUrls) {
-      try {
-        await for (final progress in _uploadToServer(
+      final caught = _Caught();
+      yield* caught.from(
+        _uploadAttempt(
           serverUrl: serverUrl,
+          results: results,
+          onSuccess: (result) => successfulUpload = result,
           dataStreamFactory: dataStreamFactory,
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
           mediaOptimisation: mediaOptimisation,
-        )) {
-          yield BlobUploadProgress(
-            currentServer: serverUrl,
-            sentBytes: progress.sentBytes,
-            totalBytes: progress.totalBytes,
-            completedUploads: results,
-            phase: UploadPhase.uploading,
-            progressPhase: progress.progress,
-          );
-
-          if (progress.isComplete && progress.response != null) {
-            final result = BlobUploadResult(
-              serverUrl: serverUrl,
-              success: true,
-              descriptor: BlobDescriptor.fromJson(
-                jsonDecode(progress.response!.body),
-              ),
-              statusCode: progress.response!.statusCode,
-            );
-            results.add(result);
-            successfulUpload = result;
-            break;
-          } else if (progress.isComplete && progress.error != null) {
-            results.add(_uploadFailure(serverUrl, progress.error!));
-          }
-        }
-      } on http.RequestAbortedException {
-        rethrow;
-      } catch (e) {
-        // Handle network exceptions (e.g., host lookup failures)
-        results.add(_uploadFailure(serverUrl, e));
-      }
+        ),
+      );
+      // e.g. a host lookup failure
+      caught.recordUploadFailure(serverUrl, results);
 
       if (successfulUpload != null) break;
     }
 
     // If we found a working server, mirror to all other servers that haven't been tried yet
-    if (successfulUpload != null) {
-      final successIndex = serverUrls.indexOf(successfulUpload.serverUrl);
+    final uploaded = successfulUpload;
+    if (uploaded != null) {
+      final successIndex = serverUrls.indexOf(uploaded.serverUrl);
       final remainingServers = serverUrls.sublist(successIndex + 1);
 
       if (remainingServers.isNotEmpty) {
@@ -245,7 +255,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         final mirrorsTotal = remainingServers.length;
 
         yield BlobUploadProgress(
-          currentServer: successfulUpload.serverUrl,
+          currentServer: uploaded.serverUrl,
           sentBytes: contentLength,
           totalBytes: contentLength,
           completedUploads: List.from(results),
@@ -257,9 +267,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
 
         for (final url in remainingServers) {
           final mirrorResult = await mirrorToServer(
-            fileUrl: successfulUpload.descriptor!.url,
+            fileUrl: uploaded.descriptor!.url,
             serverUrl: url,
-            sha256: successfulUpload.descriptor!.sha256,
+            sha256: uploaded.descriptor!.sha256,
             authorization: authorization,
           );
           results.add(mirrorResult);
@@ -284,7 +294,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     // Emit final progress
     yield BlobUploadProgress(
       currentServer: '',
-      sentBytes: successfulUpload != null ? contentLength : 0,
+      sentBytes: uploaded != null ? contentLength : 0,
       totalBytes: contentLength,
       completedUploads: results,
       phase: UploadPhase.mirroring,
@@ -302,113 +312,69 @@ class BlossomRepositoryImpl implements BlossomRepository {
     bool mediaOptimisation = false,
   }) async* {
     final results = <BlobUploadResult>[];
-    final progressSubject = BehaviorSubject<BlobUploadProgress>.seeded(
-      BlobUploadProgress(
-        currentServer: '',
-        sentBytes: 0,
-        totalBytes: contentLength,
-        completedUploads: [],
-        phase: UploadPhase.uploading,
-        progressPhase: 0,
-      ),
-    );
 
-    // Start all uploads simultaneously
-    final uploadFutures = serverUrls.map((serverUrl) async {
-      try {
-        await for (final progress in _uploadToServer(
+    Stream<BlobUploadProgress> uploadTo(String serverUrl) async* {
+      final caught = _Caught();
+      yield* caught.from(
+        _uploadToServer(
           serverUrl: serverUrl,
           dataStreamFactory: dataStreamFactory,
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
           mediaOptimisation: mediaOptimisation,
-        )) {
-          // Emit intermediate per-server progress updates
-          if (!progress.isComplete) {
-            progressSubject.add(
-              BlobUploadProgress(
-                currentServer: serverUrl,
-                sentBytes: progress.sentBytes,
-                totalBytes: progress.totalBytes,
-                completedUploads: List.from(results),
-                phase: UploadPhase.uploading,
-                progressPhase: progress.progress,
-              ),
-            );
-            continue;
-          }
+        ).map((progress) {
           if (progress.isComplete && progress.response != null) {
-            final result = BlobUploadResult(
-              serverUrl: serverUrl,
-              success: true,
-              descriptor: BlobDescriptor.fromJson(
-                jsonDecode(progress.response!.body),
-              ),
-              statusCode: progress.response!.statusCode,
-            );
-            results.add(result);
-            progressSubject.add(
-              BlobUploadProgress(
-                currentServer: serverUrl,
-                sentBytes: progress.sentBytes,
-                totalBytes: contentLength,
-                completedUploads: List.from(results),
-                phase: UploadPhase.uploading,
-                progressPhase: progress.progress,
-              ),
-            );
+            results.add(_uploadSuccess(serverUrl, progress.response!));
           } else if (progress.isComplete && progress.error != null) {
             results.add(_uploadFailure(serverUrl, progress.error!));
-            progressSubject.add(
-              BlobUploadProgress(
-                currentServer: serverUrl,
-                sentBytes: progress.sentBytes,
-                totalBytes: contentLength,
-                completedUploads: List.from(results),
-                phase: UploadPhase.uploading,
-                progressPhase: progress.progress,
-              ),
-            );
           }
-        }
-      } on http.RequestAbortedException {
-        rethrow;
-      } catch (e) {
-        // Handle network exceptions (e.g., host lookup failures)
-        results.add(_uploadFailure(serverUrl, e));
-        progressSubject.add(
-          BlobUploadProgress(
+          return BlobUploadProgress(
             currentServer: serverUrl,
-            sentBytes: 0,
-            totalBytes: contentLength,
+            sentBytes: progress.sentBytes,
+            totalBytes: progress.totalBytes,
             completedUploads: List.from(results),
             phase: UploadPhase.uploading,
-            progressPhase: 0,
-          ),
-        );
-      }
-    }).toList();
-
-    // When all uploads complete, close the stream
-    Future.wait(uploadFutures)
-        .then((_) {
-          progressSubject.add(
-            BlobUploadProgress(
-              currentServer: '',
-              sentBytes: contentLength,
-              totalBytes: contentLength,
-              completedUploads: List.from(results),
-              phase: UploadPhase.mirroring,
-              progressPhase: 1,
-              isComplete: true,
-            ),
+            progressPhase: progress.progress,
           );
-        }, onError: progressSubject.addError)
-        .whenComplete(progressSubject.close);
+        }),
+      );
+      if (caught.error == null) return;
+      // e.g. a host lookup failure
+      caught.recordUploadFailure(serverUrl, results);
+      yield BlobUploadProgress(
+        currentServer: serverUrl,
+        sentBytes: 0,
+        totalBytes: contentLength,
+        completedUploads: List.from(results),
+        phase: UploadPhase.uploading,
+        progressPhase: 0,
+      );
+    }
 
-    // Forward progress updates until the subject closes
-    yield* progressSubject.stream;
+    yield BlobUploadProgress(
+      currentServer: '',
+      sentBytes: 0,
+      totalBytes: contentLength,
+      completedUploads: [],
+      phase: UploadPhase.uploading,
+      progressPhase: 0,
+    );
+
+    // each server turns its failures into results, so only an abort errors here
+    final caught = _Caught();
+    yield* caught.from(MergeStream(serverUrls.map(uploadTo)));
+    if (caught.error != null) caught.raise();
+
+    yield BlobUploadProgress(
+      currentServer: '',
+      sentBytes: contentLength,
+      totalBytes: contentLength,
+      completedUploads: List.from(results),
+      phase: UploadPhase.mirroring,
+      progressPhase: 1,
+      isComplete: true,
+    );
   }
 
   Stream<BlobUploadProgress> _uploadToFirstSuccess({
@@ -422,54 +388,34 @@ class BlossomRepositoryImpl implements BlossomRepository {
     final results = <BlobUploadResult>[];
 
     for (final url in serverUrls) {
-      try {
-        await for (final progress in _uploadToServer(
+      BlobUploadResult? success;
+      final caught = _Caught();
+      yield* caught.from(
+        _uploadAttempt(
           serverUrl: url,
+          results: results,
+          onSuccess: (result) => success = result,
           dataStreamFactory: dataStreamFactory,
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
           mediaOptimisation: mediaOptimisation,
-        )) {
-          yield BlobUploadProgress(
-            currentServer: url,
-            sentBytes: progress.sentBytes,
-            totalBytes: progress.totalBytes,
-            completedUploads: results,
-            phase: UploadPhase.uploading,
-            progressPhase: progress.progress,
-          );
+        ),
+      );
+      // e.g. a host lookup failure
+      caught.recordUploadFailure(url, results);
 
-          if (progress.isComplete && progress.response != null) {
-            final result = BlobUploadResult(
-              serverUrl: url,
-              success: true,
-              descriptor: BlobDescriptor.fromJson(
-                jsonDecode(progress.response!.body),
-              ),
-              statusCode: progress.response!.statusCode,
-            );
-            results.add(result);
-
-            yield BlobUploadProgress(
-              currentServer: url,
-              sentBytes: progress.sentBytes,
-              totalBytes: contentLength,
-              completedUploads: results,
-              phase: UploadPhase.mirroring,
-              progressPhase: 1,
-              isComplete: true,
-            );
-            return;
-          } else if (progress.isComplete && progress.error != null) {
-            results.add(_uploadFailure(url, progress.error!));
-          }
-        }
-      } on http.RequestAbortedException {
-        rethrow;
-      } catch (e) {
-        // Handle network exceptions (e.g., host lookup failures)
-        results.add(_uploadFailure(url, e));
+      if (success != null) {
+        yield BlobUploadProgress(
+          currentServer: url,
+          sentBytes: contentLength,
+          totalBytes: contentLength,
+          completedUploads: results,
+          phase: UploadPhase.mirroring,
+          progressPhase: 1,
+          isComplete: true,
+        );
+        return;
       }
     }
 
@@ -484,6 +430,44 @@ class BlossomRepositoryImpl implements BlossomRepository {
       isComplete: true,
     );
   }
+
+  /// One server's turn in a sequential upload. Its result goes to [results],
+  /// and to [onSuccess] when the server took the blob.
+  Stream<BlobUploadProgress> _uploadAttempt({
+    required String serverUrl,
+    required List<BlobUploadResult> results,
+    required void Function(BlobUploadResult result) onSuccess,
+    required Stream<List<int>> Function() dataStreamFactory,
+    required int contentLength,
+    required BlossomAuthorization authorization,
+    String? contentType,
+    bool mediaOptimisation = false,
+  }) =>
+      _uploadToServer(
+        serverUrl: serverUrl,
+        dataStreamFactory: dataStreamFactory,
+        contentLength: contentLength,
+        contentType: contentType,
+        authorization: authorization,
+        mediaOptimisation: mediaOptimisation,
+      ).map((progress) {
+        final update = BlobUploadProgress(
+          currentServer: serverUrl,
+          sentBytes: progress.sentBytes,
+          totalBytes: progress.totalBytes,
+          completedUploads: results,
+          phase: UploadPhase.uploading,
+          progressPhase: progress.progress,
+        );
+        if (progress.isComplete && progress.response != null) {
+          final result = _uploadSuccess(serverUrl, progress.response!);
+          results.add(result);
+          onSuccess(result);
+        } else if (progress.isComplete && progress.error != null) {
+          results.add(_uploadFailure(serverUrl, progress.error!));
+        }
+        return update;
+      });
 
   /// Upload a file to a server \
   /// If [mediaOptimisation] is true, the server will optimise the file for media streaming using the /media endpoint [BUD-05]
@@ -514,21 +498,16 @@ class BlossomRepositoryImpl implements BlossomRepository {
 
     final aborts = _aborts;
     final initial = _initial(authorization, serverUrl);
-    try {
-      // consumed rather than delegated with yield*, which would forward the
-      // refusal straight to the caller instead of raising it here
-      await for (final progress in send(initial)) {
-        yield progress;
-      }
-      return;
-    } catch (e) {
-      if (!_isAuthRefusal(e, sentAuth: initial != null)) rethrow;
-      final signed = await authorization.onRefusal(serverUrl);
-      if (signed == null) rethrow;
-      _throwIfAbortedSince(aborts);
-      // the body is read from scratch, so progress starts over
-      yield* send(signed);
-    }
+    final caught = _Caught();
+    yield* caught.from(send(initial));
+    final error = caught.error;
+    if (error == null) return;
+    if (!_isAuthRefusal(error, sentAuth: initial != null)) caught.raise();
+    final signed = await authorization.onRefusal(serverUrl);
+    if (signed == null) caught.raise();
+    _throwIfAbortedSince(aborts);
+    // the body is read from scratch, so progress starts over
+    yield* send(signed);
   }
 
   @override

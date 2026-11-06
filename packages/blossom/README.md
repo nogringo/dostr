@@ -42,7 +42,7 @@ final blobs = await blossom.listBlobs(pubkey: pubkey);
 
 To read or publish a user's server list, use `ndk.blossomUserServerList`, in the `ndk` package.
 
-`blossom.abortPending()` ends every operation in flight with a `RequestAbortedException`, including one still waiting on a signer, and tries no other server. `Blossom` does not follow the `Ndk` lifecycle on its own, so tie it to whatever owns it:
+Cancelling the subscription to an upload stream, such as `uploadBlobFromFile`, aborts that upload. `blossom.abortPending()` ends every operation in flight with a `RequestAbortedException`, including one still waiting on a signer, and tries no other server. `Blossom` does not follow the `Ndk` lifecycle on its own, so tie it to whatever owns it:
 
 ```dart
 ndk.addLifecycleHooks(onDestroy: () async => blossom.abortPending());

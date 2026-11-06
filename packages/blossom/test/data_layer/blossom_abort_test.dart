@@ -13,10 +13,13 @@ final _sha256 = 'ab' * 32;
 /// Records each request, and answers none until it is aborted.
 class _StalledServers {
   final requests = <String>[];
+  final aborted = <String>[];
 
   late final client = MockClient.streaming((request, _) async {
-    requests.add('${request.method} ${request.url.host}');
+    final name = '${request.method} ${request.url.host}';
+    requests.add(name);
     await (request as http.Abortable).abortTrigger!;
+    aborted.add(name);
     throw http.RequestAbortedException(request.url);
   });
 }
@@ -46,6 +49,28 @@ void main() {
     getUserServerList: getUserServerList,
     blossomRepository: repository,
   );
+
+  for (final strategy in UploadStrategy.values) {
+    test('cancelling a ${strategy.name} upload aborts its requests', () async {
+      final servers = _StalledServers();
+
+      final subscription = _repo(servers.client)
+          .uploadBlob(
+            dataStreamFactory: () => Stream.value([1, 2, 3]),
+            contentLength: 3,
+            authorization: const BlossomAuthorization.none(),
+            serverUrls: _servers,
+            strategy: strategy,
+          )
+          .listen(null);
+      await _settle();
+      await subscription.cancel().timeout(const Duration(seconds: 1));
+      await _settle();
+
+      expect(servers.requests, isNotEmpty);
+      expect(servers.aborted, unorderedEquals(servers.requests));
+    });
+  }
 
   test('an aborted upload tries no other server', () async {
     final servers = _StalledServers();
