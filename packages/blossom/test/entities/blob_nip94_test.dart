@@ -79,8 +79,8 @@ void main() async {
         final result = BlobDescriptor.fromJson(malformedJson);
         final result2 = BlobDescriptor.fromJson(malformedJson2);
 
-        expect(result.nip94!.dimenssions, equals("1920x1080"));
-        expect(result2.nip94!.dimenssions, equals("100"));
+        expect(result.nip94!.dimensions, equals("1920x1080"));
+        expect(result2.nip94!.dimensions, equals("100"));
       },
     );
 
@@ -102,7 +102,7 @@ void main() async {
 
         final obj = jsonDecode(json);
         final result = BlobNip94.fromJson(obj);
-        expect(result.dimenssions, equals("590x1280"));
+        expect(result.dimensions, equals("590x1280"));
         // replaced by second instance (BAD!!)
         // https://github.com/hzrd149/blossom/pull/60
         expect(
@@ -115,6 +115,12 @@ void main() async {
         );
       },
     );
+  });
+
+  test('a nip94 object without dim has no dimensions', () {
+    final nip94 = BlobNip94.fromJson({'url': 'https://example.com/a'});
+
+    expect(nip94.dimensions, isNull);
   });
 
   group('BUD-08 - nip94 as an array of tags', () {
@@ -142,7 +148,7 @@ void main() async {
       expect(nip94.mimeType, equals("video/mp4"));
       expect(nip94.sha256, equals("aaaa"));
       expect(nip94.size, equals(6762754));
-      expect(nip94.dimenssions, equals("590x1280"));
+      expect(nip94.dimensions, equals("590x1280"));
       expect(
         nip94.thumbnail,
         equals(["https://cdn.example.com/thumb/aaaa.webp", "bbbb"]),

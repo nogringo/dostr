@@ -2,12 +2,15 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
 
 import 'package:ndk_http/ndk_http.dart';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
+import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
 
 import 'package:test/test.dart';
 
@@ -315,6 +318,117 @@ void main() {
       );
 
       expect(deleteResponse.first.success, true);
+    });
+  });
+
+  group('blob urls and failures', () {
+    const hash =
+        'b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553';
+
+    test(
+      'sha256Regex finds the hash behind an extension, query or fragment',
+      () {
+        for (final url in [
+          'https://cdn.example.com/$hash',
+          'https://cdn.example.com/$hash.pdf',
+          'https://cdn.example.com/$hash?w=200',
+          'https://cdn.example.com/$hash#t=10',
+          'https://cdn.example.com/$hash/',
+        ]) {
+          expect(
+            Blossom.sha256Regex.firstMatch(url)?.group(1),
+            hash,
+            reason: url,
+          );
+        }
+        expect(
+          Blossom.sha256Regex.hasMatch('https://cdn.example.com/${hash}a'),
+          false,
+        );
+      },
+    );
+
+    test('mirrorToServers takes a blob url with an extension', () async {
+      final uploaded = await client.uploadBlob(
+        data: Uint8List.fromList(utf8.encode('mirror with extension')),
+        serverUrls: ['http://localhost:$primaryServerPort'],
+      );
+      final sha256 = uploaded.single.descriptor!.sha256;
+
+      final mirrored = await client.mirrorToServers(
+        blossomUrl: Uri.parse(
+          'http://localhost:$primaryServerPort/$sha256.txt',
+        ),
+        targetServerUrls: ['http://localhost:$secondaryServerPort'],
+      );
+
+      expect(mirrored.single.success, true, reason: mirrored.single.error);
+      expect(mirrored.single.descriptor!.sha256, sha256);
+    });
+
+    test('a server url with a trailing slash', () async {
+      const base = 'http://localhost:$primaryServerPort/';
+
+      final uploaded = await client.uploadBlob(
+        data: Uint8List.fromList(utf8.encode('trailing slash')),
+        serverUrls: [base],
+      );
+      expect(uploaded.single.success, true, reason: uploaded.single.error);
+      final sha256 = uploaded.single.descriptor!.sha256;
+
+      expect(
+        await client.checkBlob(sha256: sha256, serverUrls: [base]),
+        'http://localhost:$primaryServerPort/$sha256',
+      );
+      final blob = await client.getBlob(sha256: sha256, serverUrls: [base]);
+      expect(utf8.decode(blob.data), 'trailing slash');
+      expect(
+        await client.listBlobs(pubkey: 'test_pubkey', serverUrls: [base]),
+        isNotEmpty,
+      );
+      final deleted = await client.deleteBlob(
+        sha256: sha256,
+        serverUrls: [base],
+      );
+      expect(deleted.single.success, true);
+
+      expect(
+        server.requests.map((r) => r.path),
+        everyElement(isNot(startsWith('//'))),
+      );
+    });
+
+    test('a read no server served says why each one failed', () async {
+      const primary = 'http://localhost:$primaryServerPort';
+      const secondary = 'http://localhost:$secondaryServerPort';
+      const dead = 'http://dead.example.com';
+
+      await expectLater(
+        client.getBlob(sha256: hash, serverUrls: [primary, secondary]),
+        throwsA(
+          isA<BlossomRequestException>()
+              .having((e) => e.operation, 'operation', 'get')
+              .having((e) => e.errors.keys, 'servers', [primary, secondary])
+              .having((e) => e.notFound, 'notFound', true),
+        ),
+      );
+
+      await expectLater(
+        client.checkBlob(sha256: hash, serverUrls: [dead, primary]),
+        throwsA(
+          isA<BlossomRequestException>()
+              .having((e) => e.notFound, 'notFound', false)
+              .having(
+                (e) => e.errors[primary],
+                'answer of $primary',
+                isA<HttpRequestException>().having(
+                  (e) => e.statusCode,
+                  'statusCode',
+                  404,
+                ),
+              ),
+        ),
+      );
     });
   });
 
@@ -639,6 +753,46 @@ void main() {
 
   group("mirror", () {
     test(
+      'mirrors a media upload as the blob the server answered with',
+      () async {
+        const content = 'media to mirror';
+        final results = await client.uploadBlob(
+          data: Uint8List.fromList(utf8.encode(content)),
+          serverUrls: [
+            'http://localhost:$primaryServerPort',
+            'http://localhost:$secondaryServerPort',
+          ],
+          serverMediaOptimisation: true,
+        );
+
+        expect(results, hasLength(2));
+        expect(results.map((r) => r.success), [
+          true,
+          true,
+        ], reason: '${results.map((r) => r.error)}');
+        final optimised = results.first.descriptor!.sha256;
+        expect(results.last.descriptor!.sha256, optimised);
+
+        final media = server.requests.singleWhere((r) => r.method == 'PUT');
+        expect(media.authType, 'media');
+        expect(media.authX, isNot(optimised), reason: 'it names the blob sent');
+
+        final mirror = server2.requests.singleWhere((r) => r.path == '/mirror');
+        expect(mirror.authType, 'upload');
+        expect(mirror.authX, optimised);
+
+        final served = await client.getBlob(
+          sha256: optimised,
+          serverUrls: ['http://localhost:$secondaryServerPort'],
+        );
+        expect(
+          utf8.decode(served.data),
+          '$content${MockBlossomServer.mediaSuffix}',
+        );
+      },
+    );
+
+    test(
       'mirrorToServers should mirror blob from one server to others',
       () async {
         final myData = "mirror test data";
@@ -942,18 +1096,21 @@ void main() {
             .any((e) => e.phase == UploadPhase.hashing);
         expect(hasHashingAfterUpload, isFalse);
 
-        // Overall percentage should map to phase bands.
-        for (final event in events) {
-          expect(event.percentage, inInclusiveRange(0, 100));
-
-          switch (event.phase) {
-            case UploadPhase.hashing:
-              expect(event.percentage, inInclusiveRange(0, 33));
-            case UploadPhase.uploading:
-              expect(event.percentage, inInclusiveRange(33, 66));
-            case UploadPhase.mirroring:
-              expect(event.percentage, inInclusiveRange(66, 100));
-          }
+        // a single server has nothing to mirror to
+        for (final event in events.where((e) => !e.isComplete)) {
+          expect(event.phases, [UploadPhase.hashing, UploadPhase.uploading]);
+          final share = 100 / event.phases.length;
+          final index = event.phases.indexOf(event.phase);
+          expect(
+            event.percentage,
+            inInclusiveRange(index * share, (index + 1) * share),
+          );
+        }
+        for (var i = 1; i < events.length; i++) {
+          expect(
+            events[i].percentage,
+            greaterThanOrEqualTo(events[i - 1].percentage),
+          );
         }
 
         final lastEvent = events.last;
@@ -961,6 +1118,39 @@ void main() {
         expect(lastEvent.phase, equals(UploadPhase.mirroring));
         expect(lastEvent.percentage, closeTo(100, 0.000001));
         expect(lastEvent.completedUploads.any((u) => u.success), isTrue);
+      },
+    );
+
+    test(
+      'uploadBlobFromFile with a precomputed hash skips the hashing share',
+      () async {
+        final testFile = File('${tempDir.path}/test_precomputed.txt');
+        await testFile.writeAsString('precomputed hash');
+
+        final events = await client
+            .uploadBlobFromFile(
+              filePath: testFile.path,
+              serverUrls: [
+                'http://localhost:$primaryServerPort',
+                'http://localhost:$secondaryServerPort',
+              ],
+              precomputedSha256: crypto.sha256
+                  .convert(await testFile.readAsBytes())
+                  .toString(),
+            )
+            .toList();
+
+        final pending = events.where((e) => !e.isComplete).toList();
+        expect(pending, isNotEmpty);
+        for (final event in pending) {
+          expect(event.phases, [UploadPhase.uploading, UploadPhase.mirroring]);
+        }
+        for (final event in pending.where(
+          (e) => e.phase == UploadPhase.uploading,
+        )) {
+          expect(event.percentage, inInclusiveRange(0, 50));
+        }
+        expect(events.last.percentage, 100);
       },
     );
 

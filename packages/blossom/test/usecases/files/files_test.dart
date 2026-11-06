@@ -103,6 +103,62 @@ void main() {
       expect(getResponse, throwsA(isA<Exception>()));
     });
 
+    test('download goes through blossom for a url with an extension', () async {
+      final uploaded = await client.upload(
+        file: NdkFile(data: Uint8List.fromList(utf8.encode('with extension'))),
+        serverUrls: ['http://localhost:3011'],
+      );
+      final sha256 = uploaded.single.descriptor!.sha256;
+
+      // 3010 does not have it, so only the blossom fallback finds it
+      final blob = await client.download(
+        url: 'http://localhost:3010/$sha256.txt',
+        serverUrls: ['http://localhost:3010', 'http://localhost:3011'],
+      );
+      expect(utf8.decode(blob.data), 'with extension');
+    });
+
+    test('checkUrl checks a blossom url with an extension', () async {
+      await expectLater(
+        client.checkUrl(
+          url: 'http://localhost:3010/${'a' * 64}.pdf',
+          serverUrls: ['http://localhost:3010'],
+        ),
+        throwsA(
+          isA<BlossomRequestException>().having(
+            (e) => e.notFound,
+            'notFound',
+            true,
+          ),
+        ),
+      );
+    });
+
+    test('upload trusts the hash a file gives', () async {
+      final given = 'b' * 64;
+      await client.upload(
+        file: NdkFile(
+          data: Uint8List.fromList(utf8.encode('given hash')),
+          sha256: given,
+        ),
+        serverUrls: ['http://localhost:3010'],
+      );
+
+      expect(server.requests.single.authX, given);
+    });
+
+    test('upload follows the strategy it is given', () async {
+      final results = await client.upload(
+        file: NdkFile(data: Uint8List.fromList(utf8.encode('strategy'))),
+        serverUrls: ['http://localhost:3010', 'http://localhost:3011'],
+        strategy: UploadStrategy.allSimultaneous,
+      );
+
+      expect(results.map((r) => r.success), [true, true]);
+      expect(server2.countRequests(method: 'PUT', path: '/upload'), 1);
+      expect(server2.countRequests(path: '/mirror'), 0);
+    });
+
     test('checkUrl - no blossom', () async {
       // download
       final response = client.checkUrl(

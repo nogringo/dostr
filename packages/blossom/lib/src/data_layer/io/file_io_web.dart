@@ -49,33 +49,22 @@ class FileIOWeb implements FileIO {
 
   @override
   Future<void> writeFile(String filePath, Uint8List data) async {
-    // Trigger browser download
-    await downloadToUser(filePath, data);
+    _download(filePath, Blob([data.toJS].toJS));
   }
 
+  /// Hands each chunk to the browser as it arrives, which keeps the blob out
+  /// of the Dart heap and lets the browser spill it to disk. The download
+  /// itself only starts once the stream is done.
   @override
   Future<void> writeFileStream(
     String filePath,
     Stream<Uint8List> dataStream,
   ) async {
-    // Collect all chunks into a single Uint8List for download
-    final chunks = <Uint8List>[];
+    final parts = <Blob>[];
     await for (final chunk in dataStream) {
-      chunks.add(chunk);
+      parts.add(Blob([chunk.toJS].toJS));
     }
-
-    // Calculate total size
-    final totalSize = chunks.fold<int>(0, (sum, chunk) => sum + chunk.length);
-    final combined = Uint8List(totalSize);
-
-    // Copy all chunks into combined buffer
-    var offset = 0;
-    for (final chunk in chunks) {
-      combined.setRange(offset, offset + chunk.length, chunk);
-      offset += chunk.length;
-    }
-
-    await writeFile(filePath, combined);
+    _download(filePath, Blob(parts.toJS));
   }
 
   @override
@@ -174,20 +163,21 @@ class FileIOWeb implements FileIO {
   Future<File?> _promptForFileLegacy() async {
     final input = document.createElement('input') as HTMLInputElement;
     input.type = 'file';
-    input.click();
 
     final completer = Completer<File?>();
+    void complete(File? file) {
+      if (!completer.isCompleted) completer.complete(file);
+    }
+
     input.addEventListener(
       'change',
       (Event event) {
         final files = input.files;
-        if (files != null && files.length > 0) {
-          completer.complete(files.item(0));
-        } else {
-          completer.complete(null);
-        }
+        complete(files != null && files.length > 0 ? files.item(0) : null);
       }.toJS,
     );
+    input.addEventListener('cancel', ((Event event) => complete(null)).toJS);
+    input.click();
 
     return completer.future;
   }
@@ -218,8 +208,7 @@ class FileIOWeb implements FileIO {
 
   /// Download a file to the user's downloads folder using browser download
   /// This is the web equivalent of saving to a file path
-  Future<void> downloadToUser(String filename, Uint8List data) async {
-    final blob = Blob([data.toJS].toJS);
+  void _download(String filename, Blob blob) {
     final url = URL.createObjectURL(blob);
     final anchor = document.createElement('a') as HTMLAnchorElement;
     anchor.href = url;
@@ -230,17 +219,6 @@ class FileIOWeb implements FileIO {
     anchor.click();
     anchor.remove();
     URL.revokeObjectURL(url);
-  }
-
-  /// Register an existing File object with a key
-  /// Useful when you already have a file from a file picker
-  void registerFile(String key, File file) {
-    _fileCache[key] = file;
-  }
-
-  /// Clear the file cache
-  void clearCache() {
-    _fileCache.clear();
   }
 
   @override

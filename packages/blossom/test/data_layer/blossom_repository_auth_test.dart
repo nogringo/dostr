@@ -5,6 +5,8 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
+import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_blossom_server.dart';
@@ -220,6 +222,131 @@ void main() {
         reason: 'a remote signer would otherwise prompt once per server',
       );
       expect({...first.signedEventIds, ...second.signedEventIds}, hasLength(1));
+    });
+  });
+
+  group('an expired authorization', () {
+    late MockBlossomServer server;
+    late Uint8List data;
+    late String sha256;
+    late String url;
+
+    Nip01Event getEvent({required int expiresIn}) => Nip01Event(
+      pubKey: _authEvent('get').pubKey,
+      kind: 24242,
+      tags: [
+        ['t', 'get'],
+        [
+          'expiration',
+          '${DateTime.now().millisecondsSinceEpoch ~/ 1000 + expiresIn}',
+        ],
+      ],
+      content: 'get',
+    );
+
+    setUp(() async {
+      server = MockBlossomServer(
+        port: refusingPort,
+        authRefusalStatus: 401,
+        supportRangeRequests: true,
+      );
+      await server.start();
+      url = 'http://localhost:${server.port}';
+      data = Uint8List.fromList(utf8.encode('a long stream. ' * 100));
+      sha256 = await seed(server, data);
+      server.requireAuthForReads = true;
+    });
+
+    tearDown(() async => server.stop());
+
+    test(
+      'is renewed once refused, and the renewal serves every chunk',
+      () async {
+        var renewals = 0;
+
+        final stream = await repo.getBlobStream(
+          sha256: sha256,
+          serverUrls: [url],
+          chunkSize: 256,
+          authorization: BlossomAuthorization.upfront(
+            getEvent(expiresIn: -10),
+            renew: () async {
+              renewals++;
+              return getEvent(expiresIn: 300);
+            },
+          ),
+        );
+
+        expect(await stream.expand((chunk) => chunk.data).toList(), data);
+        expect(renewals, 1);
+        expect(server.signedEventIds, hasLength(2));
+        expect(
+          server.countRequests(method: 'GET'),
+          (data.length / 256).ceil(),
+          reason: 'no chunk pays a refusal once renewed',
+        );
+      },
+    );
+
+    test('a valid event it refuses is not replayed', () async {
+      var renewals = 0;
+
+      await expectLater(
+        repo.getBlob(
+          sha256: sha256,
+          serverUrls: [url],
+          authorization: BlossomAuthorization.upfront(
+            _authEvent('upload'),
+            renew: () async {
+              renewals++;
+              return _authEvent('upload');
+            },
+          ),
+        ),
+        throwsA(isA<BlossomRequestException>()),
+      );
+
+      expect(server.countRequests(method: 'GET'), 1);
+      expect(renewals, 0);
+    });
+  });
+
+  group('a mirror that cannot be authorised', () {
+    late MockBlossomServer first;
+    late MockBlossomServer second;
+
+    setUp(() async {
+      first = MockBlossomServer(port: publicPort);
+      second = MockBlossomServer(port: secondRefusingPort);
+      await first.start();
+      await second.start();
+    });
+
+    tearDown(() async {
+      await first.stop();
+      await second.stop();
+    });
+
+    test('fails the mirror, not the upload', () async {
+      final data = Uint8List.fromList(utf8.encode('mirror declined'));
+
+      final done = await repo
+          .uploadBlob(
+            dataStreamFactory: () => Stream.value(data),
+            contentLength: data.length,
+            authorization: BlossomAuthorization.upfront(_authEvent('upload')),
+            serverUrls: [
+              'http://localhost:${first.port}',
+              'http://localhost:${second.port}',
+            ],
+            mirrorAuthorization: (_) async => throw Exception('declined'),
+          )
+          .last;
+
+      expect(done.isComplete, true);
+      expect(done.completedUploads.map((r) => r.success), [true, false]);
+      expect(done.completedUploads.last.error, contains('declined'));
+      expect(second.countRequests(path: '/mirror'), 0);
     });
   });
 

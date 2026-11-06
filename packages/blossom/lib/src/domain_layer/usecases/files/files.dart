@@ -9,20 +9,23 @@ import 'blossom.dart';
 class Files {
   final Blossom _blossom;
 
-  /// Regular expression to match SHA256 in URLs
-  static final sha256Regex = RegExp(r'/([a-fA-F0-9]{64})(?:/|$)');
-
   Files(this._blossom);
+
+  /// the sha256 a blossom [url] names, null for any other url
+  static String? _sha256Of(String url) =>
+      Blossom.sha256Regex.firstMatch(url)?.group(1);
 
   /// upload a file to the server(s) \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
   /// if no serverUrls (param or nostr) are found, throws an error
+  /// [strategy] is the upload strategy, default is mirrorAfterSuccess \
   /// [serverMediaOptimisation] is whether the server should optimise the media [BUD-05], IMPORTANT: the server hash will be different \
   /// [auth] says which identity the upload may be attributed to, see
   /// [AuthPolicy].
   Future<List<BlobUploadResult>> upload({
     required NdkFile file,
     List<String>? serverUrls,
+    UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     AuthPolicy? auth,
   }) {
@@ -30,8 +33,10 @@ class Files {
       data: file.data,
       serverUrls: serverUrls,
       contentType: file.mimeType,
+      strategy: strategy,
       serverMediaOptimisation: serverMediaOptimisation,
       auth: auth,
+      precomputedSha256: file.sha256,
     );
   }
 
@@ -94,23 +99,15 @@ class Files {
     String? pubkey,
     AuthPolicy? auth,
   }) async {
-    // Regular expression to match SHA256 in URLs
-    final sha256Match = sha256Regex.firstMatch(url);
+    final sha256 = _sha256Of(url);
+    if (sha256 == null) return _blossom.directDownload(url: Uri.parse(url));
 
-    if (sha256Match != null) {
-      // This is a blossom URL, handle it using blossom protocol
-      final sha256 = sha256Match.group(1)!;
-
-      // Try to download using blossom
-      return await _blossom.getBlob(
-        sha256: sha256,
-        serverUrls: serverUrls,
-        pubkeyToFetchUserServerList: pubkey,
-        auth: auth,
-      );
-    } else {
-      return await _blossom.directDownload(url: Uri.parse(url));
-    }
+    return _blossom.getBlob(
+      sha256: sha256,
+      serverUrls: serverUrls,
+      pubkeyToFetchUserServerList: pubkey,
+      auth: auth,
+    );
   }
 
   /// Downloads a file directly to disk path (without loading whole file into memory)
@@ -133,28 +130,21 @@ class Files {
     List<String>? serverUrls,
     String? pubkey,
   }) async {
-    // Regular expression to match SHA256 in URLs
-    final sha256Match = sha256Regex.firstMatch(url);
-
-    if (sha256Match != null) {
-      // This is a blossom URL, handle it using blossom protocol
-      final sha256 = sha256Match.group(1)!;
-
-      // Download using blossom to file
-      return await _blossom.downloadBlobToFile(
-        sha256: sha256,
-        outputPath: outputPath,
-        auth: auth,
-        serverUrls: serverUrls,
-        pubkeyToFetchUserServerList: pubkey,
-      );
-    } else {
-      // Direct download for non-blossom URLs
-      return await _blossom.directDownloadToFile(
+    final sha256 = _sha256Of(url);
+    if (sha256 == null) {
+      return _blossom.directDownloadToFile(
         url: Uri.parse(url),
         outputPath: outputPath,
       );
     }
+
+    return _blossom.downloadBlobToFile(
+      sha256: sha256,
+      outputPath: outputPath,
+      auth: auth,
+      serverUrls: serverUrls,
+      pubkeyToFetchUserServerList: pubkey,
+    );
   }
 
   /// checks if a url is a blossom url. \
@@ -169,22 +159,14 @@ class Files {
     String? pubkey,
     AuthPolicy? auth,
   }) async {
-    // Regular expression to match SHA256 in URLs
-    final sha256Match = sha256Regex.firstMatch(url);
+    final sha256 = _sha256Of(url);
+    if (sha256 == null) return url;
 
-    if (sha256Match != null) {
-      // This is a blossom URL, handle it using blossom protocol
-      final sha256 = sha256Match.group(1)!;
-
-      // Try to check using blossom
-      return await _blossom.checkBlob(
-        sha256: sha256,
-        serverUrls: serverUrls,
-        pubkeyToFetchUserServerList: pubkey,
-        auth: auth,
-      );
-    } else {
-      return url;
-    }
+    return _blossom.checkBlob(
+      sha256: sha256,
+      serverUrls: serverUrls,
+      pubkeyToFetchUserServerList: pubkey,
+      auth: auth,
+    );
   }
 }

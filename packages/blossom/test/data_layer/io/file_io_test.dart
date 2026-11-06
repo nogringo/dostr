@@ -160,4 +160,49 @@ void main() {
       );
     });
   });
+
+  group('FileIO - writeFileStream', () {
+    late Directory tempDir;
+    final fileIO = FileIONative();
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('file_io_write_test_');
+    });
+
+    tearDown(() async {
+      if (await tempDir.exists()) await tempDir.delete(recursive: true);
+    });
+
+    test('writes the stream, creating missing directories', () async {
+      final path = '${tempDir.path}/nested/out.bin';
+
+      await fileIO.writeFileStream(
+        path,
+        Stream.fromIterable([
+          Uint8List.fromList([1, 2]),
+          Uint8List.fromList([3]),
+        ]),
+      );
+
+      expect(await File(path).readAsBytes(), [1, 2, 3]);
+      expect(await File('$path.part').exists(), false);
+    });
+
+    test('keeps the previous file when the stream fails midway', () async {
+      final path = '${tempDir.path}/out.bin';
+      await File(path).writeAsBytes([9, 9]);
+
+      Stream<Uint8List> failing() async* {
+        yield Uint8List.fromList([1, 2]);
+        throw const SocketException('connection lost');
+      }
+
+      await expectLater(
+        fileIO.writeFileStream(path, failing()),
+        throwsA(isA<SocketException>()),
+      );
+      expect(await File(path).readAsBytes(), [9, 9]);
+      expect(await File('$path.part').exists(), false);
+    });
+  });
 }

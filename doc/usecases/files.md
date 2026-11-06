@@ -32,6 +32,13 @@ instance:
 Files uses blossom under the hood to get, upload and delete files. \
 The default user server list, specified by kind `10063` is used for upload and delete
 
+A url naming a sha256, with or without a file extension
+(`https://cdn.example.com/<sha256>.pdf`), goes through blossom and falls back
+on the other servers. Any other url is fetched directly.
+
+`upload` takes the same `strategy` as `Blossom.uploadBlob`. An `NdkFile` that
+already knows its `sha256` is not hashed again.
+
 If you need more granular control check out:
 [!ref](/usecases/blossom.md)
 

@@ -23,21 +23,31 @@ class FileIONative implements FileIO {
     await file.writeAsBytes(data);
   }
 
+  /// Writes to a temporary file renamed once complete, so a download that
+  /// fails midway neither leaves a truncated file nor destroys the one that
+  /// was there.
   @override
   Future<void> writeFileStream(
     String filePath,
     Stream<Uint8List> dataStream,
   ) async {
     final file = File(filePath);
-    await file.create(recursive: true);
-    final sink = file.openWrite();
+    await file.parent.create(recursive: true);
+    final partial = File('$filePath.part');
+    final sink = partial.openWrite();
 
-    await for (final chunk in dataStream) {
-      sink.add(chunk);
+    try {
+      await for (final chunk in dataStream) {
+        sink.add(chunk);
+      }
+      await sink.close();
+    } catch (_) {
+      await sink.close().catchError((_) => null);
+      if (await partial.exists()) await partial.delete();
+      rethrow;
     }
 
-    await sink.flush();
-    await sink.close();
+    await partial.rename(filePath);
   }
 
   @override

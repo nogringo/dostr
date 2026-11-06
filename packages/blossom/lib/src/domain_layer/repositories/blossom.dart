@@ -1,10 +1,15 @@
 import '../entities/blossom_strategies.dart';
-
 import '../entities/blob_upload_progress.dart';
 import '../entities/blossom_authorization.dart';
 import '../entities/blossom_blobs.dart';
+import '../entities/blossom_request_exception.dart';
 import '../entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+
+/// The authorization the mirrors of the blob a server answered with, whose
+/// hash is [sha256], go out with.
+typedef BlossomMirrorAuthorization =
+    Future<BlossomAuthorization> Function(String sha256);
 
 abstract class BlossomRepository {
   /// Uploads a blob using the specified strategy
@@ -13,6 +18,12 @@ abstract class BlossomRepository {
   /// [dataStreamFactory] must be able to produce the body more than once: it
   /// is called once per server, and once more when a server asks the upload to
   /// authorise itself.
+  ///
+  /// [mirrorAuthorization], when given, authorises the mirrors of
+  /// [UploadStrategy.mirrorAfterSuccess] instead of [authorization]. A
+  /// [serverMediaOptimisation] upload needs it: `/mirror` wants an `upload`
+  /// event naming the hash the server answered with [BUD-04], not the `media`
+  /// one naming the hash that was sent.
   Stream<BlobUploadProgress> uploadBlob({
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
@@ -20,35 +31,39 @@ abstract class BlossomRepository {
     String? contentType,
     required List<String> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
+    BlossomMirrorAuthorization? mirrorAuthorization,
   });
 
   /// Asks each server whether it would accept the upload, without sending the
-  /// blob [BUD-06]. With [mediaOptimisation] it asks `/media` [BUD-05].
+  /// blob [BUD-06]. With [serverMediaOptimisation] it asks `/media` [BUD-05].
   Future<List<BlobUploadCheck>> checkUpload({
     required String sha256,
     required int contentLength,
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   });
 
   /// Uploads a blob from a file path using the specified strategy
   /// Reads the file in chunks to minimize memory usage
   /// For web: prompts user to select a file via File System Access API
   /// For native: filePath is the actual file system path
-  /// Returns a stream of progress updates
+  /// Returns a stream of progress updates, see [uploadBlob] for
+  /// [mirrorAuthorization]
   Stream<BlobUploadProgress> uploadBlobFromFile({
     required String filePath,
     required BlossomAuthorization authorization,
     String? contentType,
     required List<String> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
+    BlossomMirrorAuthorization? mirrorAuthorization,
   });
 
-  /// Gets a blob by trying servers sequentially until success
+  /// Gets a blob by trying servers sequentially until success, or throws a
+  /// [BlossomRequestException]
   /// With [BlossomAuthorization.none] the server must be public
   /// If [start] and [end] are null, the entire blob is returned
   /// [start] and [end] are used to download a range of bytes, @see MDN HTTP range requests
@@ -73,7 +88,8 @@ abstract class BlossomRepository {
   /// Checks if the blob exists on the server
   /// With [BlossomAuthorization.none] the server must be public
   ///
-  /// returns one server that has the blob
+  /// returns the url of the blob on one server that has it, or throws a
+  /// [BlossomRequestException]
   Future<String> checkBlob({
     required String sha256,
     required List<String> serverUrls,
@@ -107,7 +123,8 @@ abstract class BlossomRepository {
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   });
 
-  /// Lists blobs from the first successful server
+  /// Lists blobs from the first successful server, or throws a
+  /// [BlossomRequestException]
   Future<List<BlobDescriptor>> listBlobs({
     required String pubkey,
     required List<String> serverUrls,
@@ -127,7 +144,7 @@ abstract class BlossomRepository {
   /// [sha256] is the hash of the blob \
   /// [reportEvent] is the report event
   ///
-  /// returns the http status code of the rcv server
+  /// returns the http status code of the server
   Future<int> report({
     required String sha256,
     required Nip01Event reportEvent,

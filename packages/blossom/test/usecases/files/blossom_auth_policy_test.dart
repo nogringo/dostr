@@ -126,7 +126,31 @@ void main() {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       expect(
         server.requests.single.authExpiration,
-        inInclusiveRange(now, now + BLOSSOM_AUTH_EXPIRATION.inSeconds),
+        inInclusiveRange(now, now + Blossom.defaultAuthExpiration.inSeconds),
+      );
+    });
+
+    test('the authorization lasts as long as the constructor says', () async {
+      final ndk = Ndk(
+        NdkConfig(eventVerifier: MockEventVerifier(), cache: MemCacheManager()),
+      );
+      final shortLived = Blossom(
+        accounts: ndk.accounts,
+        eventSignerFactory: ndk.config.eventSignerFactory,
+        getUserServerList: (_) async => null,
+        authExpiration: const Duration(seconds: 42),
+      );
+
+      await shortLived.getBlob(
+        sha256: sha256,
+        serverUrls: [serverUrl],
+        auth: AuthPolicy.require(other),
+      );
+
+      final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      expect(
+        server.requests.single.authExpiration,
+        inInclusiveRange(now + 40, now + 42),
       );
     });
 

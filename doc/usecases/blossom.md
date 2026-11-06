@@ -33,8 +33,32 @@ For a simpler, more generic API, check out
 
 If no servers are specified the default user server list (kind `10063`) is used for upload and delete.
 
-The auth events get automatically signed and are valid for:
-:::code source="../../packages/blossom/lib/src/config/blossom_config.dart" language="dart" range="4-4" title="" :::
+The auth events get automatically signed and are valid for five minutes
+(`Blossom.defaultAuthExpiration`), or for the `authExpiration` passed to the
+`Blossom` constructor. An operation that outlives it, such as a long streamed
+download, signs a new event when a server refuses the expired one.
+
+A server url may end with a slash, as kind `10063` lists often write it.
+
+## Errors
+
+A read that no server served (`getBlob`, `checkBlob`, `getBlobStream`,
+`downloadBlobToFile`, `listBlobs`) throws a `BlossomRequestException`. Its
+`errors` say why each server failed, in the order they were tried: an
+`HttpRequestException` carries the status the server answered with.
+
+```dart
+try {
+  await blossom.getBlob(sha256: hash, serverUrls: servers);
+} on BlossomRequestException catch (e) {
+  if (e.notFound) {
+    // no server has the blob
+  }
+}
+```
+
+Writes report each server in their results instead: `BlobUploadResult` and
+`BlobDeleteResult` say whether that server succeeded, and why not.
 
 ## Server authentication (BUD-01)
 
@@ -80,6 +104,11 @@ instead, and only reaches the servers the handler agrees to.
 #### uploadBlob
 
 upload a blob, if serverMediaOptimisation is set to `true` the `/media` endpoint is used.
+
+With `UploadStrategy.mirrorAfterSuccess`, the other servers mirror the blob the
+first one answered with. After a `/media` upload that blob has a new hash, so
+the mirrors sign their own `upload` authorization naming it (BUD-04): with a
+remote signer, that is a second prompt.
 
 ```dart
 Future<List<BlobUploadResult>> uploadBlob({
@@ -195,7 +224,8 @@ Future<List<BlobDeleteResult>> deleteBlob({
 #### mirrorToServers
 
 Copies a blob that already lives somewhere else onto other servers, without
-downloading it first.
+downloading it first. `blossomUrl` may end with a file extension, such as
+`https://cdn.example.com/<sha256>.pdf`.
 
 ```dart
 Future<List<BlobUploadResult>> mirrorToServers({

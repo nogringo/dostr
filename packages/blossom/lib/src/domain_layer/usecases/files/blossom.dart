@@ -4,7 +4,6 @@ import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 
-import '../../../config/blossom_config.dart';
 import '../../../data_layer/io/file_io_platform.dart';
 import '../../../data_layer/repositories/blossom/blossom_impl.dart';
 import 'package:ndk_logger/ndk_logger.dart';
@@ -23,6 +22,10 @@ import 'blossom_exceptions.dart';
 typedef BlossomServerListResolver =
     Future<List<String>?> Function(String pubkey);
 
+/// Builds the kind 24242 event an operation authorises itself with as
+/// [pubkey].
+typedef _AuthEventBuilder = Nip01Event Function(String pubkey);
+
 /// What one blossom operation does about its authorization, and the servers
 /// it may talk to.
 class _BlossomAuthPlan {
@@ -32,13 +35,18 @@ class _BlossomAuthPlan {
   /// authorization from
   final List<String> servers;
 
-  const _BlossomAuthPlan(this.authorization, this.servers);
+  /// the same identity authorising another event, for the same [servers],
+  /// without asking the [AuthHandler] again
+  final Future<BlossomAuthorization> Function(_AuthEventBuilder buildEvent)
+  authorize;
+
+  const _BlossomAuthPlan(this.authorization, this.servers, this.authorize);
 }
 
 /// direct access usecase to blossom \
-/// use files usecase for a more convinent way to manage files
+/// use files usecase for a more convenient way to manage files
 class Blossom {
-  /// kind for all most of blossom
+  /// kind of the authorization events [BUD-11]
   static const kBlossom = 24242;
 
   /// kind for reports NIP56
@@ -47,25 +55,37 @@ class Blossom {
   /// kind for blossom user server list
   static const kBlossomUserServerList = 10063;
 
-  /// Regular expression to match SHA256 in URLs
-  static final sha256Regex = RegExp(r'/([a-fA-F0-9]{64})(?:/|$)');
+  /// Matches the sha256 in a blob url, which may end with a file extension
+  /// [BUD-01], a query or a fragment
+  static final sha256Regex = RegExp(r'/([a-fA-F0-9]{64})(?=[./?#]|$)');
+
+  /// how long a signed kind 24242 event stays valid, unless the constructor
+  /// says otherwise
+  static const defaultAuthExpiration = Duration(minutes: 5);
 
   final BlossomServerListResolver _getUserServerList;
   final BlossomRepository _blossomImpl;
   final AuthAccounts _accounts;
   final LocalEventSignerFactory _eventSignerFactory;
   final AuthHandler? _authHandler;
+  final Duration _authExpiration;
 
   /// [accounts] gives the logged-in account, [eventSignerFactory] makes the
   /// throwaway keys, and [getUserServerList] reads a user's kind 10063 list.
   /// Without [blossomRepository], it talks to the servers over HTTP.
+  ///
+  /// [authExpiration] is how long a signed kind 24242 event stays valid. An
+  /// operation that outlives it signs a new one when a server refuses the
+  /// expired one.
   Blossom({
     required AuthAccounts accounts,
     required LocalEventSignerFactory eventSignerFactory,
     required BlossomServerListResolver getUserServerList,
     AuthHandler? authHandler,
     BlossomRepository? blossomRepository,
+    Duration authExpiration = defaultAuthExpiration,
   }) : _accounts = accounts,
+       _authExpiration = authExpiration,
        _getUserServerList = getUserServerList,
        _blossomImpl =
            blossomRepository ??
@@ -111,7 +131,7 @@ class Blossom {
       tags: [
         ["t", type],
         if (blobSha256 != null) ["x", blobSha256],
-        ["expiration", "${now + BLOSSOM_AUTH_EXPIRATION.inSeconds}"],
+        ["expiration", "${now + _authExpiration.inSeconds}"],
       ],
     );
   }
@@ -164,7 +184,7 @@ class Blossom {
     required AuthPolicy? auth,
     required bool authorisesByDefault,
     required String operation,
-    required Nip01Event Function(String pubkey) buildEvent,
+    required _AuthEventBuilder buildEvent,
     required Future<List<String>> Function() resolveServers,
   }) async {
     final aborts = _aborts;
@@ -176,46 +196,47 @@ class Blossom {
             ? AuthPolicy.require(fallback ?? _throwawayAccount())
             : const AuthPolicy.never());
 
-    final _BlossomAuthPlan plan;
+    final List<String> servers;
+    final Future<BlossomAuthorization> Function(_AuthEventBuilder) authorize;
     switch (policy) {
       case AuthPolicyNever():
-        plan = _BlossomAuthPlan(
-          const BlossomAuthorization.none(),
-          await resolveServers(),
-        );
+        servers = await resolveServers();
+        authorize = (_) async => const BlossomAuthorization.none();
 
       case AuthPolicyRequire(:final account):
         if (!account.signer.canSign()) {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
-        final servers = await resolveServers();
-        final allowed = throwaway
-            ? servers
-            : await _serversAllowing(servers, account.pubkey);
-        if (allowed.isEmpty) {
+        final resolved = await resolveServers();
+        servers = throwaway
+            ? resolved
+            : await _serversAllowing(resolved, account.pubkey);
+        if (servers.isEmpty) {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
-        final signed = await account.signer.sign(buildEvent(account.pubkey));
-        plan = _BlossomAuthPlan(BlossomAuthorization.upfront(signed), allowed);
+        Future<Nip01Event> sign(_AuthEventBuilder build) =>
+            account.signer.sign(build(account.pubkey));
+        authorize = (build) async => BlossomAuthorization.upfront(
+          await sign(build),
+          renew: () => sign(build),
+        );
 
       case AuthPolicyAllow(:final account):
-        final servers = await resolveServers();
+        servers = await resolveServers();
         // allow never promised a signature, so an account that cannot give one
         // behaves as never() rather than failing the operation
-        plan = account.signer.canSign()
-            ? _BlossomAuthPlan(
-                BlossomAuthorization.onRefusal(
-                  () => account.signer.sign(buildEvent(account.pubkey)),
-                  consent: _authHandler == null
-                      ? null
-                      : (serverUrl) => _consent(serverUrl, account.pubkey),
-                ),
-                servers,
+        authorize = (build) async => account.signer.canSign()
+            ? BlossomAuthorization.onRefusal(
+                () => account.signer.sign(build(account.pubkey)),
+                consent: _authHandler == null
+                    ? null
+                    : (serverUrl) => _consent(serverUrl, account.pubkey),
               )
-            : _BlossomAuthPlan(const BlossomAuthorization.none(), servers);
+            : const BlossomAuthorization.none();
     }
+    final authorization = await authorize(buildEvent);
     _throwIfAbortedSince(aborts);
-    return plan;
+    return _BlossomAuthPlan(authorization, servers, authorize);
   }
 
   Future<List<String>> _serversAllowing(
@@ -255,6 +276,16 @@ class Blossom {
     ),
   );
 
+  /// An event authorising a [type] write of the blob [sha256], such as an
+  /// `upload` or a `media` one
+  _AuthEventBuilder _writeEvent(String type, String sha256) =>
+      (pubkey) => _blossomAuthEvent(
+        content: type,
+        pubkey: pubkey,
+        type: type,
+        blobSha256: sha256,
+      );
+
   /// Uploads, and the checks before them, authorise the same way: an `upload`
   /// event naming the blob, or a `media` one for [BUD-05].
   Future<_BlossomAuthPlan> _uploadAuthPlan({
@@ -269,12 +300,7 @@ class Blossom {
       auth: auth,
       authorisesByDefault: true,
       operation: authType,
-      buildEvent: (pubkey) => _blossomAuthEvent(
-        content: authType,
-        pubkey: pubkey,
-        type: authType,
-        blobSha256: sha256,
-      ),
+      buildEvent: _writeEvent(authType, sha256),
       resolveServers: () => _resolveWriteServers(
         serverUrls: serverUrls,
         explicitPubkey: pubkeyToFetchUserServerList,
@@ -282,6 +308,15 @@ class Blossom {
       ),
     );
   }
+
+  /// What the mirrors of a [media] upload go out with: `/mirror` wants an
+  /// `upload` event naming the hash the server answered with [BUD-04], which
+  /// the `media` event the upload signed is not.
+  BlossomMirrorAuthorization? _mirrorAuthorization(
+    _BlossomAuthPlan plan, {
+    required bool media,
+  }) =>
+      media ? (sha256) => plan.authorize(_writeEvent("upload", sha256)) : null;
 
   /// The servers a write talks to: an explicit list, else an explicit pubkey's
   /// kind 10063 list, else the identity the policy names, else the logged-in
@@ -367,13 +402,13 @@ class Blossom {
       serverUrls: plan.servers,
       authorization: plan.authorization,
       contentType: contentType,
-      mediaOptimisation: serverMediaOptimisation,
+      serverMediaOptimisation: serverMediaOptimisation,
     );
   }
 
   /// upload a blob to the server
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error \
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error \
   /// [strategy] is the upload strategy, default is mirrorAfterSuccess \
   /// [serverMediaOptimisation] is whether the server should optimise the media [BUD-05], IMPORTANT: the server hash will be different \
   /// [precomputedSha256] optional hex sha256 of [data]; if provided, skips local hashing. \
@@ -413,7 +448,11 @@ class Blossom {
       authorization: plan.authorization,
       contentType: contentType,
       strategy: strategy,
-      mediaOptimisation: serverMediaOptimisation,
+      serverMediaOptimisation: serverMediaOptimisation,
+      mirrorAuthorization: _mirrorAuthorization(
+        plan,
+        media: serverMediaOptimisation,
+      ),
     );
 
     final done = await stream.last;
@@ -447,8 +486,18 @@ class Blossom {
   }) async* {
     final aborts = _aborts;
     String? fileHash = precomputedSha256;
+    final hashes = fileHash == null;
 
-    if (fileHash == null) {
+    if (hashes) {
+      // the servers are not resolved yet, so assume the mirrors take place:
+      // progress may then skip ahead, but never back
+      final phases = [
+        UploadPhase.hashing,
+        UploadPhase.uploading,
+        if (strategy == UploadStrategy.mirrorAfterSuccess &&
+            (serverUrls == null || serverUrls.length > 1))
+          UploadPhase.mirroring,
+      ];
       // Compute file hash without loading entire file into memory
       await for (final hashProgress in _blossomImpl.computeFileHash(filePath)) {
         yield BlobUploadProgress(
@@ -457,6 +506,7 @@ class Blossom {
           totalBytes: hashProgress.totalBytes,
           completedUploads: const [],
           phase: UploadPhase.hashing,
+          phases: phases,
           progressPhase: hashProgress.progress,
         );
 
@@ -479,14 +529,24 @@ class Blossom {
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
     );
 
-    yield* _blossomImpl.uploadBlobFromFile(
+    final upload = _blossomImpl.uploadBlobFromFile(
       filePath: filePath,
       serverUrls: plan.servers,
       authorization: plan.authorization,
       contentType: contentType,
       strategy: strategy,
-      mediaOptimisation: serverMediaOptimisation,
+      serverMediaOptimisation: serverMediaOptimisation,
+      mirrorAuthorization: _mirrorAuthorization(
+        plan,
+        media: serverMediaOptimisation,
+      ),
     );
+    yield* hashes
+        ? upload.map(
+            (progress) =>
+                progress.withPhases([UploadPhase.hashing, ...progress.phases]),
+          )
+        : upload;
   }
 
   /// Mirror a blob from a blossom URL to specified servers using the blossom /mirror endpoint
@@ -519,12 +579,7 @@ class Blossom {
       auth: auth,
       authorisesByDefault: true,
       operation: "upload",
-      buildEvent: (pubkey) => _blossomAuthEvent(
-        content: "upload",
-        pubkey: pubkey,
-        type: "upload",
-        blobSha256: sha256,
-      ),
+      buildEvent: _writeEvent("upload", sha256),
       resolveServers: () async => targetServerUrls,
     );
 
@@ -543,9 +598,10 @@ class Blossom {
     return results;
   }
 
-  /// Gets a blob by trying servers sequentially until success (fallback) \
+  /// Gets a blob by trying servers sequentially until success (fallback), or
+  /// throws a [BlossomRequestException] when none served it \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
   Future<BlobResponse> getBlob({
@@ -600,10 +656,10 @@ class Blossom {
 
   /// checks if the blob exists on the server without downloading, useful to check before streaming a video via url \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error
   ///
-  /// returns the url of one server that has the blob e.g. https://myserver.com/hash.pdf \
-  /// otherwise  throws an error
+  /// returns the url of one server that has the blob e.g. https://myserver.com/hash \
+  /// otherwise throws a [BlossomRequestException]
   /// [auth] says which identity the check may be attributed to, see
   /// [AuthPolicy]. Without it the check stays anonymous.
   Future<String> checkBlob({
@@ -628,7 +684,7 @@ class Blossom {
 
   /// downloads a blob as a stream, useful for large files like videos \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
   Future<Stream<BlobResponse>> getBlobStream({
@@ -655,7 +711,7 @@ class Blossom {
 
   /// list the [pubkey] blobs \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error
   ///
   /// [auth] says which identity the listing may be attributed to, see
   /// [AuthPolicy]. Without it the listing authorises as the logged-in account
@@ -695,7 +751,7 @@ class Blossom {
 
   /// delete a blob
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pukey has no UserServerList (kind: 10063), throws an error
+  /// if the pubkey has no UserServerList (kind: 10063), throws an error
   /// [auth] says which identity the deletion may be attributed to, see
   /// [AuthPolicy]. Without it the deletion authorises as the logged-in
   /// account on the servers an [AuthHandler] agrees to, or as a throwaway key
@@ -750,7 +806,7 @@ class Blossom {
   /// [reportMsg] is the message to send to the server
   /// [serverUrl] server url to report to
   ///
-  /// returns the http status code of the rcv server
+  /// returns the http status code of the server
   /// [auth] says which identity signs the report, see [AuthPolicy]. The
   /// endpoint takes a signed event as its body, so there is nothing to
   /// withhold: [AuthPolicy.never] signs with a throwaway key, which is what an

@@ -7,6 +7,17 @@ typedef BlossomAuthorizationSigner = Future<Nip01Event> Function();
 /// Whether [serverUrl] may be sent the signed event, see `AuthHandler`.
 typedef BlossomAuthorizationConsent = Future<bool> Function(String serverUrl);
 
+/// leeway for a server whose clock runs ahead of ours
+const _expiryMargin = Duration(seconds: 30);
+
+/// whether [event]'s NIP-40 `expiration` passed, or is about to [BUD-11]
+bool _expired(Nip01Event event) {
+  final expiration = int.tryParse(event.getFirstTag('expiration') ?? '');
+  if (expiration == null) return false;
+  final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+  return expiration <= now + _expiryMargin.inSeconds;
+}
+
 /// What a blossom operation does about the `Authorization` header, and when.
 ///
 /// One operation may talk to several servers. The three cases differ only in
@@ -24,9 +35,13 @@ sealed class BlossomAuthorization {
   /// without one simply does not serve it.
   const factory BlossomAuthorization.none() = BlossomAuthorizationNone;
 
-  /// Sends [event] from the very first request.
-  const factory BlossomAuthorization.upfront(Nip01Event event) =
-      BlossomAuthorizationUpfront;
+  /// Sends [event] from the very first request. With [renew], an operation
+  /// that outlives the event's expiration, such as a long streamed download,
+  /// signs a new one when a server refuses the expired one.
+  factory BlossomAuthorization.upfront(
+    Nip01Event event, {
+    BlossomAuthorizationSigner? renew,
+  }) = BlossomAuthorizationUpfront;
 
   /// Sends nothing at first, and signs with [sign] only once a server refused
   /// the request without an identity and [consent] agreed to that server.
@@ -39,22 +54,62 @@ sealed class BlossomAuthorization {
   /// request goes out bare.
   Nip01Event? get upfront;
 
-  /// The event a request [serverUrl] refused may be replayed with, null when a
-  /// refusal is final. Signs on the first call and returns that same signature
-  /// to every later caller, so one operation signs once however many servers
-  /// refuse. That matters for remote signers, where each signature is a prompt
-  /// in front of the user.
+  /// The event a request [serverUrl] refused may be replayed with, null when
+  /// the refusal is final. [refused] is the event the request carried, null
+  /// when it went out bare.
   ///
-  /// A signature the user cancelled is remembered too, so the remaining
-  /// servers do not prompt again for something already declined. A signature
-  /// that failed for any other reason is not: the next server asks again.
-  Future<Nip01Event?> onRefusal(String serverUrl);
+  /// A refused event is replaced only once it expired: a server refusing a
+  /// valid one refuses the identity, and replaying it changes nothing.
+  ///
+  /// Signs at most once for every caller, so one operation signs once however
+  /// many servers refuse. That matters for remote signers, where each
+  /// signature is a prompt in front of the user. A signature the user
+  /// cancelled is remembered too, so the remaining servers do not prompt again
+  /// for something already declined. A signature that failed for any other
+  /// reason is not: the next server asks again.
+  Future<Nip01Event?> onRefusal(String serverUrl, {Nip01Event? refused});
 
   /// The event a refusal from [serverUrl] already produced, null while that
   /// server has not refused. Lets the rest of the operation send it to that
   /// server from the start rather than pay a refusal each time, without
   /// showing it to a server that never asked.
   Nip01Event? resolvedFor(String serverUrl);
+}
+
+/// The latest event a signer produced, signed again once it expired, with one
+/// signature shared by every concurrent caller.
+class _SharedSignature {
+  final BlossomAuthorizationSigner _sign;
+
+  /// the last event signed, null until the first signature
+  Nip01Event? latest;
+
+  /// the signature in flight, or the one the user cancelled
+  Future<Nip01Event>? _pending;
+
+  _SharedSignature(this._sign, [this.latest]);
+
+  Future<Nip01Event> get() {
+    final pending = _pending;
+    if (pending != null) return pending;
+    final current = latest;
+    if (current != null && !_expired(current)) return Future.value(current);
+
+    return _pending = _sign().then(
+      (event) {
+        _pending = null;
+        return latest = event;
+      },
+      onError: (Object error, StackTrace stackTrace) {
+        // Cancelling a pending request is the one failure that is a decision
+        // rather than an incident: nothing but the user reaches it. Every
+        // other error, including a bunker answering with one, says nothing
+        // about whether they would agree, so the next server asks again.
+        if (error is! SignerRequestCancelledException) _pending = null;
+        Error.throwWithStackTrace(error, stackTrace);
+      },
+    );
+  }
 }
 
 /// Never authorises, see [BlossomAuthorization.none].
@@ -66,7 +121,10 @@ class BlossomAuthorizationNone extends BlossomAuthorization {
   Nip01Event? get upfront => null;
 
   @override
-  Future<Nip01Event?> onRefusal(String serverUrl) async => null;
+  Future<Nip01Event?> onRefusal(
+    String serverUrl, {
+    Nip01Event? refused,
+  }) async => null;
 
   @override
   Nip01Event? resolvedFor(String serverUrl) => null;
@@ -77,17 +135,33 @@ class BlossomAuthorizationNone extends BlossomAuthorization {
 
 /// Authorises from the first request, see [BlossomAuthorization.upfront].
 class BlossomAuthorizationUpfront extends BlossomAuthorization {
-  /// the signed kind 24242 event
-  final Nip01Event event;
+  final Nip01Event _first;
+  final _SharedSignature? _renewals;
 
-  /// authorises with [event] from the first request
-  const BlossomAuthorizationUpfront(this.event);
+  /// authorises with [event] from the first request, renewed with [renew]
+  BlossomAuthorizationUpfront(
+    Nip01Event event, {
+    BlossomAuthorizationSigner? renew,
+  }) : _first = event,
+       _renewals = renew == null ? null : _SharedSignature(renew, event);
+
+  /// the signed kind 24242 event, the latest one once renewed
+  Nip01Event get event => _renewals?.latest ?? _first;
 
   @override
   Nip01Event? get upfront => event;
 
   @override
-  Future<Nip01Event?> onRefusal(String serverUrl) async => event;
+  Future<Nip01Event?> onRefusal(String serverUrl, {Nip01Event? refused}) async {
+    final renewals = _renewals;
+    if (renewals == null) return refused == null ? _first : null;
+    if (refused != null &&
+        identical(refused, renewals.latest) &&
+        !_expired(refused)) {
+      return null;
+    }
+    return renewals.get();
+  }
 
   @override
   Nip01Event? resolvedFor(String serverUrl) => event;
@@ -98,58 +172,43 @@ class BlossomAuthorizationUpfront extends BlossomAuthorization {
 
 /// Authorises once refused, see [BlossomAuthorization.onRefusal].
 class BlossomAuthorizationOnRefusal extends BlossomAuthorization {
-  final BlossomAuthorizationSigner _sign;
+  final _SharedSignature _signature;
   final BlossomAuthorizationConsent? _consent;
 
   /// asked once per server for the whole operation
   final Map<String, Future<bool>> _consents = {};
 
-  /// assigned synchronously on the first call, so concurrent refusals from
-  /// several servers share the one signature
-  Future<Nip01Event>? _signed;
-
-  Nip01Event? _resolved;
-
   final Set<String> _refusedBy = {};
 
-  /// signs with [sign] the first time a server [consent] agrees to refuses
+  /// signs with [sign] the first time a server refuses and [consent] agrees
+  /// to it
   BlossomAuthorizationOnRefusal(
     BlossomAuthorizationSigner sign, {
     BlossomAuthorizationConsent? consent,
-  }) : _sign = sign,
+  }) : _signature = _SharedSignature(sign),
        _consent = consent;
 
   @override
   Nip01Event? get upfront => null;
 
   @override
-  Future<Nip01Event?> onRefusal(String serverUrl) async {
-    final consent = _consent;
-    if (consent != null &&
-        !await (_consents[serverUrl] ??= consent(serverUrl))) {
+  Future<Nip01Event?> onRefusal(String serverUrl, {Nip01Event? refused}) async {
+    if (refused == null) {
+      final consent = _consent;
+      if (consent != null &&
+          !await (_consents[serverUrl] ??= consent(serverUrl))) {
+        return null;
+      }
+      _refusedBy.add(serverUrl);
+    } else if (identical(refused, _signature.latest) && !_expired(refused)) {
       return null;
     }
-    _refusedBy.add(serverUrl);
-
-    final pending = _signed;
-    if (pending != null) return pending;
-
-    final attempt = _sign().then((event) => _resolved = event);
-    return _signed = attempt.catchError((Object error) {
-      // Cancelling a pending request is the one failure that is a decision
-      // rather than an incident: nothing but the user reaches it. Every other
-      // error, including a bunker answering with one, says nothing about
-      // whether they would agree, so the next server asks again.
-      if (error is! SignerRequestCancelledException) {
-        _signed = null;
-      }
-      throw error;
-    });
+    return _signature.get();
   }
 
   @override
   Nip01Event? resolvedFor(String serverUrl) =>
-      _refusedBy.contains(serverUrl) ? _resolved : null;
+      _refusedBy.contains(serverUrl) ? _signature.latest : null;
 
   @override
   String toString() => 'BlossomAuthorization.onRefusal';

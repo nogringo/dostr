@@ -26,6 +26,9 @@ class MockBlossomRequest {
   /// value of the auth event's `expiration` tag, as a unix timestamp
   final int? authExpiration;
 
+  /// value of the auth event's first `x` tag
+  final String? authX;
+
   MockBlossomRequest({
     required this.method,
     required this.path,
@@ -34,6 +37,7 @@ class MockBlossomRequest {
     this.authType,
     this.authPubkey,
     this.authExpiration,
+    this.authX,
   });
 
   @override
@@ -78,6 +82,9 @@ class MockBlossomServer {
 
   /// report kind
   static const int kReport = 1984;
+
+  /// what `/media` appends to a blob, standing for an optimisation
+  static const mediaSuffix = ' (optimised)';
 
   MockBlossomServer({
     this.port = 3000,
@@ -137,6 +144,7 @@ class MockBlossomServer {
             authType: _tagValue(event, 't'),
             authPubkey: event?['pubkey'] as String?,
             authExpiration: int.tryParse(_tagValue(event, 'expiration') ?? ''),
+            authX: _tagValue(event, 'x'),
           ),
         );
         if (responseDelay != null) {
@@ -184,7 +192,8 @@ class MockBlossomServer {
     router.head('/media', _checkUpload);
 
     // GET /<sha256> - Get Blob
-    router.get('/<sha256>', (Request request, String sha256) {
+    router.get('/<name>', (Request request, String name) {
+      final sha256 = _hashOf(name);
       final refusal = _refuseRead(request);
       if (refusal != null) return refusal;
 
@@ -235,7 +244,8 @@ class MockBlossomServer {
     });
 
     // HEAD /<sha256> - Has Blob
-    router.head('/<sha256>', (Request request, String sha256) {
+    router.head('/<name>', (Request request, String name) {
+      final sha256 = _hashOf(name);
       final refusal = _refuseRead(request);
       if (refusal != null) return refusal;
 
@@ -323,9 +333,9 @@ class MockBlossomServer {
         return Response.forbidden('Invalid authorization format');
       }
 
-      // Read the request body
+      // optimising changes the blob, and so its hash, as a real server does
       final bytes = await request.read().expand((chunk) => chunk).toList();
-      final data = Uint8List.fromList(bytes);
+      final data = Uint8List.fromList([...bytes, ...utf8.encode(mediaSuffix)]);
 
       final sha256 = _computeSha256(data);
       final contentType =
@@ -433,6 +443,7 @@ class MockBlossomServer {
         return Response.forbidden('Missing authorization');
       }
 
+      final List<String> authorizedHashes;
       try {
         final authEvent = json.decode(
           utf8.decode(base64Decode(authHeader.split(' ')[1])),
@@ -440,6 +451,10 @@ class MockBlossomServer {
         if (!_verifyAuthEvent(authEvent, 'upload')) {
           return Response.forbidden('Invalid authorization event');
         }
+        authorizedHashes = [
+          for (final tag in List<List<dynamic>>.from(authEvent['tags']))
+            if (tag.length >= 2 && tag[0] == 'x') tag[1] as String,
+        ];
       } catch (e) {
         return Response.forbidden('Invalid authorization format');
       }
@@ -480,6 +495,12 @@ class MockBlossomServer {
 
         // compute sha256
         final computedSha256 = _computeSha256(data);
+        // BUD-04
+        if (authorizedHashes.isNotEmpty &&
+            !authorizedHashes.contains(computedSha256)) {
+          httpClient.close();
+          return Response(409, body: 'Mirrored blob does not match x tag');
+        }
 
         // Store the blob
         _blobs[computedSha256] = _BlobEntry(
@@ -548,6 +569,10 @@ class MockBlossomServer {
   }
 
   // Helper methods
+
+  /// the hash a `/<sha256>` path names, less its optional extension [BUD-01]
+  String _hashOf(String name) => name.split('.').first;
+
   String _computeSha256(List<int> data) {
     return sha256.convert(data).toString();
   }
@@ -555,6 +580,10 @@ class MockBlossomServer {
   bool _verifyAuthEvent(Map<String, dynamic> event, String type) {
     // Simple verification for testing purposes
     if (event['kind'] != 24242) return false;
+
+    final expiration = int.tryParse(_tagValue(event, 'expiration') ?? '');
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    if (expiration != null && expiration <= now) return false;
 
     final tags = List<List<dynamic>>.from(event['tags']);
     final hasTypeTag = tags.any(

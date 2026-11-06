@@ -8,6 +8,7 @@ import 'package:rxdart/rxdart.dart';
 import '../../../domain_layer/entities/blob_upload_progress.dart';
 import '../../../domain_layer/entities/blossom_authorization.dart';
 import '../../../domain_layer/entities/blossom_blobs.dart';
+import '../../../domain_layer/entities/blossom_request_exception.dart';
 import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -15,13 +16,20 @@ import '../../../domain_layer/repositories/blossom.dart';
 import 'package:ndk_http/ndk_http.dart';
 import '../../io/file_io.dart';
 
-bool _isSuccessStatus(int statusCode) => statusCode >= 200 && statusCode < 300;
-
 Uint8List _bytes(List<int> chunk) =>
     chunk is Uint8List ? chunk : Uint8List.fromList(chunk);
 
 String _authHeader(Nip01Event event) =>
     "Nostr ${base64Encode(utf8.encode(event.toJsonString()))}";
+
+/// [path] on [serverUrl], less the trailing slash kind 10063 lists often have
+Uri _endpoint(String serverUrl, String path) {
+  var base = serverUrl;
+  while (base.endsWith('/')) {
+    base = base.substring(0, base.length - 1);
+  }
+  return Uri.parse('$base/$path');
+}
 
 int? _statusCode(Object error) =>
     error is HttpRequestException ? error.statusCode : null;
@@ -73,13 +81,12 @@ class _Caught {
   }
 }
 
-/// Whether a server refused for want of an identity, which is an invitation to
-/// try again with one. BUD-01 says 401 and some servers say 403, but a 403 on
-/// a request that already carried an authorization refuses that identity
-/// rather than asking for one, so replaying it would change nothing.
-bool _isAuthRefusal(Object error, {required bool sentAuth}) =>
+/// Whether a server refused the request's authorization, or the lack of one.
+/// BUD-01 says 401 and some servers say 403. Whether a replay could change
+/// anything is for [BlossomAuthorization.onRefusal] to say.
+bool _isAuthRefusal(Object error) =>
     error is HttpRequestException &&
-    (error.statusCode == 401 || (!sentAuth && error.statusCode == 403));
+    (error.statusCode == 401 || error.statusCode == 403);
 
 /// What to send [serverUrl] before it refuses: the upfront event, or the one
 /// an earlier refusal from that same server already signed.
@@ -107,8 +114,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
     if (_aborts != aborts) throw http.RequestAbortedException();
   }
 
-  /// Sends, and sends once more with a freshly signed event if the server
-  /// answered by asking for one.
+  /// Sends, and sends once more with another event if the server refused the
+  /// first try and the authorization has one to offer.
   Future<T> _withAuthRetry<T>(
     BlossomAuthorization authorization,
     String serverUrl,
@@ -119,8 +126,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
     try {
       return await send(initial);
     } catch (e) {
-      if (!_isAuthRefusal(e, sentAuth: initial != null)) rethrow;
-      final signed = await authorization.onRefusal(serverUrl);
+      if (!_isAuthRefusal(e)) rethrow;
+      final signed = await authorization.onRefusal(serverUrl, refused: initial);
       if (signed == null) rethrow;
       _throwIfAbortedSince(aborts);
       return await send(signed);
@@ -135,7 +142,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
     String? contentType,
     required List<String> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
+    BlossomMirrorAuthorization? mirrorAuthorization,
   }) async* {
     switch (strategy) {
       case UploadStrategy.mirrorAfterSuccess:
@@ -145,7 +153,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           serverUrls: serverUrls,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
+          mirrorAuthorization: mirrorAuthorization,
         );
       case UploadStrategy.allSimultaneous:
         yield* _uploadToAllServers(
@@ -154,7 +163,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           serverUrls: serverUrls,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
         );
       case UploadStrategy.firstSuccess:
         yield* _uploadToFirstSuccess(
@@ -163,7 +172,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           serverUrls: serverUrls,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
         );
     }
   }
@@ -175,44 +184,22 @@ class BlossomRepositoryImpl implements BlossomRepository {
     String? contentType,
     required List<String> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
+    BlossomMirrorAuthorization? mirrorAuthorization,
   }) async* {
-    // Get file size without reading the file content
     final totalSize = await fileIO.getFileSize(filePath);
 
-    // Create factory that reads file each time from disk
-    Stream<List<int>> streamFactory() =>
-        fileIO.readFileAsStream(filePath, chunkSize: 1024 * 1024);
-
-    switch (strategy) {
-      case UploadStrategy.mirrorAfterSuccess:
-        yield* _uploadWithMirroring(
-          dataStreamFactory: streamFactory,
-          contentLength: totalSize,
-          serverUrls: serverUrls,
-          contentType: contentType,
-          authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
-        );
-      case UploadStrategy.allSimultaneous:
-        yield* _uploadToAllServers(
-          dataStreamFactory: streamFactory,
-          contentLength: totalSize,
-          serverUrls: serverUrls,
-          contentType: contentType,
-          authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
-        );
-      case UploadStrategy.firstSuccess:
-        yield* _uploadToFirstSuccess(
-          dataStreamFactory: streamFactory,
-          contentLength: totalSize,
-          serverUrls: serverUrls,
-          contentType: contentType,
-          authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
-        );
-    }
+    yield* uploadBlob(
+      dataStreamFactory: () =>
+          fileIO.readFileAsStream(filePath, chunkSize: 1024 * 1024),
+      contentLength: totalSize,
+      serverUrls: serverUrls,
+      contentType: contentType,
+      authorization: authorization,
+      strategy: strategy,
+      serverMediaOptimisation: serverMediaOptimisation,
+      mirrorAuthorization: mirrorAuthorization,
+    );
   }
 
   Stream<BlobUploadProgress> _uploadWithMirroring({
@@ -221,8 +208,13 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required BlossomAuthorization authorization,
     required List<String> serverUrls,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
+    BlossomMirrorAuthorization? mirrorAuthorization,
   }) async* {
+    final phases = [
+      UploadPhase.uploading,
+      if (serverUrls.length > 1) UploadPhase.mirroring,
+    ];
     final results = <BlobUploadResult>[];
     BlobUploadResult? successfulUpload;
 
@@ -238,7 +230,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
+          phases: phases,
         ),
       );
       // e.g. a host lookup failure
@@ -254,6 +247,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       final remainingServers = serverUrls.sublist(successIndex + 1);
 
       if (remainingServers.isNotEmpty) {
+        final descriptor = uploaded.descriptor!;
         var mirrorsCompleted = 0;
         final mirrorsTotal = remainingServers.length;
 
@@ -263,18 +257,37 @@ class BlossomRepositoryImpl implements BlossomRepository {
           totalBytes: contentLength,
           completedUploads: List.from(results),
           phase: UploadPhase.mirroring,
+          phases: phases,
           progressPhase: 0,
           mirrorsTotal: mirrorsTotal,
           mirrorsCompleted: mirrorsCompleted,
         );
 
+        // the blob is already up, so a mirror that cannot be authorised is a
+        // failed mirror rather than a failed upload
+        final aborts = _aborts;
+        BlossomAuthorization? mirrorAuth;
+        Object? mirrorAuthError;
+        try {
+          mirrorAuth = mirrorAuthorization == null
+              ? authorization
+              : await mirrorAuthorization(descriptor.sha256);
+        } on http.RequestAbortedException {
+          rethrow;
+        } catch (error) {
+          mirrorAuthError = error;
+        }
+        _throwIfAbortedSince(aborts);
+
         for (final url in remainingServers) {
-          final mirrorResult = await mirrorToServer(
-            fileUrl: uploaded.descriptor!.url,
-            serverUrl: url,
-            sha256: uploaded.descriptor!.sha256,
-            authorization: authorization,
-          );
+          final mirrorResult = mirrorAuth == null
+              ? _uploadFailure(url, mirrorAuthError!)
+              : await mirrorToServer(
+                  fileUrl: descriptor.url,
+                  serverUrl: url,
+                  sha256: descriptor.sha256,
+                  authorization: mirrorAuth,
+                );
           results.add(mirrorResult);
           mirrorsCompleted++;
 
@@ -284,9 +297,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
             totalBytes: contentLength,
             completedUploads: List.from(results),
             phase: UploadPhase.mirroring,
-            progressPhase: mirrorsTotal > 0
-                ? mirrorsCompleted / mirrorsTotal
-                : 1,
+            phases: phases,
+            progressPhase: mirrorsCompleted / mirrorsTotal,
             mirrorsTotal: mirrorsTotal,
             mirrorsCompleted: mirrorsCompleted,
           );
@@ -301,6 +313,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       totalBytes: contentLength,
       completedUploads: results,
       phase: UploadPhase.mirroring,
+      phases: phases,
       progressPhase: 1,
       isComplete: true,
     );
@@ -312,8 +325,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) async* {
+    const phases = [UploadPhase.uploading];
     final results = <BlobUploadResult>[];
 
     Stream<BlobUploadProgress> uploadTo(String serverUrl) async* {
@@ -325,7 +339,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
         ).map((progress) {
           if (progress.isComplete && progress.response != null) {
             results.add(_uploadSuccess(serverUrl, progress.response!));
@@ -336,6 +350,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
             totalBytes: contentLength,
             completedUploads: List.from(results),
             phase: UploadPhase.uploading,
+            phases: phases,
             progressPhase: progress.progress,
           );
         }),
@@ -349,6 +364,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         totalBytes: contentLength,
         completedUploads: List.from(results),
         phase: UploadPhase.uploading,
+        phases: phases,
         progressPhase: 0,
       );
     }
@@ -359,6 +375,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       totalBytes: contentLength,
       completedUploads: [],
       phase: UploadPhase.uploading,
+      phases: phases,
       progressPhase: 0,
     );
 
@@ -373,6 +390,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       totalBytes: contentLength,
       completedUploads: List.from(results),
       phase: UploadPhase.mirroring,
+      phases: phases,
       progressPhase: 1,
       isComplete: true,
     );
@@ -384,8 +402,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) async* {
+    const phases = [UploadPhase.uploading];
     final results = <BlobUploadResult>[];
 
     for (final url in serverUrls) {
@@ -400,7 +419,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           contentLength: contentLength,
           contentType: contentType,
           authorization: authorization,
-          mediaOptimisation: mediaOptimisation,
+          serverMediaOptimisation: serverMediaOptimisation,
+          phases: phases,
         ),
       );
       // e.g. a host lookup failure
@@ -413,6 +433,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           totalBytes: contentLength,
           completedUploads: results,
           phase: UploadPhase.mirroring,
+          phases: phases,
           progressPhase: 1,
           isComplete: true,
         );
@@ -427,6 +448,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       totalBytes: contentLength,
       completedUploads: results,
       phase: UploadPhase.mirroring,
+      phases: phases,
       progressPhase: 1,
       isComplete: true,
     );
@@ -441,8 +463,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
     required BlossomAuthorization authorization,
+    required List<UploadPhase> phases,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) =>
       _uploadToServer(
         serverUrl: serverUrl,
@@ -450,7 +473,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         contentLength: contentLength,
         contentType: contentType,
         authorization: authorization,
-        mediaOptimisation: mediaOptimisation,
+        serverMediaOptimisation: serverMediaOptimisation,
       ).map((progress) {
         final update = BlobUploadProgress(
           currentServer: serverUrl,
@@ -458,6 +481,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
           totalBytes: contentLength,
           completedUploads: results,
           phase: UploadPhase.uploading,
+          phases: phases,
           progressPhase: progress.progress,
         );
         if (progress.isComplete && progress.response != null) {
@@ -469,18 +493,19 @@ class BlossomRepositoryImpl implements BlossomRepository {
       });
 
   /// Upload a file to a server \
-  /// If [mediaOptimisation] is true, the server will optimise the file for media streaming using the /media endpoint [BUD-05]
+  /// If [serverMediaOptimisation] is true, the server will optimise the file for media streaming using the /media endpoint [BUD-05]
   Stream<UploadProgress> _uploadToServer({
     required String serverUrl,
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) async* {
-    final endpointUrl = mediaOptimisation
-        ? '$serverUrl/media'
-        : '$serverUrl/upload';
+    final endpoint = _endpoint(
+      serverUrl,
+      serverMediaOptimisation ? 'media' : 'upload',
+    );
 
     Map<String, String> headersFor(Nip01Event? authEvent) => {
       'Content-Type': ?contentType,
@@ -489,7 +514,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     };
 
     Stream<UploadProgress> send(Nip01Event? authEvent) => client.putStream(
-      url: Uri.parse(endpointUrl),
+      url: endpoint,
       body: dataStreamFactory(),
       headers: headersFor(authEvent),
       contentLength: contentLength,
@@ -501,8 +526,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
     yield* caught.from(send(initial));
     final error = caught.error;
     if (error == null) return;
-    if (!_isAuthRefusal(error, sentAuth: initial != null)) caught.raise();
-    final signed = await authorization.onRefusal(serverUrl);
+    if (!_isAuthRefusal(error)) caught.raise();
+    final signed = await authorization.onRefusal(serverUrl, refused: initial);
     if (signed == null) caught.raise();
     _throwIfAbortedSince(aborts);
     // the body is read from scratch, so progress starts over
@@ -516,7 +541,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) => Future.wait(
     serverUrls.map(
       (serverUrl) => _checkUploadOnServer(
@@ -525,7 +550,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         contentLength: contentLength,
         authorization: authorization,
         contentType: contentType,
-        mediaOptimisation: mediaOptimisation,
+        serverMediaOptimisation: serverMediaOptimisation,
       ),
     ),
   );
@@ -536,15 +561,15 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required int contentLength,
     required BlossomAuthorization authorization,
     String? contentType,
-    bool mediaOptimisation = false,
+    bool serverMediaOptimisation = false,
   }) async {
-    final endpoint = mediaOptimisation ? 'media' : 'upload';
+    final endpoint = serverMediaOptimisation ? 'media' : 'upload';
     try {
       final response = await _withAuthRetry(
         authorization,
         serverUrl,
         (authEvent) => client.head(
-          url: Uri.parse('$serverUrl/$endpoint'),
+          url: _endpoint(serverUrl, endpoint),
           headers: {
             'X-SHA-256': sha256,
             'X-Content-Length': '$contentLength',
@@ -577,38 +602,21 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String sha256,
     required BlossomAuthorization authorization,
   }) async {
-    final jsonMsg = {"url": fileUrl};
-
-    final String myBody = jsonEncode(jsonMsg);
+    final body = jsonEncode({"url": fileUrl});
     try {
-      // Mirror endpoint is PUT /mirror/
       final response = await _withAuthRetry(
         authorization,
         serverUrl,
         (authEvent) => client.put(
-          url: Uri.parse('$serverUrl/mirror'),
-          body: myBody,
+          url: _endpoint(serverUrl, 'mirror'),
+          body: body,
           headers: {
             if (authEvent != null) 'Authorization': _authHeader(authEvent),
             'Content-Type': 'application/json',
           },
         ),
       );
-
-      if (!_isSuccessStatus(response.statusCode)) {
-        return BlobUploadResult(
-          serverUrl: serverUrl,
-          success: false,
-          error: 'HTTP ${response.statusCode}, ${response.body}',
-        );
-      }
-
-      return BlobUploadResult(
-        serverUrl: serverUrl,
-        success: true,
-        descriptor: BlobDescriptor.fromJson(jsonDecode(response.body)),
-        statusCode: response.statusCode,
-      );
+      return _uploadSuccess(serverUrl, response);
     } on http.RequestAbortedException {
       rethrow;
     } catch (e) {
@@ -624,7 +632,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     int? start,
     int? end,
   }) async {
-    Exception? lastError;
+    final errors = <String, Object>{};
 
     Map<String, String> headersFor(Nip01Event? authEvent) => {
       // Create range header in format "bytes=start-end"
@@ -639,33 +647,24 @@ class BlossomRepositoryImpl implements BlossomRepository {
           authorization,
           url,
           (authEvent) => client.get(
-            url: Uri.parse('$url/$sha256'),
+            url: _endpoint(url, sha256),
             headers: headersFor(authEvent),
           ),
         );
-
-        // Check for both 200 (full content) and 206 (partial content) status codes
-        if (response.statusCode == 200 || response.statusCode == 206) {
-          return BlobResponse(
-            data: response.bodyBytes,
-            mimeType: response.headers['content-type'],
-            contentLength: int.tryParse(
-              response.headers['content-length'] ?? '',
-            ),
-            contentRange: response.headers['content-range'] ?? '',
-          );
-        }
-        lastError = Exception('HTTP ${response.statusCode}');
+        return BlobResponse(
+          data: response.bodyBytes,
+          mimeType: response.headers['content-type'],
+          contentLength: int.tryParse(response.headers['content-length'] ?? ''),
+          contentRange: response.headers['content-range'] ?? '',
+        );
       } on http.RequestAbortedException {
         rethrow;
       } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
+        errors[url] = e;
       }
     }
 
-    throw Exception(
-      'Failed to get blob from any of the servers. Last error: $lastError',
-    );
+    throw BlossomRequestException('get', errors);
   }
 
   @override
@@ -674,35 +673,30 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required List<String> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
-    Exception? lastError;
+    final errors = <String, Object>{};
 
     for (final url in serverUrls) {
+      final blobUrl = _endpoint(url, sha256);
       try {
-        final response = await _withAuthRetry(
+        await _withAuthRetry(
           authorization,
           url,
           (authEvent) => client.head(
-            url: Uri.parse('$url/$sha256'),
+            url: blobUrl,
             headers: <String, String>{
               if (authEvent != null) 'Authorization': _authHeader(authEvent),
             },
           ),
         );
-
-        if (_isSuccessStatus(response.statusCode)) {
-          return '$url/$sha256';
-        }
-        lastError = Exception('HTTP ${response.statusCode}');
+        return blobUrl.toString();
       } on http.RequestAbortedException {
         rethrow;
       } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
+        errors[url] = e;
       }
     }
 
-    throw Exception(
-      'Failed to check blob from any of the servers. Last error: $lastError',
-    );
+    throw BlossomRequestException('check', errors);
   }
 
   @override
@@ -716,7 +710,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         authorization,
         serverUrl,
         (authEvent) => client.head(
-          url: Uri.parse('$serverUrl/$sha256'),
+          url: _endpoint(serverUrl, sha256),
           headers: <String, String>{
             if (authEvent != null) 'Authorization': _authHeader(authEvent),
           },
@@ -815,7 +809,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
   }) async {
-    Exception? lastError;
+    final errors = <String, Object>{};
 
     for (final url in serverUrls) {
       try {
@@ -823,17 +817,12 @@ class BlossomRepositoryImpl implements BlossomRepository {
           authorization,
           url,
           (authEvent) => client.getStream(
-            url: Uri.parse('$url/$sha256'),
+            url: _endpoint(url, sha256),
             headers: <String, String>{
               if (authEvent != null) 'Authorization': _authHeader(authEvent),
             },
           ),
         );
-        if (response.statusCode != 200 && response.statusCode != 206) {
-          await response.stream.listen(null).cancel();
-          lastError = Exception('HTTP ${response.statusCode}');
-          continue;
-        }
         return response.stream.map(
           (chunk) => BlobResponse(
             data: _bytes(chunk),
@@ -845,38 +834,36 @@ class BlossomRepositoryImpl implements BlossomRepository {
       } on http.RequestAbortedException {
         rethrow;
       } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
+        errors[url] = e;
       }
     }
 
-    throw Exception(
-      'Failed to get blob from any of the servers. Last error: $lastError',
-    );
+    throw BlossomRequestException('get', errors);
   }
 
   @override
   Future<List<BlobDescriptor>> listBlobs({
-    required pubkey,
+    required String pubkey,
     required List<String> serverUrls,
     DateTime? since,
     DateTime? until,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
-    Exception? lastError;
+    final errors = <String, Object>{};
+    final queryParams = <String, String>{
+      if (since != null) 'since': '${since.millisecondsSinceEpoch ~/ 1000}',
+      if (until != null) 'until': '${until.millisecondsSinceEpoch ~/ 1000}',
+    };
 
     for (final url in serverUrls) {
       try {
-        final queryParams = <String, String>{
-          if (since != null) 'since': '${since.millisecondsSinceEpoch ~/ 1000}',
-          if (until != null) 'until': '${until.millisecondsSinceEpoch ~/ 1000}',
-        };
-
         final response = await _withAuthRetry(
           authorization,
           url,
           (authEvent) => client.get(
-            url: Uri.parse(
-              '$url/list/$pubkey',
+            url: _endpoint(
+              url,
+              'list/$pubkey',
             ).replace(queryParameters: queryParams),
             headers: <String, String>{
               if (authEvent != null) 'Authorization': _authHeader(authEvent),
@@ -884,21 +871,16 @@ class BlossomRepositoryImpl implements BlossomRepository {
           ),
         );
 
-        if (response.statusCode == 200) {
-          final List<dynamic> json = jsonDecode(response.body);
-          return json.map((j) => BlobDescriptor.fromJson(j)).toList();
-        }
-        lastError = Exception('HTTP ${response.statusCode}');
+        final List<dynamic> json = jsonDecode(response.body);
+        return json.map((j) => BlobDescriptor.fromJson(j)).toList();
       } on http.RequestAbortedException {
         rethrow;
       } catch (e) {
-        lastError = e is Exception ? e : Exception(e.toString());
+        errors[url] = e;
       }
     }
 
-    throw Exception(
-      'Failed to list blobs from all servers. Last error: $lastError',
-    );
+    throw BlossomRequestException('list', errors);
   }
 
   @override
@@ -906,18 +888,15 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String sha256,
     required List<String> serverUrls,
     required BlossomAuthorization authorization,
-  }) async {
-    final results = await Future.wait(
-      serverUrls.map(
-        (url) => _deleteFromServer(
-          serverUrl: url,
-          sha256: sha256,
-          authorization: authorization,
-        ),
+  }) => Future.wait(
+    serverUrls.map(
+      (url) => _deleteFromServer(
+        serverUrl: url,
+        sha256: sha256,
+        authorization: authorization,
       ),
-    );
-    return results;
-  }
+    ),
+  );
 
   Future<BlobDeleteResult> _deleteFromServer({
     required String serverUrl,
@@ -925,24 +904,17 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required BlossomAuthorization authorization,
   }) async {
     try {
-      final response = await _withAuthRetry(
+      await _withAuthRetry(
         authorization,
         serverUrl,
         (authEvent) => client.delete(
-          url: Uri.parse('$serverUrl/$sha256'),
+          url: _endpoint(serverUrl, sha256),
           headers: {
             if (authEvent != null) 'Authorization': _authHeader(authEvent),
           },
         ),
       );
-
-      return BlobDeleteResult(
-        serverUrl: serverUrl,
-        success: _isSuccessStatus(response.statusCode),
-        error: !_isSuccessStatus(response.statusCode)
-            ? 'HTTP ${response.statusCode}'
-            : null,
-      );
+      return BlobDeleteResult(serverUrl: serverUrl, success: true);
     } on http.RequestAbortedException {
       rethrow;
     } catch (e) {
@@ -1000,11 +972,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String sha256,
     required Nip01Event reportEvent,
   }) async {
-    final String myBody = jsonEncode(reportEvent.toJson());
-
     final response = await client.put(
-      url: Uri.parse('$serverUrl/report'),
-      body: myBody, //reportEvent.toBase64(),
+      url: _endpoint(serverUrl, 'report'),
+      body: jsonEncode(reportEvent.toJson()),
       headers: {'Content-Type': 'application/json'},
     );
     return response.statusCode;

@@ -11,6 +11,12 @@ class BlobUploadProgress {
   final bool isComplete;
 
   final UploadPhase phase; // hashing | uploading | mirroring
+
+  /// the phases this upload goes through, in order, which [progress] splits
+  /// evenly. One that turns out to have nothing to do, such as mirroring once
+  /// the last server took the blob, is skipped at once.
+  final List<UploadPhase> phases;
+
   final double progressPhase; // 0.0 - 1.0 for current phase
   final double percentagePhase; // 0.0 - 100.0 for current phase
 
@@ -24,6 +30,7 @@ class BlobUploadProgress {
     required this.totalBytes,
     required this.completedUploads,
     this.phase = UploadPhase.uploading,
+    this.phases = UploadPhase.values,
     double? progressPhase,
     int? mirrorsTotal,
     int? mirrorsCompleted,
@@ -40,19 +47,27 @@ class BlobUploadProgress {
        mirrorsTotal = mirrorsTotal ?? 0,
        mirrorsCompleted = mirrorsCompleted ?? 0;
 
+  /// this progress, for an upload that goes through [phases]
+  BlobUploadProgress withPhases(List<UploadPhase> phases) => BlobUploadProgress(
+    currentServer: currentServer,
+    sentBytes: sentBytes,
+    totalBytes: totalBytes,
+    completedUploads: completedUploads,
+    phase: phase,
+    phases: phases,
+    progressPhase: progressPhase,
+    mirrorsTotal: mirrorsTotal,
+    mirrorsCompleted: mirrorsCompleted,
+    isComplete: isComplete,
+  );
+
   double get uploadProgress => totalBytes > 0 ? sentBytes / totalBytes : 0;
 
-  /// Overall progress mapped across fixed phases:
-  /// hashing: 0-33%, uploading: 33-66%, mirroring: 66-100%
+  /// Overall progress, each of [phases] taking an equal share
   double get progress {
-    switch (phase) {
-      case UploadPhase.hashing:
-        return progressPhase * 0.33;
-      case UploadPhase.uploading:
-        return 0.33 + (progressPhase * 0.33);
-      case UploadPhase.mirroring:
-        return 0.66 + (progressPhase * 0.34);
-    }
+    if (isComplete) return 1;
+    final index = phases.indexOf(phase);
+    return index < 0 ? progressPhase : (index + progressPhase) / phases.length;
   }
 
   double get percentage => progress * 100;

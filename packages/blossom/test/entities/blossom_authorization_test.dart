@@ -13,6 +13,20 @@ Nip01Event _authEvent(String content) => Nip01Event(
   content: content,
 );
 
+/// a get event that expires [seconds] from now, in the past when negative
+Nip01Event _expiringIn(int seconds) => Nip01Event(
+  pubKey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
+  kind: 24242,
+  tags: [
+    ['t', 'get'],
+    [
+      'expiration',
+      '${DateTime.now().millisecondsSinceEpoch ~/ 1000 + seconds}',
+    ],
+  ],
+  content: 'get',
+);
+
 const _first = 'https://first.example';
 const _second = 'https://second.example';
 const _third = 'https://third.example';
@@ -37,9 +51,61 @@ void main() {
       expect(auth.resolvedFor(_first), same(event));
       expect(await auth.onRefusal(_first), same(event));
     });
+
+    test('does not replay an event a server refused', () async {
+      final event = _authEvent('upload');
+      final auth = BlossomAuthorization.upfront(event);
+
+      expect(await auth.onRefusal(_first, refused: event), isNull);
+    });
+
+    test('renews an expired event once, for every server', () async {
+      final expired = _expiringIn(-60);
+      final fresh = _expiringIn(300);
+      var renewals = 0;
+      final auth = BlossomAuthorization.upfront(
+        expired,
+        renew: () async {
+          renewals++;
+          return fresh;
+        },
+      );
+
+      final replays = await Future.wait([
+        auth.onRefusal(_first, refused: expired),
+        auth.onRefusal(_second, refused: expired),
+      ]);
+      expect(replays, everyElement(same(fresh)));
+      expect(auth.upfront, same(fresh));
+      expect(
+        await auth.onRefusal(_third, refused: expired),
+        same(fresh),
+        reason: 'a late refusal of the old event gets the new one',
+      );
+      expect(await auth.onRefusal(_first, refused: fresh), isNull);
+      expect(renewals, 1);
+    });
   });
 
   group('BlossomAuthorization.onRefusal', () {
+    test('signs again once its signature expired, and only then', () async {
+      final signatures = [_expiringIn(-60), _expiringIn(300)];
+      var signed = 0;
+      final auth = BlossomAuthorization.onRefusal(
+        () async => signatures[signed++],
+      );
+
+      final expired = await auth.onRefusal(_first);
+      expect(expired, same(signatures.first));
+      expect(
+        await auth.onRefusal(_first, refused: expired),
+        same(signatures.last),
+      );
+      expect(auth.resolvedFor(_first), same(signatures.last));
+      expect(await auth.onRefusal(_first, refused: signatures.last), isNull);
+      expect(signed, 2);
+    });
+
     test('sends nothing until a server refuses', () {
       var signed = false;
       final auth = BlossomAuthorization.onRefusal(() async {
