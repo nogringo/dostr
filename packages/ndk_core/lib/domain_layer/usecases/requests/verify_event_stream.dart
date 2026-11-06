@@ -42,7 +42,7 @@ Future<Nip01Event?> verifyEvent(
 }) async {
   // Never reuse verification state for an id that does not match the
   // incoming payload. This is intentionally done before signature lookup.
-  if (!Nip01Utils.isIdValid(data)) {
+  if (!data.hasValidId) {
     Logger.log.w(
       () => 'WARNING: Event with id ${data.id} has invalid event id',
     );

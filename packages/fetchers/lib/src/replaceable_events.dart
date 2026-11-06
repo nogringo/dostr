@@ -58,7 +58,7 @@ Stream<Nip01Event> newerVersions(
         (event) =>
             event.kind == kind &&
             event.pubKey == pubKey &&
-            (dTag == null || event.getDtag() == dTag),
+            (dTag == null || event.dTag == dTag),
       )
       .where((event) {
         final current = newest;

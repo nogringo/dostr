@@ -77,7 +77,7 @@ void main() {
 
       Nip01Event event = await relaySet.toEvent(signer);
 
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.hasValidId, isTrue);
     });
 
     test('toEvent with metadata produces a verifiable event', () async {

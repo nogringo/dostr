@@ -496,12 +496,12 @@ class MockRelay {
                   }
                 } else if (_isAddressableKind(newEvent.kind)) {
                   // NIP-01 addressable: only one event per (pubkey, kind, d-tag)
-                  final dTag = newEvent.getDtag() ?? '';
+                  final dTag = newEvent.dTag ?? '';
                   final existing = _storedEvents.where(
                     (e) =>
                         e.pubKey == newEvent.pubKey &&
                         e.kind == newEvent.kind &&
-                        (e.getDtag() ?? '') == dTag,
+                        (e.dTag ?? '') == dTag,
                   );
                   if (existing.isEmpty) {
                     _storedEvents.add(newEvent);
@@ -791,7 +791,7 @@ class MockRelay {
             bool dTagMatches =
                 filter.dTags == null ||
                 filter.dTags!.isEmpty ||
-                filter.dTags!.contains(e.getDtag());
+                filter.dTags!.contains(e.dTag);
             return kindMatches && authorMatches && dTagMatches;
           }).toList(),
         );

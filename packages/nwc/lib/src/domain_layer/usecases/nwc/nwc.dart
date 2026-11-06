@@ -278,7 +278,7 @@ class Nwc {
     );
     connection.listen((event) async {
       if (event.kind == NwcKind.RESPONSE.value &&
-          !_inflighRequests.containsKey(event.getEId())) {
+          !_inflighRequests.containsKey(event.getFirstTag('e'))) {
         return;
       }
       if (event.kind != NwcKind.RESPONSE.value &&
@@ -359,7 +359,7 @@ class Nwc {
         response.deserializeError(data);
         if (connection.responseStream.isClosed) return;
         connection.responseStream.add(response);
-        var eId = event.getEId();
+        var eId = event.getFirstTag('e');
         if (eId != null) {
           Timer? timer = _inflighRequestTimers[eId];
           if (timer != null) {

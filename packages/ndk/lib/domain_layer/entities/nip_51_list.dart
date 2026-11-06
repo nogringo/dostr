@@ -297,7 +297,7 @@ class Nip51Set extends Nip51List {
     Nip01Event event,
     EventSigner? signer,
   ) async {
-    String? name = event.getDtag();
+    String? name = event.dTag;
     if (name == null) {
       return null;
     }

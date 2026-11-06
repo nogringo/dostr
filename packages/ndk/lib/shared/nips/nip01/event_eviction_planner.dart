@@ -410,7 +410,7 @@ class EventEvictionPlanner {
 
   static String? _coordinateKey(Nip01Event event) {
     if (!EventKindClassification.isReplaceableKind(event.kind)) return null;
-    final dTag = event.getDtag() ?? '';
+    final dTag = event.dTag ?? '';
     return '${event.kind}:${event.pubKey}:$dTag';
   }
 

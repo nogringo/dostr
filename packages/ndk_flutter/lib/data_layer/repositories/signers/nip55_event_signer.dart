@@ -137,9 +137,8 @@ class Nip55EventSigner with ConcurrencyLimiterMixin implements EventSigner {
       if (signedEventJson == null || signedEventJson.isEmpty) {
         return event.copyWith(sig: signature);
       }
-      return Nip01EventModel.fromJson(
-        jsonDecode(signedEventJson) as Map<dynamic, dynamic>,
-      );
+      return Nip01Event.tryFromJson(jsonDecode(signedEventJson)) ??
+          (throw Exception('The signer app returned an invalid event'));
     }, event: event);
   }
 

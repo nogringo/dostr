@@ -19,7 +19,7 @@ void main() {
       final event = await signedNote();
 
       expect(event.pubKey, signer.getPublicKey());
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.hasValidId, isTrue);
       expect(await verifier.verify(event), isTrue);
     });
 

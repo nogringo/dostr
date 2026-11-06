@@ -73,7 +73,7 @@ void main() {
 
         for (final changed in changes) {
           expect(changed.id, isNot(event.id));
-          expect(Nip01Utils.isIdValid(changed), isTrue);
+          expect(changed.hasValidId, isTrue);
           expect(changed.sig, isNull);
         }
       });
@@ -88,7 +88,7 @@ void main() {
       test('keeps the signature of the new payload when given one', () {
         final resigned = event.copyWith(content: 'changed', sig: 'e' * 128);
 
-        expect(Nip01Utils.isIdValid(resigned), isTrue);
+        expect(resigned.hasValidId, isTrue);
         expect(resigned.sig, 'e' * 128);
       });
 
@@ -96,7 +96,7 @@ void main() {
         final forged = event.copyWith(id: event.id, content: 'changed');
 
         expect(forged.id, event.id);
-        expect(Nip01Utils.isIdValid(forged), isFalse);
+        expect(forged.hasValidId, isFalse);
         expect(forged.sig, event.sig);
       });
 
@@ -146,7 +146,7 @@ void main() {
       expect(event.tags, [
         ['p', bob],
       ]);
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.hasValidId, isTrue);
       expect(() => event.tags.add(['t', 'x']), throwsUnsupportedError);
       expect(() => event.tags.first.add('x'), throwsUnsupportedError);
     });
@@ -173,10 +173,9 @@ void main() {
         content: '',
       );
 
-      expect(event.getEId(), 'root');
-      expect(event.replyETags, ['parent']);
+      expect(event.getFirstTag('e'), 'root');
       expect(event.pTags, [bob]);
-      expect(event.getDtag(), 'slug');
+      expect(event.dTag, 'slug');
       expect(event.tTags, ['Nostr']);
       expect(event.getFirstTag('x'), isNull);
     });
@@ -188,13 +187,11 @@ void main() {
         tags: [
           ['d', 'MyList'],
           ['d', ' padded '],
-          ['e', 'Parent', '', 'reply'],
         ],
         content: '',
       );
 
       expect(event.getTags('d'), ['MyList', ' padded ']);
-      expect(event.replyETags, ['Parent']);
     });
   });
 
@@ -211,7 +208,7 @@ void main() {
       expect(event.tags, note['tags']);
       expect(event.content, note['content']);
       expect(event.sig, note['sig']);
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.hasValidId, isTrue);
     });
 
     test('writes back the JSON it read', () {
@@ -233,7 +230,7 @@ void main() {
         ],
       });
 
-      expect(Nip01Utils.isIdValid(event), isTrue);
+      expect(event.hasValidId, isTrue);
       expect(event.pubKey, '');
       expect(event.content, '');
       expect(event.sig, isNull);
@@ -265,5 +262,94 @@ void main() {
       expect(event.toJson(), isNot(contains('sig')));
       expect(Nip01Event.fromJson(event.toJson()).sig, isNull);
     });
+
+    test('throws a FormatException for a field it cannot read', () {
+      for (final data in [
+        {'kind': 1},
+        {'created_at': 1},
+        {'created_at': 1.5, 'kind': 1},
+        {'created_at': 1, 'kind': '1'},
+        {'created_at': 1, 'kind': 1, 'id': 5},
+        {'created_at': 1, 'kind': 1, 'pubkey': 5},
+        {'created_at': 1, 'kind': 1, 'sig': 5},
+        {'created_at': 1, 'kind': 1, 'tags': 't'},
+      ]) {
+        expect(
+          () => Nip01Event.fromJson(data),
+          throwsFormatException,
+          reason: '$data',
+        );
+      }
+    });
+
+    test('tryFromJson reads a real note', () {
+      final event = Nip01Event.tryFromJson(note)!;
+
+      expect(event.toJson(), note);
+      expect(event.hasValidId, isTrue);
+    });
+
+    test('tryFromJson reads an event without id or sig', () {
+      final payload = {
+        'pubkey': alice,
+        'created_at': 1,
+        'kind': 1,
+        'tags': [
+          ['t', 'x'],
+        ],
+        'content': '',
+      };
+
+      for (final data in [
+        payload,
+        {...payload, 'sig': null},
+      ]) {
+        final event = Nip01Event.tryFromJson(data)!;
+        expect(event.hasValidId, isTrue);
+        expect(event.sig, isNull);
+      }
+    });
+
+    test('tryFromJson refuses what is not a well-formed event', () {
+      final payload = {
+        'pubkey': alice,
+        'created_at': 1,
+        'kind': 1,
+        'tags': <Object?>[],
+        'content': '',
+      };
+
+      for (final data in <Object?>[
+        null,
+        'event',
+        [payload],
+        {...payload}..remove('pubkey'),
+        {...payload}..remove('content'),
+        {...payload}..remove('tags'),
+        {...payload, 'created_at': 1.5},
+        {...payload, 'kind': '1'},
+        {
+          ...payload,
+          'tags': [
+            ['t', 5],
+          ],
+        },
+        {
+          ...payload,
+          'tags': ['t'],
+        },
+        {...payload, 'id': 5},
+        {...payload, 'sig': 5},
+      ]) {
+        expect(Nip01Event.tryFromJson(data), isNull, reason: '$data');
+      }
+    });
+  });
+
+  test('hasValidId tells a forged id apart', () {
+    final note = jsonDecode(realNote) as Map<String, dynamic>;
+
+    expect(Nip01Event.fromJson(note).hasValidId, isTrue);
+    expect(Nip01Event.fromJson({...note, 'id': 'f' * 64}).hasValidId, isFalse);
   });
 }

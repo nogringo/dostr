@@ -337,7 +337,7 @@ class Lists {
       kinds: [kind],
     );
     events = events.where((event) {
-      if (event.getDtag() != null && event.getDtag() == name) {
+      if (event.dTag != null && event.dTag == name) {
         return true;
       }
       return false;
@@ -364,9 +364,9 @@ class Lists {
           cacheRead: !forceRefresh,
         )
         .stream
-        .where((event) => event.getDtag() != null)
+        .where((event) => event.dTag != null)
         .asyncMap((event) async {
-          final dtag = event.getDtag()!;
+          final dtag = event.dTag!;
           final existingSet = relaySets[dtag];
 
           if (existingSet == null || existingSet.createdAt < event.createdAt) {
@@ -427,7 +427,7 @@ class Lists {
               )
               .stream) {
         if (newRelaySet == null || newRelaySet.createdAt < event.createdAt) {
-          if (event.getDtag() != null && event.getDtag() == name) {
+          if (event.dTag != null && event.dTag == name) {
             newRelaySet = await _parseSetEvent(event, signer);
             await _cacheManager.saveEvent(event);
           } else if (Helpers.isNotBlank(event.content)) {
@@ -524,7 +524,7 @@ class Lists {
       kinds: [kind],
     );
     events = events.where((event) {
-      if (event.getDtag() != null && event.getDtag() == name) {
+      if (event.dTag != null && event.dTag == name) {
         return true;
       }
       return false;
@@ -595,7 +595,7 @@ class Lists {
       kinds: [Nip51List.kRelaySet],
     );
     events = events.where((event) {
-      if (event.getDtag() != null && event.getDtag() == name) {
+      if (event.dTag != null && event.dTag == name) {
         return true;
       }
       return false;
@@ -638,7 +638,7 @@ class Lists {
       kinds: [kind],
     );
     events = events.where((event) {
-      if (event.getDtag() != null && event.getDtag() == set.name) {
+      if (event.dTag != null && event.dTag == set.name) {
         return true;
       }
       return false;
@@ -678,7 +678,7 @@ class Lists {
       kinds: [kind],
     );
     eventsInCache = eventsInCache.where((event) {
-      if (event.getDtag() != null && event.getDtag() == name) {
+      if (event.dTag != null && event.dTag == name) {
         return true;
       }
       return false;
@@ -728,10 +728,10 @@ class Lists {
               cacheRead: !forceRefresh,
             )
             .stream) {
-      if (event.getDtag() != null) {
-        Nip51Set? newRelaySet = newRelaySets[event.getDtag()];
+      if (event.dTag != null) {
+        Nip51Set? newRelaySet = newRelaySets[event.dTag];
         if (newRelaySet == null || newRelaySet.createdAt < event.createdAt) {
-          if (event.getDtag() != null) {
+          if (event.dTag != null) {
             newRelaySet = await _parseSetEvent(event, signer);
           }
           if (newRelaySet != null) {
@@ -793,7 +793,7 @@ class Lists {
       kinds: [Nip51List.kRelaySet],
     );
     events = events.where((event) {
-      if (event.getDtag() != null && event.getDtag() == name) {
+      if (event.dTag != null && event.dTag == name) {
         return true;
       }
       return false;
@@ -850,7 +850,7 @@ class Lists {
         kinds: [Nip51List.kRelaySet],
       );
       events = events.where((event) {
-        if (event.getDtag() != null && event.getDtag() == name) {
+        if (event.dTag != null && event.dTag == name) {
           return true;
         }
         return false;

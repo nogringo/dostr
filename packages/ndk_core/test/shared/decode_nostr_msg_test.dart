@@ -54,6 +54,8 @@ void main() {
       '["EVENT","sub",{"pubkey":"a","created_at":1,"kind":1,"tags":[["t",5]],"content":""}]',
       '["EVENT","sub",{"pubkey":"a","created_at":1,"kind":1,"tags":["t"],"content":""}]',
       '["EVENT","sub",{"pubkey":"a","created_at":1,"kind":1,"tags":[],"content":"","sig":5}]',
+      '["EVENT","sub",{"pubkey":"a","created_at":1,"kind":1,"tags":[],"content":"","id":5}]',
+      '["EVENT","sub",{"pubkey":"a","created_at":1.5,"kind":1,"tags":[],"content":""}]',
       '["EOSE"]',
       '["OK","id"]',
       '["OK",1,true]',

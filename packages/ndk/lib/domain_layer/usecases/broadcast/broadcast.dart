@@ -320,7 +320,7 @@ class Broadcast {
 
       // Generate "a" tag to delete all versions of this kind from this pubkey
       // Works for replaceable events (NIP-09) and as extension for regular events
-      final dTag = e.getDtag();
+      final dTag = e.dTag;
       tags.add(["a", "${e.kind}:${e.pubKey}:${dTag ?? ''}"]);
     }
 
@@ -350,7 +350,7 @@ class Broadcast {
 
     // Remove all versions from cache for eventAndAllVersions
     for (final e in allEventsAndAllVersions) {
-      final dTag = e.getDtag();
+      final dTag = e.dTag;
       _cacheManager.removeEvents(
         pubKeys: [e.pubKey],
         kinds: [e.kind],

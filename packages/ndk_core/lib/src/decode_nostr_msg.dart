@@ -14,25 +14,18 @@ NostrMessageRaw decodeNostrMsg(String msgJsonStr) {
         type: NostrMessageRawType.notice,
         otherData: decoded,
       ),
-      [
-        'EVENT',
-        String requestId,
-        {
-              'pubkey': String _,
-              'created_at': int _,
-              'kind': int _,
-              'tags': List tags,
-              'content': String _,
-            } &&
-            Map eventData,
-        ...,
-      ]
-          when _areTags(tags) =>
-        NostrMessageRaw(
-          type: NostrMessageRawType.event,
-          nip01Event: Nip01Event.fromJson(eventData),
-          requestId: requestId,
-        ),
+      ['EVENT', String requestId, final eventData, ...] =>
+        switch (Nip01Event.tryFromJson(eventData)) {
+          final event? => NostrMessageRaw(
+            type: NostrMessageRawType.event,
+            nip01Event: event,
+            requestId: requestId,
+          ),
+          null => NostrMessageRaw(
+            type: NostrMessageRawType.invalid,
+            otherData: decoded,
+          ),
+        },
       ['EOSE', String requestId, ...] => NostrMessageRaw(
         type: NostrMessageRawType.eose,
         requestId: requestId,
@@ -68,6 +61,3 @@ NostrMessageRaw decodeNostrMsg(String msgJsonStr) {
     );
   }
 }
-
-bool _areTags(List tags) =>
-    tags.every((tag) => tag is List && tag.every((value) => value is String));

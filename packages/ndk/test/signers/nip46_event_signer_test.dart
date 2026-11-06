@@ -104,7 +104,7 @@ void main() {
       // Remote signer is allowed to modify the event before signing.
       expect(signedEvent.content, equals('mutated by remote signer'));
       expect(signedEvent.createdAt, equals(event.createdAt + 11));
-      expect(Nip01Utils.isIdValid(signedEvent), isTrue);
+      expect(signedEvent.hasValidId, isTrue);
       expect(
         await Bip340EventVerifier(useIsolate: false).verify(signedEvent),
         isTrue,

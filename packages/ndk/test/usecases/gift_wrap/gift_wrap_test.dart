@@ -278,5 +278,62 @@ void main() {
         reason: 'NIP-59 requires seal events (kind 13) to be signed',
       );
     });
+
+    group('refuses a rumor its seal does not vouch for', () {
+      Future<Nip01Event> wrapForKey2(Nip01Event rumor) async {
+        final giftWrap = await giftWrapService.toGiftWrap(
+          rumor: rumor,
+          recipientPubkey: key2.publicKey,
+        );
+        ndk.accounts.loginPrivateKey(
+          pubkey: key2.publicKey,
+          privkey: key2.privateKey!,
+        );
+        return giftWrap;
+      }
+
+      test('a rumor of another pubkey than the seal', () async {
+        final giftWrap = await wrapForKey2(
+          Nip01Event(
+            pubKey: key3.publicKey,
+            kind: 14,
+            tags: const [],
+            content: 'not from key3',
+          ),
+        );
+
+        await expectLater(
+          giftWrapService.fromGiftWrap(giftWrap: giftWrap),
+          throwsException,
+        );
+        final result = await giftWrapService.fromGiftWrapWithInfo(
+          giftWrap: giftWrap,
+        );
+        expect(result.isPubkeyMatch, isFalse);
+        expect(result.isCryptographicallyValid, isFalse);
+      });
+
+      test('a rumor whose id does not match its content', () async {
+        final giftWrap = await wrapForKey2(
+          Nip01Event(
+            id: 'f' * 64,
+            pubKey: key1.publicKey,
+            kind: 14,
+            tags: const [],
+            content: 'forged id',
+          ),
+        );
+
+        await expectLater(
+          giftWrapService.fromGiftWrap(giftWrap: giftWrap),
+          throwsException,
+        );
+        final result = await giftWrapService.fromGiftWrapWithInfo(
+          giftWrap: giftWrap,
+        );
+        expect(result.isRumorIdValid, isFalse);
+        expect(result.isCryptographicallyValid, isFalse);
+      });
+    });
   });
 }

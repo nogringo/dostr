@@ -578,7 +578,6 @@ class Dms {
           result.seal.kind != GiftWrap.kSealEventKind ||
           result.seal.tags.isNotEmpty ||
           rumor.sig != null ||
-          !Nip01Utils.isIdValid(rumor) ||
           !_hasValidTimestamps(
             giftWrap: wrappedEvent,
             seal: result.seal,
@@ -706,7 +705,7 @@ class Dms {
         event.kind == kLegacyNip04MessageKind &&
         event.pubKey == senderPubKey &&
         event.sig != null &&
-        Nip01Utils.isIdValid(event) &&
+        event.hasValidId &&
         event.createdAt > 0 &&
         event.createdAt <= now + _maximumFutureSkewSeconds &&
         recipientTags.length == 1 &&

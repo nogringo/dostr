@@ -12,7 +12,7 @@ Future<String?> obsoleteReplaceableVeto(
     return null;
   }
 
-  final dTag = event.getDtag();
+  final dTag = event.dTag;
   final visibleEvents = await cacheManager.loadEvents(
     pubKeys: [event.pubKey],
     kinds: [event.kind],

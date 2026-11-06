@@ -28,7 +28,14 @@ class GiftWrapUnwrapResult {
   /// Whether the seal's pubkey matches the rumor's pubkey
   bool get isPubkeyMatch => seal.pubKey == rumor.pubKey;
 
-  /// Whether both signed layers are valid and bind the rumor to its author.
+  /// Whether the rumor's id matches its content
+  bool get isRumorIdValid => rumor.hasValidId;
+
+  /// Whether both signed layers are valid and bind the rumor, untouched, to
+  /// its author.
   bool get isCryptographicallyValid =>
-      isGiftWrapSignatureValid && isSealSignatureValid && isPubkeyMatch;
+      isGiftWrapSignatureValid &&
+      isSealSignatureValid &&
+      isPubkeyMatch &&
+      isRumorIdValid;
 }

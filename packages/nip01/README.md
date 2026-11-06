@@ -1,8 +1,8 @@
 # ndk_nip01
 
 The [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) Nostr
-event (`Nip01Event`), its JSON form, its id computation (`Nip01Utils`), and
-the `EventVerifier` interface that signature verifiers implement.
+event (`Nip01Event`), its JSON form, its id computation, and the
+`EventVerifier` interface that signature verifiers implement.
 
 Pure Dart, no relay or network code. A signature verifier such as
 [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) only needs
@@ -34,7 +34,7 @@ final event = Nip01Event(
 );
 
 print(event.id);
-print(Nip01Utils.isIdValid(event));
+print(event.hasValidId);
 ```
 
 The constructor computes the id from the payload. `copyWith` gives a changed
@@ -43,16 +43,23 @@ payload its new id and drops a signature that no longer matches it.
 To read and write the JSON form:
 
 ```dart
-final event = Nip01Event.fromJson(jsonDecode(json));
+final event = Nip01Event.tryFromJson(jsonDecode(json)); // null if malformed
 
 event.toJson(); // the JSON object, a Map
 event.toJsonString(); // the same as jsonEncode(event)
 ```
 
-`fromJson` keeps the id it reads, even a wrong one: check it with
-`Nip01Utils.isIdValid` or an `EventVerifier` before trusting the event. When
-the JSON has no id, `fromJson` computes it. `toJson` leaves `sig` out of an
-unsigned event, such as a NIP-59 rumor.
+`tryFromJson` takes only a well-formed event: string `pubkey` and `content`,
+int `created_at` and `kind`, tags made of strings. Use it for JSON from
+outside, such as a relay, a remote signer or a seal. `fromJson` is lenient:
+it reads a missing `pubkey` or `content` as `''` and turns tag values into
+strings, and throws a `FormatException` when `created_at` or `kind` is missing
+or a field has the wrong type.
+
+Both keep the id they read, even a wrong one: check it with `hasValidId` or
+an `EventVerifier` before trusting the event. When the JSON has no id, they
+compute it. `toJson` leaves `sig` out of an unsigned event, such as a NIP-59
+rumor.
 
 To plug a verifier into NDK, implement `EventVerifier`:
 
@@ -80,3 +87,12 @@ and `Nip01Utils.calculateId` recomputes it from the payload. `fromJson` now
 computes a missing id instead of reading it as `''`, and `toJson` no longer
 writes `"sig": null` for an unsigned event. `validSig` is gone: NDK only hands
 out events it verified, and nothing read the flag.
+
+Deprecated, with their replacements:
+
+| Deprecated | Use |
+| --- | --- |
+| `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
+| `event.getDtag()` | `event.dTag` |
+| `event.getEId()` | `event.getFirstTag('e')` |
+| `event.replyETags` | the NIP-10 `reply` marker, read from `event.tags` |

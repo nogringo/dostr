@@ -416,10 +416,7 @@ class _Dataset {
           kind: 5,
           tags: [
             byCoordinate
-                ? [
-                    'a',
-                    '${target.kind}:${target.pubKey}:${target.getDtag() ?? ''}',
-                  ]
+                ? ['a', '${target.kind}:${target.pubKey}:${target.dTag ?? ''}']
                 : ['e', target.id],
           ],
           content: 'deletion $i',

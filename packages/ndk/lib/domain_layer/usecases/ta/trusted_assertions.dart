@@ -244,7 +244,7 @@ class TrustedAssertions {
   ) {
     if (event.kind != Nip85Kind.user) return null;
 
-    final dTag = event.getDtag();
+    final dTag = event.dTag;
     if (dTag == null) return null;
 
     final metricsMap = <Nip85Metric, dynamic>{};
@@ -488,7 +488,7 @@ class TrustedAssertions {
   ) {
     if (event.kind != Nip85Kind.event) return null;
 
-    final dTag = event.getDtag();
+    final dTag = event.dTag;
     if (dTag == null) return null;
 
     final metricsMap = <Nip85Metric, dynamic>{};
@@ -654,7 +654,7 @@ class TrustedAssertions {
   ) {
     if (event.kind != Nip85Kind.addressable) return null;
 
-    final dTag = event.getDtag();
+    final dTag = event.dTag;
     if (dTag == null) return null;
 
     final metricsMap = <Nip85Metric, dynamic>{};
@@ -813,7 +813,7 @@ class TrustedAssertions {
   ) {
     if (event.kind != Nip85Kind.externalId) return null;
 
-    final dTag = event.getDtag();
+    final dTag = event.dTag;
     if (dTag == null) return null;
 
     final metricsMap = <Nip85Metric, dynamic>{};

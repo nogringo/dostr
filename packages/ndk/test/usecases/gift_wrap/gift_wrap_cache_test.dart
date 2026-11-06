@@ -211,6 +211,27 @@ void main() {
       );
     });
 
+    test('throws when the cached rumor is not the seal signer\'s', () async {
+      final artifacts = await buildArtifacts();
+      final rumor = Nip01Event(
+        pubKey: alice.publicKey,
+        kind: 1,
+        tags: const [],
+        content: 'not from alice',
+      );
+      await cache.saveDecryptedEventPayloadRecord(
+        sealSidecar(artifacts.giftWrap, artifacts.seal, alice.publicKey),
+      );
+      await cache.saveDecryptedEventPayloadRecord(
+        rumorSidecar(artifacts.seal, rumor, alice.publicKey),
+      );
+
+      await expectLater(
+        giftWrap.tryFromGiftWrapFromCache(giftWrap: artifacts.giftWrap),
+        throwsException,
+      );
+    });
+
     test(
       'skips signature verification when verifySignature is false',
       () async {

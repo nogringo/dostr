@@ -34,7 +34,7 @@ void main() {
       final changed = model.copyWith(content: 'changed');
 
       expect(changed, isA<Nip01EventModel>());
-      expect(Nip01Utils.isIdValid(changed), isTrue);
+      expect(changed.hasValidId, isTrue);
       expect(changed.sig, isNull);
     });
 
@@ -54,7 +54,7 @@ void main() {
       });
 
       expect(decoded.createdAt, 0);
-      expect(Nip01Utils.isIdValid(decoded), isTrue);
+      expect(decoded.hasValidId, isTrue);
     });
   });
 }

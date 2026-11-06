@@ -6,7 +6,7 @@ import 'package:ffi/ffi.dart';
 /// packed ASCII buffer containing event id (64 bytes), pubkey (64 bytes), and
 /// signature (128 bytes), plus the remaining fields needed to recompute the id
 /// hash. Replaces the previous
-/// `Nip01Utils.isIdValid` (Dart-side JSON re-serialization and re-hashing) with
+/// `Nip01Event.hasValidId` (Dart-side JSON re-serialization and re-hashing) with
 /// a single native call.
 @Native<
   Int32 Function(

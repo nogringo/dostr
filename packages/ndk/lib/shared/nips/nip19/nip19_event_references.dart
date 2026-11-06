@@ -23,7 +23,7 @@ extension Nip19EventReferences on Nip01Event {
       return null;
     }
 
-    final identifier = getDtag();
+    final identifier = dTag;
     if (identifier == null) {
       return null;
     }

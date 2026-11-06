@@ -61,7 +61,7 @@ class _Requests implements Requests {
       if (entry.$1.any(
         (f) =>
             f.kinds!.contains(event.kind) &&
-            (f.eTags == null || f.eTags!.contains(event.getEId())),
+            (f.eTags == null || f.eTags!.contains(event.getFirstTag('e'))),
       )) {
         entry.$2.add(event);
       }

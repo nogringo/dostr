@@ -76,25 +76,66 @@ class Nip01Event {
   ///
   /// A missing `id` is computed from the payload, a missing `pubkey` or
   /// `content` reads as `''` and a missing `sig` as null. Tag values that are
-  /// not strings are turned into strings.
+  /// not strings are turned into strings. A missing `created_at` or `kind`,
+  /// or a field of the wrong type, throws a [FormatException].
+  ///
+  /// For JSON that comes from outside, such as a relay, a remote signer or a
+  /// seal, use [tryFromJson], which takes only well-formed events.
   Nip01Event.fromJson(Map<dynamic, dynamic> data)
     : this._(
-        id: data['id'] as String?,
-        pubKey: data['pubkey'] as String? ?? '',
-        createdAt: data['created_at'] as int,
-        kind: data['kind'] as int,
-        tags: _tagsFromJson(data['tags']),
-        content: data['content'] as String? ?? '',
-        sig: data['sig'] as String?,
+        id: _optional<String>(data, 'id'),
+        pubKey: _optional<String>(data, 'pubkey') ?? '',
+        createdAt: _required<int>(data, 'created_at'),
+        kind: _required<int>(data, 'kind'),
+        tags: _tagsFromJson(_optional<List>(data, 'tags')),
+        content: _optional<String>(data, 'content') ?? '',
+        sig: _optional<String>(data, 'sig'),
       );
+
+  /// The event in [data] when it is a well-formed NIP-01 event JSON object,
+  /// null otherwise.
+  ///
+  /// Well-formed means a string `pubkey` and `content`, an int `created_at`
+  /// and `kind`, `tags` that are lists of strings, and an `id` and a `sig`
+  /// that are strings when present. A missing `id` is computed from the
+  /// payload. Neither the id nor the sig is checked: use [hasValidId] or an
+  /// [EventVerifier] for that.
+  static Nip01Event? tryFromJson(Object? data) => switch (data) {
+    {
+              'pubkey': String _,
+              'created_at': int _,
+              'kind': int _,
+              'tags': List tags,
+              'content': String _,
+            } &&
+            final Map json
+        when _areTags(tags) &&
+            (json['id'] is String?) &&
+            (json['sig'] is String?) =>
+      Nip01Event.fromJson(json),
+    _ => null,
+  };
+
+  static bool _areTags(List tags) =>
+      tags.every((tag) => tag is List && tag.every((value) => value is String));
+
+  static T? _optional<T>(Map<dynamic, dynamic> data, String key) =>
+      switch (data[key]) {
+        null => null,
+        final T value => value,
+        final value => throw FormatException('"$key" is not a $T', value),
+      };
+
+  static T _required<T>(Map<dynamic, dynamic> data, String key) =>
+      _optional<T>(data, key) ?? (throw FormatException('"$key" is missing'));
 
   static List<List<String>> _frozen(List<List<String>> tags) =>
       List.unmodifiable([
         for (final tag in tags) List<String>.unmodifiable(tag),
       ]);
 
-  static List<List<String>> _tagsFromJson(Object? tags) => _frozen([
-    for (final tag in (tags as List? ?? const []).whereType<List>())
+  static List<List<String>> _tagsFromJson(List? tags) => _frozen([
+    for (final tag in (tags ?? const []).whereType<List>())
       [for (final value in tag) value?.toString() ?? ''],
   ]);
 
@@ -172,10 +213,19 @@ class Nip01Event {
     return secondsSinceEpoch;
   }
 
-  /// return first `e` tag found
-  String? getEId() {
-    return getFirstTag("e");
-  }
+  /// Whether [id] is the hash of this event's payload (NIP-01).
+  bool get hasValidId =>
+      id ==
+      computeEventId(
+        pubKey: pubKey,
+        createdAt: createdAt,
+        kind: kind,
+        tags: tags,
+        content: content,
+      );
+
+  @Deprecated('Use getFirstTag("e")')
+  String? getEId() => getFirstTag('e');
 
   /// values of all tags named [tag], e.g. 'p', exactly as the event holds them
   List<String> getTags(String tag) {
@@ -204,6 +254,7 @@ class Nip01Event {
   }
 
   /// return all e tags in event that have a `reply` marker
+  @Deprecated('A NIP-10 marker: read it from tags')
   List<String> get replyETags {
     List<String> replyIds = [];
     for (final tag in tags) {
@@ -220,10 +271,11 @@ class Nip01Event {
     return replyIds;
   }
 
-  /// return first found `d` tag
-  String? getDtag() {
-    return getFirstTag("d");
-  }
+  /// The value of the first `d` tag, the identifier of an addressable event.
+  String? get dTag => getFirstTag('d');
+
+  @Deprecated('Use dTag')
+  String? getDtag() => dTag;
 
   /// Get first tag matching given name
   String? getFirstTag(String name) {

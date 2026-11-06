@@ -522,7 +522,7 @@ class EventCacheStateRecord {
   /// The NIP-01 conflict domain of [event]: `kind:pubkey:d-tag` for addressable
   /// kinds, `kind:pubkey` for other replaceable kinds, null for the rest.
   static String? conflictKeyFor(Nip01Event event) =>
-      _buildReplaceableConflictKey(event, event.getDtag());
+      _buildReplaceableConflictKey(event, event.dTag);
 
   /// Normalizes a caller supplied conflict domain so it compares equal to
   /// [conflictKeyFor].
@@ -613,7 +613,7 @@ class EventCacheStateRecord {
     for (final event in rawEvents) {
       final replaceableConflictKey = _buildReplaceableConflictKey(
         event,
-        event.getDtag(),
+        event.dTag,
       );
       if (replaceableConflictKey == null) {
         continue;
@@ -636,12 +636,12 @@ class EventCacheStateRecord {
     for (final event in rawEvents) {
       final coordinateKey = _buildCoordinateKey(
         event,
-        event.getDtag(),
+        event.dTag,
         _isAddressableKind(event.kind),
       );
       final replaceableConflictKey = _buildReplaceableConflictKey(
         event,
-        event.getDtag(),
+        event.dTag,
       );
       final deletingEvent = _findDeletingEvent(event, deletionEvents);
       records.add(
@@ -670,7 +670,7 @@ class EventCacheStateRecord {
     if (target.kind == 5) return null;
     final replaceableConflictKey = _buildReplaceableConflictKey(
       target,
-      target.getDtag(),
+      target.dTag,
     );
 
     for (final event in deletionEvents) {

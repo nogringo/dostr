@@ -118,7 +118,7 @@ void main() {
 
         expect(naddr, isNotNull);
         final decoded = Nip19.decodeNaddr(naddr!);
-        expect(decoded.identifier, event.getDtag());
+        expect(decoded.identifier, event.dTag);
         expect(decoded.kind, event.kind);
       });
 

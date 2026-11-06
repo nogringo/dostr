@@ -30,7 +30,7 @@ class HomeRelayList {
 
   /// The `relay` tags of [event], a `kind:36205` named `home-relays`.
   factory HomeRelayList.fromEvent(Nip01Event event) {
-    if (event.kind != kind || event.getDtag() != dTag) {
+    if (event.kind != kind || event.dTag != dTag) {
       throw ArgumentError.value(event.id, 'event', 'is not a home-relays list');
     }
     return HomeRelayList([
@@ -58,8 +58,9 @@ class HomeRelayList {
       if (response.statusCode != 200) {
         throw http.ClientException('HTTP ${response.statusCode}', uri);
       }
-      final json = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
-      event = Nip01EventModel.fromJson(json);
+      event =
+          Nip01Event.tryFromJson(jsonDecode(utf8.decode(response.bodyBytes))) ??
+          (throw FormatException('the list at $url is not a Nostr event'));
     } finally {
       client.close();
     }

@@ -288,8 +288,10 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
 
     final signedEventJson = await remoteRequest(request: request, event: event);
 
-    final signedEvent = Nip01EventModel.fromJson(jsonDecode(signedEventJson));
-
+    final signedEvent = Nip01Event.tryFromJson(jsonDecode(signedEventJson));
+    if (signedEvent == null) {
+      throw Exception('The remote signer returned an invalid event');
+    }
     return signedEvent;
   }
 

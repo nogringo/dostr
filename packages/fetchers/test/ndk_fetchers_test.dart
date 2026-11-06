@@ -60,7 +60,7 @@ class MemoryCache implements ReplaceableEventCache {
 
   @override
   Future<void> save(Nip01Event event) async =>
-      events[_key(event.kind, event.pubKey, event.getDtag())] = event;
+      events[_key(event.kind, event.pubKey, event.dTag)] = event;
 }
 
 /// Answers every REQ with all its [events], whatever the filter, then EOSE.

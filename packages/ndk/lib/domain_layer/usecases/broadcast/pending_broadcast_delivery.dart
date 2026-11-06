@@ -716,9 +716,9 @@ class PendingBroadcastDelivery {
     final visibleEvents = await _cacheManager.loadEvents(
       pubKeys: [event.pubKey],
       kinds: [event.kind],
-      tags: _isAddressableKind(event.kind) && event.getDtag() != null
+      tags: _isAddressableKind(event.kind) && event.dTag != null
           ? {
-              'd': [event.getDtag()!],
+              'd': [event.dTag!],
             }
           : null,
       limit: 1,

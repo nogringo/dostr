@@ -184,7 +184,7 @@ class EventVisibilityResolver {
       conflictKeys.add(conflictKey);
       replacementGroups
           .putIfAbsent((event.pubKey, event.kind), () => <String>{})
-          .add(event.getDtag() ?? '');
+          .add(event.dTag ?? '');
     }
 
     final byId = {for (final event in candidates) event.id: event};

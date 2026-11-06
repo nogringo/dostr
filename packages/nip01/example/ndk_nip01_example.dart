@@ -11,6 +11,6 @@ void main() {
   );
 
   print(event.id);
-  print(Nip01Utils.isIdValid(event));
+  print(event.hasValidId);
   print(event.toJsonString());
 }

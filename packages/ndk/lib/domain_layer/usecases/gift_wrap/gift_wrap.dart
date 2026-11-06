@@ -71,7 +71,8 @@ class GiftWrap {
   /// Unwraps a gift-wrapped event to retrieve the original rumor
   /// [giftWrap] the gift-wrapped event to unwrap
   /// [customSigner] optional signer to use instead of the logged-in account's signer
-  /// [verifySignature] whether to verify the seal's signature (default: true)
+  /// [verifySignature] whether to verify the seal's signature, and that the
+  /// rumor is its signer's and matches its id (default: true)
   /// [returns] the original rumor event
   Future<Nip01Event> fromGiftWrap({
     required Nip01Event giftWrap,
@@ -99,6 +100,7 @@ class GiftWrap {
   ///
   /// Returns `null` when either the wrapped seal payload or the sealed rumor
   /// payload is not available in the decrypted payload sidecar cache.
+  /// [verifySignature] works as in [fromGiftWrap].
   Future<Nip01Event?> tryFromGiftWrapFromCache({
     required Nip01Event giftWrap,
     EventSigner? customSigner,
@@ -119,8 +121,7 @@ class GiftWrap {
       return null;
     }
 
-    final Map<String, dynamic> sealJson = jsonDecode(cachedSealJson);
-    final sealEvent = Nip01EventModel.fromJson(sealJson);
+    final sealEvent = _parseEvent(cachedSealJson, 'seal');
 
     if (verifySignature) {
       final isValid = await eventVerifier.verify(sealEvent);
@@ -137,8 +138,11 @@ class GiftWrap {
       return null;
     }
 
-    final Map<String, dynamic> rumorJson = jsonDecode(cachedRumorJson);
-    return Nip01EventModel.fromJson(rumorJson);
+    final rumor = _parseEvent(cachedRumorJson, 'rumor');
+    if (verifySignature) {
+      _checkRumor(rumor, seal: sealEvent);
+    }
+    return rumor;
   }
 
   /// Unwraps a gift-wrapped event with signature verification information
@@ -248,10 +252,11 @@ class GiftWrap {
   ///
   /// [sealedEvent] the sealed event (kind:13) to unseal
   /// [customSigner] optional signer to use instead of the logged-in account's signer
-  /// [verifySignature] whether to verify the seal's signature (default: true)
+  /// [verifySignature] whether to verify the seal's signature, and that the
+  /// rumor is its signer's and matches its id (default: true)
   /// [returns] the original rumor event
   ///
-  /// Throws [Exception] if signature verification fails and verifySignature is true
+  /// Throws [Exception] if verification fails and verifySignature is true
   Future<Nip01Event> unsealRumor({
     required Nip01Event sealedEvent,
     EventSigner? customSigner,
@@ -281,10 +286,10 @@ class GiftWrap {
       throw Exception("Failed to decrypt seal");
     }
 
-    // Parse the rumor event
-    final Map<String, dynamic> rumorJson = jsonDecode(decryptedRumorJson);
-    final rumor = Nip01EventModel.fromJson(rumorJson);
-
+    final rumor = _parseEvent(decryptedRumorJson, 'rumor');
+    if (verifySignature) {
+      _checkRumor(rumor, seal: sealedEvent);
+    }
     return rumor;
   }
 
@@ -367,10 +372,20 @@ class GiftWrap {
       throw Exception("Failed to decrypt gift wrap");
     }
 
-    // Parse the seal event
-    final Map<String, dynamic> sealJson = jsonDecode(decryptedEventJson);
-    final event = Nip01EventModel.fromJson(sealJson);
-    return event;
+    return _parseEvent(decryptedEventJson, 'seal');
+  }
+
+  static Nip01Event _parseEvent(String json, String name) =>
+      Nip01Event.tryFromJson(jsonDecode(json)) ??
+      (throw Exception("Invalid $name event"));
+
+  static void _checkRumor(Nip01Event rumor, {required Nip01Event seal}) {
+    if (rumor.pubKey != seal.pubKey) {
+      throw Exception("Rumor pubkey does not match the seal's");
+    }
+    if (!rumor.hasValidId) {
+      throw Exception("Rumor id does not match its content");
+    }
   }
 
   static int _randomCreatedAtBefore(int referenceCreatedAt) {

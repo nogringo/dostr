@@ -300,7 +300,7 @@ void main() {
       ],
     );
 
-    final invalidValue = Nip01Utils.isIdValid(invalidEvent);
+    final invalidValue = invalidEvent.hasValidId;
     expect(invalidValue, isFalse);
   });
 
