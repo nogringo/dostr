@@ -1,22 +1,42 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
 
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+
+import '../../../config/nip85_defaults.dart';
 import '../../entities/nip_85.dart';
-import '../requests/requests.dart';
+
+/// The events matching [filter] on [relay]. Cached events may answer too, and
+/// the events the relay sends should be cached.
+typedef Nip85Query =
+    Future<List<Nip01Event>> Function(Filter filter, {required String relay});
+
+/// A live subscription: the [events] it receives, and [close] to end it.
+typedef Nip85Subscription = ({
+  Stream<Nip01Event> events,
+  Future<void> Function() close,
+});
+
+/// Opens a live subscription to [filter] on [relay].
+typedef Nip85Subscribe =
+    Nip85Subscription Function(Filter filter, {required String relay});
 
 /// Trusted Assertions usecase (NIP-85)
 ///
 /// Allows fetching pre-computed metrics from trusted service providers.
 class TrustedAssertions {
-  final Requests _requests;
+  final Nip85Query _query;
+  final Nip85Subscribe _subscribe;
   final List<Nip85TrustedProvider> _defaultProviders;
 
+  /// [query] answers the `get*` methods and [subscribe] the `stream*` ones.
+  /// [defaultProviders] are asked when a call names no providers.
   TrustedAssertions({
-    required Requests requests,
-    required List<Nip85TrustedProvider> defaultProviders,
-  }) : _requests = requests,
+    required Nip85Query query,
+    required Nip85Subscribe subscribe,
+    List<Nip85TrustedProvider> defaultProviders = DEFAULT_NIP85_PROVIDERS,
+  }) : _query = query,
+       _subscribe = subscribe,
        _defaultProviders = defaultProviders;
 
   /// Filter providers by kind and optionally by metrics
@@ -78,20 +98,16 @@ class TrustedAssertions {
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
       try {
-        await for (final event
-            in _requests
-                .query(
-                  filter: Filter(
-                    kinds: [Nip85Kind.user],
-                    authors: providerPubkeys,
-                    dTags: [pubkey],
-                    limit: providerPubkeys.length,
-                  ),
-                  explicitRelays: [relay],
-                  cacheRead: true,
-                  cacheWrite: true,
-                )
-                .stream) {
+        final events = await _query(
+          Filter(
+            kinds: [Nip85Kind.user],
+            authors: providerPubkeys,
+            dTags: [pubkey],
+            limit: providerPubkeys.length,
+          ),
+          relay: relay,
+        );
+        for (final event in events) {
           final parsed = _parseUserMetricsEvent(event, metrics);
           if (parsed == null) continue;
 
@@ -161,8 +177,7 @@ class TrustedAssertions {
       providersByRelay.putIfAbsent(provider.relay, () => []).add(provider);
     }
 
-    // Track subscriptions for cleanup
-    final subscriptionIds = <String>[];
+    final subscriptions = <Nip85Subscription>[];
     final aggregatedMetrics = <Nip85Metric, dynamic>{};
     final metricCreatedAt = <Nip85Metric, int>{};
     final topics = <String>{};
@@ -176,18 +191,18 @@ class TrustedAssertions {
       final relayProviders = entry.value;
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
-      final response = _requests.subscription(
-        filter: Filter(
+      final subscription = _subscribe(
+        Filter(
           kinds: [Nip85Kind.user],
           authors: providerPubkeys,
           dTags: [pubkey],
         ),
-        explicitRelays: [relay],
+        relay: relay,
       );
 
-      subscriptionIds.add(response.requestId);
+      subscriptions.add(subscription);
 
-      response.stream.listen(
+      subscription.events.listen(
         (event) {
           final parsed = _parseUserMetricsEvent(event, metrics);
           if (parsed == null) return;
@@ -229,8 +244,8 @@ class TrustedAssertions {
 
     // Close subscriptions when stream is cancelled
     controller.onCancel = () async {
-      for (final id in subscriptionIds) {
-        await _requests.closeSubscription(id);
+      for (final subscription in subscriptions) {
+        await subscription.close();
       }
     };
 
@@ -332,20 +347,16 @@ class TrustedAssertions {
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
       try {
-        await for (final event
-            in _requests
-                .query(
-                  filter: Filter(
-                    kinds: [Nip85Kind.event],
-                    authors: providerPubkeys,
-                    dTags: [eventId],
-                    limit: providerPubkeys.length,
-                  ),
-                  explicitRelays: [relay],
-                  cacheRead: true,
-                  cacheWrite: true,
-                )
-                .stream) {
+        final events = await _query(
+          Filter(
+            kinds: [Nip85Kind.event],
+            authors: providerPubkeys,
+            dTags: [eventId],
+            limit: providerPubkeys.length,
+          ),
+          relay: relay,
+        );
+        for (final event in events) {
           final parsed = _parseEventMetricsEvent(event, metrics);
           if (parsed == null) continue;
 
@@ -411,8 +422,7 @@ class TrustedAssertions {
       providersByRelay.putIfAbsent(provider.relay, () => []).add(provider);
     }
 
-    // Track subscriptions for cleanup
-    final subscriptionIds = <String>[];
+    final subscriptions = <Nip85Subscription>[];
     final aggregatedMetrics = <Nip85Metric, dynamic>{};
     final metricCreatedAt = <Nip85Metric, int>{};
     String? latestProviderPubkey;
@@ -424,18 +434,18 @@ class TrustedAssertions {
       final relayProviders = entry.value;
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
-      final response = _requests.subscription(
-        filter: Filter(
+      final subscription = _subscribe(
+        Filter(
           kinds: [Nip85Kind.event],
           authors: providerPubkeys,
           dTags: [eventId],
         ),
-        explicitRelays: [relay],
+        relay: relay,
       );
 
-      subscriptionIds.add(response.requestId);
+      subscriptions.add(subscription);
 
-      response.stream.listen(
+      subscription.events.listen(
         (event) {
           final parsed = _parseEventMetricsEvent(event, metrics);
           if (parsed == null) return;
@@ -465,7 +475,6 @@ class TrustedAssertions {
           }
         },
         onError: (e) {
-          print("Error in relay subscription for event metrics: $e");
           // Ignore errors from individual relays
         },
       );
@@ -473,8 +482,8 @@ class TrustedAssertions {
 
     // Close subscriptions when stream is cancelled
     controller.onCancel = () async {
-      for (final id in subscriptionIds) {
-        await _requests.closeSubscription(id);
+      for (final subscription in subscriptions) {
+        await subscription.close();
       }
     };
 
@@ -563,20 +572,16 @@ class TrustedAssertions {
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
       try {
-        await for (final event
-            in _requests
-                .query(
-                  filter: Filter(
-                    kinds: [Nip85Kind.addressable],
-                    authors: providerPubkeys,
-                    dTags: [eventAddress],
-                    limit: providerPubkeys.length,
-                  ),
-                  explicitRelays: [relay],
-                  cacheRead: true,
-                  cacheWrite: true,
-                )
-                .stream) {
+        final events = await _query(
+          Filter(
+            kinds: [Nip85Kind.addressable],
+            authors: providerPubkeys,
+            dTags: [eventAddress],
+            limit: providerPubkeys.length,
+          ),
+          relay: relay,
+        );
+        for (final event in events) {
           final parsed = _parseAddressableMetricsEvent(event, metrics);
           if (parsed != null && parsed.createdAt > latestCreatedAt) {
             result = parsed;
@@ -613,25 +618,25 @@ class TrustedAssertions {
       providersByRelay.putIfAbsent(provider.relay, () => []).add(provider);
     }
 
-    final subscriptionIds = <String>[];
+    final subscriptions = <Nip85Subscription>[];
 
     for (final entry in providersByRelay.entries) {
       final relay = entry.key;
       final relayProviders = entry.value;
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
-      final response = _requests.subscription(
-        filter: Filter(
+      final subscription = _subscribe(
+        Filter(
           kinds: [Nip85Kind.addressable],
           authors: providerPubkeys,
           dTags: [eventAddress],
         ),
-        explicitRelays: [relay],
+        relay: relay,
       );
 
-      subscriptionIds.add(response.requestId);
+      subscriptions.add(subscription);
 
-      response.stream.listen((event) {
+      subscription.events.listen((event) {
         final parsed = _parseAddressableMetricsEvent(event, metrics);
         if (parsed != null) {
           controller.add(parsed);
@@ -640,8 +645,8 @@ class TrustedAssertions {
     }
 
     controller.onCancel = () async {
-      for (final id in subscriptionIds) {
-        await _requests.closeSubscription(id);
+      for (final subscription in subscriptions) {
+        await subscription.close();
       }
     };
 
@@ -722,20 +727,16 @@ class TrustedAssertions {
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
       try {
-        await for (final event
-            in _requests
-                .query(
-                  filter: Filter(
-                    kinds: [Nip85Kind.externalId],
-                    authors: providerPubkeys,
-                    dTags: [identifier],
-                    limit: providerPubkeys.length,
-                  ),
-                  explicitRelays: [relay],
-                  cacheRead: true,
-                  cacheWrite: true,
-                )
-                .stream) {
+        final events = await _query(
+          Filter(
+            kinds: [Nip85Kind.externalId],
+            authors: providerPubkeys,
+            dTags: [identifier],
+            limit: providerPubkeys.length,
+          ),
+          relay: relay,
+        );
+        for (final event in events) {
           final parsed = _parseExternalIdMetricsEvent(event, metrics);
           if (parsed != null && parsed.createdAt > latestCreatedAt) {
             result = parsed;
@@ -772,25 +773,25 @@ class TrustedAssertions {
       providersByRelay.putIfAbsent(provider.relay, () => []).add(provider);
     }
 
-    final subscriptionIds = <String>[];
+    final subscriptions = <Nip85Subscription>[];
 
     for (final entry in providersByRelay.entries) {
       final relay = entry.key;
       final relayProviders = entry.value;
       final providerPubkeys = relayProviders.map((p) => p.pubkey).toList();
 
-      final response = _requests.subscription(
-        filter: Filter(
+      final subscription = _subscribe(
+        Filter(
           kinds: [Nip85Kind.externalId],
           authors: providerPubkeys,
           dTags: [identifier],
         ),
-        explicitRelays: [relay],
+        relay: relay,
       );
 
-      subscriptionIds.add(response.requestId);
+      subscriptions.add(subscription);
 
-      response.stream.listen((event) {
+      subscription.events.listen((event) {
         final parsed = _parseExternalIdMetricsEvent(event, metrics);
         if (parsed != null) {
           controller.add(parsed);
@@ -799,8 +800,8 @@ class TrustedAssertions {
     }
 
     controller.onCancel = () async {
-      for (final id in subscriptionIds) {
-        await _requests.closeSubscription(id);
+      for (final subscription in subscriptions) {
+        await subscription.close();
       }
     };
 

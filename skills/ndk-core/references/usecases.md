@@ -29,7 +29,6 @@ All accessible via `ndk.<accessor>`.
 | `ndk.search` | `Search` | NIP-50 relay search |
 | `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay |
 | `ndk.nip77` | `Nip77` | Negentropy set reconciliation |
-| `ndk.ta` / `ndk.trustedAssertions` | `TrustedAssertions` | NIP-85 trusted metrics |
 
 ## Broadcast
 
@@ -109,6 +108,32 @@ final dms = Dms(
 
 await dms.sendMessage(recipientPubKey: pubkey, content: 'hello');
 final conversations = await dms.loadConversations();
+```
+
+## Trusted assertions (NIP-85)
+
+Lives in the `ndk_nip85` package and does not depend on `ndk`: `TrustedAssertions` fetches and streams the metrics trusted providers publish (kinds 30382 to 30385). It uses `DEFAULT_NIP85_PROVIDERS` unless given `defaultProviders` or per-call `providers`.
+
+```dart
+import 'package:ndk_nip85/ndk_nip85.dart';
+
+final ta = TrustedAssertions(
+  query: (filter, {required relay}) =>
+      ndk.requests.query(filter: filter, explicitRelays: [relay]).future,
+  subscribe: (filter, {required relay}) {
+    final response = ndk.requests.subscription(
+      filter: filter,
+      explicitRelays: [relay],
+    );
+    return (
+      events: response.stream,
+      close: () => ndk.requests.closeSubscription(response.requestId),
+    );
+  },
+);
+
+final user = await ta.getUserMetrics(pubkey, metrics: {Nip85Metric.rank});
+user?.rank;
 ```
 
 ## Files (Blossom)

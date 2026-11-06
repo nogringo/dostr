@@ -37,6 +37,7 @@ workspace:
   - packages/blossom
   - packages/nip17
   - packages/nip59
+  - packages/nip85
   - packages/fetchers
   - packages/http
   - packages/url_set

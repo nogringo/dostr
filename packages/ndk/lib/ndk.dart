@@ -105,9 +105,6 @@ export 'package:ndk_nip77/ndk_nip77.dart'
         Nip77TimeoutException,
         Nip77AuthUnavailableException,
         Nip77AuthRequiredException;
-export 'domain_layer/usecases/ta/trusted_assertions.dart';
-export 'domain_layer/entities/nip_85.dart';
-export 'config/nip85_defaults.dart';
 
 /**
  * other stuff

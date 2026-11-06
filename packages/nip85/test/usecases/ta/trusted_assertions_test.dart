@@ -1,13 +1,17 @@
+import 'dart:async';
+
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
 import 'package:test/test.dart';
 
-import '../../../../cashu/test/mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';
+import '../../mocks/trusted_assertions_for_ndk.dart';
 
 void main() {
   group('TrustedAssertions', () {
     late MockRelay relay;
     late Ndk ndk;
+    late TrustedAssertions ta;
 
     // Provider keys
     final providerKey = Bip340.generatePrivateKey();
@@ -69,7 +73,8 @@ void main() {
     }
 
     setUp(() async {
-      relay = MockRelay(name: 'nip85-relay', explicitPort: 5196);
+      relay = MockRelay(challengeOnConnect: false);
+      await relay.start();
 
       // Create assertion event
       final assertionEvent = await providerSigner.sign(
@@ -82,20 +87,21 @@ void main() {
         ),
       );
 
-      // Start relay with NIP-85 assertions
-      await relay.startServer(
-        nip85Assertions: {
-          '${providerKey.publicKey}:${subjectKey.publicKey}': assertionEvent,
-        },
-      );
+      relay.events.add(assertionEvent);
 
-      // Configure NDK with trusted provider
-      final config = NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: NdkEngine.RELAY_SETS,
-        bootstrapRelays: [relay.url],
-        defaultTrustedProviders: [
+      ndk = Ndk(
+        NdkConfig(
+          eventVerifier: Bip340EventVerifier(useIsolate: false),
+          cache: MemCacheManager(),
+          engine: NdkEngine.RELAY_SETS,
+          bootstrapRelays: [relay.url],
+        ),
+      );
+      await ndk.bootstrapRelaysConnected;
+
+      ta = trustedAssertionsFor(
+        ndk,
+        defaultProviders: [
           Nip85TrustedProvider(
             kind: Nip85Kind.user,
             metric: Nip85Metric.rank,
@@ -116,18 +122,15 @@ void main() {
           ),
         ],
       );
-
-      ndk = Ndk(config);
-      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('getUserMetrics returns metrics from provider', () async {
-      final metrics = await ndk.ta.getUserMetrics(subjectKey.publicKey);
+      final metrics = await ta.getUserMetrics(subjectKey.publicKey);
 
       expect(metrics, isNotNull);
       expect(metrics!.pubkey, equals(subjectKey.publicKey));
@@ -141,13 +144,13 @@ void main() {
 
     test('getUserMetrics returns null for unknown pubkey', () async {
       final unknownKey = Bip340.generatePrivateKey();
-      final metrics = await ndk.ta.getUserMetrics(unknownKey.publicKey);
+      final metrics = await ta.getUserMetrics(unknownKey.publicKey);
 
       expect(metrics, isNull);
     });
 
     test('getUserMetrics filters specific metrics', () async {
-      final metrics = await ndk.ta.getUserMetrics(
+      final metrics = await ta.getUserMetrics(
         subjectKey.publicKey,
         metrics: {Nip85Metric.rank, Nip85Metric.followers},
       );
@@ -160,26 +163,29 @@ void main() {
     });
 
     test('getUserMetrics returns null when no providers configured', () async {
-      // Create NDK without trusted providers
-      final ndkNoProviders = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay.url],
-          defaultTrustedProviders: [],
-        ),
-      );
-
-      await ndkNoProviders.bootstrapRelaysConnected;
-
-      final metrics = await ndkNoProviders.ta.getUserMetrics(
-        subjectKey.publicKey,
-      );
+      final metrics = await trustedAssertionsFor(
+        ndk,
+        defaultProviders: [],
+      ).getUserMetrics(subjectKey.publicKey);
 
       expect(metrics, isNull);
+    });
 
-      await ndkNoProviders.destroy();
+    test('streamUserMetrics emits metrics and closes on cancel', () async {
+      final first = Completer<Nip85UserMetrics>();
+      final subscription = ta.streamUserMetrics(subjectKey.publicKey).listen((
+        metrics,
+      ) {
+        if (!first.isCompleted) first.complete(metrics);
+      });
+
+      final metrics = await first.future.timeout(const Duration(seconds: 5));
+      expect(metrics.rank, equals(89));
+      expect(metrics.followers, equals(2500));
+
+      await subscription.cancel();
+      await Future.delayed(const Duration(milliseconds: 100));
+      expect(relay.received('CLOSE'), isNotEmpty);
     });
 
     test('getUserMetrics with custom providers', () async {
@@ -190,7 +196,8 @@ void main() {
         publicKey: provider2Key.publicKey,
       );
 
-      final relay2 = MockRelay(name: 'nip85-relay-2', explicitPort: 5299);
+      final relay2 = MockRelay(challengeOnConnect: false);
+      await relay2.start();
 
       final assertionEvent2 = await provider2Signer.sign(
         createNip85UserAssertion(
@@ -202,14 +209,10 @@ void main() {
         ),
       );
 
-      await relay2.startServer(
-        nip85Assertions: {
-          '${provider2Key.publicKey}:${subjectKey.publicKey}': assertionEvent2,
-        },
-      );
+      relay2.events.add(assertionEvent2);
 
       // Use custom provider instead of default
-      final metrics = await ndk.ta.getUserMetrics(
+      final metrics = await ta.getUserMetrics(
         subjectKey.publicKey,
         providers: [
           Nip85TrustedProvider(
@@ -225,7 +228,7 @@ void main() {
       expect(metrics!.rank, equals(75));
       expect(metrics.providerPubkey, equals(provider2Key.publicKey));
 
-      await relay2.stopServer();
+      await relay2.stop();
     });
 
     test('Nip85TrustedProvider.fromTag parses correctly', () {
@@ -269,7 +272,8 @@ void main() {
           publicKey: provider2Key.publicKey,
         );
 
-        final relay2 = MockRelay(name: 'nip85-event-relay', explicitPort: 5300);
+        final relay2 = MockRelay(challengeOnConnect: false);
+        await relay2.start();
 
         final eventAssertion1 = await provider1Signer.sign(
           createNip85EventAssertion(
@@ -287,14 +291,9 @@ void main() {
           ),
         );
 
-        await relay2.startServer(
-          nip85Assertions: {
-            '${provider1Key.publicKey}:$eventId': eventAssertion1,
-            '${provider2Key.publicKey}:$eventId': eventAssertion2,
-          },
-        );
+        relay2.events.addAll([eventAssertion1, eventAssertion2]);
 
-        final metrics = await ndk.ta.getEventMetrics(
+        final metrics = await ta.getEventMetrics(
           eventId,
           providers: [
             Nip85TrustedProvider(
@@ -316,7 +315,7 @@ void main() {
         expect(metrics!.commentCount, equals(12));
         expect(metrics.reactionCount, equals(34));
 
-        await relay2.stopServer();
+        await relay2.stop();
       },
     );
   });

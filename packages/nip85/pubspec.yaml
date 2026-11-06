@@ -1,0 +1,32 @@
+name: ndk_nip85
+description: NIP-85 trusted assertions for NDK (Nostr Development Kit), to fetch and stream the metrics trusted providers compute for users, events, addressable events and external identifiers, without depending on ndk.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - nip85
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  ndk_core: ^0.11.0-dev.2
+  ndk_nip01: ^0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk: ^0.11.0-dev.2
+  test: any

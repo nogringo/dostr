@@ -43,7 +43,6 @@ import '../domain_layer/usecases/relay_sets_engine.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
-import '../domain_layer/usecases/ta/trusted_assertions.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'package:ndk_logger/ndk_logger.dart';
@@ -92,7 +91,6 @@ class Initialization {
   late FetchedRanges fetchedRanges;
   CacheEvictionScheduler? cacheEvictionScheduler;
   late ProofOfWork proofOfWork;
-  late TrustedAssertions trustedAssertions;
   StreamSubscription<List<RelayConnectivity>>? _relayConnectivitySubscription;
   final Map<String, bool> _relayOpenStates = {};
 
@@ -329,11 +327,6 @@ class Initialization {
       relayManager: relayManager,
       loadEventIds: _ndkConfig.cache.loadEventIdsWithCreatedAt,
       loadEvent: _ndkConfig.cache.loadEvent,
-    );
-
-    trustedAssertions = TrustedAssertions(
-      requests: requests,
-      defaultProviders: _ndkConfig.defaultTrustedProviders,
     );
 
     if (_ndkConfig.cacheEvictionEnabled) {

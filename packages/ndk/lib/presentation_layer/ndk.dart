@@ -21,7 +21,6 @@ import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import '../domain_layer/usecases/search/search.dart';
 import '../domain_layer/usecases/software/software.dart';
-import '../domain_layer/usecases/ta/trusted_assertions.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'init.dart';
@@ -198,21 +197,6 @@ class Ndk {
   ///
   /// Experimental: the API might change.
   Nip77 get nip77 => _initialization.nip77;
-
-  /// Trusted Assertions (NIP-85)
-  ///
-  /// Fetch pre-computed metrics from trusted service providers.
-  ///
-  /// Experimental: the API might change.
-  TrustedAssertions get ta => _initialization.trustedAssertions;
-
-  /// Trusted Assertions (NIP-85)
-  ///
-  /// Fetch pre-computed metrics from trusted service providers.
-  /// short alias for trusted assertions => ndk.ta.getMetrics()
-  ///
-  /// Experimental: the API might change.
-  TrustedAssertions get trustedAssertions => ta;
 
   /// Close all transports on relay manager
   Future<void> destroy() async {

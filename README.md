@@ -109,6 +109,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip59`: NIP-59 gift wrap, to create, seal, wrap and unwrap rumors, without depending on `ndk`. NDK exposes it as `ndk.giftWrap`.
 
+### [🔗 NIP-85](./packages/nip85/)
+
+`ndk_nip85`: NIP-85 trusted assertions, to fetch and stream the metrics trusted providers compute for users, events and addresses, without depending on `ndk`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

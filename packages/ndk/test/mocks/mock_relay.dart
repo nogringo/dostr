@@ -25,8 +25,6 @@ class MockRelay {
   Map<KeyPair, Nip01Event>? textNotes;
   Map<String, Nip01Event> _contactLists = {};
   Map<String, Nip01Event> _metadatas = {};
-  Map<String, Nip01Event> _nip85Assertions =
-      {}; // NIP-85 assertions keyed by "author:dTag"
   final Set<Nip01Event> _storedEvents = {}; // Store received events
   final List<Nip01Event> _receivedEvents = [];
 
@@ -269,7 +267,6 @@ class MockRelay {
     Map<KeyPair, Nip01Event>? textNotes,
     Map<String, Nip01Event>? contactLists,
     Map<String, Nip01Event>? metadatas,
-    Map<String, Nip01Event>? nip85Assertions,
     Duration? delayResponse,
     Duration? delayConnection,
   }) async {
@@ -286,9 +283,6 @@ class MockRelay {
     }
     if (metadatas != null) {
       _metadatas = metadatas;
-    }
-    if (nip85Assertions != null) {
-      _nip85Assertions = nip85Assertions;
     }
 
     HttpServer? server;
@@ -777,23 +771,6 @@ class MockRelay {
                     _matchesTimeFilter(e, filter),
               )
               .toList(),
-        );
-      }
-      // Match against NIP-85 assertions (kinds 30382-30385)
-      else if (filter.kinds != null &&
-          filter.kinds!.any((k) => k >= 30382 && k <= 30385) &&
-          filter.authors != null &&
-          filter.authors!.isNotEmpty) {
-        eventsForThisFilter.addAll(
-          _nip85Assertions.values.where((e) {
-            bool kindMatches = filter.kinds!.contains(e.kind);
-            bool authorMatches = filter.authors!.contains(e.pubKey);
-            bool dTagMatches =
-                filter.dTags == null ||
-                filter.dTags!.isEmpty ||
-                filter.dTags!.contains(e.dTag);
-            return kindMatches && authorMatches && dTagMatches;
-          }).toList(),
         );
       }
       // General event matching (storedEvents and textNotes)

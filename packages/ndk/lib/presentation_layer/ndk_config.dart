@@ -1,5 +1,4 @@
 import 'package:ndk/config/bootstrap_relays.dart';
-import '../config/nip85_defaults.dart';
 import 'package:ndk/config/broadcast_defaults.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk/config/request_defaults.dart';
@@ -7,7 +6,6 @@ import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/cache_eviction.dart';
 import '../domain_layer/entities/event_filter.dart';
-import '../domain_layer/entities/nip_85.dart';
 import '../domain_layer/repositories/cache_manager.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -118,9 +116,6 @@ class NdkConfig {
   /// should only perform the network work requested by the current command.
   bool pendingDeliveryRetriesEnabled;
 
-  /// Default trusted providers for NIP-85 trusted assertions.
-  List<Nip85TrustedProvider> defaultTrustedProviders;
-
   /// Whether background cache eviction scheduling is enabled.
   bool cacheEvictionEnabled;
 
@@ -180,7 +175,6 @@ class NdkConfig {
     this.authHandler,
     this.pendingDeliveryRetryInterval = const Duration(seconds: 15),
     this.pendingDeliveryRetriesEnabled = true,
-    this.defaultTrustedProviders = DEFAULT_NIP85_PROVIDERS,
     this.cacheEvictionEnabled = false,
     this.cacheEvictionPolicy = const EvictionPolicy(),
     this.cacheEvictionStartupDelay = const Duration(minutes: 1),
