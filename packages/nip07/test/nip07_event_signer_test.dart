@@ -3,9 +3,11 @@ library;
 
 import 'dart:js_interop';
 
-import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk_flutter/signers/nip07_event_signer.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip07/ndk_nip07.dart';
+import 'package:ndk_signer/ndk_signer.dart';
+import 'package:test/test.dart';
 
 @JS()
 external void eval(String code);

@@ -39,6 +39,7 @@ workspace:
   - packages/nip59
   - packages/nip85
   - packages/nip13
+  - packages/nip07
   - packages/fetchers
   - packages/http
   - packages/url_set

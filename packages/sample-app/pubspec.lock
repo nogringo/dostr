@@ -887,6 +887,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip07:
+    dependency: "direct overridden"
+    description:
+      path: "../nip07"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nip17:
     dependency: "direct main"
     description:

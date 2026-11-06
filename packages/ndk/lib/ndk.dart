@@ -51,7 +51,6 @@ export '';
 /// signers / verifiers
 export 'package:ndk_signer/ndk_signer.dart';
 export 'package:ndk_bip340/ndk_bip340.dart';
-export 'shared/helpers/concurrency_limiter_mixin.dart';
 
 /// cache
 export 'domain_layer/repositories/cache_manager.dart';

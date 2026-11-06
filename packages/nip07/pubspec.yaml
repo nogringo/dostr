@@ -1,0 +1,34 @@
+name: ndk_nip07
+description: NIP-07 browser extension signer for NDK (Nostr Development Kit), to sign and encrypt with the user's Nostr extension from any Dart web app, without depending on ndk or Flutter.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - nip07
+  - signer
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  ndk_nip01: ^0.1.0
+  ndk_signer: ^0.1.0
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk_bip340: ^0.1.0
+  test: any

@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ndk_core, nip01, signer, auth, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, pq, url_set, fetchers, wallets, nwc, bc_ur, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13]
+        package: [ndk_core, nip01, signer, auth, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, pq, url_set, fetchers, wallets, nwc, bc_ur, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}
@@ -91,7 +91,7 @@ jobs:
       - run: dart pub get
       - run: dart test
 
-  nip07-tests:
+  ndk-flutter-web-tests:
     runs-on: ubuntu-latest
     defaults:
       run:

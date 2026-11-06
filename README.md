@@ -117,6 +117,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip13`: NIP-13 proof of work, to mine, measure and validate the difficulty of event ids off the main isolate, without depending on `ndk`.
 
+### [🔗 NIP-07](./packages/nip07/)
+
+`ndk_nip07`: NIP-07 signer, to sign and encrypt with the user's browser extension from any Dart web app, without depending on `ndk` or Flutter.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.
@@ -127,7 +131,7 @@ Sembast cache manager and wallets repository, in pure Dart.
 
 ### [🔗 Ndk Flutter](./packages/ndk_flutter/)
 
-Flutter widgets and utilities that require Flutter as a dependency, including the NIP-07 browser-extension signer.
+Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `ndk_nip07`.
 
 ### [🔗 CLI](./packages/cli/)
 

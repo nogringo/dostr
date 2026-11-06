@@ -51,7 +51,8 @@ Future<Nip01Event?> signNote(EventSigner signer, String text) async {
 
 An interactive signer lists what waits for the user in `pendingRequests` and
 `pendingRequestsStream`, and `cancelRequest` drops one. A local signer always
-has an empty list.
+has an empty list. `ConcurrencyLimiterMixin` caps how many requests an
+interactive signer sends at once and queues the rest.
 
 To plug a signer into NDK, implement `EventSigner`, and
 `LocalEventSignerFactory` if NDK should create it from a private key.
@@ -59,5 +60,5 @@ To plug a signer into NDK, implement `EventSigner`, and
 ## Coming from `ndk`
 
 `EventSigner`, `LocalEventSignerFactory` and `PendingSignerRequest` used to be
-in `ndk_core`, and the two exceptions in `ndk`. What changed is in the
+in `ndk_core`, and the two exceptions and `ConcurrencyLimiterMixin` in `ndk`. What changed is in the
 [`ndk_core` changelog](https://pub.dev/packages/ndk_core/changelog).

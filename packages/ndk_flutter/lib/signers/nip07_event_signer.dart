@@ -1,5 +1,4 @@
-/// NIP-07 browser-extension signer for Nostr.
+/// NIP-07 browser-extension signer for Nostr, from `ndk_nip07`.
 library;
 
-export 'src/nip07_event_signer_stub.dart'
-    if (dart.library.js_interop) 'src/nip07_event_signer_web.dart';
+export 'package:ndk_nip07/ndk_nip07.dart';
