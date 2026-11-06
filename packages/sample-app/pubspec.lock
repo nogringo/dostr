@@ -887,6 +887,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip17:
+    dependency: "direct main"
+    description:
+      path: "../nip17"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nip19:
     dependency: "direct overridden"
     description:
@@ -1378,6 +1385,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.3.2"
+  ur:
+    dependency: "direct overridden"
+    description:
+      path: "../bc_ur"
+      relative: true
+    source: path
+    version: "0.1.0"
   uri_parser:
     dependency: transitive
     description:

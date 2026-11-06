@@ -5,13 +5,30 @@ label: DM
 
 [!badge variant="primary" text="high level"]
 
+## Setup
+
+DMs live in the `ndk_nip17` package.
+
+```yaml
+dependencies:
+  ndk_nip17: ^0.1.0
+```
+
+```dart
+import 'package:ndk_nip17/ndk_nip17.dart';
+
+final dms = Dms(ndk);
+```
+
+`Dms(ndk)` uses the logged-in account, the cache and the DM relay lists of that NDK instance.
+
 ## When to use
 
-Use `ndk.dms` for direct-message style conversations based on NIP-17 gift-wrapped messages.
+Use `Dms` for direct-message style conversations based on NIP-17 gift-wrapped messages.
 
 ## Current behavior
 
-`ndk.dms` provides:
+`Dms` provides:
 
 - sending a message to a peer
 - loading all conversations for the logged-in account

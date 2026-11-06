@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
 
 class DmLiveState extends ChangeNotifier {
   final Ndk ndk;
+  final Dms dms;
 
   StreamSubscription<Account?>? _authSubscription;
   StreamSubscription<Nip01Event>? _dmSubscription;
@@ -17,7 +19,7 @@ class DmLiveState extends ChangeNotifier {
 
   int _eventVersion = 0;
 
-  DmLiveState({required this.ndk});
+  DmLiveState({required this.ndk, required this.dms});
 
   int get unreadCount =>
       _unreadRumorIdsByPeer.values.fold(0, (sum, ids) => sum + ids.length);
@@ -57,7 +59,7 @@ class DmLiveState extends ChangeNotifier {
     }
 
     try {
-      final existingConversations = await ndk.dms.loadConversations();
+      final existingConversations = await dms.loadConversations();
       if (pubKey != _activePubKey) {
         return;
       }
@@ -86,7 +88,7 @@ class DmLiveState extends ChangeNotifier {
     _activeRequestId = response.requestId;
     _dmSubscription = response.stream.listen((wrappedEvent) async {
       try {
-        final message = await ndk.dms.parseWrappedMessage(
+        final message = await dms.parseWrappedMessage(
           wrappedEvent: wrappedEvent,
         );
         if (message == null) {

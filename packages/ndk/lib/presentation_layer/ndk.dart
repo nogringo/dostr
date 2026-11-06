@@ -14,7 +14,6 @@ import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
-import '../domain_layer/usecases/dms/dms.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 import '../domain_layer/usecases/proof_of_work/proof_of_work.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
@@ -126,11 +125,6 @@ class Ndk {
   ///
   /// low level usecase, recommended for advanced users
   GiftWrap get giftWrap => _initialization.giftWrap;
-
-  /// Direct messages usecase.
-  ///
-  /// App-facing alias for NIP-17 private direct messages.
-  Dms get dms => _initialization.dms;
 
   /// Use case for managing relay connectivity \
   /// get notified about relay connectivity changes \

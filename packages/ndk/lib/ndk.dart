@@ -41,9 +41,6 @@ export 'domain_layer/entities/cache_eviction.dart';
 export 'domain_layer/entities/event_cache_records.dart';
 export 'domain_layer/entities/event_delivery_inspection.dart';
 export 'domain_layer/entities/hidden_event.dart';
-export 'domain_layer/entities/nip_17_conversation.dart';
-export 'domain_layer/entities/nip_17_message.dart';
-export 'domain_layer/entities/nip_17_file_message.dart';
 export '';
 
 /**
@@ -92,7 +89,6 @@ export 'domain_layer/usecases/software/software.dart';
 export 'domain_layer/usecases/gift_wrap/gift_wrap.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
-export 'domain_layer/usecases/dms/dms.dart';
 export 'domain_layer/usecases/bunkers/bunkers.dart';
 export 'domain_layer/usecases/bunkers/models/bunker_connection.dart';
 export 'domain_layer/entities/nip46_client_metadata.dart';

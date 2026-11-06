@@ -16,6 +16,7 @@ import 'package:ndk_drift/ndk_drift.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
 import 'package:ndk_flutter/ndk_flutter.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 
@@ -26,6 +27,7 @@ import 'protocol_registration.dart';
 bool signerAppAvailable = false;
 
 late Ndk ndk;
+late Dms dms;
 late Nwc nwc;
 late Cashu cashu;
 late Wallets wallets;
@@ -35,7 +37,8 @@ Future<void> Function(String url)? activeWalletProtocolHandler;
 final localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 final appLinks = AppLinks();
 DmLiveState? _dmLiveState;
-DmLiveState get dmLiveState => _dmLiveState ??= DmLiveState(ndk: ndk)..start();
+DmLiveState get dmLiveState =>
+    _dmLiveState ??= DmLiveState(ndk: ndk, dms: dms)..start();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -75,6 +78,7 @@ Future<void> main() async {
     ),
   );
   final walletsRepo = FlutterSecureStorageWalletsRepo(storage: secureStorage);
+  dms = Dms(ndk);
   nwc = Nwc(ndk);
   cashu = Cashu(
     ndk,

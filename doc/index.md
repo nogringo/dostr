@@ -57,7 +57,7 @@ features, usecases, and Flutter widgets end to end.
 - **Metadata management**: Query and update user profiles with automatic caching
 - **Contact lists**: Follow/unfollow users and manage contact lists
 - **NIP-51 lists**: Public and private relay sets, mute lists, and custom lists
-- **DMs**: Cached direct-message loading with decrypted payload reuse and live updates
+- **DMs** (NIP-17): Cached direct-message loading with decrypted payload reuse and live updates, with `ndk_nip17`
 - **Gift wrap** (NIP-59): Encrypted, metadata-obscured messaging
 - **Zaps** (NIP-57): Lightning payments on Nostr
 - **Nostr Wallet Connect** (NIP-47): Integrate Lightning wallets

@@ -35,6 +35,7 @@ workspace:
   - packages/cashu_protocol
   - packages/cashu
   - packages/blossom
+  - packages/nip17
   - packages/fetchers
   - packages/http
   - packages/url_set

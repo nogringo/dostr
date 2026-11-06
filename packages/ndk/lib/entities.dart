@@ -36,9 +36,6 @@ export 'domain_layer/entities/request_response.dart';
 export 'domain_layer/entities/tuple.dart';
 export 'domain_layer/entities/user_relay_list.dart';
 export 'domain_layer/entities/gift_wrap_unwrap_result.dart';
-export 'domain_layer/entities/nip_17_message.dart';
-export 'domain_layer/entities/nip_17_file_message.dart';
-export 'domain_layer/entities/nip_17_conversation.dart';
 export 'domain_layer/entities/nip_85.dart';
 
 /// models

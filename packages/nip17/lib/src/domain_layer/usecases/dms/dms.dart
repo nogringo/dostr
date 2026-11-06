@@ -1,18 +1,10 @@
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk/ndk.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/nip_51_list.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
+
 import '../../entities/nip_17_conversation.dart';
 import '../../entities/nip_17_file_message.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_17_message.dart';
-import 'package:ndk_auth/ndk_auth.dart';
-import '../../repositories/cache_manager.dart';
-import '../accounts/accounts.dart';
-import '../broadcast/broadcast.dart';
-import '../gift_wrap/gift_wrap.dart';
-import '../requests/requests.dart';
-import '../user_relay_lists/user_relay_lists.dart';
 
 /// Direct-messages usecase built on NIP-17 gift-wrapped messages.
 ///
@@ -46,8 +38,19 @@ class Dms {
   final CacheManager _cacheManager;
   final EventVerifier _eventVerifier;
 
-  /// Creates the direct-messages usecase.
-  Dms({
+  /// Creates the direct-messages usecase on top of [ndk]: its accounts,
+  /// requests, broadcast, gift wrap, user relay lists, cache and verifier.
+  factory Dms(Ndk ndk) => Dms.withDependencies(
+    accounts: ndk.accounts,
+    requests: ndk.requests,
+    broadcast: ndk.broadcast,
+    giftWrap: ndk.giftWrap,
+    userRelayLists: ndk.userRelayLists,
+    cacheManager: ndk.config.cache,
+    eventVerifier: ndk.config.eventVerifier,
+  );
+
+  Dms.withDependencies({
     required Accounts accounts,
     required Requests requests,
     required Broadcast broadcast,
@@ -768,5 +771,3 @@ class LegacyNip04Message {
   String get id => event.id;
   int get createdAt => event.createdAt;
 }
-
-/// App-facing alias for the direct-messages usecase.

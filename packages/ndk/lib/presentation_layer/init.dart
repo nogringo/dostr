@@ -31,7 +31,6 @@ import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/metadatas/metadatas.dart';
 import '../domain_layer/usecases/nip05/nip_05.dart';
-import '../domain_layer/usecases/dms/dms.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
@@ -87,7 +86,6 @@ class Initialization {
   late Search search;
   late Software software;
   late GiftWrap giftWrap;
-  late Dms dms;
   late Connectivy connectivity;
   late DecryptedEventPayloads decryptedEventPayloads;
   late FetchedRanges fetchedRanges;
@@ -317,15 +315,6 @@ class Initialization {
       eventVerifier: _ndkConfig.eventVerifier,
       eventSignerFactory: _ndkConfig.eventSignerFactory,
       decryptedEventPayloads: decryptedEventPayloads,
-    );
-    dms = Dms(
-      accounts: accounts,
-      requests: requests,
-      broadcast: broadcast,
-      giftWrap: giftWrap,
-      userRelayLists: userRelayLists,
-      cacheManager: _ndkConfig.cache,
-      eventVerifier: _ndkConfig.eventVerifier,
     );
 
     connectivity = Connectivy(

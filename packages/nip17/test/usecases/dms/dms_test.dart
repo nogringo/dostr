@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 
@@ -16,6 +17,7 @@ void main() async {
   group('dms', () {
     late MockRelay relay;
     late Ndk ndk;
+    late Dms dms;
 
     // Sender (the logged-in user in most tests)
     late KeyPair alice;
@@ -26,8 +28,8 @@ void main() async {
       alice = Bip340.generatePrivateKey();
       bob = Bip340.generatePrivateKey();
 
-      relay = MockRelay(name: 'dm relay', explicitPort: 5201);
-      await relay.startServer();
+      relay = MockRelay(challengeOnConnect: false);
+      await relay.start();
 
       final cache = MemCacheManager();
       final config = NdkConfig(
@@ -39,6 +41,7 @@ void main() async {
       );
       ndk = Ndk(config);
       await ndk.bootstrapRelaysConnected;
+      dms = Dms(ndk);
 
       // Alice logs in
       ndk.accounts.loginPrivateKey(
@@ -49,7 +52,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     /// Publishes a NIP-17 DM relay list (kind 10050) for [pubKey] containing
@@ -77,8 +80,7 @@ void main() async {
     test('requires a logged-in account to send', () async {
       ndk.accounts.logout();
       expect(
-        () =>
-            ndk.dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
+        () => dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
         throwsA(isA<Exception>()),
       );
     });
@@ -86,12 +88,12 @@ void main() async {
     test(
       'publishDmRelays normalizes, signs, and publishes kind 10050',
       () async {
-        await ndk.dms.publishDmRelays(
+        await dms.publishDmRelays(
           relayUrlsOrdered: [relay.url, '${relay.url}/'],
           broadcastRelays: [relay.url],
         );
 
-        final event = relay.receivedEvents
+        final event = relay.events
             .where((event) => event.kind == Nip51List.kDmRelays)
             .single;
         expect(event.pubKey, alice.publicKey);
@@ -105,13 +107,13 @@ void main() async {
 
     test('publishDmRelays rejects invalid and empty relay lists', () async {
       expect(
-        () => ndk.dms.publishDmRelays(
+        () => dms.publishDmRelays(
           relayUrlsOrdered: const ['https://not-a-relay.example'],
         ),
         throwsArgumentError,
       );
       expect(
-        () => ndk.dms.publishDmRelays(relayUrlsOrdered: const []),
+        () => dms.publishDmRelays(relayUrlsOrdered: const []),
         throwsArgumentError,
       );
     });
@@ -119,7 +121,7 @@ void main() async {
     test('sendMessage throws when sender has no DM relays', () async {
       // Alice logged in but has no kind 10050 anywhere
       await expectLater(
-        ndk.dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
+        dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
         throwsA(isA<Exception>()),
       );
     });
@@ -128,7 +130,7 @@ void main() async {
       await publishDmRelayList(alice, urls: [relay.url]);
 
       expect(
-        ndk.dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
+        dms.sendMessage(recipientPubKey: bob.publicKey, content: 'hi'),
         throwsA(isA<Exception>()),
       );
     });
@@ -136,13 +138,13 @@ void main() async {
     test(
       'legacy NIP-04 is explicit and works without NIP-17 relay lists',
       () async {
-        await ndk.dms.sendLegacyNip04Message(
+        await dms.sendLegacyNip04Message(
           recipientPubKey: bob.publicKey,
           content: 'legacy compatibility text',
           rendezvousRelays: [relay.url],
         );
 
-        final event = relay.receivedEvents.singleWhere(
+        final event = relay.events.singleWhere(
           (event) => event.kind == Dms.kLegacyNip04MessageKind,
         );
         expect(event.pubKey, alice.publicKey);
@@ -161,7 +163,7 @@ void main() async {
         // by the request usecase, while the DM usecase must also parse cached
         // legacy events after a restart/account switch.
         await ndk.config.cache.saveEvent(event);
-        final messages = await ndk.dms.loadLegacyNip04Conversation(
+        final messages = await dms.loadLegacyNip04Conversation(
           peerPubKey: alice.publicKey,
           rendezvousRelays: [relay.url],
           timeout: const Duration(seconds: 10),
@@ -175,7 +177,7 @@ void main() async {
 
     test('legacy NIP-04 requires an explicit rendezvous relay', () async {
       expect(
-        () => ndk.dms.sendLegacyNip04Message(
+        () => dms.sendLegacyNip04Message(
           recipientPubKey: bob.publicKey,
           content: 'not sent',
           rendezvousRelays: const [],
@@ -212,7 +214,7 @@ void main() async {
           pubkey: bob.publicKey,
         );
         ndk.accounts.loginExternalSigner(signer: bobSigner);
-        final messages = await ndk.dms.loadLegacyNip04Conversation(
+        final messages = await dms.loadLegacyNip04Conversation(
           peerPubKey: alice.publicKey,
           rendezvousRelays: [relay.url],
         );
@@ -227,14 +229,14 @@ void main() async {
         await publishDmRelayList(alice, urls: [relay.url]);
         await publishDmRelayList(bob, urls: [relay.url]);
 
-        await ndk.dms.sendMessage(
+        await dms.sendMessage(
           recipientPubKey: bob.publicKey,
           content: 'hello bob',
         );
 
         // The mock relay should have received two distinct gift wrap events
         // (one for the recipient, one for the sender).
-        final giftWraps = relay.receivedEvents
+        final giftWraps = relay.events
             .where((e) => e.kind == GiftWrap.kGiftWrapEventkind)
             .toList();
         expect(giftWraps.length, greaterThanOrEqualTo(2));
@@ -252,12 +254,10 @@ void main() async {
       () async {
         await publishDmRelayList(alice, urls: [relay.url]);
         await publishDmRelayList(bob, urls: [relay.url]);
-        relay
-          ..rejectFirstEventPublishes = 2
-          ..rejectEventMessage = 'kind 1059 is not allowed on this relay';
+        relay.rejectEventsWith = 'kind 1059 is not allowed on this relay';
 
         await expectLater(
-          ndk.dms.sendMessage(
+          dms.sendMessage(
             recipientPubKey: bob.publicKey,
             content: 'must not report false success',
           ),
@@ -278,7 +278,7 @@ void main() async {
         await publishDmRelayList(alice, urls: [relay.url]);
         await publishDmRelayList(bob, urls: [relay.url]);
 
-        await ndk.dms.sendMessage(
+        await dms.sendMessage(
           recipientPubKey: bob.publicKey,
           content: 'with subject',
           additionalTags: const [
@@ -295,7 +295,7 @@ void main() async {
         );
         await publishDmRelayList(bob, urls: [relay.url]);
 
-        final conversations = await ndk.dms.loadConversations(
+        final conversations = await dms.loadConversations(
           timeout: const Duration(seconds: 10),
         );
         expect(conversations, isNotEmpty);
@@ -321,7 +321,7 @@ void main() async {
         await publishDmRelayList(bob, urls: [relay.url]);
 
         final mention = Bip340.generatePrivateKey();
-        await ndk.dms.sendMessage(
+        await dms.sendMessage(
           recipientPubKey: bob.publicKey,
           content: 'hello with mention',
           additionalTags: [
@@ -329,7 +329,7 @@ void main() async {
           ],
         );
 
-        final messages = await ndk.dms.loadConversation(
+        final messages = await dms.loadConversation(
           peerPubKey: bob.publicKey,
           timeout: const Duration(seconds: 10),
         );
@@ -355,7 +355,7 @@ void main() async {
         encryptedFile: encrypted,
       );
 
-      await ndk.dms.sendFileMessage(
+      await dms.sendFileMessage(
         recipientPubKey: bob.publicKey,
         metadata: metadata,
         additionalTags: const [
@@ -364,7 +364,7 @@ void main() async {
         ],
       );
 
-      final wraps = relay.receivedEvents
+      final wraps = relay.events
           .where((event) => event.kind == GiftWrap.kGiftWrapEventkind)
           .toList();
       expect(wraps, hasLength(2));
@@ -376,7 +376,7 @@ void main() async {
         expect(wrap.content, isNot(contains('private-case-id')));
       }
 
-      final messages = await ndk.dms.loadConversation(
+      final messages = await dms.loadConversation(
         peerPubKey: bob.publicKey,
         timeout: const Duration(seconds: 10),
       );
@@ -399,17 +399,17 @@ void main() async {
 
     test('loadConversations throws when not logged in', () async {
       ndk.accounts.logout();
-      expect(ndk.dms.loadConversations(), throwsA(isA<Exception>()));
+      expect(dms.loadConversations(), throwsA(isA<Exception>()));
     });
 
     test('loadConversations throws when user has no DM relays', () async {
-      await expectLater(ndk.dms.loadConversations(), throwsA(isA<Exception>()));
+      await expectLater(dms.loadConversations(), throwsA(isA<Exception>()));
     });
 
     test('loadConversations returns empty when no messages exist', () async {
       await publishDmRelayList(alice, urls: [relay.url]);
 
-      final conversations = await ndk.dms.loadConversations(
+      final conversations = await dms.loadConversations(
         timeout: const Duration(seconds: 10),
       );
       expect(conversations, isEmpty);
@@ -418,7 +418,7 @@ void main() async {
     test('loadConversation returns empty list for unknown peer', () async {
       await publishDmRelayList(alice, urls: [relay.url]);
 
-      final messages = await ndk.dms.loadConversation(
+      final messages = await dms.loadConversation(
         peerPubKey: bob.publicKey,
         timeout: const Duration(seconds: 10),
       );
@@ -433,18 +433,18 @@ void main() async {
 
         // Alice sends two messages to bob. createdAt is second-precision, so we
         // wait > 1s between sends to guarantee a strict ordering.
-        await ndk.dms.sendMessage(
+        await dms.sendMessage(
           recipientPubKey: bob.publicKey,
           content: 'message 1',
         );
         await Future.delayed(const Duration(seconds: 2));
-        await ndk.dms.sendMessage(
+        await dms.sendMessage(
           recipientPubKey: bob.publicKey,
           content: 'message 2',
         );
 
         // Alice can load her own conversations from her DM relays
-        final aliceConversations = await ndk.dms.loadConversations(
+        final aliceConversations = await dms.loadConversations(
           timeout: const Duration(seconds: 10),
         );
         expect(aliceConversations.length, 1);
@@ -465,7 +465,7 @@ void main() async {
           privkey: bob.privateKey!,
         );
 
-        final bobConversation = await ndk.dms.loadConversation(
+        final bobConversation = await dms.loadConversation(
           peerPubKey: alice.publicKey,
           timeout: const Duration(seconds: 10),
         );
@@ -488,17 +488,14 @@ void main() async {
 
       // Send to bob first, then carol. createdAt is second-precision so we
       // space the sends by > 1s to guarantee carol's conversation is newer.
-      await ndk.dms.sendMessage(
-        recipientPubKey: bob.publicKey,
-        content: 'to bob',
-      );
+      await dms.sendMessage(recipientPubKey: bob.publicKey, content: 'to bob');
       await Future.delayed(const Duration(seconds: 2));
-      await ndk.dms.sendMessage(
+      await dms.sendMessage(
         recipientPubKey: carol.publicKey,
         content: 'to carol',
       );
 
-      final conversations = await ndk.dms.loadConversations(
+      final conversations = await dms.loadConversations(
         timeout: const Duration(seconds: 10),
       );
       expect(conversations.length, 2);
@@ -511,18 +508,18 @@ void main() async {
       await publishDmRelayList(alice, urls: [relay.url]);
 
       // Nothing in cache -> empty
-      var snapshot = await ndk.dms.loadConversationsSnapshot();
+      var snapshot = await dms.loadConversationsSnapshot();
       expect(snapshot, isEmpty);
 
       // Populate cache by sending + loading
       await publishDmRelayList(bob, urls: [relay.url]);
-      await ndk.dms.sendMessage(
+      await dms.sendMessage(
         recipientPubKey: bob.publicKey,
         content: 'cached msg',
       );
-      await ndk.dms.loadConversations(timeout: const Duration(seconds: 10));
+      await dms.loadConversations(timeout: const Duration(seconds: 10));
 
-      snapshot = await ndk.dms.loadConversationsSnapshot();
+      snapshot = await dms.loadConversationsSnapshot();
       // After a network load, the gift wraps are cached and decryptable via
       // the decrypted payload sidecar cache.
       final bobConv = snapshot.where((c) => c.peerPubKey == bob.publicKey);
@@ -533,7 +530,7 @@ void main() async {
     test('loadConversationSnapshot reads only from cache', () async {
       await publishDmRelayList(alice, urls: [relay.url]);
 
-      var messages = await ndk.dms.loadConversationSnapshot(
+      var messages = await dms.loadConversationSnapshot(
         peerPubKey: bob.publicKey,
       );
       expect(messages, isEmpty);
@@ -557,7 +554,7 @@ void main() async {
         recipientPubkey: alice.publicKey,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
       expect(parsed, isNull);
     });
 
@@ -589,7 +586,7 @@ void main() async {
         privkey: alice.privateKey!,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
       expect(parsed, isNotNull);
       expect(parsed!.content, 'hi alice');
       expect(parsed.peerPubKey, bob.publicKey);
@@ -610,7 +607,7 @@ void main() async {
         recipientPubkey: alice.publicKey,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
       expect(parsed, isNull);
     });
 
@@ -642,9 +639,7 @@ void main() async {
         privkey: alice.privateKey!,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(
-        wrappedEvent: tamperedWrap,
-      );
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: tamperedWrap);
       expect(parsed, isNull);
     });
 
@@ -680,7 +675,7 @@ void main() async {
         privkey: alice.privateKey!,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
       expect(parsed, isNull);
     });
 
@@ -712,7 +707,7 @@ void main() async {
         privkey: alice.privateKey!,
       );
 
-      final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+      final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
       expect(parsed, isNull);
     });
 
@@ -735,7 +730,7 @@ void main() async {
           recipientPubkey: alice.publicKey,
         );
 
-        final parsed = await ndk.dms.parseWrappedMessage(wrappedEvent: wrap);
+        final parsed = await dms.parseWrappedMessage(wrappedEvent: wrap);
         expect(parsed, isNotNull);
         expect(parsed!.isOutgoing, isTrue);
         expect(parsed.peerPubKey, bob.publicKey);

@@ -101,6 +101,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers, without depending on `ndk`.
 
+### [🔗 NIP-17](./packages/nip17/)
+
+`ndk_nip17`: NIP-17 private direct messages, with text and encrypted file messages, conversations and DM relay lists.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

@@ -68,6 +68,19 @@ final contactList = await ndk.follows.getContactList(pubkey);
 contactList?.contacts; // List<Contact>
 ```
 
+## DMs (NIP-17)
+
+Lives in the `ndk_nip17` package: `Dms(ndk)` sends and loads NIP-17 gift-wrapped messages and publishes the DM relay list (kind 10050).
+
+```dart
+import 'package:ndk_nip17/ndk_nip17.dart';
+
+final dms = Dms(ndk);
+
+await dms.sendMessage(recipientPubKey: pubkey, content: 'hello');
+final conversations = await dms.loadConversations();
+```
+
 ## Files (Blossom)
 
 Lives in the `ndk_blossom` package: `Files(ndk)` (high level), `Blossom(ndk)` (low level) and `BlossomUserServerList(ndk)` (kind 10063).

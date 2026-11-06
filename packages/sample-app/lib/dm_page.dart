@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:ndk/entities.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_flutter/widgets/widgets.dart';
 
 import 'main.dart';
@@ -68,7 +69,7 @@ class _DmInboxPageState extends State<DmInboxPage> {
 
     if (!forceRefresh) {
       try {
-        final cachedConversations = await ndk.dms.loadConversationsSnapshot();
+        final cachedConversations = await dms.loadConversationsSnapshot();
         if (!mounted || loadGeneration != _loadGeneration) return;
         if (cachedConversations.isNotEmpty || _conversations.isEmpty) {
           setState(() {
@@ -88,7 +89,7 @@ class _DmInboxPageState extends State<DmInboxPage> {
     }
 
     try {
-      final conversations = await ndk.dms.loadConversations(
+      final conversations = await dms.loadConversations(
         forceRefresh: forceRefresh,
       );
       if (!mounted || loadGeneration != _loadGeneration) return;
@@ -363,7 +364,7 @@ class _DmConversationPageState extends State<DmConversationPage> {
     });
 
     try {
-      await ndk.dms.sendMessage(
+      await dms.sendMessage(
         recipientPubKey: widget.peerPubKey,
         content: content,
       );
@@ -406,7 +407,7 @@ class _DmConversationPageState extends State<DmConversationPage> {
 
     if (!forceRefresh) {
       try {
-        final cachedMessages = await ndk.dms.loadConversationSnapshot(
+        final cachedMessages = await dms.loadConversationSnapshot(
           peerPubKey: widget.peerPubKey,
         );
         if (!mounted || loadGeneration != _loadGeneration) return;
@@ -429,7 +430,7 @@ class _DmConversationPageState extends State<DmConversationPage> {
     );
 
     try {
-      final messages = await ndk.dms.loadConversation(
+      final messages = await dms.loadConversation(
         peerPubKey: widget.peerPubKey,
         forceRefresh: forceRefresh,
       );
@@ -684,7 +685,7 @@ class _DmComposePageState extends State<DmComposePage> {
     });
 
     try {
-      await ndk.dms.sendMessage(recipientPubKey: recipient, content: content);
+      await dms.sendMessage(recipientPubKey: recipient, content: content);
       if (!mounted) return;
       context.go('/dm/conversation/$recipient');
     } catch (e) {

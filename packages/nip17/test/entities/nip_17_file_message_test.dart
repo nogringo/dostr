@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:test/test.dart';
 
 void main() {

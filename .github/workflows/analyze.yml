@@ -130,6 +130,10 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/nip17
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
           - package: ./packages/ndk_flutter
             pub_get_directory: .
             pub_get_command: dart pub get
