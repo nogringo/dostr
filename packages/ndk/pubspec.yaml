@@ -23,6 +23,7 @@ platforms:
 dependencies:
   ndk_core: ^0.11.0-dev.2
   ndk_nip01: ^0.1.0
+  ndk_signer: ^0.1.0
   ndk_nip19: ^0.1.0
   ndk_bip340: ^0.1.0
   ndk_nip44: ^0.1.0

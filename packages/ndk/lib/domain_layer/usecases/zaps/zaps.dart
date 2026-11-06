@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ndk_core/shared/logger/logger.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/request_response.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import '../lnurl/lnurl.dart';
 import '../requests/requests.dart';
 import 'invoice_response.dart';

@@ -54,12 +54,9 @@ export 'package:ndk_core/domain_layer/entities/account.dart';
  */
 
 /// signers / verifiers
-export 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+export 'package:ndk_signer/ndk_signer.dart';
 export 'package:ndk_bip340/ndk_bip340.dart';
 export 'shared/helpers/concurrency_limiter_mixin.dart';
-export 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
-export 'domain_layer/entities/signer_request_cancelled_exception.dart';
-export 'domain_layer/entities/signer_request_rejected_exception.dart';
 
 /// cache
 export 'domain_layer/repositories/cache_manager.dart';

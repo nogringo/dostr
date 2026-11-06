@@ -25,6 +25,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip01`: the NIP-01 event (`Nip01Event`), its id computation, and the `EventVerifier` interface, in pure Dart.
 
+### [🔗 Signer](./packages/signer/)
+
+`ndk_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, in pure Dart.
+
 ### [🔗 NIP-19](./packages/nip19/)
 
 `ndk_nip19`: NIP-19 bech32 encoding and decoding (npub, nsec, note, nprofile, nevent, naddr), in pure Dart.

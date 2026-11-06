@@ -10,7 +10,7 @@ import '../../entities/nip_65.dart';
 import '../../entities/read_write_marker.dart';
 import '../../entities/user_relay_list.dart';
 import '../../repositories/cache_manager.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import '../accounts/accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../requests/requests.dart';

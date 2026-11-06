@@ -1,5 +1,5 @@
 import 'package:bip340/bip340.dart' as bip340;
-import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/shared/isolates/isolate_manager.dart';
 
 /// Pure dart event verifier using https://pub.dev/packages/bip340

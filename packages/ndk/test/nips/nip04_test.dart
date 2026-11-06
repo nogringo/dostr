@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 

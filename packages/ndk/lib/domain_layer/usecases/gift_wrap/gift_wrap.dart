@@ -4,7 +4,7 @@ import 'dart:math';
 import '../../entities/event_cache_records.dart';
 import '../../entities/gift_wrap_unwrap_result.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import '../accounts/accounts.dart';
 import '../decrypted_event_payloads/decrypted_event_payloads.dart';
 

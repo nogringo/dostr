@@ -1,5 +1,5 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 Future<void> main() async {
   final signer = Bip340EventSignerFactory().createWithNewKeyPair();

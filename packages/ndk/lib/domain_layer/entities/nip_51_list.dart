@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:ndk_core/shared/helpers/list_casting.dart';
 import 'package:ndk_core/shared/logger/logger.dart';
 import '../../shared/nips/nip01/helpers.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 class Nip51List {

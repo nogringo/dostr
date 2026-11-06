@@ -901,6 +901,13 @@ packages:
       relative: true
     source: path
     version: "0.6.0"
+  ndk_signer:
+    dependency: "direct overridden"
+    description:
+      path: "../signer"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_url_set:
     dependency: "direct overridden"
     description:

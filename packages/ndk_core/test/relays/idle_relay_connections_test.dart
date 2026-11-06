@@ -10,7 +10,7 @@ import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';
 import 'package:ndk_core/src/relay_connection.dart';
 import 'package:ndk_core/src/request_state.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 

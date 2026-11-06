@@ -20,7 +20,7 @@ import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_strategies.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/blossom.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'blossom_exceptions.dart';
 import 'blossom_user_server_list.dart';

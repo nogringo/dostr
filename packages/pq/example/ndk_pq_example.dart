@@ -1,4 +1,4 @@
-import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_pq/ndk_pq.dart';
 
 Future<void> main() async {

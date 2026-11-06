@@ -1,7 +1,5 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
-import 'package:ndk/domain_layer/entities/signer_request_rejected_exception.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 /// A wrapper signer that declines every request, the way a bunker answers one
 /// its owner rejected: it throws instead of returning an event.

@@ -3,7 +3,7 @@ import 'dart:convert';
 import '../../../domain_layer/entities/cashu/cashu_event_content.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../../domain_layer/entities/cashu/cashu_event.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 class CashuEventModel extends CashuEvent {
   CashuEventModel({

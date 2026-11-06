@@ -16,8 +16,8 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk_core: ^0.11.0-dev.2
   ndk_nip01: ^0.1.0
+  ndk_signer: ^0.1.0
   ndk_nip44: ^0.1.0
   hooks: ">=1.0.0 <3.0.0"
   native_toolchain_rust: ^1.0.7

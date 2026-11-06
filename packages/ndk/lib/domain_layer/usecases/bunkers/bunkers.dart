@@ -6,7 +6,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:ndk/domain_layer/usecases/bunkers/models/nostr_connect.dart';
 
 import '../../../data_layer/repositories/signers/nip46_event_signer.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'models/bunker_request.dart';
 import 'models/bunker_connection.dart';

@@ -1,6 +1,5 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/entities/pending_signer_request.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 /// A wrapper signer that adds a delay to simulate slow signing
 /// (like NIP-46, NIP-55, etc.) where user interaction is required.

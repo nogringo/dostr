@@ -1,6 +1,7 @@
+import 'dart:math';
+
 import 'package:bip340/bip340.dart' as bip340;
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'key_pair.dart';
 
@@ -9,7 +10,7 @@ class Bip340 {
   /// [privateKey] is a  32-bytes hex encoded string
   /// returns a hex string
   static String sign(String message, String privateKey) {
-    final aux = Helpers.getSecureRandomHex(32);
+    final aux = _secureRandomHex(32);
     return bip340.sign(privateKey, message, aux);
   }
 
@@ -32,7 +33,7 @@ class Bip340 {
 
   /// generates a new private key with a secure random generator
   static KeyPair generatePrivateKey() {
-    final privKey = Helpers.getSecureRandomHex(32);
+    final privKey = _secureRandomHex(32);
     final pubKey = getPublicKey(privKey);
 
     return KeyPair(privKey, pubKey);
@@ -49,4 +50,12 @@ class Bip340 {
     final signature = sign(id, privateKey);
     return event.copyWith(id: id, sig: signature);
   }
+}
+
+String _secureRandomHex(int bytes) {
+  final random = Random.secure();
+  return List.generate(
+    bytes,
+    (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+  ).join();
 }

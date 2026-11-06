@@ -1,5 +1,5 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 /// Signs the kind 24242 event an operation authorises itself with.
 typedef BlossomAuthorizationSigner = Future<Nip01Event> Function();

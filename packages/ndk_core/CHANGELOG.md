@@ -35,6 +35,17 @@ the relay url normalization ndk_core connects with.
 `package:ndk_nip01/ndk_nip01.dart`, which `package:ndk_core/ndk_core.dart`
 exports.
 
+`EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`,
+`SignerMethod`, `SignerRequestRejectedException` and
+`SignerRequestCancelledException` are in
+[`ndk_signer`](https://pub.dev/packages/ndk_signer):
+`package:ndk/domain_layer/repositories/event_signer.dart`,
+`package:ndk/domain_layer/entities/pending_signer_request.dart`,
+`package:ndk/domain_layer/entities/signer_request_rejected_exception.dart` and
+`package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart` are
+now `package:ndk_signer/ndk_signer.dart`, which
+`package:ndk_core/ndk_core.dart` exports.
+
 NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 `NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
 `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or

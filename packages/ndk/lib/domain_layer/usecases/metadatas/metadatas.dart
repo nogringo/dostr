@@ -8,7 +8,7 @@ import '../../entities/metadata.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/relay_set.dart';
 import '../../repositories/cache_manager.dart';
-import 'package:ndk_core/domain_layer/repositories/event_signer.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import '../accounts/accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../requests/requests.dart';
