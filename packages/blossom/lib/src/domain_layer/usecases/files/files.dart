@@ -11,9 +11,13 @@ class Files {
 
   Files(this._blossom);
 
-  /// the sha256 a blossom [url] names, null for any other url
-  static String? _sha256Of(String url) =>
-      Blossom.sha256Regex.firstMatch(url)?.group(1);
+  /// the blob a blossom [url] names, and the server it names it on, which a
+  /// read tries first; null for any other url
+  static ({String sha256, String server})? _blobOf(String url) {
+    final match = Blossom.sha256Regex.firstMatch(url);
+    if (match == null) return null;
+    return (sha256: match.group(1)!, server: url.substring(0, match.start));
+  }
 
   /// upload a file to the server(s) \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
@@ -87,9 +91,10 @@ class Files {
   /// if its a blossom url (sha256 in url), blossom is used to download \
   /// if its a public url, the file is downloaded directly \
   /// \
-  /// [serverUrls] and [pubkey] are used to download from blossom \
-  /// if [serverUrls] is null, the userServerList is fetched from nostr (using the pubkey). \
-  /// if both [serverUrls] and [pubkey] are null, throws an error.
+  /// A blossom url is read from its own server first, then from [serverUrls],
+  /// then from [pubkey]'s server list (kind 10063), which is read only once
+  /// none of the others had the blob. Bytes that do not hash to the url's
+  /// sha256 are refused, see [Blossom.getBlob].
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. It is ignored for a plain url, which is fetched directly
   /// and never speaks blossom.
@@ -99,12 +104,12 @@ class Files {
     String? pubkey,
     AuthPolicy? auth,
   }) async {
-    final sha256 = _sha256Of(url);
-    if (sha256 == null) return _blossom.directDownload(url: Uri.parse(url));
+    final blob = _blobOf(url);
+    if (blob == null) return _blossom.directDownload(url: Uri.parse(url));
 
     return _blossom.getBlob(
-      sha256: sha256,
-      serverUrls: serverUrls,
+      sha256: blob.sha256,
+      serverUrls: [blob.server, ...?serverUrls],
       pubkeyToFetchUserServerList: pubkey,
       auth: auth,
     );
@@ -117,9 +122,7 @@ class Files {
   /// if its a blossom url (sha256 in url), blossom is used to download \
   /// if its a public url, the file is downloaded directly \
   /// \
-  /// [serverUrls] and [pubkey] are used to download from blossom \
-  /// if [serverUrls] is null, the userServerList is fetched from nostr (using the pubkey). \
-  /// if both [serverUrls] and [pubkey] are null, throws an error.
+  /// Servers are tried as in [download].
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. It is ignored for a plain url, which is fetched directly
   /// and never speaks blossom.
@@ -130,8 +133,8 @@ class Files {
     List<String>? serverUrls,
     String? pubkey,
   }) async {
-    final sha256 = _sha256Of(url);
-    if (sha256 == null) {
+    final blob = _blobOf(url);
+    if (blob == null) {
       return _blossom.directDownloadToFile(
         url: Uri.parse(url),
         outputPath: outputPath,
@@ -139,10 +142,10 @@ class Files {
     }
 
     return _blossom.downloadBlobToFile(
-      sha256: sha256,
+      sha256: blob.sha256,
       outputPath: outputPath,
       auth: auth,
-      serverUrls: serverUrls,
+      serverUrls: [blob.server, ...?serverUrls],
       pubkeyToFetchUserServerList: pubkey,
     );
   }
@@ -150,7 +153,9 @@ class Files {
   /// checks if a url is a blossom url. \
   /// it its not a blossom url, the url is returned. \
   /// if its a blossom url, blossom is used to check if the blob exists on the server(s) \
-  /// returns alive url if the blob exists, throws an error if the blob does not exist
+  /// Servers are tried as in [download]. Returns [url] itself when its own
+  /// server has the blob, else the url of another server that has it, and
+  /// throws a [BlossomRequestException] when none has it.
   /// [auth] says which identity the check may be attributed to, see
   /// [AuthPolicy]. It is ignored for a plain url, which is returned as is.
   Future<String> checkUrl({
@@ -159,14 +164,16 @@ class Files {
     String? pubkey,
     AuthPolicy? auth,
   }) async {
-    final sha256 = _sha256Of(url);
-    if (sha256 == null) return url;
+    final blob = _blobOf(url);
+    if (blob == null) return url;
 
-    return _blossom.checkBlob(
-      sha256: sha256,
-      serverUrls: serverUrls,
+    final alive = await _blossom.checkBlob(
+      sha256: blob.sha256,
+      serverUrls: [blob.server, ...?serverUrls],
       pubkeyToFetchUserServerList: pubkey,
       auth: auth,
     );
+    // the url as given keeps its extension
+    return alive == '${blob.server}/${blob.sha256}' ? url : alive;
   }
 }

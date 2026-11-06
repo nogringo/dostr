@@ -12,3 +12,10 @@
    `BlossomRequestException`. `BlossomRepository` takes
    `serverMediaOptimisation` like the usecases, and `BlossomRepositoryImpl`,
    `FileIO` and `createFileIO` are no longer exported.
+ - `Files` reads a blossom url from its own server first, so the url alone is
+   enough. A read given both `serverUrls` and `pubkeyToFetchUserServerList`
+   reads that list once none of `serverUrls` had the blob, where the `ndk`
+   version ignored it. A download checks that the bytes hash to the blob's
+   sha256, and throws a `BlossomHashMismatchException` otherwise. A missing or
+   empty server list throws a `BlossomNoServerListException` instead of a
+   bare `Exception`.

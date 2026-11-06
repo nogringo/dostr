@@ -2,6 +2,7 @@ import '../entities/blossom_strategies.dart';
 import '../entities/blob_upload_progress.dart';
 import '../entities/blossom_authorization.dart';
 import '../entities/blossom_blobs.dart';
+import '../entities/blossom_hash_mismatch_exception.dart';
 import '../entities/blossom_request_exception.dart';
 import '../entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -65,8 +66,11 @@ abstract class BlossomRepository {
   /// Gets a blob by trying servers sequentially until success, or throws a
   /// [BlossomRequestException]
   /// With [BlossomAuthorization.none] the server must be public
-  /// If [start] and [end] are null, the entire blob is returned
-  /// [start] and [end] are used to download a range of bytes, @see MDN HTTP range requests
+  /// If [start] and [end] are null, the entire blob is returned, and a server
+  /// whose bytes do not hash to [sha256] fails with a
+  /// [BlossomHashMismatchException]
+  /// [start] and [end] are used to download a range of bytes, which is not
+  /// checked, @see MDN HTTP range requests
   Future<BlobResponse> getBlob({
     required String sha256,
     required List<String> serverUrls,
@@ -78,6 +82,8 @@ abstract class BlossomRepository {
   /// Downloads a blob directly to a file path
   /// For web: triggers browser download dialog with the file
   /// For native: saves to the file system at the given path
+  /// Fails with a [BlossomHashMismatchException], and saves nothing, when the
+  /// bytes do not hash to [sha256]
   Future<void> downloadBlobToFile({
     required String sha256,
     required String outputPath,
@@ -107,6 +113,8 @@ abstract class BlossomRepository {
 
   /// fetches the blob in ranges of [chunkSize] from a server that supports range
   /// requests, otherwise streams it whole from the first server that has it.
+  /// The stream ends with a [BlossomHashMismatchException] when the bytes do
+  /// not hash to [sha256].
   /// @see MDN HTTP range requests
   Future<Stream<BlobResponse>> getBlobStream({
     required String sha256,

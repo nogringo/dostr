@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
 
 import '../../../domain_layer/entities/blob_upload_progress.dart';
 import '../../../domain_layer/entities/blossom_authorization.dart';
 import '../../../domain_layer/entities/blossom_blobs.dart';
+import '../../../domain_layer/entities/blossom_hash_mismatch_exception.dart';
 import '../../../domain_layer/entities/blossom_request_exception.dart';
 import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
@@ -29,6 +31,57 @@ Uri _endpoint(String serverUrl, String path) {
     base = base.substring(0, base.length - 1);
   }
   return Uri.parse('$base/$path');
+}
+
+/// the error for [serverUrl] serving bytes that hash to [actual] when asked for
+/// the blob [sha256], null when they are that blob
+BlossomHashMismatchException? _mismatch(
+  String serverUrl,
+  String sha256,
+  String actual,
+) => actual == sha256.toLowerCase()
+    ? null
+    : BlossomHashMismatchException(
+        serverUrl: serverUrl,
+        expected: sha256,
+        actual: actual,
+      );
+
+/// [chunks] of the blob [sha256] from [serverUrl], ending with a
+/// [BlossomHashMismatchException] when they hash to anything else
+Stream<BlobResponse> _verified(
+  Stream<BlobResponse> chunks,
+  String sha256,
+  String serverUrl,
+) {
+  late crypto.Digest digest;
+  final hashing = crypto.sha256.startChunkedConversion(
+    ChunkedConversionSink<crypto.Digest>.withCallback(
+      (digests) => digest = digests.single,
+    ),
+  );
+  var failed = false;
+
+  return chunks.transform(
+    StreamTransformer.fromHandlers(
+      handleData: (chunk, sink) {
+        hashing.add(chunk.data);
+        sink.add(chunk);
+      },
+      handleError: (error, stackTrace, sink) {
+        failed = true;
+        sink.addError(error, stackTrace);
+      },
+      handleDone: (sink) {
+        if (!failed) {
+          hashing.close();
+          final mismatch = _mismatch(serverUrl, sha256, digest.toString());
+          if (mismatch != null) sink.addError(mismatch);
+        }
+        sink.close();
+      },
+    ),
+  );
 }
 
 int? _statusCode(Object error) =>
@@ -651,8 +704,17 @@ class BlossomRepositoryImpl implements BlossomRepository {
             headers: headersFor(authEvent),
           ),
         );
+        final data = response.bodyBytes;
+        if (start == null) {
+          final mismatch = _mismatch(
+            url,
+            sha256,
+            crypto.sha256.convert(data).toString(),
+          );
+          if (mismatch != null) throw mismatch;
+        }
         return BlobResponse(
-          data: response.bodyBytes,
+          data: data,
           mimeType: response.headers['content-type'],
           contentLength: int.tryParse(response.headers['content-length'] ?? ''),
           contentRange: response.headers['content-range'] ?? '',
@@ -770,12 +832,16 @@ class BlossomRepositoryImpl implements BlossomRepository {
       );
     }
 
-    return _chunkedBlobStream(
-      sha256: sha256,
-      serverUrl: supportedServer,
-      authorization: authorization,
-      contentLength: contentLength,
-      chunkSize: chunkSize,
+    return _verified(
+      _chunkedBlobStream(
+        sha256: sha256,
+        serverUrl: supportedServer,
+        authorization: authorization,
+        contentLength: contentLength,
+        chunkSize: chunkSize,
+      ),
+      sha256,
+      supportedServer,
     );
   }
 
@@ -791,14 +857,19 @@ class BlossomRepositoryImpl implements BlossomRepository {
     int offset = 0;
     while (offset < contentLength) {
       final end = (offset + chunkSize - 1).clamp(0, contentLength - 1);
-      yield await getBlob(
+      final chunk = await getBlob(
         sha256: sha256,
         serverUrls: [serverUrl],
         authorization: authorization,
         start: offset,
         end: end,
       );
-      offset = end + 1;
+      // stop rather than ask forever: the hash check fails the short blob
+      if (chunk.data.isEmpty) return;
+      yield chunk;
+      // a server may send less than the range, or ignore it and send the whole
+      // blob
+      offset += chunk.data.length;
     }
   }
 
@@ -823,13 +894,17 @@ class BlossomRepositoryImpl implements BlossomRepository {
             },
           ),
         );
-        return response.stream.map(
-          (chunk) => BlobResponse(
-            data: _bytes(chunk),
-            mimeType: response.headers['content-type'],
-            contentLength: response.contentLength,
-            contentRange: response.headers['content-range'] ?? '',
+        return _verified(
+          response.stream.map(
+            (chunk) => BlobResponse(
+              data: _bytes(chunk),
+              mimeType: response.headers['content-type'],
+              contentLength: response.contentLength,
+              contentRange: response.headers['content-range'] ?? '',
+            ),
           ),
+          sha256,
+          url,
         );
       } on http.RequestAbortedException {
         rethrow;

@@ -11,6 +11,8 @@ import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_authorization.dart';
 import '../../entities/blossom_blobs.dart';
+import '../../entities/blossom_hash_mismatch_exception.dart';
+import '../../entities/blossom_request_exception.dart';
 import '../../entities/blossom_strategies.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/blossom.dart';
@@ -26,6 +28,16 @@ typedef BlossomServerListResolver =
 /// [pubkey].
 typedef _AuthEventBuilder = Nip01Event Function(String pubkey);
 
+/// [servers] less those an [AuthHandler] keeps an upfront authorization from
+typedef _ServerFilter = Future<List<String>> Function(List<String> servers);
+
+/// [servers] less those [seen] already names, a trailing slash aside. The ones
+/// it keeps join [seen].
+List<String> _distinctServers(Iterable<String> servers, Set<String> seen) => [
+  for (final server in servers)
+    if (seen.add(server.replaceFirst(RegExp(r'/+$'), ''))) server,
+];
+
 /// What one blossom operation does about its authorization, and the servers
 /// it may talk to.
 class _BlossomAuthPlan {
@@ -35,12 +47,21 @@ class _BlossomAuthPlan {
   /// authorization from
   final List<String> servers;
 
+  /// the servers to try once none of [servers] served the operation, resolved
+  /// only then and filtered the same way, null when there are none
+  final Future<List<String>> Function()? nextServers;
+
   /// the same identity authorising another event, for the same [servers],
   /// without asking the [AuthHandler] again
   final Future<BlossomAuthorization> Function(_AuthEventBuilder buildEvent)
   authorize;
 
-  const _BlossomAuthPlan(this.authorization, this.servers, this.authorize);
+  const _BlossomAuthPlan(
+    this.authorization,
+    this.servers,
+    this.authorize, {
+    this.nextServers,
+  });
 }
 
 /// direct access usecase to blossom \
@@ -178,6 +199,10 @@ class Blossom {
   /// stays anonymous. [buildEvent] makes the kind 24242 event, because only the
   /// operation knows its `t` and `x` tags.
   ///
+  /// [resolveNextServers] gives the servers to try once none of
+  /// [resolveServers] served the operation. It is read then, or right away
+  /// when the [AuthHandler] keeps every first server from the identity.
+  ///
   /// Throws [BlossomAuthUnavailableException], before anything is sent, when
   /// [auth] requires an identity that cannot sign or that no server may see.
   Future<_BlossomAuthPlan> _planAuth({
@@ -186,6 +211,7 @@ class Blossom {
     required String operation,
     required _AuthEventBuilder buildEvent,
     required Future<List<String>> Function() resolveServers,
+    Future<List<String>> Function()? resolveNextServers,
   }) async {
     final aborts = _aborts;
     final fallback = authorisesByDefault ? _defaultAccount() : null;
@@ -196,6 +222,8 @@ class Blossom {
             ? AuthPolicy.require(fallback ?? _throwawayAccount())
             : const AuthPolicy.never());
 
+    var resolveNext = resolveNextServers;
+    _ServerFilter admit = (servers) async => servers;
     final List<String> servers;
     final Future<BlossomAuthorization> Function(_AuthEventBuilder) authorize;
     switch (policy) {
@@ -207,13 +235,19 @@ class Blossom {
         if (!account.signer.canSign()) {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
-        final resolved = await resolveServers();
-        servers = throwaway
-            ? resolved
-            : await _serversAllowing(resolved, account.pubkey);
-        if (servers.isEmpty) {
+        if (!throwaway) {
+          admit = (servers) => _serversAllowing(servers, account.pubkey);
+        }
+        var admitted = await admit(await resolveServers());
+        final next = resolveNext;
+        if (admitted.isEmpty && next != null) {
+          admitted = await admit(await next());
+          resolveNext = null;
+        }
+        if (admitted.isEmpty) {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
+        servers = admitted;
         Future<Nip01Event> sign(_AuthEventBuilder build) =>
             account.signer.sign(build(account.pubkey));
         authorize = (build) async => BlossomAuthorization.upfront(
@@ -236,7 +270,13 @@ class Blossom {
     }
     final authorization = await authorize(buildEvent);
     _throwIfAbortedSince(aborts);
-    return _BlossomAuthPlan(authorization, servers, authorize);
+    final next = resolveNext;
+    return _BlossomAuthPlan(
+      authorization,
+      servers,
+      authorize,
+      nextServers: next == null ? null : () async => admit(await next()),
+    );
   }
 
   Future<List<String>> _serversAllowing(
@@ -255,26 +295,67 @@ class Blossom {
 
   /// The four read operations authorise the same way: a `get` event naming the
   /// blob, and anonymous unless the caller asked otherwise.
+  ///
+  /// They start with [serverUrls], else with [pubkeyToFetchUserServerList]'s
+  /// list. Given both, that list is read only once none of [serverUrls] served
+  /// the blob. Unlike a write, a read is about somebody else's blob as often
+  /// as not, so it never guesses whose list to read.
   Future<_BlossomAuthPlan> _readAuthPlan({
     required AuthPolicy? auth,
     required String sha256,
     required List<String>? serverUrls,
     required String? pubkeyToFetchUserServerList,
-  }) => _planAuth(
-    auth: auth,
-    authorisesByDefault: false,
-    operation: "get",
-    buildEvent: (pubkey) => _blossomAuthEvent(
-      content: "get",
-      pubkey: pubkey,
-      type: "get",
-      blobSha256: sha256,
-    ),
-    resolveServers: () => _resolveReadServers(
-      serverUrls: serverUrls,
-      pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
-    ),
-  );
+  }) {
+    final owner = pubkeyToFetchUserServerList;
+    final tried = <String>{};
+    return _planAuth(
+      auth: auth,
+      authorisesByDefault: false,
+      operation: "get",
+      buildEvent: (pubkey) => _blossomAuthEvent(
+        content: "get",
+        pubkey: pubkey,
+        type: "get",
+        blobSha256: sha256,
+      ),
+      resolveServers: () async {
+        if (serverUrls != null) return _distinctServers(serverUrls, tried);
+        if (owner == null) throw const BlossomNoServerListException();
+        return _distinctServers(await _userServerList(owner), tried);
+      },
+      resolveNextServers: serverUrls == null || owner == null
+          ? null
+          : () async =>
+                _distinctServers(await _getUserServerList(owner) ?? [], tried),
+    );
+  }
+
+  /// Runs [read] on the servers [plan] starts with, then on its next ones if
+  /// none of the first served the blob.
+  Future<T> _read<T>(
+    _BlossomAuthPlan plan,
+    Future<T> Function(BlossomAuthorization authorization, List<String> servers)
+    read,
+  ) async {
+    final aborts = _aborts;
+    try {
+      return await read(plan.authorization, plan.servers);
+    } on BlossomRequestException catch (first) {
+      final nextServers = plan.nextServers;
+      if (nextServers == null) rethrow;
+      final servers = await nextServers();
+      _throwIfAbortedSince(aborts);
+      if (servers.isEmpty) rethrow;
+      try {
+        return await read(plan.authorization, servers);
+      } on BlossomRequestException catch (next) {
+        throw BlossomRequestException(first.operation, {
+          ...first.errors,
+          ...next.errors,
+        });
+      }
+    }
+  }
 
   /// An event authorising a [type] write of the blob [sha256], such as an
   /// `upload` or a `media` one
@@ -335,39 +416,17 @@ class Blossom {
 
     final owner =
         explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.pubkey;
-    if (owner == null) {
-      throw Exception(
-        "No server list to use: pass serverUrls, or "
-        "pubkeyToFetchUserServerList, or an account in auth, or log in",
-      );
-    }
-
-    final resolved = await _getUserServerList(owner);
-    if (resolved == null) {
-      throw Exception("User has no server list");
-    }
-    return resolved;
+    if (owner == null) throw const BlossomNoServerListException();
+    return _userServerList(owner);
   }
 
-  /// The servers a read talks to. Unlike a write, a read is about somebody
-  /// else's blob as often as not, so it never guesses.
-  Future<List<String>> _resolveReadServers({
-    required List<String>? serverUrls,
-    required String? pubkeyToFetchUserServerList,
-  }) async {
-    if (serverUrls != null) return serverUrls;
-
-    if (pubkeyToFetchUserServerList == null) {
-      throw Exception(
-        "pubkeyToFetchUserServerList is null and serverUrls is null",
-      );
+  /// [pubkey]'s servers, or a [BlossomNoServerListException] when it has none
+  Future<List<String>> _userServerList(String pubkey) async {
+    final servers = await _getUserServerList(pubkey);
+    if (servers == null || servers.isEmpty) {
+      throw BlossomNoServerListException(pubkey);
     }
-
-    final resolved = await _getUserServerList(pubkeyToFetchUserServerList);
-    if (resolved == null) {
-      throw Exception("User has no server list");
-    }
-    return resolved;
+    return servers;
   }
 
   /// A fresh key, for something that has to be signed but names nobody.
@@ -408,7 +467,7 @@ class Blossom {
 
   /// upload a blob to the server
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error \
+  /// if it has none, or an empty one, throws a [BlossomNoServerListException] \
   /// [strategy] is the upload strategy, default is mirrorAfterSuccess \
   /// [serverMediaOptimisation] is whether the server should optimise the media [BUD-05], IMPORTANT: the server hash will be different \
   /// [precomputedSha256] optional hex sha256 of [data]; if provided, skips local hashing. \
@@ -465,7 +524,7 @@ class Blossom {
   /// For web: prompts user to select a file using File System Access API (modern browsers)
   ///
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error \
+  /// if it has none, or an empty one, throws a [BlossomNoServerListException] \
   /// [strategy] is the upload strategy, default is mirrorAfterSuccess \
   /// [serverMediaOptimisation] is whether the server should optimise the media [BUD-05], IMPORTANT: the server hash will be different \
   /// [precomputedSha256] optional hex sha256 of the file; if provided, skips the [UploadPhase.hashing] phase entirely. \
@@ -599,9 +658,14 @@ class Blossom {
   }
 
   /// Gets a blob by trying servers sequentially until success (fallback), or
-  /// throws a [BlossomRequestException] when none served it \
-  /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// throws a [BlossomRequestException] when none served it. A server whose
+  /// bytes do not hash to [sha256] fails with a [BlossomHashMismatchException].
+  ///
+  /// [serverUrls] are tried first. [pubkeyToFetchUserServerList]'s server
+  /// list (kind 10063) is read when [serverUrls] is null, or once none of them
+  /// served the blob. Throws [BlossomNoServerListException] when there is no
+  /// server to try.
+  ///
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
   Future<BlobResponse> getBlob({
@@ -617,10 +681,13 @@ class Blossom {
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
     );
 
-    return _blossomImpl.getBlob(
-      sha256: sha256,
-      authorization: plan.authorization,
-      serverUrls: plan.servers,
+    return _read(
+      plan,
+      (authorization, servers) => _blossomImpl.getBlob(
+        sha256: sha256,
+        authorization: authorization,
+        serverUrls: servers,
+      ),
     );
   }
 
@@ -628,8 +695,8 @@ class Blossom {
   /// For native platforms (Windows, macOS, Linux, Android, iOS): uses actual file system paths
   /// For web: triggers browser download dialog to save the file
   ///
-  /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// Servers resolve as in [getBlob]. Bytes that do not hash to [sha256] fail
+  /// with a [BlossomHashMismatchException] and are not saved.
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
   Future<void> downloadBlobToFile({
@@ -646,17 +713,19 @@ class Blossom {
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
     );
 
-    return _blossomImpl.downloadBlobToFile(
-      sha256: sha256,
-      outputPath: outputPath,
-      authorization: plan.authorization,
-      serverUrls: plan.servers,
+    return _read(
+      plan,
+      (authorization, servers) => _blossomImpl.downloadBlobToFile(
+        sha256: sha256,
+        outputPath: outputPath,
+        authorization: authorization,
+        serverUrls: servers,
+      ),
     );
   }
 
   /// checks if the blob exists on the server without downloading, useful to check before streaming a video via url \
-  /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// Servers resolve as in [getBlob].
   ///
   /// returns the url of one server that has the blob e.g. https://myserver.com/hash \
   /// otherwise throws a [BlossomRequestException]
@@ -675,16 +744,19 @@ class Blossom {
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
     );
 
-    return _blossomImpl.checkBlob(
-      sha256: sha256,
-      authorization: plan.authorization,
-      serverUrls: plan.servers,
+    return _read(
+      plan,
+      (authorization, servers) => _blossomImpl.checkBlob(
+        sha256: sha256,
+        authorization: authorization,
+        serverUrls: servers,
+      ),
     );
   }
 
   /// downloads a blob as a stream, useful for large files like videos \
-  /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// Servers resolve as in [getBlob]. The stream ends with a
+  /// [BlossomHashMismatchException] when the bytes do not hash to [sha256].
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
   Future<Stream<BlobResponse>> getBlobStream({
@@ -701,17 +773,20 @@ class Blossom {
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
     );
 
-    return _blossomImpl.getBlobStream(
-      sha256: sha256,
-      authorization: plan.authorization,
-      serverUrls: plan.servers,
-      chunkSize: chunkSize,
+    return _read(
+      plan,
+      (authorization, servers) => _blossomImpl.getBlobStream(
+        sha256: sha256,
+        authorization: authorization,
+        serverUrls: servers,
+        chunkSize: chunkSize,
+      ),
     );
   }
 
   /// list the [pubkey] blobs \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// if it has none, or an empty one, throws a [BlossomNoServerListException]
   ///
   /// [auth] says which identity the listing may be attributed to, see
   /// [AuthPolicy]. Without it the listing authorises as the logged-in account
@@ -731,13 +806,7 @@ class Blossom {
       operation: "list",
       buildEvent: (owner) =>
           _blossomAuthEvent(content: "List Blobs", pubkey: owner, type: "list"),
-      resolveServers: () async {
-        final servers = serverUrls ?? await _getUserServerList(pubkey);
-        if (servers == null) {
-          throw Exception("User has no server list: $pubkey");
-        }
-        return servers;
-      },
+      resolveServers: () async => serverUrls ?? await _userServerList(pubkey),
     );
 
     return _blossomImpl.listBlobs(
@@ -751,7 +820,7 @@ class Blossom {
 
   /// delete a blob
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
-  /// if the pubkey has no UserServerList (kind: 10063), throws an error
+  /// if it has none, or an empty one, throws a [BlossomNoServerListException]
   /// [auth] says which identity the deletion may be attributed to, see
   /// [AuthPolicy]. Without it the deletion authorises as the logged-in
   /// account on the servers an [AuthHandler] agrees to, or as a throwaway key

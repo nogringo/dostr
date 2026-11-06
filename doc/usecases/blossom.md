@@ -33,6 +33,10 @@ For a simpler, more generic API, check out
 
 If no servers are specified the default user server list (kind `10063`) is used for upload and delete.
 
+A read tries `serverUrls` first. Given `pubkeyToFetchUserServerList` too, it
+reads that user's server list only once none of `serverUrls` had the blob, and
+then tries the servers it did not try yet.
+
 The auth events get automatically signed and are valid for five minutes
 (`Blossom.defaultAuthExpiration`), or for the `authExpiration` passed to the
 `Blossom` constructor. An operation that outlives it, such as a long streamed
@@ -56,6 +60,17 @@ try {
   }
 }
 ```
+
+A download checks that the bytes hash to the sha256 it asked for. A server
+that serves anything else fails with a `BlossomHashMismatchException`:
+`getBlob` moves on to the next server, while `getBlobStream` ends with it and
+`downloadBlobToFile` throws it without saving anything. A range read through
+`BlossomRepository.getBlob` is not checked.
+
+An operation with no server to talk to throws a `BlossomNoServerListException`
+before sending anything: the user has no server list (kind `10063`), or an
+empty one, or the call gave neither servers nor a pubkey. Its `pubkey` says
+whose list is missing.
 
 Writes report each server in their results instead: `BlobUploadResult` and
 `BlobDeleteResult` say whether that server succeeded, and why not.

@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ndk/ndk.dart';
@@ -198,7 +199,10 @@ void main() {
     );
 
     blossom.abortPending();
-    final blob = await blossom.getBlob(sha256: _sha256, serverUrls: _servers);
+    final blob = await blossom.getBlob(
+      sha256: sha256.convert([1, 2, 3]).toString(),
+      serverUrls: _servers,
+    );
 
     expect(blob.data, [1, 2, 3]);
   });

@@ -33,8 +33,13 @@ Files uses blossom under the hood to get, upload and delete files. \
 The default user server list, specified by kind `10063` is used for upload and delete
 
 A url naming a sha256, with or without a file extension
-(`https://cdn.example.com/<sha256>.pdf`), goes through blossom and falls back
-on the other servers. Any other url is fetched directly.
+(`https://cdn.example.com/<sha256>.pdf`), goes through blossom. Its own server
+is tried first, then `serverUrls`, then the server list of `pubkey`, which is
+read only once the others failed. The bytes must hash to that sha256. Any other
+url is fetched directly.
+
+`checkUrl` answers the url itself when its server has the blob, extension
+included, and otherwise the url of a server that has it.
 
 `upload` takes the same `strategy` as `Blossom.uploadBlob`. An `NdkFile` that
 already knows its `sha256` is not hashed again.
