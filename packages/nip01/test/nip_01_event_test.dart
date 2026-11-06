@@ -204,7 +204,7 @@ void main() {
       expect(event.getFirstTag('e'), 'root');
       expect(event.pTags, [bob]);
       expect(event.dTag, 'slug');
-      expect(event.tTags, ['Nostr']);
+      expect(event.getTags('t'), ['Nostr']);
       expect(event.getFirstTag('x'), isNull);
     });
 

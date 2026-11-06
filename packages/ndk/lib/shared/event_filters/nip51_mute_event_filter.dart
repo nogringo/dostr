@@ -37,7 +37,7 @@ class Nip51MuteEventFilter extends EventFilter {
   }
 
   bool hasMutedHashtag(Nip01Event event) {
-    List<String> tTags = event.tTags;
+    List<String> tTags = event.getTags('t');
     return tTags.isNotEmpty &&
         _mutedTags != null &&
         tTags.any((tag) => _mutedTags!.contains(tag.trim().toLowerCase()));

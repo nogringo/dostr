@@ -240,3 +240,8 @@ request only hands out events whose id and signature it checked, and nothing
 read the flag. The cache managers no longer store it.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
+
+`Nip01Event.tTags` is deprecated: use `getTags('t')`. It is now an extension
+member, like the other deprecated ones (`getEId`, `getDtag`, `replyETags`), in
+`domain_layer/entities/nip_01_utils.dart` with `Nip01Utils`, which
+`package:ndk_core/ndk_core.dart` exports.

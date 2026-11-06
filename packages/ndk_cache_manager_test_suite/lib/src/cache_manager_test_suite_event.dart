@@ -791,7 +791,7 @@ void _runEventTests(
     expect(loaded!.tags.length, equals(event.tags.length));
     expect(loaded.tags, equals(event.tags));
     expect(loaded.pTags, contains('pubkey1'));
-    expect(loaded.tTags, contains('nostr'));
+    expect(loaded.getTags('t'), contains('nostr'));
   });
 
   test(

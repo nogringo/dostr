@@ -80,13 +80,12 @@ class MyVerifier implements EventVerifier {
 
 ## Coming from `ndk_core`
 
-`package:ndk_core/domain_layer/entities/nip_01_event.dart`,
-`package:ndk_core/domain_layer/entities/nip_01_utils.dart` and
+`package:ndk_core/domain_layer/entities/nip_01_event.dart` and
 `package:ndk_core/domain_layer/repositories/event_verifier.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`. `package:ndk_core/ndk_core.dart` and
-`package:ndk/ndk.dart` still export `Nip01Event`, `Nip01Utils` and
-`EventVerifier`. `Nip01EventModel` stays in `ndk_core`, but its `fromJson`,
-`toJson` and `toJsonString` now come from `Nip01Event`.
+`package:ndk/ndk.dart` still export `Nip01Event` and `EventVerifier`.
+`Nip01EventModel` stays in `ndk_core`, but its `fromJson`, `toJson` and
+`toJsonString` now come from `Nip01Event`.
 
 `Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
 and `event.payloadId` recomputes it from the payload. `toJson` no longer
@@ -98,7 +97,10 @@ throws a `FormatException` for these. A missing `id`, which it read as `''`,
 is now computed. `validSig` is gone: NDK only hands
 out events it verified, and nothing read the flag.
 
-Deprecated, with their replacements:
+The deprecated members are not in `ndk_nip01`. They stay in `ndk_core`, in
+`package:ndk_core/domain_layer/entities/nip_01_utils.dart`, which
+`package:ndk_core/ndk_core.dart` and `package:ndk/ndk.dart` export. The event
+members are now extension members.
 
 | Deprecated | Use |
 | --- | --- |
@@ -106,4 +108,5 @@ Deprecated, with their replacements:
 | `Nip01Utils.calculateId(event)` | `event.payloadId` |
 | `event.getDtag()` | `event.dTag` |
 | `event.getEId()` | `event.getFirstTag('e')` |
+| `event.tTags` | `event.getTags('t')` |
 | `event.replyETags` | the NIP-10 `reply` marker, read from `event.tags` |

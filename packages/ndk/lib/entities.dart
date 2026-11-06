@@ -14,6 +14,7 @@ export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/hidden_event.dart';
 export 'domain_layer/entities/metadata.dart';
 export 'package:ndk_nip01/ndk_nip01.dart';
+export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'domain_layer/entities/nip_05.dart';
 export 'domain_layer/entities/nip_05_resolve_result.dart';
 export 'domain_layer/entities/nip_51_list.dart';

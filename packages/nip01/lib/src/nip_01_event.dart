@@ -2,40 +2,32 @@ import 'dart:convert';
 
 import 'event_id.dart';
 
-/// basic nostr nip01 event data structure
+/// A NIP-01 event. It cannot change: [copyWith] gives a changed copy.
 class Nip01Event {
   static const int kTextNoteKind = 1;
 
-  /// The event ID is a 32-byte SHA256 hash of the serialised event data.
+  /// The id the event was given, or else the hash of its payload: check it
+  /// with [hasValidId].
   final String id;
 
-  /// The event author's public key.
   final String pubKey;
 
-  /// Event creation timestamp in Unix time.
+  /// Unix time, in seconds.
   final int createdAt;
 
-  /// Event kind identifier (e.g. text_note, set_metadata, etc).
   final int kind;
 
-  /// A JSON array of event tags, copied at construction and unmodifiable.
+  /// A copy of the tags the event was created with, unmodifiable.
   final List<List<String>> tags;
 
-  /// Event content.
   final String content;
 
-  /// 64-byte Schnorr signature of [Nip01Event.id].
+  /// The BIP-340 signature of [id], or null for an unsigned event such as a
+  /// NIP-59 rumor.
   final String? sig;
 
-  /// Creates a new Nostr event.
-  ///
-  /// [pubKey] is the author's public key.
-  /// [kind] is the event kind.
-  /// [tags] are the event tags; the event keeps its own copy of them.
-  /// [content] is an arbitrary string.
-  ///
-  /// Nostr event `id` and `created_at` fields are calculated automatically.
-  ///
+  /// Leave out [id] to compute it from the payload, and [createdAt] to take
+  /// the current time.
   Nip01Event({
     String? id,
     required String pubKey,
@@ -195,9 +187,8 @@ class Nip01Event {
     sig: null,
   );
 
-  /// The NIP-01 JSON object of this event, ready for `jsonEncode`.
-  ///
-  /// An unsigned event, such as a NIP-59 rumor, has no `sig` key.
+  /// The NIP-01 JSON object of this event, ready for `jsonEncode`, with no
+  /// `sig` key for an unsigned event.
   Map<String, dynamic> toJson() => {
     'id': id,
     'pubkey': pubKey,
@@ -218,14 +209,11 @@ class Nip01Event {
   @override
   int get hashCode => id.hashCode;
 
-  /// seconds since epoch
-  static int secondsSinceEpoch() {
-    final secondsSinceEpoch = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    return secondsSinceEpoch;
-  }
+  static int secondsSinceEpoch() =>
+      DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
   /// The id of this event's payload (NIP-01), whatever [id] it holds.
-  String get payloadId => computeEventId(
+  late final String payloadId = computeEventId(
     pubKey: pubKey,
     createdAt: createdAt,
     kind: kind,
@@ -236,73 +224,20 @@ class Nip01Event {
   /// Whether [id] is the hash of this event's payload (NIP-01).
   bool get hasValidId => id == payloadId;
 
-  @Deprecated('Use getFirstTag("e")')
-  String? getEId() => getFirstTag('e');
+  /// The values of the tags named [name], as the event holds them.
+  List<String> getTags(String name) => [
+    for (final tag in tags)
+      if (tag.length > 1 && tag[0] == name) tag[1],
+  ];
 
-  /// values of all tags named [tag], e.g. 'p', exactly as the event holds them
-  List<String> getTags(String tag) {
-    List<String> foundTags = [];
-    for (final e in tags) {
-      if (e.length > 1) {
-        final key = e[0];
-        final value = e[1];
-
-        if (key == tag) {
-          foundTags.add(value);
-        }
-      }
-    }
-    return foundTags;
-  }
-
-  /// return all `t` tags in event
-  List<String> get tTags {
-    return getTags("t");
-  }
-
-  /// return all `p` tags in event
-  List<String> get pTags {
-    return getTags("p");
-  }
-
-  /// return all e tags in event that have a `reply` marker
-  @Deprecated('A NIP-10 marker: read it from tags')
-  List<String> get replyETags {
-    List<String> replyIds = [];
-    for (final tag in tags) {
-      if (tag.length >= 4) {
-        final key = tag[0];
-        final value = tag[1];
-        final marker = tag[3];
-
-        if (key == "e" && marker == "reply") {
-          replyIds.add(value);
-        }
-      }
-    }
-    return replyIds;
-  }
+  List<String> get pTags => getTags('p');
 
   /// The value of the first `d` tag, the identifier of an addressable event.
   String? get dTag => getFirstTag('d');
 
-  @Deprecated('Use dTag')
-  String? getDtag() => dTag;
-
-  /// Get first tag matching given name
-  String? getFirstTag(String name) {
-    for (final tag in tags) {
-      if (tag.length > 1) {
-        final key = tag[0];
-        final value = tag[1];
-
-        if (key == name) {
-          return value;
-        }
-      }
-    }
-    return null;
-  }
+  /// The value of the first tag named [name].
+  String? getFirstTag(String name) =>
+      tags.where((tag) => tag.length > 1 && tag[0] == name).firstOrNull?[1];
 
   @override
   String toString() {

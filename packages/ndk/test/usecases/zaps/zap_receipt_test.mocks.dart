@@ -84,21 +84,24 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
           as String);
 
   @override
-  List<String> get tTags =>
-      (super.noSuchMethod(Invocation.getter(#tTags), returnValue: <String>[])
-          as List<String>);
+  String get payloadId =>
+      (super.noSuchMethod(
+            Invocation.getter(#payloadId),
+            returnValue: _i3.dummyValue<String>(
+              this,
+              Invocation.getter(#payloadId),
+            ),
+          )
+          as String);
+
+  @override
+  bool get hasValidId =>
+      (super.noSuchMethod(Invocation.getter(#hasValidId), returnValue: false)
+          as bool);
 
   @override
   List<String> get pTags =>
       (super.noSuchMethod(Invocation.getter(#pTags), returnValue: <String>[])
-          as List<String>);
-
-  @override
-  List<String> get replyETags =>
-      (super.noSuchMethod(
-            Invocation.getter(#replyETags),
-            returnValue: <String>[],
-          )
           as List<String>);
 
   @override
@@ -137,6 +140,17 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
           as _i2.Nip01Event);
 
   @override
+  _i2.Nip01Event withoutSig() =>
+      (super.noSuchMethod(
+            Invocation.method(#withoutSig, []),
+            returnValue: _FakeNip01Event_0(
+              this,
+              Invocation.method(#withoutSig, []),
+            ),
+          )
+          as _i2.Nip01Event);
+
+  @override
   Map<String, dynamic> toJson() =>
       (super.noSuchMethod(
             Invocation.method(#toJson, []),
@@ -156,9 +170,9 @@ class MockNip01Event extends _i1.Mock implements _i2.Nip01Event {
           as String);
 
   @override
-  List<String> getTags(String? tag) =>
+  List<String> getTags(String? name) =>
       (super.noSuchMethod(
-            Invocation.method(#getTags, [tag]),
+            Invocation.method(#getTags, [name]),
             returnValue: <String>[],
           )
           as List<String>);

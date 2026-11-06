@@ -20,6 +20,7 @@ export 'domain_layer/entities/broadcast_response.dart';
  * 
  */
 export 'package:ndk_nip01/ndk_nip01.dart';
+export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/nip_51_list.dart';
