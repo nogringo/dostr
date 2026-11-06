@@ -11,6 +11,7 @@ import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk/domain_layer/usecases/zaps/zap_request.dart';
 import 'package:ndk/domain_layer/usecases/zaps/zaps.dart';
 import 'package:ndk/presentation_layer/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_slow_signer.dart';
@@ -198,6 +199,34 @@ void main() {
       );
 
       expect(zapRequest, isNotNull);
+    });
+
+    test('ZapRequest.nip01Event keeps a zap request as it is', () {
+      final event = ZapRequest(
+        pubKey: key.publicKey,
+        tags: [],
+        content: '',
+      ).copyWith(sig: 'f' * 128);
+
+      final zapRequest = ZapRequest.nip01Event(event: event);
+
+      expect(zapRequest.id, event.id);
+      expect(zapRequest.sig, event.sig);
+    });
+
+    test('ZapRequest.nip01Event gives another kind a new id and no sig', () {
+      final note = Nip01Event(
+        pubKey: key.publicKey,
+        kind: 1,
+        tags: [],
+        content: '',
+      ).copyWith(sig: 'f' * 128);
+
+      final zapRequest = ZapRequest.nip01Event(event: note);
+
+      expect(zapRequest.kind, ZapRequest.kZapRequestKind);
+      expect(zapRequest.hasValidId, isTrue);
+      expect(zapRequest.sig, isNull);
     });
   });
 }

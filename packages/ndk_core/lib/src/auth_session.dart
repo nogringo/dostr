@@ -4,7 +4,6 @@ import '../domain_layer/entities/account.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../shared/logger/logger.dart';
-import 'auth_event.dart';
 import 'client_msg.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
@@ -13,6 +12,8 @@ import 'client_msg.dart';
 /// A session lasts as long as one socket. Once [end]ed, nothing an
 /// authentication started on it can land on the socket that took its place.
 class AuthSession {
+  static const _kAuthKind = 22242;
+
   AuthSession(
     this.key, {
     required this.challengeTimeout,
@@ -97,12 +98,14 @@ class AuthSession {
     final Nip01Event signedAuth;
     try {
       signedAuth = await account.signer.sign(
-        AuthEvent(
+        Nip01Event(
           pubKey: account.pubkey,
+          kind: _kAuthKind,
           tags: [
             ["relay", key.url],
             ["challenge", challenge],
           ],
+          content: '',
         ),
       );
     } catch (error, stackTrace) {

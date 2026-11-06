@@ -98,6 +98,10 @@ is now an extension member, in
 `EventVerifier` is now an interface: implement it, `extends EventVerifier` no
 longer compiles.
 
+`Nip01Event` is now a final class: it can no longer be extended, implemented
+or mocked. Build the events you need, in tests too, with its constructor or
+`fromJson`.
+
 `Nip01Utils.calculateEventIdSync` is gone: a `Nip01Event` computes its own id,
 and `event.payloadId` recomputes it from the payload. `toJson` no longer
 writes `"sig": null` for an unsigned event.

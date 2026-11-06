@@ -5,18 +5,18 @@
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i7;
-import 'package:ndk/domain_layer/entities/contact_list.dart' as _i13;
-import 'package:ndk/domain_layer/entities/metadata.dart' as _i4;
-import 'package:ndk/domain_layer/entities/nip_05.dart' as _i5;
+import 'package:mockito/src/dummies.dart' as _i6;
+import 'package:ndk/domain_layer/entities/contact_list.dart' as _i12;
+import 'package:ndk/domain_layer/entities/metadata.dart' as _i3;
+import 'package:ndk/domain_layer/entities/nip_05.dart' as _i4;
 import 'package:ndk/domain_layer/entities/nip_65.dart' as _i2;
-import 'package:ndk/domain_layer/entities/pubkey_mapping.dart' as _i11;
-import 'package:ndk/domain_layer/entities/read_write.dart' as _i10;
-import 'package:ndk/domain_layer/entities/read_write_marker.dart' as _i8;
-import 'package:ndk/domain_layer/entities/relay_set.dart' as _i9;
-import 'package:ndk/domain_layer/entities/user_relay_list.dart' as _i6;
-import 'package:ndk_core/domain_layer/entities/filter.dart' as _i12;
-import 'package:ndk_nip01/ndk_nip01.dart' as _i3;
+import 'package:ndk/domain_layer/entities/pubkey_mapping.dart' as _i10;
+import 'package:ndk/domain_layer/entities/read_write.dart' as _i9;
+import 'package:ndk/domain_layer/entities/read_write_marker.dart' as _i7;
+import 'package:ndk/domain_layer/entities/relay_set.dart' as _i8;
+import 'package:ndk/domain_layer/entities/user_relay_list.dart' as _i5;
+import 'package:ndk_core/domain_layer/entities/filter.dart' as _i11;
+import 'package:ndk_nip01/ndk_nip01.dart' as _i13;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -38,25 +38,20 @@ class _FakeNip65_0 extends _i1.SmartFake implements _i2.Nip65 {
     : super(parent, parentInvocation);
 }
 
-class _FakeNip01Event_1 extends _i1.SmartFake implements _i3.Nip01Event {
-  _FakeNip01Event_1(Object parent, Invocation parentInvocation)
+class _FakeMetadata_1 extends _i1.SmartFake implements _i3.Metadata {
+  _FakeMetadata_1(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
-class _FakeMetadata_2 extends _i1.SmartFake implements _i4.Metadata {
-  _FakeMetadata_2(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
-class _FakeNip05_3 extends _i1.SmartFake implements _i5.Nip05 {
-  _FakeNip05_3(Object parent, Invocation parentInvocation)
+class _FakeNip05_2 extends _i1.SmartFake implements _i4.Nip05 {
+  _FakeNip05_2(Object parent, Invocation parentInvocation)
     : super(parent, parentInvocation);
 }
 
 /// A class which mocks [UserRelayList].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockUserRelayList extends _i1.Mock implements _i6.UserRelayList {
+class MockUserRelayList extends _i1.Mock implements _i5.UserRelayList {
   MockUserRelayList() {
     _i1.throwOnMissingStub(this);
   }
@@ -65,7 +60,7 @@ class MockUserRelayList extends _i1.Mock implements _i6.UserRelayList {
   String get pubKey =>
       (super.noSuchMethod(
             Invocation.getter(#pubKey),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.getter(#pubKey),
             ),
@@ -86,12 +81,12 @@ class MockUserRelayList extends _i1.Mock implements _i6.UserRelayList {
           as int);
 
   @override
-  Map<String, _i8.ReadWriteMarker> get relays =>
+  Map<String, _i7.ReadWriteMarker> get relays =>
       (super.noSuchMethod(
             Invocation.getter(#relays),
-            returnValue: <String, _i8.ReadWriteMarker>{},
+            returnValue: <String, _i7.ReadWriteMarker>{},
           )
-          as Map<String, _i8.ReadWriteMarker>);
+          as Map<String, _i7.ReadWriteMarker>);
 
   @override
   Iterable<String> get urls =>
@@ -130,7 +125,7 @@ class MockUserRelayList extends _i1.Mock implements _i6.UserRelayList {
   );
 
   @override
-  set relays(Map<String, _i8.ReadWriteMarker>? value) => super.noSuchMethod(
+  set relays(Map<String, _i7.ReadWriteMarker>? value) => super.noSuchMethod(
     Invocation.setter(#relays, value),
     returnValueForMissingStub: null,
   );
@@ -147,7 +142,7 @@ class MockUserRelayList extends _i1.Mock implements _i6.UserRelayList {
 /// A class which mocks [RelaySet].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
+class MockRelaySet extends _i1.Mock implements _i8.RelaySet {
   MockRelaySet() {
     _i1.throwOnMissingStub(this);
   }
@@ -156,7 +151,7 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
   String get id =>
       (super.noSuchMethod(
             Invocation.getter(#id),
-            returnValue: _i7.dummyValue<String>(this, Invocation.getter(#id)),
+            returnValue: _i6.dummyValue<String>(this, Invocation.getter(#id)),
           )
           as String);
 
@@ -169,7 +164,7 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
   String get name =>
       (super.noSuchMethod(
             Invocation.getter(#name),
-            returnValue: _i7.dummyValue<String>(this, Invocation.getter(#name)),
+            returnValue: _i6.dummyValue<String>(this, Invocation.getter(#name)),
           )
           as String);
 
@@ -177,7 +172,7 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
   String get pubKey =>
       (super.noSuchMethod(
             Invocation.getter(#pubKey),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.getter(#pubKey),
             ),
@@ -193,20 +188,20 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
           as int);
 
   @override
-  _i10.RelayDirection get direction =>
+  _i9.RelayDirection get direction =>
       (super.noSuchMethod(
             Invocation.getter(#direction),
-            returnValue: _i10.RelayDirection.inbox,
+            returnValue: _i9.RelayDirection.inbox,
           )
-          as _i10.RelayDirection);
+          as _i9.RelayDirection);
 
   @override
-  Map<String, List<_i11.PubkeyMapping>> get relaysMap =>
+  Map<String, List<_i10.PubkeyMapping>> get relaysMap =>
       (super.noSuchMethod(
             Invocation.getter(#relaysMap),
-            returnValue: <String, List<_i11.PubkeyMapping>>{},
+            returnValue: <String, List<_i10.PubkeyMapping>>{},
           )
-          as Map<String, List<_i11.PubkeyMapping>>);
+          as Map<String, List<_i10.PubkeyMapping>>);
 
   @override
   bool get fallbackToBootstrapRelays =>
@@ -217,12 +212,12 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
           as bool);
 
   @override
-  List<_i9.NotCoveredPubKey> get notCoveredPubkeys =>
+  List<_i8.NotCoveredPubKey> get notCoveredPubkeys =>
       (super.noSuchMethod(
             Invocation.getter(#notCoveredPubkeys),
-            returnValue: <_i9.NotCoveredPubKey>[],
+            returnValue: <_i8.NotCoveredPubKey>[],
           )
-          as List<_i9.NotCoveredPubKey>);
+          as List<_i8.NotCoveredPubKey>);
 
   @override
   set name(String? value) => super.noSuchMethod(
@@ -243,13 +238,13 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
   );
 
   @override
-  set direction(_i10.RelayDirection? value) => super.noSuchMethod(
+  set direction(_i9.RelayDirection? value) => super.noSuchMethod(
     Invocation.setter(#direction, value),
     returnValueForMissingStub: null,
   );
 
   @override
-  set relaysMap(Map<String, List<_i11.PubkeyMapping>>? value) =>
+  set relaysMap(Map<String, List<_i10.PubkeyMapping>>? value) =>
       super.noSuchMethod(
         Invocation.setter(#relaysMap, value),
         returnValueForMissingStub: null,
@@ -262,22 +257,22 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
   );
 
   @override
-  set notCoveredPubkeys(List<_i9.NotCoveredPubKey>? value) =>
+  set notCoveredPubkeys(List<_i8.NotCoveredPubKey>? value) =>
       super.noSuchMethod(
         Invocation.setter(#notCoveredPubkeys, value),
         returnValueForMissingStub: null,
       );
 
   @override
-  Map<String, List<_i12.Filter>> filtersByRelay(_i12.Filter? filter) =>
+  Map<String, List<_i11.Filter>> filtersByRelay(_i11.Filter? filter) =>
       (super.noSuchMethod(
             Invocation.method(#filtersByRelay, [filter]),
-            returnValue: <String, List<_i12.Filter>>{},
+            returnValue: <String, List<_i11.Filter>>{},
           )
-          as Map<String, List<_i12.Filter>>);
+          as Map<String, List<_i11.Filter>>);
 
   @override
-  void addMoreRelays(Map<String, List<_i11.PubkeyMapping>>? more) =>
+  void addMoreRelays(Map<String, List<_i10.PubkeyMapping>>? more) =>
       super.noSuchMethod(
         Invocation.method(#addMoreRelays, [more]),
         returnValueForMissingStub: null,
@@ -287,7 +282,7 @@ class MockRelaySet extends _i1.Mock implements _i9.RelaySet {
 /// A class which mocks [ContactList].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockContactList extends _i1.Mock implements _i13.ContactList {
+class MockContactList extends _i1.Mock implements _i12.ContactList {
   MockContactList() {
     _i1.throwOnMissingStub(this);
   }
@@ -296,7 +291,7 @@ class MockContactList extends _i1.Mock implements _i13.ContactList {
   String get pubKey =>
       (super.noSuchMethod(
             Invocation.getter(#pubKey),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.getter(#pubKey),
             ),
@@ -421,21 +416,21 @@ class MockContactList extends _i1.Mock implements _i13.ContactList {
           as List<List<String>>);
 
   @override
-  _i3.Nip01Event toEvent() =>
+  _i13.Nip01Event toEvent() =>
       (super.noSuchMethod(
             Invocation.method(#toEvent, []),
-            returnValue: _FakeNip01Event_1(
+            returnValue: _i6.dummyValue<_i13.Nip01Event>(
               this,
               Invocation.method(#toEvent, []),
             ),
           )
-          as _i3.Nip01Event);
+          as _i13.Nip01Event);
 }
 
 /// A class which mocks [Metadata].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMetadata extends _i1.Mock implements _i4.Metadata {
+class MockMetadata extends _i1.Mock implements _i3.Metadata {
   MockMetadata() {
     _i1.throwOnMissingStub(this);
   }
@@ -444,7 +439,7 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
   String get pubKey =>
       (super.noSuchMethod(
             Invocation.getter(#pubKey),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.getter(#pubKey),
             ),
@@ -560,15 +555,15 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
           as Map<String, dynamic>);
 
   @override
-  _i3.Nip01Event toEvent() =>
+  _i13.Nip01Event toEvent() =>
       (super.noSuchMethod(
             Invocation.method(#toEvent, []),
-            returnValue: _FakeNip01Event_1(
+            returnValue: _i6.dummyValue<_i13.Nip01Event>(
               this,
               Invocation.method(#toEvent, []),
             ),
           )
-          as _i3.Nip01Event);
+          as _i13.Nip01Event);
 
   @override
   void setCustomField(String? key, dynamic value) => super.noSuchMethod(
@@ -584,7 +579,7 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
   String getName() =>
       (super.noSuchMethod(
             Invocation.method(#getName, []),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.method(#getName, []),
             ),
@@ -600,7 +595,7 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
           as bool);
 
   @override
-  _i4.Metadata copyWith({
+  _i3.Metadata copyWith({
     String? pubKey,
     String? name,
     String? displayName,
@@ -633,7 +628,7 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
               #tags: tags,
               #content: content,
             }),
-            returnValue: _FakeMetadata_2(
+            returnValue: _FakeMetadata_1(
               this,
               Invocation.method(#copyWith, [], {
                 #pubKey: pubKey,
@@ -653,167 +648,13 @@ class MockMetadata extends _i1.Mock implements _i4.Metadata {
               }),
             ),
           )
-          as _i4.Metadata);
-}
-
-/// A class which mocks [Nip01Event].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockNip01Event extends _i1.Mock implements _i3.Nip01Event {
-  MockNip01Event() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  String get id =>
-      (super.noSuchMethod(
-            Invocation.getter(#id),
-            returnValue: _i7.dummyValue<String>(this, Invocation.getter(#id)),
-          )
-          as String);
-
-  @override
-  String get pubKey =>
-      (super.noSuchMethod(
-            Invocation.getter(#pubKey),
-            returnValue: _i7.dummyValue<String>(
-              this,
-              Invocation.getter(#pubKey),
-            ),
-          )
-          as String);
-
-  @override
-  int get createdAt =>
-      (super.noSuchMethod(Invocation.getter(#createdAt), returnValue: 0)
-          as int);
-
-  @override
-  int get kind =>
-      (super.noSuchMethod(Invocation.getter(#kind), returnValue: 0) as int);
-
-  @override
-  List<List<String>> get tags =>
-      (super.noSuchMethod(
-            Invocation.getter(#tags),
-            returnValue: <List<String>>[],
-          )
-          as List<List<String>>);
-
-  @override
-  String get content =>
-      (super.noSuchMethod(
-            Invocation.getter(#content),
-            returnValue: _i7.dummyValue<String>(
-              this,
-              Invocation.getter(#content),
-            ),
-          )
-          as String);
-
-  @override
-  String get payloadId =>
-      (super.noSuchMethod(
-            Invocation.getter(#payloadId),
-            returnValue: _i7.dummyValue<String>(
-              this,
-              Invocation.getter(#payloadId),
-            ),
-          )
-          as String);
-
-  @override
-  bool get hasValidId =>
-      (super.noSuchMethod(Invocation.getter(#hasValidId), returnValue: false)
-          as bool);
-
-  @override
-  List<String> get pTags =>
-      (super.noSuchMethod(Invocation.getter(#pTags), returnValue: <String>[])
-          as List<String>);
-
-  @override
-  _i3.Nip01Event copyWith({
-    String? id,
-    String? pubKey,
-    int? createdAt,
-    int? kind,
-    List<List<String>>? tags,
-    String? content,
-    String? sig,
-  }) =>
-      (super.noSuchMethod(
-            Invocation.method(#copyWith, [], {
-              #id: id,
-              #pubKey: pubKey,
-              #createdAt: createdAt,
-              #kind: kind,
-              #tags: tags,
-              #content: content,
-              #sig: sig,
-            }),
-            returnValue: _FakeNip01Event_1(
-              this,
-              Invocation.method(#copyWith, [], {
-                #id: id,
-                #pubKey: pubKey,
-                #createdAt: createdAt,
-                #kind: kind,
-                #tags: tags,
-                #content: content,
-                #sig: sig,
-              }),
-            ),
-          )
-          as _i3.Nip01Event);
-
-  @override
-  _i3.Nip01Event withoutSig() =>
-      (super.noSuchMethod(
-            Invocation.method(#withoutSig, []),
-            returnValue: _FakeNip01Event_1(
-              this,
-              Invocation.method(#withoutSig, []),
-            ),
-          )
-          as _i3.Nip01Event);
-
-  @override
-  Map<String, dynamic> toJson() =>
-      (super.noSuchMethod(
-            Invocation.method(#toJson, []),
-            returnValue: <String, dynamic>{},
-          )
-          as Map<String, dynamic>);
-
-  @override
-  String toJsonString() =>
-      (super.noSuchMethod(
-            Invocation.method(#toJsonString, []),
-            returnValue: _i7.dummyValue<String>(
-              this,
-              Invocation.method(#toJsonString, []),
-            ),
-          )
-          as String);
-
-  @override
-  List<String> getTags(String? name) =>
-      (super.noSuchMethod(
-            Invocation.method(#getTags, [name]),
-            returnValue: <String>[],
-          )
-          as List<String>);
-
-  @override
-  String? getFirstTag(String? name) =>
-      (super.noSuchMethod(Invocation.method(#getFirstTag, [name])) as String?);
+          as _i3.Metadata);
 }
 
 /// A class which mocks [Nip05].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockNip05 extends _i1.Mock implements _i5.Nip05 {
+class MockNip05 extends _i1.Mock implements _i4.Nip05 {
   MockNip05() {
     _i1.throwOnMissingStub(this);
   }
@@ -822,7 +663,7 @@ class MockNip05 extends _i1.Mock implements _i5.Nip05 {
   String get identifier =>
       (super.noSuchMethod(
             Invocation.getter(#identifier),
-            returnValue: _i7.dummyValue<String>(
+            returnValue: _i6.dummyValue<String>(
               this,
               Invocation.getter(#identifier),
             ),
@@ -865,7 +706,7 @@ class MockNip05 extends _i1.Mock implements _i5.Nip05 {
   );
 
   @override
-  _i5.Nip05 copyWith({
+  _i4.Nip05 copyWith({
     String? pubKey,
     String? identifier,
     bool? valid,
@@ -880,7 +721,7 @@ class MockNip05 extends _i1.Mock implements _i5.Nip05 {
               #networkFetchTime: networkFetchTime,
               #relays: relays,
             }),
-            returnValue: _FakeNip05_3(
+            returnValue: _FakeNip05_2(
               this,
               Invocation.method(#copyWith, [], {
                 #pubKey: pubKey,
@@ -891,5 +732,5 @@ class MockNip05 extends _i1.Mock implements _i5.Nip05 {
               }),
             ),
           )
-          as _i5.Nip05);
+          as _i4.Nip05);
 }

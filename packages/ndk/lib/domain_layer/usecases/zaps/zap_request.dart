@@ -1,34 +1,26 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 
-/// Zap Request
-class ZapRequest extends Nip01Event {
+/// A NIP-57 zap request: a [Nip01Event] of kind [kZapRequestKind].
+extension type ZapRequest._(Nip01Event _event) implements Nip01Event {
   static const kZapRequestKind = 9734;
 
-  /// creates a zap request from a nip01 event \
-  /// [event] the nip01 event \
-  /// returns the zap request \
-  /// kind is set to [kZapRequestKind]
+  /// [event] as a zap request. An event of another kind is given
+  /// [kZapRequestKind], and with it a new id and no sig.
   ZapRequest.nip01Event({required Nip01Event event})
-    : super(
-        pubKey: event.pubKey,
-        tags: event.tags,
-        content: event.content,
-        createdAt: event.createdAt,
-        id: event.id,
-        sig: event.sig,
-        kind: kZapRequestKind,
-      );
+    : _event = event.kind == kZapRequestKind
+          ? event
+          : event.copyWith(kind: kZapRequestKind);
 
-  /// creates a zap request \
-  /// [pubKey] the pubkey of the zap requester \
-  /// [tags] the tags of the zap request \
-  /// [content] the content of the zap request \
-  /// [sig] the signature of the zap request (optional) \
-  /// returns the zap request \
   ZapRequest({
-    required super.pubKey,
-    required super.tags,
-    required super.content,
-    super.sig,
-  }) : super(kind: kZapRequestKind);
+    required String pubKey,
+    required List<List<String>> tags,
+    required String content,
+    String? sig,
+  }) : _event = Nip01Event(
+         pubKey: pubKey,
+         kind: kZapRequestKind,
+         tags: tags,
+         content: content,
+         sig: sig,
+       );
 }

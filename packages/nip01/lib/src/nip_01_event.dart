@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'event_id.dart';
 
 /// A NIP-01 event. It cannot change: [copyWith] gives a changed copy.
-class Nip01Event {
+final class Nip01Event {
   static const int kTextNoteKind = 1;
 
   /// The id the event was given, or else the hash of its payload: check it
@@ -201,7 +201,7 @@ class Nip01Event {
   /// event with a forged id equals the real one, so check it before using it
   /// to deduplicate events that are not verified yet.
   @override
-  bool operator ==(other) => other is Nip01Event && id == other.id;
+  bool operator ==(Object other) => other is Nip01Event && id == other.id;
   @override
   int get hashCode => id.hashCode;
 

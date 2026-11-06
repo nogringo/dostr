@@ -1,51 +1,50 @@
 import 'dart:convert';
 
-import 'package:mockito/annotations.dart';
-import 'package:mockito/mockito.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import 'zap_receipt_test.mocks.dart';
+Nip01Event receipt({
+  String pubKey = 'testPubKey',
+  int kind = 9735,
+  List<List<String>> tags = const [],
+}) => Nip01Event(
+  pubKey: pubKey,
+  kind: kind,
+  tags: tags,
+  content: '',
+  createdAt: 1234567890,
+);
 
-// Mock classes
-@GenerateMocks([Nip01Event])
 void main() {
   group('ZapReceipt', () {
-    late MockNip01Event mockEvent;
-
-    setUp(() {
-      mockEvent = MockNip01Event();
-    });
-
     test('fromEvent initializes correctly with valid event', () {
-      when(mockEvent.kind).thenReturn(9735);
-      when(mockEvent.pubKey).thenReturn('testPubKey');
-      when(mockEvent.tags).thenReturn([
-        ['bolt11', 'testBolt11'],
-        ['preimage', 'testPreimage'],
-        [
-          'description',
-          jsonEncode({
-            'pubkey': 'testSender',
-            'kind': ZapRequest.kZapRequestKind,
-            'sig': "sig",
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-            'content': 'testComment',
-            'pubKey': 'testSender',
-            'tags': [
-              ['lnurl', 'testLnurl'],
-              ['amount', '1000'],
+      final zapReceipt = ZapReceipt.fromEvent(
+        receipt(
+          tags: [
+            ['bolt11', 'testBolt11'],
+            ['preimage', 'testPreimage'],
+            [
+              'description',
+              jsonEncode({
+                'pubkey': 'testSender',
+                'kind': ZapRequest.kZapRequestKind,
+                'sig': "sig",
+                'created_at': DateTime.now().millisecondsSinceEpoch,
+                'content': 'testComment',
+                'pubKey': 'testSender',
+                'tags': [
+                  ['lnurl', 'testLnurl'],
+                  ['amount', '1000'],
+                ],
+              }),
             ],
-          }),
-        ],
-        ['p', 'testRecipient'],
-        ['e', 'testEventId'],
-        ['anon', 'testAnon'],
-        ['P', 'testSender'],
-      ]);
-      when(mockEvent.createdAt).thenReturn(1234567890);
-
-      final zapReceipt = ZapReceipt.fromEvent(mockEvent);
+            ['p', 'testRecipient'],
+            ['e', 'testEventId'],
+            ['anon', 'testAnon'],
+            ['P', 'testSender'],
+          ],
+        ),
+      );
 
       expect(zapReceipt.pubKey, 'testPubKey');
       expect(zapReceipt.bolt11, 'testBolt11');
@@ -61,35 +60,30 @@ void main() {
     });
 
     test('fromEvent throws exception for non-nip57 event', () {
-      when(mockEvent.pubKey).thenReturn('testPubKey');
-      when(mockEvent.createdAt).thenReturn(1234567890);
-      when(mockEvent.kind).thenReturn(1234);
-
-      expect(() => ZapReceipt.fromEvent(mockEvent), throwsException);
+      expect(() => ZapReceipt.fromEvent(receipt(kind: 1234)), throwsException);
     });
 
     test('isValid returns true for valid zap receipt', () {
-      when(mockEvent.kind).thenReturn(9735);
-      when(mockEvent.pubKey).thenReturn('testPubKey');
-      when(mockEvent.createdAt).thenReturn(1234567890);
-      when(mockEvent.tags).thenReturn([
-        ['bolt11', 'lnbc15u1p'],
-        [
-          'description',
-          jsonEncode({
-            'pubkey': 'testSender',
-            'kind': ZapRequest.kZapRequestKind,
-            'sig': "sig",
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-            'content': '',
-            'tags': [
-              ['lnurl', 'testLnurl'],
+      final zapReceipt = ZapReceipt.fromEvent(
+        receipt(
+          tags: [
+            ['bolt11', 'lnbc15u1p'],
+            [
+              'description',
+              jsonEncode({
+                'pubkey': 'testSender',
+                'kind': ZapRequest.kZapRequestKind,
+                'sig': "sig",
+                'created_at': DateTime.now().millisecondsSinceEpoch,
+                'content': '',
+                'tags': [
+                  ['lnurl', 'testLnurl'],
+                ],
+              }),
             ],
-          }),
-        ],
-      ]);
-
-      final zapReceipt = ZapReceipt.fromEvent(mockEvent);
+          ],
+        ),
+      );
 
       expect(
         zapReceipt.isValid(
@@ -101,28 +95,28 @@ void main() {
     });
 
     test('isValid returns false for invalid pubKey', () {
-      when(mockEvent.kind).thenReturn(9735);
-      when(mockEvent.pubKey).thenReturn('wrongPubKey');
-      when(mockEvent.createdAt).thenReturn(1234567890);
-      when(mockEvent.tags).thenReturn([
-        ['bolt11', 'lnbc15u1p'],
-        [
-          'description',
-          jsonEncode({
-            'pubkey': 'testSender',
-            'kind': ZapRequest.kZapRequestKind,
-            'sig': "sig",
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-            'content': '',
-            'tags': [
-              ['lnurl', 'testLnurl'],
-              ['amount', '1500000'],
+      final zapReceipt = ZapReceipt.fromEvent(
+        receipt(
+          pubKey: 'wrongPubKey',
+          tags: [
+            ['bolt11', 'lnbc15u1p'],
+            [
+              'description',
+              jsonEncode({
+                'pubkey': 'testSender',
+                'kind': ZapRequest.kZapRequestKind,
+                'sig': "sig",
+                'created_at': DateTime.now().millisecondsSinceEpoch,
+                'content': '',
+                'tags': [
+                  ['lnurl', 'testLnurl'],
+                  ['amount', '1500000'],
+                ],
+              }),
             ],
-          }),
-        ],
-      ]);
-
-      final zapReceipt = ZapReceipt.fromEvent(mockEvent);
+          ],
+        ),
+      );
       expect(
         zapReceipt.isValid(
           nostrPubKey: 'testPubKey',
@@ -133,28 +127,27 @@ void main() {
     });
 
     test('isValid returns false for mismatched amount', () {
-      when(mockEvent.kind).thenReturn(9735);
-      when(mockEvent.pubKey).thenReturn('testPubKey');
-      when(mockEvent.createdAt).thenReturn(1234567890);
-      when(mockEvent.tags).thenReturn([
-        ['bolt11', 'lnbc15u1p'],
-        [
-          'description',
-          jsonEncode({
-            'pubkey': 'testSender',
-            'kind': ZapRequest.kZapRequestKind,
-            'sig': "sig",
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-            'content': '',
-            'tags': [
-              ['lnurl', 'testLnurl'],
-              ['amount', '2000000'],
+      final zapReceipt = ZapReceipt.fromEvent(
+        receipt(
+          tags: [
+            ['bolt11', 'lnbc15u1p'],
+            [
+              'description',
+              jsonEncode({
+                'pubkey': 'testSender',
+                'kind': ZapRequest.kZapRequestKind,
+                'sig': "sig",
+                'created_at': DateTime.now().millisecondsSinceEpoch,
+                'content': '',
+                'tags': [
+                  ['lnurl', 'testLnurl'],
+                  ['amount', '2000000'],
+                ],
+              }),
             ],
-          }),
-        ],
-      ]);
-
-      final zapReceipt = ZapReceipt.fromEvent(mockEvent);
+          ],
+        ),
+      );
       expect(
         zapReceipt.isValid(
           nostrPubKey: 'testPubKey',
@@ -165,28 +158,27 @@ void main() {
     });
 
     test('isValid returns false for mismatched lnurl', () {
-      when(mockEvent.kind).thenReturn(9735);
-      when(mockEvent.pubKey).thenReturn('testPubKey');
-      when(mockEvent.createdAt).thenReturn(1234567890);
-      when(mockEvent.tags).thenReturn([
-        ['bolt11', 'lnbc15u1p'],
-        [
-          'description',
-          jsonEncode({
-            'pubkey': 'testSender',
-            'kind': ZapRequest.kZapRequestKind,
-            'sig': "sig",
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-            'content': '',
-            'tags': [
-              ['lnurl', 'wrongLnurl'],
-              ['amount', '1500000'],
+      final zapReceipt = ZapReceipt.fromEvent(
+        receipt(
+          tags: [
+            ['bolt11', 'lnbc15u1p'],
+            [
+              'description',
+              jsonEncode({
+                'pubkey': 'testSender',
+                'kind': ZapRequest.kZapRequestKind,
+                'sig': "sig",
+                'created_at': DateTime.now().millisecondsSinceEpoch,
+                'content': '',
+                'tags': [
+                  ['lnurl', 'wrongLnurl'],
+                  ['amount', '1500000'],
+                ],
+              }),
             ],
-          }),
-        ],
-      ]);
-
-      final zapReceipt = ZapReceipt.fromEvent(mockEvent);
+          ],
+        ),
+      );
 
       expect(
         zapReceipt.isValid(
