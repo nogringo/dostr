@@ -133,6 +133,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip82`: NIP-82 software applications, to discover a trusted publisher's application, release and asset events and pick a compatible Android update, without depending on `ndk`. `ndk_flutter` builds its app update widgets on it.
 
+### [🔗 Broadcast queue](./packages/broadcast_queue/)
+
+`ndk_broadcast_queue`: persisted broadcast queue, to keep an event on its way to every relay it is meant for across offline periods, delayed remote signing and restarts, without depending on `ndk`. `ndk.broadcast` retries through it.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

@@ -4,7 +4,6 @@ import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import '../../../shared/nips/nip09/deletion.dart';
 import '../../../shared/nips/nip25/reactions.dart';
 import 'broadcast_sender.dart';
-import 'pending_broadcast_delivery.dart';
 
 /// Public-facing broadcast facade. \
 /// Delegates immediate sending to [BroadcastSender] and coordinates pending
@@ -16,7 +15,7 @@ class Broadcast {
   final BroadcastSender _sender;
   final Accounts _accounts;
   final CacheManager _cacheManager;
-  final PendingBroadcastDelivery? _pendingDelivery;
+  final PendingBroadcastDelivery _pendingDelivery;
 
   /// creates a new [Broadcast] facade instance
   ///
@@ -141,14 +140,8 @@ class Broadcast {
   ///
   /// This lets apps inspect events that may still exist only locally after a
   /// restart, including the last persisted per-relay outcome.
-  Future<EventDeliverySnapshot?> loadEventDelivery(String eventId) async {
-    final record = await _cacheManager.loadEventDeliveryRecord(eventId);
-    if (record == null) {
-      return null;
-    }
-
-    return _loadSnapshotForRecord(record);
-  }
+  Future<EventDeliverySnapshot?> loadEventDelivery(String eventId) =>
+      _pendingDelivery.loadEventDelivery(eventId);
 
   /// Lists persisted delivery items.
   ///
@@ -157,43 +150,15 @@ class Broadcast {
     bool pendingOnly = true,
     EventDeliveryStatus? status,
     int? limit,
-  }) async {
-    final records = await _cacheManager.loadEventDeliveryRecords(
-      status: status,
-      limit: limit,
-    );
-    records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
-
-    final snapshots = <EventDeliverySnapshot>[];
-    for (final record in records) {
-      if (pendingOnly && record.status == EventDeliveryStatus.delivered) {
-        continue;
-      }
-      snapshots.add(await _loadSnapshotForRecord(record));
-    }
-
-    return snapshots;
-  }
+  }) => _pendingDelivery.loadDeliveries(
+    pendingOnly: pendingOnly,
+    status: status,
+    limit: limit,
+  );
 
   /// Convenience alias for app UIs that want items still pending broadcast.
   Future<List<EventDeliverySnapshot>> loadPendingDeliveries({int? limit}) {
     return loadDeliveries(pendingOnly: true, limit: limit);
-  }
-
-  Future<EventDeliverySnapshot> _loadSnapshotForRecord(
-    EventDeliveryRecord record,
-  ) async {
-    final event = await _cacheManager.loadEvent(record.eventId);
-    final relayTargets = await _cacheManager.loadRelayDeliveryTargets(
-      eventId: record.eventId,
-    );
-    relayTargets.sort((a, b) => a.relayUrl.compareTo(b.relayUrl));
-
-    return EventDeliverySnapshot(
-      event: event,
-      record: record,
-      relayTargets: relayTargets,
-    );
   }
 
   /// **********************************************************************************************************

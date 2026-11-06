@@ -107,6 +107,8 @@ By default, the inbox/outbox model is used for broadcasting looking at the event
 ## Local-first behavior
 
 NDK keeps delivery state for locally created events in the configured cache backend.
+The queue that retries them lives in the `ndk_broadcast_queue` package, which `ndk`
+depends on and re-exports.
 
 That means:
 
@@ -170,7 +172,7 @@ local-first publish flow instead of having to rebuild the publish manually.
 
 ## Delivery policy
 
-NDK uses an internal `DeliveryPolicy` for local-first broadcast retry handling.
+NDK uses the `DeliveryPolicy` of `ndk_broadcast_queue` for local-first broadcast retry handling.
 
 Current policy selection is automatic:
 

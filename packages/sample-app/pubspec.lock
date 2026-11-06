@@ -817,6 +817,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_broadcast_queue:
+    dependency: "direct overridden"
+    description:
+      path: "../broadcast_queue"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_cashu:
     dependency: "direct main"
     description:

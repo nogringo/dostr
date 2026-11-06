@@ -10,6 +10,16 @@ export 'domain_layer/entities/cache_eviction.dart';
 export 'domain_layer/entities/contact_list.dart';
 export 'domain_layer/entities/event_filter.dart';
 export 'domain_layer/entities/event_cache_records.dart';
+export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart'
+    show
+        EventDeliveryRecord,
+        EventDeliverySnapshot,
+        EventDeliveryStatus,
+        EventSigningState,
+        RelayDeliveryReason,
+        RelayDeliveryState,
+        RelayDeliveryTarget,
+        UnresolvedUrlSet;
 export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/hidden_event.dart';
 export 'domain_layer/entities/metadata.dart';

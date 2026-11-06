@@ -7,7 +7,7 @@ All accessible via `ndk.<accessor>`.
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
 | `ndk.requests` | `Requests` | Low-level relay queries and subscriptions |
-| `ndk.broadcast` | `Broadcast` | Publish events to relays |
+| `ndk.broadcast` | `Broadcast` | Publish events to relays, retried by `ndk_broadcast_queue` |
 | `ndk.accounts` | `Accounts` | Identity/account management |
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
 | `ndk.relays` | `RelayManager` | Relay connections and management |

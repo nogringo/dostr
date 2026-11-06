@@ -1,6 +1,7 @@
 import '../entities/cache_eviction.dart';
 import '../entities/contact_list.dart';
 import '../entities/event_cache_records.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../entities/filter_fetched_ranges.dart';
 import '../entities/hidden_event.dart';
@@ -16,7 +17,8 @@ import '../entities/user_relay_list.dart';
 /// backends persist several related data domains:
 /// - canonical Nostr events
 /// - event provenance (`source relays`)
-/// - delivery state (`EventDeliveryRecord` and `RelayDeliveryTarget`)
+/// - delivery state (`EventDeliveryRecord` and `RelayDeliveryTarget`), the
+///   [DeliveryStore] of `ndk_broadcast_queue`
 /// - decrypted plaintext sidecars for encrypted events
 /// - convenience projections like metadata/contact list/user relay list
 /// - optional fetched-ranges state
@@ -29,7 +31,7 @@ import '../entities/user_relay_list.dart';
 ///   store, not separate authoritative silos
 /// - provenance and delivery targets are separate concerns
 /// - an empty list in a read or a removal matches nothing, see [matchesNothing]
-abstract class CacheManager {
+abstract class CacheManager implements DeliveryStore {
   /// Whether a read or a removal with these lists can match no event: NIP-01
   /// says an empty list matches nothing, it does not stand for an absent one.
   static bool matchesNothing({
@@ -51,6 +53,7 @@ abstract class CacheManager {
   /// used to close the db
   Future<void> close();
 
+  @override
   Future<void> saveEvent(Nip01Event event);
 
   /// Stores [event] only when its id is not already present.
@@ -65,6 +68,7 @@ abstract class CacheManager {
   ///
   /// Prefer [loadEvents] in app-facing read paths because `loadEvent` does not
   /// itself promise visibility filtering.
+  @override
   Future<Nip01Event?> loadEvent(String id);
 
   /// Adds one provenance relay for a stored event.
@@ -82,38 +86,6 @@ abstract class CacheManager {
   });
   Future<List<String>> loadEventSources(String eventId);
   Future<void> removeEventSources(String eventId);
-
-  /// Persist aggregate delivery state for one event.
-  Future<void> saveEventDeliveryRecord(EventDeliveryRecord record);
-  Future<void> saveEventDeliveryRecords(List<EventDeliveryRecord> records);
-  Future<EventDeliveryRecord?> loadEventDeliveryRecord(String eventId);
-  Future<List<EventDeliveryRecord>> loadEventDeliveryRecords({
-    EventDeliveryStatus? status,
-    int? limit,
-  });
-  Future<void> removeEventDeliveryRecord(String eventId);
-  Future<void> removeAllEventDeliveryRecords();
-
-  /// Persist one relay-specific delivery target.
-  Future<void> saveRelayDeliveryTarget(RelayDeliveryTarget target);
-  Future<void> saveRelayDeliveryTargets(List<RelayDeliveryTarget> targets);
-  Future<RelayDeliveryTarget?> loadRelayDeliveryTarget({
-    required String eventId,
-    required String relayUrl,
-  });
-  Future<List<RelayDeliveryTarget>> loadRelayDeliveryTargets({
-    String? eventId,
-    String? relayUrl,
-    RelayDeliveryState? state,
-    bool excludeAcked = false,
-    int? limit,
-  });
-  Future<void> removeRelayDeliveryTarget({
-    required String eventId,
-    required String relayUrl,
-  });
-  Future<void> removeRelayDeliveryTargets(String eventId);
-  Future<void> removeAllRelayDeliveryTargets();
 
   /// Persist one plaintext sidecar for an encrypted event.
   Future<void> saveDecryptedEventPayloadRecord(
@@ -160,6 +132,7 @@ abstract class CacheManager {
   /// - only the latest visible replaceable/addressable winner is returned
   /// - expired events are filtered out
   /// - author-deleted events are filtered out
+  @override
   Future<List<Nip01Event>> loadEvents({
     List<String>? ids,
     List<String>? pubKeys,
@@ -217,6 +190,7 @@ abstract class CacheManager {
     Set<HiddenEventReason> reasons = kAllHiddenEventReasons,
   });
 
+  @override
   Future<void> removeEvent(String id);
 
   /// Remove events from cache with flexible filtering.

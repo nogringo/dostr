@@ -53,6 +53,7 @@ on:
           - ndk_nip46
           - ndk_nip55
           - ndk_nip82
+          - ndk_broadcast_queue
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

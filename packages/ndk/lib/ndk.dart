@@ -38,7 +38,6 @@ export 'domain_layer/entities/event_filter.dart';
 
 export 'domain_layer/entities/cache_eviction.dart';
 export 'domain_layer/entities/event_cache_records.dart';
-export 'domain_layer/entities/event_delivery_inspection.dart';
 export 'domain_layer/entities/hidden_event.dart';
 export '';
 
@@ -73,6 +72,7 @@ export 'domain_layer/usecases/lists/lists.dart';
 export 'domain_layer/usecases/relay_sets/relay_sets.dart';
 export 'domain_layer/usecases/broadcast/broadcast.dart';
 export 'domain_layer/usecases/broadcast/broadcast_exceptions.dart';
+export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 export 'package:ndk_url_set/ndk_url_set.dart' show UrlSet;
 export 'domain_layer/usecases/zaps/zaps.dart';
 export 'domain_layer/usecases/zaps/zap_request.dart';

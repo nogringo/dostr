@@ -3,6 +3,7 @@ import 'dart:core';
 import '../../../domain_layer/entities/cache_eviction.dart';
 import '../../../domain_layer/entities/contact_list.dart';
 import '../../../domain_layer/entities/event_cache_records.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../../domain_layer/entities/filter_fetched_ranges.dart';
 import '../../../domain_layer/entities/hidden_event.dart';

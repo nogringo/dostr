@@ -1,4 +1,4 @@
-import '../../../shared/nips/nip01/event_kind_classification.dart';
+import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/cache_manager.dart';
 

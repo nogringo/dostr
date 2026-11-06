@@ -1,25 +1,34 @@
 import 'dart:async';
 
 import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart';
-import 'package:ndk/domain_layer/entities/broadcast_response.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk/domain_layer/entities/event_cache_records.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
-import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
-import 'package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
+import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
+
+PendingBroadcastDelivery _queue(
+  MemCacheManager store,
+  RecordingSender sender,
+  Accounts accounts, {
+  Duration signAttemptTimeout =
+      PendingBroadcastDelivery.defaultSignAttemptTimeout,
+}) => PendingBroadcastDelivery(
+  store: store,
+  accounts: accounts,
+  urlLists: (_, _, _) => throw UnimplementedError(),
+  send: sender.send,
+  isEventInFlight: sender.isEventInFlight,
+  signAttemptTimeout: signAttemptTimeout,
+);
 
 void main() {
   group('PendingBroadcastDelivery', () {
     late MemCacheManager cacheManager;
-    late RecordingBroadcastSender broadcast;
+    late RecordingSender broadcast;
     late PendingBroadcastDelivery pendingDelivery;
     late Accounts accounts;
     late Nip01Event event;
@@ -27,13 +36,9 @@ void main() {
 
     setUp(() async {
       cacheManager = MemCacheManager();
-      broadcast = RecordingBroadcastSender(cacheManager: cacheManager);
+      broadcast = RecordingSender();
       accounts = Accounts(_DummySignerFactory());
-      pendingDelivery = PendingBroadcastDelivery(
-        cacheManager: cacheManager,
-        broadcastSender: broadcast,
-        accounts: accounts,
-      );
+      pendingDelivery = _queue(cacheManager, broadcast, accounts);
       reconnectAttempts = [];
       event = Nip01Event(
         id: 'event-1',
@@ -124,11 +129,8 @@ void main() {
       }
 
       /// the same durable state seen by a process that never held the policy
-      PendingBroadcastDelivery afterRestart() => PendingBroadcastDelivery(
-        cacheManager: cacheManager,
-        broadcastSender: broadcast,
-        accounts: accounts,
-      );
+      PendingBroadcastDelivery afterRestart() =>
+          _queue(cacheManager, broadcast, accounts);
 
       test('persists the canonical policy, never a signer', () async {
         await enqueueUnder(AuthPolicy.require(signable()));
@@ -984,10 +986,10 @@ void main() {
       'timed out signing attempt does not block a later retry forever if the original future never completes',
       () async {
         await pendingDelivery.stop();
-        pendingDelivery = PendingBroadcastDelivery(
-          cacheManager: cacheManager,
-          broadcastSender: broadcast,
-          accounts: accounts,
+        pendingDelivery = _queue(
+          cacheManager,
+          broadcast,
+          accounts,
           signAttemptTimeout: const Duration(milliseconds: 20),
         );
 
@@ -1357,51 +1359,26 @@ void main() {
   });
 }
 
-class RecordingBroadcastSender extends BroadcastSender {
+class RecordingSender {
   final List<Nip01Event> broadcastedEvents = [];
   final List<AuthPolicy?> broadcastedAuth = [];
   final Set<String> inFlightEventIds = {};
   final Set<String> throwingEventIds = {};
   List<RelayBroadcastResponse> responses = const [];
 
-  @override
   bool isEventInFlight(String eventId) => inFlightEventIds.contains(eventId);
 
-  RecordingBroadcastSender({required MemCacheManager cacheManager})
-    : super(
-        cacheManager: cacheManager,
-        urlLists: (_, _, _) => throw UnimplementedError(),
-        bootstrapRelays: const [],
-        relayManager: RelayManager(
-          nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-        ),
-        accounts: Accounts(_DummySignerFactory()),
-        considerDonePercent: 1,
-        timeout: const Duration(seconds: 1),
-        saveToCache: true,
-      );
-
-  @override
-  NdkBroadcastResponse broadcast({
-    required Nip01Event nostrEvent,
-    Iterable<String>? specificRelays,
-    UrlSet? urlSet,
-    EventSigner? customSigner,
-    double? considerDonePercent,
-    Duration? timeout,
-    bool? saveToCache,
+  Future<List<RelayBroadcastResponse>> send(
+    Nip01Event event,
+    String relayUrl,
     AuthPolicy? auth,
-    void Function(Nip01Event signed, List<UrlSet> unavailable)? onUnavailable,
-  }) {
-    broadcastedEvents.add(nostrEvent);
+  ) async {
+    broadcastedEvents.add(event);
     broadcastedAuth.add(auth);
-    if (throwingEventIds.contains(nostrEvent.id)) {
-      throw StateError('broadcast of ${nostrEvent.id} failed');
+    if (throwingEventIds.contains(event.id)) {
+      throw StateError('broadcast of ${event.id} failed');
     }
-    return NdkBroadcastResponse(
-      publishEvent: nostrEvent,
-      broadcastDoneStream: Stream.value(responses),
-    );
+    return responses;
   }
 }
 

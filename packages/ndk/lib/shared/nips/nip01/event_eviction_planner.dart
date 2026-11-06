@@ -1,7 +1,8 @@
 import '../../../domain_layer/entities/cache_eviction.dart';
 import '../../../domain_layer/entities/event_cache_records.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'event_kind_classification.dart';
+import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 
 /// Result of planning one eviction pass before the backend removes any rows.
 class EventEvictionPlan {

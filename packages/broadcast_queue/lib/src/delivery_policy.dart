@@ -1,10 +1,13 @@
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import '../../entities/event_cache_records.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_auth/ndk_auth.dart';
+import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
-import '../../../shared/nips/nip01/event_kind_classification.dart';
-import '../../../shared/nips/nip09/deletion.dart';
+import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+
+import 'delivery_records.dart';
+
+/// NIP-09
+const _deletionKind = 5;
 
 /// Internal retry/delivery strategy used by local-first broadcast persistence.
 ///
@@ -72,7 +75,7 @@ class DeliveryPolicy {
     if (EventKindClassification.isEphemeralKind(event.kind)) {
       return const DeliveryPolicy._(DeliveryPolicyKind.doNotRetry);
     }
-    if (event.kind == Deletion.kKind) {
+    if (event.kind == _deletionKind) {
       return const DeliveryPolicy._(DeliveryPolicyKind.highPriorityControl);
     }
     if (EventKindClassification.isReplaceableKind(event.kind)) {

@@ -16,7 +16,7 @@ import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 import '../domain_layer/usecases/broadcast/broadcast_sender.dart';
-import '../domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
 import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/cache_read/cache_read.dart';
@@ -211,9 +211,13 @@ class Initialization {
       saveToCache: _ndkConfig.defaultBroadcastSaveToCache,
     );
     pendingBroadcastDelivery = PendingBroadcastDelivery(
-      cacheManager: _ndkConfig.cache,
-      broadcastSender: broadcastSender,
+      store: _ndkConfig.cache,
       accounts: accounts,
+      urlLists: urlLists,
+      isEventInFlight: broadcastSender.isEventInFlight,
+      send: (event, relayUrl, auth) => broadcastSender
+          .broadcast(nostrEvent: event, specificRelays: [relayUrl], auth: auth)
+          .broadcastDoneFuture,
     );
     broadcast = Broadcast(
       broadcastSender: broadcastSender,

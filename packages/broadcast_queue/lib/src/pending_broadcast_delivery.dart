@@ -1,19 +1,28 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import '../../entities/event_cache_records.dart';
+import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_auth/ndk_auth.dart';
-import '../../repositories/cache_manager.dart';
-import '../accounts/accounts.dart';
-import 'package:ndk_logger/ndk_logger.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
-import '../../../shared/nips/nip01/event_kind_classification.dart';
-import 'broadcast_sender.dart';
+
 import 'delivery_policy.dart';
+import 'delivery_records.dart';
+import 'delivery_store.dart';
+import 'event_delivery_snapshot.dart';
+
+/// Sends [event] to [relayUrl] alone, authenticating as [auth] allows, and
+/// completes with what the relay answered. It must not enqueue anything.
+typedef DeliverySend =
+    Future<List<RelayBroadcastResponse>> Function(
+      Nip01Event event,
+      String relayUrl,
+      AuthPolicy? auth,
+    );
 
 /// Background manager for persisted broadcast delivery.
 ///
@@ -22,15 +31,17 @@ import 'delivery_policy.dart';
 /// being retried.
 ///
 /// Conceptually:
-/// - [Broadcast] decides that an event should be sent
+/// - the broadcaster decides that an event should be sent and enqueues it
 /// - [PendingBroadcastDelivery] remembers where it still needs to go and when
 ///   it should be retried
 class PendingBroadcastDelivery {
   static const Duration defaultRetryInterval = Duration(seconds: 15);
   static const Duration defaultSignAttemptTimeout = Duration(seconds: 15);
-  final CacheManager _cacheManager;
-  final BroadcastSender _sender;
-  final Accounts _accounts;
+  final DeliveryStore _store;
+  final AuthAccounts _accounts;
+  final UrlListFn _urlLists;
+  final DeliverySend _send;
+  final bool Function(String eventId) _isEventInFlight;
   final Duration _signAttemptTimeout;
   final Set<String> _flushInProgress = {};
   final Map<String, int> _activeSignAttemptIds = {};
@@ -51,14 +62,21 @@ class PendingBroadcastDelivery {
   bool _stopped = false;
   final Set<Future<void>> _inFlightOperations = {};
 
+  /// [urlLists] resolves the parts of a broadcast whose lists were unavailable
+  /// when it went out. [isEventInFlight] tells whether an event is being sent
+  /// right now, so a retry would only duplicate it.
   PendingBroadcastDelivery({
-    required CacheManager cacheManager,
-    required BroadcastSender broadcastSender,
-    required Accounts accounts,
+    required DeliveryStore store,
+    required AuthAccounts accounts,
+    required UrlListFn urlLists,
+    required DeliverySend send,
+    required bool Function(String eventId) isEventInFlight,
     Duration signAttemptTimeout = defaultSignAttemptTimeout,
-  }) : _cacheManager = cacheManager,
-       _sender = broadcastSender,
+  }) : _store = store,
        _accounts = accounts,
+       _urlLists = urlLists,
+       _send = send,
+       _isEventInFlight = isEventInFlight,
        _signAttemptTimeout = signAttemptTimeout;
 
   /// Starts periodic due-retry processing.
@@ -173,7 +191,7 @@ class PendingBroadcastDelivery {
     if (_stopped) {
       return;
     }
-    final records = await _cacheManager.loadEventDeliveryRecords();
+    final records = await _store.loadEventDeliveryRecords();
     records.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     for (final record in records) {
@@ -190,7 +208,7 @@ class PendingBroadcastDelivery {
         continue;
       }
 
-      final event = await _cacheManager.loadEvent(record.eventId);
+      final event = await _store.loadEvent(record.eventId);
       if (event == null) {
         await _discardEventDelivery(record.eventId);
         continue;
@@ -225,10 +243,10 @@ class PendingBroadcastDelivery {
     // in-memory list.
     final relayUrlList = relayUrls.toSet().toList()..sort();
     Logger.log.d(() => 'enqueue pending delivery ${event.id} -> $relayUrlList');
-    final existing = await _cacheManager.loadEventDeliveryRecord(event.id);
+    final existing = await _store.loadEventDeliveryRecord(event.id);
     final now = Nip01Event.secondsSinceEpoch();
 
-    await _cacheManager.saveEventDeliveryRecord(
+    await _store.saveEventDeliveryRecord(
       EventDeliveryRecord(
         eventId: event.id,
         status: existing?.status ?? EventDeliveryStatus.pending,
@@ -251,7 +269,7 @@ class PendingBroadcastDelivery {
       ),
     );
 
-    final existingTargets = await _cacheManager.loadRelayDeliveryTargets(
+    final existingTargets = await _store.loadRelayDeliveryTargets(
       eventId: event.id,
     );
     final existingByRelay = {
@@ -294,7 +312,7 @@ class PendingBroadcastDelivery {
       }
     }
 
-    await _cacheManager.saveRelayDeliveryTargets(targets);
+    await _store.saveRelayDeliveryTargets(targets);
   }
 
   /// Keeps the parts of a broadcast's destinations that were unavailable, so
@@ -310,7 +328,7 @@ class PendingBroadcastDelivery {
       return;
     }
     Logger.log.d(() => 'enqueue unresolved delivery ${event.id}');
-    final existing = await _cacheManager.loadEventDeliveryRecord(event.id);
+    final existing = await _store.loadEventDeliveryRecord(event.id);
     final unresolved = {
       for (final set in existing?.unresolvedUrlSets ?? <UnresolvedUrlSet>[])
         set.key: set,
@@ -358,12 +376,12 @@ class PendingBroadcastDelivery {
           'persist broadcast result ${event.id} -> ${responses.map((r) => r.relayUrl).toList()}',
     );
 
-    final existing = await _cacheManager.loadEventDeliveryRecord(event.id);
+    final existing = await _store.loadEventDeliveryRecord(event.id);
     if (existing == null) {
       return;
     }
 
-    final existingTargets = await _cacheManager.loadRelayDeliveryTargets(
+    final existingTargets = await _store.loadRelayDeliveryTargets(
       eventId: event.id,
     );
     final targetsByRelay = {
@@ -436,12 +454,10 @@ class PendingBroadcastDelivery {
     }
 
     if (updatedTargets.isNotEmpty) {
-      await _cacheManager.saveRelayDeliveryTargets(updatedTargets);
+      await _store.saveRelayDeliveryTargets(updatedTargets);
     }
 
-    final allTargets = await _cacheManager.loadRelayDeliveryTargets(
-      eventId: event.id,
-    );
+    final allTargets = await _store.loadRelayDeliveryTargets(eventId: event.id);
     final deliveryStatus = _resolveDeliveryStatus(existing, allTargets);
     final completionTimestamp =
         deliveryStatus == EventDeliveryStatus.delivered ||
@@ -449,7 +465,7 @@ class PendingBroadcastDelivery {
         ? Nip01Event.secondsSinceEpoch()
         : null;
 
-    await _cacheManager.saveEventDeliveryRecord(
+    await _store.saveEventDeliveryRecord(
       existing.copyWith(
         status: deliveryStatus,
         updatedAt: Nip01Event.secondsSinceEpoch(),
@@ -479,7 +495,7 @@ class PendingBroadcastDelivery {
       if (_stopped) {
         return;
       }
-      final persistedTargets = await _cacheManager.loadRelayDeliveryTargets(
+      final persistedTargets = await _store.loadRelayDeliveryTargets(
         relayUrl: relayUrl,
         excludeAcked: true,
       );
@@ -508,15 +524,15 @@ class PendingBroadcastDelivery {
         if (_stopped) {
           return;
         }
-        if (_sender.isEventInFlight(target.eventId)) {
+        if (_isEventInFlight(target.eventId)) {
           continue;
         }
 
-        final deliveryRecord = await _cacheManager.loadEventDeliveryRecord(
+        final deliveryRecord = await _store.loadEventDeliveryRecord(
           target.eventId,
         );
         if (deliveryRecord == null) {
-          await _cacheManager.removeRelayDeliveryTarget(
+          await _store.removeRelayDeliveryTarget(
             eventId: target.eventId,
             relayUrl: relayUrl,
           );
@@ -528,7 +544,7 @@ class PendingBroadcastDelivery {
           record: deliveryRecord,
         );
         if (loadedEvent == null) {
-          await _cacheManager.removeRelayDeliveryTarget(
+          await _store.removeRelayDeliveryTarget(
             eventId: target.eventId,
             relayUrl: relayUrl,
           );
@@ -561,7 +577,7 @@ class PendingBroadcastDelivery {
           if (!signed) {
             continue;
           }
-          final signedEvent = await _cacheManager.loadEvent(target.eventId);
+          final signedEvent = await _store.loadEvent(target.eventId);
           if (signedEvent == null || signedEvent.sig == null) {
             continue;
           }
@@ -588,7 +604,7 @@ class PendingBroadcastDelivery {
           continue;
         }
 
-        if (event.sig == null && _accounts.isNotLoggedIn) {
+        if (event.sig == null && _accounts.getLoggedAccount() == null) {
           Logger.log.d(
             () => 'skip pending delivery ${event.id} for $relayUrl: no signer',
           );
@@ -597,13 +613,7 @@ class PendingBroadcastDelivery {
 
         final List<RelayBroadcastResponse> responses;
         try {
-          responses = await _sender
-              .broadcast(
-                nostrEvent: event,
-                specificRelays: [relayUrl],
-                auth: auth.policy,
-              )
-              .broadcastDoneFuture;
+          responses = await _send(event, relayUrl, auth.policy);
         } catch (error, stackTrace) {
           // one failing target must not abort the pass for the others
           Logger.log.w(
@@ -620,6 +630,60 @@ class PendingBroadcastDelivery {
     } finally {
       _flushInProgress.remove(relayUrl);
     }
+  }
+
+  /// Returns the joined persisted local-first delivery state for one event id.
+  ///
+  /// This lets apps inspect events that may still exist only locally after a
+  /// restart, including the last persisted per-relay outcome.
+  Future<EventDeliverySnapshot?> loadEventDelivery(String eventId) async {
+    final record = await _store.loadEventDeliveryRecord(eventId);
+    if (record == null) {
+      return null;
+    }
+
+    return _loadSnapshotForRecord(record);
+  }
+
+  /// Lists persisted delivery items.
+  ///
+  /// By default this returns only events that are not fully delivered yet.
+  Future<List<EventDeliverySnapshot>> loadDeliveries({
+    bool pendingOnly = true,
+    EventDeliveryStatus? status,
+    int? limit,
+  }) async {
+    final records = await _store.loadEventDeliveryRecords(
+      status: status,
+      limit: limit,
+    );
+    records.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+
+    final snapshots = <EventDeliverySnapshot>[];
+    for (final record in records) {
+      if (pendingOnly && record.status == EventDeliveryStatus.delivered) {
+        continue;
+      }
+      snapshots.add(await _loadSnapshotForRecord(record));
+    }
+
+    return snapshots;
+  }
+
+  Future<EventDeliverySnapshot> _loadSnapshotForRecord(
+    EventDeliveryRecord record,
+  ) async {
+    final event = await _store.loadEvent(record.eventId);
+    final relayTargets = await _store.loadRelayDeliveryTargets(
+      eventId: record.eventId,
+    );
+    relayTargets.sort((a, b) => a.relayUrl.compareTo(b.relayUrl));
+
+    return EventDeliverySnapshot(
+      event: event,
+      record: record,
+      relayTargets: relayTargets,
+    );
   }
 
   /// The auth policy a retry to this relay must go out under.
@@ -675,7 +739,7 @@ class PendingBroadcastDelivery {
           'delivery ${target.eventId} to ${target.relayUrl} needs '
           '${target.authCanonical}, which no account can sign for',
     );
-    await _cacheManager.saveRelayDeliveryTargets([
+    await _store.saveRelayDeliveryTargets([
       target.copyWith(
         state: RelayDeliveryState.authRequired,
         nextRetryAt: null,
@@ -709,7 +773,7 @@ class PendingBroadcastDelivery {
       return false;
     }
 
-    final visibleEvents = await _cacheManager.loadEvents(
+    final visibleEvents = await _store.loadEvents(
       pubKeys: [event.pubKey],
       kinds: [event.kind],
       tags: _isAddressableKind(event.kind) && event.dTag != null
@@ -744,8 +808,8 @@ class PendingBroadcastDelivery {
     final prefix = RelayDeliveryTarget.keyPrefixFor(eventId);
     _authPolicies.removeWhere((key, _) => key.startsWith(prefix));
     _unresolvedAuthPolicies.removeWhere((key, _) => key.startsWith(prefix));
-    await _cacheManager.removeRelayDeliveryTargets(eventId);
-    await _cacheManager.removeEventDeliveryRecord(eventId);
+    await _store.removeRelayDeliveryTargets(eventId);
+    await _store.removeEventDeliveryRecord(eventId);
   }
 
   /// Ephemeral events may be tracked for their original publication, but
@@ -755,7 +819,7 @@ class PendingBroadcastDelivery {
     if (DeliveryPolicy.forEvent(event).kind != DeliveryPolicyKind.doNotRetry) {
       return false;
     }
-    if (!_sender.isEventInFlight(event.id)) {
+    if (!_isEventInFlight(event.id)) {
       await _discardEventDelivery(event.id);
     }
     return true;
@@ -782,11 +846,11 @@ class PendingBroadcastDelivery {
     }
     _resolvingUrlSets = true;
     try {
-      final records = await _cacheManager.loadEventDeliveryRecords();
+      final records = await _store.loadEventDeliveryRecords();
       await Future.wait([
         for (final record in records)
           if (record.unresolvedUrlSets.isNotEmpty &&
-              !_sender.isEventInFlight(record.eventId))
+              !_isEventInFlight(record.eventId))
             _resolveUrlSetsOf(record).catchError((
               Object error,
               StackTrace stackTrace,
@@ -813,13 +877,14 @@ class PendingBroadcastDelivery {
     }
 
     final resolutions = await Future.wait([
-      for (final set in record.unresolvedUrlSets) _sender.resolve(set.urlSet),
+      for (final set in record.unresolvedUrlSets)
+        resolveUrlSet(set.urlSet, _urlLists),
     ]);
     if (_stopped) {
       return;
     }
 
-    final targets = await _cacheManager.loadRelayDeliveryTargets(
+    final targets = await _store.loadRelayDeliveryTargets(
       eventId: record.eventId,
     );
     final relayUrls = {for (final target in targets) target.relayUrl};
@@ -827,14 +892,14 @@ class PendingBroadcastDelivery {
     final resolvedKeys = <String>{};
     for (final (i, resolution) in resolutions.indexed) {
       final set = record.unresolvedUrlSets[i];
-      if (resolution.unavailable.isNotEmpty) {
+      if (resolution is! UrlsResolved) {
         continue;
       }
       resolvedKeys.add(set.key);
       final live = _unresolvedAuthPolicies.remove(
         _unresolvedKey(record.eventId, set),
       );
-      for (final relayUrl in cleanRelayUrls(resolution.relays)) {
+      for (final relayUrl in cleanRelayUrls(resolution.urls)) {
         // a relay this event already goes to keeps its delivery state
         if (!relayUrls.add(relayUrl)) {
           continue;
@@ -860,7 +925,7 @@ class PendingBroadcastDelivery {
     );
 
     // read again, so a part enqueued during the lookups is kept
-    final current = await _cacheManager.loadEventDeliveryRecord(record.eventId);
+    final current = await _store.loadEventDeliveryRecord(record.eventId);
     if (current == null) {
       return;
     }
@@ -873,7 +938,7 @@ class PendingBroadcastDelivery {
       return;
     }
     if (newTargets.isNotEmpty) {
-      await _cacheManager.saveRelayDeliveryTargets(newTargets);
+      await _store.saveRelayDeliveryTargets(newTargets);
     }
     await _saveSigningOutcome(
       current.copyWith(
@@ -885,23 +950,19 @@ class PendingBroadcastDelivery {
 
   Future<Set<String>> _relayUrlsWithDuePendingTargets() async {
     final now = Nip01Event.secondsSinceEpoch();
-    final targets = await _cacheManager.loadRelayDeliveryTargets(
-      excludeAcked: true,
-    );
+    final targets = await _store.loadRelayDeliveryTargets(excludeAcked: true);
 
     final relayUrls = <String>{};
     final nonRetryableEventIds = <String>{};
     final checkedEventIds = <String>{};
     for (final target in targets) {
-      if (_sender.isEventInFlight(target.eventId)) {
+      if (_isEventInFlight(target.eventId)) {
         continue;
       }
       // One event can have many relay targets. Resolve its policy once per
       // pass, before selecting any transport to reconnect.
       if (checkedEventIds.add(target.eventId)) {
-        final record = await _cacheManager.loadEventDeliveryRecord(
-          target.eventId,
-        );
+        final record = await _store.loadEventDeliveryRecord(target.eventId);
         if (record != null) {
           final event = await _loadRecoverableEvent(
             target.eventId,
@@ -937,7 +998,7 @@ class PendingBroadcastDelivery {
       return;
     }
     final now = Nip01Event.secondsSinceEpoch();
-    final records = await _cacheManager.loadEventDeliveryRecords();
+    final records = await _store.loadEventDeliveryRecords();
     records.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
     for (final record in records) {
@@ -1157,7 +1218,7 @@ class PendingBroadcastDelivery {
     }
 
     final now = Nip01Event.secondsSinceEpoch();
-    await _cacheManager.saveEvent(signedEvent);
+    await _store.saveEvent(signedEvent);
     await _saveSigningOutcome(
       record.copyWith(
         signingState: EventSigningState.signed,
@@ -1304,9 +1365,7 @@ class PendingBroadcastDelivery {
       return;
     }
 
-    final targets = await _cacheManager.loadRelayDeliveryTargets(
-      eventId: eventId,
-    );
+    final targets = await _store.loadRelayDeliveryTargets(eventId: eventId);
     final targetRelayUrls =
         targets
             .where((target) => connectedRelayUrls.contains(target.relayUrl))
@@ -1334,12 +1393,12 @@ class PendingBroadcastDelivery {
   }
 
   Future<void> _saveSigningOutcome(EventDeliveryRecord record) async {
-    final targets = await _cacheManager.loadRelayDeliveryTargets(
+    final targets = await _store.loadRelayDeliveryTargets(
       eventId: record.eventId,
     );
     final resolvedStatus = _resolveDeliveryStatus(record, targets);
     final now = Nip01Event.secondsSinceEpoch();
-    await _cacheManager.saveEventDeliveryRecord(
+    await _store.saveEventDeliveryRecord(
       record.copyWith(
         status: resolvedStatus,
         completedAt: resolvedStatus == EventDeliveryStatus.delivered
@@ -1383,7 +1442,7 @@ class PendingBroadcastDelivery {
     if (kind == null || !EventKindClassification.isEphemeralKind(kind)) {
       return;
     }
-    await _cacheManager.removeEvent(eventId);
+    await _store.removeEvent(eventId);
   }
 
   int? _resolveEventKindFromRecord(EventDeliveryRecord record) {
@@ -1408,7 +1467,7 @@ class PendingBroadcastDelivery {
     String eventId, {
     required EventDeliveryRecord record,
   }) async {
-    final cachedEvent = await _cacheManager.loadEvent(eventId);
+    final cachedEvent = await _store.loadEvent(eventId);
     if (cachedEvent != null) {
       return cachedEvent;
     }
@@ -1422,7 +1481,7 @@ class PendingBroadcastDelivery {
       final parsedEvent = Nip01Event.fromJson(
         jsonDecode(serializedEventJson) as Map<String, dynamic>,
       );
-      await _cacheManager.saveEvent(parsedEvent);
+      await _store.saveEvent(parsedEvent);
       return parsedEvent;
     } catch (error, stackTrace) {
       Logger.log.w(

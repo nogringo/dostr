@@ -1,6 +1,5 @@
 import 'package:ndk/config/broadcast_defaults.dart';
 import 'package:ndk/domain_layer/usecases/broadcast/broadcast_sender.dart';
-import 'package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
@@ -45,10 +44,11 @@ void main() {
     };
     cache = MemCacheManager();
     final accounts = Accounts(const Bip340EventSignerFactory());
+    Future<UrlListLookup> urlLists(String pubkey, UrlListKind kind, _) async =>
+        lists['${kind.name}|$pubkey'] ?? const UrlListLookup.notFound();
     final sender = BroadcastSender(
       cacheManager: cache,
-      urlLists: (pubkey, kind, _) async =>
-          lists['${kind.name}|$pubkey'] ?? const UrlListLookup.notFound(),
+      urlLists: urlLists,
       bootstrapRelays: const [],
       relayManager: relayManager,
       accounts: accounts,
@@ -57,9 +57,13 @@ void main() {
       saveToCache: true,
     );
     pendingDelivery = PendingBroadcastDelivery(
-      cacheManager: cache,
-      broadcastSender: sender,
+      store: cache,
       accounts: accounts,
+      urlLists: urlLists,
+      isEventInFlight: sender.isEventInFlight,
+      send: (event, relayUrl, auth) => sender
+          .broadcast(nostrEvent: event, specificRelays: [relayUrl], auth: auth)
+          .broadcastDoneFuture,
     );
     broadcast = Broadcast(
       broadcastSender: sender,

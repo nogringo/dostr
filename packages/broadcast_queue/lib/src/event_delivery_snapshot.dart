@@ -1,4 +1,4 @@
-import 'event_cache_records.dart';
+import 'delivery_records.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// Read-only joined view of one locally persisted delivery item.
