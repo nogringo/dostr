@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:http/http.dart' as http;
 import 'package:rxdart/rxdart.dart';
 
 import '../../../domain_layer/entities/blob_upload_progress.dart';
@@ -48,29 +49,46 @@ bool _isAuthRefusal(Object error, {required bool sentAuth}) =>
 Nip01Event? _initial(BlossomAuthorization authorization, String serverUrl) =>
     authorization.upfront ?? authorization.resolvedFor(serverUrl);
 
-/// Sends, and sends once more with a freshly signed event if the server
-/// answered by asking for one.
-Future<T> _withAuthRetry<T>(
-  BlossomAuthorization authorization,
-  String serverUrl,
-  Future<T> Function(Nip01Event? authEvent) send,
-) async {
-  final initial = _initial(authorization, serverUrl);
-  try {
-    return await send(initial);
-  } catch (e) {
-    if (!_isAuthRefusal(e, sentAuth: initial != null)) rethrow;
-    final signed = await authorization.onRefusal(serverUrl);
-    if (signed == null) rethrow;
-    return await send(signed);
-  }
-}
-
 class BlossomRepositoryImpl implements BlossomRepository {
   final HttpRequestDS client;
   final FileIO fileIO;
 
+  /// how many times [abortPending] ran
+  int _aborts = 0;
+
   BlossomRepositoryImpl({required this.client, required this.fileIO});
+
+  @override
+  void abortPending() {
+    _aborts++;
+    client.abortPending();
+  }
+
+  /// An operation reads [_aborts] before it waits on something other than a
+  /// request, such as a signer, and checks it before sending again.
+  void _throwIfAbortedSince(int aborts) {
+    if (_aborts != aborts) throw http.RequestAbortedException();
+  }
+
+  /// Sends, and sends once more with a freshly signed event if the server
+  /// answered by asking for one.
+  Future<T> _withAuthRetry<T>(
+    BlossomAuthorization authorization,
+    String serverUrl,
+    Future<T> Function(Nip01Event? authEvent) send,
+  ) async {
+    final aborts = _aborts;
+    final initial = _initial(authorization, serverUrl);
+    try {
+      return await send(initial);
+    } catch (e) {
+      if (!_isAuthRefusal(e, sentAuth: initial != null)) rethrow;
+      final signed = await authorization.onRefusal(serverUrl);
+      if (signed == null) rethrow;
+      _throwIfAbortedSince(aborts);
+      return await send(signed);
+    }
+  }
 
   @override
   Stream<BlobUploadProgress> uploadBlob({
@@ -207,6 +225,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
             results.add(_uploadFailure(serverUrl, progress.error!));
           }
         }
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         // Handle network exceptions (e.g., host lookup failures)
         results.add(_uploadFailure(serverUrl, e));
@@ -352,6 +372,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
             );
           }
         }
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         // Handle network exceptions (e.g., host lookup failures)
         results.add(_uploadFailure(serverUrl, e));
@@ -369,20 +391,21 @@ class BlossomRepositoryImpl implements BlossomRepository {
     }).toList();
 
     // When all uploads complete, close the stream
-    Future.wait(uploadFutures).then((_) async {
-      progressSubject.add(
-        BlobUploadProgress(
-          currentServer: '',
-          sentBytes: contentLength,
-          totalBytes: contentLength,
-          completedUploads: List.from(results),
-          phase: UploadPhase.mirroring,
-          progressPhase: 1,
-          isComplete: true,
-        ),
-      );
-      await progressSubject.close();
-    });
+    Future.wait(uploadFutures)
+        .then((_) {
+          progressSubject.add(
+            BlobUploadProgress(
+              currentServer: '',
+              sentBytes: contentLength,
+              totalBytes: contentLength,
+              completedUploads: List.from(results),
+              phase: UploadPhase.mirroring,
+              progressPhase: 1,
+              isComplete: true,
+            ),
+          );
+        }, onError: progressSubject.addError)
+        .whenComplete(progressSubject.close);
 
     // Forward progress updates until the subject closes
     yield* progressSubject.stream;
@@ -442,6 +465,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
             results.add(_uploadFailure(url, progress.error!));
           }
         }
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         // Handle network exceptions (e.g., host lookup failures)
         results.add(_uploadFailure(url, e));
@@ -487,6 +512,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       contentLength: contentLength,
     );
 
+    final aborts = _aborts;
     final initial = _initial(authorization, serverUrl);
     try {
       // consumed rather than delegated with yield*, which would forward the
@@ -499,6 +525,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       if (!_isAuthRefusal(e, sentAuth: initial != null)) rethrow;
       final signed = await authorization.onRefusal(serverUrl);
       if (signed == null) rethrow;
+      _throwIfAbortedSince(aborts);
       // the body is read from scratch, so progress starts over
       yield* send(signed);
     }
@@ -552,6 +579,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
         serverUrl: serverUrl,
         statusCode: response.statusCode,
       );
+    } on http.RequestAbortedException {
+      rethrow;
     } catch (e) {
       return BlobUploadCheck(
         serverUrl: serverUrl,
@@ -602,6 +631,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
         descriptor: BlobDescriptor.fromJson(jsonDecode(response.body)),
         statusCode: response.statusCode,
       );
+    } on http.RequestAbortedException {
+      rethrow;
     } catch (e) {
       return _uploadFailure(serverUrl, e);
     }
@@ -647,6 +678,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           );
         }
         lastError = Exception('HTTP ${response.statusCode}');
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         lastError = e is Exception ? e : Exception(e.toString());
       }
@@ -682,6 +715,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           return '$url/$sha256';
         }
         lastError = Exception('HTTP ${response.statusCode}');
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         lastError = e is Exception ? e : Exception(e.toString());
       }
@@ -718,6 +753,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
         supported: acceptRanges?.toLowerCase() == 'bytes',
         contentLength: contentLength,
       );
+    } on http.RequestAbortedException {
+      rethrow;
     } catch (e) {
       return (supported: false, contentLength: null);
     }
@@ -746,6 +783,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           contentLength = rangeResponse.contentLength;
           break;
         }
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (_) {
         continue;
       }
@@ -828,6 +867,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
           return json.map((j) => BlobDescriptor.fromJson(j)).toList();
         }
         lastError = Exception('HTTP ${response.statusCode}');
+      } on http.RequestAbortedException {
+        rethrow;
       } catch (e) {
         lastError = e is Exception ? e : Exception(e.toString());
       }
@@ -880,6 +921,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
             ? 'HTTP ${response.statusCode}'
             : null,
       );
+    } on http.RequestAbortedException {
+      rethrow;
     } catch (e) {
       return BlobDeleteResult(
         serverUrl: serverUrl,

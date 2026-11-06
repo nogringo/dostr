@@ -76,6 +76,22 @@ class Blossom {
        _eventSignerFactory = eventSignerFactory,
        _authHandler = authHandler;
 
+  /// how many times [abortPending] ran
+  int _aborts = 0;
+
+  /// Ends the operations in flight with a `RequestAbortedException` (from
+  /// `package:http`), including those still waiting on relays, on the
+  /// [AuthHandler] or on a signer: none sends a request afterwards. This
+  /// instance stays usable.
+  void abortPending() {
+    _aborts++;
+    _blossomImpl.abortPending();
+  }
+
+  void _throwIfAbortedSince(int aborts) {
+    if (_aborts != aborts) throw http.RequestAbortedException();
+  }
+
   /// The kind 24242 event an operation authorises itself with. Built when it
   /// is needed rather than when the call is made, so an event signed after a
   /// refusal is not already ageing.
@@ -151,6 +167,7 @@ class Blossom {
     required Nip01Event Function(String pubkey) buildEvent,
     required Future<List<String>> Function() resolveServers,
   }) async {
+    final aborts = _aborts;
     final fallback = authorisesByDefault ? _defaultAccount() : null;
     final throwaway = auth == null && authorisesByDefault && fallback == null;
     final policy =
@@ -159,9 +176,10 @@ class Blossom {
             ? AuthPolicy.require(fallback ?? _throwawayAccount())
             : const AuthPolicy.never());
 
+    final _BlossomAuthPlan plan;
     switch (policy) {
       case AuthPolicyNever():
-        return _BlossomAuthPlan(
+        plan = _BlossomAuthPlan(
           const BlossomAuthorization.none(),
           await resolveServers(),
         );
@@ -178,25 +196,26 @@ class Blossom {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
         final signed = await account.signer.sign(buildEvent(account.pubkey));
-        return _BlossomAuthPlan(BlossomAuthorization.upfront(signed), allowed);
+        plan = _BlossomAuthPlan(BlossomAuthorization.upfront(signed), allowed);
 
       case AuthPolicyAllow(:final account):
         final servers = await resolveServers();
         // allow never promised a signature, so an account that cannot give one
         // behaves as never() rather than failing the operation
-        if (!account.signer.canSign()) {
-          return _BlossomAuthPlan(const BlossomAuthorization.none(), servers);
-        }
-        return _BlossomAuthPlan(
-          BlossomAuthorization.onRefusal(
-            () => account.signer.sign(buildEvent(account.pubkey)),
-            consent: _authHandler == null
-                ? null
-                : (serverUrl) => _consent(serverUrl, account.pubkey),
-          ),
-          servers,
-        );
+        plan = account.signer.canSign()
+            ? _BlossomAuthPlan(
+                BlossomAuthorization.onRefusal(
+                  () => account.signer.sign(buildEvent(account.pubkey)),
+                  consent: _authHandler == null
+                      ? null
+                      : (serverUrl) => _consent(serverUrl, account.pubkey),
+                ),
+                servers,
+              )
+            : _BlossomAuthPlan(const BlossomAuthorization.none(), servers);
     }
+    _throwIfAbortedSince(aborts);
+    return plan;
   }
 
   Future<List<String>> _serversAllowing(
@@ -426,6 +445,7 @@ class Blossom {
     String? pubkeyToFetchUserServerList,
     String? precomputedSha256,
   }) async* {
+    final aborts = _aborts;
     String? fileHash = precomputedSha256;
 
     if (fileHash == null) {
@@ -449,6 +469,7 @@ class Blossom {
         throw Exception('Failed to compute file hash');
       }
     }
+    _throwIfAbortedSince(aborts);
 
     final plan = await _uploadAuthPlan(
       auth: auth,
@@ -747,6 +768,7 @@ class Blossom {
     required String serverUrl,
     AuthPolicy? auth,
   }) async {
+    final aborts = _aborts;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
     final EventSigner signer;
@@ -794,6 +816,7 @@ class Blossom {
     );
 
     final signedReport = await signer.sign(reportEvent);
+    _throwIfAbortedSince(aborts);
 
     return _blossomImpl.report(
       sha256: sha256,

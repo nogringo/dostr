@@ -58,6 +58,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
 
   @override
   void dispose() {
+    _blossom.abortPending();
     _player.dispose();
     super.dispose();
   }

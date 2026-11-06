@@ -148,4 +148,9 @@ abstract class BlossomRepository {
   /// Computes SHA256 hash of a file by reading it in chunks
   /// Returns stream updates with progress and a final event containing [FileHashProgress.hash]
   Stream<FileHashProgress> computeFileHash(String filePath);
+
+  /// Ends the operations in flight with a `RequestAbortedException`: the
+  /// request each one waits on is aborted, and none sends another, so no
+  /// other server is tried. Operations started later run as usual.
+  void abortPending();
 }
