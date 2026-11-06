@@ -89,8 +89,9 @@ abstract class BlossomRepository {
     required String outputPath,
   });
 
-  /// checks if the server supports range requests, if no server supports range requests, the entire blob is returned
-  /// otherwise, the blob is returned in chunks. @see MDN HTTP range requests
+  /// fetches the blob in ranges of [chunkSize] from a server that supports range
+  /// requests, otherwise streams it whole from the first server that has it.
+  /// @see MDN HTTP range requests
   Future<Stream<BlobResponse>> getBlobStream({
     required String sha256,
     required List<String> serverUrls,

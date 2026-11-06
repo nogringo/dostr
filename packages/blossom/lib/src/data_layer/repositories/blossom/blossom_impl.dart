@@ -17,6 +17,9 @@ import '../../io/file_io.dart';
 
 bool _isSuccessStatus(int statusCode) => statusCode >= 200 && statusCode < 300;
 
+Uint8List _bytes(List<int> chunk) =>
+    chunk is Uint8List ? chunk : Uint8List.fromList(chunk);
+
 String _authHeader(Nip01Event event) =>
     "Nostr ${base64Encode(utf8.encode(event.toJsonString()))}";
 
@@ -766,13 +769,11 @@ class BlossomRepositoryImpl implements BlossomRepository {
     }
 
     if (supportedServer == null || contentLength == null) {
-      // Fallback to regular download if no server supports range requests
-      final bytes = await getBlob(
+      return _wholeBlobStream(
         sha256: sha256,
         serverUrls: serverUrls,
         authorization: authorization,
       );
-      return Stream.value(bytes);
     }
 
     return _chunkedBlobStream(
@@ -805,6 +806,52 @@ class BlossomRepositoryImpl implements BlossomRepository {
       );
       offset = end + 1;
     }
+  }
+
+  /// Streams the whole blob from the first server that has it, as the caller
+  /// reads, for servers without range requests.
+  Future<Stream<BlobResponse>> _wholeBlobStream({
+    required String sha256,
+    required List<String> serverUrls,
+    required BlossomAuthorization authorization,
+  }) async {
+    Exception? lastError;
+
+    for (final url in serverUrls) {
+      try {
+        final response = await _withAuthRetry(
+          authorization,
+          url,
+          (authEvent) => client.getStream(
+            url: Uri.parse('$url/$sha256'),
+            headers: <String, String>{
+              if (authEvent != null) 'Authorization': _authHeader(authEvent),
+            },
+          ),
+        );
+        if (response.statusCode != 200 && response.statusCode != 206) {
+          await response.stream.listen(null).cancel();
+          lastError = Exception('HTTP ${response.statusCode}');
+          continue;
+        }
+        return response.stream.map(
+          (chunk) => BlobResponse(
+            data: _bytes(chunk),
+            mimeType: response.headers['content-type'],
+            contentLength: response.contentLength,
+            contentRange: response.headers['content-range'] ?? '',
+          ),
+        );
+      } on http.RequestAbortedException {
+        rethrow;
+      } catch (e) {
+        lastError = e is Exception ? e : Exception(e.toString());
+      }
+    }
+
+    throw Exception(
+      'Failed to get blob from any of the servers. Last error: $lastError',
+    );
   }
 
   @override
@@ -924,10 +971,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String outputPath,
   }) async {
     final response = await client.getStream(url: url);
-    await fileIO.writeFileStream(
-      outputPath,
-      response.stream.map((chunk) => Uint8List.fromList(chunk)),
-    );
+    await fileIO.writeFileStream(outputPath, response.stream.map(_bytes));
   }
 
   @override

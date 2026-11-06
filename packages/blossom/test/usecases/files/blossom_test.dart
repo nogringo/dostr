@@ -531,12 +531,11 @@ void main() {
     );
 
     test(
-      'getBlobStream should fallback to regular download if range requests not supported',
+      'getBlobStream streams the whole blob if range requests are not supported',
       () async {
-        // Upload a smaller test file
         final testData = Uint8List.fromList(
-          List.generate(1024, (i) => i % 256),
-        ); // 1KB test file
+          List.generate(1024 * 1024, (i) => i % 256),
+        );
 
         final uploadResponse = await client.uploadBlob(
           data: testData,
@@ -546,16 +545,19 @@ void main() {
         expect(uploadResponse.first.success, true);
         final sha256 = uploadResponse.first.descriptor!.sha256;
 
-        // Test the streaming download
         final stream = await blossomRepo.getBlobStream(
           sha256: sha256,
           serverUrls: ['http://localhost:${server.port}'],
         );
 
-        // Should receive exactly one chunk with the complete file
         final chunks = await stream.toList();
-        expect(chunks.length, equals(1));
-        expect(chunks.first.data, equals(testData));
+        expect(chunks.length, greaterThan(1));
+        expect(chunks.first.contentLength, equals(testData.length));
+        expect(
+          Uint8List.fromList(chunks.expand((chunk) => chunk.data).toList()),
+          equals(testData),
+        );
+        expect(server.countRequests(method: 'GET'), equals(1));
       },
     );
 
