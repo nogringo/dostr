@@ -113,6 +113,8 @@ dependency_overrides:
     path: ../drift
   ndk_cashu:
     path: ../cashu
+  ndk_cashu_protocol:
+    path: ../cashu_protocol
   ndk_nwc:
     path: ../nwc
   ndk_wallets:

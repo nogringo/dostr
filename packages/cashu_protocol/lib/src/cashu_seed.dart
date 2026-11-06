@@ -1,6 +1,6 @@
 import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 
-import '../../entities/cashu/cashu_user_seedphrase.dart';
+import 'entities/cashu_user_seedphrase.dart';
 
 class CashuSeedDeriveSecretResult {
   final String secretHex;

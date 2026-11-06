@@ -1,0 +1,30 @@
+name: ndk_cashu_protocol
+description: The Cashu ecash protocol in pure Dart, for NDK (Nostr Development Kit) and without Nostr. Blind signatures, tokens, NUT-13 secrets and the mint API.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - cashu
+  - ecash
+  - ndk
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  bip32_keys: ^3.1.4
+  bip340: ">=0.3.0 <0.4.0"
+  bip39_mnemonic: ^4.1.0
+  cbor: ^6.5.1
+  convert: ^3.1.2
+  crypto: ^3.0.7
+  ndk_http: ^0.1.0
+  pointycastle: ">=3.0.0 <5.0.0"
+
+dev_dependencies:
+  http: ^1.6.0
+  lints: ^6.1.0
+  test: any

@@ -1,17 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:ndk_logger/ndk_logger.dart';
-import '../../entities/cashu/cashu_blinded_message.dart';
-import '../../entities/cashu/cashu_blinded_signature.dart';
-import '../../entities/cashu/cashu_keyset.dart';
-import '../../entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../entities/cashu/cashu_restore_result.dart';
-import '../../repositories/cashu_key_derivation.dart';
-import '../../repositories/cashu_repo.dart';
-import 'cashu_bdhke.dart';
 import 'cashu_cache_decorator.dart';
-import 'cashu_seed.dart';
-import 'cashu_tools.dart';
 
 /// Implements NUT-09 (Restore) and uses NUT-13 (Deterministic Secrets)
 /// to restore proofs from a seed phrase.

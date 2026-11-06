@@ -1,4 +1,4 @@
-import '../../usecases/cashu/cashu_tools.dart';
+import '../cashu_tools.dart';
 
 class CashuProof {
   final String keysetId;
@@ -49,7 +49,7 @@ class CashuProof {
       keysetId: keysetId,
       amount: json['a'] ?? 0,
       secret: json['s']?.toString() ?? '',
-      unblindedSig: unblindedSig,
+      unblindedSig: unblindedSig.toLowerCase(),
       state: state,
     );
   }

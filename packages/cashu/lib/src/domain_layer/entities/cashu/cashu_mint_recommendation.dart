@@ -1,4 +1,4 @@
-import 'cashu_mint_info.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 /// Community information for a Cashu mint, aggregated from NIP-87 events.
 class CashuMintRecommendation {

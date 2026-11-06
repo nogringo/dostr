@@ -3,7 +3,7 @@ import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
-import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import 'package:test/test.dart';
 
 import 'tools/simple_profiler.dart';

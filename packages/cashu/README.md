@@ -4,6 +4,8 @@
 
 > Experimental, do not use in production. If the storage is lost, funds are lost.
 
+For the protocol alone, without a wallet or Nostr, use [ndk_cashu_protocol](../cashu_protocol/): this package re-exports it.
+
 ## Install
 
 ```yaml

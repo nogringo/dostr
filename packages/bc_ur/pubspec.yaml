@@ -48,5 +48,7 @@ dependency_overrides:
     path: ../fetchers
   ndk_cashu:
     path: ../cashu
+  ndk_cashu_protocol:
+    path: ../cashu_protocol
   ndk_wallets:
     path: ../wallets

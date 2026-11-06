@@ -2,13 +2,10 @@ import 'dart:convert';
 
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_cashu/src/data_layer/models/wallet_transaction_model.dart';
-import '../../entities/cashu/cashu_keyset.dart';
-import '../../entities/cashu/cashu_mint_info.dart';
-import '../../entities/cashu/cashu_proof.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import '../../repositories/cashu_key_derivation.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import '../../repositories/cashu_storage.dart';
 import 'cashu_cache_decorator.dart';
-import 'cashu_seed.dart';
 
 /// Full export / import of all local cashu state.
 ///

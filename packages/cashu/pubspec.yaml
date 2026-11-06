@@ -16,21 +16,15 @@ environment:
 resolution: workspace
 
 dependencies:
-  bip32_keys: ^3.1.4
-  bip39_mnemonic: ^4.1.0
-  cbor: ^6.5.1
-  convert: ^3.1.2
-  crypto: ^3.0.7
   http: ^1.6.0
   ndk: ^0.11.0-dev.2
-  ndk_bip340: ^0.1.0
+  ndk_cashu_protocol: ^0.1.0
   ndk_core: ^0.11.0-dev.2
   ndk_http: ^0.1.0
   ndk_logger: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_signer: ^0.1.0
   ndk_wallets: ^0.1.0
-  pointycastle: ">=3.0.0 <5.0.0"
   rxdart: ^0.28.0
 
 dev_dependencies:

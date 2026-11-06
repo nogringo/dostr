@@ -1,8 +1,6 @@
 import 'package:ndk_wallets/ndk_wallets.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
-import '../../domain_layer/entities/cashu/cashu_keyset.dart';
-import '../../domain_layer/entities/cashu/cashu_quote.dart';
-import '../../domain_layer/entities/cashu/cashu_quote_melt.dart';
 import '../../domain_layer/entities/wallet/providers/cashu/cashu_wallet_transaction.dart';
 
 /// A helper model for wallet transaction JSON serialization and deserialization.

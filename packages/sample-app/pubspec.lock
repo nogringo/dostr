@@ -824,6 +824,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_cashu_protocol:
+    dependency: "direct overridden"
+    description:
+      path: "../cashu_protocol"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_core:
     dependency: "direct main"
     description:

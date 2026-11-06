@@ -1,23 +1,24 @@
 import 'dart:convert';
 
-import '../../../config/cashu_config.dart';
-import '../../../domain_layer/entities/cashu/cashu_keyset.dart';
-import '../../../domain_layer/entities/cashu/cashu_blinded_message.dart';
-import '../../../domain_layer/entities/cashu/cashu_blinded_signature.dart';
-import '../../../domain_layer/entities/cashu/cashu_melt_response.dart';
-import '../../../domain_layer/entities/cashu/cashu_mint_info.dart';
-import '../../../domain_layer/entities/cashu/cashu_proof.dart';
-import '../../../domain_layer/entities/cashu/cashu_quote.dart';
-import '../../../domain_layer/entities/cashu/cashu_quote_melt.dart';
-import '../../../domain_layer/entities/cashu/cashu_token_state_response.dart';
-import '../../../domain_layer/repositories/cashu_repo.dart';
-import '../../../domain_layer/usecases/cashu/cashu_keypair.dart';
-import '../../../domain_layer/usecases/cashu/cashu_tools.dart';
+import 'entities/cashu_keyset.dart';
+import 'entities/cashu_blinded_message.dart';
+import 'entities/cashu_blinded_signature.dart';
+import 'entities/cashu_melt_response.dart';
+import 'entities/cashu_mint_info.dart';
+import 'entities/cashu_proof.dart';
+import 'entities/cashu_quote.dart';
+import 'entities/cashu_quote_melt.dart';
+import 'entities/cashu_token_state_response.dart';
+import 'cashu_repo.dart';
+import 'cashu_keypair.dart';
+import 'cashu_tools.dart';
 import 'package:ndk_http/ndk_http.dart';
 
-final headers = {'Content-Type': 'application/json'};
+const _headers = {'Content-Type': 'application/json'};
 
 class CashuRepoImpl implements CashuRepo {
+  static const Duration networkTimeout = Duration(seconds: 10);
+
   final NdkHttp client;
 
   CashuRepoImpl({required this.client});
@@ -29,17 +30,15 @@ class CashuRepoImpl implements CashuRepo {
   }) async {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'swap');
 
-    outputs.sort((a, b) => a.amount.compareTo(b.amount));
-
     final body = {
       'inputs': proofs.map((e) => e.toJson()).toList(),
       'outputs': outputs.map((e) => e.toJson()).toList(),
     };
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: headers)
+        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -74,9 +73,9 @@ class CashuRepoImpl implements CashuRepo {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'keysets');
 
     final response = await client
-        .get(url: Uri.parse(url), headers: headers)
+        .get(url: Uri.parse(url), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -118,9 +117,9 @@ class CashuRepoImpl implements CashuRepo {
     }
 
     final response = await client
-        .get(url: Uri.parse(url), headers: headers)
+        .get(url: Uri.parse(url), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -170,7 +169,7 @@ class CashuRepoImpl implements CashuRepo {
     final response = await client.post(
       url: Uri.parse(url),
       body: jsonEncode(body),
-      headers: headers,
+      headers: _headers,
     );
 
     if (response.statusCode != 200) {
@@ -203,7 +202,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'mint/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: headers);
+    final response = await client.get(url: Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -230,7 +229,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'mint/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: headers);
+    final response = await client.get(url: Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -285,7 +284,7 @@ class CashuRepoImpl implements CashuRepo {
     final response = await client.post(
       url: Uri.parse(url),
       body: jsonEncode(body),
-      headers: headers,
+      headers: _headers,
     );
 
     if (response.statusCode != 200) {
@@ -325,9 +324,9 @@ class CashuRepoImpl implements CashuRepo {
     final body = {'request': request, 'unit': unit};
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: headers)
+        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -357,7 +356,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'melt/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: headers);
+    final response = await client.get(url: Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -389,9 +388,9 @@ class CashuRepoImpl implements CashuRepo {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'melt/$method');
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: headers)
+        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -417,7 +416,7 @@ class CashuRepoImpl implements CashuRepo {
   Future<CashuMintInfo> getMintInfo({required String mintUrl}) {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'info');
 
-    return client.get(url: Uri.parse(url), headers: headers).then((response) {
+    return client.get(url: Uri.parse(url), headers: _headers).then((response) {
       if (response.statusCode != 200) {
         throw Exception(
           'Error fetching mint info: ${response.statusCode}, ${response.body}',
@@ -440,9 +439,9 @@ class CashuRepoImpl implements CashuRepo {
 
     final body = {'Ys': proofPubkeys};
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: headers)
+        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
-          CashuConfig.NETWORK_TIMEOUT,
+          networkTimeout,
           onTimeout: () => throw Exception(
             'Network timeout: Unable to reach mint at $mintUrl. The mint may be offline.',
           ),
@@ -481,7 +480,7 @@ class CashuRepoImpl implements CashuRepo {
     final response = await client.post(
       url: Uri.parse(url),
       body: jsonEncode(body),
-      headers: headers,
+      headers: _headers,
     );
 
     if (response.statusCode != 200) {

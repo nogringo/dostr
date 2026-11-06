@@ -1,9 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:ndk_cashu/src/domain_layer/usecases/cashu/cashu_keypair.dart';
-import 'package:ndk_cashu/src/domain_layer/usecases/cashu/cashu_seed.dart';
-
-import '../../../domain_layer/repositories/cashu_key_derivation.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 class FakeCashuSeedGenerator implements CashuKeyDerivation {
   @override

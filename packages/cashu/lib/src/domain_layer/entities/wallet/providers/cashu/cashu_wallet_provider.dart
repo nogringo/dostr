@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../../../../usecases/cashu/cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import '../../../cashu/cashu_mint_info.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import 'cashu_wallet.dart';
 import 'cashu_wallet_types.dart';
 

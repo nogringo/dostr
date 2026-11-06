@@ -1,5 +1,3 @@
-import 'package:ndk_logger/ndk_logger.dart';
-
 class CashuMintInfo {
   final String? name;
   final String? pubkey;
@@ -58,26 +56,13 @@ class CashuMintInfo {
     final parsedNuts = <int, CashuMintNut>{};
     nutsJson.forEach((k, v) {
       final key = int.tryParse(k.toString());
-      if (key != null) {
-        try {
-          if (v is List) {
-            // skip  (non-spec compliant)
-            Logger.log.w(
-              () =>
-                  'Warning: Skipping nut $key - received List instead of Map (non-spec compliant)',
-            );
-            return;
-          }
-
-          parsedNuts[key] = CashuMintNut.fromJson(
-            (v ?? {}) as Map<String, dynamic>,
-          );
-        } catch (e) {
-          Logger.log.w(
-            () => 'Warning: Skipping nut $key due to parsing error: $e',
-          );
-        }
-      }
+      // nuts that do not follow the spec are skipped
+      if (key == null || v is List) return;
+      try {
+        parsedNuts[key] = CashuMintNut.fromJson(
+          (v ?? {}) as Map<String, dynamic>,
+        );
+      } catch (_) {}
     });
 
     return CashuMintInfo(

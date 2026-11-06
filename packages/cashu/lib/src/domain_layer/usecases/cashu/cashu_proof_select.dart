@@ -1,13 +1,5 @@
-import '../../entities/cashu/cashu_keyset.dart';
-import '../../entities/cashu/cashu_blinded_message.dart';
-import '../../entities/cashu/cashu_proof.dart';
-import '../../repositories/cashu_key_derivation.dart';
-import '../../repositories/cashu_repo.dart';
-
-import 'cashu_bdhke.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import 'cashu_cache_decorator.dart';
-import 'cashu_seed.dart';
-import 'cashu_tools.dart';
 
 class ProofSelectionResult {
   final List<CashuProof> selectedProofs;
@@ -204,10 +196,12 @@ class CashuProofSelect {
     final blindedMessagesOutputs = await CashuBdhke.createBlindedMsgForAmounts(
       keysetId: activeKeyset.id,
       amounts: outputs,
-      cacheManager: cacheManagerCashu,
       cashuSeed: cashuSeed,
-      mintUrl: mint,
       cashuSeedSecretGenerator: _cashuSeedSecretGenerator,
+      nextCounter: () => cacheManagerCashu.getAndIncrementDerivationCounter(
+        keysetId: activeKeyset.id,
+        mintUrl: mint,
+      ),
     );
 
     // sort to increase privacy

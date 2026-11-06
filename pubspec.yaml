@@ -32,6 +32,7 @@ workspace:
   - packages/ndk_flutter
   - packages/wallets
   - packages/nwc
+  - packages/cashu_protocol
   - packages/cashu
   - packages/blossom
   - packages/fetchers

@@ -1,4 +1,4 @@
-import 'cashu_proof.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 class CashuRestoreResult {
   final List<CashuRestoreKeysetResult> keysetResults;

@@ -1,5 +1,5 @@
-import 'package:ndk_cashu/src/domain_layer/entities/cashu/cashu_mint_info.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 /// Cashu wallet implementation
 /// Stores mint information and handles Cashu-specific wallet operations

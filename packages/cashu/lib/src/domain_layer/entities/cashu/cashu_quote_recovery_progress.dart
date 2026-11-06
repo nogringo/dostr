@@ -1,5 +1,5 @@
-import '../../usecases/cashu/cashu_keypair.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../wallet/providers/cashu/cashu_wallet_transaction.dart';
 
 /// High-level stage of a [Cashu.recoverAndCompleteQuote] run, used by UIs to

@@ -1,13 +1,7 @@
 import 'dart:typed_data';
 
-import '../usecases/cashu/cashu_keypair.dart';
-import '../usecases/cashu/cashu_seed.dart';
-
-/// Reserved derivation counter slot for NUT-20 mint quote lock keys.
-///
-/// Stored alongside the per-keyset derivation counters. Cannot collide with a
-/// real keyset id since keyset ids are always hex.
-const String kQuoteKeyDerivationCounterSlot = 'quote-key';
+import 'cashu_keypair.dart';
+import 'cashu_seed.dart';
 
 abstract class CashuKeyDerivation {
   Future<CashuSeedDeriveSecretResult> deriveSecret({

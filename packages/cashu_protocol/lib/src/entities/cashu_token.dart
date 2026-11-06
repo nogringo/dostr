@@ -1,5 +1,5 @@
-import '../../usecases/cashu/cashu_token_encoder.dart';
-import '../../usecases/cashu/cashu_tools.dart';
+import '../cashu_token_encoder.dart';
+import '../cashu_tools.dart';
 import 'cashu_proof.dart';
 
 class CashuToken {
@@ -59,7 +59,8 @@ class CashuToken {
     final myProofs = List<CashuProof>.empty(growable: true);
 
     for (final tokenJson in tokensJson) {
-      final keysetId = tokenJson['i'] as String;
+      // cbor turns byte strings into uppercase hex, mints use lowercase
+      final keysetId = (tokenJson['i'] as String).toLowerCase();
 
       final proofsJson = tokenJson['p'] as List<dynamic>? ?? [];
 

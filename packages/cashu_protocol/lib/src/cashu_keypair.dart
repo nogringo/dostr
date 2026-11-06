@@ -1,7 +1,6 @@
 import 'package:convert/convert.dart';
 import 'package:pointycastle/export.dart';
 
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'cashu_tools.dart';
 
 class CashuKeypair {
@@ -19,8 +18,9 @@ class CashuKeypair {
   }
 
   static CashuKeypair generateCashuKeyPair() {
-    // 32-byte private key
-    final privKey = Helpers.getSecureRandomHex(32);
+    final privKey = CashuTools.randomScalar()
+        .toRadixString(16)
+        .padLeft(64, '0');
 
     // derive the public key as an EC point
     final pubKeyPoint = derivePublicKey(privKey);

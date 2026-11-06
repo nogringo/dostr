@@ -42,6 +42,7 @@ on:
           - ndk_fetchers
           - ndk_wallets
           - ndk_nwc
+          - ndk_cashu_protocol
           - ndk_cashu
           - ndk_blossom
       exact_version:

@@ -1,6 +1,10 @@
-import '../entities/cashu/cashu_keyset.dart';
-import '../entities/cashu/cashu_mint_info.dart';
-import '../entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+
+/// Reserved derivation counter slot for NUT-20 mint quote lock keys.
+///
+/// Stored alongside the per-keyset derivation counters. Cannot collide with a
+/// real keyset id since keyset ids are always hex.
+const String kQuoteKeyDerivationCounterSlot = 'quote-key';
 
 /// Persistence for Cashu keysets, proofs, mint info and secret counters.
 ///

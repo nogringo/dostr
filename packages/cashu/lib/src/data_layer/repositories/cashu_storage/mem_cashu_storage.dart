@@ -1,6 +1,4 @@
-import '../../../domain_layer/entities/cashu/cashu_keyset.dart';
-import '../../../domain_layer/entities/cashu/cashu_mint_info.dart';
-import '../../../domain_layer/entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../../domain_layer/repositories/cashu_storage.dart';
 
 /// In memory [CashuStorage], lost on restart.

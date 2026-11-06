@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:ndk/shared/helpers/mutex_simple.dart';
-import '../../entities/cashu/cashu_keyset.dart';
-import '../../entities/cashu/cashu_mint_info.dart';
-import '../../entities/cashu/cashu_proof.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../repositories/cashu_storage.dart';
 
 class CashuCacheDecorator implements CashuStorage {

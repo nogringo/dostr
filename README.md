@@ -89,9 +89,13 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nwc`: Nostr Wallet Connect (NIP-47) client and NWC zaps.
 
+### [🔗 Cashu protocol](./packages/cashu_protocol/)
+
+`ndk_cashu_protocol`: the Cashu protocol (blind signatures, v4 tokens, NUT-13 secrets and the mint API), without Nostr, in pure Dart.
+
 ### [🔗 Cashu](./packages/cashu/)
 
-`ndk_cashu`: Cashu ecash wallet.
+`ndk_cashu`: Cashu ecash wallet, on top of `ndk_cashu_protocol`.
 
 ### [🔗 Blossom](./packages/blossom/)
 

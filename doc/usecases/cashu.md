@@ -20,7 +20,7 @@ Cashu usecase can manage eCash (digital cash) within your application. It provid
 
 ## Setup
 
-Cashu lives in the `ndk_cashu` package.
+Cashu lives in the `ndk_cashu` package. For the protocol alone (blind signatures, tokens, NUT-13 secrets and the mint API) without a wallet or Nostr, use `ndk_cashu_protocol`, which `ndk_cashu` re-exports.
 
 ```yaml
 dependencies:

@@ -1,4 +1,4 @@
-import 'cashu_token.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../wallet/providers/cashu/cashu_wallet_transaction.dart';
 
 class CashuSpendingResult {

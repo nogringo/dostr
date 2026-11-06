@@ -6,41 +6,25 @@ import 'package:rxdart/rxdart.dart';
 import '../../../config/cashu_config.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
-import '../../entities/cashu/cashu_blinded_message.dart';
-import '../../entities/cashu/cashu_blinded_signature.dart';
-import '../../entities/cashu/cashu_keyset.dart';
 import '../../entities/cashu/cashu_mint_balance.dart';
-import '../../entities/cashu/cashu_mint_info.dart';
 import '../../entities/cashu/cashu_mint_recommendation.dart';
-import '../../entities/cashu/cashu_proof.dart';
-import '../../entities/cashu/cashu_quote.dart';
 import '../../entities/cashu/cashu_quote_recovery_progress.dart';
 import '../../entities/cashu/cashu_restore_result.dart';
 import '../../entities/cashu/cashu_spending_result.dart';
-import '../../entities/cashu/cashu_token.dart';
-import '../../entities/cashu/cashu_user_seedphrase.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk/presentation_layer/ndk.dart';
-import '../../repositories/cashu_key_derivation.dart';
-import '../../repositories/cashu_repo.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../repositories/cashu_storage.dart';
 import '../../entities/wallet/providers/cashu/cashu_wallet_types.dart';
-import '../../../data_layer/repositories/cashu/cashu_repo_impl.dart';
-import '../../../data_layer/repositories/cashu_seed_secret_generator/dart_cashu_key_derivation.dart';
 import '../../../data_layer/repositories/cashu_storage/mem_cashu_storage.dart';
 import 'cashu_export_import.dart';
-import 'cashu_bdhke.dart';
 import 'cashu_cache_decorator.dart';
-import 'cashu_keypair.dart';
 import 'cashu_keysets.dart';
 import 'cashu_mint_recommendations.dart';
 import 'cashu_proof_select.dart';
 import 'cashu_restore.dart';
-import 'cashu_seed.dart';
-import 'cashu_token_encoder.dart';
-import 'cashu_tools.dart';
 import '../../entities/wallet/providers/cashu/cashu_wallet_transaction.dart';
 
 class Cashu {
@@ -214,6 +198,21 @@ class Cashu {
   CashuSeed getCashuSeed() {
     return _cashuSeed;
   }
+
+  Future<List<CashuBlindedMessageItem>> _createBlindedMessages({
+    required String keysetId,
+    required String mintUrl,
+    required List<int> amounts,
+  }) => CashuBdhke.createBlindedMsgForAmounts(
+    keysetId: keysetId,
+    amounts: amounts,
+    cashuSeed: _cashuSeed,
+    cashuSeedSecretGenerator: _cashuKeyDerivation,
+    nextCounter: () => _cacheManagerCashu.getAndIncrementDerivationCounter(
+      keysetId: keysetId,
+      mintUrl: mintUrl,
+    ),
+  );
 
   /// checks to run for any cashu operation that modifies state
   Future<void> preflightChecks() async {
@@ -1505,13 +1504,10 @@ class Cashu {
     }
 
     List<int> splittedAmounts = CashuTools.splitAmount(quote.amount);
-    final blindedMessagesOutputs = await CashuBdhke.createBlindedMsgForAmounts(
+    final blindedMessagesOutputs = await _createBlindedMessages(
       keysetId: draftTransaction.usedKeysets!.first.id,
-      amounts: splittedAmounts,
-      cacheManager: _cacheManagerCashu,
-      cashuSeed: _cashuSeed,
       mintUrl: mintUrl,
-      cashuSeedSecretGenerator: _cashuKeyDerivation,
+      amounts: splittedAmounts,
     );
 
     final mintResponse = await _cashuRepo.mintTokens(
@@ -1717,15 +1713,11 @@ class Cashu {
 
     /// we dont have the exact amount
     if (selectionResult.needsSplit) {
-      final blindedMessagesOutputsOverpay =
-          await CashuBdhke.createBlindedMsgForAmounts(
-            keysetId: activeKeyset.id,
-            amounts: CashuTools.splitAmount(selectionResult.splitAmount),
-            cacheManager: _cacheManagerCashu,
-            cashuSeed: _cashuSeed,
-            mintUrl: mintUrl,
-            cashuSeedSecretGenerator: _cashuKeyDerivation,
-          );
+      final blindedMessagesOutputsOverpay = await _createBlindedMessages(
+        keysetId: activeKeyset.id,
+        mintUrl: mintUrl,
+        amounts: CashuTools.splitAmount(selectionResult.splitAmount),
+      );
       myOutputs.addAll(blindedMessagesOutputsOverpay);
     }
 
@@ -1735,13 +1727,10 @@ class Cashu {
         meltQuote.feeReserve!,
       );
 
-      final blankOutputs = await CashuBdhke.createBlindedMsgForAmounts(
+      final blankOutputs = await _createBlindedMessages(
         keysetId: activeKeyset.id,
-        amounts: List.generate(numBlankOutputs, (_) => 0),
-        cacheManager: _cacheManagerCashu,
-        cashuSeed: _cashuSeed,
         mintUrl: mintUrl,
-        cashuSeedSecretGenerator: _cashuKeyDerivation,
+        amounts: List.generate(numBlankOutputs, (_) => 0),
       );
       myOutputs.addAll(blankOutputs);
     }
@@ -2151,7 +2140,16 @@ class Cashu {
 
     await _checkIfMintIsKnown(rcvToken.mintUrl);
 
-    final keysets = await _cashuKeysets.getKeysetsFromMint(rcvToken.mintUrl);
+    var keysets = await _cashuKeysets.getKeysetsFromMint(rcvToken.mintUrl);
+
+    // the cache can predate a keyset that the token uses
+    final knownKeysetIds = keysets.map((keyset) => keyset.id).toSet();
+    if (rcvToken.proofs.any((p) => !knownKeysetIds.contains(p.keysetId))) {
+      keysets = await _cashuKeysets.getKeysetsFromMint(
+        rcvToken.mintUrl,
+        validityDurationSeconds: 0,
+      );
+    }
 
     if (keysets.isEmpty) {
       throw Exception('No keysets found for mint: ${rcvToken.mintUrl}');
@@ -2163,6 +2161,14 @@ class Cashu {
     );
 
     final rcvSum = CashuTools.sumOfProofs(proofs: rcvToken.proofs);
+    final fees = CashuProofSelect.calculateFees(rcvToken.proofs, keysets);
+    final receivedAmount = rcvSum - fees;
+    if (receivedAmount <= 0) {
+      throw Exception(
+        'The token holds $rcvSum ${rcvToken.unit}, '
+        'which does not cover the $fees ${rcvToken.unit} of mint fees',
+      );
+    }
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -2170,7 +2176,7 @@ class Cashu {
       id: rcvToken.mintUrl + now.toString(), //todo use a better id
       mintUrl: rcvToken.mintUrl,
       walletId: rcvToken.mintUrl,
-      changeAmount: rcvSum,
+      changeAmount: receivedAmount,
       unit: rcvToken.unit,
       walletType: WalletType.CASHU,
       state: WalletTransactionState.pending,
@@ -2183,14 +2189,11 @@ class Cashu {
     await _addAndSavePendingTransaction(pendingTransaction);
     yield pendingTransaction;
 
-    List<int> splittedAmounts = CashuTools.splitAmount(rcvSum);
-    final blindedMessagesOutputs = await CashuBdhke.createBlindedMsgForAmounts(
+    List<int> splittedAmounts = CashuTools.splitAmount(receivedAmount);
+    final blindedMessagesOutputs = await _createBlindedMessages(
       keysetId: keyset.id,
-      amounts: splittedAmounts,
-      cacheManager: _cacheManagerCashu,
-      cashuSeed: _cashuSeed,
       mintUrl: rcvToken.mintUrl,
-      cashuSeedSecretGenerator: _cashuKeyDerivation,
+      amounts: splittedAmounts,
     );
 
     blindedMessagesOutputs.sort(

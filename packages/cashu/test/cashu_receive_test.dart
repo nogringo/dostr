@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
+
+import 'cashu_test_tools.dart';
+import 'mocks/cashu_http_client_mock.dart';
 
 const devMintUrl = 'https://dev.mint.camelus.app';
 const failingMintUrl = 'https://mint.example.com';
@@ -126,6 +131,82 @@ void main() {
       final rcvStream2 = cashu2.receive(token);
 
       expect(() async => await rcvStream2.last, throwsA(isA<Exception>()));
+    });
+  });
+
+  group('receive fees', () {
+    // 1 sat per input
+    MockCashuHttpClient feeMint() => MockCashuHttpClient()
+      ..setCustomResponse(
+        'GET',
+        '/v1/keysets',
+        http.Response(
+          jsonEncode({
+            'keysets': [
+              {
+                'id': '00c726786980c4d9',
+                'unit': 'sat',
+                'active': true,
+                'input_fee_ppk': 1000,
+              },
+            ],
+          }),
+          200,
+        ),
+      );
+
+    String tokenOf(List<int> amounts) => CashuToken(
+      proofs: [
+        for (final (i, amount) in amounts.indexed)
+          CashuProof(
+            keysetId: '00c726786980c4d9',
+            amount: amount,
+            secret: 'secret $i',
+            unblindedSig: '02${'ab' * 32}',
+          ),
+      ],
+      memo: '',
+      unit: 'sat',
+      mintUrl: 'http://mock.mint',
+    ).toV4TokenString();
+
+    Cashu cashuFor(MockCashuHttpClient client) => CashuTestTools.mockHttpCashu(
+      customMockClient: client,
+      seedPhrase: CashuUserSeedphrase(
+        seedPhrase: CashuSeed.generateSeedPhrase(),
+      ),
+    );
+
+    test('asks for outputs worth the token minus the input fees', () async {
+      final client = feeMint();
+      final events = <CashuWalletTransaction>[];
+
+      // the mock has no swap endpoint, so the receive fails after the request
+      await expectLater(
+        cashuFor(client).receive(tokenOf([4, 2])).forEach(events.add),
+        throwsException,
+      );
+
+      final swap = client.getRequestsForPath('/v1/swap').single;
+      final outputs = jsonDecode(swap.body)['outputs'] as List<dynamic>;
+      expect(outputs.map((output) => output['amount']), [4]);
+      expect(events.first.changeAmount, 4);
+    });
+
+    test('refuses a token that does not cover the fees', () async {
+      final client = feeMint();
+
+      await expectLater(
+        cashuFor(client).receive(tokenOf([1, 1])).last,
+        throwsA(
+          isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('does not cover the 2 sat of mint fees'),
+          ),
+        ),
+      );
+      expect(client.getRequestsForPath('/v1/swap'), isEmpty);
     });
   });
 }

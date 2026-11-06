@@ -1,8 +1,5 @@
 import 'package:ndk_wallets/ndk_wallets.dart';
-
-import '../../../cashu/cashu_keyset.dart';
-import '../../../cashu/cashu_quote.dart';
-import '../../../cashu/cashu_quote_melt.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 class CashuWalletTransaction extends WalletTransaction {
   String mintUrl;

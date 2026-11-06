@@ -6,9 +6,9 @@ import 'package:crypto/crypto.dart';
 import 'package:convert/convert.dart';
 import 'package:bip32_keys/bip32_keys.dart';
 
-import '../../../domain_layer/repositories/cashu_key_derivation.dart';
-import '../../../domain_layer/usecases/cashu/cashu_keypair.dart';
-import '../../../domain_layer/usecases/cashu/cashu_seed.dart';
+import 'cashu_key_derivation.dart';
+import 'cashu_keypair.dart';
+import 'cashu_seed.dart';
 
 enum DerivationType {
   secret(0),

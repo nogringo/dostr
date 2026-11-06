@@ -2,8 +2,7 @@ import 'dart:convert';
 
 import 'package:cbor/cbor.dart';
 
-import 'package:ndk_logger/ndk_logger.dart';
-import '../../entities/cashu/cashu_token.dart';
+import 'entities/cashu_token.dart';
 
 class CashuTokenEncoder {
   static final v4Prefix = 'cashuB';
@@ -16,22 +15,16 @@ class CashuTokenEncoder {
     return v4Prefix + base64URL;
   }
 
+  /// null when [token] is not a `cashuB` token
   static CashuToken? decodedToken(String token) {
-    Map? obj;
+    if (!token.startsWith(v4Prefix)) return null;
+
+    final Map obj;
     try {
-      // remove prefix before decoding
-      if (!token.startsWith(v4Prefix)) {
-        Logger.log.f(() => 'Invalid token format: missing prefix');
-        return null;
-      }
-
-      String tokenWithoutPrefix = token.substring(v4Prefix.length);
-      obj = _decodeBase64ToMapByCBOR<Map>(tokenWithoutPrefix);
-    } catch (e) {
-      Logger.log.f(() => 'Error decoding token: $e');
+      obj = _decodeBase64ToMapByCBOR<Map>(token.substring(v4Prefix.length));
+    } catch (_) {
+      return null;
     }
-
-    if (obj == null) return null;
 
     return CashuToken.fromV4Json(obj);
   }

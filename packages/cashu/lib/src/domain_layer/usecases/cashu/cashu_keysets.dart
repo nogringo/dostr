@@ -1,6 +1,5 @@
-import '../../entities/cashu/cashu_keyset.dart';
+import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../repositories/cashu_storage.dart';
-import '../../repositories/cashu_repo.dart';
 
 class CashuKeysets {
   final CashuRepo _cashuRepo;

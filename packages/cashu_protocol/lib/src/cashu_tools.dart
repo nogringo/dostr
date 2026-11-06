@@ -2,22 +2,26 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:bip340/bip340.dart' as bip340;
+import 'package:convert/convert.dart';
 import 'package:crypto/crypto.dart';
 import 'package:pointycastle/export.dart' hide Digest;
 
-import 'package:convert/convert.dart';
-
-import '../../../config/cashu_config.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import '../../entities/cashu/cashu_keyset.dart';
-import '../../entities/cashu/cashu_blinded_message.dart';
-import '../../entities/cashu/cashu_proof.dart';
+import 'entities/cashu_keyset.dart';
+import 'entities/cashu_blinded_message.dart';
+import 'entities/cashu_proof.dart';
 
 class CashuTools {
+  static const String apiVersion = 'v1';
+  static const String hashToCurveDomainSeparator =
+      'Secp256k1_HashToCurve_Cashu_';
+
+  static final Random _random = Random.secure();
+
   static String composeUrl({
     required String mintUrl,
     required String path,
-    String version = '${CashuConfig.NUT_VERSION}/',
+    String version = '$apiVersion/',
   }) {
     return '$mintUrl/$version$path';
   }
@@ -77,7 +81,7 @@ class CashuTools {
 
     final hashBytes = Uint8List.fromList(utf8.encode(hash));
     Uint8List msgToHash = Uint8List.fromList([
-      ...CashuConfig.DOMAIN_SEPARATOR_HashToCurve.codeUnits,
+      ...hashToCurveDomainSeparator.codeUnits,
       ...hashBytes,
     ]);
 
@@ -139,9 +143,23 @@ class CashuTools {
     final Digest messageHash = sha256.convert(messageBytes);
     final String messageHashHex = messageHash.toString();
 
-    final String signature = Bip340.sign(messageHashHex, privateKeyHex);
+    return bip340.sign(
+      privateKeyHex,
+      messageHashHex,
+      hex.encode(randomBytes(32)),
+    );
+  }
 
-    return signature;
+  static Uint8List randomBytes(int length) =>
+      Uint8List.fromList(List.generate(length, (_) => _random.nextInt(256)));
+
+  /// A uniformly random secp256k1 scalar in `[1, n - 1]`.
+  static BigInt randomScalar() {
+    final n = ECCurve_secp256k1().n;
+    while (true) {
+      final scalar = BigInt.parse(hex.encode(randomBytes(32)), radix: 16);
+      if (scalar > BigInt.zero && scalar < n) return scalar;
+    }
   }
 
   static Uint8List hexToBytes(String hex) {

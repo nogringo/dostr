@@ -1,15 +1,17 @@
-import '../entities/cashu/cashu_keyset.dart';
-import '../entities/cashu/cashu_blinded_message.dart';
-import '../entities/cashu/cashu_blinded_signature.dart';
-import '../entities/cashu/cashu_melt_response.dart';
-import '../entities/cashu/cashu_mint_info.dart';
-import '../entities/cashu/cashu_proof.dart';
-import '../entities/cashu/cashu_quote.dart';
-import '../entities/cashu/cashu_quote_melt.dart';
-import '../entities/cashu/cashu_token_state_response.dart';
-import '../usecases/cashu/cashu_keypair.dart';
+import 'entities/cashu_keyset.dart';
+import 'entities/cashu_blinded_message.dart';
+import 'entities/cashu_blinded_signature.dart';
+import 'entities/cashu_melt_response.dart';
+import 'entities/cashu_mint_info.dart';
+import 'entities/cashu_proof.dart';
+import 'entities/cashu_quote.dart';
+import 'entities/cashu_quote_melt.dart';
+import 'entities/cashu_token_state_response.dart';
+import 'cashu_keypair.dart';
 
 abstract class CashuRepo {
+  /// Sends [outputs] in their order, which the signatures follow: sort them by
+  /// amount first (NUT-03) and unblind with the same order.
   Future<List<CashuBlindedSignature>> swap({
     required String mintUrl,
     required List<CashuProof> proofs,
