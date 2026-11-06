@@ -1,4 +1,4 @@
-import 'package:collection/collection.dart';
+import 'dart:math';
 
 import 'pubkey_mapping.dart';
 import 'read_write.dart';
@@ -83,12 +83,14 @@ class RelaySet {
   }
 
   static List<Filter> sliceFilterAuthors(Filter filter) {
-    if (filter.authors != null &&
-        filter.authors!.length > kMaxAuthorsPerRequest) {
-      return filter.authors!
-          .slices(kMaxAuthorsPerRequest)
-          .map((slice) => filter.cloneWithAuthors(slice))
-          .toList();
+    final authors = filter.authors;
+    if (authors != null && authors.length > kMaxAuthorsPerRequest) {
+      return [
+        for (var i = 0; i < authors.length; i += kMaxAuthorsPerRequest)
+          filter.cloneWithAuthors(
+            authors.sublist(i, min(i + kMaxAuthorsPerRequest, authors.length)),
+          ),
+      ];
     } else {
       return [filter];
     }

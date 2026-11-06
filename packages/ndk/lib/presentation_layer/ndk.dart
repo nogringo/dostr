@@ -1,5 +1,3 @@
-import 'package:meta/meta.dart';
-
 import '../data_layer/repositories/cache_manager/mem_cache_manager.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
@@ -176,7 +174,8 @@ class Ndk {
   }
 
   /// Zaps
-  @experimental // needs more docs & tests
+  ///
+  /// Experimental: the API might change, it needs more docs and tests.
   Zaps get zaps => _initialization.zaps;
 
   /// LNURL-pay (LUD-06/LUD-16) lookups and invoice fetching
@@ -187,7 +186,8 @@ class Ndk {
       _initialization.blossomUserServerList;
 
   /// Search
-  @experimental
+  ///
+  /// Experimental: the API might change.
   Search get search => _initialization.search;
 
   /// NIP-82 software application, release, and asset discovery.
@@ -195,25 +195,29 @@ class Ndk {
 
   /// Fetched ranges tracking
   /// Track which time ranges have been fetched from which relays for each filter
-  @experimental
+  ///
+  /// Experimental: the API might change.
   FetchedRanges get fetchedRanges => _initialization.fetchedRanges;
 
   /// NIP-77 Negentropy sync
   /// Efficient set reconciliation for syncing events between client and relay
-  @experimental
+  ///
+  /// Experimental: the API might change.
   Nip77 get nip77 => _initialization.nip77;
 
   /// Trusted Assertions (NIP-85)
   ///
   /// Fetch pre-computed metrics from trusted service providers.
-  @experimental // api might change
+  ///
+  /// Experimental: the API might change.
   TrustedAssertions get ta => _initialization.trustedAssertions;
 
   /// Trusted Assertions (NIP-85)
   ///
   /// Fetch pre-computed metrics from trusted service providers.
   /// short alias for trusted assertions => ndk.ta.getMetrics()
-  @experimental // api might change
+  ///
+  /// Experimental: the API might change.
   TrustedAssertions get trustedAssertions => ta;
 
   /// Close all transports on relay manager

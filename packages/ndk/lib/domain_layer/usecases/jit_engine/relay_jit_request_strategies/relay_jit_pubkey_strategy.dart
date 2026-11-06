@@ -1,7 +1,5 @@
 import 'dart:async';
 
-import 'package:collection/collection.dart';
-
 import 'package:ndk/domain_layer/repositories/cache_manager.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
@@ -143,9 +141,9 @@ class RelayJitPubkeyStrategy with Logger {
       final pubkeys = relayCandidate.coveredPubkeys
           .map((e) => e.pubkey)
           .toList();
-      final connected = connectedRelays.firstWhereOrNull(
-        (element) => element.url == url,
-      );
+      final connected = connectedRelays
+          .where((element) => element.url == url)
+          .firstOrNull;
       if (connected == null) {
         candidates.add(JitRelayCandidate(url, filter, pubkeys, direction));
         continue;
@@ -181,13 +179,15 @@ class RelayJitPubkeyStrategy with Logger {
     required List<String> bootstrapRelays,
   }) async {
     final unreachable = <JitRelayCandidate>[];
+    final candidatesByUrl = <String, List<JitRelayCandidate>>{};
+    for (final candidate in candidates) {
+      candidatesByUrl.putIfAbsent(candidate.url, () => []).add(candidate);
+    }
 
     // Awaiting each candidate in turn would make an unreachable relay consume
     // the full connection timeout before the next useful one is even tried.
     await Future.wait(
-      groupBy(candidates, (candidate) => candidate.url).entries.map((
-        entry,
-      ) async {
+      candidatesByUrl.entries.map((entry) async {
         final url = entry.key;
         final result = await relayManager.connectRelay(dirtyUrl: url);
         final connectivity = relayManager.getRelayConnectivity(url);

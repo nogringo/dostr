@@ -37,10 +37,8 @@ dependencies:
   ndk_http: ^0.1.0
   http: ^1.6.0
   crypto: ^3.0.7
-  collection: ^1.19.1
   rxdart: ^0.28.0
   cryptography: ^2.9.0
-  meta: ">=1.10.0 <2.0.0"
 
 dev_dependencies:
   bip340: ">=0.3.0 <0.4.0"

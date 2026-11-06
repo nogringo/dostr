@@ -1,6 +1,6 @@
 import 'dart:async';
+import 'dart:collection';
 
-import 'package:collection/collection.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'package:ndk_auth/ndk_auth.dart';
@@ -18,8 +18,6 @@ class Accounts implements AuthAccounts {
 
   final Map<String, Account> _accounts = {};
   String? _loggedPubkey;
-
-  static const _accountsEquality = MapEquality<String, Account>();
 
   /// Stream controller for authentication state changes
   final _stateController = BehaviorSubject<Account?>();
@@ -228,9 +226,11 @@ class Accounts implements AuthAccounts {
 
   /// Notifies listeners of accounts changes, no-op if nothing actually changed
   void _notifyAccountsChange() {
-    if (_accountsEquality.equals(_accountsController.value, _accounts)) {
-      return;
-    }
+    final previous = _accountsController.value;
+    final unchanged =
+        previous.length == _accounts.length &&
+        _accounts.entries.every((entry) => previous[entry.key] == entry.value);
+    if (unchanged) return;
     _accountsController.add(UnmodifiableMapView(Map.of(_accounts)));
   }
 
