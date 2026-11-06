@@ -796,6 +796,13 @@ packages:
       relative: true
     source: path
     version: "0.11.0-dev.2"
+  ndk_auth:
+    dependency: "direct overridden"
+    description:
+      path: "../auth"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_bip340:
     dependency: "direct overridden"
     description:
@@ -845,10 +852,24 @@ packages:
       relative: true
     source: path
     version: "0.10.3-dev.2"
+  ndk_http:
+    dependency: "direct overridden"
+    description:
+      path: "../http"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_isolates:
     dependency: "direct overridden"
     description:
       path: "../isolates"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_logger:
+    dependency: "direct overridden"
+    description:
+      path: "../logger"
       relative: true
     source: path
     version: "0.1.0"

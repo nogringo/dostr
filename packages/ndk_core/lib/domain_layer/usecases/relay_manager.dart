@@ -3,7 +3,7 @@ import 'dart:collection';
 
 import '../../config/relay_defaults.dart';
 import '../../config/request_defaults.dart';
-import '../../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import '../../src/nostr_message_raw.dart';
 import '../../src/relay_auth.dart';
 import '../../src/relay_broadcasts.dart';
@@ -11,14 +11,12 @@ import '../../src/relay_connection.dart';
 import '../../src/relay_connections.dart';
 import '../../src/relay_manager_parts.dart';
 import '../../src/relay_requests.dart';
-import '../entities/account.dart';
-import '../entities/auth_handler.dart';
-import '../entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
+import '../entities/timeout_pausable.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
 import '../entities/relay_failure.dart';
 import '../entities/relay_protocol_handler.dart';
-import '../repositories/auth_accounts.dart';
 import '../repositories/nostr_transport.dart';
 
 export 'relay_reqs/relay_publish.dart' show RelayPublish, RelayPublishes;

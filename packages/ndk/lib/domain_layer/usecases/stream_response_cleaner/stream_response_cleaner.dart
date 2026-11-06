@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import '../../entities/event_filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

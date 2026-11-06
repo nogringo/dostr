@@ -1,26 +1,20 @@
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
-import 'package:ndk/domain_layer/usecases/broadcast/broadcast.dart';
-import 'package:ndk/domain_layer/usecases/requests/requests.dart';
-import 'package:ndk/presentation_layer/ndk.dart';
-import 'blossom.dart';
+import '../accounts/accounts.dart';
+import '../broadcast/broadcast.dart';
+import '../requests/requests.dart';
 
 /// Blossom User Server List used to manage the blossom servers of a user
 class BlossomUserServerList {
+  /// kind for blossom user server list
+  static const kBlossomUserServerList = 10063;
+
   final Requests _requests;
   final Broadcast _broadcast;
   final Accounts _accounts;
 
-  factory BlossomUserServerList(Ndk ndk) =>
-      BlossomUserServerList.withDependencies(
-        requests: ndk.requests,
-        broadcast: ndk.broadcast,
-        accounts: ndk.accounts,
-      );
-
-  BlossomUserServerList.withDependencies({
+  BlossomUserServerList({
     required Requests requests,
     required Broadcast broadcast,
     required Accounts accounts,
@@ -36,7 +30,7 @@ class BlossomUserServerList {
   }) async {
     final rsp = _requests.query(
       timeout: Duration(seconds: 5),
-      filter: Filter(authors: pubkeys, kinds: [Blossom.kBlossomUserServerList]),
+      filter: Filter(authors: pubkeys, kinds: [kBlossomUserServerList]),
     );
 
     final data = await rsp.future;
@@ -75,7 +69,7 @@ class BlossomUserServerList {
     final Nip01Event myServerList = Nip01Event(
       content: "",
       pubKey: _accounts.getLoggedAccount()!.pubkey,
-      kind: Blossom.kBlossomUserServerList,
+      kind: kBlossomUserServerList,
       createdAt: now,
       tags: [
         for (var i = 0; i < serverUrlsOrdered.length; i++)

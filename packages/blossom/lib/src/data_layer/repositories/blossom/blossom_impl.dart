@@ -10,15 +10,14 @@ import '../../../domain_layer/entities/blossom_blobs.dart';
 import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk/domain_layer/entities/tuple.dart';
 import '../../../domain_layer/repositories/blossom.dart';
-import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 import '../../io/file_io.dart';
-import 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 
 bool _isSuccessStatus(int statusCode) => statusCode >= 200 && statusCode < 300;
 
-String _authHeader(Nip01Event event) => "Nostr ${event.toBase64()}";
+String _authHeader(Nip01Event event) =>
+    "Nostr ${base64Encode(utf8.encode(event.toJsonString()))}";
 
 int? _statusCode(Object error) =>
     error is HttpRequestException ? error.statusCode : null;
@@ -693,10 +692,8 @@ class BlossomRepositoryImpl implements BlossomRepository {
     );
   }
 
-  /// first value is whether the server supports range requests \
-  /// second value is the content length of the blob in bytes
   @override
-  Future<Tuple<bool, int?>> supportsRangeRequests({
+  Future<({bool supported, int? contentLength})> supportsRangeRequests({
     required String sha256,
     required String serverUrl,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
@@ -717,9 +714,12 @@ class BlossomRepositoryImpl implements BlossomRepository {
       final contentLength = int.tryParse(
         response.headers['content-length'] ?? '',
       );
-      return Tuple(acceptRanges?.toLowerCase() == 'bytes', contentLength);
+      return (
+        supported: acceptRanges?.toLowerCase() == 'bytes',
+        contentLength: contentLength,
+      );
     } catch (e) {
-      return Tuple(false, null);
+      return (supported: false, contentLength: null);
     }
   }
 
@@ -741,9 +741,9 @@ class BlossomRepositoryImpl implements BlossomRepository {
           serverUrl: url,
           authorization: authorization,
         );
-        if (rangeResponse.first) {
+        if (rangeResponse.supported) {
           supportedServer = url;
-          contentLength = rangeResponse.second;
+          contentLength = rangeResponse.contentLength;
           break;
         }
       } catch (_) {

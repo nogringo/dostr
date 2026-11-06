@@ -4,7 +4,7 @@ import 'package:collection/collection.dart';
 
 import 'package:ndk/domain_layer/repositories/cache_manager.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 import 'package:ndk/shared/nips/nip65/relay_ranking.dart';

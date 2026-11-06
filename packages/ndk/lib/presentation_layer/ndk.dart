@@ -4,6 +4,7 @@ import '../data_layer/repositories/cache_manager/mem_cache_manager.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
+import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 import '../domain_layer/usecases/bunkers/bunkers.dart';
 import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
@@ -180,6 +181,10 @@ class Ndk {
 
   /// LNURL-pay (LUD-06/LUD-16) lookups and invoice fetching
   Lnurl get lnurl => _initialization.lnurl;
+
+  /// The kind 10063 list of the Blossom servers a user uploads to (BUD-03)
+  BlossomUserServerList get blossomUserServerList =>
+      _initialization.blossomUserServerList;
 
   /// Search
   @experimental

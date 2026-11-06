@@ -1,0 +1,22 @@
+name: ndk_auth
+description: The accounts of NDK (Nostr Development Kit) and the AuthPolicy and AuthHandler that decide when one is revealed to a relay (NIP-42) or a Blossom server.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - authentication
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  ndk_signer: ^0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any

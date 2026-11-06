@@ -18,8 +18,14 @@ class BlossomMediaPage extends StatefulWidget {
 }
 
 class _BlossomMediaPageState extends State<BlossomMediaPage> {
-  late final Blossom _blossom = Blossom(widget.ndk);
-  late final Files _files = Files(widget.ndk);
+  late final Blossom _blossom = Blossom(
+    accounts: widget.ndk.accounts,
+    eventSignerFactory: widget.ndk.config.eventSignerFactory,
+    authHandler: widget.ndk.config.authHandler,
+    getUserServerList: (pubkey) =>
+        widget.ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+  );
+  late final Files _files = Files(_blossom);
 
   // Upload state
   bool _isUploading = false;

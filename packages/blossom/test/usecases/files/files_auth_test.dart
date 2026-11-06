@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 const int filesAuthPort = 30050;
 
@@ -45,7 +46,7 @@ void main() {
       pubkey: key.publicKey,
       privkey: key.privateKey!,
     );
-    files = Files(ndk);
+    files = Files(blossomFor(ndk));
   });
 
   tearDown(() async => server.stop());

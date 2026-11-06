@@ -58,7 +58,19 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/auth
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
           - package: ./packages/isolates
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/logger
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/http
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .

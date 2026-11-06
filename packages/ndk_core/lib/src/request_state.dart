@@ -3,8 +3,8 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
 import '../domain_layer/entities/filter.dart';
-import '../domain_layer/entities/auth_handler.dart';
-import '../domain_layer/entities/auth_policy.dart';
+import '../domain_layer/entities/timeout_pausable.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';

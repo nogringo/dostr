@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import '../domain_layer/entities/account.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import '../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'client_msg.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,

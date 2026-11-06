@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import '../../entities/jit_engine_relay_connectivity_data.dart';
 import '../../entities/read_write_marker.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';

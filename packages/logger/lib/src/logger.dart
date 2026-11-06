@@ -1,4 +1,4 @@
-import '../../config/logger_defaults.dart';
+import 'logger_defaults.dart';
 import 'console_output.dart';
 import 'log_level.dart';
 import 'ndk_logger.dart';

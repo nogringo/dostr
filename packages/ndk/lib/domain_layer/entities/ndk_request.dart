@@ -1,5 +1,5 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'relay_set.dart';
 
 // coverage:ignore-start

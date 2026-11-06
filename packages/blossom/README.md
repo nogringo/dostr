@@ -1,6 +1,8 @@
 # ndk_blossom
 
-[Blossom](https://github.com/hzrd149/blossom) file storage for [NDK](https://pub.dev/packages/ndk): upload, download, mirror and delete blobs, and manage a user's server list (kind `10063`).
+[Blossom](https://github.com/hzrd149/blossom) file storage for [NDK](https://pub.dev/packages/ndk): upload, download, mirror and delete blobs on a user's servers (kind `10063`).
+
+It does not depend on `ndk`. It signs through [`ndk_signer`](https://pub.dev/packages/ndk_signer), takes its accounts and auth policies from [`ndk_auth`](https://pub.dev/packages/ndk_auth), and asks you how to read a user's server list.
 
 ## Install
 
@@ -18,21 +20,26 @@ import 'package:ndk_blossom/ndk_blossom.dart';
 
 final ndk = Ndk.defaultConfig();
 
+final blossom = Blossom(
+  accounts: ndk.accounts,
+  eventSignerFactory: ndk.config.eventSignerFactory,
+  authHandler: ndk.config.authHandler,
+  getUserServerList: (pubkey) =>
+      ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+);
+
 // high level: a Blossom url goes through Blossom, any other url is fetched directly
-final files = Files(ndk);
+final files = Files(blossom);
 final blob = await files.download(
   url: 'https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf',
 );
 
 // low level: every BUD operation, with the servers you choose
-final blossom = Blossom(ndk);
 final blobs = await blossom.listBlobs(pubkey: pubkey);
-
-// the user's server list
-final serverList = BlossomUserServerList(ndk);
-final servers = await serverList.getUserServerList(pubkeys: [pubkey]);
 ```
 
-`Blossom(ndk)` signs with the accounts of that NDK instance and asks its `NdkConfig.authHandler` before revealing an identity to a server. Each operation takes an `auth` policy, see the [Blossom docs](https://dart-nostr.com/usecases/blossom/).
+`Blossom` signs with the logged-in account of `accounts` and asks `authHandler` before revealing an identity to a server. Each operation takes an `auth` policy, see the [Blossom docs](https://dart-nostr.com/usecases/blossom/).
+
+To read or publish a user's server list, use `ndk.blossomUserServerList`, in the `ndk` package.
 
 More in [example/](example/).

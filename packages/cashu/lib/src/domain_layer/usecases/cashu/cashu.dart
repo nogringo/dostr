@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:rxdart/rxdart.dart';
 
 import '../../../config/cashu_config.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
 import '../../entities/cashu/cashu_blinded_message.dart';
 import '../../entities/cashu/cashu_blinded_signature.dart';
@@ -21,7 +21,7 @@ import '../../entities/cashu/cashu_token.dart';
 import '../../entities/cashu/cashu_user_seedphrase.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk/presentation_layer/ndk.dart';
 import '../../repositories/cashu_key_derivation.dart';
 import '../../repositories/cashu_repo.dart';

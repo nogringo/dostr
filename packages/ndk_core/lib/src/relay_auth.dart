@@ -1,12 +1,10 @@
 import 'dart:async';
 
-import '../domain_layer/entities/account.dart';
-import '../domain_layer/entities/auth_handler.dart';
-import '../domain_layer/entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
+import '../domain_layer/entities/timeout_pausable.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import '../domain_layer/repositories/auth_accounts.dart';
-import '../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'auth_session.dart';
 
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and

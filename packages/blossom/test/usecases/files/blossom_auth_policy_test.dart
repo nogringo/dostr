@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 const int policyPort = 30040;
 
@@ -52,7 +53,7 @@ void main() {
       pubkey: key.publicKey,
       privkey: key.privateKey!,
     );
-    client = Blossom(ndk);
+    client = blossomFor(ndk);
   });
 
   tearDown(() async => server.stop());
@@ -239,7 +240,7 @@ void main() {
         pubkey: key.publicKey,
         privkey: key.privateKey!,
       );
-      rangedClient = Blossom(ndk);
+      rangedClient = blossomFor(ndk);
     });
 
     tearDown(() async => ranged.stop());

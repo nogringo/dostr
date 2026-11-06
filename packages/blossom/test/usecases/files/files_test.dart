@@ -8,6 +8,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 void main() {
   late MockBlossomServer server;
@@ -36,7 +37,7 @@ void main() {
     );
 
     loggedAccount = ndk.accounts.getLoggedAccount()!;
-    client = Files(ndk);
+    client = Files(blossomFor(ndk));
   });
 
   tearDown(() async {

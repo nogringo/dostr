@@ -1,5 +1,5 @@
 // coverage:ignore-file
-import '../shared/logger/log_level.dart';
+import 'log_level.dart';
 
 /// ANSI color codes for terminal output
 class LogColor {

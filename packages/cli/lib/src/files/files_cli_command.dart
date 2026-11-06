@@ -4,6 +4,7 @@ import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
 
+import '../blossom/blossom_for_ndk.dart';
 import '../cli_accounts_store.dart';
 import '../cli_command.dart';
 
@@ -83,7 +84,7 @@ Options:
     }
 
     stdout.writeln('Uploading $filePath ...');
-    final stream = Files(ndk).uploadFromFile(
+    final stream = Files(blossomFor(ndk)).uploadFromFile(
       filePath: filePath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       contentType: parsed.contentType,
@@ -126,7 +127,7 @@ Options:
     final outPath = parsed.positional[1];
 
     stdout.writeln('Downloading $url -> $outPath ...');
-    await Files(ndk).downloadToFile(
+    await Files(blossomFor(ndk)).downloadToFile(
       url: url,
       outputPath: outPath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
@@ -152,7 +153,7 @@ Options:
     }
 
     stdout.writeln('Deleting $sha ...');
-    final results = await Files(ndk).delete(
+    final results = await Files(blossomFor(ndk)).delete(
       sha256: sha,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
     );
@@ -177,7 +178,7 @@ Options:
     final url = parsed.positional[0];
 
     stdout.writeln('Checking $url ...');
-    final alive = await Files(ndk).checkUrl(
+    final alive = await Files(blossomFor(ndk)).checkUrl(
       url: url,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       pubkey: parsed.pubkey,

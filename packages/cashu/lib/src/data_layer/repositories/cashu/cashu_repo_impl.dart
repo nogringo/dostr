@@ -13,7 +13,7 @@ import '../../../domain_layer/entities/cashu/cashu_token_state_response.dart';
 import '../../../domain_layer/repositories/cashu_repo.dart';
 import '../../../domain_layer/usecases/cashu/cashu_keypair.dart';
 import '../../../domain_layer/usecases/cashu/cashu_tools.dart';
-import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 
 final headers = {'Content-Type': 'application/json'};
 

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk/domain_layer/usecases/lnurl/lnurl_response.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_wallets/src/domain_layer/entities/wallet/responses/pay_invoice_response.dart';
 import 'package:ndk_wallets/src/domain_layer/entities/wallet/responses/pay_response.dart';
 import 'package:ndk_wallets/src/domain_layer/entities/wallet/responses/receive_response.dart';

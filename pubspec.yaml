@@ -13,7 +13,9 @@ workspace:
   - packages/ndk_core
   - packages/nip01
   - packages/signer
+  - packages/auth
   - packages/isolates
+  - packages/logger
   - packages/nip19
   - packages/bip340
   - packages/nip44
@@ -33,6 +35,7 @@ workspace:
   - packages/cashu
   - packages/blossom
   - packages/fetchers
+  - packages/http
   - packages/url_set
 
 melos:

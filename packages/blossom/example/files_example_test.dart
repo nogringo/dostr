@@ -4,10 +4,20 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:test/test.dart';
 
+Files filesFor(Ndk ndk) => Files(
+  Blossom(
+    accounts: ndk.accounts,
+    eventSignerFactory: ndk.config.eventSignerFactory,
+    authHandler: ndk.config.authHandler,
+    getUserServerList: (pubkey) =>
+        ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+  ),
+);
+
 void main() async {
   test('download test - blossom', () async {
     final ndk = Ndk.defaultConfig();
-    final files = Files(ndk);
+    final files = filesFor(ndk);
 
     final downloadResult = await files.download(
       url:
@@ -23,7 +33,7 @@ void main() async {
 
   test('download test - non blossom', () async {
     final ndk = Ndk.defaultConfig();
-    final files = Files(ndk);
+    final files = filesFor(ndk);
 
     final downloadResult = await files.download(
       url: "https://camelus.app/.well-known/nostr.json",

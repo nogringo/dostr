@@ -7,7 +7,13 @@ import 'package:test/test.dart';
 void main() async {
   test('download test', () async {
     final ndk = Ndk.defaultConfig();
-    final blossom = Blossom(ndk);
+    final blossom = Blossom(
+      accounts: ndk.accounts,
+      eventSignerFactory: ndk.config.eventSignerFactory,
+      authHandler: ndk.config.authHandler,
+      getUserServerList: (pubkey) =>
+          ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+    );
 
     final downloadResult = await blossom.getBlob(
       sha256:

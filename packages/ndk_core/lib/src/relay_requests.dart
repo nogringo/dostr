@@ -1,12 +1,11 @@
 import 'dart:async';
 
-import '../domain_layer/entities/account.dart';
-import '../domain_layer/entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/filter.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';
-import '../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'client_msg.dart';
 import 'nostr_message_raw.dart';
 import 'relay_auth.dart';

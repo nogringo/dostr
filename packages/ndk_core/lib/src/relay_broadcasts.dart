@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import '../config/relay_defaults.dart';
-import '../domain_layer/entities/auth_handler.dart';
-import '../domain_layer/entities/auth_policy.dart';
+import '../domain_layer/entities/timeout_pausable.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../shared/helpers/relay_helper.dart';
-import '../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'broadcast_state.dart';
 import 'client_msg.dart';
 import 'relay_auth.dart';

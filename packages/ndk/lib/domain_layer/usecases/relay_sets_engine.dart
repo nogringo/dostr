@@ -3,7 +3,7 @@
 import 'dart:core';
 
 import 'package:ndk/config/bootstrap_relays.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../entities/relay_set.dart';

@@ -29,9 +29,21 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, in pure Dart.
 
+### [🔗 Auth](./packages/auth/)
+
+`ndk_auth`: the accounts NDK authenticates as, and the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.
+
+### [🔗 Logger](./packages/logger/)
+
+`ndk_logger`: the logger that NDK packages share, with its levels and pluggable outputs, in pure Dart.
+
+### [🔗 HTTP](./packages/http/)
+
+`ndk_http`: the HTTP data source that NDK packages share, with typed errors for non-2xx responses and streamed uploads and downloads.
 
 ### [🔗 NIP-19](./packages/nip19/)
 
@@ -83,7 +95,7 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 Blossom](./packages/blossom/)
 
-`ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs and manage a user's server list.
+`ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers, without depending on `ndk`.
 
 ### [🔗 ObjectBox](./packages/objectbox/)
 

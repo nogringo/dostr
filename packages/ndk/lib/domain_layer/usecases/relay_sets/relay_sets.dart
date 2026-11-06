@@ -1,5 +1,5 @@
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import '../../entities/pubkey_mapping.dart';
 import '../../entities/read_write.dart';
 import '../../entities/read_write_marker.dart';

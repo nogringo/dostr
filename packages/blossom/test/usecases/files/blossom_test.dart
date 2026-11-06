@@ -4,7 +4,7 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 
-import 'package:ndk/data_layer/data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
@@ -13,6 +13,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 const int primaryServerPort = 30000;
 const int secondaryServerPort = 30001;
@@ -45,7 +46,7 @@ void main() {
     );
 
     loggedAccount = ndk.accounts.getLoggedAccount()!;
-    client = Blossom(ndk);
+    client = blossomFor(ndk);
   });
 
   tearDown(() async {
@@ -829,7 +830,7 @@ void main() {
       privkey: keyPair.privateKey!,
     );
 
-    await Blossom(ndk).listBlobs(
+    await blossomFor(ndk).listBlobs(
       pubkey: ndk.accounts.getPublicKey()!,
       serverUrls: ["http://localhost:${server.port}"],
     );
@@ -1183,7 +1184,7 @@ void main() {
           utf8.encode('Temporary signer test'),
         );
 
-        final uploadResponse = await Blossom(ndkNoLogin).uploadBlob(
+        final uploadResponse = await blossomFor(ndkNoLogin).uploadBlob(
           data: testData,
           serverUrls: ['http://localhost:${server.port}'],
         );

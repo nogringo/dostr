@@ -5,7 +5,6 @@ import '../entities/blossom_authorization.dart';
 import '../entities/blossom_blobs.dart';
 import '../entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk/domain_layer/entities/tuple.dart';
 
 abstract class BlossomRepository {
   /// Uploads a blob using the specified strategy
@@ -99,10 +98,9 @@ abstract class BlossomRepository {
     int chunkSize = 1024 * 1024, // 1MB chunks
   });
 
-  /// Checks if the server supports range requests and gets the content length \
-  /// first value is whether the server supports range requests \
-  /// second value is the content length of the blob in bytes
-  Future<Tuple<bool, int?>> supportsRangeRequests({
+  /// Whether the server supports range requests for the blob, and the blob's
+  /// content length in bytes when the server gives it
+  Future<({bool supported, int? contentLength})> supportsRangeRequests({
     required String sha256,
     required String serverUrl,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),

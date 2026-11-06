@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:http/http.dart' as http;
 
 import '../shared/net/user_agent.dart';
-import '../data_layer/data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/nip_05_http_impl.dart';
@@ -14,6 +14,7 @@ import '../domain_layer/repositories/lnurl_transport.dart';
 import '../domain_layer/repositories/nip_05_repo.dart';
 import '../domain_layer/usecases/accounts/accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
+import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 import '../domain_layer/usecases/broadcast/broadcast_sender.dart';
 import '../domain_layer/usecases/broadcast/pending_broadcast_delivery.dart';
 import '../domain_layer/usecases/bunkers/bunkers.dart';
@@ -45,7 +46,7 @@ import '../domain_layer/usecases/software/software.dart';
 import '../domain_layer/usecases/ta/trusted_assertions.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'ndk_config.dart';
 
 /// this class is used to inject all the dependencies \
@@ -82,6 +83,7 @@ class Initialization {
   late PendingBroadcastDelivery pendingBroadcastDelivery;
   late Zaps zaps;
   late Lnurl lnurl;
+  late BlossomUserServerList blossomUserServerList;
   late Search search;
   late Software software;
   late GiftWrap giftWrap;
@@ -293,6 +295,12 @@ class Initialization {
     lnurl = Lnurl(transport: lnurlTransport);
 
     zaps = Zaps(requests: requests, lnurl: lnurl);
+
+    blossomUserServerList = BlossomUserServerList(
+      requests: requests,
+      broadcast: broadcast,
+      accounts: accounts,
+    );
 
     search = Search(cacheManager: _ndkConfig.cache, requests: requests);
     software = Software(requests: requests);

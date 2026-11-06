@@ -1,5 +1,5 @@
 import 'package:ndk/config/request_defaults.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/contact_list.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';

@@ -7,7 +7,7 @@ import '../../../shared/nips/nip01/helpers.dart';
 import '../../../src/relay_manager_parts.dart';
 import '../../../src/relay_requests.dart';
 import '../../../src/request_state.dart';
-import '../../entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/filter.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';

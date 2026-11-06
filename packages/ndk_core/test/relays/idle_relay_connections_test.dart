@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk_core/domain_layer/entities/account.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/src/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';

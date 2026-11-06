@@ -8,18 +8,23 @@ icon: file-zip
 
 ## Setup
 
-Blossom lives in the `ndk_blossom` package.
+Blossom lives in the `ndk_blossom` package, which does not depend on `ndk`.
 
 ```yaml
 dependencies:
+  ndk: ^0.11.0-dev.2
   ndk_blossom: ^0.1.0
 ```
 
-`Blossom(ndk)` signs with the accounts of that NDK instance and asks its `NdkConfig.authHandler`.
+Build it on top of an NDK instance: it signs with its accounts, asks its
+`NdkConfig.authHandler`, and reads server lists (kind `10063`) through
+`ndk.blossomUserServerList`.
+
+:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="10-16" title="" :::
 
 ## Example
 
-:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="10-20" title="" :::
+:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="18-22" title="" :::
 
 ## When to use
 
@@ -40,7 +45,7 @@ server may learn, as on
 [broadcasts](/usecases/broadcast.md#relay-authentication-nip-42):
 
 ```dart
-final response = await Blossom(ndk).getBlob(
+final response = await blossom.getBlob(
   sha256: hash,
   serverUrls: ['https://cdn.example.com'],
   auth: AuthPolicy.allow(account),
@@ -224,12 +229,12 @@ Future<int> report({
 
 ### methods - BlossomUserServerList
 
-To get and set the user server list e.g. on settings page, you can use `BlossomUserServerList(ndk)`
+To get and set the user server list e.g. on settings page, use `ndk.blossomUserServerList`, in the `ndk` package
 
 #### getUserServerList
 
-:::code source="../../packages/blossom/lib/src/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="31-36" title="" :::
+:::code source="../../packages/ndk/lib/domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart" language="dart" range="25-30" title="" :::
 
 #### publishUserServerList
 
-:::code source="../../packages/blossom/lib/src/domain_layer/usecases/files/blossom_user_server_list.dart" language="dart" range="60-64" title="" :::
+:::code source="../../packages/ndk/lib/domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart" language="dart" range="54-58" title="" :::

@@ -2,18 +2,13 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk/data_layer/data_sources/http_request.dart';
-import 'package:ndk/presentation_layer/ndk.dart';
-import 'package:ndk/presentation_layer/ndk_config.dart';
+import 'package:ndk_http/ndk_http.dart';
 
 import '../../../config/blossom_config.dart';
 import '../../../data_layer/io/file_io_platform.dart';
 import '../../../data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/shared/logger/logger.dart';
-import 'package:ndk_core/domain_layer/entities/account.dart';
-import 'package:ndk_core/domain_layer/entities/auth_handler.dart';
-import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_authorization.dart';
 import '../../entities/blossom_blobs.dart';
@@ -21,9 +16,12 @@ import '../../entities/blossom_strategies.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/blossom.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
 import 'blossom_exceptions.dart';
-import 'blossom_user_server_list.dart';
+
+/// The servers in [pubkey]'s Blossom server list (kind 10063, BUD-03), or
+/// null when they have none.
+typedef BlossomServerListResolver =
+    Future<List<String>?> Function(String pubkey);
 
 /// What one blossom operation does about its authorization, and the servers
 /// it may talk to.
@@ -52,35 +50,29 @@ class Blossom {
   /// Regular expression to match SHA256 in URLs
   static final sha256Regex = RegExp(r'/([a-fA-F0-9]{64})(?:/|$)');
 
-  final BlossomUserServerList _userServerList;
+  final BlossomServerListResolver _getUserServerList;
   final BlossomRepository _blossomImpl;
-  final Accounts _accounts;
+  final AuthAccounts _accounts;
   final LocalEventSignerFactory _eventSignerFactory;
   final AuthHandler? _authHandler;
 
-  /// Creates the Blossom client on top of [ndk]: its accounts, signer
-  /// factory and [NdkConfig.authHandler], and a [BlossomUserServerList] built
-  /// from it.
-  factory Blossom(Ndk ndk) => Blossom.withDependencies(
-    blossomUserServerList: BlossomUserServerList(ndk),
-    blossomRepository: BlossomRepositoryImpl(
-      client: HttpRequestDS(http.Client()),
-      fileIO: createFileIO(),
-    ),
-    accounts: ndk.accounts,
-    eventSignerFactory: ndk.config.eventSignerFactory,
-    authHandler: ndk.config.authHandler,
-  );
-
-  Blossom.withDependencies({
-    required BlossomUserServerList blossomUserServerList,
-    required BlossomRepository blossomRepository,
-    required Accounts accounts,
+  /// [accounts] gives the logged-in account, [eventSignerFactory] makes the
+  /// throwaway keys, and [getUserServerList] reads a user's kind 10063 list.
+  /// Without [blossomRepository], it talks to the servers over HTTP.
+  Blossom({
+    required AuthAccounts accounts,
     required LocalEventSignerFactory eventSignerFactory,
+    required BlossomServerListResolver getUserServerList,
     AuthHandler? authHandler,
+    BlossomRepository? blossomRepository,
   }) : _accounts = accounts,
-       _userServerList = blossomUserServerList,
-       _blossomImpl = blossomRepository,
+       _getUserServerList = getUserServerList,
+       _blossomImpl =
+           blossomRepository ??
+           BlossomRepositoryImpl(
+             client: HttpRequestDS(http.Client()),
+             fileIO: createFileIO(),
+           ),
        _eventSignerFactory = eventSignerFactory,
        _authHandler = authHandler;
 
@@ -110,9 +102,12 @@ class Blossom {
 
   /// The logged-in account when an [AuthHandler] may agree to revealing it.
   /// Without one, an operation that names nobody reveals nobody.
-  Account? _defaultAccount() => _authHandler != null && _accounts.canSign
-      ? _accounts.getLoggedAccount()
-      : null;
+  Account? _defaultAccount() {
+    final account = _accounts.getLoggedAccount();
+    return _authHandler != null && account != null && account.signer.canSign()
+        ? account
+        : null;
+  }
 
   Account _throwawayAccount() {
     final signer = _throwawaySigner();
@@ -284,7 +279,8 @@ class Blossom {
   }) async {
     if (serverUrls != null) return serverUrls;
 
-    final owner = explicitPubkey ?? listOwner ?? _accounts.getPublicKey();
+    final owner =
+        explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.pubkey;
     if (owner == null) {
       throw Exception(
         "No server list to use: pass serverUrls, or "
@@ -292,7 +288,7 @@ class Blossom {
       );
     }
 
-    final resolved = await _userServerList.getUserServerList(pubkeys: [owner]);
+    final resolved = await _getUserServerList(owner);
     if (resolved == null) {
       throw Exception("User has no server list");
     }
@@ -313,9 +309,7 @@ class Blossom {
       );
     }
 
-    final resolved = await _userServerList.getUserServerList(
-      pubkeys: [pubkeyToFetchUserServerList],
-    );
+    final resolved = await _getUserServerList(pubkeyToFetchUserServerList);
     if (resolved == null) {
       throw Exception("User has no server list");
     }
@@ -323,13 +317,7 @@ class Blossom {
   }
 
   /// A fresh key, for something that has to be signed but names nobody.
-  EventSigner _throwawaySigner() {
-    final keyPair = Bip340.generatePrivateKey();
-    return _eventSignerFactory.create(
-      privateKey: keyPair.privateKey!,
-      publicKey: keyPair.publicKey,
-    );
-  }
+  EventSigner _throwawaySigner() => _eventSignerFactory.createWithNewKeyPair();
 
   /// Asks each server whether it would accept this upload, before any byte of
   /// the blob is sent [BUD-06]. Servers and authorization resolve as in
@@ -667,9 +655,7 @@ class Blossom {
       buildEvent: (owner) =>
           _blossomAuthEvent(content: "List Blobs", pubkey: owner, type: "list"),
       resolveServers: () async {
-        final servers =
-            serverUrls ??
-            await _userServerList.getUserServerList(pubkeys: [pubkey]);
+        final servers = serverUrls ?? await _getUserServerList(pubkey);
         if (servers == null) {
           throw Exception("User has no server list: $pubkey");
         }

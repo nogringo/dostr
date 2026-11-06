@@ -1,8 +1,8 @@
-import 'package:ndk_core/shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 
 import '../../domain_layer/entities/relay_info.dart';
 import '../../domain_layer/repositories/relay_info_repo.dart';
-import '../data_sources/http_request.dart';
+import 'package:ndk_http/ndk_http.dart';
 
 /// implementation of the [RelayInfoRepo] interface with http
 class RelayInfoHttpRepoImpl implements RelayInfoRepo {

@@ -27,8 +27,8 @@ export 'domain_layer/entities/nip_51_list.dart';
 export 'domain_layer/entities/contact_list.dart';
 export 'domain_layer/entities/read_write.dart';
 export 'package:ndk_core/domain_layer/entities/relay.dart';
-export 'package:ndk_core/domain_layer/entities/auth_handler.dart';
-export 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+export 'package:ndk_auth/ndk_auth.dart';
+export 'package:ndk_core/domain_layer/entities/timeout_pausable.dart';
 export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
@@ -45,8 +45,6 @@ export 'domain_layer/entities/nip_17_conversation.dart';
 export 'domain_layer/entities/nip_17_message.dart';
 export 'domain_layer/entities/nip_17_file_message.dart';
 export '';
-
-export 'package:ndk_core/domain_layer/entities/account.dart';
 
 /**
  *  export classes that need to be injected
@@ -88,6 +86,7 @@ export 'domain_layer/usecases/zaps/invoice_response.dart';
 export 'domain_layer/usecases/lnurl/lnurl.dart';
 export 'domain_layer/usecases/lnurl/lnurl_response.dart';
 export 'domain_layer/usecases/accounts/accounts.dart';
+export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 export 'domain_layer/usecases/search/search.dart';
 export 'domain_layer/usecases/software/software.dart';
 export 'domain_layer/usecases/gift_wrap/gift_wrap.dart';
@@ -119,11 +118,7 @@ export 'config/nip85_defaults.dart';
  * 
  */
 
-export 'package:ndk_core/shared/logger/logger.dart';
-export 'package:ndk_core/shared/logger/log_level.dart';
-export 'package:ndk_core/shared/logger/log_output.dart';
-export 'package:ndk_core/shared/logger/ndk_logger.dart';
-export 'package:ndk_core/shared/logger/console_output.dart';
+export 'package:ndk_logger/ndk_logger.dart';
 
 /**
  * event filters

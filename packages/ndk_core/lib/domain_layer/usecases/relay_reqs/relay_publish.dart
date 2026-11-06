@@ -6,7 +6,7 @@ import '../../../shared/helpers/relay_helper.dart';
 import '../../../src/broadcast_state.dart';
 import '../../../src/relay_broadcasts.dart';
 import '../../../src/relay_manager_parts.dart';
-import '../../entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/broadcast_state.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../relay_manager.dart';

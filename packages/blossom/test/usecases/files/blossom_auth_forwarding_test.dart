@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 const int authServerPort = 30010;
 const int rangeServerPort = 30011;
@@ -37,7 +38,7 @@ void main() {
       privkey: key.privateKey!,
     );
     loggedAccount = ndk.accounts.getLoggedAccount()!;
-    return Blossom(ndk);
+    return blossomFor(ndk);
   }
 
   /// uploads through a server that demands nothing, so the blob exists before

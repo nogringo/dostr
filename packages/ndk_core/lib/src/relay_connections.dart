@@ -4,14 +4,14 @@ import 'dart:convert';
 import 'package:rxdart/rxdart.dart';
 
 import '../config/relay_defaults.dart';
-import '../domain_layer/entities/account.dart';
-import '../domain_layer/entities/auth_handler.dart';
+import 'package:ndk_auth/ndk_auth.dart';
+import '../domain_layer/entities/timeout_pausable.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
 import '../shared/helpers/relay_helper.dart';
 import 'package:ndk_isolates/ndk_isolates.dart';
-import '../shared/logger/logger.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'client_msg.dart';
 import 'decode_nostr_msg.dart';
 import 'nostr_message_raw.dart';

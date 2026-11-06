@@ -6,7 +6,7 @@ import '../../entities/nip_17_conversation.dart';
 import '../../entities/nip_17_file_message.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_17_message.dart';
-import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../../repositories/cache_manager.dart';
 import '../accounts/accounts.dart';
 import '../broadcast/broadcast.dart';

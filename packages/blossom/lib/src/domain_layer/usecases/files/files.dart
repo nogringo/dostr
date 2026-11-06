@@ -1,5 +1,4 @@
-import 'package:ndk/presentation_layer/ndk.dart';
-import 'package:ndk_core/domain_layer/entities/auth_policy.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_strategies.dart';
@@ -13,10 +12,7 @@ class Files {
   /// Regular expression to match SHA256 in URLs
   static final sha256Regex = RegExp(r'/([a-fA-F0-9]{64})(?:/|$)');
 
-  /// Creates the files usecase on top of a new [Blossom] client for [ndk].
-  factory Files(Ndk ndk) => Files.withDependencies(blossom: Blossom(ndk));
-
-  Files.withDependencies({required Blossom blossom}) : _blossom = blossom;
+  Files(this._blossom);
 
   /// upload a file to the server(s) \
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \

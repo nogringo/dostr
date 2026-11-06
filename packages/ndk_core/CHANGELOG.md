@@ -15,14 +15,27 @@ What lives under `lib/src` is internal. These files moved there and can no
 longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
 `domain_layer/usecases/nip42/auth_event.dart`,
 `shared/decode_nostr_msg/decode_nostr_msg.dart`,
-`shared/helpers/url_normalizer.dart`, `shared/logger/log_color.dart` and
-`shared/nips/nip01/client_msg.dart`.
+`shared/helpers/url_normalizer.dart` and `shared/nips/nip01/client_msg.dart`.
 
 `IsolateManager` is in [`ndk_isolates`](https://pub.dev/packages/ndk_isolates):
 `package:ndk/shared/isolates/isolate_manager.dart` is now
 `package:ndk_isolates/ndk_isolates.dart`, which exports only `IsolateManager`
 and `StreamComputeTask`. The pool no longer logs when it starts. When it fails
 to start, the error still reaches every task that waits for it.
+
+The logger is in [`ndk_logger`](https://pub.dev/packages/ndk_logger):
+`package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`
+are now `package:ndk_logger/ndk_logger.dart`, which
+`package:ndk_core/ndk_core.dart` exports. `LogColor` is internal to it.
+
+`Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in
+[`ndk_auth`](https://pub.dev/packages/ndk_auth):
+`package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`,
+`auth_handler.dart` and
+`package:ndk_core/domain_layer/repositories/auth_accounts.dart` are now
+`package:ndk_auth/ndk_auth.dart`, which `package:ndk_core/ndk_core.dart`
+exports. `TimeoutPausable` stays here, in
+`package:ndk_core/domain_layer/entities/timeout_pausable.dart`.
 
 `package:ndk_core/ndk_core.dart` exports `cleanRelayUrl` and `cleanRelayUrls`,
 the relay url normalization ndk_core connects with.
@@ -61,9 +74,11 @@ NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
 
 `ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
-`RelayInfoRepo`, `HttpRequestDS` and `RelayInfoHttpRepoImpl` stay in `ndk` at
-their old paths. `ndk.connectivity.getRelayInfo` fetches and caches the
-documents, and the deprecated `RelayInfo.get` is gone.
+`RelayInfoRepo` and `RelayInfoHttpRepoImpl` stay in `ndk` at their old paths.
+`HttpRequestDS` is in [`ndk_http`](https://pub.dev/packages/ndk_http):
+`package:ndk/data_layer/data_sources/http_request.dart` is now
+`package:ndk_http/ndk_http.dart`. `ndk.connectivity.getRelayInfo` fetches and
+caches the documents, and the deprecated `RelayInfo.get` is gone.
 
 `Nip13` stays in `ndk` at its old path. `Nip01Utils.isIdValid` checks the id
 alone and no longer rejects an event that misses the proof-of-work target its

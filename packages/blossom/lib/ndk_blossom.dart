@@ -1,7 +1,7 @@
 /// Blossom (BUD-01 to BUD-06) file storage for NDK.
 ///
 /// ```dart
-/// final files = Files(ndk);
+/// final files = Files(blossom);
 /// final blob = await files.download(url: url);
 /// ```
 library;
@@ -19,5 +19,4 @@ export 'src/domain_layer/entities/ndk_file.dart';
 export 'src/domain_layer/repositories/blossom.dart';
 export 'src/domain_layer/usecases/files/blossom.dart';
 export 'src/domain_layer/usecases/files/blossom_exceptions.dart';
-export 'src/domain_layer/usecases/files/blossom_user_server_list.dart';
 export 'src/domain_layer/usecases/files/files.dart';

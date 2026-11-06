@@ -7,6 +7,7 @@ import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/mock_event_verifier.dart';
+import '../../mocks/blossom_for_ndk.dart';
 
 const int handlerPortA = 30060;
 const int handlerPortB = 30061;
@@ -39,7 +40,7 @@ void main() {
       pubkey: key.publicKey,
       privkey: key.privateKey!,
     );
-    return Blossom(ndk);
+    return blossomFor(ndk);
   }
 
   Uint8List bytes(String content) => Uint8List.fromList(utf8.encode(content));

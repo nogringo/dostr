@@ -1,6 +1,6 @@
 // coverage:ignore-file
 
-import '../../src/log_color.dart';
+import 'log_color.dart';
 import 'log_event.dart';
 import 'log_output.dart';
 
