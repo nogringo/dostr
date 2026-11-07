@@ -1,7 +1,7 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart' show ReplaceableEventCache;
 
-import '../../../domain_layer/repositories/cache_manager.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 /// The fetchers keep the lists they find among the events of [CacheManager].
 class CacheManagerReplaceableEvents implements ReplaceableEventCache {

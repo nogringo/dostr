@@ -23,19 +23,14 @@ export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 export 'package:ndk_core/domain_layer/entities/filter.dart';
-export 'domain_layer/entities/read_write.dart';
 export 'package:ndk_core/domain_layer/entities/relay.dart';
 export 'package:ndk_auth/ndk_auth.dart';
 export 'package:ndk_core/domain_layer/entities/timeout_pausable.dart';
 export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
-export 'domain_layer/entities/relay_set.dart';
 export 'domain_layer/entities/event_filter.dart';
 
-export 'domain_layer/entities/cache_eviction.dart';
-export 'domain_layer/entities/event_cache_records.dart';
-export 'domain_layer/entities/hidden_event.dart';
 export '';
 
 /**
@@ -48,8 +43,28 @@ export 'package:ndk_signer/ndk_signer.dart';
 export 'package:ndk_bip340/ndk_bip340.dart';
 
 /// cache
-export 'domain_layer/repositories/cache_manager.dart';
-export 'data_layer/repositories/cache_manager/mem_cache_manager.dart';
+export 'package:ndk_cache/ndk_cache.dart'
+    show
+        CacheEvictionScheduler,
+        CacheManager,
+        DecryptedEventPayloadRecord,
+        DecryptedPayloadScheme,
+        DecryptedPayloadStatus,
+        EventCacheStateRecord,
+        EvictionPolicy,
+        EvictionResult,
+        FetchedRangesGap,
+        FilterFetchedRangeRecord,
+        FilterFingerprint,
+        HiddenEvent,
+        HiddenEventReason,
+        kAllHiddenEventReasons,
+        MemCacheManager,
+        NotCoveredPubKey,
+        RelayDirection,
+        RelayFetchedRanges,
+        RelaySet,
+        TimeRange;
 
 /**
  * common usecases
@@ -77,11 +92,9 @@ export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.
 export 'package:ndk_search/ndk_search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
-export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
-export 'domain_layer/entities/filter_fetched_ranges.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show
         Nip77,

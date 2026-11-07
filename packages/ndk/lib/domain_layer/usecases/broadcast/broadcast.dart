@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
 
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import '../../../shared/nips/nip09/deletion.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import '../../../shared/nips/nip25/reactions.dart';
 import 'broadcast_sender.dart';
 

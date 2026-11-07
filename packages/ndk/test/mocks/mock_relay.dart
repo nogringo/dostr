@@ -8,7 +8,7 @@ import 'package:bip340/bip340.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
-import 'package:ndk/shared/nips/nip09/deletion.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 

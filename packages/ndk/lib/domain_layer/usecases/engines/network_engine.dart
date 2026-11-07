@@ -1,5 +1,5 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/relay_set.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 /// Hands [filters] to [relayUrl] in a single REQ.
 typedef RelaySend = void Function(String relayUrl, List<Filter> filters);

@@ -1,6 +1,6 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_auth/ndk_auth.dart';
-import 'relay_set.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 // coverage:ignore-start
 /// Ndk request

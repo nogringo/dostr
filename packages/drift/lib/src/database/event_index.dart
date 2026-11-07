@@ -1,6 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:ndk/ndk.dart' show EventCacheStateRecord, Nip01Event;
-import 'package:ndk/shared/nips/nip09/deletion.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 import 'database.dart';
 

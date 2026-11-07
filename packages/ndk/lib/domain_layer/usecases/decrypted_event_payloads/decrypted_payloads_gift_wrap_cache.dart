@@ -1,7 +1,7 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 
-import '../../entities/event_cache_records.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'decrypted_event_payloads.dart';
 
 /// Keeps [GiftWrap] plaintext in the decrypted payload sidecars.

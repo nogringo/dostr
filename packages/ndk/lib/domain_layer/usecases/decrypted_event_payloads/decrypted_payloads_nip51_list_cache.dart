@@ -1,7 +1,7 @@
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
-import '../../entities/event_cache_records.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'decrypted_event_payloads.dart';
 
 /// Keeps the plaintext of the private elements of [Lists] in the decrypted

@@ -1,13 +1,11 @@
 import 'dart:async';
 
-import 'package:ndk/domain_layer/entities/user_relay_list.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk/domain_layer/entities/nip_65.dart';
-import 'package:ndk/domain_layer/entities/read_write_marker.dart';
 
 import 'package:test/test.dart';
 

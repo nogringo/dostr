@@ -1,8 +1,7 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk/shared/nips/nip01/event_eviction_planner.dart';
-import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/shared/nips/nip01/helpers.dart';
 import 'package:sembast/sembast.dart' as sembast;
 

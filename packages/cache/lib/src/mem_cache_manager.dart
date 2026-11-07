@@ -1,21 +1,21 @@
 import 'dart:core';
 
-import '../../../domain_layer/entities/cache_eviction.dart';
+import 'cache_eviction.dart';
 import 'package:ndk_follows/ndk_follows.dart';
-import '../../../domain_layer/entities/event_cache_records.dart';
+import 'event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../../domain_layer/entities/filter_fetched_ranges.dart';
-import '../../../domain_layer/entities/hidden_event.dart';
+import 'filter_fetched_ranges.dart';
+import 'hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
-import '../../../domain_layer/entities/nip_65.dart';
+import 'nip_65.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
-import '../../../domain_layer/entities/relay_set.dart';
-import '../../../domain_layer/entities/user_relay_list.dart';
-import '../../../domain_layer/repositories/cache_manager.dart';
-import '../../../shared/nips/nip01/event_eviction_planner.dart';
-import '../../../shared/nips/nip01/event_visibility_resolver.dart';
+import 'relay_set.dart';
+import 'user_relay_list.dart';
+import 'cache_manager.dart';
+import 'event_eviction_planner.dart';
+import 'event_visibility_resolver.dart';
 
 /// In memory database implementation
 /// benefits: very fast

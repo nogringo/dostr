@@ -2,8 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/shared/nips/nip01/event_eviction_planner.dart';
-import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 

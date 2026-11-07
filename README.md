@@ -165,6 +165,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_broadcast_queue`: persisted broadcast queue, to keep an event on its way to every relay it is meant for across offline periods, delayed remote signing and restarts, without depending on `ndk`. `ndk.broadcast` retries through it.
 
+### [🔗 Cache](./packages/cache/)
+
+`ndk_cache`: the `CacheManager` contract that cache backends implement, the in-memory `MemCacheManager` and the records they store, with the NIP-01 visibility and eviction rules, without depending on `ndk`. NDK takes it as `NdkConfig.cache`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

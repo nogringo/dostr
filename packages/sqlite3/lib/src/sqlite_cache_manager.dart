@@ -1,13 +1,10 @@
 import 'dart:convert';
 
 import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk/domain_layer/entities/nip_65.dart';
-import 'package:ndk/domain_layer/entities/user_relay_list.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
-import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
-import 'package:ndk/shared/nips/nip09/deletion.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'ndk_extensions.dart';

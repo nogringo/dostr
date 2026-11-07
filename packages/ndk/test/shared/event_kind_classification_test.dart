@@ -1,5 +1,5 @@
 import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
-import 'package:ndk/shared/nips/nip28/channel_metadata.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:test/test.dart';

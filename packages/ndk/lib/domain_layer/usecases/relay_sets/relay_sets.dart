@@ -1,11 +1,6 @@
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
-import '../../entities/pubkey_mapping.dart';
-import '../../entities/read_write.dart';
-import '../../entities/read_write_marker.dart';
-import '../../entities/relay_set.dart';
-import '../../entities/user_relay_list.dart';
-import '../../repositories/cache_manager.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../user_relay_lists/user_relay_lists.dart';

@@ -1,8 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart';
-import 'package:ndk/domain_layer/entities/cache_eviction.dart';
-import 'package:ndk/domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:test/test.dart';
 
 void main() {

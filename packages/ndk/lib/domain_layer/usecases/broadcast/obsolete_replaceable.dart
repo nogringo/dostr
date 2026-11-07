@@ -1,6 +1,6 @@
 import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../repositories/cache_manager.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 /// A reason not to send [event] after all: the cache now holds a newer version
 /// of this replaceable event, which supersedes it.

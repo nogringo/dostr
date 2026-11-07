@@ -23,8 +23,8 @@ platforms:
 dependencies:
   ndk_accounts: ^0.1.0
   ndk_auth: ^0.1.0
+  ndk_cache: ^0.1.0
   ndk_core: ^0.11.0-dev.2
-  ndk_isolates: ^0.1.0
   ndk_logger: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_signer: ^0.1.0

@@ -1,9 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk/domain_layer/entities/nip_65.dart';
-import 'package:ndk/domain_layer/entities/pubkey_mapping.dart';
-import 'package:ndk/domain_layer/entities/read_write_marker.dart';
-import 'package:ndk/domain_layer/entities/user_relay_list.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/domain_layer/usecases/jit_engine/jit_request_plan.dart';
 import 'package:ndk/domain_layer/usecases/relay_sets_engine.dart';
 import 'package:ndk/ndk.dart';

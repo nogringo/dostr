@@ -2,7 +2,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'nip_65.dart';
-import '../../shared/nips/nip28/channel_metadata.dart';
+import 'channel_metadata.dart';
 
 /// Policy used by [CacheManager.evict] and by the background eviction scheduler.
 ///

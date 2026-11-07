@@ -14,7 +14,7 @@ import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_li
 import '../domain_layer/usecases/broadcast/broadcast_sender.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
-import '../domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import '../domain_layer/usecases/cache_read/cache_read.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';

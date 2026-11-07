@@ -1,5 +1,5 @@
-import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip01/event_visibility_resolver.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:test/test.dart';
 
 void main() {

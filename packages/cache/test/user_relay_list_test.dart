@@ -1,7 +1,6 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_follows/ndk_follows.dart';
-import 'package:ndk/domain_layer/entities/read_write_marker.dart';
-import 'package:ndk/domain_layer/entities/user_relay_list.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 import 'package:test/test.dart';
 

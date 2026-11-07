@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../shared/nips/nip01/helpers.dart';
 import 'nip_65.dart';
 import 'read_write_marker.dart';
 
@@ -60,7 +59,7 @@ class UserRelayList {
   /// lists were published before NIP-65.
   static Map<String, ReadWriteMarker> relaysFromNip02Content(Nip01Event event) {
     Map<String, ReadWriteMarker> map = {};
-    if (Helpers.isNotBlank(event.content)) {
+    if (event.content.trim().isNotEmpty) {
       try {
         Map<String, dynamic> json = jsonDecode(event.content);
         if (json.entries.isNotEmpty) {

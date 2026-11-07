@@ -1,4 +1,4 @@
-import 'package:ndk/domain_layer/repositories/cache_manager.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 import '../../data_layer/repositories/wallets/wallets_repo_stub.dart';
 import '../entities/wallet/wallet.dart';

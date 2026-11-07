@@ -1,17 +1,17 @@
-import '../entities/cache_eviction.dart';
+import 'cache_eviction.dart';
 import 'package:ndk_follows/ndk_follows.dart';
-import '../entities/event_cache_records.dart';
+import 'event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../entities/filter_fetched_ranges.dart';
-import '../entities/hidden_event.dart';
+import 'filter_fetched_ranges.dart';
+import 'hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
-import '../entities/relay_set.dart';
-import '../entities/user_relay_list.dart';
+import 'relay_set.dart';
+import 'user_relay_list.dart';
 
 /// Storage contract used by NDK.
 ///

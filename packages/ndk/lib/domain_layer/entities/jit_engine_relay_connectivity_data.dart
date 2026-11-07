@@ -1,6 +1,6 @@
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 
-import 'read_write_marker.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 /// additional data for the JIT engine
 class JitEngineRelayConnectivityData {

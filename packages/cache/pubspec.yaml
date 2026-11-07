@@ -1,0 +1,40 @@
+name: ndk_cache
+description: The cache of NDK (Nostr Development Kit), the CacheManager contract that cache backends implement, the in-memory MemCacheManager and the records they store, without depending on ndk.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - cache
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  crypto: ^3.0.7
+  ndk_broadcast_queue: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_follows: ^0.1.0
+  ndk_isolates: ^0.1.0
+  ndk_lists: ^0.1.0
+  ndk_logger: ^0.1.0
+  ndk_metadatas: ^0.1.0
+  ndk_nip01: ^0.1.0
+  ndk_nip05: ^0.1.0
+  ndk_search: ^0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: any

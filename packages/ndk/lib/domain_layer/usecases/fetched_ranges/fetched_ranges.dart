@@ -1,6 +1,5 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/filter_fetched_ranges.dart';
-import '../../repositories/cache_manager.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 /// Usecase to track and query fetched ranges per relay
 class FetchedRanges {

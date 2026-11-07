@@ -1,6 +1,5 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip01/event_eviction_planner.dart';
-import 'package:ndk/shared/nips/nip09/deletion.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:test/test.dart';
 
 void main() {

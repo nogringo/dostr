@@ -831,6 +831,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_cache:
+    dependency: "direct overridden"
+    description:
+      path: "../cache"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_cashu:
     dependency: "direct main"
     description:

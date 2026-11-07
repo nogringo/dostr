@@ -9,6 +9,8 @@ If you are building a real app, prefer a persistent cache backend. NDK stores ev
 
 For a behavioral overview of how the cache works from an app perspective, see [Cache Behavior](/guides/cache-behavior.md).
 
+`CacheManager` and `MemCacheManager` live in the `ndk_cache` package, which `ndk` depends on and re-exports. A backend implements `CacheManager` from `ndk_cache` and does not need `ndk` for it, see its [README](https://pub.dev/packages/ndk_cache).
+
 Available databases:
 
 - `MemCacheManager`

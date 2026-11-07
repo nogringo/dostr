@@ -6,7 +6,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/domain_layer/entities/hidden_event.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_objectbox/ndk_objectbox.dart';
 

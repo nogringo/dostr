@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:ndk_logger/ndk_logger.dart';
-import '../../entities/cache_eviction.dart';
-import '../../repositories/cache_manager.dart';
+import 'cache_eviction.dart';
+import 'cache_manager.dart';
 
 /// Background scheduler that periodically runs [CacheManager.evict].
 ///

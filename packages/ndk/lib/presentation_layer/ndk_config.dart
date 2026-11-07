@@ -4,9 +4,8 @@ import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_auth/ndk_auth.dart';
-import '../domain_layer/entities/cache_eviction.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import '../domain_layer/entities/event_filter.dart';
-import '../domain_layer/repositories/cache_manager.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

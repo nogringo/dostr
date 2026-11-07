@@ -55,6 +55,8 @@ NdkEngine.JIT
 
 ## Cache options
 
+`CacheManager` and `MemCacheManager` live in the `ndk_cache` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
+
 ```dart
 // In-memory (no persistence)
 cache: MemCacheManager()
