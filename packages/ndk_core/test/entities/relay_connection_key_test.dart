@@ -12,6 +12,13 @@ void main() {
       );
     });
 
+    test('tells relays apart', () {
+      expect(
+        RelayConnectionKey.anonymous('wss://a.example'),
+        isNot(RelayConnectionKey.anonymous('wss://b.example')),
+      );
+    });
+
     test('keeps an unparsable url as given, trimmed', () {
       expect(RelayConnectionKey.anonymous(' not a url ').url, 'not a url');
     });
@@ -24,9 +31,23 @@ void main() {
 
       expect(key.pubkey, 'a' * 64);
       expect(
-        () => RelayConnectionKey.authenticated('wss://relay.example', 'npub1'),
-        throwsArgumentError,
+        key,
+        RelayConnectionKey.authenticated('wss://relay.example', alice),
       );
+      expect(
+        key.hashCode,
+        RelayConnectionKey.authenticated('wss://relay.example', alice).hashCode,
+      );
+      for (final notHex in [
+        'npub1',
+        'npub1${'0' * 59}',
+        RelayConnectionKey.anonymousMarker,
+      ]) {
+        expect(
+          () => RelayConnectionKey.authenticated('wss://relay.example', notHex),
+          throwsArgumentError,
+        );
+      }
     });
 
     test('tells connections to one relay apart by identity', () {
@@ -42,10 +63,15 @@ void main() {
         RelayConnectionKey.anonymous('wss://relay.example').hashCode,
       );
       expect(anonymous, isNot(asAlice));
+      expect(
+        asAlice,
+        isNot(RelayConnectionKey.authenticated('wss://relay.example', bob)),
+      );
       expect(anonymous.isAnonymous, isTrue);
       expect(asAlice.isAnonymous, isFalse);
       expect(anonymous.canonical, 'wss://relay.example|anon');
       expect(asAlice.canonical, 'wss://relay.example|$alice');
+      expect(asAlice.toString(), asAlice.canonical);
     });
 
     test('forAuth picks the connection each policy allows', () {

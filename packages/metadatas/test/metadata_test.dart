@@ -110,6 +110,32 @@ void main() {
       expect(restored.updatedAt, original.updatedAt);
     });
 
+    test('toJson gives back the json fromJson read', () {
+      final json = {
+        'pubKey': 'testPubKey',
+        'content': {
+          'name': 'name',
+          'display_name': 'display name',
+          'picture': 'https://example.com/picture.jpg',
+          'banner': 'https://example.com/banner.jpg',
+          'website': 'https://example.com',
+          'about': 'about...',
+          'nip05': 'john@example.com',
+          'lud16': 'john@example.com',
+          'lud06': 'john@example.com',
+        },
+        'tags': [
+          ['i', 'test'],
+        ],
+        'updatedAt': 1234567890,
+      };
+
+      final metadata = Metadata.fromJson(json);
+
+      expect(metadata.toJson(), json);
+      expect(Metadata.fromEvent(metadata.toEvent()), metadata);
+    });
+
     test('fromEvent', () {
       final event = Nip01Event(
         pubKey: 'testPubKey',
@@ -244,6 +270,29 @@ void main() {
       expect(recreatedEvent.tags.length, 2);
       expect(recreatedEvent.tags[0], ['i', 'github:alice', 'proof']);
       expect(recreatedEvent.tags[1], ['i', 'twitter:bob', 'proof2']);
+    });
+
+    test('a tag added after fromEvent reaches toEvent with custom fields', () {
+      final metadata = Metadata.fromEvent(
+        Nip01Event(
+          pubKey: 'testPubKey',
+          content: '{"name":"Alice","badges":["A","B"]}',
+          kind: Metadata.kKind,
+          tags: [
+            ['i', 'badge'],
+          ],
+          createdAt: 1234567890,
+        ),
+      );
+
+      metadata.tags.add(['i', 'test']);
+      final event = metadata.toEvent();
+
+      expect(event.tags, [
+        ['i', 'badge'],
+        ['i', 'test'],
+      ]);
+      expect(jsonDecode(event.content)['badges'], ['A', 'B']);
     });
 
     test('copyWith copies tags', () {

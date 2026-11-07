@@ -7,7 +7,8 @@ License: MIT, Copyright (c) 2024 Felix Angelov (see LICENSE).
 This directory contains NDK's internal copy of the upstream client. The original
 library layout is preserved: web_socket_client.dart exports src/web_socket.dart,
 connection types, backoff strategies, and platform-specific connectors/adapters.
-It is not exported from package:ndk/ndk.dart and is not a separate pub package.
+It is not exported from package:ndk_core/ndk_core.dart and is not a separate pub
+package.
 
 The wrapper, connection state equality, backoff algorithms, protocols, headers,
 ping interval, timeout, browser binary type, and selected protocol getter retain
@@ -26,9 +27,10 @@ All connection types and exponential, linear, and constant backoff strategies
 are local. Neither web_socket_client nor ndk_web_socket_client is a dependency.
 Keep future changes small and record any additional behavioral deviations here.
 
-Tests under test/data_layer/web_socket_client/ include upstream wrapper,
-connection-state, and backoff tests, plus a native compression integration test.
-test/relays/websocket_compression_test.dart exercises NdkConfig and both engines.
+Tests under test/web_socket_client/ include upstream wrapper, connection-state,
+and backoff tests, plus a native compression integration test. In the ndk
+package, test/relays/websocket_compression_test.dart exercises NdkConfig and
+both engines.
 
 When adopting an upstream fix, compare it against this baseline, preserve the
 documented compression changes, and run the client and relay tests plus a web

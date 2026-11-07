@@ -10,8 +10,16 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk: ^0.11.0-dev.2
+  ndk_bip340: ^0.1.0
+  ndk_broadcast_queue: ^0.1.0
+  ndk_cache: ^0.1.0
   ndk_core: ^0.11.0-dev.2
+  ndk_follows: ^0.1.0
+  ndk_metadatas: ^0.1.0
+  ndk_nip01: ^0.1.0
+  ndk_nip05: ^0.1.0
+  ndk_signer: ^0.1.0
+  ndk_url_set: ^0.1.0
   test: any
   ndk_cashu: ^0.1.0
   ndk_wallets: ^0.1.0

@@ -1,5 +1,5 @@
 import 'package:objectbox/objectbox.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 
 @Entity()
 class DbFilterFetchedRangeRecord {

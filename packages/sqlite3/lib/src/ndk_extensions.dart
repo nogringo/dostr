@@ -1,4 +1,5 @@
-import 'package:ndk/entities.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 
 import 'package:ndk_cashu/ndk_cashu.dart';
 

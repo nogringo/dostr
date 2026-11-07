@@ -25,6 +25,21 @@ void main() {
     ]);
   });
 
+  test('one agreement decrypts what it encrypted', () {
+    final agreement = Nip04.getAgreement(priv);
+
+    final encrypted = Nip04.encryptWithAgreement(
+      'some content',
+      agreement,
+      pub,
+    );
+
+    expect(
+      Nip04.decryptWithAgreement(encrypted, agreement, pub),
+      'some content',
+    );
+  });
+
   test('the recipient decrypts what the sender encrypts', () {
     const senderPriv =
         '0000000000000000000000000000000000000000000000000000000000000001';

@@ -3,8 +3,10 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:flutter/foundation.dart';
-import 'package:ndk/ndk.dart'
-    show ContactList, EventCacheStateRecord, Metadata, Nip01Event;
+import 'package:ndk_cache/ndk_cache.dart' show EventCacheStateRecord;
+import 'package:ndk_follows/ndk_follows.dart' show ContactList;
+import 'package:ndk_metadatas/ndk_metadatas.dart' show Metadata;
+import 'package:ndk_nip01/ndk_nip01.dart' show Nip01Event;
 import 'package:path_provider/path_provider.dart';
 
 import 'event_index.dart';

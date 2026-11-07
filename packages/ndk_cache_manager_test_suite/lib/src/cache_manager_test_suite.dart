@@ -21,10 +21,18 @@
 /// ```
 library;
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_follows/ndk_follows.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_signer/ndk_signer.dart';
+import 'package:ndk_url_set/ndk_url_set.dart' show UrlSet;
 import 'package:test/test.dart';
 
-import 'package:ndk/entities.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 
 part 'cache_manager_test_suite_clear_all.dart';

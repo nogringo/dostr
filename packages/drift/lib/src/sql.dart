@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:drift/drift.dart';
-import 'package:ndk/ndk.dart' show CacheManager;
+import 'package:ndk_cache/ndk_cache.dart' show CacheManager;
 
 // Ported from ndk_sqlite3, whose schema the event tables mirror.
 

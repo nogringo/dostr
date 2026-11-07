@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ndk/entities.dart';
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:objectbox/objectbox.dart';
 
 @Entity()

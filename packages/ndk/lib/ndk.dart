@@ -31,8 +31,6 @@ export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'domain_layer/entities/event_filter.dart';
 
-export '';
-
 /**
  *  export classes that need to be injected
  * 

@@ -1,4 +1,4 @@
-import 'package:ndk/entities.dart' as ndk_entities;
+import 'package:ndk_nip01/ndk_nip01.dart' as ndk_entities;
 import 'package:objectbox/objectbox.dart';
 
 @Entity()

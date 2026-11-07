@@ -1,5 +1,5 @@
 import 'package:drift/drift.dart';
-import 'package:ndk/ndk.dart' show EventCacheStateRecord, Nip01Event;
+import 'package:ndk_nip01/ndk_nip01.dart' show Nip01Event;
 import 'package:ndk_cache/ndk_cache.dart';
 
 import 'database.dart';

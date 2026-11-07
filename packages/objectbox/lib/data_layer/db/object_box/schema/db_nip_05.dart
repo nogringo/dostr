@@ -1,5 +1,5 @@
 import 'package:objectbox/objectbox.dart';
-import 'package:ndk/entities.dart' as ndk_entities;
+import 'package:ndk_nip05/ndk_nip05.dart' as ndk_entities;
 
 @Entity()
 class DbNip05 {

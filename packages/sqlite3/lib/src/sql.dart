@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ndk/ndk.dart' show CacheManager;
+import 'package:ndk_cache/ndk_cache.dart' show CacheManager;
 
 /// Conditions joined with AND, with their positional arguments in order.
 class SqlWhere {

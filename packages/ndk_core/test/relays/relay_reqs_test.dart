@@ -236,6 +236,35 @@ void main() {
       await req.close();
     });
 
+    test('a CLOSED from one relay leaves the others serving it', () async {
+      final closing = await startRelay();
+      final serving = await startRelay();
+      final req = reqs.req(
+        relays: {closing.url: notes, serving.url: notes},
+        closeOnEose: false,
+      );
+      final received = <Nip01Event>[];
+      req.events.listen((e) => received.add(e.event));
+      await eventually(
+        () => subscribed(closing, req) && subscribed(serving, req),
+      );
+
+      closing.sendToAll(['CLOSED', req.id, 'rate limited']);
+
+      await eventually(
+        () => req.outcomes[closing.url]?.status == RelayRequestStatus.closed,
+      );
+      expect(
+        req.outcomes[serving.url]?.status,
+        isNot(RelayRequestStatus.closed),
+      );
+      expect(reqs.openIds, [req.id]);
+      final live = signedEvent(content: 'from the relay still serving it');
+      serving.sendToAll(['EVENT', req.id, live.toJson()]);
+      await eventually(() => received.any((e) => e.id == live.id));
+      await req.close();
+    });
+
     test('cancelling its events closes the request', () async {
       final relay = await startRelay();
       final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);

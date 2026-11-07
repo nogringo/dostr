@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
@@ -53,6 +55,26 @@ void main() {
     expect(manager.isRelayConnected(relay.url), isTrue);
   });
 
+  test('every caller of a failed connect learns why it failed', () async {
+    final closed = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
+    final port = closed.port;
+    await closed.close();
+
+    final results = await Future.wait([
+      for (var i = 0; i < 2; i++)
+        manager.connectRelay(
+          dirtyUrl: 'ws://127.0.0.1:$port',
+          connectTimeout: const Duration(milliseconds: 500),
+        ),
+    ]);
+
+    for (final result in results) {
+      expect(result.connected, isFalse);
+      expect(result.failure?.kind, RelayFailureKind.unreachable);
+      expect(result.failure?.detail, contains('SocketException'));
+    }
+  });
+
   test('refuses unclean and blocked urls without opening anything', () async {
     manager.blockedRelays.add('wss://blocked.example');
 
@@ -74,6 +96,15 @@ void main() {
       connected: true,
       failure: null,
     ));
+  });
+
+  test('remembers when it last tried to connect', () async {
+    final relay = await startRelay();
+    await manager.connectRelay(dirtyUrl: relay.url);
+
+    final connection =
+        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
+    expect(connection.relay.wasLastConnectTryLongerThanSeconds(120), isFalse);
   });
 
   test('closeConnectionsTo closes the anonymous and bound connections '
@@ -107,6 +138,16 @@ void main() {
     await subscription.cancel();
   });
 
+  test('closing forgets a connection whose transport was reset', () async {
+    final relay = await startRelay();
+    await manager.connectRelay(dirtyUrl: relay.url);
+
+    await manager.resetConnectionsTo(relay.url);
+    await manager.closeAllTransports();
+
+    expect(manager.connectivities, isEmpty);
+  });
+
   test('closeConnection forgets the connection for good', () async {
     final relay = await startRelay();
     await manager.connectRelay(dirtyUrl: relay.url);
@@ -122,6 +163,9 @@ void main() {
   test('reconnects on its own once the relay drops the socket', () async {
     final relay = await startRelay();
     await manager.connectRelay(dirtyUrl: relay.url);
+    final stats =
+        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!.stats;
+    expect(stats.connections, 1);
 
     await relay.dropConnections();
 
@@ -130,6 +174,7 @@ void main() {
       timeout: const Duration(seconds: 10),
     );
     await eventually(() => manager.isRelayConnected(relay.url));
+    expect(stats.connections, 2);
   });
 
   test('closeIdleConnections keeps the connections still in use', () async {
