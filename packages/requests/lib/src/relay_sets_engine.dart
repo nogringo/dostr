@@ -2,12 +2,11 @@
 
 import 'dart:core';
 
-import 'package:ndk/config/bootstrap_relays.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'engines/network_engine.dart';
+import 'network_engine.dart';
 
 class RelaySetsEngine implements NetworkEngine {
   static const Duration kDefaultStreamIdleTimeout = Duration(seconds: 5);
@@ -21,9 +20,9 @@ class RelaySetsEngine implements NetworkEngine {
   /// Requests wait for [bootstrapRelaysConnected], if given, before they are
   /// routed.
   RelaySetsEngine({
-    required List<String>? bootstrapRelays,
+    required List<String> bootstrapRelays,
     Future<void>? bootstrapRelaysConnected,
-  }) : _bootstrapRelays = bootstrapRelays ?? DEFAULT_BOOTSTRAP_RELAYS,
+  }) : _bootstrapRelays = bootstrapRelays,
        _bootstrapRelaysConnected = bootstrapRelaysConnected ?? Future.value();
 
   @override

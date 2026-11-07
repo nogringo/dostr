@@ -46,9 +46,8 @@ dependencies:
   ndk_url_set: ^0.1.0
   ndk_fetchers: ^0.1.0
   ndk_http: ^0.1.0
+  ndk_requests: ^0.1.0
   http: ^1.6.0
-  crypto: ^3.0.7
-  rxdart: ^0.28.0
 
 dev_dependencies:
   bip340: ">=0.3.0 <0.4.0"
@@ -58,4 +57,5 @@ dev_dependencies:
   build_runner: ">=2.11.0 <3.0.0"
   flutter_lints: ^6.0.0
   mockito: ">=5.6.3 <6.0.0"
+  rxdart: ^0.28.0
   test: any

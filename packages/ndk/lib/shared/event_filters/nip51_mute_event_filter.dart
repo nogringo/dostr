@@ -1,4 +1,4 @@
-import 'package:ndk/domain_layer/entities/event_filter.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'package:ndk_metadatas/ndk_metadatas.dart';

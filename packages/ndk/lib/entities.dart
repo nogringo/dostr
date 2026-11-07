@@ -7,7 +7,7 @@ library;
 export 'domain_layer/entities/broadcast_response.dart';
 export 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 export 'package:ndk_follows/ndk_follows.dart' show ContactList;
-export 'domain_layer/entities/event_filter.dart';
+export 'package:ndk_requests/ndk_requests.dart' show EventFilter, NdkResponse;
 export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart'
     show
         EventDeliveryRecord,
@@ -61,7 +61,6 @@ export 'package:ndk_nip11/ndk_nip11.dart'
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'package:ndk_core/domain_layer/entities/relay_stats.dart';
-export 'domain_layer/entities/request_response.dart';
 export 'package:ndk_nip59/ndk_nip59.dart' show GiftWrapUnwrapResult;
 
 /// models

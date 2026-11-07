@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+import 'cache_manager.dart';
 import 'nip_65.dart';
 import 'read_write_marker.dart';
 
@@ -28,6 +29,28 @@ class UserRelayList {
   Iterable<String> get writeUrls => relays.entries
       .where((entry) => entry.value.isWrite)
       .map((entry) => entry.key);
+
+  /// The relay lists [cache] holds for [pubKeys], the newest one only for a
+  /// pubkey that [pubKeys] repeats.
+  static Future<List<UserRelayList>> loadLatest(
+    CacheManager cache,
+    Iterable<String> pubKeys,
+  ) async {
+    final lists = await Future.wait(pubKeys.map(cache.loadUserRelayList));
+    final latest = <UserRelayList>[];
+    for (final list in lists.whereType<UserRelayList>()) {
+      final alreadyIn = latest.where(
+        (element) => element.pubKey == list.pubKey,
+      );
+      if (alreadyIn.isNotEmpty) {
+        final existing = alreadyIn.first;
+        if (existing.createdAt > list.createdAt) continue;
+        latest.remove(existing);
+      }
+      latest.add(list);
+    }
+    return latest;
+  }
 
   static UserRelayList fromNip65(Nip65 nip65) {
     return UserRelayList(

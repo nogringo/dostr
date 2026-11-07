@@ -1,0 +1,39 @@
+name: ndk_requests
+description: Queries and subscriptions for NDK (Nostr Development Kit), routed to the outbox relays of their authors, with cache reads, deduplication, pagination and fetched ranges, without depending on ndk.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - outbox
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  crypto: ^3.0.7
+  ndk_auth: ^0.1.0
+  ndk_cache: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_follows: ^0.1.0
+  ndk_logger: ^0.1.0
+  ndk_nip01: ^0.1.0
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk_bip340: ^0.1.0
+  ndk_metadatas: ^0.1.0
+  test: any

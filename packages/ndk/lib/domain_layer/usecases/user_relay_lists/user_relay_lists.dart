@@ -9,7 +9,7 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import '../broadcast/broadcast.dart';
-import '../requests/requests.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 
 /// similar to nip65, but also accepts values from nip02 \
 /// gives you inbox/outbox data in various ways \
@@ -76,12 +76,10 @@ class UserRelayLists {
         await for (final event in (_requests.query(
           //                timeout: missingPubKeys.length > 1 ? 10 : 3,
           name: "user-relay-lists",
-          filters: [
-            Filter(
-              authors: missingPubKeys,
-              kinds: [Nip65.kKind, ContactList.kKind],
-            ),
-          ],
+          filter: Filter(
+            authors: missingPubKeys,
+            kinds: [Nip65.kKind, ContactList.kKind],
+          ),
         )).stream) {
           switch (event.kind) {
             case Nip65.kKind:
@@ -198,9 +196,11 @@ class UserRelayLists {
     final events = await _requests
         .query(
           name: "dm-relays",
-          filters: [
-            Filter(authors: [pubKey], kinds: [Nip51List.kDmRelays], limit: 1),
-          ],
+          filter: Filter(
+            authors: [pubKey],
+            kinds: [Nip51List.kDmRelays],
+            limit: 1,
+          ),
           explicitRelays: discoveryRelays,
         )
         .future;
@@ -441,16 +441,7 @@ class UserRelayLists {
   static Future<List<UserRelayList>> getUserRelayListCacheLatest({
     required List<String> pubkeys,
     required CacheManager cacheManager,
-  }) async {
-    // get the data from cache
-    final List<UserRelayList> events = await Future.wait(
-      pubkeys.map((pubkey) => cacheManager.loadUserRelayList(pubkey)),
-    ).then((results) => results.whereType<UserRelayList>().toList());
-
-    List<UserRelayList> nip65Data = _filterLatest(events);
-
-    return nip65Data;
-  }
+  }) => UserRelayList.loadLatest(cacheManager, pubkeys);
 
   /// reads the latest nip65 data from cache \
   /// [pubkeys] pubkeys you want nip65 data for \
@@ -467,28 +458,5 @@ class UserRelayLists {
       return null;
     }
     return data.first;
-  }
-
-  /// return only the latest nip65 data for each pubkey
-  static List<UserRelayList> _filterLatest(List<UserRelayList> uncleanData) {
-    final List<UserRelayList> cleanData = [];
-
-    for (final data in uncleanData) {
-      final alreadyIn = cleanData.where(
-        (element) => element.pubKey == data.pubKey,
-      );
-
-      if (alreadyIn.isNotEmpty) {
-        final existing = alreadyIn.first;
-        if (existing.createdAt > data.createdAt) {
-          continue;
-        } else {
-          cleanData.remove(existing);
-        }
-      }
-
-      cleanData.add(data);
-    }
-    return cleanData;
   }
 }

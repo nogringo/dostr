@@ -1,7 +1,7 @@
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../engines/network_engine.dart';
+import '../network_engine.dart';
 
 /// Where one request goes, so that each relay gets a single REQ (NIP-01: a
 /// second REQ with the same id replaces the first).

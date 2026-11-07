@@ -8,8 +8,15 @@ library;
 export 'presentation_layer/ndk.dart';
 export 'presentation_layer/ndk_config.dart';
 export 'package:ndk_core/ndk_core.dart' show packageVersion;
-export 'domain_layer/entities/ndk_request.dart';
-export 'domain_layer/entities/request_response.dart';
+export 'package:ndk_requests/ndk_requests.dart'
+    show
+        EventFilter,
+        FetchedRanges,
+        JitEngine,
+        NdkRequest,
+        NdkResponse,
+        PTagCountEventFilter,
+        Requests;
 export 'domain_layer/entities/broadcast_response.dart';
 
 /**
@@ -29,7 +36,6 @@ export 'package:ndk_core/domain_layer/entities/timeout_pausable.dart';
 export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
-export 'domain_layer/entities/event_filter.dart';
 
 /**
  *  export classes that need to be injected
@@ -69,12 +75,10 @@ export 'package:ndk_cache/ndk_cache.dart'
  * 
  */
 
-export "domain_layer/usecases/jit_engine/jit_engine.dart";
 export "package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart";
 export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
     show RelayReqs, RelayReq;
 export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
-export "domain_layer/usecases/requests/requests.dart";
 export 'package:ndk_follows/ndk_follows.dart';
 export 'package:ndk_metadatas/ndk_metadatas.dart';
 export 'domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
@@ -94,7 +98,6 @@ export 'package:ndk_nip46/ndk_nip46.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'package:ndk_nip11/ndk_nip11.dart';
 export 'domain_layer/usecases/connectivity/connectivity.dart';
-export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show
         Nip77,
@@ -111,13 +114,6 @@ export 'package:ndk_nip77/ndk_nip77.dart'
  */
 
 export 'package:ndk_logger/ndk_logger.dart';
-
-/**
- * event filters
- * 
- */
-
-export 'shared/event_filters/tag_count_event_filter.dart';
 
 /**
  * Nip 19

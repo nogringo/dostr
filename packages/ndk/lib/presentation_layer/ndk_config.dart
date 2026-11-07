@@ -5,7 +5,7 @@ import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import '../domain_layer/entities/event_filter.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

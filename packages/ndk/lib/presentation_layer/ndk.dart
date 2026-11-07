@@ -6,7 +6,7 @@ import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_li
 import 'package:ndk_nip46/ndk_nip46.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
-import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import 'package:ndk_lists/ndk_lists.dart';
@@ -15,7 +15,6 @@ import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
-import '../domain_layer/usecases/requests/requests.dart';
 import 'package:ndk_search/ndk_search.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';

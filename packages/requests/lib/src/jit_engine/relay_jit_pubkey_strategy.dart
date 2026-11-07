@@ -4,15 +4,14 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk/shared/nips/nip65/relay_ranking.dart';
-import 'package:ndk/domain_layer/usecases/jit_engine/jit_engine.dart';
-import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_blast_all_strategy.dart';
+import 'relay_ranking.dart';
+import 'jit_engine.dart';
+import 'relay_jit_blast_all_strategy.dart';
 
-import '../../../entities/jit_engine_relay_connectivity_data.dart';
+import 'jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import '../../user_relay_lists/user_relay_lists.dart';
-import '../jit_request_plan.dart';
+import 'jit_request_plan.dart';
 
 /// Strategy Description:
 ///
@@ -100,9 +99,9 @@ class RelayJitPubkeyStrategy with Logger {
     // look in nip65 data for not covered pubkeys
     final List<UserRelayList> nip65Data;
     try {
-      nip65Data = await UserRelayLists.getUserRelayListCacheLatest(
-        pubkeys: coveragePubkeys.map((e) => e.pubkey).toList(),
-        cacheManager: cacheManager,
+      nip65Data = await UserRelayList.loadLatest(
+        cacheManager,
+        coveragePubkeys.map((e) => e.pubkey),
       );
     } catch (error, stackTrace) {
       Logger.log.w(

@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk/domain_layer/usecases/stream_response_cleaner/stream_response_cleaner.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_requests/src/stream_response_cleaner.dart';
+import 'package:ndk_core/ndk_core.dart';
 
 void main() async {
   const int fixedCreatedAt = 1782139515;

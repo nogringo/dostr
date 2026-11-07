@@ -2,11 +2,13 @@
 
 import 'package:ndk_core/config/request_defaults.dart' as core;
 import 'package:ndk_core/ndk_core.dart' show packageVersion;
+import 'package:ndk_requests/ndk_requests.dart' show Requests;
 
 /// defaults used by a nostr request
 class RequestDefaults {
   /// desiredCoverage: The number of relays per pubkey to subscribe/query to
-  static const int DEFAULT_BEST_RELAYS_MIN_COUNT = 2;
+  static const int DEFAULT_BEST_RELAYS_MIN_COUNT =
+      Requests.kDefaultDesiredCoverage;
 
   /// query timeout
   static const Duration DEFAULT_QUERY_TIMEOUT = Duration(seconds: 10);

@@ -173,6 +173,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_nip11`: NIP-11 relay information, to fetch what a relay declares about itself, without depending on `ndk` or `ndk_core`. NDK caches it behind `ndk.connectivity.getRelayInfo`.
 
+### [🔗 Requests](./packages/requests/)
+
+`ndk_requests`: queries and subscriptions routed to the outbox relays of their authors by the JIT or relay sets engine, with cache reads, deduplication, pagination and fetched ranges, without depending on `ndk`. NDK exposes it as `ndk.requests`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

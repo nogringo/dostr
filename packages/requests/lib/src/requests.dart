@@ -2,27 +2,26 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_core/config/rx_defaults.dart';
 import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
-import '../../entities/event_filter.dart';
+import 'event_filter.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/ndk_request.dart';
+import 'ndk_request.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/domain_layer/entities/relay_req_event.dart';
 import 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
-import '../../entities/request_response.dart';
-import '../cache_read/cache_read.dart';
-import '../fetched_ranges/fetched_ranges.dart';
-import '../engines/network_engine.dart';
+import 'request_response.dart';
+import 'cache_read.dart';
+import 'fetched_ranges.dart';
+import 'network_engine.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import '../stream_response_cleaner/stream_response_cleaner.dart';
+import 'stream_response_cleaner.dart';
 import 'concurrency_check.dart';
 
 /// How far a paginated query got on a single relay
@@ -79,6 +78,10 @@ class _Caller {
 
 /// A class that handles low-level Nostr network requests and subscriptions.
 class Requests {
+  /// How many relays to ask per pubkey when a request sets no
+  /// `desiredCoverage`.
+  static const int kDefaultDesiredCoverage = 2;
+
   static const int _persistedEventIdsMaxSize = 20000;
 
   /// NIP-01 caps subscription ids at 64 chars. [name] only reaches the relay
@@ -297,8 +300,7 @@ class Requests {
         timeoutCallbackUserFacing: timeoutCallbackUserFacing,
         timeoutCallback: timeoutCallback,
         explicitRelays: explicitRelays,
-        desiredCoverage:
-            desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
+        desiredCoverage: desiredCoverage ?? kDefaultDesiredCoverage,
         auth: auth,
       ),
     );
@@ -347,8 +349,7 @@ class Requests {
         cacheRead: cacheRead,
         cacheWrite: cacheWrite,
         explicitRelays: explicitRelays,
-        desiredCoverage:
-            desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
+        desiredCoverage: desiredCoverage ?? kDefaultDesiredCoverage,
         auth: auth,
       ),
     );
@@ -794,8 +795,7 @@ class Requests {
         },
         explicitRelays: explicitRelays,
         relaySet: relaySet,
-        desiredCoverage:
-            desiredCoverage ?? RequestDefaults.DEFAULT_BEST_RELAYS_MIN_COUNT,
+        desiredCoverage: desiredCoverage ?? kDefaultDesiredCoverage,
       );
       var awaited = 0;
       while (awaited < relays.length) {

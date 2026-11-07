@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk/domain_layer/usecases/cache_read/cache_read.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 
 /// The events [cacheRead] found for [request], and the filters it left.
 Future<(List<Nip01Event>, List<Filter>)> resolve(

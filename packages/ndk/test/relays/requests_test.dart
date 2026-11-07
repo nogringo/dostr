@@ -3,7 +3,7 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:ndk/domain_layer/usecases/cache_read/cache_read.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/presentation_layer/init.dart';
 

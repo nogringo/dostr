@@ -1,5 +1,5 @@
 import 'package:ndk_cache/ndk_cache.dart';
-import '../../../domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
+import 'relay_jit_pubkey_strategy.dart';
 
 /// relay ranking
 RelayRankingResult rankRelays({

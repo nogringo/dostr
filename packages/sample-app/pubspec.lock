@@ -1027,6 +1027,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_requests:
+    dependency: "direct overridden"
+    description:
+      path: "../requests"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_rust_verifier:
     dependency: "direct main"
     description:

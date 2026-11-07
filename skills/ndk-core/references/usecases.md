@@ -6,7 +6,7 @@ All accessible via `ndk.<accessor>`.
 
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
-| `ndk.requests` | `Requests` | Low-level relay queries and subscriptions |
+| `ndk.requests` | `Requests` | Low-level relay queries and subscriptions, from `ndk_requests` |
 | `ndk.broadcast` | `Broadcast` | Publish events to relays, retried by `ndk_broadcast_queue` |
 | `ndk.accounts` | `Accounts` | Identity/account management, from `ndk_accounts` |
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
@@ -26,7 +26,7 @@ All accessible via `ndk.<accessor>`.
 | -------- | ---- | ----------- |
 | `ndk.zaps` | `Zaps` | Zap requests, invoices and receipts, from `ndk_zaps` (pay with `Nwc.zap`, see wallets.md) |
 | `ndk.search` | `Search` | NIP-50 relay search, from `ndk_search` |
-| `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay |
+| `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay, from `ndk_requests` |
 | `ndk.nip77` | `Nip77` | Negentropy set reconciliation |
 
 ## Broadcast

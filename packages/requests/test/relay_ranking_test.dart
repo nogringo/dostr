@@ -2,8 +2,8 @@ import 'dart:math';
 
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk/shared/nips/nip65/relay_ranking.dart';
-import 'package:ndk/domain_layer/usecases/jit_engine/relay_jit_request_strategies/relay_jit_pubkey_strategy.dart';
+import 'package:ndk_requests/src/jit_engine/relay_ranking.dart';
+import 'package:ndk_requests/src/jit_engine/relay_jit_pubkey_strategy.dart';
 import 'package:test/test.dart';
 
 void main() {

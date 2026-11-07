@@ -10,12 +10,14 @@ Relays can misbehave and return events that do not match your query filters.
 
 ## Usage Example
 
-:::code source="../../packages/ndk/example/basic_test.dart" language="dart" range="23-46" :::
+:::code source="../../packages/ndk/example/basic_test.dart" language="dart" range="23-44" :::
 
 ## When to use
 
 Requests should be used when no other use case fits your needs. \
 There is `.query` and `.subscription` representing the nostr equivalent, `.subscription` should only be used when absolutely necessary. Many relays limit the amount of simultaneous subscriptions.
+
+`Requests` lives in the `ndk_requests` package, with the JIT and relay sets engines, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Requests` with a cache, a `RelayManager` and an engine, see its [README](https://pub.dev/packages/ndk_requests).
 
 ## Relay Authentication (NIP-42)
 

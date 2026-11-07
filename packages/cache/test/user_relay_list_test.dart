@@ -23,4 +23,25 @@ void main() {
       });
     });
   });
+
+  group('loadLatest', () {
+    UserRelayList relayList(String pubKey, String url) => UserRelayList(
+      pubKey: pubKey,
+      relays: {url: ReadWriteMarker.readWrite},
+      createdAt: 1,
+      refreshedTimestamp: 1,
+    );
+
+    test('loads one list per pubkey, skipping pubkeys without one', () async {
+      final cache = MemCacheManager();
+      await cache.saveUserRelayLists([
+        relayList('a', 'wss://a.example'),
+        relayList('b', 'wss://b.example'),
+      ]);
+
+      final lists = await UserRelayList.loadLatest(cache, ['a', 'b', 'c', 'a']);
+
+      expect(lists.map((list) => list.pubKey), ['b', 'a']);
+    });
+  });
 }

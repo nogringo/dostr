@@ -1,5 +1,6 @@
-import 'package:ndk/domain_layer/usecases/requests/concurrency_check.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_requests/src/concurrency_check.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:test/test.dart';
 
 void main() {
