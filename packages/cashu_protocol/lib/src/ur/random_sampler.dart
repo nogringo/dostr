@@ -1,12 +1,10 @@
-import 'package:ur/xoshiro256.dart';
+import 'xoshiro256.dart';
 
 class RandomSampler {
   final List<double> _probs;
   final List<double> _aliases;
 
-  RandomSampler._(List<double> probs, List<double> _aliases)
-    : _probs = probs,
-      _aliases = _aliases {}
+  RandomSampler._(this._probs, this._aliases);
 
   factory RandomSampler(List<double> probs) {
     assert(probs.every((p) => p > 0), "All probabilities must be positive");
@@ -33,14 +31,14 @@ class RandomSampler {
     }
 
     // Work through index lists
-    List<double> _probs = List<double>.filled(n, 0);
-    List<double> _aliases = List<double>.filled(n, 0);
+    List<double> probTable = List<double>.filled(n, 0);
+    List<double> aliasTable = List<double>.filled(n, 0);
 
     while (S.isNotEmpty && L.isNotEmpty) {
       int a = S.removeLast(); // Schwarz's l
       int g = L.removeLast(); // Schwarz's g
-      _probs[a] = P[a];
-      _aliases[a] = g.toDouble();
+      probTable[a] = P[a];
+      aliasTable[a] = g.toDouble();
       P[g] += P[a] - 1;
       if (P[g] < 1) {
         S.add(g);
@@ -50,15 +48,15 @@ class RandomSampler {
     }
 
     while (L.isNotEmpty) {
-      _probs[L.removeLast()] = 1;
+      probTable[L.removeLast()] = 1;
     }
 
     while (S.isNotEmpty) {
       // can only happen through numeric instability
-      _probs[S.removeLast()] = 1;
+      probTable[S.removeLast()] = 1;
     }
 
-    return RandomSampler._(_probs, _aliases);
+    return RandomSampler._(probTable, aliasTable);
   }
 
   int next(Function rndDouble) {

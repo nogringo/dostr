@@ -115,8 +115,6 @@ dependency_overrides:
     path: ../cashu
   ndk_cashu_protocol:
     path: ../cashu_protocol
-  ur:
-    path: ../bc_ur
   ndk_nwc:
     path: ../nwc
   ndk_wallets:

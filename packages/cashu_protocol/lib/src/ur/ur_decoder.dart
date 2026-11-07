@@ -1,8 +1,8 @@
-import 'package:ur/ur.dart';
-import 'package:ur/fountain_encoder.dart' as FountainEncoder;
-import 'package:ur/fountain_decoder.dart' as FountainDecoder;
-import 'package:ur/bytewords.dart' as Bytewords;
-import 'package:ur/utils.dart';
+import 'ur.dart';
+import 'fountain_encoder.dart' as fountain_encoder;
+import 'fountain_decoder.dart' as fountain_decoder;
+import 'bytewords.dart' as bytewords;
+import 'utils.dart';
 
 class InvalidScheme implements Exception {}
 
@@ -15,8 +15,8 @@ class InvalidSequenceComponent implements Exception {}
 class InvalidFragment implements Exception {}
 
 class URDecoder {
-  final FountainDecoder.FountainDecoder fountainDecoder =
-      FountainDecoder.FountainDecoder();
+  final fountain_decoder.FountainDecoder fountainDecoder =
+      fountain_decoder.FountainDecoder();
   String? expectedType;
   dynamic result;
 
@@ -31,7 +31,7 @@ class URDecoder {
   }
 
   static UR decodeByType(String type, String body) {
-    var cbor = Bytewords.decodeStyle(Bytewords.Style.minimal, body);
+    var cbor = bytewords.decodeStyle(bytewords.Style.minimal, body);
     return UR(type, cbor);
   }
 
@@ -122,8 +122,8 @@ class URDecoder {
 
       // Parse the sequence component and the fragment, and make sure they agree.
       var (seqNum, seqLen) = URDecoder.parseSequenceComponent(seq);
-      var cbor = Bytewords.decodeStyle(Bytewords.Style.minimal, fragment);
-      var part = FountainEncoder.FountainEncoderPart.fromCbor(cbor);
+      var cbor = bytewords.decodeStyle(bytewords.Style.minimal, fragment);
+      var part = fountain_encoder.FountainEncoderPart.fromCbor(cbor);
       if (seqNum != part.seqNum || seqLen != part.seqLen) {
         return false;
       }

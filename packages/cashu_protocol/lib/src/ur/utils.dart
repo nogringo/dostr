@@ -1,7 +1,7 @@
 import 'dart:typed_data';
 import 'dart:convert';
 
-import 'package:ur/crc32.dart';
+import 'crc32.dart';
 
 Uint8List crc32Bytes(Uint8List buf) {
   return CRC32.crc32n(buf);

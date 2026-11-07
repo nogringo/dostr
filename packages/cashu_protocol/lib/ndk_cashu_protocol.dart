@@ -12,9 +12,6 @@
 /// ```
 library;
 
-export 'package:ur/ur_decoder.dart' show URDecoder;
-export 'package:ur/ur_encoder.dart' show UREncoder;
-
 export 'src/cashu_bdhke.dart';
 export 'src/cashu_key_derivation.dart';
 export 'src/cashu_keypair.dart';
@@ -36,3 +33,5 @@ export 'src/entities/cashu_quote_melt.dart';
 export 'src/entities/cashu_token.dart';
 export 'src/entities/cashu_token_state_response.dart';
 export 'src/entities/cashu_user_seedphrase.dart';
+export 'src/ur/ur_decoder.dart' show URDecoder;
+export 'src/ur/ur_encoder.dart' show UREncoder;

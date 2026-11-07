@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:ur/random_sampler.dart';
-import 'package:ur/utils.dart';
-import 'package:ur/xoshiro256.dart';
+import 'random_sampler.dart';
+import 'utils.dart';
+import 'xoshiro256.dart';
 
 // Fisher-Yates shuffle
 List<T> shuffled<T>(List<T> items, Xoshiro256 rng) {

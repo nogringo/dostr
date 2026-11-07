@@ -58,7 +58,6 @@ workspace:
   - packages/fetchers
   - packages/http
   - packages/url_set
-  - packages/bc_ur
 
 melos:
   command:

@@ -1,6 +1,6 @@
-import 'package:ur/ur.dart';
-import 'package:ur/fountain_encoder.dart';
-import 'package:ur/bytewords.dart' as Bytewords;
+import 'ur.dart';
+import 'fountain_encoder.dart';
+import 'bytewords.dart' as bytewords;
 
 class UREncoder {
   final UR ur;
@@ -19,7 +19,7 @@ class UREncoder {
        );
 
   static String encode(UR ur) {
-    String body = Bytewords.encodeStyle(Bytewords.Style.minimal, ur.cbor);
+    String body = bytewords.encodeStyle(bytewords.Style.minimal, ur.cbor);
     return UREncoder.encodeUR([ur.type, body]);
   }
 
@@ -42,7 +42,7 @@ class UREncoder {
 
   static String encodePart(String type, FountainEncoderPart part) {
     String seq = '${part.seqNum}-${part.seqLen}';
-    String body = Bytewords.encodeStyle(Bytewords.Style.minimal, part.cbor());
+    String body = bytewords.encodeStyle(bytewords.Style.minimal, part.cbor());
     return UREncoder.encodeUR([type, seq, body]);
   }
 

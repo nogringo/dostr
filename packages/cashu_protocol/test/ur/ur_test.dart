@@ -2,17 +2,18 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
-import 'package:ur/bytewords.dart' as Bytewords;
-import 'package:ur/cbor_lite.dart';
-import 'package:ur/xoshiro256.dart';
-import 'package:ur/fountain_encoder.dart';
-import 'package:ur/fountain_decoder.dart';
-import 'package:ur/fountain_utils.dart';
-import 'package:ur/ur_encoder.dart';
-import 'package:ur/ur_decoder.dart';
-import 'package:ur/ur.dart';
-import 'package:ur/random_sampler.dart' show RandomSampler;
-import 'package:ur/utils.dart';
+import 'package:ndk_cashu_protocol/src/ur/bytewords.dart' as bytewords;
+import 'package:ndk_cashu_protocol/src/ur/cbor_lite.dart';
+import 'package:ndk_cashu_protocol/src/ur/xoshiro256.dart';
+import 'package:ndk_cashu_protocol/src/ur/fountain_encoder.dart';
+import 'package:ndk_cashu_protocol/src/ur/fountain_decoder.dart';
+import 'package:ndk_cashu_protocol/src/ur/fountain_utils.dart';
+import 'package:ndk_cashu_protocol/src/ur/ur_encoder.dart';
+import 'package:ndk_cashu_protocol/src/ur/ur_decoder.dart';
+import 'package:ndk_cashu_protocol/src/ur/ur.dart';
+import 'package:ndk_cashu_protocol/src/ur/random_sampler.dart'
+    show RandomSampler;
+import 'package:ndk_cashu_protocol/src/ur/utils.dart';
 
 import 'test_utils.dart';
 
@@ -26,65 +27,65 @@ void main() {
     test('Bytewords 1', () {
       var input = Uint8List.fromList([0, 1, 2, 128, 255]);
       expect(
-        Bytewords.encodeStyle(Bytewords.Style.standard, input),
+        bytewords.encodeStyle(bytewords.Style.standard, input),
         equals("able acid also lava zoom jade need echo taxi"),
       );
       expect(
-        Bytewords.encodeStyle(Bytewords.Style.uri, input),
+        bytewords.encodeStyle(bytewords.Style.uri, input),
         equals("able-acid-also-lava-zoom-jade-need-echo-taxi"),
       );
       expect(
-        Bytewords.encodeStyle(Bytewords.Style.minimal, input),
+        bytewords.encodeStyle(bytewords.Style.minimal, input),
         equals("aeadaolazmjendeoti"),
       );
 
       expect(
-        Bytewords.decodeStyle(
-          Bytewords.Style.standard,
+        bytewords.decodeStyle(
+          bytewords.Style.standard,
           "able acid also lava zoom jade need echo taxi",
         ),
         equals(input),
       );
       expect(
-        Bytewords.decodeStyle(
-          Bytewords.Style.uri,
+        bytewords.decodeStyle(
+          bytewords.Style.uri,
           "able-acid-also-lava-zoom-jade-need-echo-taxi",
         ),
         equals(input),
       );
       expect(
-        Bytewords.decodeStyle(Bytewords.Style.minimal, "aeadaolazmjendeoti"),
+        bytewords.decodeStyle(bytewords.Style.minimal, "aeadaolazmjendeoti"),
         equals(input),
       );
 
       expect(
-        () => Bytewords.decodeStyle(
-          Bytewords.Style.standard,
+        () => bytewords.decodeStyle(
+          bytewords.Style.standard,
           "able acid also lava zoom jade need echo wolf",
         ),
         throwsA(isA<ArgumentError>()),
       );
       expect(
-        () => Bytewords.decodeStyle(
-          Bytewords.Style.uri,
+        () => bytewords.decodeStyle(
+          bytewords.Style.uri,
           "able-acid-also-lava-zoom-jade-need-echo-wolf",
         ),
         throwsA(isA<ArgumentError>()),
       );
       expect(
-        () => Bytewords.decodeStyle(
-          Bytewords.Style.minimal,
+        () => bytewords.decodeStyle(
+          bytewords.Style.minimal,
           "aeadaolazmjendeowf",
         ),
         throwsA(isA<ArgumentError>()),
       );
 
       expect(
-        () => Bytewords.decodeStyle(Bytewords.Style.standard, "wolf"),
+        () => bytewords.decodeStyle(bytewords.Style.standard, "wolf"),
         throwsA(isA<ArgumentError>()),
       );
       expect(
-        () => Bytewords.decodeStyle(Bytewords.Style.standard, ""),
+        () => bytewords.decodeStyle(bytewords.Style.standard, ""),
         throwsA(isA<ArgumentError>()),
       );
     });
@@ -200,19 +201,19 @@ void main() {
           "yktsbbswwnwmfefrttsnonbgmtnnjyltvwtybwnebydawswtzcbdjnrsdawzdsksurdtnsrywzzemusffwottppersfdptencxfnmhvatdldroskcljshdbantctpadmadjksnfevymtfpwmftmhfpwtlpfejsylfhecwzonnbmhcybtgwwelpflgmfezeonledtgocsfzhycypf";
 
       expect(
-        Bytewords.encodeStyle(Bytewords.Style.standard, input),
+        bytewords.encodeStyle(bytewords.Style.standard, input),
         equals(encoded),
       );
       expect(
-        Bytewords.encodeStyle(Bytewords.Style.minimal, input),
+        bytewords.encodeStyle(bytewords.Style.minimal, input),
         equals(encodedMinimal),
       );
       expect(
-        Bytewords.decodeStyle(Bytewords.Style.standard, encoded),
+        bytewords.decodeStyle(bytewords.Style.standard, encoded),
         equals(input),
       );
       expect(
-        Bytewords.decodeStyle(Bytewords.Style.minimal, encodedMinimal),
+        bytewords.decodeStyle(bytewords.Style.minimal, encodedMinimal),
         equals(input),
       );
     });

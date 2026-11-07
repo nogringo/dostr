@@ -128,7 +128,8 @@ code goes in as its `cashuB` string.
 - NUT-13: deterministic secrets from a BIP-39 seed phrase (`CashuSeed`,
   `DartCashuKeyDerivation`), for both keyset id versions.
 - NUT-16: animated QR codes (`CashuTokenUrEncoder`), on the Uniform Resources
-  of the `ur` package.
+  of a copy of [dart-bc-ur](https://github.com/bukata-sa/dart-bc-ur) by
+  Aleksandr Bukata, MIT licensed (see `lib/src/ur/LICENSE`).
 - NUT-20: mint quotes locked to a key that `CashuKeyDerivation.deriveQuoteKey`
   derives from the seed, and signed when minting.
 

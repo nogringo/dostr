@@ -1,10 +1,10 @@
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:ur/cbor_lite.dart';
-import 'package:ur/fountain_utils.dart';
-import 'package:ur/utils.dart';
-import 'package:ur/constants.dart';
+import 'cbor_lite.dart';
+import 'fountain_utils.dart';
+import 'utils.dart';
+import 'constants.dart';
 
 class InvalidHeader implements Exception {
   String message;
@@ -86,7 +86,7 @@ class FountainEncoder {
          ),
        ),
        seqNum = firstSeqNum {
-    assert(message.length <= MAX_UINT32);
+    assert(message.length <= maxUint32);
   }
 
   static int findNominalFragmentLength(
@@ -136,7 +136,7 @@ class FountainEncoder {
 
   FountainEncoderPart nextPart() {
     seqNum++;
-    seqNum %= MAX_UINT32; // wrap at period 2^32
+    seqNum %= maxUint32; // wrap at period 2^32
     var indexes = chooseFragments(seqNum, seqLen, checksum);
     var mixed = mix(indexes);
     return FountainEncoderPart(seqNum, seqLen, messageLen, checksum, mixed);

@@ -19,9 +19,10 @@ dependencies:
   bip340: ">=0.3.0 <0.4.0"
   bip39_mnemonic: ^4.1.0
   cbor: ^6.5.1
+  collection: ^1.19.1
+  crypto: ^3.0.7
   ndk_http: ^0.1.0
   pointycastle: ">=3.0.0 <5.0.0"
-  ur: ^0.1.0
 
 dev_dependencies:
   http: ^1.6.0

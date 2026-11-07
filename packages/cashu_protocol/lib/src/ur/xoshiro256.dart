@@ -1,24 +1,24 @@
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:ur/utils.dart';
-import 'package:ur/constants.dart';
+import 'utils.dart';
+import 'constants.dart';
 
 // Mask for 64-bit unsigned integers
-final BigInt _MASK64 = MAX_UINT64;
+final BigInt _mask64 = maxUint64;
 
 BigInt rotl(BigInt x, int k) {
-  return ((x << k) | (x >> (64 - k))) & _MASK64;
+  return ((x << k) | (x >> (64 - k))) & _mask64;
 }
 
-final List<BigInt> JUMP = [
+final List<BigInt> _jump = [
   BigInt.parse('1733541517147835066'), // 0x180ec6d33cfd0aba
   BigInt.parse('15369461998538869804'), // 0xd5a61266f0c9392c
   BigInt.parse('12197330014494892970'), // 0xa9582618e03fc9aa
   BigInt.parse('4138621300654548508'), // 0x39abdc4529b1661c
 ];
 
-final List<BigInt> LONG_JUMP = [
+final List<BigInt> _longJump = [
   BigInt.parse('8555335991981124543'), // 0x76e15d3efefdcbbf
   BigInt.parse('14194738350262587827'), // 0xc5004e441c522fb3
   BigInt.parse('8593769755450971713'), // 0x77710069854ee241
@@ -81,11 +81,11 @@ class Xoshiro256 {
   }
 
   BigInt next() {
-    var temp = (s[1] * BigInt.from(5)) & _MASK64;
+    var temp = (s[1] * BigInt.from(5)) & _mask64;
     temp = rotl(temp, 7);
-    var resultRaw = (temp * BigInt.from(9)) & _MASK64;
+    var resultRaw = (temp * BigInt.from(9)) & _mask64;
 
-    BigInt t = (s[1] << 17) & _MASK64;
+    BigInt t = (s[1] << 17) & _mask64;
 
     s[2] ^= s[0];
     s[3] ^= s[1];
@@ -100,7 +100,7 @@ class Xoshiro256 {
   }
 
   double nextDouble() {
-    BigInt m = MAX_UINT64 + BigInt.one;
+    BigInt m = maxUint64 + BigInt.one;
     BigInt nxt = next();
     return nxt / m;
   }
@@ -126,9 +126,9 @@ class Xoshiro256 {
         s1 = BigInt.zero,
         s2 = BigInt.zero,
         s3 = BigInt.zero;
-    for (int i = 0; i < JUMP.length; i++) {
+    for (int i = 0; i < _jump.length; i++) {
       for (int b = 0; b < 64; b++) {
-        if ((JUMP[i] & (BigInt.one << b)) != BigInt.zero) {
+        if ((_jump[i] & (BigInt.one << b)) != BigInt.zero) {
           s0 ^= s[0];
           s1 ^= s[1];
           s2 ^= s[2];
@@ -148,9 +148,9 @@ class Xoshiro256 {
         s1 = BigInt.zero,
         s2 = BigInt.zero,
         s3 = BigInt.zero;
-    for (int i = 0; i < LONG_JUMP.length; i++) {
+    for (int i = 0; i < _longJump.length; i++) {
       for (int b = 0; b < 64; b++) {
-        if ((LONG_JUMP[i] & (BigInt.one << b)) != BigInt.zero) {
+        if ((_longJump[i] & (BigInt.one << b)) != BigInt.zero) {
           s0 ^= s[0];
           s1 ^= s[1];
           s2 ^= s[2];

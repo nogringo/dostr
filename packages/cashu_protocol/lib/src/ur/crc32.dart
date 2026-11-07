@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:ur/constants.dart';
+import 'constants.dart';
 
 class CRC32 {
   static List<int>? _table;
@@ -19,12 +19,12 @@ class CRC32 {
       }
     }
 
-    int crc = MAX_UINT32 & ~0;
+    int crc = maxUint32 & ~0;
     for (int byte in buf) {
       crc = (crc >> 8) ^ _table![(crc ^ byte) & 0xFF];
     }
 
-    return MAX_UINT32 & ~crc;
+    return maxUint32 & ~crc;
   }
 
   static Uint8List crc32n(Uint8List buf) {

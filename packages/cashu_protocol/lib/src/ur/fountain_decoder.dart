@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:ur/fountain_encoder.dart';
-import 'package:ur/fountain_utils.dart';
-import 'package:ur/utils.dart';
+import 'fountain_encoder.dart';
+import 'fountain_utils.dart';
+import 'utils.dart';
 
 class InvalidPart implements Exception {
   String message;
