@@ -1,34 +1,55 @@
-import 'package:ndk/config/request_defaults.dart';
-import 'package:ndk_logger/ndk_logger.dart';
-import '../../../shared/nips/nip01/helpers.dart';
-import '../../entities/contact_list.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../repositories/cache_manager.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import '../broadcast/broadcast.dart';
-import '../requests/requests.dart';
+import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+
+import 'contact_list.dart';
+import 'contact_list_cache.dart';
+
+/// The events matching [filter], until [timeout]. Cached events may answer
+/// too.
+typedef FollowsQuery =
+    Future<List<Nip01Event>> Function(
+      Filter filter, {
+      required Duration timeout,
+    });
+
+/// Signs [event] as the logged account and publishes it to [relays], or to
+/// its author's outbox relays when [relays] is null. Completes once the
+/// relays answered.
+typedef FollowsPublish =
+    Future<void> Function(Nip01Event event, {Iterable<String>? relays});
+
+int get _now => DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
 /// Follows usecase
 class Follows {
-  final Requests _requests;
-  final Broadcast _broadcast;
-  final CacheManager _cacheManager;
-  final Accounts _accounts;
+  static const kDefaultQueryTimeout = Duration(seconds: 10);
 
+  final FollowsQuery _query;
+  final FollowsPublish _publish;
+  final ContactListCache _cache;
+  final AuthAccounts _accounts;
+
+  /// [query] loads contact lists from relays, [publish] sends the changed
+  /// ones, and [cache] keeps both. Changes are made to the contact list of
+  /// the logged account of [accounts].
   Follows({
-    required Requests requests,
-    required Broadcast broadcast,
-    required CacheManager cacheManager,
-    required Accounts accounts,
-  }) : _cacheManager = cacheManager,
-       _requests = requests,
-       _accounts = accounts,
-       _broadcast = broadcast;
+    required FollowsQuery query,
+    required FollowsPublish publish,
+    required ContactListCache cache,
+    required AuthAccounts accounts,
+  }) : _query = query,
+       _publish = publish,
+       _cache = cache,
+       _accounts = accounts;
 
-  void _checkSigner() {
-    if (_accounts.cannotSign) {
+  String _requireSignerPubKey() {
+    final account = _accounts.getLoggedAccount();
+    if (account == null || !account.signer.canSign()) {
       throw "cannot sign without a signer";
     }
+    return account.pubkey;
   }
 
   /// contact list of a given pubkey, not intended to get followers
@@ -37,11 +58,11 @@ class Follows {
 
     /// skips the cache
     bool forceRefresh = false,
-    Duration idleTimeout = RequestDefaults.DEFAULT_QUERY_TIMEOUT,
+    Duration idleTimeout = kDefaultQueryTimeout,
   }) async {
-    ContactList? contactList = await _cacheManager.loadContactList(pubKey);
+    ContactList? contactList = await _cache.loadContactList(pubKey);
     if (contactList != null) {
-      contactList.loadedTimestamp = Helpers.now;
+      contactList.loadedTimestamp = _now;
     }
 
     if (contactList != null && !forceRefresh) {
@@ -50,19 +71,11 @@ class Follows {
 
     ContactList? loadedContactList;
     try {
-      await for (final event
-          in _requests
-              .query(
-                timeout: idleTimeout,
-                filters: [
-                  Filter(
-                    kinds: [ContactList.kKind],
-                    authors: [pubKey],
-                    limit: 1,
-                  ),
-                ],
-              )
-              .stream) {
+      final events = await _query(
+        Filter(kinds: [ContactList.kKind], authors: [pubKey], limit: 1),
+        timeout: idleTimeout,
+      );
+      for (final event in events) {
         if (loadedContactList == null ||
             loadedContactList.createdAt < event.createdAt) {
           loadedContactList = ContactList.fromEvent(event);
@@ -77,7 +90,7 @@ class Follows {
             contactList.createdAt < loadedContactList.createdAt)) {
       loadedContactList.loadedTimestamp =
           DateTime.now().millisecondsSinceEpoch ~/ 1000;
-      await _cacheManager.saveEvent(loadedContactList.toEvent());
+      await _cache.saveEvent(loadedContactList.toEvent());
       contactList = loadedContactList;
     }
 
@@ -88,9 +101,9 @@ class Follows {
   // otherwise we risk adding/removing contacts to a list that is out of date and thus loosing contacts other client has added/removed since.
   static const kRefreshContactListDuration = Duration(minutes: 10);
   Future<ContactList> _ensureUpToDateContactListOrEmpty(String pubkey) async {
-    ContactList? contactList = await _cacheManager.loadContactList(pubkey);
+    ContactList? contactList = await _cache.loadContactList(pubkey);
     if (contactList != null) {
-      contactList.loadedTimestamp = Helpers.now;
+      contactList.loadedTimestamp = _now;
     }
     int sometimeAgo =
         DateTime.now()
@@ -110,22 +123,17 @@ class Follows {
     Iterable<String>? customRelays,
     List<String> Function(ContactList) collectionAccessor,
   ) async {
-    _checkSigner();
     ContactList contactList = await _ensureUpToDateContactListOrEmpty(
-      _accounts.getPublicKey()!,
+      _requireSignerPubKey(),
     );
     List<String> collection = collectionAccessor(contactList);
     if (!collection.contains(toAdd)) {
       collection.add(toAdd);
-      contactList.loadedTimestamp = Helpers.now;
+      contactList.loadedTimestamp = _now;
       contactList.createdAt = _nextReplaceableTimestamp(contactList.createdAt);
 
-      final bResult = _broadcast.broadcast(
-        nostrEvent: contactList.toEvent(),
-        specificRelays: customRelays,
-      );
-      await bResult.broadcastDoneFuture;
-      await _cacheManager.saveEvent(contactList.toEvent());
+      await _publish(contactList.toEvent(), relays: customRelays);
+      await _cache.saveEvent(contactList.toEvent());
     }
     return contactList;
   }
@@ -134,13 +142,12 @@ class Follows {
   /// Use with cation! Only for initial or restoring a complete contact list \
   /// [createdAt] and [loadedTimestamp] are set to the current time
   Future<ContactList> broadcastSetContactList(ContactList contactList) async {
-    contactList.loadedTimestamp = Helpers.now;
+    contactList.loadedTimestamp = _now;
     contactList.createdAt = _nextReplaceableTimestamp(contactList.createdAt);
 
-    final bResult = _broadcast.broadcast(nostrEvent: contactList.toEvent());
-    await bResult.broadcastDoneFuture;
+    await _publish(contactList.toEvent());
 
-    await _cacheManager.saveEvent(contactList.toEvent());
+    await _cache.saveEvent(contactList.toEvent());
     return contactList;
   }
 
@@ -197,28 +204,23 @@ class Follows {
     Iterable<String>? customRelays,
     List<String> Function(ContactList) collectionAccessor,
   ) async {
-    _checkSigner();
     ContactList? contactList = await _ensureUpToDateContactListOrEmpty(
-      _accounts.getPublicKey()!,
+      _requireSignerPubKey(),
     );
     List<String> collection = collectionAccessor(contactList);
     if (collection.contains(toRemove)) {
       collection.remove(toRemove);
-      contactList.loadedTimestamp = Helpers.now;
+      contactList.loadedTimestamp = _now;
       contactList.createdAt = _nextReplaceableTimestamp(contactList.createdAt);
 
-      final bResult = _broadcast.broadcast(
-        nostrEvent: contactList.toEvent(),
-        specificRelays: customRelays,
-      );
-      await bResult.broadcastDoneFuture;
-      await _cacheManager.saveEvent(contactList.toEvent());
+      await _publish(contactList.toEvent(), relays: customRelays);
+      await _cache.saveEvent(contactList.toEvent());
     }
     return contactList;
   }
 
   int _nextReplaceableTimestamp(int currentCreatedAt) {
-    final now = Helpers.now;
+    final now = _now;
     if (now > currentCreatedAt) {
       return now;
     }

@@ -873,6 +873,13 @@ packages:
       relative: true
     source: path
     version: "0.10.3-dev.2"
+  ndk_follows:
+    dependency: "direct overridden"
+    description:
+      path: "../follows"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_http:
     dependency: "direct overridden"
     description:

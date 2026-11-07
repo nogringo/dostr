@@ -1,5 +1,8 @@
-import 'contact_list.dart';
+import 'dart:convert';
+
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+import '../../shared/nips/nip01/helpers.dart';
 import 'nip_65.dart';
 import 'read_write_marker.dart';
 
@@ -47,9 +50,56 @@ class UserRelayList {
   static UserRelayList fromNip02EventContent(Nip01Event event) {
     return UserRelayList(
       pubKey: event.pubKey,
-      relays: ContactList.relaysFromContent(event),
+      relays: relaysFromNip02Content(event),
       createdAt: event.createdAt,
       refreshedTimestamp: DateTime.now().millisecondsSinceEpoch ~/ 1000,
     );
+  }
+
+  /// The relays a contact list (kind 3) lists in its content, the way relay
+  /// lists were published before NIP-65.
+  static Map<String, ReadWriteMarker> relaysFromNip02Content(Nip01Event event) {
+    Map<String, ReadWriteMarker> map = {};
+    if (Helpers.isNotBlank(event.content)) {
+      try {
+        Map<String, dynamic> json = jsonDecode(event.content);
+        if (json.entries.isNotEmpty) {
+          for (var entry in json.entries) {
+            try {
+              bool read = entry.value["read"] ?? false;
+              bool write = entry.value["write"] ?? false;
+              if (read || write) {
+                map[entry.key] = ReadWriteMarker.from(read: read, write: write);
+              }
+            } catch (e) {
+              try {
+                Map<String, dynamic> decodedValue = jsonDecode(entry.value);
+                bool read = decodedValue["read"] ?? false;
+                bool write = decodedValue["write"] ?? false;
+                if (read || write) {
+                  map[entry.key] = ReadWriteMarker.from(
+                    read: read,
+                    write: write,
+                  );
+                }
+                continue;
+              } catch (e) {
+                Logger.log.d(
+                  () =>
+                      "Could not parse relay ${entry.key} , entry : ${entry.value}",
+                );
+              }
+              Logger.log.d(
+                () =>
+                    "Could not parse relay ${entry.key} , content : ${event.content}",
+              );
+            }
+          }
+        }
+      } catch (e) {
+        // invalid json in content, ignore
+      }
+    }
+    return map;
   }
 }

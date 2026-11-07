@@ -24,7 +24,6 @@ export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
 export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/nip_51_list.dart';
-export 'domain_layer/entities/contact_list.dart';
 export 'domain_layer/entities/read_write.dart';
 export 'package:ndk_core/domain_layer/entities/relay.dart';
 export 'package:ndk_auth/ndk_auth.dart';
@@ -65,7 +64,7 @@ export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
     show RelayReqs, RelayReq;
 export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
 export "domain_layer/usecases/requests/requests.dart";
-export "domain_layer/usecases/follows/follows.dart";
+export 'package:ndk_follows/ndk_follows.dart';
 export 'domain_layer/usecases/metadatas/metadatas.dart';
 export 'domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 export 'domain_layer/usecases/lists/lists.dart';

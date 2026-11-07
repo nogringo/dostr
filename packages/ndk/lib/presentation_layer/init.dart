@@ -23,7 +23,7 @@ import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloa
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_gift_wrap_cache.dart';
 import '../domain_layer/usecases/engines/network_engine.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
-import '../domain_layer/usecases/follows/follows.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
 import '../domain_layer/usecases/lists/lists.dart';
@@ -242,9 +242,12 @@ class Initialization {
     );
 
     follows = Follows(
-      requests: requests,
-      cacheManager: _ndkConfig.cache,
-      broadcast: broadcast,
+      query: (filter, {required timeout}) =>
+          requests.query(filter: filter, timeout: timeout).future,
+      publish: (event, {relays}) => broadcast
+          .broadcast(nostrEvent: event, specificRelays: relays)
+          .broadcastDoneFuture,
+      cache: _ndkConfig.cache,
       accounts: accounts,
     );
 

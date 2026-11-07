@@ -1,7 +1,7 @@
 import 'dart:core';
 
 import '../../../domain_layer/entities/cache_eviction.dart';
-import '../../../domain_layer/entities/contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import '../../../domain_layer/entities/event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
@@ -993,7 +993,7 @@ class MemCacheManager implements CacheManager {
       if (event.kind == Nip65.kKind) {
         latestNip65 ??= event;
       } else if (event.kind == ContactList.kKind &&
-          ContactList.relaysFromContent(event).isNotEmpty) {
+          UserRelayList.relaysFromNip02Content(event).isNotEmpty) {
         latestContactListWithRelays ??= event;
       }
     }

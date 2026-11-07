@@ -15,6 +15,7 @@ workspace:
   - packages/signer
   - packages/auth
   - packages/accounts
+  - packages/follows
   - packages/isolates
   - packages/logger
   - packages/nip19

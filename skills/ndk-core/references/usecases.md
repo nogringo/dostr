@@ -11,7 +11,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.accounts` | `Accounts` | Identity/account management, from `ndk_accounts` |
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
 | `ndk.relays` | `RelayManager` | Relay connections and management |
-| `ndk.follows` | `Follows` | Contact lists (NIP-02) |
+| `ndk.follows` | `Follows` | Contact lists (NIP-02), from `ndk_follows` |
 | `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0) |
 | `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists |
 | `ndk.lists` | `Lists` | NIP-51 generic lists |
@@ -61,9 +61,11 @@ print(metadata?.nip05);
 
 ## Follows
 
+`Follows` and `ContactList` live in the `ndk_follows` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
+
 ```dart
 final contactList = await ndk.follows.getContactList(pubkey);
-contactList?.contacts; // List<Contact>
+contactList?.contacts; // List<String>, the followed pubkeys
 ```
 
 ## DMs (NIP-17)

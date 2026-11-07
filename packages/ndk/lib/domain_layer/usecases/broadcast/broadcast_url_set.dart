@@ -2,7 +2,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 
 import '../../../config/broadcast_defaults.dart';
-import '../../entities/contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 
 /// Where [event] goes when its broadcast is given no relays:

@@ -1,5 +1,5 @@
 import '../entities/cache_eviction.dart';
-import '../entities/contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import '../entities/event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
@@ -22,6 +22,7 @@ import '../entities/user_relay_list.dart';
 /// - decrypted plaintext sidecars for encrypted events
 /// - convenience projections like metadata/contact list/user relay list
 /// - NIP-05 records, the [Nip05Cache] of `ndk_nip05`
+/// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a
@@ -32,7 +33,8 @@ import '../entities/user_relay_list.dart';
 ///   store, not separate authoritative silos
 /// - provenance and delivery targets are separate concerns
 /// - an empty list in a read or a removal matches nothing, see [matchesNothing]
-abstract class CacheManager implements DeliveryStore, Nip05Cache {
+abstract class CacheManager
+    implements DeliveryStore, Nip05Cache, ContactListCache {
   /// Whether a read or a removal with these lists can match no event: NIP-01
   /// says an empty list matches nothing, it does not stand for an absent one.
   static bool matchesNothing({
@@ -233,6 +235,7 @@ abstract class CacheManager implements DeliveryStore, Nip05Cache {
     'Use saveEvent()/saveEvents() with kind 3 events; ContactList is now a convenience view over the generic event cache.',
   )
   Future<void> saveContactLists(List<ContactList> contactLists);
+  @override
   Future<ContactList?> loadContactList(String pubKey);
   @Deprecated(
     'Use removeEvents(pubKeys: ..., kinds: [ContactList.kKind]); ContactList is now a convenience view over the generic event cache.',

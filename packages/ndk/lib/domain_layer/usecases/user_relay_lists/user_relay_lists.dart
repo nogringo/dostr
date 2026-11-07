@@ -2,7 +2,7 @@ import '../../../config/user_relay_list_defaults.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
-import '../../entities/contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_51_list.dart';
@@ -423,7 +423,7 @@ class UserRelayLists {
         latestNip65 ??= event;
       } else if (event.kind == ContactList.kKind &&
           event.content.isNotEmpty &&
-          ContactList.relaysFromContent(event).isNotEmpty) {
+          UserRelayList.relaysFromNip02Content(event).isNotEmpty) {
         latestKind3WithRelayContent ??= event;
       }
     }

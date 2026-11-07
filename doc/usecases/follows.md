@@ -16,6 +16,8 @@ Use `broadcastSetContactList()` to set the list initially (e.g. on signup) \
 `broadcastAddContact()` to add a contact to the list \
 `broadcastRemoveContact()` to remove a contact from the list
 
+`Follows` and `ContactList` live in the `ndk_follows` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Follows` with `query`, `publish`, `cache` and `accounts`, see its [README](https://pub.dev/packages/ndk_follows).
+
 ## Current behavior
 
 Contact lists behave as replaceable event state.

@@ -771,7 +771,7 @@ class SqliteCacheManager extends WalletsRepo
       }
     }
     for (final event in events) {
-      if (ContactList.relaysFromContent(event).isNotEmpty) {
+      if (UserRelayList.relaysFromNip02Content(event).isNotEmpty) {
         return UserRelayList.fromNip02EventContent(event);
       }
     }

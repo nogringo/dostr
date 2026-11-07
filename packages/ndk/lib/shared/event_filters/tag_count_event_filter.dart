@@ -1,7 +1,7 @@
 import 'package:ndk/domain_layer/entities/event_filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
-import '../../domain_layer/entities/contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import '../../domain_layer/entities/nip_65.dart';
 
 /// filter for too many tags

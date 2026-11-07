@@ -1,4 +1,4 @@
-import 'contact_list.dart';
+import 'package:ndk_follows/ndk_follows.dart';
 import 'metadata.dart';
 import 'nip_51_list.dart';
 import 'nip_65.dart';

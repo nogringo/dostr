@@ -927,7 +927,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
       if (event.kind == Nip65.kKind) {
         latestNip65 ??= event;
       } else if (event.kind == ContactList.kKind &&
-          ContactList.relaysFromContent(event).isNotEmpty) {
+          UserRelayList.relaysFromNip02Content(event).isNotEmpty) {
         latestContactListWithRelays ??= event;
       }
     }

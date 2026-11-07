@@ -6,7 +6,7 @@
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
-import 'package:ndk/domain_layer/entities/contact_list.dart' as _i12;
+import 'package:ndk_follows/ndk_follows.dart' as _i12;
 import 'package:ndk/domain_layer/entities/metadata.dart' as _i3;
 import 'package:ndk/domain_layer/entities/nip_65.dart' as _i2;
 import 'package:ndk/domain_layer/entities/pubkey_mapping.dart' as _i10;

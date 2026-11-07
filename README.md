@@ -37,6 +37,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_accounts`: the accounts NDK logs in with (private key, public key, external signer or NIP-46 bunker), to switch between them and sign as the logged one, without depending on `ndk`. NDK exposes it as `ndk.accounts`.
 
+### [🔗 Follows](./packages/follows/)
+
+`ndk_follows`: NIP-02 contact lists, to load one and follow or unfollow pubkeys, hashtags, communities and events as the logged account, without depending on `ndk`. NDK exposes it as `ndk.follows`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.
