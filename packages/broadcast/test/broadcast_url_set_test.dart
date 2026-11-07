@@ -1,12 +1,12 @@
 import 'package:ndk_broadcast/ndk_broadcast.dart';
-import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip59/ndk_nip59.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';
 
 const author = 'author';
 const bootstrap = ['wss://bootstrap.example'];
+const contactListKind = 3;
+const giftWrapKind = 1059;
 
 Nip01Event eventOf(int kind, List<String> pTags) => Nip01Event(
   pubKey: author,
@@ -44,14 +44,14 @@ void main() {
   });
 
   test('keeps a contact list out of the inboxes it tags', () {
-    expect(setOf(eventOf(ContactList.kKind, ['bob'])), {
+    expect(setOf(eventOf(contactListKind, ['bob'])), {
       'type': 'union',
       'sets': [outbox()],
     });
   });
 
   test('sends a gift wrap to the DM relays of its recipients only', () {
-    expect(setOf(eventOf(GiftWrap.kGiftWrapEventkind, ['bob'])), {
+    expect(setOf(eventOf(giftWrapKind, ['bob'])), {
       'type': 'union',
       'sets': [const UrlSet.dm('bob').toMap()],
     });
