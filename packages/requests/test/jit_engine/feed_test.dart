@@ -1,13 +1,17 @@
+import '../mocks/requests_client.dart';
 import 'dart:developer';
 
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_follows/ndk_follows.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
 import 'package:ndk_requests/ndk_requests.dart';
-import 'package:ndk/entities.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import 'dart:developer' as developer;
 
-import '../../mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 
 void main() async {
   group("Calculate best relays (external REAL)", skip: true, () {
@@ -17,12 +21,15 @@ void main() async {
     }) async {
       CacheManager cacheManager = MemCacheManager();
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: cacheManager,
-          engine: NdkEngine.JIT,
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: cacheManager,
+        engine: Engine.jit,
+        bootstrapRelays: [
+          'wss://purplepag.es',
+          'wss://relay.primal.net',
+          'wss://relay.ditto.pub',
+        ],
       );
 
       // wait for the relays to connect

@@ -1,15 +1,18 @@
 // ignore_for_file: avoid_print
 
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
-import 'package:ndk/ndk.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import 'mocks/requests_client.dart';
+import 'mocks/mock_event_verifier.dart';
 
 void main() async {
   late KeyPair key1;
   late MockRelay relay1;
-  late Ndk ndk;
+  late RequestsClient ndk;
   late Bip340EventSigner signer;
 
   setUp(() async {
@@ -24,13 +27,11 @@ void main() async {
 
     await relay1.start();
 
-    ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [relay1.url],
-        logLevel: LogLevel.off,
-      ),
+    ndk = RequestsClient(
+      eventVerifier: MockEventVerifier(),
+      cache: MemCacheManager(),
+      bootstrapRelays: [relay1.url],
+      logLevel: LogLevel.off,
     );
 
     ndk.accounts.loginExternalSigner(signer: signer);
@@ -56,11 +57,8 @@ void main() async {
           tags: [],
           createdAt: ts,
         );
-        final response = ndk.broadcast.broadcast(nostrEvent: event);
-        await response.broadcastDoneFuture;
+        relay1.publish(event);
       }
-
-      await ndk.config.cache.clearAll();
 
       final query = ndk.requests.query(
         filter: Filter(
@@ -94,11 +92,8 @@ void main() async {
           tags: [],
           createdAt: ts,
         );
-        final response = ndk.broadcast.broadcast(nostrEvent: event);
-        await response.broadcastDoneFuture;
+        relay1.publish(event);
       }
-
-      await ndk.config.cache.clearAll();
 
       // Query with since that excludes older events
       final query = ndk.requests.query(
@@ -139,11 +134,8 @@ void main() async {
           tags: [],
           createdAt: ts,
         );
-        final response = ndk.broadcast.broadcast(nostrEvent: event);
-        await response.broadcastDoneFuture;
+        relay1.publish(event);
       }
-
-      await ndk.config.cache.clearAll();
 
       // Query with until that excludes recent events
       final query = ndk.requests.query(
@@ -181,11 +173,8 @@ void main() async {
           tags: [],
           createdAt: timestamps[i],
         );
-        final response = ndk.broadcast.broadcast(nostrEvent: event);
-        await response.broadcastDoneFuture;
+        relay1.publish(event);
       }
-
-      await ndk.config.cache.clearAll();
 
       final query = ndk.requests.query(
         filter: Filter(
@@ -207,19 +196,16 @@ void main() async {
     Future<void> publish(MockRelay relay, int count, {int offset = 0}) async {
       final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       for (var i = 0; i < count; i++) {
-        final response = ndk.broadcast.broadcast(
-          nostrEvent: Nip01Event(
+        relay.publish(
+          Nip01Event(
             kind: Nip01Event.kTextNoteKind,
             pubKey: key1.publicKey,
             content: "Event $offset-$i",
             tags: [],
             createdAt: now - offset - i * 1000,
           ),
-          specificRelays: [relay.url],
         );
-        await response.broadcastDoneFuture;
       }
-      await ndk.config.cache.clearAll();
     }
 
     test('closing it stops asking for pages', () async {
@@ -352,23 +338,13 @@ void main() async {
 
       try {
         for (final event in relay1Events) {
-          final response = ndk.broadcast.broadcast(
-            nostrEvent: event,
-            specificRelays: [relay1.url],
-          );
-          await response.broadcastDoneFuture;
+          relay1.publish(event);
         }
 
         for (final event in relay2Events) {
-          final response = ndk.broadcast.broadcast(
-            nostrEvent: event,
-            specificRelays: [relay2.url],
-          );
-          await response.broadcastDoneFuture;
+          relay2.publish(event);
         }
       } finally {}
-
-      await ndk.config.cache.clearAll();
 
       // Query both relays with pagination
       final query = ndk.requests.query(
@@ -421,22 +397,12 @@ void main() async {
 
       try {
         for (final ts in relay1Timestamps) {
-          final response = ndk.broadcast.broadcast(
-            nostrEvent: await signedEventAt(ts),
-            specificRelays: [relay1.url],
-          );
-          await response.broadcastDoneFuture;
+          relay1.publish(await signedEventAt(ts));
         }
 
         for (final ts in relay2Timestamps) {
-          final response = ndk.broadcast.broadcast(
-            nostrEvent: await signedEventAt(ts),
-            specificRelays: [relay2.url],
-          );
-          await response.broadcastDoneFuture;
+          relay2.publish(await signedEventAt(ts));
         }
-
-        await ndk.config.cache.clearAll();
 
         final relaySet = RelaySet(
           name: "pagination",

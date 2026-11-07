@@ -1,6 +1,9 @@
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
@@ -35,12 +38,10 @@ void main() {
       throw TimeoutException('MockRelay did not register the subscription.');
     }
 
-    Ndk createNdk() => Ndk(
-      NdkConfig(
-        cache: MemCacheManager(),
-        eventVerifier: MockEventVerifier(),
-        bootstrapRelays: [queryRelay.url, subscriptionRelay.url],
-      ),
+    RequestsClient createNdk() => RequestsClient(
+      cache: MemCacheManager(),
+      eventVerifier: MockEventVerifier(),
+      bootstrapRelays: [queryRelay.url, subscriptionRelay.url],
     );
 
     test(
@@ -88,12 +89,9 @@ void main() {
           privateKey: key.privateKey!,
         );
 
-        await publisher.broadcast
-            .broadcast(
-              nostrEvent: event,
-              specificRelays: [subscriptionRelay.url],
-            )
-            .broadcastDoneFuture;
+        await publisher.relayPublishes
+            .publish(event, relays: [subscriptionRelay.url])
+            .done;
 
         final received = await liveEvent.future.timeout(
           const Duration(seconds: 3),

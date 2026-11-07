@@ -1,8 +1,12 @@
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:test/test.dart';
-import 'package:ndk/ndk.dart';
+
+import '../mocks/requests_client.dart';
 
 Future<void> testNdk({
-  required Ndk myNdk,
+  required RequestsClient myNdk,
   required int coverage,
   required List<Filter> myFilters,
   required Map<KeyPair, Nip01Event> key1TextNotes,

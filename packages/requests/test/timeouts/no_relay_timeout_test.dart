@@ -1,6 +1,8 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 
 /// a request sent to zero relays has nothing to wait for and must not hang
@@ -9,7 +11,7 @@ void main() {
   const queryTimeout = Duration(seconds: 10);
   const maxAcceptable = Duration(seconds: 5);
 
-  Future<void> expectFastEmptyQuery(Ndk ndk) async {
+  Future<void> expectFastEmptyQuery(RequestsClient ndk) async {
     bool timeoutTriggered = false;
 
     final stopwatch = Stopwatch()..start();
@@ -30,33 +32,29 @@ void main() {
   }
 
   group('no relay - query does not wait for the timeout', () {
-    late Ndk ndk;
+    late RequestsClient ndk;
 
     tearDown(() async {
       await ndk.destroy();
     });
 
     test('relay sets engine', () async {
-      ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [],
-        ),
+      ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.relaySets,
+        bootstrapRelays: [],
       );
 
       await expectFastEmptyQuery(ndk);
     });
 
     test('jit engine', () async {
-      ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [],
-        ),
+      ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.jit,
+        bootstrapRelays: [],
       );
 
       await expectFastEmptyQuery(ndk);

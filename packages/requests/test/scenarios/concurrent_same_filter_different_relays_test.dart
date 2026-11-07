@@ -1,7 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 
 void main() {
@@ -31,12 +34,10 @@ void main() {
       addTearDown(relay1.stop);
       addTearDown(relay2.stop);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay1.url, relay2.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay1.url, relay2.url],
       );
       addTearDown(ndk.destroy);
 
@@ -68,7 +69,7 @@ void main() {
 }
 
 Future<void> _waitForRelayConnected({
-  required Ndk ndk,
+  required RequestsClient ndk,
   required String relayUrl,
   Duration timeout = const Duration(seconds: 10),
 }) async {
@@ -77,7 +78,7 @@ Future<void> _waitForRelayConnected({
     return;
   }
 
-  await ndk.connectivity.relayConnectivityChanges
+  await ndk.relays.relayConnectivityChanges
       .firstWhere(
         (connections) => connections.any(
           (connection) => connection.url == relayUrl && connection.isConnected,

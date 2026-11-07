@@ -1,8 +1,11 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_event_verifier.dart';
+import 'mocks/requests_client.dart';
+import 'mocks/mock_event_verifier.dart';
 
 void main() async {
   group('repeated queries', () {
@@ -58,13 +61,11 @@ void main() async {
       'test if events get replayed on concurrency requests',
       timeout: const Timeout(Duration(seconds: 10)),
       () async {
-        final ndkJit = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-            engine: NdkEngine.JIT,
-            bootstrapRelays: myRelayUrls,
-          ),
+        final ndkJit = RequestsClient(
+          eventVerifier: MockEventVerifier(),
+          cache: MemCacheManager(),
+          engine: Engine.jit,
+          bootstrapRelays: myRelayUrls,
         );
         ndkJit.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
@@ -124,13 +125,11 @@ void main() async {
       'a request that never authenticates is not served by an authenticated one',
       timeout: const Timeout(Duration(seconds: 10)),
       () async {
-        final ndk = Ndk(
-          NdkConfig(
-            authHandler: (_, _) async => true,
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [relay.url],
-          ),
+        final ndk = RequestsClient(
+          authHandler: (_, _) async => true,
+          eventVerifier: MockEventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay.url],
         );
         ndk.accounts.loginPrivateKey(
           pubkey: key.publicKey,

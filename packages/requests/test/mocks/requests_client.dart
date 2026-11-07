@@ -14,6 +14,7 @@ class RequestsClient {
     CacheManager? cache,
     Engine engine = Engine.relaySets,
     this.bootstrapRelays = const [],
+    List<String> ignoreRelays = const [],
     AuthHandler? authHandler,
     Duration defaultQueryTimeout = const Duration(seconds: 10),
     List<EventFilter> eventOutFilters = const [],
@@ -42,7 +43,7 @@ class RequestsClient {
         ),
         Engine.jit => JitEngine(
           cache: this.cache,
-          ignoreRelays: const [],
+          ignoreRelays: ignoreRelays,
           relayManagerLight: relays,
           bootstrapRelays: bootstrapRelays,
           bootstrapRelaysConnected: bootstrapRelaysConnected,

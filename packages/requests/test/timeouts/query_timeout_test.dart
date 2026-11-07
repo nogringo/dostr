@@ -1,7 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 
 void main() {
@@ -19,7 +22,7 @@ void main() {
     KeyPair key1 = Bip340.generatePrivateKey();
     late MockRelay relay1;
     late MockRelay silentRelay;
-    late Ndk ndk;
+    late RequestsClient ndk;
     Map<KeyPair, Nip01Event> key1TextNotes = {key1: textNote(key1)};
 
     // startup and teardown
@@ -39,14 +42,12 @@ void main() {
     });
 
     test('timeout does not trigger on normal request', () async {
-      NdkConfig config = NdkConfig(
+      ndk = RequestsClient(
         eventVerifier: MockEventVerifier(),
         cache: MemCacheManager(),
-        engine: NdkEngine.RELAY_SETS,
+        engine: Engine.relaySets,
         bootstrapRelays: [relay1.url],
       );
-
-      ndk = Ndk(config);
 
       bool timeoutTriggered = false;
       bool timeoutUserTriggered = false;
@@ -73,14 +74,12 @@ void main() {
     });
 
     test('timeout triggers', () async {
-      NdkConfig config = NdkConfig(
+      ndk = RequestsClient(
         eventVerifier: MockEventVerifier(),
         cache: MemCacheManager(),
-        engine: NdkEngine.RELAY_SETS,
+        engine: Engine.relaySets,
         bootstrapRelays: [silentRelay.url],
       );
-
-      ndk = Ndk(config);
 
       bool timeoutTriggered = false;
       bool timeoutUserTriggered = false;
@@ -110,15 +109,13 @@ void main() {
       'timeout triggers default ndk values within expected time window',
       () async {
         const Duration myTimeout = Duration(seconds: 1);
-        NdkConfig config = NdkConfig(
+        ndk = RequestsClient(
           eventVerifier: MockEventVerifier(),
           cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
+          engine: Engine.relaySets,
           bootstrapRelays: [silentRelay.url],
           defaultQueryTimeout: myTimeout,
         );
-
-        ndk = Ndk(config);
 
         bool timeoutTriggered = false;
         bool timeoutUserTriggered = false;

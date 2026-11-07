@@ -1,7 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 import '../tools/simple_profiler.dart';
 
@@ -30,13 +33,11 @@ void main() async {
 
       final profiler = SimpleProfiler('multiple filters JIT query');
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: cacheManager,
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [relay0.url, relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: cacheManager,
+        engine: Engine.jit,
+        bootstrapRelays: [relay0.url, relay1.url],
       );
 
       final queryResponse = ndk.requests.query(
@@ -99,13 +100,11 @@ void main() async {
 
       final profiler = SimpleProfiler('multiple filters JIT sub');
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: cacheManager,
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: cacheManager,
+        engine: Engine.jit,
+        bootstrapRelays: [relay1.url],
       );
 
       final subResponse = ndk.requests.subscription(

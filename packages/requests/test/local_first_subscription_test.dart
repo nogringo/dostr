@@ -1,19 +1,22 @@
+import 'mocks/requests_client.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_event_verifier.dart';
+import 'mocks/mock_event_verifier.dart';
 
 void main() {
   group('local first subscription', () {
     late Directory tempDir;
-    late Ndk ndk;
+    late RequestsClient ndk;
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp(
@@ -182,12 +185,10 @@ void main() {
       () async {
         final relay = MockRelay(name: 'subscription-replaceable-relay');
         final remoteAuthor = Bip340.generatePrivateKey();
-        final writerNdk = Ndk(
-          NdkConfig(
-            cache: MemCacheManager(),
-            eventVerifier: MockEventVerifier(),
-            bootstrapRelays: [relay.url],
-          ),
+        final writerNdk = RequestsClient(
+          cache: MemCacheManager(),
+          eventVerifier: MockEventVerifier(),
+          bootstrapRelays: [relay.url],
         );
         addTearDown(writerNdk.destroy);
         final cachedVersion = Bip340.signEvent(
@@ -263,14 +264,14 @@ void main() {
         await cachedSeen.future.timeout(const Duration(seconds: 2));
         await Future<void>.delayed(const Duration(milliseconds: 200));
 
-        await writerNdk.broadcast
-            .broadcast(nostrEvent: newerVersion, specificRelays: [relay.url])
-            .broadcastDoneFuture;
+        await writerNdk.relayPublishes
+            .publish(newerVersion, relays: [relay.url])
+            .done;
         await newerSeen.future.timeout(const Duration(seconds: 2));
 
-        await writerNdk.broadcast
-            .broadcast(nostrEvent: staleVersion, specificRelays: [relay.url])
-            .broadcastDoneFuture;
+        await writerNdk.relayPublishes
+            .publish(staleVersion, relays: [relay.url])
+            .done;
         await Future<void>.delayed(const Duration(milliseconds: 500));
 
         expect(receivedContents, contains(jsonEncode({'name': 'version-1'})));
@@ -288,18 +289,16 @@ void main() {
   });
 }
 
-Future<Ndk> _createNdk(
+Future<RequestsClient> _createNdk(
   String databasePath, {
   List<String> bootstrapRelays = const [],
 }) async {
   final cache = await SembastCacheManager.create(databasePath: databasePath);
-  return Ndk(
-    NdkConfig(
-      cache: cache,
-      eventVerifier: MockEventVerifier(),
-      bootstrapRelays: bootstrapRelays,
-      ignoreRelays: const [],
-    ),
+  return RequestsClient(
+    cache: cache,
+    eventVerifier: MockEventVerifier(),
+    bootstrapRelays: bootstrapRelays,
+    ignoreRelays: const [],
   );
 }
 

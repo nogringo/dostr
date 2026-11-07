@@ -1,13 +1,15 @@
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk/ndk.dart';
 
 import 'package:test/test.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/nip65_events.dart';
+import '../mocks/mock_event_verifier.dart';
+import '../mocks/nip65_events.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -107,13 +109,11 @@ void main() async {
 
     test('query events from one seed relay', () async {
       await startServers();
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [relay21.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.jit,
+        bootstrapRelays: [relay21.url],
       );
       addTearDown(ndk.destroy);
 
@@ -145,13 +145,11 @@ void main() async {
           nip65s.values.map((e) => UserRelayList.fromNip65(e)).toList(),
         );
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: cacheManager,
-            engine: NdkEngine.JIT,
-            bootstrapRelays: [], // dont connect to anything
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: MockEventVerifier(),
+          cache: cacheManager,
+          engine: Engine.jit,
+          bootstrapRelays: [],
         );
 
         addTearDown(ndk.destroy);

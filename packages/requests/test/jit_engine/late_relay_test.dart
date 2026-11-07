@@ -1,10 +1,12 @@
-import 'package:ndk/entities.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/nip65_events.dart';
+import '../mocks/requests_client.dart';
+import '../mocks/mock_event_verifier.dart';
+import '../mocks/nip65_events.dart';
 
 void main() {
   test(
@@ -43,16 +45,14 @@ void main() {
         delayConnection: Duration(seconds: 2),
       );
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [fast.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.jit,
+        bootstrapRelays: [fast.url],
       );
 
-      await ndk.userRelayLists.getSingleUserRelayList(key1.publicKey);
+      await ndk.cache.saveUserRelayList(UserRelayList.fromNip65(nip65));
 
       final response = ndk.requests.query(
         filter: Filter(

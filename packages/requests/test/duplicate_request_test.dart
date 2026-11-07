@@ -1,8 +1,11 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import 'mocks/requests_client.dart';
+import 'mocks/mock_event_verifier.dart';
 
 void main() {
   test(
@@ -15,19 +18,16 @@ void main() {
 
       await relay.start();
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay.url],
-          // Short query timeout - if bug exists, duplicate will wait this long
-          defaultQueryTimeout: const Duration(seconds: 5),
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay.url],
+        defaultQueryTimeout: const Duration(seconds: 5),
       );
 
       final current = ndk.relays.getRelayConnectivity(relay.url);
       if (current?.isConnected != true) {
-        await ndk.connectivity.relayConnectivityChanges
+        await ndk.relays.relayConnectivityChanges
             .firstWhere(
               (connections) => connections.any(
                 (connection) =>

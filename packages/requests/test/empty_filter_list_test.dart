@@ -1,13 +1,16 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_event_verifier.dart';
+import 'mocks/requests_client.dart';
+import 'mocks/mock_event_verifier.dart';
 
 /// NIP-01: an empty list matches nothing, it does not stand for an absent one.
 void main() {
   late MockRelay relay;
-  late Ndk ndk;
+  late RequestsClient ndk;
 
   final nobody = Filter(kinds: [Nip01Event.kTextNoteKind], authors: []);
 
@@ -24,14 +27,12 @@ void main() {
     );
     relay = MockRelay(name: 'empty list relay');
     await relay.start(events: [note]);
-    ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [],
-      ),
+    ndk = RequestsClient(
+      eventVerifier: MockEventVerifier(),
+      cache: MemCacheManager(),
+      bootstrapRelays: [],
     );
-    await ndk.config.cache.saveEvent(note);
+    await ndk.cache.saveEvent(note);
   });
 
   tearDown(() async {

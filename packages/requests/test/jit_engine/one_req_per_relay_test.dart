@@ -1,11 +1,13 @@
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
-import '../../mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 
 /// A second REQ with the same id replaces the first on the relay (NIP-01), so
 /// whatever an engine routes to one relay has to travel in a single REQ.
@@ -38,21 +40,17 @@ void main() {
           Nip65.fromMap(a.publicKey, {relay.url: ReadWriteMarker.readWrite}),
         ),
       ]);
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: cache,
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [relay.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: cache,
+        engine: Engine.jit,
+        bootstrapRelays: [relay.url],
       );
       addTearDown(ndk.destroy);
-      final publisher = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [],
-        ),
+      final publisher = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [],
       );
       addTearDown(publisher.destroy);
 
@@ -76,9 +74,9 @@ void main() {
       }
 
       for (final key in [a, b]) {
-        await publisher.broadcast
-            .broadcast(nostrEvent: note(key), specificRelays: [relay.url])
-            .broadcastDoneFuture;
+        await publisher.relayPublishes
+            .publish(note(key), relays: [relay.url])
+            .done;
       }
 
       await both.future.timeout(
