@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:ndk/domain_layer/usecases/connectivity/connectivity.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';

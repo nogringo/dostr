@@ -1,5 +1,5 @@
 name: ndk_nip11
-description: NIP-11 relay information for NDK (Nostr Development Kit), to fetch and cache what a relay declares about itself and follow relay connectivity, without depending on ndk.
+description: NIP-11 relay information for NDK (Nostr Development Kit), to fetch what a relay declares about itself, without depending on ndk or ndk_core.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
 repository: https://github.com/relaystr/ndk
@@ -23,7 +23,6 @@ platforms:
   windows:
 
 dependencies:
-  ndk_core: ^0.11.0-dev.2
   ndk_http: ^0.1.0
   ndk_logger: ^0.1.0
 

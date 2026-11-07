@@ -1,9 +1,7 @@
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-
-import '../entities/relay_info.dart';
-import '../repositories/relay_info_repo.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 
 /// get connectivity status \
 /// & update ndk about your application connectivity for faster reconnects

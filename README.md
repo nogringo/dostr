@@ -171,7 +171,7 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 NIP-11](./packages/nip11/)
 
-`ndk_nip11`: NIP-11 relay information, to fetch and cache what a relay declares about itself and follow relay connectivity, without depending on `ndk`. NDK exposes it as `ndk.connectivity`.
+`ndk_nip11`: NIP-11 relay information, to fetch what a relay declares about itself, without depending on `ndk` or `ndk_core`. NDK caches it behind `ndk.connectivity.getRelayInfo`.
 
 ### [🔗 ObjectBox](./packages/objectbox/)
 

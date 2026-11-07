@@ -6,6 +6,7 @@ import '../shared/net/user_agent.dart';
 import 'package:ndk_http/ndk_http.dart';
 import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
+import '../domain_layer/usecases/connectivity/connectivity.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';

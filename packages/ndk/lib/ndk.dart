@@ -93,6 +93,7 @@ export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.
 export 'package:ndk_nip46/ndk_nip46.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'package:ndk_nip11/ndk_nip11.dart';
+export 'domain_layer/usecases/connectivity/connectivity.dart';
 export 'domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show

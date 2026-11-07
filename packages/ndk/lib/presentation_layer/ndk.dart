@@ -4,7 +4,7 @@ import 'package:ndk_accounts/ndk_accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
-import 'package:ndk_nip11/ndk_nip11.dart';
+import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 import 'package:ndk_follows/ndk_follows.dart';
