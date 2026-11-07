@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:ndk/domain_layer/entities/relay_info.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 
 void main() {
   group('RelayInfo', () {
@@ -15,6 +15,7 @@ void main() {
         "supported_nips": [1, 2, 3],
         "software": "relay-software",
         "version": "1.0.0",
+        "privacy_policy": "https://example.com/privacy",
         "terms_of_service": "https://example.com/tos",
         "payments_url": "https://example.com/payments",
         "limitation": {
@@ -60,6 +61,7 @@ void main() {
       expect(relayInfo.nips, equals(['1', '2', '3']));
       expect(relayInfo.software, equals("relay-software"));
       expect(relayInfo.version, equals("1.0.0"));
+      expect(relayInfo.privacyPolicy, equals("https://example.com/privacy"));
       expect(relayInfo.termsOfService, equals("https://example.com/tos"));
       expect(relayInfo.paymentsUrl, equals("https://example.com/payments"));
 

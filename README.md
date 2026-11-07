@@ -169,6 +169,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_cache`: the `CacheManager` contract that cache backends implement, the in-memory `MemCacheManager` and the records they store, with the NIP-01 visibility and eviction rules, without depending on `ndk`. NDK takes it as `NdkConfig.cache`.
 
+### [🔗 NIP-11](./packages/nip11/)
+
+`ndk_nip11`: NIP-11 relay information, to fetch and cache what a relay declares about itself and follow relay connectivity, without depending on `ndk`. NDK exposes it as `ndk.connectivity`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

@@ -21,6 +21,7 @@ workspace:
   - packages/search
   - packages/zaps
   - packages/cache
+  - packages/nip11
   - packages/isolates
   - packages/logger
   - packages/nip19

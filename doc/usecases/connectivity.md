@@ -64,3 +64,7 @@ final supportsSearch = ndk.relays.doesRelaySupportNip(url, '50');
 final info = await ndk.connectivity.getRelayInfo(relayConnectivity.url);
 final supportsSearch = info?.supportsNip('50') ?? false;
 ```
+
+## Without NDK
+
+`Connectivy` and `RelayInfo` live in the `ndk_nip11` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: give `Connectivy` a `RelayManager` from `ndk_core` and a `RelayInfoHttpRepoImpl`, see its [README](https://pub.dev/packages/ndk_nip11).

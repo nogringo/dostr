@@ -56,7 +56,8 @@ export 'package:ndk_auth/ndk_auth.dart';
 export 'package:ndk_core/domain_layer/entities/timeout_pausable.dart';
 export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 export 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-export 'domain_layer/entities/relay_info.dart';
+export 'package:ndk_nip11/ndk_nip11.dart'
+    show RelayFee, RelayFees, RelayInfo, RelayLimitation;
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'package:ndk_core/domain_layer/entities/relay_stats.dart';

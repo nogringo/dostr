@@ -943,6 +943,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip11:
+    dependency: "direct overridden"
+    description:
+      path: "../nip11"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nip17:
     dependency: "direct main"
     description:
