@@ -53,6 +53,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_search`: search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.search`.
 
+### [🔗 Zaps](./packages/zaps/)
+
+`ndk_zaps`: NIP-57 zaps, to create zap requests, fetch the invoice to pay from a lightning address and read zap receipts, without depending on `ndk`. NDK exposes it as `ndk.zaps` and `ndk.lnurl`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.

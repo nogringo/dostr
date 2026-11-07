@@ -19,6 +19,7 @@ workspace:
   - packages/metadatas
   - packages/lists
   - packages/search
+  - packages/zaps
   - packages/isolates
   - packages/logger
   - packages/nip19

@@ -1,24 +1,44 @@
 import 'dart:async';
 
-import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/request_response.dart';
+import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import '../lnurl/lnurl.dart';
-import '../requests/requests.dart';
+
 import 'invoice_response.dart';
+import 'lnurl.dart';
 import 'zap_receipt.dart';
 import 'zap_request.dart';
 
+/// The events relays hold for [filter], as they arrive. The stream ends once
+/// the relays are done or [timeout] runs out.
+typedef ZapsQuery =
+    Stream<Nip01Event> Function(Filter filter, {required Duration timeout});
+
+/// A live subscription: the [events] it receives, and [close] to end it.
+typedef ZapsSubscription = ({
+  Stream<Nip01Event> events,
+  Future<void> Function() close,
+});
+
+/// Opens a live subscription to [filter].
+typedef ZapsSubscribe = ZapsSubscription Function(Filter filter);
+
 /// Zaps
 class Zaps {
-  final Requests _requests;
+  final ZapsQuery _query;
+  final ZapsSubscribe _subscribe;
   final Lnurl _lnurl;
 
-  /// .
-  Zaps({required Requests requests, required Lnurl lnurl})
-    : _requests = requests,
-      _lnurl = lnurl;
+  /// [query] answers [fetchZappedReceipts], [subscribe]
+  /// [subscribeToZapReceipts] and [lnurl] the invoices.
+  Zaps({
+    required ZapsQuery query,
+    required ZapsSubscribe subscribe,
+    required Lnurl lnurl,
+  }) : _query = query,
+       _subscribe = subscribe,
+       _lnurl = lnurl;
 
   /// creates an invoice with an optional zap request encoded if signer, pubKey & relays are non empty
   Future<InvoiceResponse?> fetchInvoice({
@@ -92,39 +112,30 @@ class Zaps {
     String? addressableId,
     Duration? timeout,
   }) {
-    NdkResponse? response = _requests.query(
-      timeout: timeout ?? Duration(seconds: 10),
-      filters: [
-        Filter(
-          kinds: [ZapReceipt.kKind],
-          eTags: eventId != null ? [eventId] : null,
-          aTags: addressableId != null ? [addressableId] : null,
-          pTags: [pubKey],
-        ),
-      ],
+    final events = _query(
+      _receiptsFilter(pubKey, eventId, addressableId),
+      timeout: timeout ?? const Duration(seconds: 10),
     );
     // TODO how to check validity of zap receipts without nostrPubKey and recipientLnurl????
-    return response.stream.map((event) => ZapReceipt.fromEvent(event));
-    // List<Nip01Event> events = await response.future;
-    // return events.map((event) => ZapReceipt.fromEvent(event)).toList();
+    return events.map((event) => ZapReceipt.fromEvent(event));
   }
 
-  /// fetch all zap receipts matching given pubKey and optional event id, in sats
-  NdkResponse subscribeToZapReceipts({
+  /// subscribe to the zap receipt events matching given pubKey and optional
+  /// event id, until the subscription is closed
+  ZapsSubscription subscribeToZapReceipts({
     required String pubKey,
     String? eventId,
     String? addressableId,
-  }) {
-    NdkResponse? response = _requests.subscription(
-      filters: [
-        Filter(
-          kinds: [ZapReceipt.kKind],
-          eTags: eventId != null ? [eventId] : null,
-          aTags: addressableId != null ? [addressableId] : null,
-          pTags: [pubKey],
-        ),
-      ],
-    );
-    return response;
-  }
+  }) => _subscribe(_receiptsFilter(pubKey, eventId, addressableId));
+
+  static Filter _receiptsFilter(
+    String pubKey,
+    String? eventId,
+    String? addressableId,
+  ) => Filter(
+    kinds: [ZapReceipt.kKind],
+    eTags: eventId != null ? [eventId] : null,
+    aTags: addressableId != null ? [addressableId] : null,
+    pTags: [pubKey],
+  );
 }

@@ -3,8 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk/data_layer/repositories/lnurl_http_impl.dart';
-import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:test/test.dart';
 
 void main() {

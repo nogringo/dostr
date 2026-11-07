@@ -1,8 +1,8 @@
-import 'package:ndk/domain_layer/repositories/lnurl_transport.dart';
-import 'package:ndk/domain_layer/usecases/lnurl/lnurl_response.dart';
-
-import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_http/ndk_http.dart';
+import 'package:ndk_logger/ndk_logger.dart';
+
+import 'lnurl_response.dart';
+import 'lnurl_transport.dart';
 
 /// implementation of the [LnurlTransport] interface with http
 class LnurlTransportHttpImpl implements LnurlTransport {

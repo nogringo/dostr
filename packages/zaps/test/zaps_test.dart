@@ -2,18 +2,15 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk/data_layer/repositories/lnurl_http_impl.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk/domain_layer/usecases/lnurl/lnurl.dart';
-import 'package:ndk/domain_layer/usecases/zaps/zap_request.dart';
-import 'package:ndk/domain_layer/usecases/zaps/zaps.dart';
-import 'package:ndk/presentation_layer/ndk.dart';
+import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_slow_signer.dart';
+import 'mocks/fake_network.dart';
+import 'mocks/mock_slow_signer.dart';
 
 void main() {
   EventSigner eventSignerFactory({
@@ -21,8 +18,27 @@ void main() {
     required String publicKey,
   }) => Bip340EventSigner(privateKey: privateKey, publicKey: publicKey);
 
+  Zaps zapsFor(FakeRelays relays, {http.Client? client}) => Zaps(
+    query: relays.query,
+    subscribe: relays.subscribe,
+    lnurl: Lnurl(
+      transport: LnurlTransportHttpImpl(
+        NdkHttp(
+          client ?? MockClient((_) async => http.Response('not found', 404)),
+        ),
+      ),
+    ),
+  );
+
   group('Zaps', () {
     KeyPair key = Bip340.generatePrivateKey();
+    late FakeRelays relays;
+    late Zaps zaps;
+
+    setUp(() {
+      relays = FakeRelays();
+      zaps = zapsFor(relays);
+    });
 
     test('fetchInvoice returns invoice code for valid input', () async {
       final response = {
@@ -56,11 +72,7 @@ void main() {
       });
       final amount = 1000;
 
-      final ndk = Ndk.defaultConfig();
-      final transport = LnurlTransportHttpImpl(NdkHttp(client));
-      final Lnurl lnurl = Lnurl(transport: transport);
-      final zaps = Zaps(requests: ndk.requests, lnurl: lnurl);
-      // Logger.setLogLevel(Logger.logLevels.trace);
+      final zaps = zapsFor(relays, client: client);
 
       ZapRequest zapRequest = await zaps.createZapRequest(
         amountSats: amount,
@@ -84,8 +96,7 @@ void main() {
     });
 
     test('fetchInvoice returns null for invalid input', () async {
-      Ndk ndk = Ndk.defaultConfig();
-      var invoiceCode = await ndk.zaps.fetchInvoice(
+      var invoiceCode = await zaps.fetchInvoice(
         lud16Link: 'invalid',
         amountSats: 1000,
       );
@@ -98,9 +109,7 @@ void main() {
       final comment = 'comment';
       final pubKey = 'pubKey';
       final relays = ['relay1', 'relay2'];
-      Ndk ndk = Ndk.defaultConfig();
-
-      ZapRequest zapRequest = await ndk.zaps.createZapRequest(
+      ZapRequest zapRequest = await zaps.createZapRequest(
         amountSats: amount,
         eventId: eventId,
         comment: comment,
@@ -129,9 +138,7 @@ void main() {
     test(
       'zapRequest from a slow signer has a valid id and signature',
       () async {
-        Ndk ndk = Ndk.defaultConfig();
-
-        ZapRequest zapRequest = await ndk.zaps.createZapRequest(
+        ZapRequest zapRequest = await zaps.createZapRequest(
           amountSats: 1000,
           eventId: 'eventId',
           comment: 'comment',
@@ -155,10 +162,8 @@ void main() {
     );
 
     test('zapRequest throws error for negative amount', () async {
-      Ndk ndk = Ndk.defaultConfig();
-
       expect(
-        () async => await ndk.zaps.createZapRequest(
+        () async => await zaps.createZapRequest(
           amountSats: -1000,
           eventId: 'eventId',
           comment: 'comment',
@@ -174,9 +179,7 @@ void main() {
     });
 
     test('zapRequest handles empty relays list', () async {
-      Ndk ndk = Ndk.defaultConfig();
-
-      ZapRequest zapRequest = await ndk.zaps.createZapRequest(
+      ZapRequest zapRequest = await zaps.createZapRequest(
         amountSats: 1000,
         eventId: 'eventId',
         comment: 'comment',
@@ -217,6 +220,61 @@ void main() {
       expect(zapRequest.kind, ZapRequest.kZapRequestKind);
       expect(zapRequest.hasValidId, isTrue);
       expect(zapRequest.sig, isNull);
+    });
+
+    Nip01Event receipt(String recipient, String bolt11) => Nip01Event(
+      pubKey: key.publicKey,
+      kind: ZapReceipt.kKind,
+      tags: [
+        ['p', recipient],
+        ['bolt11', bolt11],
+      ],
+      content: '',
+    );
+
+    test('fetchZappedReceipts queries the receipts of an event', () async {
+      relays.events.add(receipt('recipient', 'lnbc21u1p'));
+
+      final receipts = await zaps
+          .fetchZappedReceipts(pubKey: 'recipient', eventId: 'eventId')
+          .toList();
+
+      expect(receipts.single.recipient, 'recipient');
+      expect(receipts.single.amountSats, 2100);
+      final query = relays.queries.single;
+      expect(query.filter.kinds, [ZapReceipt.kKind]);
+      expect(query.filter.pTags, ['recipient']);
+      expect(query.filter.eTags, ['eventId']);
+      expect(query.filter.aTags, isNull);
+      expect(query.timeout, const Duration(seconds: 10));
+    });
+
+    test('fetchZappedReceipts passes its timeout and addressable id', () async {
+      await zaps
+          .fetchZappedReceipts(
+            pubKey: 'recipient',
+            addressableId: '30023:pubkey:d',
+            timeout: const Duration(seconds: 3),
+          )
+          .toList();
+
+      final query = relays.queries.single;
+      expect(query.filter.aTags, ['30023:pubkey:d']);
+      expect(query.filter.eTags, isNull);
+      expect(query.timeout, const Duration(seconds: 3));
+    });
+
+    test('subscribeToZapReceipts streams receipts until closed', () async {
+      final subscription = zaps.subscribeToZapReceipts(pubKey: 'recipient');
+      final events = subscription.events.toList();
+
+      relays.push(receipt('recipient', 'lnbc1u1p'));
+      await subscription.close();
+
+      expect((await events).single.getFirstTag('p'), 'recipient');
+      expect(relays.subscriptions.single.kinds, [ZapReceipt.kKind]);
+      expect(relays.subscriptions.single.pTags, ['recipient']);
+      expect(relays.closed, 1);
     });
   });
 }

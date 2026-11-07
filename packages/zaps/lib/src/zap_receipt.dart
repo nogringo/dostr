@@ -2,7 +2,8 @@ import 'dart:convert';
 
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../lnurl/lnurl.dart';
+
+import 'lnurl.dart';
 
 class ZapReceipt {
   /// zap receipt kind

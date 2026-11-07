@@ -10,7 +10,6 @@ import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloa
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
-import '../domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
@@ -20,7 +19,7 @@ import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import 'package:ndk_search/ndk_search.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
-import '../domain_layer/usecases/zaps/zaps.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 import 'init.dart';
 import 'ndk_config.dart';
 

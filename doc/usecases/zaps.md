@@ -6,6 +6,8 @@ icon: zap
 
 [!badge text="CLI"](/guides/cli/zaps.md) — `ndk zaps invoice|zap|receipts`
 
+`Zaps`, `Lnurl` and the zap entities live in the `ndk_zaps` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Zaps` with `query`, `subscribe` and `lnurl`, see its [README](https://pub.dev/packages/ndk_zaps).
+
 ## Example
 
 Paying a zap goes through a wallet: with NWC, `Nwc.zap(...)` from the `ndk_nwc` package fetches the invoice, pays it and waits for the receipt. Without a wallet, `ndk.zaps.fetchInvoice(...)` returns the invoice to pay.

@@ -1048,6 +1048,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_zaps:
+    dependency: "direct overridden"
+    description:
+      path: "../zaps"
+      relative: true
+    source: path
+    version: "0.1.0"
   nested:
     dependency: transitive
     description:

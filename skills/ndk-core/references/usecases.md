@@ -24,7 +24,7 @@ All accessible via `ndk.<accessor>`.
 
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
-| `ndk.zaps` | `Zaps` | Zap requests, invoices and receipts (pay with `Nwc.zap`, see wallets.md) |
+| `ndk.zaps` | `Zaps` | Zap requests, invoices and receipts, from `ndk_zaps` (pay with `Nwc.zap`, see wallets.md) |
 | `ndk.search` | `Search` | NIP-50 relay search, from `ndk_search` |
 | `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay |
 | `ndk.nip77` | `Nip77` | Negentropy set reconciliation |

@@ -5,11 +5,9 @@ import 'package:http/http.dart' as http;
 import '../shared/net/user_agent.dart';
 import 'package:ndk_http/ndk_http.dart';
 import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
-import '../data_layer/repositories/lnurl_http_impl.dart';
 import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import '../domain_layer/repositories/lnurl_transport.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
@@ -28,7 +26,6 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
 import 'package:ndk_lists/ndk_lists.dart';
-import '../domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
@@ -41,7 +38,7 @@ import '../domain_layer/usecases/relay_sets_engine.dart';
 import '../domain_layer/usecases/requests/requests.dart';
 import 'package:ndk_search/ndk_search.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
-import '../domain_layer/usecases/zaps/zaps.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'ndk_config.dart';
 
@@ -305,13 +302,20 @@ class Initialization {
       nip05Repository: nip05repository,
     );
 
-    final LnurlTransport lnurlTransport = LnurlTransportHttpImpl(
-      _httpRequestDS,
+    lnurl = Lnurl(transport: LnurlTransportHttpImpl(_httpRequestDS));
+
+    zaps = Zaps(
+      query: (filter, {required timeout}) =>
+          requests.query(name: 'zaps', filter: filter, timeout: timeout).stream,
+      subscribe: (filter) {
+        final response = requests.subscription(name: 'zaps', filter: filter);
+        return (
+          events: response.stream,
+          close: () => requests.closeSubscription(response.requestId),
+        );
+      },
+      lnurl: lnurl,
     );
-
-    lnurl = Lnurl(transport: lnurlTransport);
-
-    zaps = Zaps(requests: requests, lnurl: lnurl);
 
     blossomUserServerList = BlossomUserServerList(
       requests: requests,
