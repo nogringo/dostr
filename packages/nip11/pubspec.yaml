@@ -24,7 +24,6 @@ platforms:
 
 dependencies:
   ndk_http: ^0.1.0
-  ndk_logger: ^0.1.0
 
 dev_dependencies:
   http: ^1.6.0

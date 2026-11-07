@@ -1,5 +1,3 @@
-import 'package:ndk_logger/ndk_logger.dart';
-
 import '../../domain_layer/entities/relay_info.dart';
 import '../../domain_layer/repositories/relay_info_repo.dart';
 import 'package:ndk_http/ndk_http.dart';
@@ -27,8 +25,7 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
         headers: const {'Accept': 'application/nostr+json'},
       );
       return RelayInfo.fromJson(json);
-    } catch (e) {
-      Logger.log.d(() => e);
+    } catch (_) {
       return null;
     }
   }
