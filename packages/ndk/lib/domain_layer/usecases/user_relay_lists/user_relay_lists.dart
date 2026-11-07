@@ -5,7 +5,7 @@ import '../../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../entities/nip_51_list.dart';
+import 'package:ndk_lists/ndk_lists.dart';
 import '../../entities/nip_65.dart';
 import '../../entities/read_write_marker.dart';
 import '../../entities/user_relay_list.dart';

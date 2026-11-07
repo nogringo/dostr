@@ -1,45 +1,64 @@
-import 'package:rxdart/rxdart.dart';
-
 import 'dart:convert';
 
-import '../../../shared/nips/nip01/helpers.dart';
-import '../../entities/event_cache_records.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../entities/nip_51_list.dart';
-import '../../repositories/cache_manager.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import '../broadcast/broadcast.dart';
-import '../decrypted_event_payloads/decrypted_event_payloads.dart';
-import '../requests/requests.dart';
+import 'package:rxdart/rxdart.dart';
+
+import 'nip_51_list.dart';
+import 'nip_51_list_cache.dart';
+import 'nip_51_list_plaintext_cache.dart';
+
+/// The events matching [filter], as they arrive, until [timeout] or the
+/// caller's default when it is null. [cacheRead] lets cached events answer
+/// too.
+typedef ListsQuery =
+    Stream<Nip01Event> Function(
+      Filter filter, {
+      Duration? timeout,
+      required bool cacheRead,
+    });
+
+/// Signs [event] as the logged account and publishes it to [relays], or to
+/// its author's outbox relays when [relays] is null. Completes once the
+/// relays answered.
+typedef ListsPublish =
+    Future<void> Function(Nip01Event event, {Iterable<String>? relays});
+
+int get _now => DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
+bool _isNotBlank(String? str) => str != null && str.trim().isNotEmpty;
+
+// NIP-09
+const _kDeletionKind = 5;
 
 /// Lists usecase for access to NIP-51 lists and sets.
 ///
 /// This class provides methods to manage Nostr lists and sets according to NIP-51,
 /// including creating, reading, updating, and deleting list elements and sets.
 class Lists {
-  final Requests _requests;
-  final CacheManager _cacheManager;
-  final Broadcast _broadcast;
-  final Accounts _accounts;
-  final LocalEventSignerFactory _eventSignerFactory;
-  final DecryptedEventPayloads _decryptedEventPayloads;
+  final ListsQuery _query;
+  final ListsPublish _publish;
+  final Nip51ListCache _cache;
+  final AuthAccounts _accounts;
+  final Nip51ListPlaintextCache? _plaintextCache;
 
-  /// Creates a Lists usecase instance.
+  /// [query] loads lists and sets from relays, [publish] sends the changed
+  /// ones, and [cache] keeps both. Changes are made to the lists of the
+  /// logged account of [accounts]. [plaintextCache] keeps the decrypted
+  /// private elements, they are decrypted on every read without it.
   Lists({
-    required Requests requests,
-    required CacheManager cacheManager,
-    required Broadcast broadcast,
-    required Accounts accounts,
-    required LocalEventSignerFactory eventSignerFactory,
-    required DecryptedEventPayloads decryptedEventPayloads,
-  }) : _cacheManager = cacheManager,
-       _requests = requests,
-       _broadcast = broadcast,
+    required ListsQuery query,
+    required ListsPublish publish,
+    required Nip51ListCache cache,
+    required AuthAccounts accounts,
+    Nip51ListPlaintextCache? plaintextCache,
+  }) : _query = query,
+       _publish = publish,
+       _cache = cache,
        _accounts = accounts,
-       _eventSignerFactory = eventSignerFactory,
-       _decryptedEventPayloads = decryptedEventPayloads;
+       _plaintextCache = plaintextCache;
 
   EventSigner? get _eventSigner {
     return _accounts.getLoggedAccount()?.signer;
@@ -49,21 +68,19 @@ class Lists {
     required Nip01Event event,
     required EventSigner signer,
   }) async {
-    final isNip04 = event.content.contains('?iv=');
-    return _decryptedEventPayloads.loadOrDecrypt(
+    Future<String?> decrypt() => event.content.contains('?iv=')
+        // ignore: deprecated_member_use
+        ? signer.decrypt(event.content, signer.getPublicKey())
+        : signer.decryptNip44(
+            ciphertext: event.content,
+            senderPubKey: signer.getPublicKey(),
+          );
+    final plaintextCache = _plaintextCache;
+    if (plaintextCache == null) return decrypt();
+    return plaintextCache.loadOrDecrypt(
       event: event,
       viewerPubKey: signer.getPublicKey(),
-      scheme: isNip04
-          ? DecryptedPayloadScheme.nip04
-          : DecryptedPayloadScheme.nip44,
-      decrypt: () => isNip04
-          // ignore: deprecated_member_use_from_same_package
-          // ignore: deprecated_member_use
-          ? signer.decrypt(event.content, signer.getPublicKey())
-          : signer.decryptNip44(
-              ciphertext: event.content,
-              senderPubKey: signer.getPublicKey(),
-            ),
+      decrypt: decrypt,
     );
   }
 
@@ -72,7 +89,7 @@ class Lists {
     required EventSigner signer,
     required Nip51List list,
   }) async {
-    if (!Helpers.isNotBlank(event.content) || !signer.canSign()) {
+    if (!_isNotBlank(event.content) || !signer.canSign()) {
       return;
     }
 
@@ -109,9 +126,13 @@ class Lists {
 
   ///* lists *///
 
-  Future<Nip51List?> _getCachedNip51List(int kind, EventSigner signer) async {
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
-      pubKeys: [signer.getPublicKey()],
+  Future<Nip51List?> _getCachedNip51List(
+    int kind,
+    String pubKey,
+    EventSigner? signer,
+  ) async {
+    List<Nip01Event>? events = await _cache.loadEvents(
+      pubKeys: [pubKey],
       kinds: [kind],
     );
     events.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -140,19 +161,15 @@ class Lists {
     }
     final signer = _eventSigner!;
     Nip51List? list = !forceRefresh
-        ? await _getCachedNip51List(kind, signer)
+        ? await _getCachedNip51List(kind, signer.getPublicKey(), signer)
         : null;
     if (list == null) {
       Nip51List? refreshedList;
-      await for (final event
-          in _requests
-              .query(
-                filters: [
-                  Filter(authors: [signer.getPublicKey()], kinds: [kind]),
-                ],
-                timeout: timeout,
-              )
-              .stream) {
+      await for (final event in _query(
+        Filter(authors: [signer.getPublicKey()], kinds: [kind]),
+        timeout: timeout,
+        cacheRead: true,
+      )) {
         if (refreshedList == null ||
             refreshedList.createdAt <= event.createdAt) {
           refreshedList = await _parseListEvent(event, signer);
@@ -160,7 +177,7 @@ class Lists {
           //   Nip51List? decryptedList = await Nip51List.fromEvent(event, signer);
           //   refreshedList = decryptedList;
           // }
-          await _cacheManager.saveEvent(event);
+          await _cache.saveEvent(event);
         }
       }
       return refreshedList;
@@ -186,32 +203,24 @@ class Lists {
     bool forceRefresh = false,
     Duration timeout = const Duration(seconds: 5),
   }) async {
-    final signer = _eventSignerFactory.create(
-      privateKey: null,
-      publicKey: publicKey,
-    );
-
     Nip51List? list = !forceRefresh
-        ? await _getCachedNip51List(kind, signer)
+        ? await _getCachedNip51List(kind, publicKey, null)
         : null;
 
     if (list != null) return list;
 
-    final events = await _requests
-        .query(
-          filters: [
-            Filter(authors: [publicKey], kinds: [kind], limit: 1),
-          ],
-          timeout: timeout,
-        )
-        .future;
+    final events = await _query(
+      Filter(authors: [publicKey], kinds: [kind], limit: 1),
+      timeout: timeout,
+      cacheRead: true,
+    ).toList();
 
     if (events.isEmpty) return null;
 
     events.sort((a, b) => a.createdAt.compareTo(b.createdAt));
 
-    await _cacheManager.saveEvent(events.last);
-    return await _parseListEvent(events.last, signer);
+    await _cache.saveEvent(events.last);
+    return await _parseListEvent(events.last, null);
   }
 
   /// Adds an element to a NIP-51 list.
@@ -243,28 +252,23 @@ class Lists {
     list ??= Nip51List(
       kind: kind,
       pubKey: _eventSigner!.getPublicKey(),
-      createdAt: Helpers.now,
+      createdAt: _now,
       elements: [],
     );
     list.addElement(tag, value, private);
-    list.createdAt = Helpers.now;
+    list.createdAt = _now;
     Nip01Event event = await list.toEvent(_eventSigner);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: broadcastRelays,
-      customSigner: _eventSigner,
-    );
-    await broadcastResponse.broadcastDoneFuture;
+    await _publish(event, relays: broadcastRelays);
 
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [kind],
     );
     for (var event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
     return list;
   }
 
@@ -296,30 +300,25 @@ class Lists {
       list = Nip51List(
         kind: kind,
         pubKey: _eventSigner!.getPublicKey(),
-        createdAt: Helpers.now,
+        createdAt: _now,
         elements: [],
       );
     }
     if (list.elements.isNotEmpty) {
       list.removeElement(tag, value);
-      list.createdAt = Helpers.now;
+      list.createdAt = _now;
       Nip01Event event = await list.toEvent(_eventSigner);
 
-      final broadcastResponse = _broadcast.broadcast(
-        nostrEvent: event,
-        specificRelays: broadcastRelays,
-        customSigner: _eventSigner,
-      );
-      await broadcastResponse.broadcastDoneFuture;
+      await _publish(event, relays: broadcastRelays);
 
-      List<Nip01Event>? events = await _cacheManager.loadEvents(
+      List<Nip01Event>? events = await _cache.loadEvents(
         pubKeys: [_eventSigner!.getPublicKey()],
         kinds: [kind],
       );
       for (var event in events) {
-        _cacheManager.removeEvent(event.id);
+        _cache.removeEvent(event.id);
       }
-      await _cacheManager.saveEvent(event);
+      await _cache.saveEvent(event);
     }
     return list;
   }
@@ -332,7 +331,7 @@ class Lists {
     EventSigner signer,
     int kind,
   ) async {
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [signer.getPublicKey()],
       kinds: [kind],
     );
@@ -351,19 +350,16 @@ class Lists {
   /// get a nip51 set
   Stream<Iterable<Nip51Set>?> _getSets(
     int kind,
-    EventSigner signer, {
+    String pubKey,
+    EventSigner? signer, {
     bool forceRefresh = false,
   }) {
     final relaySets = <String, Nip51Set>{};
 
-    return _requests
-        .query(
-          filters: [
-            Filter(authors: [signer.getPublicKey()], kinds: [kind]),
-          ],
+    return _query(
+          Filter(authors: [pubKey], kinds: [kind]),
           cacheRead: !forceRefresh,
         )
-        .stream
         .where((event) => event.dTag != null)
         .asyncMap((event) async {
           final dtag = event.dTag!;
@@ -372,7 +368,7 @@ class Lists {
           if (existingSet == null || existingSet.createdAt < event.createdAt) {
             final newSet = await _parseSetEvent(event, signer);
             if (newSet != null) {
-              await _cacheManager.saveEvent(event);
+              await _cache.saveEvent(event);
               relaySets[newSet.name] = newSet;
               return relaySets.values;
             }
@@ -411,30 +407,25 @@ class Lists {
     Nip51Set? relaySet = await _getCachedSetByName(name, signer, kind);
     if (relaySet == null || forceRefresh) {
       Nip51Set? newRelaySet;
-      await for (final event
-          in _requests
-              .query(
-                filters: [
-                  Filter(
-                    authors: [signer.getPublicKey()],
-                    kinds: [kind],
-                    tags: {
-                      "#d": [name],
-                    },
-                  ),
-                ],
-                cacheRead: !forceRefresh,
-              )
-              .stream) {
+      await for (final event in _query(
+        Filter(
+          authors: [signer.getPublicKey()],
+          kinds: [kind],
+          tags: {
+            "#d": [name],
+          },
+        ),
+        cacheRead: !forceRefresh,
+      )) {
         if (newRelaySet == null || newRelaySet.createdAt < event.createdAt) {
           if (event.dTag != null && event.dTag == name) {
             newRelaySet = await _parseSetEvent(event, signer);
-            await _cacheManager.saveEvent(event);
-          } else if (Helpers.isNotBlank(event.content)) {
+            await _cache.saveEvent(event);
+          } else if (_isNotBlank(event.content)) {
             Nip51Set? decryptedRelaySet = await _parseSetEvent(event, signer);
             if (decryptedRelaySet != null && decryptedRelaySet.name == name) {
               newRelaySet = decryptedRelaySet;
-              await _cacheManager.saveEvent(event);
+              await _cache.saveEvent(event);
             }
           }
         }
@@ -459,20 +450,20 @@ class Lists {
     String? publicKey,
     bool forceRefresh = false,
   }) {
-    final EventSigner mySigner;
     if (publicKey == null) {
-      if (_eventSigner == null) {
+      final signer = _eventSigner;
+      if (signer == null) {
         throw Exception("getPublicSets() no account");
       }
-      mySigner = _eventSigner!;
-    } else {
-      mySigner = _eventSignerFactory.create(
-        privateKey: null,
-        publicKey: publicKey,
+      return _getSets(
+        kind,
+        signer.getPublicKey(),
+        signer,
+        forceRefresh: forceRefresh,
       );
     }
 
-    return _getSets(kind, mySigner, forceRefresh: forceRefresh);
+    return _getSets(kind, publicKey, null, forceRefresh: forceRefresh);
   }
 
   /// Adds an element to a NIP-51 set.
@@ -505,21 +496,16 @@ class Lists {
       name: name,
       pubKey: _eventSigner!.getPublicKey(),
       kind: Nip51List.kRelaySet,
-      createdAt: Helpers.now,
+      createdAt: _now,
       elements: [],
     );
     set.addElement(tag, value, private);
-    set.createdAt = Helpers.now;
+    set.createdAt = _now;
     Nip01Event event = await set.toEvent(_eventSigner);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: specificRelays,
-      customSigner: _eventSigner,
-    );
-    await broadcastResponse.broadcastDoneFuture;
+    await _publish(event, relays: specificRelays);
 
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [kind],
     );
@@ -530,10 +516,10 @@ class Lists {
       return false;
     }).toList();
     for (final event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
 
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
     return set;
   }
 
@@ -574,23 +560,18 @@ class Lists {
         name: name,
         kind: Nip51List.kRelaySet,
         pubKey: _eventSigner!.getPublicKey(),
-        createdAt: Helpers.now,
+        createdAt: _now,
         elements: [],
       );
     }
 
     mySet.removeElement(tag, value);
-    mySet.createdAt = Helpers.now;
+    mySet.createdAt = _now;
     Nip01Event event = await mySet.toEvent(_eventSigner);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: specificRelays,
-      customSigner: _eventSigner,
-    );
-    await broadcastResponse.broadcastDoneFuture;
+    await _publish(event, relays: specificRelays);
 
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [Nip51List.kRelaySet],
     );
@@ -601,9 +582,9 @@ class Lists {
       return false;
     }).toList();
     for (var event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
 
     return mySet;
   }
@@ -625,15 +606,10 @@ class Lists {
   }) async {
     Nip01Event event = await set.toEvent(_eventSigner);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: specificRelays,
-      customSigner: _eventSigner,
-    );
-    await broadcastResponse.broadcastDoneFuture;
+    await _publish(event, relays: specificRelays);
 
     /// update cache, remove old set and set the new one
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [kind],
     );
@@ -644,10 +620,10 @@ class Lists {
       return false;
     }).toList();
     for (final event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
 
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
     return set;
   }
 
@@ -673,7 +649,7 @@ class Lists {
     }
 
     /// remove all from cache
-    List<Nip01Event>? eventsInCache = await _cacheManager.loadEvents(
+    List<Nip01Event>? eventsInCache = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [kind],
     );
@@ -686,14 +662,24 @@ class Lists {
 
     Nip51Set? set = await getSetByName(name: name, kind: kind);
     if (set != null) {
-      final broadcastResponse = _broadcast.broadcastDeletion(
-        eventId: set.id,
-        customSigner: _eventSigner,
+      final id = set.id;
+      if (id == null) {
+        throw ArgumentError("cannot delete a set that has no event id");
+      }
+      final deletion = Nip01Event(
+        pubKey: _eventSigner!.getPublicKey(),
+        kind: _kDeletionKind,
+        tags: [
+          ["e", id],
+        ],
+        content: "delete",
+        createdAt: _now,
       );
-      await broadcastResponse.broadcastDoneFuture;
+      await _cache.removeEvent(id);
+      await _publish(deletion);
 
       for (final event in eventsInCache) {
-        await _cacheManager.removeEvent(event.id);
+        await _cache.removeEvent(event.id);
       }
     }
   }
@@ -715,19 +701,28 @@ class Lists {
     int kind,
     EventSigner signer, {
     bool forceRefresh = false,
+  }) {
+    return _loadNip51RelaySets(
+      kind,
+      signer.getPublicKey(),
+      signer,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<List<Nip51Set>?> _loadNip51RelaySets(
+    int kind,
+    String pubKey,
+    EventSigner? signer, {
+    bool forceRefresh = false,
   }) async {
     // Nip51Set? relaySet;//  await getCachedNip51RelaySet(signer);
     // if (relaySet == null || forceRefresh) {
     Map<String, Nip51Set> newRelaySets = {};
-    await for (final event
-        in _requests
-            .query(
-              filters: [
-                Filter(authors: [signer.getPublicKey()], kinds: [kind]),
-              ],
-              cacheRead: !forceRefresh,
-            )
-            .stream) {
+    await for (final event in _query(
+      Filter(authors: [pubKey], kinds: [kind]),
+      cacheRead: !forceRefresh,
+    )) {
       if (event.dTag != null) {
         Nip51Set? newRelaySet = newRelaySets[event.dTag];
         if (newRelaySet == null || newRelaySet.createdAt < event.createdAt) {
@@ -735,7 +730,7 @@ class Lists {
             newRelaySet = await _parseSetEvent(event, signer);
           }
           if (newRelaySet != null) {
-            await _cacheManager.saveEvent(event);
+            await _cache.saveEvent(event);
             newRelaySets[newRelaySet.name] = newRelaySet;
           }
         }
@@ -753,11 +748,12 @@ class Lists {
     required String publicKey,
     bool forceRefresh = false,
   }) async {
-    final mySigner = _eventSignerFactory.create(
-      privateKey: null,
-      publicKey: publicKey,
+    return _loadNip51RelaySets(
+      kind,
+      publicKey,
+      null,
+      forceRefresh: forceRefresh,
     );
-    return getNip51RelaySets(kind, mySigner, forceRefresh: forceRefresh);
   }
 
   /// Use [addElementToSet] instead.
@@ -773,22 +769,17 @@ class Lists {
       name: name,
       pubKey: _eventSigner!.getPublicKey(),
       kind: Nip51List.kRelaySet,
-      createdAt: Helpers.now,
+      createdAt: _now,
       elements: [],
     );
     list.addRelay(relayUrl, private);
-    list.createdAt = Helpers.now;
+    list.createdAt = _now;
     Nip01Event event = await list.toEvent(_eventSigner);
     //print(event);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: broadcastRelays,
-      customSigner: _eventSigner,
-    );
-    await broadcastResponse.broadcastDoneFuture;
+    await _publish(event, relays: broadcastRelays);
 
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [Nip51List.kRelaySet],
     );
@@ -799,10 +790,10 @@ class Lists {
       return false;
     }).toList();
     for (var event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
 
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
     return list;
   }
 
@@ -828,24 +819,19 @@ class Lists {
         name: name,
         kind: Nip51List.kRelaySet,
         pubKey: _eventSigner!.getPublicKey(),
-        createdAt: Helpers.now,
+        createdAt: _now,
         elements: [],
       );
       relaySet.privateRelays = defaultRelaysIfEmpty;
     }
     if (relaySet != null) {
       relaySet.removeRelay(relayUrl);
-      relaySet.createdAt = Helpers.now;
+      relaySet.createdAt = _now;
       Nip01Event event = await relaySet.toEvent(_eventSigner);
 
-      final broadcastResponse = _broadcast.broadcast(
-        nostrEvent: event,
-        specificRelays: broadcastRelays,
-        customSigner: _eventSigner,
-      );
-      await broadcastResponse.broadcastDoneFuture;
+      await _publish(event, relays: broadcastRelays);
 
-      List<Nip01Event>? events = await _cacheManager.loadEvents(
+      List<Nip01Event>? events = await _cache.loadEvents(
         pubKeys: [_eventSigner!.getPublicKey()],
         kinds: [Nip51List.kRelaySet],
       );
@@ -856,9 +842,9 @@ class Lists {
         return false;
       }).toList();
       for (var event in events) {
-        _cacheManager.removeEvent(event.id);
+        _cache.removeEvent(event.id);
       }
-      await _cacheManager.saveEvent(event);
+      await _cache.saveEvent(event);
     }
     return relaySet;
   }
@@ -880,29 +866,23 @@ class Lists {
     list ??= Nip51List(
       kind: kind,
       pubKey: _eventSigner!.getPublicKey(),
-      createdAt: Helpers.now,
+      createdAt: _now,
       elements: [],
     );
     list.addRelay(relayUrl, private);
-    list.createdAt = Helpers.now;
+    list.createdAt = _now;
     Nip01Event event = await list.toEvent(_eventSigner);
 
-    final broadcastResponse = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: broadcastRelays,
-      customSigner: _eventSigner,
-    );
+    await _publish(event, relays: broadcastRelays);
 
-    await broadcastResponse.broadcastDoneFuture;
-
-    List<Nip01Event>? events = await _cacheManager.loadEvents(
+    List<Nip01Event>? events = await _cache.loadEvents(
       pubKeys: [_eventSigner!.getPublicKey()],
       kinds: [kind],
     );
     for (var event in events) {
-      _cacheManager.removeEvent(event.id);
+      _cache.removeEvent(event.id);
     }
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
     return list;
   }
 
@@ -926,32 +906,26 @@ class Lists {
       list = Nip51List(
         kind: kind,
         pubKey: _eventSigner!.getPublicKey(),
-        createdAt: Helpers.now,
+        createdAt: _now,
         elements: [],
       );
       list.privateRelays = defaultRelaysIfEmpty;
     }
     if (list != null && list.allRelays.isNotEmpty) {
       list.removeRelay(relayUrl);
-      list.createdAt = Helpers.now;
+      list.createdAt = _now;
       Nip01Event event = await list.toEvent(_eventSigner);
 
-      final broadcastResponse = _broadcast.broadcast(
-        nostrEvent: event,
-        specificRelays: broadcastRelays,
-        customSigner: _eventSigner,
-      );
+      await _publish(event, relays: broadcastRelays);
 
-      await broadcastResponse.broadcastDoneFuture;
-
-      List<Nip01Event>? events = await _cacheManager.loadEvents(
+      List<Nip01Event>? events = await _cache.loadEvents(
         pubKeys: [_eventSigner!.getPublicKey()],
         kinds: [kind],
       );
       for (var event in events) {
-        _cacheManager.removeEvent(event.id);
+        _cache.removeEvent(event.id);
       }
-      await _cacheManager.saveEvent(event);
+      await _cache.saveEvent(event);
     }
     return list;
   }

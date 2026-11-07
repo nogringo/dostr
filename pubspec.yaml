@@ -17,6 +17,7 @@ workspace:
   - packages/accounts
   - packages/follows
   - packages/metadatas
+  - packages/lists
   - packages/isolates
   - packages/logger
   - packages/nip19

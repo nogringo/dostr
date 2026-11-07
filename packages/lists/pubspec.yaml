@@ -1,0 +1,36 @@
+name: ndk_lists
+description: The NIP-51 lists and sets of NDK (Nostr Development Kit), to load them and add or remove public and private elements as the logged account, without depending on ndk.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  ndk_auth: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_logger: ^0.1.0
+  ndk_nip01: ^0.1.0
+  ndk_signer: ^0.1.0
+  rxdart: ^0.28.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk_accounts: ^0.1.0
+  ndk_bip340: ^0.1.0
+  test: any

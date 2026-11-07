@@ -34,7 +34,8 @@ export 'package:ndk_nip05/ndk_nip05.dart'
         Nip05ResolveError,
         Nip05ResolveNetworkError,
         Nip05ResolveInvalidResponse;
-export 'domain_layer/entities/nip_51_list.dart';
+export 'package:ndk_lists/ndk_lists.dart'
+    show Nip51List, Nip51ListElement, Nip51Set;
 export 'domain_layer/entities/nip_65.dart';
 export 'domain_layer/entities/pubkey_mapping.dart';
 export 'domain_layer/entities/read_write.dart';

@@ -58,6 +58,7 @@ on:
           - ndk_accounts
           - ndk_follows
           - ndk_metadatas
+          - ndk_lists
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

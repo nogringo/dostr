@@ -21,12 +21,13 @@ import '../domain_layer/usecases/cache_read/cache_read.dart';
 import '../domain_layer/usecases/connectivity/connectivity.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_gift_wrap_cache.dart';
+import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_nip51_list_cache.dart';
 import '../domain_layer/usecases/engines/network_engine.dart';
 import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
-import '../domain_layer/usecases/lists/lists.dart';
+import 'package:ndk_lists/ndk_lists.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
@@ -276,12 +277,20 @@ class Initialization {
     );
 
     lists = Lists(
-      requests: requests,
-      cacheManager: _ndkConfig.cache,
-      broadcast: broadcast,
+      query: (filter, {timeout, required cacheRead}) => requests
+          .query(
+            name: 'lists',
+            filter: filter,
+            timeout: timeout,
+            cacheRead: cacheRead,
+          )
+          .stream,
+      publish: (event, {relays}) => broadcast
+          .broadcast(nostrEvent: event, specificRelays: relays)
+          .broadcastDoneFuture,
+      cache: _ndkConfig.cache,
       accounts: accounts,
-      eventSignerFactory: _ndkConfig.eventSignerFactory,
-      decryptedEventPayloads: decryptedEventPayloads,
+      plaintextCache: DecryptedPayloadsNip51ListCache(decryptedEventPayloads),
     );
 
     relaySets = RelaySets(

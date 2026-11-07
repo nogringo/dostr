@@ -1,11 +1,12 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
-import 'package:ndk/domain_layer/entities/nip_51_list.dart';
 import 'package:test/test.dart';
 
 void main() {
+  int now() => DateTime.now().millisecondsSinceEpoch ~/ 1000;
+
   EventSigner eventSignerFactory({
     String? privateKey,
     required String publicKey,
@@ -49,7 +50,7 @@ void main() {
         pubKey: key1.publicKey,
         kind: Nip51List.kRelaySet,
         name: "test",
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       relaySet.privateRelays = ['wss://example.com', 'wss://example.org'];
@@ -70,7 +71,7 @@ void main() {
         pubKey: key1.publicKey,
         kind: Nip51List.kRelaySet,
         name: "test",
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       relaySet.addRelay('wss://example.com', false);
@@ -94,7 +95,7 @@ void main() {
         title: "My Set Title",
         description: "This is a description",
         image: "https://example.com/image.png",
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       relaySet.addRelay('wss://example.com', false);
@@ -144,7 +145,7 @@ void main() {
       Nip51List relayList = Nip51List(
         pubKey: key1.publicKey,
         kind: Nip51List.kSearchRelays,
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       relayList.privateRelays = ['wss://example.com', 'wss://example.org'];
@@ -158,7 +159,7 @@ void main() {
       final relayList = Nip51List(
         pubKey: 'pubkeyUser1',
         kind: Nip51List.kSearchRelays,
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       relayList.publicRelays = ['wss://public.example'];
@@ -181,7 +182,7 @@ void main() {
         image: "https://example.com/image.png",
         pubKey: 'pubkeyUser1',
         kind: Nip51List.kRelaySet,
-        createdAt: Helpers.now,
+        createdAt: now(),
         elements: [],
       );
       expect(nip51Set.title, "My Set Title");

@@ -11,7 +11,7 @@ import '../domain_layer/usecases/fetched_ranges/fetched_ranges.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
-import '../domain_layer/usecases/lists/lists.dart';
+import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';

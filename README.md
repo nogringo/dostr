@@ -45,6 +45,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_metadatas`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, without depending on `ndk`. NDK exposes it as `ndk.metadata`.
 
+### [🔗 Lists](./packages/lists/)
+
+`ndk_lists`: NIP-51 lists and sets, to load them and add or remove public and private elements as the logged account, without depending on `ndk`. NDK exposes it as `ndk.lists`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.

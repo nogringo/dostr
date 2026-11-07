@@ -6,6 +6,7 @@ import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../entities/filter_fetched_ranges.dart';
 import '../entities/hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import '../entities/relay_set.dart';
@@ -24,6 +25,7 @@ import '../entities/user_relay_list.dart';
 /// - NIP-05 records, the [Nip05Cache] of `ndk_nip05`
 /// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - metadata, the [MetadataCache] of `ndk_metadatas`
+/// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a
@@ -35,7 +37,12 @@ import '../entities/user_relay_list.dart';
 /// - provenance and delivery targets are separate concerns
 /// - an empty list in a read or a removal matches nothing, see [matchesNothing]
 abstract class CacheManager
-    implements DeliveryStore, Nip05Cache, ContactListCache, MetadataCache {
+    implements
+        DeliveryStore,
+        Nip05Cache,
+        ContactListCache,
+        MetadataCache,
+        Nip51ListCache {
   /// Whether a read or a removal with these lists can match no event: NIP-01
   /// says an empty list matches nothing, it does not stand for an absent one.
   static bool matchesNothing({

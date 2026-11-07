@@ -14,7 +14,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.follows` | `Follows` | Contact lists (NIP-02), from `ndk_follows` |
 | `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0), from `ndk_metadatas` |
 | `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists |
-| `ndk.lists` | `Lists` | NIP-51 generic lists |
+| `ndk.lists` | `Lists` | NIP-51 generic lists, from `ndk_lists` |
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model |
 | `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch, from `ndk_nip05` |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |

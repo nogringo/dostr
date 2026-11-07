@@ -894,6 +894,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_lists:
+    dependency: "direct overridden"
+    description:
+      path: "../lists"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_logger:
     dependency: "direct overridden"
     description:

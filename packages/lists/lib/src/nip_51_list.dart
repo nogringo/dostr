@@ -2,9 +2,10 @@ import 'dart:convert';
 
 import 'package:ndk_core/shared/helpers/list_casting.dart';
 import 'package:ndk_logger/ndk_logger.dart';
-import '../../shared/nips/nip01/helpers.dart';
-import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
+
+bool _isNotBlank(String? str) => str != null && str.trim().isNotEmpty;
 
 class Nip51List {
   static const int kMute = 10000;
@@ -167,14 +168,11 @@ class Nip51List {
 
     list.parseTags(event.tags, private: false);
 
-    if (Helpers.isNotBlank(event.content) &&
-        signer != null &&
-        signer.canSign()) {
+    if (_isNotBlank(event.content) && signer != null && signer.canSign()) {
       try {
         // backward compatibility: Check if content uses NIP-04 format (contains ?iv=)
         final isNip04 = event.content.contains('?iv=');
         final json = isNip04
-            // ignore: deprecated_member_use_from_same_package
             // ignore: deprecated_member_use
             ? await signer.decrypt(event.content, signer.getPublicKey())
             : await signer.decryptNip44(
@@ -314,14 +312,11 @@ class Nip51Set extends Nip51List {
     set.parseTags(event.tags, private: false);
     set.parseSetTags(event.tags);
 
-    if (Helpers.isNotBlank(event.content) &&
-        signer != null &&
-        signer.canSign()) {
+    if (_isNotBlank(event.content) && signer != null && signer.canSign()) {
       try {
         // backward compatibility: Check if content uses NIP-04 format (contains ?iv=)
         final isNip04 = event.content.contains('?iv=');
         final json = isNip04
-            // ignore: deprecated_member_use_from_same_package
             // ignore: deprecated_member_use
             ? await signer.decrypt(event.content, signer.getPublicKey())
             : await signer.decryptNip44(
@@ -343,13 +338,13 @@ class Nip51Set extends Nip51List {
     List<dynamic> tags = [
       ["d", name],
     ];
-    if (Helpers.isNotBlank(description)) {
+    if (_isNotBlank(description)) {
       tags.add(["description", description]);
     }
-    if (Helpers.isNotBlank(image)) {
+    if (_isNotBlank(image)) {
       tags.add(["image", image]);
     }
-    if (Helpers.isNotBlank(title)) {
+    if (_isNotBlank(title)) {
       tags.add(["title", title]);
     }
 
