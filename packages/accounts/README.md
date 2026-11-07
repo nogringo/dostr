@@ -40,7 +40,15 @@ accounts.switchAccount(pubkey: key.publicKey);
 final signed = await accounts.sign(event);
 ```
 
-The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`, and `loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` build one from the `Bunkers` of [`ndk_nip46`](https://pub.dev/packages/ndk_nip46).
+The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`ndk_nip46`](https://pub.dev/packages/ndk_nip46):
+
+```dart
+final signer = bunkers.createSigner(connection);
+await signer.getPublicKeyAsync();
+accounts.loginExternalSigner(signer: signer);
+```
+
+With `ndk`, `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` do it for you.
 
 `accountsStream` emits the known accounts on subscription, then an unmodifiable snapshot every time one is added or removed. `authStateChanges` emits the logged account, or null, every time it changes.
 

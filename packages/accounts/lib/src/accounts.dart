@@ -5,7 +5,6 @@ import 'package:rxdart/rxdart.dart';
 
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 
 /// A usecase that handles accounts
@@ -88,56 +87,6 @@ class Accounts implements AuthAccounts {
     );
     _loggedPubkey = pubkey;
     _notifyAuthStateChange();
-  }
-
-  Future<BunkerConnection?> loginWithBunkerUrl({
-    required String bunkerUrl,
-    required Bunkers bunkers,
-    Function(String)? authCallback,
-    Nip46ClientMetadata? clientMetadata,
-  }) async {
-    BunkerConnection? connection = await bunkers.connectWithBunkerUrl(
-      bunkerUrl,
-      authCallback: authCallback,
-      clientMetadata: clientMetadata,
-    );
-    if (connection != null) {
-      await loginWithBunkerConnection(
-        connection: connection,
-        bunkers: bunkers,
-        authCallback: authCallback,
-      );
-    }
-    return connection;
-  }
-
-  Future<BunkerConnection?> loginWithNostrConnect({
-    required NostrConnect nostrConnect,
-    required Bunkers bunkers,
-    Function(String)? authCallback,
-  }) async {
-    BunkerConnection? connection = await bunkers.connectWithNostrConnect(
-      nostrConnect,
-      authCallback: authCallback,
-    );
-    if (connection != null) {
-      await loginWithBunkerConnection(
-        connection: connection,
-        bunkers: bunkers,
-        authCallback: authCallback,
-      );
-    }
-    return connection;
-  }
-
-  Future<void> loginWithBunkerConnection({
-    required BunkerConnection connection,
-    required Bunkers bunkers,
-    Function(String)? authCallback,
-  }) async {
-    final signer = bunkers.createSigner(connection, authCallback: authCallback);
-    await signer.getPublicKeyAsync();
-    loginExternalSigner(signer: signer);
   }
 
   void logout() {

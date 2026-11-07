@@ -111,6 +111,7 @@ export 'package:ndk_blossom/ndk_blossom.dart'
 export 'package:ndk_search/ndk_search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
+export 'presentation_layer/bunker_login.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'package:ndk_nip11/ndk_nip11.dart';
 export 'presentation_layer/connectivity.dart';

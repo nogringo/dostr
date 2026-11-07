@@ -25,7 +25,6 @@ platforms:
 dependencies:
   ndk_auth: ^0.1.0
   ndk_nip01: ^0.1.0
-  ndk_nip46: ^0.1.0
   ndk_signer: ^0.1.0
   rxdart: ^0.28.0
 
