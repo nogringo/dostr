@@ -39,7 +39,7 @@ import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/relay_sets_engine.dart';
 import '../domain_layer/usecases/requests/requests.dart';
-import '../domain_layer/usecases/search/search.dart';
+import 'package:ndk_search/ndk_search.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'package:ndk_logger/ndk_logger.dart';
@@ -319,7 +319,10 @@ class Initialization {
       accounts: accounts,
     );
 
-    search = Search(cacheManager: _ndkConfig.cache, requests: requests);
+    search = Search(
+      query: (filter) => requests.query(name: 'search', filter: filter).stream,
+      cache: _ndkConfig.cache,
+    );
 
     fetchedRanges = FetchedRanges(cacheManager: _ndkConfig.cache);
 

@@ -49,6 +49,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_lists`: NIP-51 lists and sets, to load them and add or remove public and private elements as the logged account, without depending on `ndk`. NDK exposes it as `ndk.lists`.
 
+### [🔗 Search](./packages/search/)
+
+`ndk_search`: search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.search`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.

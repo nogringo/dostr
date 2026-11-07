@@ -1020,6 +1020,13 @@ packages:
       relative: true
     source: path
     version: "0.6.0"
+  ndk_search:
+    dependency: "direct overridden"
+    description:
+      path: "../search"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_signer:
     dependency: "direct overridden"
     description:

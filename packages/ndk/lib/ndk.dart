@@ -79,7 +79,7 @@ export 'domain_layer/usecases/lnurl/lnurl.dart';
 export 'domain_layer/usecases/lnurl/lnurl_response.dart';
 export 'package:ndk_accounts/ndk_accounts.dart';
 export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
-export 'domain_layer/usecases/search/search.dart';
+export 'package:ndk_search/ndk_search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'domain_layer/usecases/cache_eviction/cache_eviction_scheduler.dart';

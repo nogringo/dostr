@@ -1,21 +1,26 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../repositories/cache_manager.dart';
-import '../requests/requests.dart';
+
+import 'search_cache.dart';
+
+/// The events relays hold for [filter], as they arrive. The stream ends once
+/// the relays are done or the caller's timeout runs out.
+typedef SearchQuery = Stream<Nip01Event> Function(Filter filter);
 
 class Search {
-  final CacheManager _cacheManager;
-  final Requests _requests;
+  final SearchQuery _query;
+  final SearchCache _cache;
 
-  Search({required CacheManager cacheManager, required Requests requests})
-    : _cacheManager = cacheManager,
-      _requests = requests;
+  /// [cache] answers first, [query] adds what relays know.
+  Search({required SearchQuery query, required SearchCache cache})
+    : _query = query,
+      _cache = cache;
 
   /// Search for metadata \
   /// [query] can be pubkey, name, nip05
   Future<List<Metadata>> metadataSearch(String query, {int limit = 10}) async {
-    final result = await _cacheManager.searchMetadatas(query, limit);
+    final result = await _cache.searchMetadatas(query, limit);
     return result.toList();
   }
 
@@ -42,9 +47,9 @@ class Search {
     /// cache only is much faster but does not fetch from the network
     bool cacheOnly = false,
   }) async {
-    final localEvents = _cacheManager.searchEvents(
+    final localEvents = _cache.loadEvents(
       ids: ids,
-      authors: authors,
+      pubKeys: authors,
       kinds: kinds,
       tags: tags,
       since: since,
@@ -57,21 +62,19 @@ class Search {
       return localEvents;
     }
 
-    final networkEvents = _requests.query(
-      filters: [
-        Filter(
-          authors: authors,
-          kinds: kinds,
-          tags: tags,
-          since: since,
-          until: until,
-          search: search,
-          limit: limit,
-        ),
-      ],
-    );
+    final networkEvents = _query(
+      Filter(
+        authors: authors,
+        kinds: kinds,
+        tags: tags,
+        since: since,
+        until: until,
+        search: search,
+        limit: limit,
+      ),
+    ).toList();
 
-    final events = await Future.wait([localEvents, networkEvents.future]);
+    final events = await Future.wait([localEvents, networkEvents]);
 
     final combined = events.expand((element) => element);
 

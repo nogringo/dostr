@@ -7,6 +7,7 @@ import '../entities/filter_fetched_ranges.dart';
 import '../entities/hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_lists/ndk_lists.dart';
+import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import '../entities/relay_set.dart';
@@ -26,6 +27,7 @@ import '../entities/user_relay_list.dart';
 /// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - metadata, the [MetadataCache] of `ndk_metadatas`
 /// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
+/// - metadata and event search, the [SearchCache] of `ndk_search`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a
@@ -42,7 +44,8 @@ abstract class CacheManager
         Nip05Cache,
         ContactListCache,
         MetadataCache,
-        Nip51ListCache {
+        Nip51ListCache,
+        SearchCache {
   /// Whether a read or a removal with these lists can match no event: NIP-01
   /// says an empty list matches nothing, it does not stand for an absent one.
   static bool matchesNothing({
@@ -269,6 +272,7 @@ abstract class CacheManager
   Future<void> removeAllMetadatas();
 
   /// Search by name, nip05
+  @override
   Future<Iterable<Metadata>> searchMetadatas(String search, int limit);
 
   /// search events \

@@ -18,7 +18,7 @@ import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import '../domain_layer/usecases/requests/requests.dart';
-import '../domain_layer/usecases/search/search.dart';
+import 'package:ndk_search/ndk_search.dart';
 import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 import '../domain_layer/usecases/zaps/zaps.dart';
 import 'init.dart';
