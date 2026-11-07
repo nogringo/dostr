@@ -2,7 +2,13 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart';
-import 'package:ndk_blossom/ndk_blossom.dart' show BlossomUserServerList;
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
 import 'connectivity.dart';
 import 'package:ndk_requests/ndk_requests.dart';
@@ -135,8 +141,8 @@ class Ndk {
       _initialization.decryptedEventPayloads;
 
   /// Registers callbacks run by [setBackgrounded] and [destroy], in
-  /// registration order. Add-on packages such as ndk_nwc and ndk_wallets use
-  /// it to follow the lifecycle of this instance.
+  /// registration order. Usecases built outside of this instance use it to
+  /// follow its lifecycle.
   void addLifecycleHooks({
     Future<void> Function(bool backgrounded)? onBackgrounded,
     Future<void> Function()? onDestroy,
@@ -145,11 +151,12 @@ class Ndk {
     if (onDestroy != null) _destroyHooks.add(onDestroy);
   }
 
-  /// Runs the background hooks registered with [addLifecycleHooks] (wallet
-  /// notifications and balance polling are suspended), and closes idle relay
+  /// Suspends wallet notifications and balance polling, runs the background
+  /// hooks registered with [addLifecycleHooks], and closes idle relay
   /// connections when the application enters background. Active requests keep
   /// their connections.
   Future<void> setBackgrounded(bool backgrounded) async {
+    await _initialization.setBackgrounded(backgrounded);
     for (final hook in List.of(_backgroundedHooks)) {
       await hook(backgrounded);
     }
@@ -164,9 +171,57 @@ class Ndk {
   /// LNURL-pay (LUD-06/LUD-16) lookups and invoice fetching
   Lnurl get lnurl => _initialization.lnurl;
 
+  /// manage files on nostr \
+  /// upload, download, delete files \
+  /// high level usecase, recommended for most users
+  Files get files => _initialization.files;
+
+  /// Blossom usecase \
+  /// upload, download, delete, list files \
+  /// low level usecase, recommended for advanced users
+  Blossom get blossom => _initialization.blossom;
+
   /// The kind 10063 list of the Blossom servers a user uploads to (BUD-03)
   BlossomUserServerList<List<RelayBroadcastResponse>>
   get blossomUserServerList => _initialization.blossomUserServerList;
+
+  /// Direct messages usecase.
+  ///
+  /// App-facing alias for NIP-17 private direct messages.
+  Dms get dms => _initialization.dms;
+
+  /// Nostr Wallet connect
+  ///
+  /// Experimental: the API might change, it needs more docs and tests.
+  Nwc get nwc => _initialization.nwc;
+
+  /// Cashu Wallet
+  ///
+  /// Experimental: in development.
+  Cashu get cashu => _initialization.cashu;
+
+  /// Wallet combining all wallet accounts
+  ///
+  /// Experimental: the API might change.
+  Wallets get wallets => _initialization.wallets;
+
+  /// NIP-82 software application, release, and asset discovery.
+  Software get software => _initialization.software;
+
+  /// Trusted Assertions (NIP-85)
+  ///
+  /// Fetch pre-computed metrics from trusted service providers.
+  ///
+  /// Experimental: the API might change.
+  TrustedAssertions get ta => _initialization.trustedAssertions;
+
+  /// Trusted Assertions (NIP-85)
+  ///
+  /// Fetch pre-computed metrics from trusted service providers.
+  /// short alias for trusted assertions => ndk.ta.getMetrics()
+  ///
+  /// Experimental: the API might change.
+  TrustedAssertions get trustedAssertions => ta;
 
   /// Search
   ///
@@ -192,6 +247,7 @@ class Ndk {
     final allFutures = [
       _initialization.dispose(),
       Future(() => _initialization.closeAllNip77Negotiations()),
+      _initialization.disposeLazyUsecases(),
       ..._destroyHooks.map((hook) => hook()),
       _initialization.requests.closeAllSubscription(),
       _initialization.relayManager.closeAllTransports(),

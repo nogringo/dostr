@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 

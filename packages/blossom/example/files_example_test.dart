@@ -1,25 +1,13 @@
 // ignore_for_file: avoid_print
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:test/test.dart';
-
-Files filesFor(Ndk ndk) => Files(
-  Blossom(
-    accounts: ndk.accounts,
-    eventSignerFactory: ndk.config.eventSignerFactory,
-    authHandler: ndk.config.authHandler,
-    getUserServerList: (pubkey) =>
-        ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
-  ),
-);
 
 void main() async {
   test('download test - blossom', () async {
     final ndk = Ndk.defaultConfig();
-    final files = filesFor(ndk);
 
-    final downloadResult = await files.download(
+    final downloadResult = await ndk.files.download(
       url:
           "https://cdn.hzrd149.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf",
     );
@@ -33,9 +21,8 @@ void main() async {
 
   test('download test - non blossom', () async {
     final ndk = Ndk.defaultConfig();
-    final files = filesFor(ndk);
 
-    final downloadResult = await files.download(
+    final downloadResult = await ndk.files.download(
       url: "https://camelus.app/.well-known/nostr.json",
     );
 

@@ -10,9 +10,9 @@ icon: zap
 
 ## Example
 
-Paying a zap goes through a wallet: with NWC, `Nwc.zap(...)` from the `ndk_nwc` package fetches the invoice, pays it and waits for the receipt. Without a wallet, `ndk.zaps.fetchInvoice(...)` returns the invoice to pay.
+Paying a zap goes through a wallet: with NWC, `ndk.nwc.zap(...)` fetches the invoice, pays it and waits for the receipt. Without a wallet, `ndk.zaps.fetchInvoice(...)` returns the invoice to pay.
 
-:::code source="../../packages/nwc/example/zap.dart" language="dart" range="13-53" title="zap, receipt" :::
+:::code source="../../packages/nwc/example/zap.dart" language="dart" range="10-50" title="zap, receipt" :::
 
 :::code source="../../packages/ndk/example/zaps/receipts_for_profile.dart" language="dart" range="8-31" title="receipts for profile" :::
 

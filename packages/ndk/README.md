@@ -72,10 +72,14 @@ Verify the installation with `ndk --version`. See [releases](https://github.com/
 - **Gift wrap** (NIP-59): Encrypted, metadata-obscured messaging
 - **Zaps** (NIP-57): Lightning payments on Nostr
 - **Nostr Wallet Connect** (NIP-47): Integrate Lightning wallets
+- **Wallets**: One API over Cashu, NWC, LNURL, BOLT12 and LNbits wallets
+- **Direct messages** (NIP-17): Private, gift-wrapped direct messages
+- **Trusted assertions** (NIP-85): Metrics computed by trusted providers
+- **Software** (NIP-82): Application, release and asset discovery
 - **Domain verification** (NIP-05): Verify and cache Nostr addresses
-- **File management**: Upload, download, and delete files on Blossom servers with `ndk_blossom`
+- **File management**: Upload, download, and delete files on Blossom servers
 - **Connectivity**: Get notified about connection issues
-- **Proof of Work** (NIP-13): Create and verify PoW events with `ndk_nip13`
+- **Proof of Work** (NIP-13): Create and verify PoW events with `Nip13`
 
 ### Developer Experience
 

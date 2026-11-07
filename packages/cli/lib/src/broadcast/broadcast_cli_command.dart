@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_nip19/ndk_nip19.dart' as nip19;

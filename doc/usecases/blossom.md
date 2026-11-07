@@ -8,23 +8,13 @@ icon: file-zip
 
 ## Setup
 
-Blossom lives in the `ndk_blossom` package, which does not depend on `ndk`.
+NDK exposes Blossom as `ndk.blossom`: it signs with the NDK accounts, asks `NdkConfig.authHandler`, and reads server lists (kind `10063`) through `ndk.blossomUserServerList`. `ndk.destroy()` aborts the operations in flight.
 
-```yaml
-dependencies:
-  ndk: ^0.11.0-dev.2
-  ndk_blossom: ^0.1.0
-```
-
-Build it on top of an NDK instance: it signs with its accounts, asks its
-`NdkConfig.authHandler`, and reads server lists (kind `10063`) through
-`ndk.blossomUserServerList`.
-
-:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="10-16" title="" :::
+`Blossom` lives in the `ndk_blossom` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Blossom` with accounts, an event signer factory and how to read a user's server list, see its [README](https://pub.dev/packages/ndk_blossom).
 
 ## Example
 
-:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="18-22" title="" :::
+:::code source="../../packages/blossom/example/blossom_example_test.dart" language="dart" range="10-14" title="" :::
 
 ## When to use
 
@@ -53,7 +43,7 @@ A read that no server served (`getBlob`, `checkBlob`, `getBlobStream`,
 
 ```dart
 try {
-  await blossom.getBlob(sha256: hash, serverUrls: servers);
+  await ndk.blossom.getBlob(sha256: hash, serverUrls: servers);
 } on BlossomRequestException catch (e) {
   if (e.notFound) {
     // no server has the blob
@@ -84,7 +74,7 @@ server may learn, as on
 [broadcasts](/usecases/broadcast.md#relay-authentication-nip-42):
 
 ```dart
-final response = await blossom.getBlob(
+final response = await ndk.blossom.getBlob(
   sha256: hash,
   serverUrls: ['https://cdn.example.com'],
   auth: AuthPolicy.allow(account),

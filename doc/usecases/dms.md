@@ -7,50 +7,9 @@ label: DM
 
 ## Setup
 
-DMs live in the `ndk_nip17` package.
+NDK exposes DMs as `ndk.dms`.
 
-```yaml
-dependencies:
-  ndk_nip17: ^0.1.0
-```
-
-```dart
-import 'package:ndk_nip17/ndk_nip17.dart';
-
-final dms = Dms(
-  accounts: ndk.accounts,
-  giftWrap: ndk.giftWrap,
-  eventVerifier: ndk.config.eventVerifier,
-  getDmRelays: ndk.userRelayLists.getDmRelays,
-  query:
-      (
-        filter, {
-        required relays,
-        required auth,
-        required cacheRead,
-        required timeout,
-      }) => ndk.requests
-          .query(
-            filter: filter,
-            explicitRelays: relays,
-            auth: auth,
-            cacheRead: cacheRead,
-            timeout: timeout,
-          )
-          .future,
-  publish: (event, {relays}) => ndk.broadcast
-      .broadcast(nostrEvent: event, specificRelays: relays)
-      .broadcastDoneFuture,
-  loadCachedGiftWraps: (pubKey) => ndk.config.cache.loadEvents(
-    kinds: [GiftWrap.kGiftWrapEventkind],
-    tags: {
-      'p': [pubKey],
-    },
-  ),
-);
-```
-
-`ndk_nip17` does not depend on `ndk`, so `Dms` takes the parts of the NDK instance it uses: the logged-in account, the gift wrap usecase, the DM relay lists, relay queries and broadcasts, and the cache.
+`Dms` lives in the `ndk_nip17` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Dms` with the logged-in account, the gift wrap usecase, the DM relay lists, relay queries and broadcasts, and the cache, see its [README](https://pub.dev/packages/ndk_nip17).
 
 ## When to use
 

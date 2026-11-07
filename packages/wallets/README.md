@@ -4,7 +4,7 @@ One wallet API for [NDK](https://pub.dev/packages/ndk): balances, transaction hi
 
 LNURL, BOLT12 and LNbits providers are included. Cashu and NWC providers come with [ndk_cashu](../cashu/) and [ndk_nwc](../nwc/).
 
-It does not depend on `ndk`.
+It does not depend on `ndk`. NDK exposes it as `ndk.wallets`, with every provider below and the wallets of `NdkConfig.walletsRepo`: build it yourself, as below, only to wire it differently.
 
 ## Install
 

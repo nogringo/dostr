@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip82/ndk_nip82.dart';
 import 'package:test/test.dart';
 
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';

@@ -1,8 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip82/ndk_nip82.dart';
-
-import 'software_for_ndk.dart';
 
 @immutable
 class NReleaseComment {
@@ -89,7 +86,8 @@ class NReleaseEngagementState {
 
 class NReleaseEngagementController extends ChangeNotifier {
   final Ndk ndk;
-  final Software software;
+  final Software? _software;
+  late final Software software = _software ?? ndk.software;
   final SoftwareRelease release;
   final List<String> relays;
   final SoftwareAppRef? zapTargetApp;
@@ -101,7 +99,7 @@ class NReleaseEngagementController extends ChangeNotifier {
   bool _disposed = false;
   Future<void>? _loadFuture;
 
-  /// [software] defaults to one answered by [ndk].
+  /// [software] defaults to [Ndk.software].
   NReleaseEngagementController({
     required this.ndk,
     required this.release,
@@ -110,7 +108,7 @@ class NReleaseEngagementController extends ChangeNotifier {
     this.zapTargetApp,
     this.queryTimeout = const Duration(seconds: 4),
     this.metadataTimeout = const Duration(seconds: 3),
-  }) : software = software ?? softwareForNdk(ndk);
+  }) : _software = software;
 
   String get releaseAddress =>
       '$softwareReleaseKind:${release.event.pubKey}:'

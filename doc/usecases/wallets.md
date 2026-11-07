@@ -29,22 +29,11 @@ Use it if your app:
 
 ## Basic usage
 
-### install
-
-`Wallets` lives in the `ndk_wallets` package, with the LNURL, BOLT12 and LNbits providers. Cashu and NWC providers come with `ndk_cashu` and `ndk_nwc`.
-
-```yaml
-dependencies:
-  ndk_wallets: ^0.1.0
-  ndk_cashu: ^0.1.0 # Cashu wallets
-  ndk_nwc: ^0.1.0 # NWC wallets
-```
-
 ### initialize
 
-Create `Wallets` with one provider per wallet type you support. `ndk_wallets`, `ndk_cashu` and `ndk_nwc` do not depend on `ndk`: build `Cashu` and `Nwc` as [cashu](cashu.md) and [nwc](nwc.md) show.
+NDK exposes `Wallets` as `ndk.wallets`, with the Cashu (`ndk.cashu`), NWC (`ndk.nwc`), LNURL, BOLT12 and LNbits providers. `ndk.destroy()` disposes it, and `ndk.setBackgrounded(true)` pauses its balance polling.
 
-Wallets are stored in a `WalletsRepo`. `WalletsRepo.fromCache(ndk.config.cache)` uses the NDK cache when it implements `WalletsRepo` (`ndk_objectbox`, `ndk_drift` and `ndk_sqlite3` do). Pass the same repository to `Cashu`.
+Wallets are stored in `NdkConfig.walletsRepo`, which `ndk.cashu` uses too. It defaults to the NDK cache when it implements `WalletsRepo` (`ndk_objectbox`, `ndk_drift` and `ndk_sqlite3` do).
 
 - without Flutter, use `SembastWalletsRepo` from the `ndk_sembast` package
 - if possible, prefer the optional `ndk_flutter` package and `FlutterSecureStorageWalletsRepo` for more secure wallet storage
@@ -53,33 +42,22 @@ Wallets are stored in a `WalletsRepo`. `WalletsRepo.fromCache(ndk.config.cache)`
 final walletsRepo = await SembastWalletsRepo.create(filename: 'wallets.db');
 
 final ndk = Ndk(
-  NdkConfig(cache: cacheManager, eventVerifier: Bip340EventVerifier()),
-);
-
-final wallets = Wallets(
-  repository: walletsRepo,
-  providers: [
-    CashuWalletProvider(cashu),
-    NwcWalletProvider(nwc),
-    LnurlWalletProvider(ndk.lnurl),
-    const Bolt12WalletProvider(),
-    LnBitsWalletProvider(),
-  ],
-);
-ndk.addLifecycleHooks(
-  onBackgrounded: (backgrounded) async => wallets.setBackgrounded(backgrounded),
-  onDestroy: wallets.dispose,
+  NdkConfig(
+    cache: cacheManager,
+    walletsRepo: walletsRepo,
+    eventVerifier: Bip340EventVerifier(),
+  ),
 );
 ```
 
-With these hooks, `ndk.destroy()` disposes `wallets`, and `ndk.setBackgrounded(true)` pauses its balance polling.
+`Wallets` lives in the `ndk_wallets` package, with the LNURL, BOLT12 and LNbits providers, and `ndk` depends on it and re-exports it. It does not depend on `ndk`: build `Wallets` with one provider per wallet type and a `WalletsRepo`, see its [README](https://pub.dev/packages/ndk_wallets).
 
 ### add wallets
 
 Create wallets through `wallets.createWallet(...)` so the correct provider validates the required metadata.
 
 ```dart
-final nwcWallet = wallets.createWallet(
+final nwcWallet = ndk.wallets.createWallet(
   id: 'alby',
   name: 'Alby',
   type: WalletType.NWC,
@@ -89,9 +67,9 @@ final nwcWallet = wallets.createWallet(
   },
 );
 
-await wallets.addWallet(nwcWallet);
+await ndk.wallets.addWallet(nwcWallet);
 
-final lnurlWallet = wallets.createWallet(
+final lnurlWallet = ndk.wallets.createWallet(
   id: 'tips',
   name: 'Tips',
   type: WalletType.LNURL,
@@ -101,7 +79,7 @@ final lnurlWallet = wallets.createWallet(
   },
 );
 
-await wallets.addWallet(lnurlWallet);
+await ndk.wallets.addWallet(lnurlWallet);
 ```
 
 ### wallet-specific metadata
@@ -116,11 +94,11 @@ await wallets.addWallet(lnurlWallet);
 Example for Cashu:
 
 ```dart
-final mintInfo = await cashu.getMintInfoNetwork(
+final mintInfo = await ndk.cashu.getMintInfoNetwork(
   mintUrl: 'https://example.mint',
 );
 
-final cashuWallet = wallets.createWallet(
+final cashuWallet = ndk.wallets.createWallet(
   id: 'example-mint',
   name: 'Example Mint',
   type: WalletType.CASHU,
@@ -131,7 +109,7 @@ final cashuWallet = wallets.createWallet(
   },
 );
 
-await wallets.addWallet(cashuWallet);
+await ndk.wallets.addWallet(cashuWallet);
 ```
 
 ## Examples
@@ -140,7 +118,7 @@ await wallets.addWallet(cashuWallet);
 
 ```dart
 /// all balances from all wallets
-final balancesStream = wallets.combinedBalances;
+final balancesStream = ndk.wallets.combinedBalances;
 
 balancesStream.listen((balances) {
   for (final balance in balances) {
@@ -149,23 +127,23 @@ balancesStream.listen((balances) {
 });
 
 /// balance of one wallet/unit
-final cashuSat = wallets.getBalance('example-mint', 'sat');
+final cashuSat = ndk.wallets.getBalance('example-mint', 'sat');
 
 /// combined balance across all wallets for one unit
-final combinedSat = wallets.getCombinedBalance('sat');
+final combinedSat = ndk.wallets.getCombinedBalance('sat');
 ```
 
 ### transactions
 
 ```dart
 /// pending transactions from all wallets
-final pendingTransactions = wallets.combinedPendingTransactions;
+final pendingTransactions = ndk.wallets.combinedPendingTransactions;
 
 /// completed / recent transactions from all wallets
-final recentTransactions = wallets.combinedRecentTransactions;
+final recentTransactions = ndk.wallets.combinedRecentTransactions;
 
 /// transactions from storage with optional filters
-final transactions = await wallets.combinedTransactions(
+final transactions = await ndk.wallets.combinedTransactions(
   limit: 100,
   offset: 0,
   walletId: 'mywalletId',
@@ -174,30 +152,30 @@ final transactions = await wallets.combinedTransactions(
 );
 
 /// streams for one wallet only
-wallets.getPendingTransactionsStream('mywalletId').listen(print);
-wallets.getRecentTransactionsStream('mywalletId').listen(print);
+ndk.wallets.getPendingTransactionsStream('mywalletId').listen(print);
+ndk.wallets.getRecentTransactionsStream('mywalletId').listen(print);
 ```
 
 ### wallets
 
 ```dart
 /// stream of all wallets
-final walletsStream = wallets.walletsStream;
+final walletsStream = ndk.wallets.walletsStream;
 
 /// defaults are separate for send and receive
-final defaultSendingWallet = wallets.defaultWalletForSending;
-final defaultReceivingWallet = wallets.defaultWalletForReceiving;
+final defaultSendingWallet = ndk.wallets.defaultWalletForSending;
+final defaultReceivingWallet = ndk.wallets.defaultWalletForReceiving;
 
-await wallets.addWallet(myWallet);
+await ndk.wallets.addWallet(myWallet);
 
-wallets.setDefaultWallet('myWalletId');
-wallets.setDefaultWalletForSending('myWalletId');
-wallets.setDefaultWalletForReceiving('myWalletId');
+ndk.wallets.setDefaultWallet('myWalletId');
+ndk.wallets.setDefaultWalletForSending('myWalletId');
+ndk.wallets.setDefaultWalletForReceiving('myWalletId');
 
-await wallets.removeWallet('myWalletId');
+await ndk.wallets.removeWallet('myWalletId');
 
 /// wallets that support a given unit
-final walletsSupportingSat = wallets.getWalletsForUnit('sat');
+final walletsSupportingSat = ndk.wallets.getWalletsForUnit('sat');
 ```
 
 ### default sending / receiving wallets
@@ -219,21 +197,21 @@ When you add a wallet, NDK tries to set defaults automatically:
 You can override that explicitly at any time:
 
 ```dart
-wallets.setDefaultWalletForSending('alby');
-wallets.setDefaultWalletForReceiving('tips');
+ndk.wallets.setDefaultWalletForSending('alby');
+ndk.wallets.setDefaultWalletForReceiving('tips');
 ```
 
 If you want both defaults to point to the same wallet, use:
 
 ```dart
-wallets.setDefaultWallet('myWalletId');
+ndk.wallets.setDefaultWallet('myWalletId');
 ```
 
 If you call `send()` or `receive()` without passing `walletId`, the corresponding default wallet is used.
 
 ```dart
-final invoice = await wallets.receive(amountSats: 1000);
-final result = await wallets.send(invoice: 'lnbc1...');
+final invoice = await ndk.wallets.receive(amountSats: 1000);
+final result = await ndk.wallets.send(invoice: 'lnbc1...');
 ```
 
 If no suitable default wallet is set, those generic methods will fail. In that case, either set a default first or pass `walletId` directly.
@@ -244,21 +222,21 @@ Use these if you want a generic wallet API without caring which provider is behi
 
 ```dart
 /// create an invoice using the default receiving wallet
-final invoice = await wallets.receive(amountSats: 1000);
+final invoice = await ndk.wallets.receive(amountSats: 1000);
 
 /// or choose a specific wallet
-final invoice2 = await wallets.receive(
+final invoice2 = await ndk.wallets.receive(
   walletId: 'tips',
   amountSats: 1000,
 );
 
 /// pay an invoice using the default sending wallet
-final result = await wallets.send(
+final result = await ndk.wallets.send(
   invoice: 'lnbc1...',
 );
 
 /// or choose a specific wallet
-final result2 = await wallets.send(
+final result2 = await ndk.wallets.send(
   walletId: 'alby',
   invoice: 'lnbc1...',
 );

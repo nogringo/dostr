@@ -13,12 +13,12 @@ Future<void> main() async {
 
   final examplesDir = Directory.current.absolute;
   final dbPath = '${examplesDir.path}/wallets_db.db';
-  final setup = await setUpWallets(filename: dbPath);
+  final ndk = await setUpWallets(filename: dbPath);
 
   try {
     NostrWalletConnectUri.parseConnectionUri(nwcUri);
 
-    final wallet = setup.wallets.createWallet(
+    final wallet = ndk.wallets.createWallet(
       id: 'wallet_${DateTime.now().microsecondsSinceEpoch}',
       name: walletName,
       type: WalletType.NWC,
@@ -26,11 +26,11 @@ Future<void> main() async {
       metadata: {'nwcUrl': nwcUri},
     );
 
-    await setup.wallets.addWallet(wallet);
+    await ndk.wallets.addWallet(wallet);
 
     print('Added ${wallet.name}.');
     print('');
-    final wallets = await setup.wallets.getWallets();
+    final wallets = await ndk.wallets.getWallets();
     print('Wallets (${wallets.length}):');
     for (final wallet in wallets) {
       print(
@@ -39,6 +39,6 @@ Future<void> main() async {
       );
     }
   } finally {
-    await setup.ndk.destroy();
+    await ndk.destroy();
   }
 }

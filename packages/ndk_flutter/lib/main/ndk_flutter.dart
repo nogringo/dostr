@@ -3,9 +3,6 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/main/config.dart';
 import 'package:ndk_flutter/models/accounts.dart';
 import 'package:ndk_flutter/models/nip_05_result.dart';
@@ -24,7 +21,7 @@ class NdkFlutter {
   final Cashu? _cashu;
   final Nwc? _nwc;
 
-  /// [wallets], [cashu] and [nwc] are only needed by the wallet widgets.
+  /// [wallets], [cashu] and [nwc] default to those of [ndk].
   NdkFlutter({
     required this.ndk,
     Wallets? wallets,
@@ -39,12 +36,11 @@ class NdkFlutter {
        _cashu = cashu,
        _nwc = nwc;
 
-  Wallets get wallets =>
-      _wallets ?? (throw StateError('Pass wallets to NdkFlutter'));
+  Wallets get wallets => _wallets ?? ndk.wallets;
 
-  Cashu get cashu => _cashu ?? (throw StateError('Pass cashu to NdkFlutter'));
+  Cashu get cashu => _cashu ?? ndk.cashu;
 
-  Nwc get nwc => _nwc ?? (throw StateError('Pass nwc to NdkFlutter'));
+  Nwc get nwc => _nwc ?? ndk.nwc;
 
   String formatNpub(String pubkey) {
     final npub = Nip19.encodePubKey(pubkey);

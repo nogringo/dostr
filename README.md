@@ -103,11 +103,11 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 Wallets](./packages/wallets/)
 
-`ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.
+`ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits. NDK exposes it as `ndk.wallets`.
 
 ### [🔗 NWC](./packages/nwc/)
 
-`ndk_nwc`: Nostr Wallet Connect (NIP-47) client and NWC zaps.
+`ndk_nwc`: Nostr Wallet Connect (NIP-47) client and NWC zaps. NDK exposes it as `ndk.nwc`.
 
 ### [🔗 Cashu protocol](./packages/cashu_protocol/)
 
@@ -115,15 +115,15 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 Cashu](./packages/cashu/)
 
-`ndk_cashu`: Cashu ecash wallet, on top of `ndk_cashu_protocol`.
+`ndk_cashu`: Cashu ecash wallet, on top of `ndk_cashu_protocol`. NDK exposes it as `ndk.cashu`.
 
 ### [🔗 Blossom](./packages/blossom/)
 
-`ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers, without depending on `ndk`.
+`ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers, without depending on `ndk`. NDK exposes it as `ndk.files` and `ndk.blossom`.
 
 ### [🔗 NIP-17](./packages/nip17/)
 
-`ndk_nip17`: NIP-17 private direct messages, with text and encrypted file messages, conversations and DM relay lists.
+`ndk_nip17`: NIP-17 private direct messages, with text and encrypted file messages, conversations and DM relay lists. NDK exposes it as `ndk.dms`.
 
 ### [🔗 NIP-59](./packages/nip59/)
 
@@ -131,11 +131,11 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 NIP-85](./packages/nip85/)
 
-`ndk_nip85`: NIP-85 trusted assertions, to fetch and stream the metrics trusted providers compute for users, events and addresses, without depending on `ndk`.
+`ndk_nip85`: NIP-85 trusted assertions, to fetch and stream the metrics trusted providers compute for users, events and addresses, without depending on `ndk`. NDK exposes it as `ndk.ta`.
 
 ### [🔗 NIP-13](./packages/nip13/)
 
-`ndk_nip13`: NIP-13 proof of work, to mine, measure and validate the difficulty of event ids off the main isolate, without depending on `ndk`.
+`ndk_nip13`: NIP-13 proof of work, to mine, measure and validate the difficulty of event ids off the main isolate, without depending on `ndk`. NDK re-exports it.
 
 ### [🔗 NIP-07](./packages/nip07/)
 
@@ -151,7 +151,7 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 NIP-82](./packages/nip82/)
 
-`ndk_nip82`: NIP-82 software applications, to discover a trusted publisher's application, release and asset events and pick a compatible Android update, without depending on `ndk`. `ndk_flutter` builds its app update widgets on it.
+`ndk_nip82`: NIP-82 software applications, to discover a trusted publisher's application, release and asset events and pick a compatible Android update, without depending on `ndk`. NDK exposes it as `ndk.software`. `ndk_flutter` builds its app update widgets on it.
 
 ### [🔗 NIP-05](./packages/nip05/)
 

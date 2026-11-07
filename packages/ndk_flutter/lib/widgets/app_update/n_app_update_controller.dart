@@ -3,12 +3,10 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip82/ndk_nip82.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../main/ndk_flutter.dart';
-import 'software_for_ndk.dart';
 import 'update_installer.dart';
 
 enum NAppUpdateStatus {
@@ -89,7 +87,8 @@ class NAppUpdateState {
 
 class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
   final NdkFlutter ndkFlutter;
-  final Software software;
+  final Software? _software;
+  late final Software software = _software ?? ndkFlutter.ndk.software;
   final SoftwareAppRef app;
   final SoftwareAppRef? zapTargetApp;
   final String channel;
@@ -117,7 +116,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
   int _evaluationGeneration = 0;
   int? _previousInstalledVersionCode;
 
-  /// [software] defaults to one answered by [ndkFlutter]'s ndk.
+  /// [software] defaults to the [Ndk.software] of [ndkFlutter].
   NAppUpdateController({
     required this.ndkFlutter,
     required this.app,
@@ -132,7 +131,7 @@ class NAppUpdateController extends ChangeNotifier with WidgetsBindingObserver {
     this.queryTimeout = const Duration(seconds: 5),
     this.engagementQueryTimeout = const Duration(seconds: 4),
     this.engagementMetadataTimeout = const Duration(seconds: 3),
-  }) : software = software ?? softwareForNdk(ndkFlutter.ndk),
+  }) : _software = software,
        installationEnabled =
            installationEnabled ??
            (!kIsWeb && defaultTargetPlatform == TargetPlatform.android);

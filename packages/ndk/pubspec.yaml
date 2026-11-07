@@ -48,6 +48,13 @@ dependencies:
   ndk_http: ^0.1.0
   ndk_requests: ^0.1.0
   ndk_user_relay_lists: ^0.1.0
+  ndk_nip13: ^0.1.0
+  ndk_nip17: ^0.1.0
+  ndk_nip82: ^0.1.0
+  ndk_nip85: ^0.1.0
+  ndk_nwc: ^0.1.0
+  ndk_cashu: ^0.1.0
+  ndk_wallets: ^0.1.0
   http: ^1.6.0
 
 dev_dependencies:

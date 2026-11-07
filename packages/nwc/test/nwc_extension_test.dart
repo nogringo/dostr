@@ -1,6 +1,5 @@
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
 
 void main() {
   group('NwcExtension', () {

@@ -5,7 +5,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 

@@ -7,7 +7,6 @@ import 'package:convert/convert.dart' as convert;
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk/ndk.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -256,7 +255,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
         // Now connect using the constructed URI
         // As per user feedback, clientKeyPair is not an argument to connect.
         // The nwcAppKey (specifically its private key) was used as the 'secret' in the constructedNwcUri.
-        final NwcConnection establishedConn = await nwc.connect(
+        final NwcConnection establishedConn = await ndk.nwc.connect(
           constructedNwcUri,
           // clientKeyPair: nwcAppKey, // Removed as per user feedback
           doGetInfoMethod: true,
@@ -427,7 +426,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
         onPressed: uri.text.isNotEmpty
             ? () async {
                 _resetInvoiceStates(); // Reset states before new connection
-                NwcConnection? newConnection = await nwc.connect(
+                NwcConnection? newConnection = await ndk.nwc.connect(
                   uri.text,
                   doGetInfoMethod: true,
                 );
@@ -458,7 +457,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                final b = await nwc.getBalance(connection!);
+                final b = await ndk.nwc.getBalance(connection!);
                 setState(() {
                   balance = b;
                 });
@@ -593,7 +592,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
                           });
 
                           try {
-                            final response = await nwc.makeHoldInvoice(
+                            final response = await ndk.nwc.makeHoldInvoice(
                               connection!,
                               amountSats: sats,
                               description: description.text.isNotEmpty
@@ -625,7 +624,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
                             _currentInvoiceWasHold = false;
                           });
                           try {
-                            final response = await nwc.makeInvoice(
+                            final response = await ndk.nwc.makeInvoice(
                               connection!,
                               amountSats: sats,
                               description: description.text.isNotEmpty
@@ -775,7 +774,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
                           cancelHoldInvoiceResponse = null;
                         });
                         try {
-                          final response = await nwc.settleHoldInvoice(
+                          final response = await ndk.nwc.settleHoldInvoice(
                             connection!,
                             preimage: holdInvoicePreimage!,
                           );
@@ -812,7 +811,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
                           cancelHoldInvoiceResponse = null;
                         });
                         try {
-                          final response = await nwc.cancelHoldInvoice(
+                          final response = await ndk.nwc.cancelHoldInvoice(
                             connection!,
                             paymentHash: holdInvoicePaymentHash!,
                           );
@@ -901,7 +900,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
             FilledButton(
               onPressed: canPayInvoice
                   ? () async {
-                      final p = await nwc.payInvoice(
+                      final p = await ndk.nwc.payInvoice(
                         connection!,
                         invoice: invoice.text,
                       );
@@ -927,7 +926,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                await nwc.disconnect(connection!);
+                await ndk.nwc.disconnect(connection!);
                 _resetInvoiceStates(); // Use the new reset function
                 setState(() {
                   connection = null;

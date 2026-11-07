@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip85/ndk_nip85.dart';
 
 TrustedAssertions trustedAssertionsFor(
   Ndk ndk, {

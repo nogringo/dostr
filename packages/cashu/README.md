@@ -6,7 +6,7 @@
 
 For the protocol alone, without a wallet or Nostr, use [ndk_cashu_protocol](../cashu_protocol/): this package re-exports it.
 
-It does not depend on `ndk`: mint discovery asks you how to query the relays.
+It does not depend on `ndk`: mint discovery asks you how to query the relays. NDK exposes it as `ndk.cashu`, with the seed phrase of `NdkConfig.cashuUserSeedphrase` and the wallets of `NdkConfig.walletsRepo`: build it yourself, as below, only to wire it differently.
 
 ## Install
 

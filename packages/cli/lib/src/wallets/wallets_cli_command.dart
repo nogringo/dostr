@@ -1,16 +1,12 @@
 import 'dart:io';
 
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 
-import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
 import '../cli_accounts_store.dart';
-import '../cli_wallets.dart';
 import '../cli_command.dart';
 
 class WalletsCliCommand extends CliCommand {
-  late CliWallets _usecases;
+  late Ndk _ndk;
 
   @override
   String get name => 'wallets';
@@ -33,7 +29,7 @@ class WalletsCliCommand extends CliCommand {
     WalletsRepo walletsRepo,
     CliAccountsStore accountsStore,
   ) async {
-    _usecases = CliWallets(ndk, walletsRepo);
+    _ndk = ndk;
     if (args.isEmpty || _isHelp(args.first)) {
       _printHelp();
       return 0;
@@ -42,7 +38,7 @@ class WalletsCliCommand extends CliCommand {
     try {
       final subCommand = args.first.toLowerCase();
       final subArgs = args.sublist(1);
-      final walletsUsecase = _usecases.wallets;
+      final walletsUsecase = _ndk.wallets;
 
       if (subCommand == 'list') {
         await _handleList(walletsRepo, walletsUsecase);
@@ -195,7 +191,7 @@ class WalletsCliCommand extends CliCommand {
       throw ArgumentError('mintUrl must not be empty');
     }
 
-    final mintInfo = await _usecases.cashu.getMintInfoNetwork(mintUrl: mintUrl);
+    final mintInfo = await _ndk.cashu.getMintInfoNetwork(mintUrl: mintUrl);
     final wallets = await walletsRepo.getWallets();
     final defaultName = 'Cashu ${wallets.length + 1}';
     final walletName = args.length > 2
@@ -372,12 +368,9 @@ class WalletsCliCommand extends CliCommand {
       throw StateError('NWC wallet is missing metadata["nwcUrl"]');
     }
 
-    final connection = await _usecases.nwc.connect(
-      nwcUrl,
-      doGetInfoMethod: false,
-    );
+    final connection = await _ndk.nwc.connect(nwcUrl, doGetInfoMethod: false);
     try {
-      final budget = await _usecases.nwc.getBudget(connection);
+      final budget = await _ndk.nwc.getBudget(connection);
       final remainingSats = budget.totalBudgetSats - budget.userBudgetSats;
 
       stdout.writeln('Budget for ${wallet.id}:');
@@ -392,7 +385,7 @@ class WalletsCliCommand extends CliCommand {
         stdout.writeln('- renews at: ${renewsAt.toIso8601String()}');
       }
     } finally {
-      await _usecases.nwc.disconnect(connection);
+      await _ndk.nwc.disconnect(connection);
     }
   }
 
@@ -458,7 +451,7 @@ class WalletsCliCommand extends CliCommand {
     final mintUrl = wallet.metadata['mintUrl'] as String;
 
     stdout.writeln('Getting melt quote from $mintUrl ...');
-    final draft = await _usecases.cashu.initiateRedeem(
+    final draft = await _ndk.cashu.initiateRedeem(
       mintUrl: mintUrl,
       request: parsed.value!,
       unit: 'sat',
@@ -473,9 +466,7 @@ class WalletsCliCommand extends CliCommand {
       );
     }
     stdout.writeln('Melting ...');
-    await for (final tx in _usecases.cashu.redeem(
-      draftRedeemTransaction: draft,
-    )) {
+    await for (final tx in _ndk.cashu.redeem(draftRedeemTransaction: draft)) {
       stdout.writeln('  state: ${tx.state.value}');
       if (tx.completionMsg != null) {
         stdout.writeln('  msg: ${tx.completionMsg}');
@@ -516,7 +507,7 @@ class WalletsCliCommand extends CliCommand {
     final mintUrl = wallet.metadata['mintUrl'] as String;
 
     stdout.writeln('Requesting mint quote from $mintUrl for $amount sat ...');
-    final draft = await _usecases.cashu.initiateFund(
+    final draft = await _ndk.cashu.initiateFund(
       mintUrl: mintUrl,
       amount: amount,
       unit: 'sat',
@@ -533,9 +524,7 @@ class WalletsCliCommand extends CliCommand {
       return;
     }
     stdout.writeln('Polling until paid ... (Ctrl+C to abort)');
-    await for (final tx in _usecases.cashu.retrieveFunds(
-      draftTransaction: draft,
-    )) {
+    await for (final tx in _ndk.cashu.retrieveFunds(draftTransaction: draft)) {
       stdout.writeln('  state: ${tx.state.value}');
       if (tx.completionMsg != null) {
         stdout.writeln('  msg: ${tx.completionMsg}');
@@ -557,7 +546,7 @@ class WalletsCliCommand extends CliCommand {
     }
     await _ensureSeed(ndk, parsed.seed);
     stdout.writeln('Swapping incoming token ...');
-    await for (final tx in _usecases.cashu.receive(parsed.value!)) {
+    await for (final tx in _ndk.cashu.receive(parsed.value!)) {
       stdout.writeln('  state: ${tx.state.value}');
       if (tx.completionMsg != null) {
         stdout.writeln('  msg: ${tx.completionMsg}');
@@ -596,7 +585,7 @@ class WalletsCliCommand extends CliCommand {
     await _ensureSeed(ndk, parsed.seed);
     final mintUrl = wallet.metadata['mintUrl'] as String;
 
-    final result = await _usecases.cashu.initiateSpend(
+    final result = await _ndk.cashu.initiateSpend(
       mintUrl: mintUrl,
       amount: amount,
       unit: 'sat',
@@ -655,12 +644,9 @@ class WalletsCliCommand extends CliCommand {
     if (nwcUrl == null || nwcUrl.isEmpty) {
       throw StateError('NWC wallet missing metadata["nwcUrl"]');
     }
-    final connection = await _usecases.nwc.connect(
-      nwcUrl,
-      doGetInfoMethod: false,
-    );
+    final connection = await _ndk.nwc.connect(nwcUrl, doGetInfoMethod: false);
     try {
-      final resp = await _usecases.nwc.listTransactions(
+      final resp = await _ndk.nwc.listTransactions(
         connection,
         unpaid: true,
         limit: limit,
@@ -680,7 +666,7 @@ class WalletsCliCommand extends CliCommand {
         stdout.writeln('  $dir $state $amt$fees$settled');
       }
     } finally {
-      await _usecases.nwc.disconnect(connection);
+      await _ndk.nwc.disconnect(connection);
     }
   }
 
@@ -745,7 +731,7 @@ class WalletsCliCommand extends CliCommand {
   }
 
   Future<void> _ensureSeed(Ndk ndk, String? seedFlag) async {
-    if (_usecases.cashu.getCashuSeed().isSeedPhraseSet) return;
+    if (_ndk.cashu.getCashuSeed().isSeedPhraseSet) return;
     final seed = seedFlag ?? Platform.environment['NDK_CASHU_SEED'];
     if (seed == null || seed.trim().isEmpty) {
       throw StateError(
@@ -753,7 +739,7 @@ class WalletsCliCommand extends CliCommand {
         'Pass --seed <mnemonic> or set NDK_CASHU_SEED env var.',
       );
     }
-    await _usecases.cashu.setCashuSeedPhrase(
+    await _ndk.cashu.setCashuSeedPhrase(
       CashuUserSeedphrase(seedPhrase: seed.trim()),
     );
   }

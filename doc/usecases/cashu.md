@@ -20,42 +20,22 @@ Cashu usecase can manage eCash (digital cash) within your application. It provid
 
 ## Setup
 
-Cashu lives in the `ndk_cashu` package. For the protocol alone (blind signatures, tokens, NUT-13 secrets and the mint API) without a wallet or Nostr, use `ndk_cashu_protocol`, which `ndk_cashu` re-exports.
-
-```yaml
-dependencies:
-  http: ^1.6.0
-  ndk_cashu: ^0.1.0
-  ndk_http: ^0.1.0
-  ndk_wallets: ^0.1.0 # WalletTransactionState and wallets repositories
-```
-
-`ndk_cashu` does not depend on `ndk`: build `Cashu` from the parts of your NDK instance it uses.
+NDK exposes Cashu as `ndk.cashu`. Pass the seed phrase through `NdkConfig`:
 
 ```dart
-import 'package:http/http.dart' as http;
-import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk_wallets/ndk_wallets.dart';
-
-final cashuHttp = NdkHttp(http.Client());
-final cashu = Cashu(
-  cashuRepo: CashuRepoImpl(client: cashuHttp),
-  walletsRepo: walletsRepo,
-  storage: cacheManager, // a CashuStorage, or MemCashuStorage()
-  cashuKeyDerivation: DartCashuKeyDerivation(),
-  mintRecommendations: CashuMintRecommendations(
-    query: (filter, {required relays, required timeout}) => ndk.requests
-        .query(filter: filter, explicitRelays: relays, timeout: timeout)
-        .future,
+final ndk = Ndk(
+  NdkConfig(
+    cache: cacheManager,
+    eventVerifier: Bip340EventVerifier(),
+    // generate one with CashuSeed.generateSeedPhrase() and store it securely
+    cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
   ),
-  // generate one with CashuSeed.generateSeedPhrase() and store it securely
-  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
 );
-ndk.addLifecycleHooks(onDestroy: () async => cashuHttp.abortPending());
 ```
 
-Proofs, keysets and mint infos go to `storage`: the NDK cache when it implements `CashuStorage` (`ndk_objectbox`, `ndk_drift`, `ndk_sembast` and `ndk_sqlite3` do), or an in memory `MemCashuStorage`. Pending quotes go to the `walletsRepo`, see [wallets](wallets.md). `mintRecommendations` answers `discoverMintRecommendations`.
+Proofs, keysets and mint infos go to the NDK cache when it implements `CashuStorage` (`ndk_objectbox`, `ndk_drift`, `ndk_sembast` and `ndk_sqlite3` do), and to memory otherwise. Pending quotes go to `NdkConfig.walletsRepo`, see [wallets](wallets.md). `ndk.cashu` is built on first use: Cashu resumes the pending quotes from then on.
+
+`Cashu` lives in the `ndk_cashu` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Cashu` with a `CashuRepo`, a `WalletsRepo`, a `CashuStorage` and a `CashuKeyDerivation`, see its [README](https://pub.dev/packages/ndk_cashu). For the protocol alone (blind signatures, tokens, NUT-13 secrets and the mint API) without a wallet or Nostr, use `ndk_cashu_protocol`, which `ndk_cashu` re-exports.
 
 ## Examples
 
@@ -67,20 +47,20 @@ When you receive tokens or initiate funding, the mint gets added automatically
 
 ```dart
 /// adds to known mints
-cashu.addMintToKnownMints(mintUrl: "https://example.mint");
+ndk.cashu.addMintToKnownMints(mintUrl: "https://example.mint");
 
 /// stream [Set<CashuMintInfo>] of known mints
-cashu.knownMints;
+ndk.cashu.knownMints;
 
 /// get [CashuMintInfo] without adding it to known mints
-cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
+ndk.cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```
 
 ## fund (mint)
 
 ```dart
-    final initTransaction = await cashu.initiateFund(
+    final initTransaction = await ndk.cashu.initiateFund(
         mintUrl: "https://example.mint",
         amount: "100",
         unit: "sat",
@@ -93,7 +73,7 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
     /// retrieve funds and listen for status
     final resultStream =
-          cashu.retrieveFunds(draftTransaction: initTransaction);
+          ndk.cashu.retrieveFunds(draftTransaction: initTransaction);
 
       await for (final result in resultStream) {
         if (result.state == WalletTransactionState.completed) {
@@ -114,7 +94,7 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```dart
 
-    final draftTransaction = await cashu.initiateRedeem(
+    final draftTransaction = await ndk.cashu.initiateRedeem(
         mintUrl: "https://example.mint",
         request: "lnbc1...",
         unit: "sat"
@@ -126,7 +106,7 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
     /// redeem funds and listen for status
     final resultStream =
-        cashu.redeem(draftTransaction: draftTransaction);
+        ndk.cashu.redeem(draftTransaction: draftTransaction);
 
     await for (final result in resultStream) {
     if (result.state == WalletTransactionState.completed) {
@@ -147,7 +127,7 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 ## spend
 
 ```dart
-    final spendResult = await cashu.initiateSpend(
+    final spendResult = await ndk.cashu.initiateSpend(
         mintUrl: "https://example.mint",
         amount: 5,
         unit: "sat",
@@ -158,12 +138,12 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
     print("transaction id: ${spendResult.transaction}");
 
     /// listen to pending transactions List<CashuWalletTransaction>
-    await for (final transaction in cashu.pendingTransactions) {
+    await for (final transaction in ndk.cashu.pendingTransactions) {
       print("latest transaction: $transaction");
     }
 
     /// listen to recent transactinos List<CashuWalletTransaction>
-    await for (final transaction in cashu.latestTransactions) {
+    await for (final transaction in ndk.cashu.latestTransactions) {
       print("latest transaction: $transaction");
     }
 
@@ -174,7 +154,7 @@ cashu.getMintInfoNetwork(mintUrl: "https://example.mint");
 
 ```dart
 
-      final rcvResultStream = cashu.receive(tokenString);
+      final rcvResultStream = ndk.cashu.receive(tokenString);
 
       await for (final rcvResult in rcvResultStream) {
         if (rcvResult.state == WalletTransactionState.pending) {
@@ -200,7 +180,7 @@ As well as in the `Wallets` usecase
 
 ```dart
     /// balances for all mints [List<CashuMintBalance>]
-    final balances = await cashu.getBalances();
+    final balances = await ndk.cashu.getBalances();
     print(balances);
 
     /// balance for one mint and unit [int]
@@ -210,7 +190,7 @@ As well as in the `Wallets` usecase
     );
 
     /// stream of [List<CashuMintBalance>]
-    cashu.balances;
+    ndk.cashu.balances;
 
 ```
 

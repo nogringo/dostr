@@ -1,12 +1,9 @@
 import 'dart:io';
 
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
 
 import '../cli_accounts_store.dart';
 import '../cli_command.dart';
-import 'blossom_for_ndk.dart';
 
 /// `ndk blossom` - low-level Blossom (BUD-*) operations + user server list.
 ///
@@ -98,7 +95,7 @@ Options:
     }
 
     stdout.writeln('Uploading $filePath ...');
-    final stream = blossomFor(ndk).uploadBlobFromFile(
+    final stream = ndk.blossom.uploadBlobFromFile(
       filePath: filePath,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       contentType: parsed.contentType,
@@ -141,7 +138,7 @@ Options:
     final outPath = parsed.positional[1];
 
     stdout.writeln('Downloading $sha -> $outPath ...');
-    await blossomFor(ndk).downloadBlobToFile(
+    await ndk.blossom.downloadBlobToFile(
       sha256: sha,
       outputPath: outPath,
       auth: _authPolicy(parsed, ndk),
@@ -165,7 +162,7 @@ Options:
     if (sha == null) return 2;
 
     stdout.writeln('Deleting $sha ...');
-    final results = await blossomFor(ndk).deleteBlob(
+    final results = await ndk.blossom.deleteBlob(
       sha256: sha,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
     );
@@ -199,7 +196,7 @@ Options:
     }
 
     stdout.writeln('Listing blobs for ${Nip19.encodePubKey(pubkey)} ...');
-    final blobs = await blossomFor(ndk).listBlobs(
+    final blobs = await ndk.blossom.listBlobs(
       pubkey: pubkey,
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,
       auth: _authPolicy(parsed, ndk),
@@ -239,9 +236,10 @@ Options:
     stdout.writeln(
       'Mirroring $source -> ${parsed.servers.length} server(s) ...',
     );
-    final results = await blossomFor(
-      ndk,
-    ).mirrorToServers(blossomUrl: source, targetServerUrls: parsed.servers);
+    final results = await ndk.blossom.mirrorToServers(
+      blossomUrl: source,
+      targetServerUrls: parsed.servers,
+    );
     _printUploadResults(results);
     return results.every((r) => r.success) ? 0 : 1;
   }
@@ -258,7 +256,7 @@ Options:
     if (sha == null) return 2;
 
     stdout.writeln('Checking $sha ...');
-    final url = await blossomFor(ndk).checkBlob(
+    final url = await ndk.blossom.checkBlob(
       sha256: sha,
       auth: _authPolicy(parsed, ndk),
       serverUrls: parsed.servers.isEmpty ? null : parsed.servers,

@@ -3,7 +3,6 @@ import 'dart:isolate';
 import 'dart:math';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_cache_manager_test_suite/ndk_cache_manager_test_suite.dart';
 import 'package:ndk_sqlite3/ndk_sqlite3.dart';
 import 'package:ndk_sqlite3/src/migrations/v1.dart';

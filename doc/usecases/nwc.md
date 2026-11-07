@@ -5,25 +5,18 @@ icon: plug
 
 ## Setup
 
-NWC lives in the `ndk_nwc` package.
+NDK exposes NWC as `ndk.nwc`. `ndk.destroy()` closes every connection and `ndk.setBackgrounded(true)` pauses idle notifications.
 
-```yaml
-dependencies:
-  ndk_nwc: ^0.1.0
-```
-
-It does not depend on `ndk`: `Nwc` takes callbacks to query, subscribe and publish on the relays, here wired to an NDK instance. Its lifecycle hooks make `ndk.destroy()` close every connection and `ndk.setBackgrounded(true)` pause idle notifications.
-
-:::code source="../../packages/nwc/example/nwc_for_ndk.dart" language="dart" title="build Nwc from an NDK instance" :::
+`Nwc` lives in the `ndk_nwc` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: without it, build `Nwc` with callbacks to query, subscribe and publish on the relays, see its [README](https://pub.dev/packages/ndk_nwc).
 
 ## Example
 
-:::code source="../../packages/nwc/example/get_balance.dart" language="dart" range="13-22" title="connect, get balance" :::
+:::code source="../../packages/nwc/example/get_balance.dart" language="dart" range="10-19" title="connect, get balance" :::
 
-:::code source="../../packages/nwc/example/pay_invoice.dart" language="dart" range="22-22" title="pay invoice" :::
+:::code source="../../packages/nwc/example/pay_invoice.dart" language="dart" range="20-20" title="pay invoice" :::
 
 
-:::code source="../../packages/nwc/example/notifications.dart" language="dart" range="17-23" title="notifications" :::
+:::code source="../../packages/nwc/example/notifications.dart" language="dart" range="15-21" title="notifications" :::
 
 ## How to use
 

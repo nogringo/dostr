@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip82/ndk_nip82.dart';
 
 Software softwareFor(Ndk ndk) => Software(
   query: (filter, {relays, timeout}) async {

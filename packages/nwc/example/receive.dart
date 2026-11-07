@@ -4,11 +4,9 @@ import 'dart:io';
 
 import 'package:ndk/ndk.dart';
 
-import 'nwc_for_ndk.dart';
-
 void main() async {
   final ndk = Ndk.emptyBootstrapRelaysConfig();
-  final nwc = nwcFor(ndk);
+  final nwc = ndk.nwc;
 
   // Provide an NWC connection URI. Omit AMOUNT_MSAT for a variable amount.
   final nwcUri = Platform.environment['NWC_URI']!;

@@ -3,10 +3,10 @@
 import 'wallets_setup.dart';
 
 Future<void> main() async {
-  final setup = await setUpWallets();
+  final ndk = await setUpWallets();
 
   try {
-    final wallets = await setup.wallets.getWallets();
+    final wallets = await ndk.wallets.getWallets();
 
     if (wallets.isEmpty) {
       print('No wallets stored yet.');
@@ -21,6 +21,6 @@ Future<void> main() async {
       );
     }
   } finally {
-    await setup.ndk.destroy();
+    await ndk.destroy();
   }
 }

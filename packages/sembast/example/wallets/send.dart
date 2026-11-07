@@ -8,17 +8,17 @@ Future<void> main() async {
   final payment = Platform.environment['PAYMENT']!;
   final amountSats = int.parse(Platform.environment['AMOUNT'] ?? '1000');
 
-  final setup = await setUpWallets();
+  final ndk = await setUpWallets();
 
   try {
-    final wallets = await setup.wallets.getWallets();
+    final wallets = await ndk.wallets.getWallets();
     if (wallets.isEmpty) {
       throw StateError('No wallets stored yet.');
     }
 
     final walletId = Platform.environment['WALLET_ID'] ?? wallets.first.id;
 
-    final result = await setup.wallets.payBip321(
+    final result = await ndk.wallets.payBip321(
       walletId: walletId,
       payment: payment,
       amountMsat: amountSats * 1000,
@@ -33,6 +33,6 @@ Future<void> main() async {
       print('- error message: ${result.errorMessage}');
     }
   } finally {
-    await setup.ndk.destroy();
+    await ndk.destroy();
   }
 }

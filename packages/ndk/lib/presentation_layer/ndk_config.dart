@@ -4,8 +4,11 @@ import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 
 /// Configuration class for the Nostr Development Kit (NDK)
 ///
@@ -17,6 +20,10 @@ class NdkConfig {
 
   /// The cache manager (DB) used to store and retrieve Nostr data. E.g MemCacheManager()
   CacheManager cache;
+
+  /// Where [Ndk.wallets] and [Ndk.cashu] store the wallets. E.g MemWalletsRepo() \
+  /// Defaults to [cache] when it stores wallets, to nothing otherwise.
+  WalletsRepo? walletsRepo;
 
   /// Factory for creating EventSigner instances. Defaults to Bip340EventSigner.
   LocalEventSignerFactory eventSignerFactory;
@@ -54,6 +61,17 @@ class NdkConfig {
 
   /// log level
   LogLevel logLevel;
+
+  /// cashu user seed phrase, required for using cashu features \
+  /// you can use CashuSeed.generateSeedPhrase() to generate a new seed phrase \
+  /// Store this securely! Seed phrase allow full access to cashu funds!
+  final CashuUserSeedphrase? cashuUserSeedphrase;
+
+  /// when false (default), automatic cashu quote completion on startup
+  /// requires an explicit `Cashu.restore()` call for the mint/unit first;
+  /// when true, it instead runs a bounded NUT-09 scan itself to verify the
+  /// mint derivation counter before minting. See [Cashu.retrieveFunds].
+  bool autoVerifyMintCounters;
 
   /// User agent for websockets on dart:io, set globally on `WebSocket.userAgent`.
   ///
@@ -128,6 +146,9 @@ class NdkConfig {
   /// Whether to run cache eviction once on startup before periodic runs.
   bool runCacheEvictionOnStartup;
 
+  /// Default trusted providers for NIP-85 trusted assertions.
+  List<Nip85TrustedProvider> defaultTrustedProviders;
+
   /// Development aid, off by default. Flutter apps can pass `kDebugMode`.
   ///
   /// When enabled:
@@ -147,9 +168,11 @@ class NdkConfig {
   /// [defaultQueryTimeout] The default timeout for queries (defaults to DEFAULT_QUERY_TIMEOUT). \
   /// [logLevel] The log level for the NDK (defaults to warning).
   /// [webSocketCompression] Whether native WebSockets negotiate compression.
+  /// [cashuUserSeedphrase] The cashu user seed phrase, required for using cashu features
   NdkConfig({
     required this.eventVerifier,
     required this.cache,
+    this.walletsRepo,
     this.eventSignerFactory = const Bip340EventSignerFactory(),
     this.engine = NdkEngine.RELAY_SETS,
     this.ignoreRelays = const [],
@@ -161,6 +184,8 @@ class NdkConfig {
         BroadcastDefaults.CONSIDER_DONE_PERCENT,
     this.defaultBroadcastSaveToCache = BroadcastDefaults.SAVE_TO_CACHE,
     this.logLevel = defaultLogLevel,
+    this.cashuUserSeedphrase,
+    this.autoVerifyMintCounters = false,
     this.userAgent,
     this.webSocketCompression = true,
     this.webSocketPingInterval = const Duration(seconds: 10),
@@ -177,6 +202,7 @@ class NdkConfig {
     this.cacheEvictionStartupDelay = const Duration(minutes: 1),
     this.cacheEvictionInterval = const Duration(hours: 1),
     this.runCacheEvictionOnStartup = true,
+    this.defaultTrustedProviders = DEFAULT_NIP85_PROVIDERS,
     this.debugMode = false,
   });
 }

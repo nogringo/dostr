@@ -3,15 +3,12 @@
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
-
-import 'nwc_for_ndk.dart';
 
 void main() async {
   // We use an empty bootstrap relay list,
   // since NWC will provide the relay we connect to so we don't need default relays
   final ndk = Ndk.emptyBootstrapRelaysConfig();
-  final nwc = nwcFor(ndk);
+  final nwc = ndk.nwc;
 
   Logger.setLogLevel(LogLevel.warning);
 

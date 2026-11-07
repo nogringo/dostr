@@ -5,10 +5,10 @@ import 'dart:io';
 import 'wallets_setup.dart';
 
 Future<void> main() async {
-  final setup = await setUpWallets();
+  final ndk = await setUpWallets();
 
   try {
-    final wallets = await setup.wallets.getWallets();
+    final wallets = await ndk.wallets.getWallets();
     if (wallets.isEmpty) {
       print('No wallets stored yet.');
       return;
@@ -20,7 +20,7 @@ Future<void> main() async {
       orElse: () => throw StateError('Wallet not found: $walletId'),
     );
 
-    final balances = await setup.wallets
+    final balances = await ndk.wallets
         .getBalancesStream(wallet.id)
         .first
         .timeout(const Duration(seconds: 12));
@@ -35,6 +35,6 @@ Future<void> main() async {
       print('- ${balance.amount} ${balance.unit}');
     }
   } finally {
-    await setup.ndk.destroy();
+    await ndk.destroy();
   }
 }

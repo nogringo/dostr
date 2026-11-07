@@ -7,7 +7,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
-import 'package:http/http.dart' as http;
 import 'package:media_kit/media_kit.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
@@ -16,11 +15,6 @@ import 'package:ndk_demo/router.dart';
 import 'package:ndk_drift/ndk_drift.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
 import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk_cashu/ndk_cashu.dart';
-import 'package:ndk_nip17/ndk_nip17.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
-import 'package:ndk_wallets/ndk_wallets.dart';
 
 import 'dm_live_state.dart';
 import 'l10n/generated/sample_app_localizations.dart';
@@ -29,10 +23,6 @@ import 'protocol_registration.dart';
 bool signerAppAvailable = false;
 
 late Ndk ndk;
-late Dms dms;
-late Nwc nwc;
-late Cashu cashu;
-late Wallets wallets;
 late NdkFlutter ndkFlutter;
 late NAppUpdateController appUpdater;
 Future<void> Function(String url)? activeWalletProtocolHandler;
@@ -40,7 +30,7 @@ final localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 final appLinks = AppLinks();
 DmLiveState? _dmLiveState;
 DmLiveState get dmLiveState =>
-    _dmLiveState ??= DmLiveState(ndk: ndk, dms: dms)..start();
+    _dmLiveState ??= DmLiveState(ndk: ndk, dms: ndk.dms)..start();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -76,120 +66,12 @@ Future<void> main() async {
     NdkConfig(
       eventVerifier: eventVerifier,
       cache: cacheManager,
+      walletsRepo: FlutterSecureStorageWalletsRepo(storage: secureStorage),
       logLevel: Logger.logLevels.info,
+      cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
     ),
   );
-  final walletsRepo = FlutterSecureStorageWalletsRepo(storage: secureStorage);
-  dms = Dms(
-    accounts: ndk.accounts,
-    giftWrap: ndk.giftWrap,
-    eventVerifier: ndk.config.eventVerifier,
-    getDmRelays: ndk.userRelayLists.getDmRelays,
-    query: (
-      filter, {
-      required relays,
-      required auth,
-      required cacheRead,
-      required timeout,
-    }) =>
-        ndk.requests
-            .query(
-              filter: filter,
-              explicitRelays: relays,
-              auth: auth,
-              cacheRead: cacheRead,
-              timeout: timeout,
-            )
-            .future,
-    publish: (event, {relays}) => ndk.broadcast
-        .broadcast(nostrEvent: event, specificRelays: relays)
-        .broadcastDoneFuture,
-    loadCachedGiftWraps: (pubKey) => ndk.config.cache.loadEvents(
-      kinds: [GiftWrap.kGiftWrapEventkind],
-      tags: {
-        'p': [pubKey],
-      },
-    ),
-  );
-  nwc = Nwc(
-    query: (filter, {required relays, required timeout, onTimeout}) =>
-        ndk.requests
-            .query(
-              name: 'nwc',
-              filter: filter,
-              explicitRelays: relays,
-              timeout: timeout,
-              timeoutCallback: onTimeout,
-              cacheRead: false,
-              cacheWrite: false,
-            )
-            .future,
-    subscribe: (filter, {required relays}) {
-      final response = ndk.requests.subscription(
-        name: 'nwc',
-        filter: filter,
-        explicitRelays: relays,
-      );
-      return (
-        events: response.stream,
-        sent: (timeout) =>
-            ndk.relays.waitForRequestSent(response.requestId, timeout),
-        close: () => ndk.requests.closeSubscription(response.requestId),
-      );
-    },
-    publish: (event, {required relays, required signer}) => ndk.broadcast
-        .broadcast(
-          nostrEvent: event,
-          specificRelays: relays,
-          customSigner: signer,
-          retryDelivery: false,
-          saveToCache: false,
-        )
-        .broadcastDoneFuture,
-    eventSignerFactory: ndk.config.eventSignerFactory,
-    zaps: ndk.zaps,
-  );
-  final cashuHttp = NdkHttp(http.Client());
-  cashu = Cashu(
-    cashuRepo: CashuRepoImpl(client: cashuHttp),
-    walletsRepo: walletsRepo,
-    storage: cacheManager,
-    cashuKeyDerivation: DartCashuKeyDerivation(),
-    mintRecommendations: CashuMintRecommendations(
-      query: (filter, {required relays, required timeout}) => ndk.requests
-          .query(filter: filter, explicitRelays: relays, timeout: timeout)
-          .future,
-    ),
-    cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
-  );
-  wallets = Wallets(
-    repository: walletsRepo,
-    providers: [
-      CashuWalletProvider(cashu),
-      NwcWalletProvider(nwc),
-      LnurlWalletProvider(ndk.lnurl),
-      const Bolt12WalletProvider(),
-      LnBitsWalletProvider(),
-    ],
-  );
-  ndk.addLifecycleHooks(
-    onBackgrounded: (backgrounded) async {
-      await nwc.setBackgrounded(backgrounded);
-      wallets.setBackgrounded(backgrounded);
-    },
-    onDestroy: () async {
-      await nwc.disconnectAll();
-      cashuHttp.abortPending();
-      await wallets.dispose();
-    },
-  );
-  ndkFlutter = NdkFlutter(
-    ndk: ndk,
-    wallets: wallets,
-    cashu: cashu,
-    nwc: nwc,
-    storage: secureStorage,
-  );
+  ndkFlutter = NdkFlutter(ndk: ndk, storage: secureStorage);
   appUpdater = NAppUpdateController.self(
     ndkFlutter: ndkFlutter,
     app: const SoftwareAppRef(

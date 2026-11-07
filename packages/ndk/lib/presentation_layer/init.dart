@@ -9,8 +9,14 @@ import 'cache_manager_replaceable_events.dart';
 import 'connectivity.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart';
-import 'package:ndk_blossom/ndk_blossom.dart' show BlossomUserServerList;
+import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
+import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_nip17/ndk_nip17.dart';
+import 'package:ndk_nip82/ndk_nip82.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:ndk_nwc/ndk_nwc.dart';
+import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_requests/ndk_requests.dart';
@@ -72,6 +78,176 @@ class Initialization {
 
   late Nip05Usecase nip05;
   late Nip77 nip77;
+
+  // The usecases below are built on first use, so an app that never touches
+  // them opens no wallet connection and resumes no Cashu quote.
+
+  Blossom? _blossom;
+  Blossom get blossom => _blossom ??= Blossom(
+    accounts: accounts,
+    eventSignerFactory: _ndkConfig.eventSignerFactory,
+    authHandler: _ndkConfig.authHandler,
+    getUserServerList: (pubkey) =>
+        blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+  );
+
+  late final Files files = Files(blossom);
+
+  late final Dms dms = Dms(
+    accounts: accounts,
+    giftWrap: giftWrap,
+    eventVerifier: _ndkConfig.eventVerifier,
+    getDmRelays: userRelayLists.getDmRelays,
+    query:
+        (
+          filter, {
+          required relays,
+          required auth,
+          required cacheRead,
+          required timeout,
+        }) => requests
+            .query(
+              name: 'dms',
+              filter: filter,
+              explicitRelays: relays,
+              auth: auth,
+              cacheRead: cacheRead,
+              timeout: timeout,
+            )
+            .future,
+    publish: (event, {relays}) => broadcast
+        .broadcast(nostrEvent: event, specificRelays: relays)
+        .broadcastDoneFuture,
+    loadCachedGiftWraps: (pubKey) => _ndkConfig.cache.loadEvents(
+      kinds: [GiftWrap.kGiftWrapEventkind],
+      tags: {
+        'p': [pubKey],
+      },
+    ),
+  );
+
+  late final Software software = Software(
+    query: (filter, {relays, timeout}) async {
+      final response = requests.query(
+        name: 'software',
+        filter: filter,
+        explicitRelays: relays,
+        timeout: timeout,
+      );
+      final events = await response.future;
+      return (
+        events: events,
+        anyRelayCompleted: response.relayOutcomes.values.any(
+          (outcome) => outcome.status == RelayRequestStatus.eose,
+        ),
+      );
+    },
+    subscribe: (filter, {relays}) {
+      final response = requests.subscription(
+        name: 'software-watch',
+        filter: filter,
+        explicitRelays: relays,
+        cacheRead: true,
+        cacheWrite: true,
+      );
+      return (
+        events: response.stream,
+        close: () => requests.closeSubscription(
+          response.requestId,
+          debugLabel: 'software release watcher cancelled',
+        ),
+      );
+    },
+  );
+
+  late final TrustedAssertions trustedAssertions = TrustedAssertions(
+    query: (filter, {required relay}) => requests
+        .query(name: 'ta', filter: filter, explicitRelays: [relay])
+        .future,
+    subscribe: (filter, {required relay}) {
+      final response = requests.subscription(
+        name: 'ta',
+        filter: filter,
+        explicitRelays: [relay],
+      );
+      return (
+        events: response.stream,
+        close: () => requests.closeSubscription(response.requestId),
+      );
+    },
+    defaultProviders: _ndkConfig.defaultTrustedProviders,
+  );
+
+  Nwc? _nwc;
+  Nwc get nwc => _nwc ??= Nwc(
+    query: (filter, {required relays, required timeout, onTimeout}) => requests
+        .query(
+          name: 'nwc',
+          filter: filter,
+          explicitRelays: relays,
+          timeout: timeout,
+          timeoutCallback: onTimeout,
+          cacheRead: false,
+          cacheWrite: false,
+        )
+        .future,
+    subscribe: (filter, {required relays}) {
+      final response = requests.subscription(
+        name: 'nwc',
+        filter: filter,
+        explicitRelays: relays,
+      );
+      return (
+        events: response.stream,
+        sent: (timeout) =>
+            relayManager.waitForRequestSent(response.requestId, timeout),
+        close: () => requests.closeSubscription(response.requestId),
+      );
+    },
+    publish: (event, {required relays, required signer}) => broadcast
+        .broadcast(
+          nostrEvent: event,
+          specificRelays: relays,
+          customSigner: signer,
+          retryDelivery: false,
+          saveToCache: false,
+        )
+        .broadcastDoneFuture,
+    eventSignerFactory: _ndkConfig.eventSignerFactory,
+    zaps: zaps,
+  );
+
+  late final WalletsRepo _walletsRepo =
+      _ndkConfig.walletsRepo ?? WalletsRepo.fromCache(_ndkConfig.cache);
+
+  late final Cashu cashu = Cashu(
+    cashuRepo: CashuRepoImpl(client: _httpRequestDS),
+    walletsRepo: _walletsRepo,
+    storage: switch (_ndkConfig.cache) {
+      CashuStorage storage => storage,
+      _ => MemCashuStorage(),
+    },
+    cashuKeyDerivation: DartCashuKeyDerivation(),
+    mintRecommendations: CashuMintRecommendations(
+      query: (filter, {required relays, required timeout}) => requests
+          .query(filter: filter, explicitRelays: relays, timeout: timeout)
+          .future,
+    ),
+    cashuUserSeedphrase: _ndkConfig.cashuUserSeedphrase,
+    autoVerifyMintCounters: _ndkConfig.autoVerifyMintCounters,
+  );
+
+  Wallets? _wallets;
+  Wallets get wallets => _wallets ??= Wallets(
+    repository: _walletsRepo,
+    providers: [
+      CashuWalletProvider(cashu),
+      NwcWalletProvider(nwc),
+      LnurlWalletProvider(lnurl),
+      const Bolt12WalletProvider(),
+      LnBitsWalletProvider(),
+    ],
+  );
 
   late final NetworkEngine engine;
 
@@ -374,6 +550,17 @@ class Initialization {
   /// Close all active NIP-77 negotiations
   void closeAllNip77Negotiations() {
     nip77.closeAll();
+  }
+
+  Future<void> setBackgrounded(bool backgrounded) async {
+    _wallets?.setBackgrounded(backgrounded);
+    await _nwc?.setBackgrounded(backgrounded);
+  }
+
+  /// Closes the usecases built on first use, if they were.
+  Future<void> disposeLazyUsecases() async {
+    _blossom?.abortPending();
+    await Future.wait([?_nwc?.disconnectAll(), ?_wallets?.dispose()]);
   }
 
   Future<void> dispose() async {

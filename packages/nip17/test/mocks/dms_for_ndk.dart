@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip17/ndk_nip17.dart';
 
 Dms dmsFor(Ndk ndk) => Dms(
   accounts: ndk.accounts,

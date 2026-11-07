@@ -1,5 +1,4 @@
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
 
 Blossom blossomFor(Ndk ndk) => Blossom(
   accounts: ndk.accounts,

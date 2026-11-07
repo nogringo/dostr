@@ -2,7 +2,7 @@
 
 [NIP-17](https://github.com/nostr-protocol/nips/blob/master/17.md) private direct messages for [NDK](https://pub.dev/packages/ndk): gift-wrapped text (kind `14`) and encrypted file (kind `15`) messages, conversations grouped by peer, and the DM relay list (kind `10050`).
 
-It does not depend on `ndk`. It wraps through [`ndk_nip59`](https://pub.dev/packages/ndk_nip59), takes its accounts and auth policies from [`ndk_signer`](https://pub.dev/packages/ndk_signer), and asks you how to reach the relays and the cache.
+It does not depend on `ndk`. It wraps through [`ndk_nip59`](https://pub.dev/packages/ndk_nip59), takes its accounts and auth policies from [`ndk_signer`](https://pub.dev/packages/ndk_signer), and asks you how to reach the relays and the cache. NDK exposes it, wired to its relays and cache, as `ndk.dms`: build it yourself, as below, only to wire it differently.
 
 ## Install
 

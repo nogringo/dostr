@@ -3,7 +3,6 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';

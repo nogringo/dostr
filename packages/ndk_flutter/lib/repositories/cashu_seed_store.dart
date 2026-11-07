@@ -1,5 +1,4 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk/ndk.dart';
 
 /// Loads the cashu user seed phrase from platform secure storage

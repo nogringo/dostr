@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/foundation.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip17/ndk_nip17.dart';
 
 class DmLiveState extends ChangeNotifier {
   final Ndk ndk;

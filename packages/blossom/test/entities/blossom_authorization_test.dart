@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:test/test.dart';
 
 Nip01Event _authEvent(String content) => Nip01Event(

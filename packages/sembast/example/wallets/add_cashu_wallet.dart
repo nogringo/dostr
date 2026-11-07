@@ -10,12 +10,12 @@ Future<void> main() async {
   final mintUrl = Platform.environment['MINT_URL']!;
   final walletName = Platform.environment['WALLET_NAME'] ?? 'My Cashu Wallet';
 
-  final setup = await setUpWallets();
+  final ndk = await setUpWallets();
 
   try {
-    final mintInfo = await setup.cashu.getMintInfoNetwork(mintUrl: mintUrl);
+    final mintInfo = await ndk.cashu.getMintInfoNetwork(mintUrl: mintUrl);
 
-    final wallet = setup.wallets.createWallet(
+    final wallet = ndk.wallets.createWallet(
       id: 'wallet_${DateTime.now().microsecondsSinceEpoch}',
       name: walletName,
       type: WalletType.CASHU,
@@ -25,11 +25,11 @@ Future<void> main() async {
       metadata: {'mintUrl': mintUrl, 'mintInfo': mintInfo.toJson()},
     );
 
-    await setup.wallets.addWallet(wallet);
+    await ndk.wallets.addWallet(wallet);
 
     print('Added ${wallet.name}.');
     print('');
-    final wallets = await setup.wallets.getWallets();
+    final wallets = await ndk.wallets.getWallets();
     print('Wallets (${wallets.length}):');
     for (final wallet in wallets) {
       print(
@@ -38,6 +38,6 @@ Future<void> main() async {
       );
     }
   } finally {
-    await setup.ndk.destroy();
+    await ndk.destroy();
   }
 }

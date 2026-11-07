@@ -1,10 +1,8 @@
 import 'dart:io';
 
-import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk/ndk.dart';
 
 import '../cli_accounts_store.dart';
-import '../cli_wallets.dart';
 import '../cli_command.dart';
 
 /// `ndk zaps` - NIP-57 zap operations.
@@ -13,7 +11,7 @@ import '../cli_command.dart';
 /// - `zap`      pay a zap from a stored NWC sending wallet
 /// - `receipts` list zap receipts for a recipient pubkey
 class ZapsCliCommand extends CliCommand {
-  late CliWallets _usecases;
+  late Ndk _ndk;
 
   @override
   String get name => 'zaps';
@@ -51,7 +49,7 @@ Options (common):
     WalletsRepo walletsRepo,
     CliAccountsStore accountsStore,
   ) async {
-    _usecases = CliWallets(ndk, walletsRepo);
+    _ndk = ndk;
     if (args.isEmpty || _isHelp(args.first)) {
       stdout.writeln(_help);
       return 0;
@@ -161,13 +159,10 @@ Options (common):
         : _defaultZapRelays(ndk);
 
     stdout.writeln('Connecting to NWC wallet ${wallet.id} ...');
-    final connection = await _usecases.nwc.connect(
-      nwcUrl,
-      doGetInfoMethod: false,
-    );
+    final connection = await _ndk.nwc.connect(nwcUrl, doGetInfoMethod: false);
     try {
       stdout.writeln('Zapping $lud16 ($amount sats) ...');
-      final response = await _usecases.nwc.zap(
+      final response = await _ndk.nwc.zap(
         nwcConnection: connection,
         lnurl: lud16,
         amountSats: amount,
@@ -206,7 +201,7 @@ Options (common):
       }
       return 0;
     } finally {
-      await _usecases.nwc.disconnect(connection);
+      await _ndk.nwc.disconnect(connection);
     }
   }
 
@@ -261,7 +256,7 @@ Options (common):
     WalletsRepo walletsRepo,
     Ndk ndk,
   ) async {
-    final wallets = await _usecases.wallets.getWallets();
+    final wallets = await _ndk.wallets.getWallets();
     if (wallets.isEmpty) {
       throw StateError(
         'No wallets available. Use "ndk wallets add nwc ..." first.',
@@ -279,7 +274,7 @@ Options (common):
       }
       return match;
     }
-    final defaultSending = _usecases.wallets.defaultWalletForSending;
+    final defaultSending = _ndk.wallets.defaultWalletForSending;
     if (defaultSending != null && defaultSending.type == WalletType.NWC) {
       return defaultSending;
     }

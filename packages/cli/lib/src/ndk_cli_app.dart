@@ -54,7 +54,7 @@ class NdkCliApp {
 
     final walletsRepo = await _createWalletsRepo();
     final cache = await _createCache();
-    final ndk = _createNdk(cache, globalOptions.logLevel);
+    final ndk = _createNdk(cache, walletsRepo, globalOptions.logLevel);
     try {
       final accountsStore = await CliAccountsStore.load();
       if (command.restoreAccountsOnStartup &&
@@ -127,11 +127,16 @@ class NdkCliApp {
     );
   }
 
-  Ndk _createNdk(SembastCacheManager cache, LogLevel logLevel) {
+  Ndk _createNdk(
+    SembastCacheManager cache,
+    WalletsRepo walletsRepo,
+    LogLevel logLevel,
+  ) {
     Logger.setLogLevel(logLevel);
     return Ndk(
       NdkConfig(
         cache: cache,
+        walletsRepo: walletsRepo,
         eventVerifier: _CliEventVerifier(),
         bootstrapRelays: const [],
         logLevel: logLevel,

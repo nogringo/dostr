@@ -84,7 +84,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: uri.text.isNotEmpty
             ? () async {
-                connection = await nwc.connect(
+                connection = await ndk.nwc.connect(
                   uri.text,
                   doGetInfoMethod: true,
                 );
@@ -106,7 +106,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                final b = await nwc.getBalance(connection!);
+                final b = await ndk.nwc.getBalance(connection!);
                 setState(() {
                   balance = b;
                 });
@@ -143,7 +143,7 @@ class _ZapsPageState extends State<ZapsPage> {
           FilledButton(
             onPressed: canMakeInvoice
                 ? () async {
-                    final invoice = await nwc.makeInvoice(
+                    final invoice = await ndk.nwc.makeInvoice(
                       connection!,
                       amountSats: int.tryParse(amount.text) ?? 0,
                     );
@@ -184,7 +184,7 @@ class _ZapsPageState extends State<ZapsPage> {
           FilledButton(
             onPressed: canPayInvoice
                 ? () async {
-                    final p = await nwc.payInvoice(
+                    final p = await ndk.nwc.payInvoice(
                       connection!,
                       invoice: invoice.text,
                     );
@@ -208,7 +208,7 @@ class _ZapsPageState extends State<ZapsPage> {
       FilledButton(
         onPressed: connection != null
             ? () async {
-                await nwc.disconnect(connection!);
+                await ndk.nwc.disconnect(connection!);
                 setState(() {
                   connection = null;
                   balance = null;

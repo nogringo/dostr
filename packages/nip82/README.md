@@ -2,7 +2,7 @@
 
 [NIP-82](https://github.com/nostr-protocol/nips/blob/master/82.md) software applications for [NDK](https://pub.dev/packages/ndk): discover the application (kind `32267`), release (kind `30063`) and asset (kind `3063`) events of a trusted publisher, and pick a compatible Android update among them.
 
-It does not depend on `ndk`. It asks you how to query and subscribe to relays. `ndk_flutter` builds on it for its app update controller, widgets and verified APK installer.
+It does not depend on `ndk`. It asks you how to query and subscribe to relays. NDK exposes it, wired to its requests, as `ndk.software`: build it yourself, as below, only to wire it differently. `ndk_flutter` builds on it for its app update controller, widgets and verified APK installer.
 
 ## Install
 

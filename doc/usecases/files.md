@@ -8,24 +8,15 @@ icon: file-zip
 
 ## Setup
 
-Files lives in the `ndk_blossom` package, which does not depend on `ndk`.
+NDK exposes Files as `ndk.files`, on top of [Blossom](/usecases/blossom.md) (`ndk.blossom`).
 
-```yaml
-dependencies:
-  ndk: ^0.11.0-dev.2
-  ndk_blossom: ^0.1.0
-```
-
-Files wraps a [Blossom](/usecases/blossom.md) client, built on top of an NDK
-instance:
-
-:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="7-15" title="" :::
+`Files` lives in the `ndk_blossom` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Files` from a `Blossom` client, see its [README](https://pub.dev/packages/ndk_blossom).
 
 ## Example
 
-:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="20-25" title="blossom" :::
+:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="10-13" title="blossom" :::
 
-:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="38-40" title="non blossom url" :::
+:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="25-27" title="non blossom url" :::
 
 ## How to use
 
@@ -55,7 +46,7 @@ may learn, described in
 a plain url, which is fetched directly.
 
 ```dart
-await files.upload(
+await ndk.files.upload(
   file: myFile,
   auth: AuthPolicy.require(account),
 );

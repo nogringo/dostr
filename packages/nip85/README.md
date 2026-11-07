@@ -2,7 +2,7 @@
 
 [NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions for [NDK](https://pub.dev/packages/ndk): metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`), so the device does not have to.
 
-It does not depend on `ndk`. It asks you how to query and subscribe to a relay.
+It does not depend on `ndk`. It asks you how to query and subscribe to a relay. NDK exposes it, wired to its requests and `NdkConfig.defaultTrustedProviders`, as `ndk.ta`: build it yourself, as below, only to wire it differently.
 
 ## Install
 

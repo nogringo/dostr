@@ -3,7 +3,7 @@
 Nostr Wallet Connect implementation for dart NDK.
 https://nwc.dev
 
-It does not depend on `ndk`: it asks you how to reach the relays.
+It does not depend on `ndk`: it asks you how to reach the relays. NDK exposes it, wired to its relays and lifecycle, as `ndk.nwc`: build it yourself, as below, only to wire it differently.
 
 ## Resources
 - https://github.com/getAlby/awesome-nwc for more info how to get a wallet supporting NWC
@@ -85,4 +85,4 @@ await ndk.destroy();
 
 `nwc.zap(...)` pays a zap through a connection and needs `zaps`. `NwcWalletProvider(nwc)` plugs NWC into `Wallets` from [ndk_wallets](../wallets/).
 
-More in [example/](example/), where [nwc_for_ndk.dart](example/nwc_for_ndk.dart) builds `Nwc` from an NDK instance.
+More in [example/](example/).
