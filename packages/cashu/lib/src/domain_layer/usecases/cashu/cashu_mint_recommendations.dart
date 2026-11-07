@@ -1,5 +1,4 @@
 import '../../entities/cashu/cashu_mint_recommendation.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// The events matching [filter] on [relays], until [timeout]. Cached events

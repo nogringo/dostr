@@ -31,6 +31,7 @@ dependencies:
   ndk_isolates: ^0.1.0
   ndk_logger: ^0.1.0
   ndk_nip01: ^0.1.0
+  ndk_url_set: ^0.1.0
   rxdart: ^0.28.0
 
 dev_dependencies:

@@ -1,8 +1,8 @@
-import 'package:ndk_core/shared/helpers/mutex_simple.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'cache_manager.dart';
 import 'event_cache_records.dart';
+import 'mutex_simple.dart';
 
 typedef EventPayloadDecryptor = Future<String?> Function();
 typedef DecryptedPayloadFailureClassifier =

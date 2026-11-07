@@ -4,11 +4,10 @@ import 'package:rxdart/rxdart.dart';
 
 import 'package:ndk_core/config/rx_defaults.dart';
 import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'ndk_request.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_cache/ndk_cache.dart';

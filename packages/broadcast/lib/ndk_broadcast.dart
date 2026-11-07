@@ -19,4 +19,5 @@ export 'src/broadcast_exceptions.dart';
 export 'src/broadcast_response.dart';
 export 'src/broadcast_sender.dart';
 export 'src/broadcast_url_set.dart';
+export 'src/delivery_responses.dart';
 export 'src/reaction.dart';

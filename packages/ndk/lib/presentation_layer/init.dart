@@ -19,7 +19,12 @@ import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
-    show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
+    show
+        BlossomServersFetcher,
+        CacheManagerReplaceableEvents,
+        DmRelaysFetcher,
+        Nip65Fetcher,
+        fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
 import 'package:ndk_search/ndk_search.dart';
@@ -195,9 +200,17 @@ class Initialization {
       accounts: accounts,
       urlLists: urlLists,
       isEventInFlight: broadcastSender.isEventInFlight,
-      send: (event, relayUrl, auth) => broadcastSender
-          .broadcast(nostrEvent: event, specificRelays: [relayUrl], auth: auth)
-          .broadcastDoneFuture,
+      send: (event, relayUrl, auth) async => [
+        for (final response
+            in await broadcastSender
+                .broadcast(
+                  nostrEvent: event,
+                  specificRelays: [relayUrl],
+                  auth: auth,
+                )
+                .broadcastDoneFuture)
+          response.toDeliveryResponse(),
+      ],
     );
     broadcast = Broadcast(
       broadcastSender: broadcastSender,

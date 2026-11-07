@@ -1,12 +1,12 @@
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'broadcast_response.dart';
 import 'broadcast_sender.dart';
+import 'delivery_responses.dart';
 import 'reaction.dart';
 
 /// Public-facing broadcast facade. \
@@ -128,7 +128,7 @@ class Broadcast {
           await pendingEnrollment;
           await pendingDelivery.persistSpecificRelayBroadcastResult(
             nostrEvent,
-            responses,
+            [for (final response in responses) response.toDeliveryResponse()],
           );
         }
       } catch (_) {}

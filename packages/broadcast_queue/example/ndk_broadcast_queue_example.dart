@@ -22,7 +22,10 @@ Future<void> main(List<String> args) async {
         relays: [relayUrl],
         auth: auth,
       );
-      return (await publish.done).values.toList();
+      return [
+        for (final response in (await publish.done).values)
+          response.toDeliveryResponse(),
+      ];
     },
   );
 

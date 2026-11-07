@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'jit_request_plan.dart';
 

@@ -2,8 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ndk_auth/ndk_auth.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
@@ -11,13 +9,14 @@ import 'package:ndk_url_set/ndk_url_set.dart';
 
 import 'delivery_policy.dart';
 import 'delivery_records.dart';
+import 'delivery_response.dart';
 import 'delivery_store.dart';
 import 'event_delivery_snapshot.dart';
 
 /// Sends [event] to [relayUrl] alone, authenticating as [auth] allows, and
 /// completes with what the relay answered. It must not enqueue anything.
 typedef DeliverySend =
-    Future<List<RelayBroadcastResponse>> Function(
+    Future<List<DeliveryResponse>> Function(
       Nip01Event event,
       String relayUrl,
       AuthPolicy? auth,
@@ -389,7 +388,7 @@ class PendingBroadcastDelivery {
 
   Future<void> persistSpecificRelayBroadcastResult(
     Nip01Event event,
-    List<RelayBroadcastResponse> responses,
+    List<DeliveryResponse> responses,
   ) async {
     if (_stopped) {
       return;
@@ -423,7 +422,6 @@ class PendingBroadcastDelivery {
         continue;
       }
 
-      final isAcked = response.okReceived && response.broadcastSuccessful;
       final nextState = policy.resolveNextState(
         response,
         auth: _authForTarget(current).policy,
@@ -444,10 +442,12 @@ class PendingBroadcastDelivery {
           attemptCount: current.attemptCount + 1,
           lastAttemptAt: attemptTimestamp,
           nextRetryAt: nextRetryAt,
-          lastOkMessage: isAcked ? response.msg : current.lastOkMessage,
-          lastError: isAcked
+          lastOkMessage: response.accepted
+              ? response.message
+              : current.lastOkMessage,
+          lastError: response.accepted
               ? null
-              : response.failure?.toString() ?? response.msg,
+              : response.failure ?? response.message,
         ),
       );
     }
@@ -634,7 +634,7 @@ class PendingBroadcastDelivery {
           continue;
         }
 
-        final List<RelayBroadcastResponse> responses;
+        final List<DeliveryResponse> responses;
         try {
           responses = await _send(event, relayUrl, auth.policy);
         } catch (error, stackTrace) {

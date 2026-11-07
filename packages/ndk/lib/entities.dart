@@ -7,7 +7,6 @@ library;
 export 'package:ndk_broadcast/ndk_broadcast.dart' show NdkBroadcastResponse;
 export 'package:ndk_core/ndk_core.dart'
     show
-        Filter,
         Nip01EventBase64,
         Nip01EventDeprecated,
         // ignore: deprecated_member_use

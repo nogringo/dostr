@@ -1,7 +1,6 @@
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';

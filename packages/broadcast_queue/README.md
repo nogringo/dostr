@@ -2,7 +2,7 @@
 
 Persisted broadcast queue for Nostr: it keeps an event on its way to every relay it is meant for, across offline periods, delayed remote signing and app restarts.
 
-It stores one delivery record per event and one target per relay, retries the targets that are due with a backoff that depends on the event kind, asks a remote signer again for the events it has not signed yet, and resolves later the relay lists that were unavailable when the event went out. It runs on [`ndk_core`](https://pub.dev/packages/ndk_core) and does not depend on `ndk`.
+It stores one delivery record per event and one target per relay, retries the targets that are due with a backoff that depends on the event kind, asks a remote signer again for the events it has not signed yet, and resolves later the relay lists that were unavailable when the event went out. It sends through a callback, which [`ndk_core`](https://pub.dev/packages/ndk_core) can answer, and depends on neither `ndk_core` nor `ndk`.
 
 ## With NDK
 
@@ -43,7 +43,17 @@ final queue = PendingBroadcastDelivery(
   isEventInFlight: relayManager.isBroadcasting,
   send: (event, relayUrl, auth) async {
     final publish = relayPublishes.publish(event, relays: [relayUrl], auth: auth);
-    return (await publish.done).values.toList();
+    return [
+      for (final response in (await publish.done).values)
+        DeliveryResponse(
+          relayUrl: response.relayUrl,
+          accepted: response.okReceived && response.broadcastSuccessful,
+          message: response.msg,
+          failure: response.failure?.toString(),
+          identityNotAllowed:
+              response.failure?.kind == RelayFailureKind.identityNotAllowed,
+        ),
+    ];
   },
 );
 
@@ -58,7 +68,7 @@ queue.startPeriodicRetry(
 );
 ```
 
-`store` is a `DeliveryStore`: the delivery records and relay targets, and the events they carry. `accounts` is the `AuthAccounts` of [`ndk_auth`](https://pub.dev/packages/ndk_auth), where a retry finds the signer and the NIP-42 identity of an event again after a restart. `urlLists` looks up the lists of an `UrlSet` from [`ndk_url_set`](https://pub.dev/packages/ndk_url_set). `send` must only publish: it is how a retry goes out, so it must not enqueue the event again.
+`store` is a `DeliveryStore`: the delivery records and relay targets, and the events they carry. `accounts` is the `AuthAccounts` of [`ndk_auth`](https://pub.dev/packages/ndk_auth), where a retry finds the signer and the NIP-42 identity of an event again after a restart. `urlLists` looks up the lists of an `UrlSet` from [`ndk_url_set`](https://pub.dev/packages/ndk_url_set). `send` must only publish, and complete with a `DeliveryResponse` for each relay: it is how a retry goes out, so it must not enqueue the event again. `toDeliveryResponse` of [`ndk_broadcast`](https://pub.dev/packages/ndk_broadcast) converts a `RelayBroadcastResponse` of `ndk_core`.
 
 After the first send of an enqueued event, hand its answers to `persistSpecificRelayBroadcastResult` so the relays that accepted it are not retried. Call `enqueueUnresolvedUrlSets` with the parts of its `UrlSet` that could not be resolved yet. `loadEventDelivery` and `loadDeliveries` return the persisted state of each event, joined with its relay targets.
 
@@ -75,4 +85,4 @@ A relay answer that cannot change, such as `blocked:` or `invalid:`, stops retri
 
 ## Coming from `ndk`
 
-The classes keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports changed package: `package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart`, `package:ndk/domain_layer/usecases/broadcast/delivery_policy.dart` and `package:ndk/domain_layer/entities/event_delivery_inspection.dart` are now `package:ndk_broadcast_queue/ndk_broadcast_queue.dart`. So are `EventDeliveryRecord`, `RelayDeliveryTarget`, `UnresolvedUrlSet` and their enums, which left `package:ndk/domain_layer/entities/event_cache_records.dart`. `PendingBroadcastDelivery` takes `store`, `urlLists`, `send` and `isEventInFlight` instead of `cacheManager` and `broadcastSender`.
+The classes keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports changed package: `package:ndk/domain_layer/usecases/broadcast/pending_broadcast_delivery.dart`, `package:ndk/domain_layer/usecases/broadcast/delivery_policy.dart` and `package:ndk/domain_layer/entities/event_delivery_inspection.dart` are now `package:ndk_broadcast_queue/ndk_broadcast_queue.dart`. So are `EventDeliveryRecord`, `RelayDeliveryTarget`, `UnresolvedUrlSet` and their enums, which left `package:ndk/domain_layer/entities/event_cache_records.dart`. `PendingBroadcastDelivery` takes `store`, `urlLists`, `send` and `isEventInFlight` instead of `cacheManager` and `broadcastSender`. `send` completes with `DeliveryResponse`s, and `persistSpecificRelayBroadcastResult` and `DeliveryPolicy.resolveNextState` take them, instead of `RelayBroadcastResponse`s.

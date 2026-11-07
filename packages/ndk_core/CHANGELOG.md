@@ -7,15 +7,15 @@
 #### Imports and what moved
 
 These files used to live in `ndk`. A deep import keeps its path and changes
-package: `package:ndk/domain_layer/entities/filter.dart` is now
-`package:ndk_core/domain_layer/entities/filter.dart`. `package:ndk/ndk.dart`
+package: `package:ndk/domain_layer/entities/relay.dart` is now
+`package:ndk_core/domain_layer/entities/relay.dart`. `package:ndk/ndk.dart`
 still exports what it did.
 
 What lives under `lib/src` is internal. These files moved there and can no
 longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
 `domain_layer/usecases/nip42/auth_event.dart`,
-`shared/decode_nostr_msg/decode_nostr_msg.dart`,
-`shared/helpers/url_normalizer.dart` and `shared/nips/nip01/client_msg.dart`.
+`shared/decode_nostr_msg/decode_nostr_msg.dart` and
+`shared/nips/nip01/client_msg.dart`.
 
 `IsolateManager` is in [`ndk_isolates`](https://pub.dev/packages/ndk_isolates):
 `package:ndk/shared/isolates/isolate_manager.dart` is now
@@ -37,9 +37,12 @@ are now `package:ndk_logger/ndk_logger.dart`, which
 exports. `TimeoutPausable` stays here, in
 `package:ndk_core/domain_layer/entities/timeout_pausable.dart`.
 
-`package:ndk_core/ndk_core.dart` exports `cleanRelayUrl` and `cleanRelayUrls`,
-the relay url normalization ndk_core connects with.
-`shared/helpers/relay_helper.dart` still imports as before.
+`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization ndk_core
+connects with, are in [`ndk_url_set`](https://pub.dev/packages/ndk_url_set):
+`package:ndk/shared/helpers/relay_helper.dart` is now
+`package:ndk_url_set/ndk_url_set.dart`, and `package:ndk_core/ndk_core.dart`
+still exports them. `relayUrlRegex` and the url normalizer behind them are
+internal to `ndk_url_set`.
 
 `Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
@@ -52,8 +55,9 @@ the relay url normalization ndk_core connects with.
 `package:ndk/domain_layer/repositories/event_verifier.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`, which `package:ndk_core/ndk_core.dart`
 exports.
-`EventKindClassification` is there too:
-`package:ndk/shared/nips/nip01/event_kind_classification.dart` is now
+`EventKindClassification` and `Filter` are there too:
+`package:ndk/shared/nips/nip01/event_kind_classification.dart` and
+`package:ndk/domain_layer/entities/filter.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`.
 
 `EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`,
@@ -76,7 +80,8 @@ NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 `Tuple` and the `Helpers` of `ndk` are gone. `ndk_core` keeps a `Helpers` of
 its own with only `getSecureRandomHex`, and `Nip01Event.secondsSinceEpoch()`
 replaces `Helpers.now`. `MutexSimple` is in
-`package:ndk_core/shared/helpers/mutex_simple.dart`.
+`package:ndk_core/shared/helpers/mutex_simple.dart`. `castToListOfListOfString`
+of `package:ndk/shared/helpers/list_casting.dart` is gone.
 
 `ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
 `RelayInfoRepo` and `RelayInfoHttpRepoImpl` are in

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 
-import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'ndk_request.dart';
 
 /// Tells which requests ask the same question, so one network request can

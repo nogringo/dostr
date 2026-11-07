@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import '../domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import '../domain_layer/entities/relay_connection_key.dart';

@@ -1,4 +1,4 @@
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'read_write_marker.dart';
 

@@ -23,6 +23,7 @@ library;
 
 export 'src/delivery_policy.dart';
 export 'src/delivery_records.dart';
+export 'src/delivery_response.dart';
 export 'src/delivery_store.dart';
 export 'src/event_delivery_snapshot.dart';
 export 'src/pending_broadcast_delivery.dart';

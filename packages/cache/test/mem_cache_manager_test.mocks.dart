@@ -12,7 +12,7 @@ import 'package:ndk_cache/src/read_write.dart' as _i9;
 import 'package:ndk_cache/src/read_write_marker.dart' as _i7;
 import 'package:ndk_cache/src/relay_set.dart' as _i8;
 import 'package:ndk_cache/src/user_relay_list.dart' as _i5;
-import 'package:ndk_core/domain_layer/entities/filter.dart' as _i11;
+import 'package:ndk_nip01/ndk_nip01.dart' as _i11;
 import 'package:ndk_follows/src/contact_list.dart' as _i12;
 import 'package:ndk_metadatas/src/metadata.dart' as _i3;
 import 'package:ndk_nip01/ndk_nip01.dart' as _i13;

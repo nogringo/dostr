@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'jit_engine_relay_connectivity_data.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import '../network_engine.dart';
 import 'relay_jit_blast_all_strategy.dart';
 import 'relay_jit_pubkey_strategy.dart';

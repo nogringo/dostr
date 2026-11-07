@@ -1,4 +1,4 @@
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/src/relay_helper.dart';
 import 'package:test/test.dart';
 
 void main() {

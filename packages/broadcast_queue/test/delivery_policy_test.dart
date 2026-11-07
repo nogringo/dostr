@@ -1,7 +1,5 @@
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:test/test.dart';
 
@@ -62,11 +60,9 @@ void main() {
       expect(policy.kind, DeliveryPolicyKind.doNotRetry);
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'rate-limited: retry later',
+            message: 'rate-limited: retry later',
           ),
         ),
         RelayDeliveryState.permanentFailure,
@@ -85,11 +81,9 @@ void main() {
       );
 
       final policy = DeliveryPolicy.forEvent(event);
-      final refusal = RelayBroadcastResponse(
+      final refusal = DeliveryResponse(
         relayUrl: 'wss://relay.example',
-        okReceived: false,
-        broadcastSuccessful: false,
-        msg: 'auth-required: please authenticate',
+        message: 'auth-required: please authenticate',
       );
 
       // no identity may ever be revealed here, so retrying every minute could
@@ -105,7 +99,7 @@ void main() {
       );
     });
 
-    test('classifies what ndk_core failed at by its kind, not its text', () {
+    test('classifies a failure by identityNotAllowed, not by its text', () {
       Nip01Event eventOfKind(int kind) => Nip01Event(
         id: 'event-$kind',
         pubKey: 'pubkey',
@@ -115,18 +109,21 @@ void main() {
         content: 'text',
         sig: 'sig',
       );
-      RelayBroadcastResponse failed(RelayFailureKind kind, [String? detail]) =>
-          RelayBroadcastResponse(
-            relayUrl: 'wss://relay.example',
-            failure: RelayFailure(kind, detail),
-          );
+      DeliveryResponse failed(
+        String failure, {
+        bool identityNotAllowed = false,
+      }) => DeliveryResponse(
+        relayUrl: 'wss://relay.example',
+        failure: failure,
+        identityNotAllowed: identityNotAllowed,
+      );
 
       final policy = DeliveryPolicy.forEvent(
         eventOfKind(Nip01Event.kTextNoteKind),
       );
       final identityNotAllowed = failed(
-        RelayFailureKind.identityNotAllowed,
-        'auth-required: please authenticate',
+        'identityNotAllowed: auth-required: please authenticate',
+        identityNotAllowed: true,
       );
 
       expect(
@@ -141,19 +138,17 @@ void main() {
         RelayDeliveryState.authRequired,
       );
       expect(
-        policy.resolveNextState(
-          failed(RelayFailureKind.vetoed, 'invalid signature'),
-        ),
+        policy.resolveNextState(failed('vetoed: invalid signature')),
         RelayDeliveryState.transientFailure,
       );
       expect(
-        policy.resolveNextState(failed(RelayFailureKind.unreachable)),
+        policy.resolveNextState(failed('unreachable')),
         RelayDeliveryState.transientFailure,
       );
       expect(
         DeliveryPolicy.forEvent(
           eventOfKind(20001),
-        ).resolveNextState(failed(RelayFailureKind.unreachable)),
+        ).resolveNextState(failed('unreachable')),
         RelayDeliveryState.permanentFailure,
       );
     });
@@ -173,11 +168,9 @@ void main() {
 
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'auth-required: please authenticate',
+            message: 'auth-required: please authenticate',
           ),
         ),
         RelayDeliveryState.authRequired,
@@ -185,11 +178,9 @@ void main() {
       // Uppercase / leading whitespace must still be classified as auth-required.
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: '  AUTH-REQUIRED: please authenticate',
+            message: '  AUTH-REQUIRED: please authenticate',
           ),
         ),
         RelayDeliveryState.authRequired,
@@ -204,11 +195,9 @@ void main() {
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'invalid signature',
+            message: 'invalid signature',
           ),
         ),
         RelayDeliveryState.permanentFailure,
@@ -243,22 +232,18 @@ void main() {
       // OK=false the delivery to that relay is effectively done.
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'duplicate: already have this event',
+            message: 'duplicate: already have this event',
           ),
         ),
         RelayDeliveryState.acked,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'DUPLICATE: already have this event',
+            message: 'DUPLICATE: already have this event',
           ),
         ),
         RelayDeliveryState.acked,
@@ -280,55 +265,45 @@ void main() {
 
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'policy violation: forbidden kind',
+            message: 'policy violation: forbidden kind',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'kind 1059 is not allowed on this relay',
+            message: 'kind 1059 is not allowed on this relay',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'restricted: not allowed to write',
+            message: 'restricted: not allowed to write',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'invalid: event creation date is too far off',
+            message: 'invalid: event creation date is too far off',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: true,
-            broadcastSuccessful: false,
-            msg: "kind 1111: 'A' tag must reference a kind 32267",
+            message: "kind 1111: 'A' tag must reference a kind 32267",
           ),
         ),
         RelayDeliveryState.permanentFailure,
@@ -350,22 +325,18 @@ void main() {
 
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'rate-limited: slow down',
+            message: 'rate-limited: slow down',
           ),
         ),
         RelayDeliveryState.transientFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'error: backend unavailable',
+            message: 'error: backend unavailable',
           ),
         ),
         RelayDeliveryState.transientFailure,
@@ -387,33 +358,27 @@ void main() {
 
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'bad signature',
+            message: 'bad signature',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'too many tags: 1200',
+            message: 'too many tags: 1200',
           ),
         ),
         RelayDeliveryState.permanentFailure,
       );
       expect(
         policy.resolveNextState(
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'event too large: 999999',
+            message: 'event too large: 999999',
           ),
         ),
         RelayDeliveryState.permanentFailure,

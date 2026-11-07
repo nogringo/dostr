@@ -1,7 +1,6 @@
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_logger/ndk_logger.dart';

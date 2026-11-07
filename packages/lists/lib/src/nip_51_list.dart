@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:ndk_core/shared/helpers/list_casting.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
@@ -353,7 +352,7 @@ class Nip51Set extends Nip51List {
     return Nip01Event(
       pubKey: event.pubKey,
       kind: event.kind,
-      tags: castToListOfListOfString(tags),
+      tags: _castToListOfListOfString(tags),
       content: event.content,
       createdAt: event.createdAt,
     );
@@ -384,4 +383,16 @@ class Nip51Set extends Nip51List {
       }
     }
   }
+}
+
+List<List<String>> _castToListOfListOfString(List<dynamic>? dynamicList) {
+  return (dynamicList ?? []).whereType<List>().map((item) {
+    return item.map((subItem) {
+      if (subItem is String) {
+        return subItem;
+      } else {
+        return subItem?.toString() ?? '';
+      }
+    }).toList();
+  }).toList();
 }

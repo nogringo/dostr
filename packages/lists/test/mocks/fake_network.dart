@@ -1,4 +1,3 @@
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

@@ -5,7 +5,6 @@ import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
@@ -204,11 +203,7 @@ void main() {
         await enqueueUnder(AuthPolicy.require(signable()));
 
         await pendingDelivery.persistSpecificRelayBroadcastResult(event, [
-          RelayBroadcastResponse(
-            relayUrl: 'wss://relay.example',
-            okReceived: true,
-            broadcastSuccessful: true,
-          ),
+          DeliveryResponse(relayUrl: 'wss://relay.example', accepted: true),
         ]);
 
         // a delivery revived after that has to rebuild the policy from the
@@ -232,11 +227,9 @@ void main() {
         await enqueueUnder(AuthPolicy.require(signable()));
 
         await pendingDelivery.persistSpecificRelayBroadcastResult(event, [
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: false,
-            broadcastSuccessful: false,
-            msg: 'auth-required: please authenticate',
+            message: 'auth-required: please authenticate',
           ),
         ]);
         await pendingDelivery.flushForRelay('wss://relay.example');
@@ -403,11 +396,9 @@ void main() {
         );
 
         await pendingDelivery.persistSpecificRelayBroadcastResult(event, [
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: 'wss://relay.example',
-            okReceived: true,
-            broadcastSuccessful: false,
-            msg: 'kind 1059 is not allowed on this relay',
+            message: 'kind 1059 is not allowed on this relay',
           ),
         ]);
 
@@ -569,11 +560,10 @@ void main() {
           auth: const AuthPolicy.never(),
         );
         broadcast.responses = [
-          RelayBroadcastResponse(
+          DeliveryResponse(
             relayUrl: relay,
-            okReceived: true,
-            broadcastSuccessful: outcome.$2,
-            msg: outcome.$1,
+            accepted: outcome.$2,
+            message: outcome.$1,
           ),
         ];
         await pendingDelivery.flushForRelay(relay, onlyDue: true);
@@ -778,14 +768,10 @@ void main() {
           ),
         );
 
-        await pendingDelivery
-            .persistSpecificRelayBroadcastResult(ephemeralEvent, [
-              RelayBroadcastResponse(
-                relayUrl: 'wss://relay.example',
-                okReceived: true,
-                broadcastSuccessful: true,
-              ),
-            ]);
+        await pendingDelivery.persistSpecificRelayBroadcastResult(
+          ephemeralEvent,
+          [DeliveryResponse(relayUrl: 'wss://relay.example', accepted: true)],
+        );
 
         expect(await cacheManager.loadEvent(ephemeralEvent.id), isNull);
         expect(
@@ -835,11 +821,9 @@ void main() {
         // event and its delivery state must survive for a later auth-gated retry.
         await pendingDelivery
             .persistSpecificRelayBroadcastResult(ephemeralEvent, [
-              RelayBroadcastResponse(
+              DeliveryResponse(
                 relayUrl: 'wss://relay.example',
-                okReceived: false,
-                broadcastSuccessful: false,
-                msg: 'auth-required: need to authenticate',
+                message: 'auth-required: need to authenticate',
               ),
             ]);
 
@@ -1420,11 +1404,11 @@ class RecordingSender {
   final List<AuthPolicy?> broadcastedAuth = [];
   final Set<String> inFlightEventIds = {};
   final Set<String> throwingEventIds = {};
-  List<RelayBroadcastResponse> responses = const [];
+  List<DeliveryResponse> responses = const [];
 
   bool isEventInFlight(String eventId) => inFlightEventIds.contains(eventId);
 
-  Future<List<RelayBroadcastResponse>> send(
+  Future<List<DeliveryResponse>> send(
     Nip01Event event,
     String relayUrl,
     AuthPolicy? auth,

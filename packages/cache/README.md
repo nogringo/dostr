@@ -42,7 +42,7 @@ final history = await cache.loadHiddenEvents(
 
 `loadEvents` returns visible events only: the winner of each replaceable or addressable conflict, without expired events (NIP-40) and events their author deleted (NIP-09). `loadHiddenEvents` returns the others with the reason they are hidden. `evict` removes events according to an `EvictionPolicy`, and `CacheEvictionScheduler` runs it periodically.
 
-`DecryptedEventPayloads` keeps the plaintext of encrypted events next to them, per event and viewer, so that a slow or remote signer decrypts each event once. `DecryptedPayloadsGiftWrapCache` and `DecryptedPayloadsNip51ListCache` give it to the `GiftWrap` of `ndk_nip59` and the `Lists` of `ndk_lists`. `CacheManagerReplaceableEvents` lets the fetchers of `ndk_fetchers` keep the lists they find among the events of a `CacheManager`.
+`DecryptedEventPayloads` keeps the plaintext of encrypted events next to them, per event and viewer, so that a slow or remote signer decrypts each event once. `DecryptedPayloadsGiftWrapCache` and `DecryptedPayloadsNip51ListCache` give it to the `GiftWrap` of `ndk_nip59` and the `Lists` of `ndk_lists`.
 
 More in [example/](example/) and the [cache behavior docs](https://dart-nostr.com/guides/cache-behavior/).
 

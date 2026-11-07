@@ -4,6 +4,7 @@
 library;
 
 export 'src/blossom_servers_fetcher.dart';
+export 'src/cache_manager_replaceable_events.dart';
 export 'src/dm_relays_fetcher.dart';
 export 'src/home_relay_list_fetcher.dart';
 export 'src/home_relays.dart';

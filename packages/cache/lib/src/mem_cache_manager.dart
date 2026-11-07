@@ -4,7 +4,6 @@ import 'cache_eviction.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'filter_fetched_ranges.dart';
 import 'hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';

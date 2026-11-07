@@ -35,9 +35,17 @@ Future<void> main(List<String> args) async {
     accounts: accounts,
     urlLists: urlLists,
     isEventInFlight: sender.isEventInFlight,
-    send: (event, relayUrl, auth) => sender
-        .broadcast(nostrEvent: event, specificRelays: [relayUrl], auth: auth)
-        .broadcastDoneFuture,
+    send: (event, relayUrl, auth) async => [
+      for (final response
+          in await sender
+              .broadcast(
+                nostrEvent: event,
+                specificRelays: [relayUrl],
+                auth: auth,
+              )
+              .broadcastDoneFuture)
+        response.toDeliveryResponse(),
+    ],
   );
   final broadcast = Broadcast(
     broadcastSender: sender,

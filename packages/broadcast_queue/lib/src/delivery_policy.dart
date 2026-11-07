@@ -1,9 +1,8 @@
 import 'package:ndk_auth/ndk_auth.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'delivery_records.dart';
+import 'delivery_response.dart';
 
 /// NIP-09
 const _deletionKind = 5;
@@ -88,16 +87,15 @@ class DeliveryPolicy {
   /// [auth] is the policy the broadcast went out under, so a refusal can be
   /// judged against what this event is allowed to reveal.
   RelayDeliveryState resolveNextState(
-    RelayBroadcastResponse response, {
+    DeliveryResponse response, {
     AuthPolicy? auth,
   }) {
-    if (response.okReceived && response.broadcastSuccessful) {
+    if (response.accepted) {
       return RelayDeliveryState.acked;
     }
 
-    final failure = response.failure;
-    if (failure != null) {
-      if (failure.kind == RelayFailureKind.identityNotAllowed) {
+    if (response.failure != null) {
+      if (response.identityNotAllowed) {
         return auth is AuthPolicyNever
             ? RelayDeliveryState.permanentFailure
             : RelayDeliveryState.authRequired;
@@ -107,7 +105,7 @@ class DeliveryPolicy {
           : RelayDeliveryState.transientFailure;
     }
 
-    final normalizedMsg = response.msg.trim().toLowerCase();
+    final normalizedMsg = response.message.trim().toLowerCase();
     final prefix = _machineReadablePrefix(normalizedMsg);
 
     // A relay answering `duplicate:` already holds the event, so delivery to it
@@ -126,7 +124,7 @@ class DeliveryPolicy {
           : RelayDeliveryState.authRequired;
     }
 
-    if (_looksPermanent(response.msg)) {
+    if (_looksPermanent(response.message)) {
       return RelayDeliveryState.permanentFailure;
     }
 
@@ -134,7 +132,7 @@ class DeliveryPolicy {
       return RelayDeliveryState.permanentFailure;
     }
 
-    if (response.msg.isNotEmpty) {
+    if (response.message.isNotEmpty) {
       return RelayDeliveryState.transientFailure;
     }
 

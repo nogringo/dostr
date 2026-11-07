@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 void main() {
   group('TimeRange', () {

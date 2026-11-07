@@ -1,4 +1,4 @@
-import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 

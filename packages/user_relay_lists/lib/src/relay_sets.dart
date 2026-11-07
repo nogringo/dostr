@@ -1,6 +1,6 @@
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import 'package:ndk_core/shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 
 import 'user_relay_lists.dart';

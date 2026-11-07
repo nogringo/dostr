@@ -9,7 +9,6 @@ export 'presentation_layer/ndk.dart';
 export 'presentation_layer/ndk_config.dart';
 export 'package:ndk_core/ndk_core.dart'
     show
-        Filter,
         Nip01EventBase64,
         Nip01EventDeprecated,
         // ignore: deprecated_member_use
@@ -43,7 +42,11 @@ export 'package:ndk_requests/ndk_requests.dart'
         PTagCountEventFilter,
         Requests;
 export 'package:ndk_broadcast/ndk_broadcast.dart'
-    show Broadcast, BroadcastAuthUnavailableException, NdkBroadcastResponse;
+    show
+        Broadcast,
+        BroadcastAuthUnavailableException,
+        NdkBroadcastResponse,
+        RelayBroadcastResponseDelivery;
 
 /**
  * common entities

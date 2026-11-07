@@ -1,5 +1,4 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 
 /// this class is used to send messages from the client to the relay
 ///

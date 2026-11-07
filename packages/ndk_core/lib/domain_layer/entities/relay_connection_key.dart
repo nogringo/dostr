@@ -1,4 +1,4 @@
-import '../../shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 
 final _hexPubkeyRegex = RegExp(r'^[0-9a-fA-F]{64}$');

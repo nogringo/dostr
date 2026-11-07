@@ -9,7 +9,8 @@ that serializes to JSON, so it can sit in a queue record and be resolved later,
 when the network is back.
 
 This package holds the type and its resolver, in pure Dart with no dependency.
-It does not read lists from relays: you pass the lookup.
+It does not read lists from relays: you pass the lookup. It also normalizes
+relay urls, with `cleanRelayUrl` and `cleanRelayUrls`.
 
 ## Install
 

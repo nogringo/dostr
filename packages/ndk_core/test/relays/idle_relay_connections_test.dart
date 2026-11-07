@@ -4,7 +4,7 @@ import 'package:test/test.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/src/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/src/relay_manager_parts.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';

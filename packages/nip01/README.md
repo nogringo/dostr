@@ -1,8 +1,8 @@
 # ndk_nip01
 
 The [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) Nostr
-event (`Nip01Event`), its JSON form, its id computation, and the
-`EventVerifier` interface that signature verifiers implement.
+event (`Nip01Event`), its JSON form, its id computation, the `Filter` of a
+REQ, and the `EventVerifier` interface that signature verifiers implement.
 
 Pure Dart, no relay or network code. A signature verifier such as
 [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) only needs

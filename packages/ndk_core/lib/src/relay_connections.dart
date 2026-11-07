@@ -10,7 +10,7 @@ import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/subscription_limit.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
-import '../shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_isolates/ndk_isolates.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'client_msg.dart';

@@ -2,7 +2,7 @@ import 'dart:async';
 
 import '../../../config/broadcast_defaults.dart';
 import '../../../config/relay_defaults.dart';
-import '../../../shared/helpers/relay_helper.dart';
+import 'package:ndk_url_set/ndk_url_set.dart';
 import '../../../src/broadcast_state.dart';
 import '../../../src/relay_broadcasts.dart';
 import '../../../src/relay_manager_parts.dart';
