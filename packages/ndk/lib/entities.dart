@@ -62,7 +62,6 @@ export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'package:ndk_core/domain_layer/entities/relay_stats.dart';
 export 'domain_layer/entities/request_response.dart';
-export 'domain_layer/entities/tuple.dart';
 export 'package:ndk_nip59/ndk_nip59.dart' show GiftWrapUnwrapResult;
 
 /// models

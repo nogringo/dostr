@@ -1,6 +1,9 @@
-import 'package:ndk/entities.dart';
-
+import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_follows/ndk_follows.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 
 // Extension for Nip01Event to add JSON serialization support
 extension Nip01EventExtension on Nip01Event {

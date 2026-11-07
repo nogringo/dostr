@@ -6,7 +6,7 @@ import 'package:ndk/domain_layer/usecases/relay_sets_engine.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../../mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';
 
 /// A second REQ with the same id replaces the first on the relay (NIP-01), so

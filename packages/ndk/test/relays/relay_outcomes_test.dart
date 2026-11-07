@@ -3,7 +3,7 @@ import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 void main() {

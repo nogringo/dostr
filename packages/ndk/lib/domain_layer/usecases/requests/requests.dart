@@ -8,7 +8,7 @@ import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
-import '../../../shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import '../../entities/event_filter.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../entities/ndk_request.dart';

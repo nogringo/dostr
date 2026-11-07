@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../../mocks/mock_event_verifier.dart';
 
 void main() {
   test("should be in sync after broadcasting events", skip: true, () async {

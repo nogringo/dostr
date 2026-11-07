@@ -3,9 +3,8 @@
 import 'package:test/test.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
 
-import '../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 void main() async {
@@ -642,7 +641,7 @@ void main() async {
           );
         });
 
-        if (Helpers.isNotBlank(expectedRelayUrl)) {
+        if (expectedRelayUrl != null && expectedRelayUrl.trim().isNotEmpty) {
           expect(bestRelays.urls.contains(expectedRelayUrl), true);
         }
         final t1 = DateTime.now();

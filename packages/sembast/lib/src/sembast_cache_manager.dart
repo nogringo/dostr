@@ -1,8 +1,11 @@
-import 'package:ndk/entities.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/domain_layer/entities/filter.dart';
+import 'package:ndk_follows/ndk_follows.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:sembast/sembast.dart' as sembast;
 
 import 'ndk_extensions.dart';
@@ -700,7 +703,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     );
     if (event != null) {
       final metadata = Metadata.fromEvent(event);
-      metadata.refreshedTimestamp = Helpers.now;
+      metadata.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
       return metadata;
     }
 
@@ -1160,7 +1163,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
         await _metadataStore.record(pubKey).delete(_database);
       } else {
         final metadata = Metadata.fromEvent(metadataEvent);
-        metadata.refreshedTimestamp = Helpers.now;
+        metadata.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
         await _metadataStore
             .record(pubKey)
             .put(_database, metadata.toJsonForStorage());

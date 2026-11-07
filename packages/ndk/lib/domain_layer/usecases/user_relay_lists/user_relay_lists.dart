@@ -1,7 +1,6 @@
 import '../../../config/user_relay_list_defaults.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
-import '../../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -276,7 +275,7 @@ class UserRelayLists {
     userRelayList.createdAt = _nextReplaceableTimestamp(
       userRelayList.createdAt,
     );
-    userRelayList.refreshedTimestamp = Helpers.now;
+    userRelayList.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
 
     final broadcastResponse = _broadcast.broadcast(
       nostrEvent: userRelayList.toNip65().toEvent(),
@@ -303,7 +302,7 @@ class UserRelayLists {
     newUserRelayList.createdAt = _nextReplaceableTimestamp(
       newUserRelayList.createdAt,
     );
-    newUserRelayList.refreshedTimestamp = Helpers.now;
+    newUserRelayList.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
 
     final broadcastResponse = _broadcast.broadcast(
       nostrEvent: newUserRelayList.toNip65().toEvent(),
@@ -335,7 +334,7 @@ class UserRelayLists {
       userRelayList.createdAt = _nextReplaceableTimestamp(
         userRelayList.createdAt,
       );
-      userRelayList.refreshedTimestamp = Helpers.now;
+      userRelayList.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
 
       final broadcastResponse = _broadcast.broadcast(
         nostrEvent: userRelayList.toNip65().toEvent(),
@@ -378,7 +377,7 @@ class UserRelayLists {
       userRelayList.createdAt = _nextReplaceableTimestamp(
         userRelayList.createdAt,
       );
-      userRelayList.refreshedTimestamp = Helpers.now;
+      userRelayList.refreshedTimestamp = Nip01Event.secondsSinceEpoch();
 
       final broadcastResponse = _broadcast.broadcast(
         nostrEvent: userRelayList.toNip65().toEvent(),
@@ -429,7 +428,7 @@ class UserRelayLists {
   }
 
   int _nextReplaceableTimestamp(int currentCreatedAt) {
-    final now = Helpers.now;
+    final now = Nip01Event.secondsSinceEpoch();
     if (now > currentCreatedAt) {
       return now;
     }

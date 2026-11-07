@@ -70,22 +70,25 @@ NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
 `onNegClosed`. A protocol of its own, NIP-77 included, plugs in with
 `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
 
-`Helpers`, `Tuple` and `EventKindClassification` stay in `ndk` at their old
-paths. `ndk_core` keeps a `Helpers` of its own with only `getSecureRandomHex`.
+`Tuple` and the `Helpers` of `ndk` are gone. `ndk_core` keeps a `Helpers` of
+its own with only `getSecureRandomHex`, and `Nip01Event.secondsSinceEpoch()`
+replaces `Helpers.now`. `MutexSimple` is in
+`package:ndk_core/shared/helpers/mutex_simple.dart`.
 
 `ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
-`RelayInfoRepo` and `RelayInfoHttpRepoImpl` stay in `ndk` at their old paths.
+`RelayInfoRepo` and `RelayInfoHttpRepoImpl` are in
+[`ndk_nip11`](https://pub.dev/packages/ndk_nip11).
 `HttpRequestDS` is in [`ndk_http`](https://pub.dev/packages/ndk_http):
 `package:ndk/data_layer/data_sources/http_request.dart` is now
 `package:ndk_http/ndk_http.dart`. `ndk.connectivity.getRelayInfo` fetches and
 caches the documents, and the deprecated `RelayInfo.get` is gone.
 
-`Nip13` stays in `ndk` at its old path. `Nip01Utils.isIdValid` checks the id
-alone and no longer rejects an event that misses the proof-of-work target its
-`nonce` tag declares. `Nip01Utils.createEventCalculateId`,
-`Nip01Utils.calculateEventId` and `Nip01Utils.calculateEventIdSync` are gone:
-`Nip01Event` computes its own id, and `payloadId` recomputes it from the
-payload.
+`Nip13` is in [`ndk_nip13`](https://pub.dev/packages/ndk_nip13).
+`Nip01Utils.isIdValid` checks the id alone and no longer rejects an event that
+misses the proof-of-work target its `nonce` tag declares.
+`Nip01Utils.createEventCalculateId`, `Nip01Utils.calculateEventId` and
+`Nip01Utils.calculateEventIdSync` are gone: `Nip01Event` computes its own id,
+and `payloadId` recomputes it from the payload.
 
 #### Defaults
 

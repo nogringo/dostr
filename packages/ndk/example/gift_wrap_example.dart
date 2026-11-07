@@ -2,7 +2,7 @@ import 'dart:developer';
 
 import 'package:ndk/ndk.dart';
 
-import '../../cashu/test/mocks/mock_event_verifier.dart';
+import '../test/mocks/mock_event_verifier.dart';
 
 void giftWrapExample() async {
   /// example ndk

@@ -9,7 +9,7 @@ import 'package:ndk/ndk.dart';
 
 import 'package:test/test.dart';
 
-import '../../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../../mocks/mock_event_verifier.dart';
 import '../../mocks/mock_relay.dart';
 
 void main() async {

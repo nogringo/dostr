@@ -7,7 +7,7 @@ import 'dart:math' show Random;
 import 'package:bip340/bip340.dart';
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
@@ -333,7 +333,7 @@ class MockRelay {
     }
 
     // Generate challenge once for the entire server lifetime (fixes race condition on reconnect)
-    final String serverChallenge = Helpers.getRandomString(10);
+    final String serverChallenge = Helpers.getSecureRandomHex(5);
 
     stream.listen(
       (webSocket) {
@@ -344,7 +344,7 @@ class MockRelay {
         final authenticatedPubkeys = _authenticatedPubkeys[webSocket] = {};
 
         final challenge = challengePerConnection
-            ? Helpers.getRandomString(10)
+            ? Helpers.getSecureRandomHex(5)
             : serverChallenge;
 
         if (customWelcomeMessage != null) {

@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import '../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 /// Both tests use `cacheRead: true` on a subscription, which is not the default.

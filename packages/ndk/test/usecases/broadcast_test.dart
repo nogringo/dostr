@@ -3,7 +3,7 @@ import 'package:ndk/shared/nips/nip25/reactions.dart';
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
 
-import '../../../cashu/test/mocks/mock_event_verifier.dart';
+import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_relay.dart';
 
 void main() async {
