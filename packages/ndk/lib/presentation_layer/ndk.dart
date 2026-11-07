@@ -166,8 +166,8 @@ class Ndk {
   Lnurl get lnurl => _initialization.lnurl;
 
   /// The kind 10063 list of the Blossom servers a user uploads to (BUD-03)
-  BlossomUserServerList get blossomUserServerList =>
-      _initialization.blossomUserServerList;
+  BlossomUserServerList<List<RelayBroadcastResponse>>
+  get blossomUserServerList => _initialization.blossomUserServerList;
 
   /// Search
   ///

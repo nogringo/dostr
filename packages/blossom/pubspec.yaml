@@ -24,16 +24,14 @@ platforms:
   windows:
 
 dependencies:
+  async: ^2.13.0
   crypto: ^3.0.7
   http: ^1.6.0
   ndk_auth: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
   ndk_http: ^0.1.0
   ndk_isolates: ^0.1.0
-  ndk_logger: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_signer: ^0.1.0
-  rxdart: ^0.28.0
   web: ^1.1.1
 
 dev_dependencies:

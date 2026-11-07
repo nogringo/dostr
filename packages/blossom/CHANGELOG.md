@@ -8,7 +8,9 @@
    user (kind 10063), moved here from `ndk` too, which still exposes it as
    `ndk.blossomUserServerList`. It takes callbacks to query and publish
    instead of `Requests` and `Broadcast`, and any `AuthAccounts` instead of
-   `Accounts`. This package now depends on `ndk_core`.
+   `Accounts`. Its query takes the authors and the kind instead of a
+   `Filter`, and `publishUserServerList` completes with whatever `publish`
+   returns, so this package does not depend on `ndk_core`.
  - Compared with the `ndk` version: `BLOSSOM_AUTH_EXPIRATION` became
    `Blossom.defaultAuthExpiration`, and the `authExpiration` constructor
    parameter sets it. `BlobNip94.dimenssions` became `dimensions`, and

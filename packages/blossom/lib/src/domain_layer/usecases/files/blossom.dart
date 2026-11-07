@@ -6,7 +6,6 @@ import 'package:ndk_http/ndk_http.dart';
 
 import '../../../data_layer/io/file_io_platform.dart';
 import '../../../data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_authorization.dart';
@@ -181,12 +180,7 @@ class Blossom {
     if (handler == null) return true;
     try {
       return await handler(serverUrl, pubkey);
-    } catch (error, stackTrace) {
-      Logger.log.w(
-        () => "AuthHandler failed for $pubkey on $serverUrl",
-        error: error,
-        stackTrace: stackTrace,
-      );
+    } catch (_) {
       return false;
     }
   }

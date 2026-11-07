@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'package:async/async.dart' show StreamGroup;
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
-import 'package:rxdart/rxdart.dart';
 
 import '../../../domain_layer/entities/blob_upload_progress.dart';
 import '../../../domain_layer/entities/blossom_authorization.dart';
@@ -434,7 +434,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
 
     // each server turns its failures into results, so only an abort errors here
     final caught = _Caught();
-    yield* caught.from(MergeStream(serverUrls.map(uploadTo)));
+    yield* caught.from(StreamGroup.merge(serverUrls.map(uploadTo)));
     if (caught.error != null) caught.raise();
 
     yield BlobUploadProgress(

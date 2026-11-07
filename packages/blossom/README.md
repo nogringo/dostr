@@ -40,11 +40,12 @@ final blobs = await blossom.listBlobs(pubkey: pubkey);
 
 `Blossom` signs with the logged-in account of `accounts` and asks `authHandler` before revealing an identity to a server. Each operation takes an `auth` policy, see the [Blossom docs](https://dart-nostr.com/usecases/blossom/).
 
-To read or publish a user's server list, use `ndk.blossomUserServerList`. Without `ndk`, build a `BlossomUserServerList` with a `query` that returns the events matching a filter, and a `publish` that signs an event as the logged account and sends it to its author's outbox relays:
+To read or publish a user's server list, use `ndk.blossomUserServerList`. Without `ndk`, build a `BlossomUserServerList` with a `query` that returns the events of a kind by some authors, and a `publish` that signs an event as the logged account and sends it to its author's outbox relays. `publishUserServerList` completes with whatever `publish` returns:
 
 ```dart
 final serverList = BlossomUserServerList(
-  query: (filter, {required timeout}) => myRelays.query(filter, timeout),
+  query: ({required authors, required kind, required timeout}) =>
+      myRelays.query(authors: authors, kinds: [kind], timeout: timeout),
   publish: (event) async =>
       myRelays.publish(await accounts.sign(event)),
   accounts: accounts,

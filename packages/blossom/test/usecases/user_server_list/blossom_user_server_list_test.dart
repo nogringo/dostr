@@ -1,5 +1,5 @@
 import 'package:ndk/ndk.dart'
-    show Accounts, Bip340, Bip340EventSignerFactory, Filter, Nip01Event;
+    show Accounts, Bip340, Bip340EventSignerFactory, Nip01Event;
 import 'package:ndk/entities.dart' show RelayBroadcastResponse;
 import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:test/test.dart';
@@ -7,9 +7,9 @@ import 'package:test/test.dart';
 void main() {
   late Accounts accounts;
   late List<Nip01Event> relayEvents;
-  late List<({Filter filter, Duration timeout})> queries;
+  late List<({List<String> authors, int kind, Duration timeout})> queries;
   late List<Nip01Event> published;
-  late BlossomUserServerList serverList;
+  late BlossomUserServerList<List<RelayBroadcastResponse>> serverList;
 
   setUp(() {
     accounts = Accounts(const Bip340EventSignerFactory());
@@ -17,8 +17,8 @@ void main() {
     queries = [];
     published = [];
     serverList = BlossomUserServerList(
-      query: (filter, {required timeout}) async {
-        queries.add((filter: filter, timeout: timeout));
+      query: ({required authors, required kind, required timeout}) async {
+        queries.add((authors: authors, kind: kind, timeout: timeout));
         return relayEvents;
       },
       publish: (event) async {
@@ -56,10 +56,8 @@ void main() {
         'https://b.example',
         'https://a.example',
       ]);
-      expect(queries.single.filter.authors, ['alice']);
-      expect(queries.single.filter.kinds, [
-        BlossomUserServerList.kBlossomUserServerList,
-      ]);
+      expect(queries.single.authors, ['alice']);
+      expect(queries.single.kind, BlossomUserServerList.kBlossomUserServerList);
     });
 
     test('returns null when the user has no list', () async {

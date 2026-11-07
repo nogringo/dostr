@@ -61,7 +61,8 @@ class Initialization {
   late PendingBroadcastDelivery pendingBroadcastDelivery;
   late Zaps zaps;
   late Lnurl lnurl;
-  late BlossomUserServerList blossomUserServerList;
+  late BlossomUserServerList<List<RelayBroadcastResponse>>
+  blossomUserServerList;
   late Search search;
   late GiftWrap giftWrap;
   late Connectivy connectivity;
@@ -310,8 +311,12 @@ class Initialization {
     );
 
     blossomUserServerList = BlossomUserServerList(
-      query: (filter, {required timeout}) =>
-          requests.query(filter: filter, timeout: timeout).future,
+      query: ({required authors, required kind, required timeout}) => requests
+          .query(
+            filter: Filter(authors: authors, kinds: [kind]),
+            timeout: timeout,
+          )
+          .future,
       publish: (event) =>
           broadcast.broadcast(nostrEvent: event).broadcastDoneFuture,
       accounts: accounts,

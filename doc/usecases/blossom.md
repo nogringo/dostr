@@ -282,4 +282,4 @@ To get and set the user server list e.g. on settings page, use `ndk.blossomUserS
 
 #### publishUserServerList
 
-:::code source="../../packages/blossom/lib/src/domain_layer/usecases/user_server_list/blossom_user_server_list.dart" language="dart" range="68-72" title="" :::
+:::code source="../../packages/blossom/lib/src/domain_layer/usecases/user_server_list/blossom_user_server_list.dart" language="dart" range="69-73" title="" :::

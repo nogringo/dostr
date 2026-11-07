@@ -1,37 +1,37 @@
 import 'package:ndk_auth/ndk_auth.dart';
-import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import '../files/blossom.dart';
 
-/// The events matching [filter], until [timeout]. Cached events may answer
-/// too.
+/// The events of [kind] by [authors], until [timeout]. Cached events may
+/// answer too.
 typedef BlossomUserServerListQuery =
-    Future<List<Nip01Event>> Function(
-      Filter filter, {
+    Future<List<Nip01Event>> Function({
+      required List<String> authors,
+      required int kind,
       required Duration timeout,
     });
 
 /// Signs [event] as the logged account and publishes it to its author's
-/// outbox relays. Completes with the answer of each relay.
-typedef BlossomUserServerListPublish =
-    Future<List<RelayBroadcastResponse>> Function(Nip01Event event);
+/// outbox relays. Completes with whatever the publisher reports, such as the
+/// answer of each relay.
+typedef BlossomUserServerListPublish<R> = Future<R> Function(Nip01Event event);
 
-/// Blossom User Server List used to manage the blossom servers of a user
-class BlossomUserServerList {
+/// Blossom User Server List used to manage the blossom servers of a user.
+/// [R] is what [publishUserServerList] completes with.
+class BlossomUserServerList<R> {
   /// kind for blossom user server list
   static const kBlossomUserServerList = Blossom.kBlossomUserServerList;
 
   final BlossomUserServerListQuery _query;
-  final BlossomUserServerListPublish _publish;
+  final BlossomUserServerListPublish<R> _publish;
   final AuthAccounts _accounts;
 
   /// [query] loads server lists from relays, and [publish] sends the one of
   /// the logged account of [accounts].
   BlossomUserServerList({
     required BlossomUserServerListQuery query,
-    required BlossomUserServerListPublish publish,
+    required BlossomUserServerListPublish<R> publish,
     required AuthAccounts accounts,
   }) : _query = query,
        _publish = publish,
@@ -45,7 +45,8 @@ class BlossomUserServerList {
   }) async {
     final data = [
       ...await _query(
-        Filter(authors: pubkeys, kinds: [kBlossomUserServerList]),
+        authors: pubkeys,
+        kind: kBlossomUserServerList,
         timeout: const Duration(seconds: 5),
       ),
     ]..sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -67,7 +68,7 @@ class BlossomUserServerList {
 
   /// Publish user server list \
   /// order of [serverUrlsOrdered] is important, the first server is the most trusted server
-  Future<List<RelayBroadcastResponse>> publishUserServerList({
+  Future<R> publishUserServerList({
     required List<String> serverUrlsOrdered,
   }) async {
     if (serverUrlsOrdered.isEmpty) {
