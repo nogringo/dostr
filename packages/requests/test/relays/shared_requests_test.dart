@@ -1,6 +1,10 @@
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
@@ -46,17 +50,15 @@ void main() {
     privateKey: key.privateKey!,
   );
 
-  Ndk buildNdk({CacheManager? cache}) => Ndk(
-    NdkConfig(
-      eventVerifier: MockEventVerifier(),
-      cache: cache ?? MemCacheManager(),
-      bootstrapRelays: [],
-    ),
+  RequestsClient buildNdk({CacheManager? cache}) => RequestsClient(
+    eventVerifier: MockEventVerifier(),
+    cache: cache ?? MemCacheManager(),
+    bootstrapRelays: [],
   );
 
   group('identical subscriptions', () {
     late MockRelay relay;
-    late Ndk ndk;
+    late RequestsClient ndk;
 
     setUp(() async {
       relay = MockRelay(name: 'relay');

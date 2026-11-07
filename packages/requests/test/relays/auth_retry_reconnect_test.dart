@@ -1,7 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 
 Future<void> _waitUntil(
@@ -46,13 +49,11 @@ void main() {
       // answers late enough for its EOSE to land while the other relay is gone
       await slowRelay.start(delayResponse: const Duration(seconds: 5));
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [authRelay.url, slowRelay.url],
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [authRelay.url, slowRelay.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key.publicKey,

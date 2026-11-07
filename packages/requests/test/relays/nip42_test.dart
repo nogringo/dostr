@@ -1,20 +1,24 @@
 // ignore_for_file: avoid_print
 
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 void main() async {
-  for (final engine in NdkEngine.values) {
+  for (final engine in Engine.values) {
     nip42Tests(engine);
   }
 }
 
 /// The AUTH re-route lives under the engines, so both must reach an
 /// authenticated connection the same way.
-void nip42Tests(NdkEngine engine) {
+void nip42Tests(Engine engine) {
   final portBase = 3900 + engine.index * 30;
 
   group('NIP-42 [${engine.name}]', () {
@@ -47,15 +51,12 @@ void nip42Tests(NdkEngine engine) {
       );
       await relay1.start(events: key1TextNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          // logLevel: Logger.logLevels.trace,
-          bootstrapRelays: [relay1.url],
-          engine: engine,
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay1.url],
+        engine: engine,
       );
 
       ndk.accounts.loginPrivateKey(
@@ -87,14 +88,11 @@ void nip42Tests(NdkEngine engine) {
         );
         await relay1.start(events: key1TextNotes.values);
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            // logLevel: Logger.logLevels.trace,
-            bootstrapRelays: [relay1.url],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay1.url],
+          engine: engine,
         );
 
         await Future.delayed(Duration(seconds: 1));
@@ -144,13 +142,11 @@ void nip42Tests(NdkEngine engine) {
         final note2 = textNote(key2, "note from key2");
         await relay1.start(events: [note1, note2]);
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [relay1.url],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay1.url],
+          engine: engine,
         );
 
         // Add both accounts
@@ -231,13 +227,11 @@ void nip42Tests(NdkEngine engine) {
         final note2 = textNote(key2, "note from key2");
         await relay1.start(events: [note1, note2]);
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [relay1.url],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay1.url],
+          engine: engine,
         );
 
         // Only add account1, NOT account2
@@ -305,14 +299,12 @@ void nip42Tests(NdkEngine engine) {
         final note1 = textNote(key1, "note from key1");
         await relay1.start(events: [note1]);
 
-        final ndk = Ndk(
-          NdkConfig(
-            authHandler: (_, _) async => true,
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [relay1.url],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          authHandler: (_, _) async => true,
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay1.url],
+          engine: engine,
         );
 
         // Login with key1 (sets as logged account)
@@ -352,14 +344,12 @@ void nip42Tests(NdkEngine engine) {
         final note1 = textNote(key1, "note from key1");
         await relay1.start(events: [note1]);
 
-        final ndk = Ndk(
-          NdkConfig(
-            authHandler: (_, _) async => true,
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [relay1.url],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          authHandler: (_, _) async => true,
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay1.url],
+          engine: engine,
         );
 
         ndk.accounts.loginPrivateKey(
@@ -406,14 +396,12 @@ void nip42Tests(NdkEngine engine) {
 
       await relay1.start(events: [textNote(key1, "note from key1")]);
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay1.url],
-          engine: engine,
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay1.url],
+        engine: engine,
       );
 
       ndk.accounts.loginPrivateKey(
@@ -474,13 +462,11 @@ void nip42Tests(NdkEngine engine) {
       ),
     );
 
-    Ndk ndkFor(MockRelay relay) => Ndk(
-      NdkConfig(
-        eventVerifier: Bip340EventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [relay.url],
-        engine: engine,
-      ),
+    RequestsClient ndkFor(MockRelay relay) => RequestsClient(
+      eventVerifier: Bip340EventVerifier(),
+      cache: MemCacheManager(),
+      bootstrapRelays: [relay.url],
+      engine: engine,
     );
 
     Filter notesOf(KeyPair key) =>
@@ -682,13 +668,11 @@ void nip42Tests(NdkEngine engine) {
 
       // no bootstrap relay, so every connection relay 1 sees comes from the
       // request itself
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [],
-          engine: engine,
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [],
+        engine: engine,
       );
       final account1 = signableAccount(key1);
       ndk.accounts.addAccount(
@@ -779,13 +763,11 @@ void nip42Tests(NdkEngine engine) {
     test(
       'a relay set whose relays all fail does not wait for the timeout',
       () async {
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [],
+          engine: engine,
         );
 
         var timedOut = false;
@@ -816,7 +798,7 @@ void nip42Tests(NdkEngine engine) {
 
         await ndk.destroy();
       },
-      skip: engine == NdkEngine.JIT
+      skip: engine == Engine.jit
           ? 'the jit engine ignores relaySet and picks its relays itself'
           : null,
     );
@@ -886,13 +868,11 @@ void nip42Tests(NdkEngine engine) {
       await relayA.start(events: [noteA]);
       await relayB.start(events: [noteB]);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [],
-          engine: engine,
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [],
+        engine: engine,
       );
       final account1 = signableAccount(key1);
       ndk.accounts.addAccount(
@@ -954,13 +934,11 @@ void nip42Tests(NdkEngine engine) {
           delayResponse: Duration(milliseconds: 300),
         );
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: Bip340EventVerifier(),
-            cache: MemCacheManager(),
-            bootstrapRelays: [],
-            engine: engine,
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [],
+          engine: engine,
         );
 
         final events = await ndk.requests

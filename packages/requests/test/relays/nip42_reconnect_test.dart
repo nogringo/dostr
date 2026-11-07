@@ -1,7 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_slow_signer.dart';
 
 /// Waits until [condition] holds, polling so the test does not depend on
@@ -33,13 +36,11 @@ void main() {
       );
       await relay.start();
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay.url],
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay.url],
       );
       // the AUTH the request waits on is still being signed when the socket dies
       ndk.accounts.loginExternalSigner(
@@ -87,13 +88,11 @@ void main() {
       );
       await relay.start();
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay.url],
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key.publicKey,

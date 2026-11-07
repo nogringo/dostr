@@ -1,12 +1,15 @@
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_requests/ndk_requests.dart';
 import 'package:test/test.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
+import '../mocks/requests_client.dart';
 import '../mocks/mock_event_verifier.dart';
 
 void main() {
-  for (final engine in NdkEngine.values) {
+  for (final engine in Engine.values) {
     relayOutcomesTests(engine);
   }
   deadConnectionTests();
@@ -229,11 +232,11 @@ void notSentEndTests() {
 
 /// Both engines open their requests through the same RelayReqs, so both must
 /// report the same outcomes.
-void relayOutcomesTests(NdkEngine engine) {
+void relayOutcomesTests(Engine engine) {
   group('relay outcomes [${engine.name}]', () {
     final key1 = Bip340.generatePrivateKey();
     late MockRelay relay1;
-    late Ndk ndk;
+    late RequestsClient ndk;
 
     Nip01Event textNote(KeyPair key) => Bip340.signEvent(
       event: Nip01Event(
@@ -246,14 +249,12 @@ void relayOutcomesTests(NdkEngine engine) {
       privateKey: key.privateKey!,
     );
 
-    Ndk buildNdk({AuthHandler? authHandler}) => Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: engine,
-        bootstrapRelays: [relay1.url],
-        authHandler: authHandler,
-      ),
+    RequestsClient buildNdk({AuthHandler? authHandler}) => RequestsClient(
+      eventVerifier: MockEventVerifier(),
+      cache: MemCacheManager(),
+      engine: engine,
+      bootstrapRelays: [relay1.url],
+      authHandler: authHandler,
     );
 
     NdkResponse queryKey1({Duration? timeout}) => ndk.requests.query(

@@ -1,6 +1,9 @@
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
@@ -32,21 +35,17 @@ void main() {
   test('live subscription resumes after relay closes the socket', () async {
     final keyPair = Bip340.generatePrivateKey();
 
-    final ndkA = Ndk(
-      NdkConfig(
-        cache: MemCacheManager(),
-        eventVerifier: MockEventVerifier(),
-        bootstrapRelays: [mockRelay.url],
-      ),
+    final ndkA = RequestsClient(
+      cache: MemCacheManager(),
+      eventVerifier: MockEventVerifier(),
+      bootstrapRelays: [mockRelay.url],
     );
     addTearDown(ndkA.destroy);
 
-    final ndkB = Ndk(
-      NdkConfig(
-        cache: MemCacheManager(),
-        eventVerifier: MockEventVerifier(),
-        bootstrapRelays: [mockRelay.url],
-      ),
+    final ndkB = RequestsClient(
+      cache: MemCacheManager(),
+      eventVerifier: MockEventVerifier(),
+      bootstrapRelays: [mockRelay.url],
     );
     addTearDown(ndkB.destroy);
 
@@ -83,9 +82,9 @@ void main() {
       privateKey: keyPair.privateKey!,
     );
 
-    await ndkB.broadcast
-        .broadcast(nostrEvent: signedEvent, specificRelays: [mockRelay.url])
-        .broadcastDoneFuture;
+    await ndkB.relayPublishes
+        .publish(signedEvent, relays: [mockRelay.url])
+        .done;
 
     final received = await eventAfterReconnect.future.timeout(
       Duration(seconds: 5),

@@ -1,6 +1,10 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
+
+import '../mocks/requests_client.dart';
 
 Future<void> _waitUntil(
   bool Function() condition, {
@@ -17,7 +21,7 @@ Future<void> _waitUntil(
   fail(reason);
 }
 
-Map<RelayConnectionKey, int> _activeRequests(Ndk ndk) => {
+Map<RelayConnectionKey, int> _activeRequests(RequestsClient ndk) => {
   for (final entry in ndk.relays.connectivities.entries)
     entry.key: entry.value.stats.activeRequests,
 };
@@ -27,12 +31,10 @@ void main() {
     final relay = MockRelay(name: "relay");
     await relay.start();
 
-    final ndk = Ndk(
-      NdkConfig(
-        eventVerifier: Bip340EventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [relay.url],
-      ),
+    final ndk = RequestsClient(
+      eventVerifier: Bip340EventVerifier(),
+      cache: MemCacheManager(),
+      bootstrapRelays: [relay.url],
     );
 
     final response = ndk.requests.query(
@@ -58,13 +60,11 @@ void main() {
       );
       await relay.start();
 
-      final ndk = Ndk(
-        NdkConfig(
-          authHandler: (_, _) async => true,
-          eventVerifier: Bip340EventVerifier(),
-          cache: MemCacheManager(),
-          bootstrapRelays: [relay.url],
-        ),
+      final ndk = RequestsClient(
+        authHandler: (_, _) async => true,
+        eventVerifier: Bip340EventVerifier(),
+        cache: MemCacheManager(),
+        bootstrapRelays: [relay.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key.publicKey,

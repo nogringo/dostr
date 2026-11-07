@@ -110,9 +110,52 @@ void main() {
         ),
       });
     });
+    test('reports a relay nothing listens on as notSent', () async {
+      final nobody = MockRelay().url;
+
+      final req = reqs.req(relays: {nobody: notes});
+
+      expect(await req.done, {
+        nobody: const RelayRequestOutcome(
+          RelayRequestStatus.notSent,
+          failure: RelayFailure(RelayFailureKind.unreachable),
+        ),
+      });
+    });
   });
 
   group('send and seal', () {
+    test('a request sealed without relays ends at once', () async {
+      final req = reqs.req(relays: {});
+
+      expect(await req.done, isEmpty);
+      expect(await req.events.toList(), isEmpty);
+    });
+
+    test('takes a relay sent after seal while it is not over', () async {
+      final first = await startRelay();
+      final second = await startRelay();
+      final req = reqs.req();
+
+      expect(req.send(first.url, notes), isTrue);
+      req.seal();
+      expect(req.send(second.url, notes), isTrue);
+
+      expect(await req.done, {
+        first.url: const RelayRequestOutcome(RelayRequestStatus.eose),
+        second.url: const RelayRequestOutcome(RelayRequestStatus.eose),
+      });
+    });
+
+    test('sends nothing once it is over', () async {
+      final relay = await startRelay();
+      final req = reqs.req(relays: {});
+      await req.done;
+
+      expect(req.send(relay.url, notes), isFalse);
+      expect(req.outcomes, isEmpty);
+    });
+
     test('a request without relays is held open until sealed', () async {
       final relay = await startRelay();
       relay.events.add(signedEvent(createdAt: 1));

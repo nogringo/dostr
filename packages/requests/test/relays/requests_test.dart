@@ -1,11 +1,13 @@
 // ignore_for_file: avoid_print
 
+import '../mocks/requests_client.dart';
 import 'dart:async';
 
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 import 'package:ndk_requests/ndk_requests.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk/presentation_layer/init.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
@@ -60,13 +62,11 @@ void main() async {
       MockRelay relay1 = MockRelay(name: "relay 1");
       await relay1.start(events: textNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.relaySets,
+        bootstrapRelays: [relay1.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key1.publicKey,
@@ -95,13 +95,11 @@ void main() async {
       MockRelay relay1 = MockRelay(name: "relay 1");
       await relay1.start(events: textNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.relaySets,
+        bootstrapRelays: [relay1.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key1.publicKey,
@@ -135,13 +133,11 @@ void main() async {
         await relay2.start(events: [sharedEvent]);
 
         final cache = MemCacheManager();
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: cache,
-            engine: NdkEngine.RELAY_SETS,
-            bootstrapRelays: [relay1.url, relay2.url],
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: MockEventVerifier(),
+          cache: cache,
+          engine: Engine.relaySets,
+          bootstrapRelays: [relay1.url, relay2.url],
         );
         ndk.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
@@ -174,13 +170,11 @@ void main() async {
       MockRelay relay1 = MockRelay(name: "relay 1");
       await relay1.start(events: textNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.relaySets,
+        bootstrapRelays: [relay1.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key1.publicKey,
@@ -209,13 +203,11 @@ void main() async {
       MockRelay relay1 = MockRelay(name: "relay 1");
       await relay1.start(events: textNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.JIT,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.jit,
+        bootstrapRelays: [relay1.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key1.publicKey,
@@ -245,13 +237,11 @@ void main() async {
       MockRelay relay1 = MockRelay(name: "relay 1");
       await relay1.start(events: textNotes.values);
 
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay1.url],
-        ),
+      final ndk = RequestsClient(
+        eventVerifier: MockEventVerifier(),
+        cache: MemCacheManager(),
+        engine: Engine.relaySets,
+        bootstrapRelays: [relay1.url],
       );
       ndk.accounts.loginPrivateKey(
         pubkey: key1.publicKey,
@@ -292,13 +282,11 @@ void main() async {
         MockRelay relay1 = MockRelay(name: "relay 1");
         await relay1.start(events: textNotes.values);
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-            engine: NdkEngine.RELAY_SETS,
-            bootstrapRelays: [relay1.url],
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: MockEventVerifier(),
+          cache: MemCacheManager(),
+          engine: Engine.relaySets,
+          bootstrapRelays: [relay1.url],
         );
         ndk.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
@@ -353,13 +341,11 @@ void main() async {
         };
         await relay1.start(events: multipleEvents.values);
 
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-            engine: NdkEngine.RELAY_SETS,
-            bootstrapRelays: [relay1.url],
-          ),
+        final ndk = RequestsClient(
+          eventVerifier: MockEventVerifier(),
+          cache: MemCacheManager(),
+          engine: Engine.relaySets,
+          bootstrapRelays: [relay1.url],
         );
         ndk.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
@@ -419,17 +405,16 @@ void main() async {
     test('Filters are cloned and immutable in query method', () {
       final cache = MemCacheManager();
       final eventVerifier = MockEventVerifier();
-      final init = Initialization(
-        ndkConfig: NdkConfig(eventVerifier: eventVerifier, cache: cache),
-      );
+      final client = RequestsClient(eventVerifier: eventVerifier, cache: cache);
+      addTearDown(client.destroy);
 
       // Create a Requests instance
       final requests = Requests(
         defaultQueryTimeout: Duration(seconds: 10),
         cacheRead: MockCacheRead(cache),
         cacheManager: cache,
-        networkEngine: init.engine,
-        relayManager: init.relayManager,
+        networkEngine: RelaySetsEngine(bootstrapRelays: const []),
+        relayManager: client.relays,
         eventVerifier: eventVerifier,
         eventOutFilters: [],
       );
@@ -450,16 +435,14 @@ void main() async {
   });
 
   group('request ids', () {
-    late Ndk ndk;
+    late RequestsClient ndk;
     final filter = Filter(kinds: [1]);
 
-    Ndk createNdk({bool debugMode = false}) => Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        bootstrapRelays: [],
-        debugMode: debugMode,
-      ),
+    RequestsClient createNdk({bool debugMode = false}) => RequestsClient(
+      eventVerifier: MockEventVerifier(),
+      cache: MemCacheManager(),
+      bootstrapRelays: [],
+      debugMode: debugMode,
     );
 
     setUp(() => ndk = createNdk());
@@ -525,7 +508,8 @@ void main() async {
       };
     await mockRelay.start();
 
-    final ndk = Ndk.defaultConfig();
+    final ndk = RequestsClient(eventVerifier: Bip340EventVerifier());
+    addTearDown(ndk.destroy);
 
     final query = ndk.requests.query(
       filters: [

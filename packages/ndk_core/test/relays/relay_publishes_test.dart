@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
@@ -68,6 +69,17 @@ void main() {
       responses.values.single.failure,
       const RelayFailure(RelayFailureKind.blocked),
     );
+  });
+
+  test('fails a relay nothing listens on as unreachable', () async {
+    final nobody = MockRelay().url;
+
+    final responses = await publishes
+        .publish(signedEvent(), relays: [nobody])
+        .done;
+
+    expect(responses[nobody]!.broadcastSuccessful, isFalse);
+    expect(responses[nobody]!.failure?.kind, RelayFailureKind.unreachable);
   });
 
   test('fails a relay when the identity it requires cannot sign', () async {
