@@ -1,8 +1,6 @@
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
-import 'package:ndk_follows/ndk_follows.dart';
-import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
@@ -93,7 +91,7 @@ class UserRelayLists {
         await for (final event in _query(
           Filter(
             authors: missingPubKeys,
-            kinds: [Nip65.kKind, ContactList.kKind],
+            kinds: [Nip65.kKind, Nip01Event.kContactListKind],
           ),
           name: "user-relay-lists",
         )) {
@@ -113,7 +111,7 @@ class UserRelayLists {
                   missingPubKeys.length,
                 );
               }
-            case ContactList.kKind:
+            case Nip01Event.kContactListKind:
               contactListEvents.add(event);
               if (event.content.isNotEmpty) {
                 if (fromNip02Contacts[event.pubKey] == null ||
@@ -143,7 +141,7 @@ class UserRelayLists {
       for (final contactListEvent in contactListEvents) {
         final existingEvent = await _loadCachedRelaySourceEvent(
           pubKey: contactListEvent.pubKey,
-          kind: ContactList.kKind,
+          kind: Nip01Event.kContactListKind,
         );
         if (existingEvent == null ||
             existingEvent.createdAt < contactListEvent.createdAt) {
@@ -200,7 +198,7 @@ class UserRelayLists {
     if (!forceRefresh) {
       final cached = await _cacheManager.loadEvents(
         pubKeys: [pubKey],
-        kinds: [Nip51List.kDmRelays],
+        kinds: [Nip01Event.kDmRelayListKind],
       );
       if (cached.isNotEmpty) {
         cached.sort((a, b) => b.createdAt.compareTo(a.createdAt));
@@ -209,7 +207,7 @@ class UserRelayLists {
     }
 
     final events = await _query(
-      Filter(authors: [pubKey], kinds: [Nip51List.kDmRelays], limit: 1),
+      Filter(authors: [pubKey], kinds: [Nip01Event.kDmRelayListKind], limit: 1),
       name: "dm-relays",
       relays: discoveryRelays,
     ).toList();
@@ -224,7 +222,7 @@ class UserRelayLists {
 
   List<String> _extractDmRelayUrls(Nip01Event event) {
     return event.tags
-        .where((tag) => tag.length >= 2 && tag[0] == Nip51List.kRelay)
+        .where((tag) => tag.length >= 2 && tag[0] == "relay")
         .map((tag) => tag[1])
         .toList();
   }
@@ -396,7 +394,7 @@ class UserRelayLists {
   Future<Nip01Event?> _loadCachedUserRelaySourceEvent(String pubKey) async {
     final events = await _cacheManager.loadEvents(
       pubKeys: [pubKey],
-      kinds: [Nip65.kKind, ContactList.kKind],
+      kinds: [Nip65.kKind, Nip01Event.kContactListKind],
       limit: 10,
     );
 
@@ -405,7 +403,7 @@ class UserRelayLists {
     for (final event in events) {
       if (event.kind == Nip65.kKind) {
         latestNip65 ??= event;
-      } else if (event.kind == ContactList.kKind &&
+      } else if (event.kind == Nip01Event.kContactListKind &&
           event.content.isNotEmpty &&
           UserRelayList.relaysFromNip02Content(event).isNotEmpty) {
         latestKind3WithRelayContent ??= event;

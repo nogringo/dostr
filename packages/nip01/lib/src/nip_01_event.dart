@@ -6,6 +6,12 @@ import 'event_id.dart';
 final class Nip01Event {
   static const int kTextNoteKind = 1;
 
+  /// NIP-02
+  static const int kContactListKind = 3;
+
+  /// NIP-17
+  static const int kDmRelayListKind = 10050;
+
   /// The id the event was given, or else the hash of its payload: check it
   /// with [hasValidId].
   String get id => _id ?? payloadId;

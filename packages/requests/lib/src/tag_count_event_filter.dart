@@ -1,6 +1,5 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
 
-import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 
 /// filter for too many tags
@@ -13,7 +12,7 @@ class PTagCountEventFilter extends EventFilter {
 
   @override
   bool filter(Nip01Event event) {
-    return event.kind == ContactList.kKind ||
+    return event.kind == Nip01Event.kContactListKind ||
         event.kind == Nip65.kKind ||
         event.pTags.length <= maxTagCount;
   }

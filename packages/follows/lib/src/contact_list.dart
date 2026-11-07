@@ -2,7 +2,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// nip02 contact list
 class ContactList {
-  static const int kKind = 3;
+  static const int kKind = Nip01Event.kContactListKind;
 
   /// public key
   late String pubKey;

@@ -4,8 +4,6 @@ import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_follows/ndk_follows.dart';
-import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:test/test.dart';
 
@@ -80,7 +78,7 @@ void main() {
       relays.events.add(
         Nip01Event(
           pubKey: alice,
-          kind: ContactList.kKind,
+          kind: Nip01Event.kContactListKind,
           tags: const [],
           content: jsonEncode({
             'wss://old.example': {'read': true, 'write': true},
@@ -101,9 +99,9 @@ void main() {
   group('getDmRelays', () {
     Nip01Event dmRelays(List<String> urls) => Nip01Event(
       pubKey: alice,
-      kind: Nip51List.kDmRelays,
+      kind: Nip01Event.kDmRelayListKind,
       tags: [
-        for (final url in urls) [Nip51List.kRelay, url],
+        for (final url in urls) ['relay', url],
       ],
       content: '',
     );
