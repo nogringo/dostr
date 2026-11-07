@@ -42,6 +42,8 @@ Current NDK usecases that can reuse cached decrypted payloads include:
 - private `Nip51List` content through `Lists`
 - NIP-17 direct message flows that unwrap gift-wrapped messages
 
+`DecryptedEventPayloads` lives in the `ndk_cache` package, which `ndk` depends on and re-exports, and NDK exposes it as `ndk.decryptedEventPayloads`.
+
 ## What apps should assume
 
 - cached plaintext is an optimization and a persisted sidecar

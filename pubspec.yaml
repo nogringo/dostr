@@ -23,6 +23,8 @@ workspace:
   - packages/cache
   - packages/nip11
   - packages/requests
+  - packages/broadcast
+  - packages/user_relay_lists
   - packages/isolates
   - packages/logger
   - packages/nip19

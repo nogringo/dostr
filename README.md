@@ -177,6 +177,14 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_requests`: queries and subscriptions routed to the outbox relays of their authors by the JIT or relay sets engine, with cache reads, deduplication, pagination and fetched ranges, without depending on `ndk`. NDK exposes it as `ndk.requests`.
 
+### [🔗 Broadcast](./packages/broadcast/)
+
+`ndk_broadcast`: broadcasts signed as the logged account and sent to the outbox relays of their author and the inbox relays of the pubkeys they tag, retried through `ndk_broadcast_queue`, without depending on `ndk`. NDK exposes it as `ndk.broadcast`.
+
+### [🔗 User relay lists](./packages/user_relay_lists/)
+
+`ndk_user_relay_lists`: the relay lists of users, read from NIP-65 or NIP-02 and edited as the logged account, their NIP-17 DM relays, and the relay sets that cover a list of pubkeys, without depending on `ndk`. NDK exposes them as `ndk.userRelayLists` and `ndk.relaySets`.
+
 ### [🔗 ObjectBox](./packages/objectbox/)
 
 ObjectBox database implementation.

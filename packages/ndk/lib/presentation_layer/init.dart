@@ -10,16 +10,12 @@ import '../domain_layer/usecases/connectivity/connectivity.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
-import '../domain_layer/usecases/broadcast/broadcast.dart';
-import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
-import '../domain_layer/usecases/broadcast/broadcast_sender.dart';
+import 'package:ndk_broadcast/ndk_broadcast.dart';
+import 'package:ndk_blossom/ndk_blossom.dart' show BlossomUserServerList;
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_requests/ndk_requests.dart';
-import '../domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
-import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_gift_wrap_cache.dart';
-import '../domain_layer/usecases/decrypted_event_payloads/decrypted_payloads_nip51_list_cache.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import 'package:ndk_lists/ndk_lists.dart';
@@ -30,9 +26,8 @@ import 'package:ndk_fetchers/ndk_fetchers.dart'
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
-import '../domain_layer/usecases/relay_sets/relay_sets.dart';
 import 'package:ndk_search/ndk_search.dart';
-import '../domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
+import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'ndk_config.dart';
@@ -262,9 +257,13 @@ class Initialization {
     );
 
     userRelayLists = UserRelayLists(
-      requests: requests,
+      query: (filter, {required name, relays}) => requests
+          .query(name: name, filter: filter, explicitRelays: relays)
+          .stream,
+      publish: (event, {required relays}) => broadcast
+          .broadcast(nostrEvent: event, specificRelays: relays)
+          .broadcastDoneFuture,
       cacheManager: _ndkConfig.cache,
-      broadcast: broadcast,
       accounts: accounts,
     );
 
@@ -313,8 +312,10 @@ class Initialization {
     );
 
     blossomUserServerList = BlossomUserServerList(
-      requests: requests,
-      broadcast: broadcast,
+      query: (filter, {required timeout}) =>
+          requests.query(filter: filter, timeout: timeout).future,
+      publish: (event) =>
+          broadcast.broadcast(nostrEvent: event).broadcastDoneFuture,
       accounts: accounts,
     );
 

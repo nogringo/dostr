@@ -98,6 +98,14 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/broadcast
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
+          - package: ./packages/user_relay_lists
+            pub_get_directory: .
+            pub_get_command: dart pub get
+            analyze_command: dart analyze --fatal-infos --fatal-warnings .
           - package: ./packages/isolates
             pub_get_directory: .
             pub_get_command: dart pub get

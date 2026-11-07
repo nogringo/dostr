@@ -42,6 +42,8 @@ final history = await cache.loadHiddenEvents(
 
 `loadEvents` returns visible events only: the winner of each replaceable or addressable conflict, without expired events (NIP-40) and events their author deleted (NIP-09). `loadHiddenEvents` returns the others with the reason they are hidden. `evict` removes events according to an `EvictionPolicy`, and `CacheEvictionScheduler` runs it periodically.
 
+`DecryptedEventPayloads` keeps the plaintext of encrypted events next to them, per event and viewer, so that a slow or remote signer decrypts each event once. `DecryptedPayloadsGiftWrapCache` and `DecryptedPayloadsNip51ListCache` give it to the `GiftWrap` of `ndk_nip59` and the `Lists` of `ndk_lists`.
+
 More in [example/](example/) and the [cache behavior docs](https://dart-nostr.com/guides/cache-behavior/).
 
 ## Writing a backend
@@ -59,3 +61,4 @@ The classes keep their names, and `package:ndk/ndk.dart` and `package:ndk/entiti
 - `domain_layer/entities/user_relay_list.dart`, `nip_65.dart`, `relay_set.dart`, `pubkey_mapping.dart`, `read_write.dart` and `read_write_marker.dart`
 - `shared/nips/nip01/event_visibility_resolver.dart` and `event_eviction_planner.dart`
 - `shared/nips/nip09/deletion.dart` and `shared/nips/nip28/channel_metadata.dart`
+- `domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart`

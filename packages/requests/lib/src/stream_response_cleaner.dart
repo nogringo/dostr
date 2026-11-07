@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:ndk_logger/ndk_logger.dart';
-import 'event_filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// given a stream  with Nip01 events it tracks the id and adds the one to the provided stream controller \

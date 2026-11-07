@@ -274,12 +274,12 @@ Future<int> report({
 
 ### methods - BlossomUserServerList
 
-To get and set the user server list e.g. on settings page, use `ndk.blossomUserServerList`, in the `ndk` package
+To get and set the user server list e.g. on settings page, use `ndk.blossomUserServerList`. `BlossomUserServerList` lives in `ndk_blossom` too, and takes callbacks to query and publish, which `ndk` wires to its requests and broadcast
 
 #### getUserServerList
 
-:::code source="../../packages/ndk/lib/domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart" language="dart" range="25-30" title="" :::
+:::code source="../../packages/blossom/lib/src/domain_layer/usecases/user_server_list/blossom_user_server_list.dart" language="dart" range="40-45" title="" :::
 
 #### publishUserServerList
 
-:::code source="../../packages/ndk/lib/domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart" language="dart" range="54-58" title="" :::
+:::code source="../../packages/blossom/lib/src/domain_layer/usecases/user_server_list/blossom_user_server_list.dart" language="dart" range="68-72" title="" :::

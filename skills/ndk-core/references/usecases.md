@@ -7,15 +7,15 @@ All accessible via `ndk.<accessor>`.
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
 | `ndk.requests` | `Requests` | Low-level relay queries and subscriptions, from `ndk_requests` |
-| `ndk.broadcast` | `Broadcast` | Publish events to relays, retried by `ndk_broadcast_queue` |
+| `ndk.broadcast` | `Broadcast` | Publish events to relays, from `ndk_broadcast`, retried by `ndk_broadcast_queue` |
 | `ndk.accounts` | `Accounts` | Identity/account management, from `ndk_accounts` |
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
 | `ndk.relays` | `RelayManager` | Relay connections and management |
 | `ndk.follows` | `Follows` | Contact lists (NIP-02), from `ndk_follows` |
 | `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0), from `ndk_metadatas` |
-| `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists |
+| `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists, from `ndk_user_relay_lists` |
 | `ndk.lists` | `Lists` | NIP-51 generic lists, from `ndk_lists` |
-| `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model |
+| `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model, from `ndk_user_relay_lists` |
 | `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch, from `ndk_nip05` |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |
 | `ndk.connectivity` | `Connectivy` | Relay connectivity events and NIP-11 relay info (`RelayInfo` from `ndk_nip11`) |

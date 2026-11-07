@@ -159,6 +159,10 @@ dependency_overrides:
     path: ../nip11
   ndk_requests:
     path: ../requests
+  ndk_broadcast:
+    path: ../broadcast
+  ndk_user_relay_lists:
+    path: ../user_relay_lists
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

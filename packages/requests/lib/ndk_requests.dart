@@ -20,8 +20,9 @@
 /// ```
 library;
 
+export 'package:ndk_nip01/ndk_nip01.dart' show EventFilter;
+
 export 'src/cache_read.dart';
-export 'src/event_filter.dart';
 export 'src/fetched_ranges.dart';
 export 'src/jit_engine/jit_engine.dart';
 export 'src/jit_engine/jit_engine_relay_connectivity_data.dart';

@@ -21,3 +21,4 @@ export 'src/lists.dart';
 export 'src/nip_51_list.dart';
 export 'src/nip_51_list_cache.dart';
 export 'src/nip_51_list_plaintext_cache.dart';
+export 'src/nip51_mute_event_filter.dart';

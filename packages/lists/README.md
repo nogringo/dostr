@@ -61,8 +61,10 @@ await lists.addElementToList(
 
 Private elements are encrypted to the logged account with NIP-44, and read back from NIP-44 or legacy NIP-04 content. Give `Lists` a `plaintextCache`, a `Nip51ListPlaintextCache`, to decrypt each event once, otherwise they are decrypted on every read. `getPublicList` and `getPublicSets` with a `publicKey` only return public elements.
 
+`Nip51MuteEventFilter` is an `EventFilter` (from `ndk_nip01`) that drops the events of the pubkeys, words and hashtags of a mute list: set its `muteList` and pass it in the `eventOutFilters` of `ndk_requests`. It keeps the metadata of a muted pubkey, and does not check the content of reactions for muted words.
+
 More in [example/](example/) and the [lists docs](https://dart-nostr.com/usecases/lists/).
 
 ## Coming from `ndk`
 
-`Lists`, `Nip51List`, `Nip51ListElement` and `Nip51Set` keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports `package:ndk/domain_layer/usecases/lists/lists.dart` and `package:ndk/domain_layer/entities/nip_51_list.dart` are now `package:ndk_lists/ndk_lists.dart`. `Lists` takes `query`, `publish`, `cache`, `accounts` and an optional `plaintextCache` instead of `requests`, `cacheManager`, `broadcast`, `accounts`, `eventSignerFactory` and `decryptedEventPayloads`.
+`Lists`, `Nip51List`, `Nip51ListElement` and `Nip51Set` keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports `package:ndk/domain_layer/usecases/lists/lists.dart` and `package:ndk/domain_layer/entities/nip_51_list.dart` are now `package:ndk_lists/ndk_lists.dart`. `Lists` takes `query`, `publish`, `cache`, `accounts` and an optional `plaintextCache` instead of `requests`, `cacheManager`, `broadcast`, `accounts`, `eventSignerFactory` and `decryptedEventPayloads`. The deep import `package:ndk/shared/event_filters/nip51_mute_event_filter.dart` is now `package:ndk_lists/ndk_lists.dart`, which `package:ndk/ndk.dart` exports.

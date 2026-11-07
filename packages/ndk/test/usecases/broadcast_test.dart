@@ -1,5 +1,5 @@
 import 'package:ndk/entities.dart';
-import 'package:ndk/shared/nips/nip25/reactions.dart';
+import 'package:ndk_broadcast/ndk_broadcast.dart' show Reaction;
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
 

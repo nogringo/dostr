@@ -13,3 +13,5 @@ icon: server
 Calculates the best relays for a given set of pubkeys. It's used by inbox/outbox. \
 This allows for granular control in the relaySets engine. \
 E.g. calculating the best relays for a thread view.
+
+`RelaySets` lives in the `ndk_user_relay_lists` package, with `UserRelayLists`, which `ndk` depends on and re-exports.

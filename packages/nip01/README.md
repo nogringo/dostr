@@ -82,6 +82,8 @@ class MyVerifier implements EventVerifier {
 }
 ```
 
+`EventFilter` is the interface of the filters that drop events before they reach the caller, such as the `eventOutFilters` of `ndk_requests`: `filter` returns `false` to drop an event.
+
 ## Coming from `ndk`
 
 `Nip01Event` and `EventVerifier` used to be in `ndk`. What changed, and the

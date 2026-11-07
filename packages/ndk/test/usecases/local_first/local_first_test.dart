@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk/shared/nips/nip25/reactions.dart';
+import 'package:ndk_broadcast/ndk_broadcast.dart' show Reaction;
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
 

@@ -27,6 +27,7 @@ dependencies:
   crypto: ^3.0.7
   http: ^1.6.0
   ndk_auth: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
   ndk_http: ^0.1.0
   ndk_isolates: ^0.1.0
   ndk_logger: ^0.1.0

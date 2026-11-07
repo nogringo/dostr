@@ -1,0 +1,41 @@
+name: ndk_broadcast
+description: Broadcasts for NDK (Nostr Development Kit), signed and sent to the outbox and inbox relays of an event, retried until the relays ack it, without depending on ndk.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - outbox
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dependencies:
+  ndk_auth: ^0.1.0
+  ndk_broadcast_queue: ^0.1.0
+  ndk_cache: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_follows: ^0.1.0
+  ndk_logger: ^0.1.0
+  ndk_nip01: ^0.1.0
+  ndk_nip59: ^0.1.0
+  ndk_signer: ^0.1.0
+  ndk_url_set: ^0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk_accounts: ^0.1.0
+  ndk_bip340: ^0.1.0
+  test: any

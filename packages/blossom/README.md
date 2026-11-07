@@ -40,7 +40,17 @@ final blobs = await blossom.listBlobs(pubkey: pubkey);
 
 `Blossom` signs with the logged-in account of `accounts` and asks `authHandler` before revealing an identity to a server. Each operation takes an `auth` policy, see the [Blossom docs](https://dart-nostr.com/usecases/blossom/).
 
-To read or publish a user's server list, use `ndk.blossomUserServerList`, in the `ndk` package.
+To read or publish a user's server list, use `ndk.blossomUserServerList`. Without `ndk`, build a `BlossomUserServerList` with a `query` that returns the events matching a filter, and a `publish` that signs an event as the logged account and sends it to its author's outbox relays:
+
+```dart
+final serverList = BlossomUserServerList(
+  query: (filter, {required timeout}) => myRelays.query(filter, timeout),
+  publish: (event) async =>
+      myRelays.publish(await accounts.sign(event)),
+  accounts: accounts,
+);
+final servers = await serverList.getUserServerList(pubkeys: [pubkey]);
+```
 
 Cancelling the subscription to an upload stream, such as `uploadBlobFromFile`, aborts that upload. `blossom.abortPending()` ends every operation in flight with a `RequestAbortedException`, including one still waiting on a signer, and tries no other server. `Blossom` does not follow the `Ndk` lifecycle on its own, so tie it to whatever owns it:
 

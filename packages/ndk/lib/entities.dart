@@ -4,7 +4,7 @@
 ///
 library;
 
-export 'domain_layer/entities/broadcast_response.dart';
+export 'package:ndk_broadcast/ndk_broadcast.dart' show NdkBroadcastResponse;
 export 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 export 'package:ndk_follows/ndk_follows.dart' show ContactList;
 export 'package:ndk_requests/ndk_requests.dart' show EventFilter, NdkResponse;

@@ -14,6 +14,8 @@ User relay lists provides you with the relays for a given user. \
 It orients itself on nip65 but also uses data from nip02 in case nip65 is not available. \
 It's used by inbox/outbox; only use this if you are doing something custom that is not directly handled by inbox/outbox.
 
+`UserRelayLists` lives in the `ndk_user_relay_lists` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build it with `query`, `publish`, `cacheManager` and `accounts`, see its [README](https://pub.dev/packages/ndk_user_relay_lists).
+
 ## Current behavior
 
 User relay list resolution combines relay information from:

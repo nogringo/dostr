@@ -17,7 +17,8 @@ export 'package:ndk_requests/ndk_requests.dart'
         NdkResponse,
         PTagCountEventFilter,
         Requests;
-export 'domain_layer/entities/broadcast_response.dart';
+export 'package:ndk_broadcast/ndk_broadcast.dart'
+    show Broadcast, BroadcastAuthUnavailableException, NdkBroadcastResponse;
 
 /**
  * common entities
@@ -52,9 +53,12 @@ export 'package:ndk_cache/ndk_cache.dart'
         CacheEvictionScheduler,
         CacheManager,
         DecryptedEventPayloadRecord,
+        DecryptedEventPayloads,
+        DecryptedPayloadFailureClassifier,
         DecryptedPayloadScheme,
         DecryptedPayloadStatus,
         EventCacheStateRecord,
+        EventPayloadDecryptor,
         EvictionPolicy,
         EvictionResult,
         FetchedRangesGap,
@@ -81,19 +85,19 @@ export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
 export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
 export 'package:ndk_follows/ndk_follows.dart';
 export 'package:ndk_metadatas/ndk_metadatas.dart';
-export 'domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
+export 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 export 'package:ndk_lists/ndk_lists.dart';
-export 'domain_layer/usecases/relay_sets/relay_sets.dart';
-export 'domain_layer/usecases/broadcast/broadcast.dart';
-export 'domain_layer/usecases/broadcast/broadcast_exceptions.dart';
 export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 export 'package:ndk_url_set/ndk_url_set.dart' show UrlSet;
 export 'package:ndk_zaps/ndk_zaps.dart';
 export 'package:ndk_accounts/ndk_accounts.dart';
-export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
+export 'package:ndk_blossom/ndk_blossom.dart'
+    show
+        BlossomUserServerList,
+        BlossomUserServerListPublish,
+        BlossomUserServerListQuery;
 export 'package:ndk_search/ndk_search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
-export 'domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'package:ndk_nip11/ndk_nip11.dart';

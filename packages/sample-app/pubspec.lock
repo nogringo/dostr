@@ -824,6 +824,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_broadcast:
+    dependency: "direct overridden"
+    description:
+      path: "../broadcast"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_broadcast_queue:
     dependency: "direct overridden"
     description:
@@ -1059,6 +1066,13 @@ packages:
     dependency: "direct overridden"
     description:
       path: "../url_set"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_user_relay_lists:
+    dependency: "direct overridden"
+    description:
+      path: "../user_relay_lists"
       relative: true
     source: path
     version: "0.1.0"

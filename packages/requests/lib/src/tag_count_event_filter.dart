@@ -1,4 +1,3 @@
-import 'event_filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'package:ndk_follows/ndk_follows.dart';

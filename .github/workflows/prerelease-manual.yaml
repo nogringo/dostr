@@ -64,6 +64,8 @@ on:
           - ndk_cache
           - ndk_nip11
           - ndk_requests
+          - ndk_broadcast
+          - ndk_user_relay_lists
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

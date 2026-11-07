@@ -33,6 +33,7 @@ dependencies:
   ndk_metadatas: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_nip05: ^0.1.0
+  ndk_nip59: ^0.1.0
   ndk_search: ^0.1.0
 
 dev_dependencies:
