@@ -41,6 +41,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_follows`: NIP-02 contact lists, to load one and follow or unfollow pubkeys, hashtags, communities and events as the logged account, without depending on `ndk`. NDK exposes it as `ndk.follows`.
 
+### [🔗 Metadatas](./packages/metadatas/)
+
+`ndk_metadatas`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, without depending on `ndk`. NDK exposes it as `ndk.metadata`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.

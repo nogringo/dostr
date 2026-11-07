@@ -12,7 +12,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
 | `ndk.relays` | `RelayManager` | Relay connections and management |
 | `ndk.follows` | `Follows` | Contact lists (NIP-02), from `ndk_follows` |
-| `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0) |
+| `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0), from `ndk_metadatas` |
 | `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists |
 | `ndk.lists` | `Lists` | NIP-51 generic lists |
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model |
@@ -51,6 +51,8 @@ await for (final result in response.stream) {
 ```
 
 ## Metadata
+
+`Metadatas` and `Metadata` live in the `ndk_metadatas` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
 
 ```dart
 final metadata = await ndk.metadata.loadMetadata(pubkey);

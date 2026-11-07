@@ -1,44 +1,60 @@
 import 'dart:convert';
 
-import '../../../config/metadata_defaults.dart';
-import 'package:ndk_logger/ndk_logger.dart';
-import '../../../shared/nips/nip01/helpers.dart';
+import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/metadata.dart';
+import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../../entities/relay_set.dart';
-import '../../repositories/cache_manager.dart';
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import '../broadcast/broadcast.dart';
-import '../requests/requests.dart';
+
+import 'metadata.dart';
+import 'metadata_cache.dart';
+
+/// The events matching [filter], as they arrive, until [timeout] or the
+/// caller's default when it is null. [cacheRead] lets cached events answer
+/// too. Null [relays] leave the choice of relays to the caller.
+typedef MetadatasQuery =
+    Stream<Nip01Event> Function(
+      Filter filter, {
+      Duration? timeout,
+      required bool cacheRead,
+      Iterable<String>? relays,
+    });
+
+/// Signs [event] as the logged account and publishes it to [relays], or to
+/// its author's outbox relays when [relays] is null. Completes once the
+/// relays answered.
+typedef MetadatasPublish =
+    Future<void> Function(Nip01Event event, {Iterable<String>? relays});
+
+int get _now => DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
 /// nostr metadata usecase
 class Metadatas {
-  final Requests _requests;
-  final CacheManager _cacheManager;
-  final Broadcast _broadcast;
-  final Accounts _accounts;
+  static const kDefaultIdleTimeout = Duration(seconds: 5);
 
-  /// create a new instance of Metadatas
+  final MetadatasQuery _query;
+  final MetadatasPublish _publish;
+  final MetadataCache _cache;
+  final AuthAccounts _accounts;
+
+  /// [query] loads metadata from relays, [publish] sends the logged
+  /// account's own, and [cache] keeps both. [accounts] gives the logged
+  /// account.
   Metadatas({
-    required Requests requests,
-    required CacheManager cacheManager,
-    required Broadcast broadcast,
-    required Accounts accounts,
-  }) : _cacheManager = cacheManager,
-       _requests = requests,
-       _accounts = accounts,
-       _broadcast = broadcast;
+    required MetadatasQuery query,
+    required MetadatasPublish publish,
+    required MetadataCache cache,
+    required AuthAccounts accounts,
+  }) : _query = query,
+       _publish = publish,
+       _cache = cache,
+       _accounts = accounts;
 
-  void _checkSigner() {
-    if (!_accounts.canSign) {
+  String _requireSignerPubKey() {
+    final account = _accounts.getLoggedAccount();
+    if (account == null || !account.signer.canSign()) {
       throw "Not logged in";
     }
-  }
-
-  EventSigner get _signer {
-    return _accounts.getLoggedAccount()!.signer;
+    return account.pubkey;
   }
 
   /// load metadata for a pubkey
@@ -46,29 +62,19 @@ class Metadatas {
   Future<Metadata?> loadMetadata(
     String pubKey, {
     bool forceRefresh = false,
-    Duration idleTimeout = METADATA_IDLE_TIMEOUT,
+    Duration idleTimeout = kDefaultIdleTimeout,
   }) async {
     Metadata? metadata = !forceRefresh
-        ? await _cacheManager.loadMetadata(pubKey)
+        ? await _cache.loadMetadata(pubKey)
         : null;
     if (metadata == null || forceRefresh) {
       Metadata? loadedMetadata;
       try {
-        await for (final event
-            in _requests
-                .query(
-                  name: 'metadata',
-                  cacheRead: !forceRefresh,
-                  timeout: idleTimeout,
-                  filters: [
-                    Filter(
-                      kinds: [Metadata.kKind],
-                      authors: [pubKey],
-                      limit: 1,
-                    ),
-                  ],
-                )
-                .stream) {
+        await for (final event in _query(
+          Filter(kinds: [Metadata.kKind], authors: [pubKey], limit: 1),
+          timeout: idleTimeout,
+          cacheRead: !forceRefresh,
+        )) {
           if (loadedMetadata == null ||
               loadedMetadata.updatedAt == null ||
               loadedMetadata.updatedAt! < event.createdAt) {
@@ -84,8 +90,8 @@ class Metadatas {
               metadata.updatedAt == null ||
               loadedMetadata.updatedAt! > metadata.updatedAt! ||
               forceRefresh)) {
-        loadedMetadata.refreshedTimestamp = Helpers.now;
-        await _cacheManager.saveEvent(loadedMetadata.toEvent());
+        loadedMetadata.refreshedTimestamp = _now;
+        await _cache.saveEvent(loadedMetadata.toEvent());
         metadata = loadedMetadata;
       }
     }
@@ -93,15 +99,18 @@ class Metadatas {
   }
 
   // TODO try to use generic query with cacheRead/Write mechanism
+  /// The metadata of [pubKeys]: the cached ones, and the missing ones from
+  /// [relays], or from the caller's choice of relays when it is null.
+  /// [onLoad] gets each one loaded from relays as it arrives.
   Future<List<Metadata>> loadMetadatas(
     List<String> pubKeys,
-    RelaySet? relaySet, {
+    Iterable<String>? relays, {
     Function(Metadata)? onLoad,
   }) async {
     List<String> missingPubKeys = [];
     Map<String, Metadata> metadatas = {};
     for (var pubKey in pubKeys) {
-      Metadata? userMetadata = await _cacheManager.loadMetadata(pubKey);
+      Metadata? userMetadata = await _cache.loadMetadata(pubKey);
       if (userMetadata == null) {
         // TODO check if not too old (time passed since last refreshed timestamp)
         missingPubKeys.add(pubKey);
@@ -116,13 +125,11 @@ class Metadatas {
       );
       try {
         await for (final event
-            in (_requests.query(
-              name: "load-metadatas",
-              filters: [
-                Filter(authors: missingPubKeys, kinds: [Metadata.kKind]),
-              ],
-              relaySet: relaySet,
-            )).stream.timeout(
+            in _query(
+              Filter(authors: missingPubKeys, kinds: [Metadata.kKind]),
+              cacheRead: true,
+              relays: relays,
+            ).timeout(
               const Duration(seconds: 5),
               onTimeout: (sink) {
                 Logger.log.w(
@@ -133,8 +140,8 @@ class Metadatas {
           if (metadatas[event.pubKey] == null ||
               metadatas[event.pubKey]!.updatedAt! < event.createdAt) {
             metadatas[event.pubKey] = Metadata.fromEvent(event);
-            metadatas[event.pubKey]!.refreshedTimestamp = Helpers.now;
-            await _cacheManager.saveEvent(event);
+            metadatas[event.pubKey]!.refreshedTimestamp = _now;
+            await _cache.saveEvent(event);
             if (onLoad != null) {
               onLoad(metadatas[event.pubKey]!);
             }
@@ -148,21 +155,12 @@ class Metadatas {
     return metadatas.values.toList();
   }
 
-  Future<Nip01Event?> _refreshMetadataEvent() async {
-    _checkSigner();
+  Future<Nip01Event?> _refreshMetadataEvent(String pubKey) async {
     Nip01Event? loaded;
-    await for (final event
-        in _requests
-            .query(
-              filters: [
-                Filter(
-                  kinds: [Metadata.kKind],
-                  authors: [_signer.getPublicKey()],
-                  limit: 1,
-                ),
-              ],
-            )
-            .stream) {
+    await for (final event in _query(
+      Filter(kinds: [Metadata.kKind], authors: [pubKey], limit: 1),
+      cacheRead: true,
+    )) {
       if (loaded == null || loaded.createdAt < event.createdAt) {
         loaded = event;
       }
@@ -170,44 +168,37 @@ class Metadatas {
     return loaded;
   }
 
-  /// *******************************************************************************************************************
-
+  /// Publishes [metadata] as the logged account's, merged over the content of
+  /// its latest published metadata.
   Future<Metadata> broadcastMetadata(
     Metadata metadata, {
     Iterable<String>? specificRelays,
   }) async {
-    _checkSigner();
-    final Nip01Event? loaded = await _refreshMetadataEvent();
+    final pubKey = _requireSignerPubKey();
+    final Nip01Event? loaded = await _refreshMetadataEvent(pubKey);
 
     final Map<String, dynamic> content =
-        loaded != null && Helpers.isNotBlank(loaded.content)
+        loaded != null && loaded.content.trim().isNotEmpty
         ? json.decode(loaded.content) as Map<String, dynamic>
         : <String, dynamic>{};
     content.addAll(metadata.content);
 
     final event = Nip01Event(
-      pubKey: _signer.getPublicKey(),
+      pubKey: pubKey,
       kind: Metadata.kKind,
       tags: loaded?.tags ?? metadata.tags,
       content: json.encode(content),
-      createdAt: Helpers.now,
+      createdAt: _now,
     );
 
-    final bResult = _broadcast.broadcast(
-      nostrEvent: event,
-      specificRelays: specificRelays,
-    );
-
-    await bResult.broadcastDoneFuture;
+    await _publish(event, relays: specificRelays);
 
     // caching anything but the published event leaves two kind:0 competing for
     // the same replaceable slot, where the id tie-break can hide the published one
-    await _cacheManager.saveEvent(event);
+    await _cache.saveEvent(event);
 
     final broadcasted = Metadata.fromEvent(event);
-    broadcasted.refreshedTimestamp = Helpers.now;
+    broadcasted.refreshedTimestamp = _now;
     return broadcasted;
   }
-
-  /// *******************************************************************************************************************
 }

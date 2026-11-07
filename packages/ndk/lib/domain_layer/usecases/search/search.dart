@@ -1,5 +1,5 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
-import '../../entities/metadata.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../repositories/cache_manager.dart';
 import '../requests/requests.dart';

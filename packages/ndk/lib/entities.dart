@@ -22,7 +22,7 @@ export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart'
         UnresolvedUrlSet;
 export 'package:ndk_core/domain_layer/entities/filter.dart';
 export 'domain_layer/entities/hidden_event.dart';
-export 'domain_layer/entities/metadata.dart';
+export 'package:ndk_metadatas/ndk_metadatas.dart' show Metadata;
 export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
 export 'package:ndk_nip05/ndk_nip05.dart'

@@ -1,7 +1,8 @@
 import 'dart:convert';
 
-import '../../shared/nips/nip01/helpers.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+
+bool _isNotBlank(String? str) => str != null && str.trim().isNotEmpty;
 
 /// basic nostr metadata
 class Metadata {
@@ -187,7 +188,7 @@ class Metadata {
   /// convert from nip01 event
   static Metadata fromEvent(Nip01Event event) {
     Metadata metadata = Metadata();
-    if (Helpers.isNotBlank(event.content)) {
+    if (_isNotBlank(event.content)) {
       Map<String, dynamic> json = jsonDecode(event.content);
       // Store the full content map for custom fields
       metadata.content = json;
@@ -267,10 +268,10 @@ class Metadata {
 
   /// return display name if set, otherwise name if set, otherwise pubKey
   String getName() {
-    if (displayName != null && Helpers.isNotBlank(displayName)) {
+    if (displayName != null && _isNotBlank(displayName)) {
       return displayName!;
     }
-    if (name != null && Helpers.isNotBlank(name)) {
+    if (name != null && _isNotBlank(name)) {
       return name!;
     }
     return pubKey;

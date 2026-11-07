@@ -1,5 +1,5 @@
 import 'package:ndk_follows/ndk_follows.dart';
-import 'metadata.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'nip_51_list.dart';
 import 'nip_65.dart';
 import '../../shared/nips/nip28/channel_metadata.dart';

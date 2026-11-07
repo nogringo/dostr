@@ -12,7 +12,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
 import '../domain_layer/usecases/lists/lists.dart';
-import '../domain_layer/usecases/metadatas/metadatas.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';

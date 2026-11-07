@@ -7,7 +7,7 @@ import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../../domain_layer/entities/filter_fetched_ranges.dart';
 import '../../../domain_layer/entities/hidden_event.dart';
-import '../../../domain_layer/entities/metadata.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import '../../../domain_layer/entities/nip_65.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';

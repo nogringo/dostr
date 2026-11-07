@@ -28,7 +28,7 @@ import 'package:ndk_nip59/ndk_nip59.dart';
 import '../domain_layer/usecases/jit_engine/jit_engine.dart';
 import '../domain_layer/usecases/lists/lists.dart';
 import '../domain_layer/usecases/lnurl/lnurl.dart';
-import '../domain_layer/usecases/metadatas/metadatas.dart';
+import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
@@ -252,9 +252,19 @@ class Initialization {
     );
 
     metadatas = Metadatas(
-      requests: requests,
-      cacheManager: _ndkConfig.cache,
-      broadcast: broadcast,
+      query: (filter, {timeout, required cacheRead, relays}) => requests
+          .query(
+            name: 'metadatas',
+            filter: filter,
+            timeout: timeout,
+            cacheRead: cacheRead,
+            explicitRelays: relays,
+          )
+          .stream,
+      publish: (event, {relays}) => broadcast
+          .broadcast(nostrEvent: event, specificRelays: relays)
+          .broadcastDoneFuture,
+      cache: _ndkConfig.cache,
       accounts: accounts,
     );
 

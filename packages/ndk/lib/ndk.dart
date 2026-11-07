@@ -32,7 +32,6 @@ export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
 export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
 export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 export 'domain_layer/entities/relay_set.dart';
-export 'domain_layer/entities/metadata.dart';
 export 'domain_layer/entities/event_filter.dart';
 
 export 'domain_layer/entities/cache_eviction.dart';
@@ -65,7 +64,7 @@ export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
 export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
 export "domain_layer/usecases/requests/requests.dart";
 export 'package:ndk_follows/ndk_follows.dart';
-export 'domain_layer/usecases/metadatas/metadatas.dart';
+export 'package:ndk_metadatas/ndk_metadatas.dart';
 export 'domain_layer/usecases/user_relay_lists/user_relay_lists.dart';
 export 'domain_layer/usecases/lists/lists.dart';
 export 'domain_layer/usecases/relay_sets/relay_sets.dart';
