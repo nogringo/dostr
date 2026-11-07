@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/hex.dart';
 import 'package:web/web.dart' as web;
 
 import 'js_interop.dart';
@@ -42,7 +43,10 @@ class WebEventVerifier implements EventVerifier {
   Future<bool> verify(Nip01Event event) async {
     await _isInitialized.future;
 
-    if (event.sig == null) {
+    final sig = event.sig;
+    if (sig == null ||
+        !isLowercaseHex(sig, length: 128) ||
+        !isLowercaseHex(event.pubKey, length: 64)) {
       return false;
     }
 
@@ -59,7 +63,7 @@ class WebEventVerifier implements EventVerifier {
     jsEvent.created_at = event.createdAt;
     jsEvent.kind = event.kind;
     jsEvent.content = event.content;
-    jsEvent.sig = event.sig!;
+    jsEvent.sig = sig;
 
     // Convert tags
     final jsTags = event.tags

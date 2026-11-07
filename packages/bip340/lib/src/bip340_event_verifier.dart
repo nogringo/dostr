@@ -1,4 +1,5 @@
 import 'package:bip340/bip340.dart' as bip340;
+import 'package:ndk_nip01/hex.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_isolates/ndk_isolates.dart';
 
@@ -11,10 +12,13 @@ class Bip340EventVerifier implements EventVerifier {
 
   @override
   Future<bool> verify(Nip01Event event) async {
-    if (event.sig == null) {
+    final sig = event.sig;
+    if (sig == null ||
+        !isLowercaseHex(sig, length: 128) ||
+        !isLowercaseHex(event.pubKey, length: 64) ||
+        !event.hasValidId) {
       return false;
     }
-    if (!event.hasValidId) return false;
     return useIsolate
         ? await IsolateManager.instance.runInComputeIsolate<Nip01Event, bool>(
             _verifySig,
@@ -24,7 +28,7 @@ class Bip340EventVerifier implements EventVerifier {
   }
 }
 
-// The bip340 package throws on malformed input (e.g. a sig that is not 128 hex chars).
+// The bip340 package throws on some malformed input instead of returning false.
 bool _verifySig(Nip01Event event) {
   try {
     return bip340.verify(event.pubKey, event.id, event.sig!);

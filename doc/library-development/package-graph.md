@@ -8,9 +8,9 @@ order: 90
 
 # Package graph
 
-The workspace has 50 packages and 214 direct dependencies between them, with no cycle. A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
+The workspace has 51 packages and 217 direct dependencies between them, with no cycle. A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
-An arrow from A to B means that A depends on B. The graph draws 95 of the 214 dependencies and leaves out those a longer path already implies: `ndk` depends on `ndk_broadcast_queue`, but no arrow goes from one to the other since `ndk` reaches it through `ndk_broadcast`. Names drop their `ndk_` prefix. The outlined box is `ndk`, the facade that apps depend on. The table lists every direct dependency.
+An arrow from A to B means that A depends on B. The graph draws 96 of the 217 dependencies and leaves out those a longer path already implies: `ndk` depends on `ndk_broadcast_queue`, but no arrow goes from one to the other since `ndk` reaches it through `ndk_broadcast`. Names drop their `ndk_` prefix. The outlined box is `ndk`, the facade that apps depend on. The table lists every direct dependency.
 
 Run `melos run graph` after changing a dependency between packages.
 
@@ -21,7 +21,7 @@ Run `melos run graph` after changing a dependency between packages.
 | 0 | `ndk_http` |  | 7 |
 | 0 | `ndk_isolates` |  | 5 |
 | 0 | `ndk_logger` |  | 11 |
-| 0 | `ndk_nip01` |  | 33 |
+| 0 | `ndk_nip01` |  | 35 |
 | 0 | `ndk_nip44` |  | 5 |
 | 0 | `ndk_nip49` |  | 1 |
 | 0 | `ndk_url_set` |  | 11 |
@@ -31,12 +31,13 @@ Run `melos run graph` after changing a dependency between packages.
 | 1 | `ndk_nip13` | `ndk_isolates`, `ndk_nip01` | 1 |
 | 1 | `ndk_nip19` | `ndk_nip01` | 4 |
 | 1 | `ndk_rust_verifier` | `ndk_nip01` | 2 |
-| 1 | `ndk_signer` | `ndk_nip01` | 19 |
+| 1 | `ndk_signer` | `ndk_nip01` | 20 |
 | 2 | `ndk_accounts` | `ndk_nip01`, `ndk_signer` | 1 |
 | 2 | `ndk_bip340` | `ndk_isolates`, `ndk_nip01`, `ndk_nip44`, `ndk_signer` | 3 |
 | 2 | `ndk_blossom` | `ndk_http`, `ndk_isolates`, `ndk_nip01`, `ndk_signer` | 2 |
 | 2 | `ndk_broadcast_queue` | `ndk_logger`, `ndk_nip01`, `ndk_signer`, `ndk_url_set` | 8 |
 | 2 | `ndk_core` | `ndk_isolates`, `ndk_logger`, `ndk_nip01`, `ndk_signer`, `ndk_url_set` | 22 |
+| 2 | `ndk_event_verifier_test_suite` | `ndk_nip01`, `ndk_signer` | 0 |
 | 2 | `ndk_follows` | `ndk_nip01`, `ndk_signer` | 7 |
 | 2 | `ndk_home_relays` | `ndk_nip01`, `ndk_nip19`, `ndk_url_set` | 1 |
 | 2 | `ndk_lists` | `ndk_logger`, `ndk_nip01`, `ndk_signer` | 2 |
@@ -67,4 +68,4 @@ Run `melos run graph` after changing a dependency between packages.
 | 6 | `ndk_sembast` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_wallets` | 1 |
 | 6 | `ndk_sqlite3` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_wallets` | 0 |
 | 7 | `ndk_cli` | `ndk`, `ndk_blossom`, `ndk_cashu`, `ndk_core`, `ndk_http`, `ndk_nip19`, `ndk_nwc`, `ndk_rust_verifier`, `ndk_sembast`, `ndk_url_set`, `ndk_wallets` | 0 |
-| 7 | `ndk_flutter` | `ndk`, `ndk_cashu`, `ndk_core`, `ndk_nip07`, `ndk_nip55`, `ndk_nip82`, `ndk_nwc`, `ndk_rust_verifier`, `ndk_wallets` | 0 |
+| 7 | `ndk_flutter` | `ndk`, `ndk_cashu`, `ndk_core`, `ndk_nip01`, `ndk_nip07`, `ndk_nip55`, `ndk_nip82`, `ndk_nwc`, `ndk_rust_verifier`, `ndk_wallets` | 0 |

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 
 import 'package:ffi/ffi.dart';
 
+import 'package:ndk_nip01/hex.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'rust_lib.dart' as rust_lib;
 
@@ -19,13 +20,17 @@ class QsRustEventVerifier implements EventVerifier {
 
   @override
   Future<bool> verify(Nip01Event event) async {
-    if (event.sig == null || !event.hasValidId) {
+    final sig = event.sig;
+    if (sig == null ||
+        !isLowercaseHex(sig) ||
+        !isLowercaseHex(event.pubKey) ||
+        !event.hasValidId) {
       return false;
     }
 
     // Decode hex-encoded public key and signature to bytes
     final pkBytes = _hexToBytes(event.pubKey);
-    final sigBytes = _hexToBytes(event.sig!);
+    final sigBytes = _hexToBytes(sig);
 
     if (pkBytes == null || sigBytes == null) {
       return false;

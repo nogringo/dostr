@@ -22,13 +22,5 @@ void main() {
       expect(event.hasValidId, isTrue);
       expect(await verifier.verify(event), isTrue);
     });
-
-    test('rejects an event changed after signing', () async {
-      final event = await signedNote();
-      final forged = event.copyWith(id: event.id, content: 'changed');
-
-      expect(forged.sig, event.sig);
-      expect(await verifier.verify(forged), isFalse);
-    });
   });
 }

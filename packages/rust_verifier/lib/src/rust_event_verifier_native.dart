@@ -3,6 +3,7 @@ import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
 
+import 'package:ndk_nip01/hex.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'rust_lib.dart' as rust_lib;
 
@@ -18,9 +19,9 @@ class RustEventVerifier implements EventVerifier {
   Future<bool> verify(Nip01Event event) async {
     final signature = event.sig;
     if (signature == null ||
-        !_isHex(event.id, 64) ||
-        !_isHex(event.pubKey, 64) ||
-        !_isHex(signature, 128)) {
+        !isLowercaseHex(event.id, length: 64) ||
+        !isLowercaseHex(event.pubKey, length: 64) ||
+        !isLowercaseHex(signature, length: 128)) {
       return false;
     }
 
@@ -92,17 +93,6 @@ class RustEventVerifier implements EventVerifier {
       if (tagSizes != nullptr) malloc.free(tagSizes);
       if (tagItemLengths != nullptr) malloc.free(tagItemLengths);
     }
-  }
-
-  static bool _isHex(String value, int expectedLength) {
-    if (value.length != expectedLength) return false;
-    for (final codeUnit in value.codeUnits) {
-      final digit = codeUnit >= 0x30 && codeUnit <= 0x39;
-      final lower = codeUnit >= 0x61 && codeUnit <= 0x66;
-      final upper = codeUnit >= 0x41 && codeUnit <= 0x46;
-      if (!digit && !lower && !upper) return false;
-    }
-    return true;
   }
 
   static void _copyAscii(String source, List<int> target, int offset) {
