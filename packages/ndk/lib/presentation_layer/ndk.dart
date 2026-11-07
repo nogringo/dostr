@@ -13,7 +13,6 @@ import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 import 'init.dart';

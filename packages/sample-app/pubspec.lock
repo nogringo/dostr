@@ -803,13 +803,6 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
-  ndk_auth:
-    dependency: "direct overridden"
-    description:
-      path: "../auth"
-      relative: true
-    source: path
-    version: "0.1.0"
   ndk_bip340:
     dependency: "direct overridden"
     description:
@@ -1048,13 +1041,6 @@ packages:
       relative: true
     source: path
     version: "0.6.0"
-  ndk_search:
-    dependency: "direct overridden"
-    description:
-      path: "../search"
-      relative: true
-    source: path
-    version: "0.1.0"
   ndk_signer:
     dependency: "direct overridden"
     description:

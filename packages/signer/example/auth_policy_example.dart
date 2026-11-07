@@ -1,4 +1,3 @@
-import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 
 /// Authenticates as [signer] only when a server asks for it.

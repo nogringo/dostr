@@ -27,11 +27,7 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 Signer](./packages/signer/)
 
-`ndk_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, in pure Dart.
-
-### [🔗 Auth](./packages/auth/)
-
-`ndk_auth`: the accounts NDK authenticates as, and the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server.
+`ndk_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, and the accounts NDK authenticates as, with the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server, in pure Dart.
 
 ### [🔗 Accounts](./packages/accounts/)
 
@@ -43,15 +39,11 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 ### [🔗 Metadatas](./packages/metadatas/)
 
-`ndk_metadatas`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, without depending on `ndk`. NDK exposes it as `ndk.metadata`.
+`ndk_metadatas`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, and to search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.metadata` and `ndk.search`.
 
 ### [🔗 Lists](./packages/lists/)
 
 `ndk_lists`: NIP-51 lists and sets, to load them and add or remove public and private elements as the logged account, without depending on `ndk`. NDK exposes it as `ndk.lists`.
-
-### [🔗 Search](./packages/search/)
-
-`ndk_search`: search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.search`.
 
 ### [🔗 Zaps](./packages/zaps/)
 

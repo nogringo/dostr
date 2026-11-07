@@ -6,7 +6,6 @@ import 'filter_fetched_ranges.dart';
 import 'hidden_event.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_lists/ndk_lists.dart';
-import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'relay_set.dart';
@@ -26,7 +25,7 @@ import 'user_relay_list.dart';
 /// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - metadata, the [MetadataCache] of `ndk_metadatas`
 /// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
-/// - metadata and event search, the [SearchCache] of `ndk_search`
+/// - metadata and event search, the [SearchCache] of `ndk_metadatas`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a

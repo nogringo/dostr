@@ -1,6 +1,0 @@
-analyzer:
-  errors:
-    experimental_member_use: ignore
-  exclude:
-    - build/**
-include: package:lints/recommended.yaml

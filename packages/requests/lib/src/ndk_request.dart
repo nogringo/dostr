@@ -1,5 +1,5 @@
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_auth/ndk_auth.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 
 // coverage:ignore-start

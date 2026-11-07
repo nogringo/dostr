@@ -83,8 +83,6 @@ dependency_overrides:
     path: ../nip01
   ndk_signer:
     path: ../signer
-  ndk_auth:
-    path: ../auth
   ndk_isolates:
     path: ../isolates
   ndk_logger:
@@ -149,8 +147,6 @@ dependency_overrides:
     path: ../metadatas
   ndk_lists:
     path: ../lists
-  ndk_search:
-    path: ../search
   ndk_zaps:
     path: ../zaps
   ndk_cache:

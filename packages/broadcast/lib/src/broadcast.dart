@@ -1,4 +1,3 @@
-import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';

@@ -1,6 +1,6 @@
-import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
+import 'metadata.dart';
 import 'search_cache.dart';
 
 /// The events relays hold for [filter], as they arrive. The stream ends once

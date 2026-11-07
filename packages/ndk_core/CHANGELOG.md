@@ -29,11 +29,11 @@ are now `package:ndk_logger/ndk_logger.dart`, which
 `package:ndk_core/ndk_core.dart` exports. `LogColor` is internal to it.
 
 `Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in
-[`ndk_auth`](https://pub.dev/packages/ndk_auth):
+[`ndk_signer`](https://pub.dev/packages/ndk_signer):
 `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`,
 `auth_handler.dart` and
 `package:ndk_core/domain_layer/repositories/auth_accounts.dart` are now
-`package:ndk_auth/ndk_auth.dart`, which `package:ndk_core/ndk_core.dart`
+`package:ndk_signer/ndk_signer.dart`, which `package:ndk_core/ndk_core.dart`
 exports. `TimeoutPausable` stays here, in
 `package:ndk_core/domain_layer/entities/timeout_pausable.dart`.
 

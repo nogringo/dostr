@@ -65,7 +65,16 @@ export 'package:ndk_cache/ndk_cache.dart'
         RelayDirection,
         RelaySet,
         UserRelayList;
-export 'package:ndk_auth/ndk_auth.dart';
+export 'package:ndk_signer/ndk_signer.dart'
+    show
+        Account,
+        AccountType,
+        AuthAccounts,
+        AuthHandler,
+        AuthPolicy,
+        AuthPolicyAllow,
+        AuthPolicyNever,
+        AuthPolicyRequire;
 export 'package:ndk_nip11/ndk_nip11.dart'
     show RelayFee, RelayFees, RelayInfo, RelayLimitation;
 export 'package:ndk_nip59/ndk_nip59.dart' show GiftWrapUnwrapResult;

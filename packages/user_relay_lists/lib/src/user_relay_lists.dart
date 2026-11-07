@@ -1,4 +1,4 @@
-import 'package:ndk_auth/ndk_auth.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_follows/ndk_follows.dart';

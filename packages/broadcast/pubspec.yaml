@@ -23,7 +23,6 @@ platforms:
   windows:
 
 dependencies:
-  ndk_auth: ^0.1.0
   ndk_broadcast_queue: ^0.1.0
   ndk_cache: ^0.1.0
   ndk_core: ^0.11.0-dev.2

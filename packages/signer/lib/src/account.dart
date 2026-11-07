@@ -1,4 +1,5 @@
-import 'package:ndk_signer/ndk_signer.dart';
+import 'event_signer.dart';
+import 'pending_signer_request.dart';
 
 enum AccountType { privateKey, publicKey, externalSigner }
 

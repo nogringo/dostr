@@ -43,7 +43,7 @@ accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
 await follows.broadcastAddFollowedTag('nostr');
 ```
 
-`query` returns the contact list events (kind 3) matching a filter. `publish` gets the changed contact list unsigned: it signs it as the logged account and sends it to the given relays, or to the author's outbox relays when they are null. `cache` is a `ContactListCache`. `accounts` is any `AuthAccounts` from [`ndk_auth`](https://pub.dev/packages/ndk_auth), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
+`query` returns the contact list events (kind 3) matching a filter. `publish` gets the changed contact list unsigned: it signs it as the logged account and sends it to the given relays, or to the author's outbox relays when they are null. `cache` is a `ContactListCache`. `accounts` is any `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
 
 `getContactList` answers from the cache unless `forceRefresh` is set. Before a change, a cached list older than `Follows.kRefreshContactListDuration` (10 minutes) is refreshed from the relays, so the change does not drop contacts another client added or removed since. A change needs a logged account that can sign.
 

@@ -2,7 +2,7 @@
 
 [Blossom](https://github.com/hzrd149/blossom) file storage for [NDK](https://pub.dev/packages/ndk): upload, download, mirror and delete blobs on a user's servers (kind `10063`).
 
-It does not depend on `ndk`. It signs through [`ndk_signer`](https://pub.dev/packages/ndk_signer), takes its accounts and auth policies from [`ndk_auth`](https://pub.dev/packages/ndk_auth), and asks you how to read a user's server list.
+It does not depend on `ndk`. It signs through [`ndk_signer`](https://pub.dev/packages/ndk_signer), which also gives it its accounts and auth policies, and asks you how to read a user's server list.
 
 ## Install
 

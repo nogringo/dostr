@@ -56,7 +56,6 @@ export 'package:ndk_broadcast/ndk_broadcast.dart'
  * 
  */
 export 'package:ndk_nip01/ndk_nip01.dart';
-export 'package:ndk_auth/ndk_auth.dart';
 
 /**
  *  export classes that need to be injected
@@ -111,7 +110,6 @@ export 'package:ndk_blossom/ndk_blossom.dart'
         BlossomUserServerList,
         BlossomUserServerListPublish,
         BlossomUserServerListQuery;
-export 'package:ndk_search/ndk_search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
 export 'presentation_layer/bunker_login.dart';

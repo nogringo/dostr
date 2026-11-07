@@ -1,6 +1,5 @@
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_search/ndk_search.dart';
 
 typedef LoadEventsCall = ({
   List<String>? ids,

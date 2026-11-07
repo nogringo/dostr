@@ -1,5 +1,5 @@
 name: ndk_signer
-description: The EventSigner interface of NDK (Nostr Development Kit) that local, remote and browser signers implement, with their pending requests and errors.
+description: The EventSigner interface of NDK (Nostr Development Kit) that signers implement, and the accounts and AuthPolicy that decide when one is revealed to a relay (NIP-42) or Blossom.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
 repository: https://github.com/relaystr/ndk
@@ -7,6 +7,7 @@ repository: https://github.com/relaystr/ndk
 topics:
   - nostr
   - ndk
+  - authentication
 
 environment:
   sdk: ">=3.9.0 <4.0.0"

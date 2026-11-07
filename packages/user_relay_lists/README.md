@@ -49,7 +49,7 @@ await userRelayLists.broadcastAddNip65Relay(
 );
 ```
 
-`query` streams the events matching a filter: `name` identifies the request, and `relays`, when not null, replaces the outbox relays. `publish` gets the edited relay list unsigned: it signs it as the logged account and sends it to the given relays. `cacheManager` keeps the lists. `accounts` is any `AuthAccounts` from [`ndk_auth`](https://pub.dev/packages/ndk_auth), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
+`query` streams the events matching a filter: `name` identifies the request, and `relays`, when not null, replaces the outbox relays. `publish` gets the edited relay list unsigned: it signs it as the logged account and sends it to the given relays. `cacheManager` keeps the lists. `accounts` is any `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
 
 Before an edit, a cached list of the logged account older than `UserRelayLists.kRefreshUserRelayListDuration` (10 minutes) is refreshed from the relays, so the edit does not drop relays another client added or removed since.
 

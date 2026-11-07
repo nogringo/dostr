@@ -9,7 +9,7 @@ import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'ndk_request.dart';
-import 'package:ndk_auth/ndk_auth.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/domain_layer/entities/relay_req_event.dart';
 import 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';

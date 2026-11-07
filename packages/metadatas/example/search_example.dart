@@ -1,7 +1,6 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
-import 'package:ndk_search/ndk_search.dart';
 
 class MemorySearchCache implements SearchCache {
   final List<Nip01Event> events = [];
@@ -32,7 +31,7 @@ class MemorySearchCache implements SearchCache {
   ];
 }
 
-/// `dart run example/ndk_search_example.dart wss://relay.example.com lightning`
+/// `dart run example/search_example.dart wss://relay.example.com lightning`
 ///
 /// The relay has to support NIP-50 search.
 Future<void> main(List<String> args) async {

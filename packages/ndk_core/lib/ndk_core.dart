@@ -2,7 +2,6 @@
 /// EVENT on the relays you pick.
 library;
 
-export 'package:ndk_auth/ndk_auth.dart';
 export 'package:ndk_logger/ndk_logger.dart';
 export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_signer/ndk_signer.dart';

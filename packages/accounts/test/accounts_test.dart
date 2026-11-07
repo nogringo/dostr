@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_auth/ndk_auth.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

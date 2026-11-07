@@ -68,7 +68,7 @@ queue.startPeriodicRetry(
 );
 ```
 
-`store` is a `DeliveryStore`: the delivery records and relay targets, and the events they carry. `accounts` is the `AuthAccounts` of [`ndk_auth`](https://pub.dev/packages/ndk_auth), where a retry finds the signer and the NIP-42 identity of an event again after a restart. `urlLists` looks up the lists of an `UrlSet` from [`ndk_url_set`](https://pub.dev/packages/ndk_url_set). `send` must only publish, and complete with a `DeliveryResponse` for each relay: it is how a retry goes out, so it must not enqueue the event again. `toDeliveryResponse` of [`ndk_broadcast`](https://pub.dev/packages/ndk_broadcast) converts a `RelayBroadcastResponse` of `ndk_core`.
+`store` is a `DeliveryStore`: the delivery records and relay targets, and the events they carry. `accounts` is the `AuthAccounts` of [`ndk_signer`](https://pub.dev/packages/ndk_signer), where a retry finds the signer and the NIP-42 identity of an event again after a restart. `urlLists` looks up the lists of an `UrlSet` from [`ndk_url_set`](https://pub.dev/packages/ndk_url_set). `send` must only publish, and complete with a `DeliveryResponse` for each relay: it is how a retry goes out, so it must not enqueue the event again. `toDeliveryResponse` of [`ndk_broadcast`](https://pub.dev/packages/ndk_broadcast) converts a `RelayBroadcastResponse` of `ndk_core`.
 
 After the first send of an enqueued event, hand its answers to `persistSpecificRelayBroadcastResult` so the relays that accepted it are not retried. Call `enqueueUnresolvedUrlSets` with the parts of its `UrlSet` that could not be resolved yet. `loadEventDelivery` and `loadDeliveries` return the persisted state of each event, joined with its relay targets.
 

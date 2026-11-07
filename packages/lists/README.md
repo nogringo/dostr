@@ -57,7 +57,7 @@ await lists.addElementToList(
 );
 ```
 
-`query` streams the list and set events matching a filter. `cacheRead` says whether cached events may answer too, a query without a cache of its own can ignore it. `publish` gets the changed list, or the deletion of a set, unsigned: it signs it as the logged account and sends it to the given relays, or to the author's outbox relays when they are null. `cache` is a `Nip51ListCache`. `accounts` is any `AuthAccounts` from [`ndk_auth`](https://pub.dev/packages/ndk_auth), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
+`query` streams the list and set events matching a filter. `cacheRead` says whether cached events may answer too, a query without a cache of its own can ignore it. `publish` gets the changed list, or the deletion of a set, unsigned: it signs it as the logged account and sends it to the given relays, or to the author's outbox relays when they are null. `cache` is a `Nip51ListCache`. `accounts` is any `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
 
 Private elements are encrypted to the logged account with NIP-44, and read back from NIP-44 or legacy NIP-04 content. Give `Lists` a `plaintextCache`, a `Nip51ListPlaintextCache`, to decrypt each event once, otherwise they are decrypted on every read. `getPublicList` and `getPublicSets` with a `publicKey` only return public elements.
 

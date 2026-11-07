@@ -2,7 +2,7 @@
 
 The accounts of [NDK](https://pub.dev/packages/ndk): log in with a private key, a public key, an external signer or a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker, switch between the logged accounts, and sign as the current one. It does not depend on `ndk`.
 
-`Accounts` implements `AuthAccounts` from [`ndk_auth`](https://pub.dev/packages/ndk_auth), so relays (NIP-42) and Blossom servers authenticate as its accounts.
+`Accounts` implements `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), so relays (NIP-42) and Blossom servers authenticate as its accounts.
 
 ## With NDK
 

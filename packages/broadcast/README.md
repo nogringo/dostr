@@ -72,7 +72,7 @@ final broadcast = Broadcast(
 final response = broadcast.broadcast(nostrEvent: note);
 ```
 
-`urlLists` is a `UrlListFn` of [`ndk_url_set`](https://pub.dev/packages/ndk_url_set) that looks up the relay lists of a pubkey, for example with the fetchers of [`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers). `accounts` is any `AuthAccounts` from [`ndk_auth`](https://pub.dev/packages/ndk_auth), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
+`urlLists` is a `UrlListFn` of [`ndk_url_set`](https://pub.dev/packages/ndk_url_set) that looks up the relay lists of a pubkey, for example with the fetchers of [`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers). `accounts` is any `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), such as the `Accounts` of [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
 
 `BroadcastSender` sends once: it signs the event, resolves where it goes and publishes it. `Broadcast` adds the queue: the relays of `specificRelays`, and the parts of the `UrlSet` whose lists were unavailable, are retried until they ack, unless `retryDelivery` is `false`. `broadcastReaction` and `broadcastDeletion` (NIP-09) build the event for you.
 

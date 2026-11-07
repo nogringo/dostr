@@ -27,7 +27,6 @@ on:
           - ndk_core
           - ndk_nip01
           - ndk_signer
-          - ndk_auth
           - ndk_isolates
           - ndk_logger
           - ndk_http
@@ -59,7 +58,6 @@ on:
           - ndk_follows
           - ndk_metadatas
           - ndk_lists
-          - ndk_search
           - ndk_zaps
           - ndk_cache
           - ndk_nip11

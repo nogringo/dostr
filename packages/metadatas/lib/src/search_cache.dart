@@ -1,5 +1,6 @@
-import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
+
+import 'metadata.dart';
 
 /// Where [Search] looks before asking relays. NDK's `CacheManager`
 /// implements it.

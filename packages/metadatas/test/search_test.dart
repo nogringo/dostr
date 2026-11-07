@@ -3,10 +3,9 @@ import 'dart:convert';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_search/ndk_search.dart';
 import 'package:test/test.dart';
 
-import 'mocks/fake_network.dart';
+import 'mocks/fake_search_network.dart';
 
 void main() {
   final key0 = Bip340.generatePrivateKey();

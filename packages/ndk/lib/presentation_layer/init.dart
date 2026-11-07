@@ -23,7 +23,6 @@ import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
-import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 import 'ndk_config.dart';
