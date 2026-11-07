@@ -107,6 +107,12 @@ dependency_overrides:
     path: ../url_set
   ndk_fetchers:
     path: ../fetchers
+  ndk_home_relays:
+    path: ../home_relays
+  ndk_nip13:
+    path: ../nip13
+  ndk_nip85:
+    path: ../nip85
   ndk_flutter:
     path: ../ndk_flutter
   ndk_drift:

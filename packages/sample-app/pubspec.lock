@@ -887,6 +887,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_home_relays:
+    dependency: "direct overridden"
+    description:
+      path: "../home_relays"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_http:
     dependency: "direct main"
     description:
@@ -950,6 +957,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_nip13:
+    dependency: "direct overridden"
+    description:
+      path: "../nip13"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_nip17:
     dependency: "direct main"
     description:
@@ -1010,6 +1024,13 @@ packages:
     dependency: "direct overridden"
     description:
       path: "../nip82"
+      relative: true
+    source: path
+    version: "0.1.0"
+  ndk_nip85:
+    dependency: "direct overridden"
+    description:
+      path: "../nip85"
       relative: true
     source: path
     version: "0.1.0"
