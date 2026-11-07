@@ -4,7 +4,6 @@ import 'dart:convert';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
@@ -59,6 +58,8 @@ class PendingBroadcastDelivery {
   bool _resolvingUrlSets = false;
   Iterable<String> Function()? _connectedRelayUrlsProvider;
   Timer? _retryTimer;
+  StreamSubscription<Iterable<String>>? _openRelayUrlsSubscription;
+  final Set<String> _openRelayUrls = {};
   bool _stopped = false;
   final Set<Future<void>> _inFlightOperations = {};
 
@@ -83,13 +84,21 @@ class PendingBroadcastDelivery {
   ///
   /// The callbacks are injected so this class can stay storage-focused and not
   /// depend directly on relay manager internals.
+  ///
+  /// [openRelayUrlChanges] emits the relays that are open whenever that set
+  /// changes. A relay that opens gets its interactive signing retried and its
+  /// targets flushed right away, without waiting for the next interval.
   void startPeriodicRetry({
     required Iterable<String> Function() connectedRelayUrls,
     required Future<bool> Function(String relayUrl) reconnectRelay,
     Duration retryInterval = defaultRetryInterval,
+    Stream<Iterable<String>>? openRelayUrlChanges,
   }) {
     _stopped = false;
     _connectedRelayUrlsProvider = connectedRelayUrls;
+    _openRelayUrlsSubscription?.cancel();
+    _openRelayUrls.clear();
+    _openRelayUrlsSubscription = openRelayUrlChanges?.listen(_onOpenRelayUrls);
     _retryTimer?.cancel();
     _retryTimer = Timer.periodic(
       retryInterval,
@@ -112,12 +121,26 @@ class PendingBroadcastDelivery {
     _stopped = true;
     _retryTimer?.cancel();
     _retryTimer = null;
+    await _openRelayUrlsSubscription?.cancel();
+    _openRelayUrlsSubscription = null;
+    _openRelayUrls.clear();
     _authPolicies.clear();
     _unresolvedAuthPolicies.clear();
     final operations = _inFlightOperations.toList(growable: false);
     if (operations.isNotEmpty) {
       await Future.wait(operations);
     }
+  }
+
+  void _onOpenRelayUrls(Iterable<String> relayUrls) {
+    final open = relayUrls.toSet();
+    for (final relayUrl in open.difference(_openRelayUrls)) {
+      unawaited(retryInteractiveSigningForTransportRelay(relayUrl));
+      unawaited(flushForRelay(relayUrl));
+    }
+    _openRelayUrls
+      ..clear()
+      ..addAll(open);
   }
 
   void _trackOperation(Future<void> operation) {

@@ -32,9 +32,20 @@ final reference = Nip19.decodeNevent(nevent);
 print(reference.eventId);
 ```
 
+`nevent` and `naddr` encode a `Nip01Event` of
+[`ndk_nip01`](https://pub.dev/packages/ndk_nip01) with its id, author and kind,
+and relay hints. `naddr` returns null when the kind is not addressable or
+replaceable, or when the event has no `d` tag:
+
+```dart
+final nevent = event.nevent(relays: ['wss://relay.example.com']);
+final naddr = event.naddr();
+```
+
 ## Coming from `ndk`
 
 `package:ndk/shared/nips/nip19/nip19.dart` and the `Naddr`, `Nevent` and
-`Nprofile` entities are now all in `package:ndk_nip19/ndk_nip19.dart`.
-`package:ndk/ndk.dart` still exports them, along with the `nevent` and `naddr`
-getters on `Nip01Event`.
+`Nprofile` entities are now all in `package:ndk_nip19/ndk_nip19.dart`, and so
+are the `nevent` and `naddr` methods on `Nip01Event`
+(`package:ndk/shared/nips/nip19/nip19_event_references.dart`).
+`package:ndk/ndk.dart` still exports them all.

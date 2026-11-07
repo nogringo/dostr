@@ -35,6 +35,7 @@ workspace:
   - packages/rust_verifier
   - packages/pq
   - packages/ndk_cache_manager_test_suite
+  - packages/mock_relay
   - packages/objectbox
   - packages/sembast
   - packages/drift

@@ -4,7 +4,7 @@ import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
-import '../mocks/mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 void main() {
   late RelayManager manager;

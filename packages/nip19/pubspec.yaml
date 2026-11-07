@@ -17,6 +17,7 @@ resolution: workspace
 dependencies:
   bech32: ^0.2.2
   convert: ^3.1.2
+  ndk_nip01: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0

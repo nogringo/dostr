@@ -16,6 +16,7 @@ library;
 export 'src/cache_eviction.dart';
 export 'src/cache_eviction_scheduler.dart';
 export 'src/cache_manager.dart';
+export 'src/cache_manager_replaceable_events.dart';
 export 'src/channel_metadata.dart';
 export 'src/decrypted_event_payloads.dart';
 export 'src/decrypted_payloads_gift_wrap_cache.dart';

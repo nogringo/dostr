@@ -6,7 +6,6 @@ import 'package:ndk_core/config/rx_defaults.dart';
 import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
 import 'package:ndk_core/shared/helpers/relay_helper.dart';
 import 'package:ndk_logger/ndk_logger.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';

@@ -4,7 +4,7 @@ import 'package:ndk/ndk.dart';
 import 'package:ndk_nip85/ndk_nip85.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import '../../mocks/trusted_assertions_for_ndk.dart';
 
 void main() {

@@ -51,7 +51,13 @@ Feel free to reach out to us via the following channels:
 
 ## Project Structure
 
-The project is structured in a layered architecture.
+Each feature lives in its own package under `packages/`, named `ndk_<feature>`: `ndk_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `ndk_requests` for queries and subscriptions, `ndk_nip59` for gift wraps, and so on. A package depends on what it needs, and its `dependencies` never include `ndk`.
+
+`ndk` is only a facade: `Ndk` and `NdkConfig`, `Initialization`, which builds the packages and wires them together, and the exports of `package:ndk/ndk.dart` and `package:ndk/entities.dart`. New code goes into the package it belongs to, or into a new one, and `ndk` only builds it and exports it.
+
+Tests follow the code: a package tests itself, with [`ndk_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay. `packages/ndk/test` only keeps the tests of the facade itself, most of them through `Ndk`.
+
+Inside a package, the code follows a layered architecture.
 
 - `lib/`
   - `config/`
@@ -73,14 +79,10 @@ The project is structured in a layered architecture.
       - `# contracts`
     - `usecases/`
       - `# our main code / business logic`
-  - `presentation_layer/`
-    - `# contains our api design (makes usecases accessible to outside world)`
-  - `lib.dart # entrypoint, points to presentation_layer`
-- `tests/`
-  - `usecases/`
-    - `# integration_tests`
-  - `unit/`
-    - `# unit tests`
+  - `src/`
+    - `# internal code, not importable from other packages`
+  - `<package>.dart # entrypoint, exports the public api`
+- `test/`
 
 The decision for this architecture can be viewed [here](/library-development/adrs/layerd-architecture/).
 If you are unsure where to put your code, please ask us. We are happy to help you.

@@ -7,7 +7,27 @@ library;
 
 export 'presentation_layer/ndk.dart';
 export 'presentation_layer/ndk_config.dart';
-export 'package:ndk_core/ndk_core.dart' show packageVersion;
+export 'package:ndk_core/ndk_core.dart'
+    show
+        Filter,
+        Nip01EventBase64,
+        Nip01EventDeprecated,
+        // ignore: deprecated_member_use
+        Nip01EventModel,
+        Nip01Utils,
+        packageVersion,
+        Relay,
+        RelayConnectionKey,
+        RelayFailure,
+        RelayFailureKind,
+        RelayPublish,
+        RelayPublishes,
+        RelayReq,
+        RelayReqEvent,
+        RelayReqs,
+        RelayRequestOutcome,
+        RelayRequestStatus,
+        TimeoutPausable;
 export 'package:ndk_requests/ndk_requests.dart'
     show
         EventFilter,
@@ -28,15 +48,7 @@ export 'package:ndk_broadcast/ndk_broadcast.dart'
  * 
  */
 export 'package:ndk_nip01/ndk_nip01.dart';
-export 'package:ndk_core/domain_layer/entities/nip_01_utils.dart';
-export 'package:ndk_core/data_layer/models/nip_01_event_model.dart';
-export 'package:ndk_core/domain_layer/entities/filter.dart';
-export 'package:ndk_core/domain_layer/entities/relay.dart';
 export 'package:ndk_auth/ndk_auth.dart';
-export 'package:ndk_core/domain_layer/entities/timeout_pausable.dart';
-export 'package:ndk_core/domain_layer/entities/relay_connection_key.dart';
-export 'package:ndk_core/domain_layer/entities/relay_failure.dart';
-export 'package:ndk_core/domain_layer/entities/relay_request_outcome.dart';
 
 /**
  *  export classes that need to be injected
@@ -79,10 +91,6 @@ export 'package:ndk_cache/ndk_cache.dart'
  * 
  */
 
-export "package:ndk_core/domain_layer/usecases/relay_reqs/relay_publishes.dart";
-export "package:ndk_core/domain_layer/usecases/relay_manager.dart"
-    show RelayReqs, RelayReq;
-export "package:ndk_core/domain_layer/entities/relay_req_event.dart";
 export 'package:ndk_follows/ndk_follows.dart';
 export 'package:ndk_metadatas/ndk_metadatas.dart';
 export 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
@@ -101,7 +109,7 @@ export 'package:ndk_nip59/ndk_nip59.dart';
 export 'package:ndk_nip46/ndk_nip46.dart';
 export 'package:ndk_nip05/ndk_nip05.dart';
 export 'package:ndk_nip11/ndk_nip11.dart';
-export 'domain_layer/usecases/connectivity/connectivity.dart';
+export 'presentation_layer/connectivity.dart';
 export 'package:ndk_nip77/ndk_nip77.dart'
     show
         Nip77,
@@ -125,7 +133,6 @@ export 'package:ndk_logger/ndk_logger.dart';
  */
 
 export 'package:ndk_nip19/ndk_nip19.dart';
-export 'shared/nips/nip19/nip19_event_references.dart';
 
 /**
  * Nip 49

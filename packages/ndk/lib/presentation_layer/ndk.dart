@@ -4,7 +4,7 @@ import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart';
 import 'package:ndk_blossom/ndk_blossom.dart' show BlossomUserServerList;
 import 'package:ndk_nip46/ndk_nip46.dart';
-import '../domain_layer/usecases/connectivity/connectivity.dart';
+import 'connectivity.dart';
 import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
@@ -12,7 +12,7 @@ import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
@@ -196,7 +196,6 @@ class Ndk {
       ..._destroyHooks.map((hook) => hook()),
       _initialization.requests.closeAllSubscription(),
       _initialization.relayManager.closeAllTransports(),
-      _initialization.requests.closeAllSubscription(),
       accounts.dispose(),
     ];
 

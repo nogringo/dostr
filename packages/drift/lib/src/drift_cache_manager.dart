@@ -11,7 +11,6 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 
 import 'database/database.dart';
 import 'database/event_index.dart';

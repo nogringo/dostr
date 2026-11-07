@@ -35,8 +35,14 @@ print(info?.limitation?.maxSubscriptions);
 
 `getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay serves no document or the request fails.
 
+To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. Concurrent calls share the request, and a fetch that fails or returns null is retried on the next call. It keys the cache on the url as given, so normalize urls first:
+
+```dart
+final cached = CachedRelayInfoRepo(repo);
+```
+
 More in [example/](example/) and the [connectivity docs](https://dart-nostr.com/usecases/connectivity/).
 
 ## Coming from `ndk`
 
-`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee`, `RelayInfoRepo` and `RelayInfoHttpRepoImpl` keep their names, and `package:ndk/ndk.dart` now exports them all. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:ndk_nip11/ndk_nip11.dart`. `Connectivy` stays in `ndk`.
+`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee`, `RelayInfoRepo` and `RelayInfoHttpRepoImpl` keep their names, and `package:ndk/ndk.dart` now exports them all. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:ndk_nip11/ndk_nip11.dart`. `Connectivy` stays in `ndk`, and its cache is now `CachedRelayInfoRepo`.

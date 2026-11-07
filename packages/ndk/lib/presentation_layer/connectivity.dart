@@ -1,0 +1,27 @@
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
+
+/// get connectivity status \
+/// & update ndk about your application connectivity for faster reconnects
+class Connectivy {
+  final RelayManager _relayManager;
+  final CachedRelayInfoRepo _relayInfoRepo;
+
+  Connectivy(this._relayManager, RelayInfoRepo relayInfoRepo)
+    : _relayInfoRepo = CachedRelayInfoRepo(relayInfoRepo);
+
+  /// streams connectivity status of every connection \
+  /// a relay can hold several, so group by [RelayConnectivity.url] if needed
+  Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
+      _relayManager.relayConnectivityChanges;
+
+  /// NIP-11 info of the relay at [url], fetched once and then cached \
+  /// concurrent calls share the request, failures are retried on the next call \
+  /// returns null when the relay does not provide it
+  Future<RelayInfo?> getRelayInfo(String url) =>
+      _relayInfoRepo.getRelayInfo(cleanRelayUrl(url) ?? url);
+
+  /// forces all relays to reconnect \
+  /// use this for faster reconnects based on your application/os connectivity \
+  Future<void> tryReconnect() => _relayManager.reconnectClosedConnections();
+}

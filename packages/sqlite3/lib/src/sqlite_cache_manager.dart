@@ -9,7 +9,6 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'ndk_extensions.dart';

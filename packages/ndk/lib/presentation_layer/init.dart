@@ -2,13 +2,10 @@ import 'dart:async';
 
 import 'package:http/http.dart' as http;
 
-import '../shared/net/user_agent.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_http/ndk_http.dart';
-import '../data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
-import '../domain_layer/usecases/connectivity/connectivity.dart';
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
-import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
+import 'connectivity.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart';
 import 'package:ndk_blossom/ndk_blossom.dart' show BlossomUserServerList;
@@ -25,11 +22,9 @@ import 'package:ndk_fetchers/ndk_fetchers.dart'
     show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk_search/ndk_search.dart';
 import 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
-import 'package:ndk_logger/ndk_logger.dart';
 import 'ndk_config.dart';
 
 /// this class is used to inject all the dependencies \
@@ -73,8 +68,6 @@ class Initialization {
   late DecryptedEventPayloads decryptedEventPayloads;
   late FetchedRanges fetchedRanges;
   CacheEvictionScheduler? cacheEvictionScheduler;
-  StreamSubscription<List<RelayConnectivity>>? _relayConnectivitySubscription;
-  final Map<String, bool> _relayOpenStates = {};
 
   late Nip05Usecase nip05;
   late Nip77 nip77;
@@ -212,14 +205,19 @@ class Initialization {
       pendingDelivery: pendingBroadcastDelivery,
     );
     if (_ndkConfig.pendingDeliveryRetriesEnabled) {
-      _relayConnectivitySubscription = relayManager.relayConnectivityChanges
-          .listen(_handleRelayConnectivityUpdate);
       pendingBroadcastDelivery.startPeriodicRetry(
         connectedRelayUrls: () =>
             relayManager.connectedRelays.map((relay) => relay.url),
         reconnectRelay: (relayUrl) =>
             relayManager.reconnectRelay(relayUrl, force: true),
         retryInterval: _ndkConfig.pendingDeliveryRetryInterval,
+        // a relay is reachable as soon as one of its connections is open
+        openRelayUrlChanges: relayManager.relayConnectivityChanges.map(
+          (connections) => {
+            for (final connection in connections)
+              if (connection.isConnected) connection.url,
+          },
+        ),
       );
     }
 
@@ -368,39 +366,6 @@ class Initialization {
   Future<void> dispose() async {
     await cacheEvictionScheduler?.stop();
     await pendingBroadcastDelivery.stop();
-    await _relayConnectivitySubscription?.cancel();
     _httpRequestDS.abortPending();
-  }
-
-  void _handleRelayConnectivityUpdate(List<RelayConnectivity> connections) {
-    // deliveries are still addressed by relay, so a relay counts as reachable
-    // as soon as one of its connections is open
-    final openByUrl = <String, bool>{};
-    for (final connection in connections) {
-      openByUrl[connection.url] =
-          (openByUrl[connection.url] ?? false) || connection.isConnected;
-    }
-
-    for (final entry in openByUrl.entries) {
-      final relayUrl = entry.key;
-      final wasOpen = _relayOpenStates[relayUrl] ?? false;
-      _relayOpenStates[relayUrl] = entry.value;
-
-      if (entry.value && !wasOpen) {
-        unawaited(
-          pendingBroadcastDelivery.retryInteractiveSigningForTransportRelay(
-            relayUrl,
-          ),
-        );
-        unawaited(pendingBroadcastDelivery.flushForRelay(relayUrl));
-      }
-    }
-
-    final removedUrls = _relayOpenStates.keys
-        .where((relayUrl) => !openByUrl.containsKey(relayUrl))
-        .toList();
-    for (final relayUrl in removedUrls) {
-      _relayOpenStates.remove(relayUrl);
-    }
   }
 }

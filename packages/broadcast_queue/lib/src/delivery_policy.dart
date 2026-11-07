@@ -1,7 +1,6 @@
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/relay_failure.dart';
-import 'package:ndk_core/shared/nips/nip01/event_kind_classification.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'delivery_records.dart';

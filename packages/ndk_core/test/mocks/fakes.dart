@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 
-import 'mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 /// the only signature [FakeVerifier] accepts
 final String fakeSig = 'f' * 128;

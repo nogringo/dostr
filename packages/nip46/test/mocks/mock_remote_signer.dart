@@ -5,7 +5,7 @@ import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:ndk_nip46/ndk_nip46.dart';
 
-import 'mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 /// A NIP-46 remote signer that answers the requests its relays receive, on
 /// the relay each request came through.

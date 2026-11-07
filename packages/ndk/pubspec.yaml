@@ -54,11 +54,8 @@ dependencies:
 
 dev_dependencies:
   bip340: ">=0.3.0 <0.4.0"
-  ndk_cache_manager_test_suite: ^1.0.1-dev.14
   # persistent cache for the local_first restart tests
   ndk_sembast: ^0.1.0
-  build_runner: ">=2.11.0 <3.0.0"
   flutter_lints: ^6.0.0
-  mockito: ">=5.6.3 <6.0.0"
   rxdart: ^0.28.0
   test: any

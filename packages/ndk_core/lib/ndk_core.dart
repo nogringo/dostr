@@ -24,4 +24,5 @@ export 'domain_layer/entities/timeout_pausable.dart';
 export 'domain_layer/repositories/nostr_transport.dart';
 export 'domain_layer/usecases/relay_manager.dart';
 export 'shared/helpers/relay_helper.dart' show cleanRelayUrl, cleanRelayUrls;
+export 'src/user_agent.dart';
 export 'src/version.dart';

@@ -52,6 +52,9 @@ the relay url normalization ndk_core connects with.
 `package:ndk/domain_layer/repositories/event_verifier.dart` are now
 `package:ndk_nip01/ndk_nip01.dart`, which `package:ndk_core/ndk_core.dart`
 exports.
+`EventKindClassification` is there too:
+`package:ndk/shared/nips/nip01/event_kind_classification.dart` is now
+`package:ndk_nip01/ndk_nip01.dart`.
 
 `EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`,
 `SignerMethod`, `SignerRequestRejectedException` and
@@ -82,6 +85,10 @@ replaces `Helpers.now`. `MutexSimple` is in
 `package:ndk/data_layer/data_sources/http_request.dart` is now
 `package:ndk_http/ndk_http.dart`. `ndk.connectivity.getRelayInfo` fetches and
 caches the documents, and the deprecated `RelayInfo.get` is gone.
+
+`configureDefaultUserAgent`, which sets the User-Agent of the websockets of the
+process on `dart:io`, is in `package:ndk_core/ndk_core.dart` instead of
+`package:ndk/shared/net/user_agent.dart`. `NdkConfig.userAgent` still calls it.
 
 `Nip13` is in [`ndk_nip13`](https://pub.dev/packages/ndk_nip13).
 `Nip01Utils.isIdValid` checks the id alone and no longer rejects an event that

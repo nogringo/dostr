@@ -1356,6 +1356,62 @@ void main() {
         expect(savedRecord.nextSignRetryAt! - savedRecord.updatedAt, 5);
       },
     );
+
+    test('flushes a relay each time it opens', () async {
+      const relayUrl = 'wss://late-relay.example';
+      await cacheManager.saveRelayDeliveryTarget(
+        RelayDeliveryTarget(
+          eventId: event.id,
+          relayUrl: relayUrl,
+          reason: RelayDeliveryReason.explicit,
+        ),
+      );
+      final openRelayUrls = StreamController<Iterable<String>>();
+      addTearDown(openRelayUrls.close);
+      pendingDelivery.startPeriodicRetry(
+        connectedRelayUrls: () => const <String>{},
+        reconnectRelay: (_) async => false,
+        retryInterval: const Duration(hours: 1),
+        openRelayUrlChanges: openRelayUrls.stream,
+      );
+      await pumpEventQueue();
+      expect(broadcast.broadcastedEvents, isEmpty);
+
+      openRelayUrls.add([relayUrl]);
+      await pumpEventQueue();
+      expect(broadcast.broadcastedEvents, [event]);
+
+      openRelayUrls.add([relayUrl, 'wss://other-relay.example']);
+      await pumpEventQueue();
+      expect(broadcast.broadcastedEvents, [event]);
+
+      openRelayUrls.add(const []);
+      openRelayUrls.add([relayUrl]);
+      await pumpEventQueue();
+      expect(broadcast.broadcastedEvents, [event, event]);
+    });
+
+    test('stops following relays when stopped', () async {
+      await cacheManager.saveRelayDeliveryTarget(
+        RelayDeliveryTarget(
+          eventId: event.id,
+          relayUrl: 'wss://late-relay.example',
+          reason: RelayDeliveryReason.explicit,
+        ),
+      );
+      final openRelayUrls = StreamController<Iterable<String>>.broadcast();
+      addTearDown(openRelayUrls.close);
+      pendingDelivery.startPeriodicRetry(
+        connectedRelayUrls: () => const <String>{},
+        reconnectRelay: (_) async => false,
+        retryInterval: const Duration(hours: 1),
+        openRelayUrlChanges: openRelayUrls.stream,
+      );
+
+      await pendingDelivery.stop();
+
+      expect(openRelayUrls.hasListener, isFalse);
+    });
   });
 }
 

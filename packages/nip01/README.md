@@ -49,6 +49,10 @@ before deduplicating events that are not verified yet.
 getters, `pTags` and `dTag`, because NDK reads them everywhere: `p` names the
 recipients of an event, `d` identifies an addressable event.
 
+`EventKindClassification` tells the kinds of NIP-01 apart: replaceable
+(10000 to 19999, and 0, 3 and 41), addressable (30000 to 39999) and ephemeral
+(20000 to 29999).
+
 To read and write the JSON form:
 
 ```dart

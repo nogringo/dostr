@@ -7,7 +7,7 @@ import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/dms_for_ndk.dart';
-import '../../mocks/mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 /// Tests for the NIP-17 [Dms] usecase.
 ///
