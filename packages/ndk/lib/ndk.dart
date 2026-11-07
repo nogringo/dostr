@@ -36,6 +36,7 @@ export 'package:ndk_requests/ndk_requests.dart'
     show
         EventFilter,
         FetchedRanges,
+        FilterFingerprint,
         JitEngine,
         NdkRequest,
         NdkResponse,
@@ -79,7 +80,6 @@ export 'package:ndk_cache/ndk_cache.dart'
         EvictionResult,
         FetchedRangesGap,
         FilterFetchedRangeRecord,
-        FilterFingerprint,
         HiddenEvent,
         HiddenEventReason,
         kAllHiddenEventReasons,

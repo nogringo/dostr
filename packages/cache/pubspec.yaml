@@ -23,12 +23,10 @@ platforms:
   windows:
 
 dependencies:
-  crypto: ^3.0.7
   ndk_broadcast_queue: ^0.1.0
   ndk_core: ^0.11.0-dev.2
   ndk_fetchers: ^0.1.0
   ndk_follows: ^0.1.0
-  ndk_isolates: ^0.1.0
   ndk_lists: ^0.1.0
   ndk_logger: ^0.1.0
   ndk_metadatas: ^0.1.0

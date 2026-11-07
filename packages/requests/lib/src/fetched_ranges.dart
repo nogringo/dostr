@@ -1,6 +1,8 @@
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 
+import 'filter_fingerprint.dart';
+
 /// Usecase to track and query fetched ranges per relay
 class FetchedRanges {
   final CacheManager _cacheManager;
