@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
@@ -24,43 +25,48 @@ class RustEventVerifier implements EventVerifier {
     }
 
     // Id derivation and Schnorr verification both happen in one native call.
-    // The fixed-size id/pubkey/signature triplet is packed into a single
-    // allocation; tags and content are variable-length and must still cross
-    // the FFI boundary since the id hash is derived from them.
+    // Strings cross as bytes with explicit lengths: as C strings, a NUL would
+    // cut what Rust hashes.
+    final content = utf8.encode(event.content);
+    final tagItems = [
+      for (final tag in event.tags)
+        for (final item in tag) utf8.encode(item),
+    ];
+    var textLength = content.length;
+    for (final item in tagItems) {
+      textLength += item.length;
+    }
+
     const packedLength = 64 + 64 + 128;
     final packed = malloc<Uint8>(packedLength);
-
-    var tagsDataPtr = nullptr as Pointer<Pointer<Utf8>>;
-    var tagsLengthsPtr = nullptr as Pointer<Uint32>;
-    final tagItemPointers = <Pointer<Utf8>>[];
-    Pointer<Utf8>? contentPtr;
+    Pointer<Uint8> text = nullptr;
+    Pointer<Uint32> tagSizes = nullptr;
+    Pointer<Uint32> tagItemLengths = nullptr;
 
     // Every allocation below must happen inside the try block: if one throws
     // (e.g. native OOM) partway through, prior allocations must still be freed.
     try {
-      final tagsCount = event.tags.length;
-      if (tagsCount > 0) {
-        var flatCount = 0;
-        for (final tag in event.tags) {
-          flatCount += tag.length;
-        }
-        tagsDataPtr = malloc<Pointer<Utf8>>(flatCount > 0 ? flatCount : 1);
-        tagsLengthsPtr = malloc<Uint32>(tagsCount);
-
-        var offset = 0;
-        for (var i = 0; i < tagsCount; i++) {
-          final tag = event.tags[i];
-          tagsLengthsPtr[i] = tag.length;
-          for (final item in tag) {
-            final itemPtr = item.toNativeUtf8();
-            tagItemPointers.add(itemPtr);
-            tagsDataPtr[offset] = itemPtr;
-            offset++;
-          }
-        }
+      text = malloc<Uint8>(textLength > 0 ? textLength : 1);
+      final textBytes = text.asTypedList(textLength)..setAll(0, content);
+      var offset = content.length;
+      for (final item in tagItems) {
+        textBytes.setAll(offset, item);
+        offset += item.length;
       }
 
-      contentPtr = event.content.toNativeUtf8();
+      final tagsCount = event.tags.length;
+      if (tagsCount > 0) {
+        tagSizes = malloc<Uint32>(tagsCount);
+        for (var i = 0; i < tagsCount; i++) {
+          tagSizes[i] = event.tags[i].length;
+        }
+      }
+      if (tagItems.isNotEmpty) {
+        tagItemLengths = malloc<Uint32>(tagItems.length);
+        for (var i = 0; i < tagItems.length; i++) {
+          tagItemLengths[i] = tagItems[i].length;
+        }
+      }
 
       final bytes = packed.asTypedList(packedLength);
       _copyAscii(event.id, bytes, 0);
@@ -72,20 +78,19 @@ class RustEventVerifier implements EventVerifier {
             packedLength,
             event.createdAt,
             event.kind,
-            tagsDataPtr,
-            tagsLengthsPtr,
+            text,
+            textLength,
+            content.length,
+            tagSizes,
+            tagItemLengths,
             tagsCount,
-            contentPtr,
           ) ==
           1;
     } finally {
       malloc.free(packed);
-      if (contentPtr != null) malloc.free(contentPtr);
-      for (final itemPtr in tagItemPointers) {
-        malloc.free(itemPtr);
-      }
-      if (tagsDataPtr != nullptr) malloc.free(tagsDataPtr);
-      if (tagsLengthsPtr != nullptr) malloc.free(tagsLengthsPtr);
+      if (text != nullptr) malloc.free(text);
+      if (tagSizes != nullptr) malloc.free(tagSizes);
+      if (tagItemLengths != nullptr) malloc.free(tagItemLengths);
     }
   }
 

@@ -16,11 +16,19 @@ class Bip340EventVerifier implements EventVerifier {
     }
     if (!event.hasValidId) return false;
     return useIsolate
-        ? await IsolateManager.instance.runInComputeIsolate<Nip01Event, bool>((
+        ? await IsolateManager.instance.runInComputeIsolate<Nip01Event, bool>(
+            _verifySig,
             event,
-          ) {
-            return bip340.verify(event.pubKey, event.id, event.sig!);
-          }, event)
-        : bip340.verify(event.pubKey, event.id, event.sig!);
+          )
+        : _verifySig(event);
+  }
+}
+
+// The bip340 package throws on malformed input (e.g. a sig that is not 128 hex chars).
+bool _verifySig(Nip01Event event) {
+  try {
+    return bip340.verify(event.pubKey, event.id, event.sig!);
+  } catch (_) {
+    return false;
   }
 }

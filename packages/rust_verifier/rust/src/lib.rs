@@ -1,4 +1,3 @@
-use std::ffi::{c_char, CStr};
 use std::slice;
 
 use hex::decode_to_slice;
@@ -14,23 +13,30 @@ use sha2::{Digest, Sha256};
 /// and a Rust-side signature-only check: both now happen here, in one call, with
 /// only the fixed-size id/pubkey/signature triplet packed into a single buffer.
 ///
+/// Strings cross as UTF-8 bytes with explicit lengths, never as C strings: a NUL
+/// would otherwise cut what gets hashed, letting text be appended after signing.
+/// `created_at` and `kind` are hashed exactly as Dart's `int` holds them.
+///
 /// # Safety
-/// `packed` must point to exactly `packed_len` (256) readable bytes. `tags_data`/
-/// `tags_lengths` must describe `tags_count` valid C strings, and `content` must
-/// be a valid null-terminated C string.
+/// `packed` must point to exactly `packed_len` (256) readable bytes, and `text` to
+/// `text_len` bytes: the content (its first `content_len` bytes) followed by every
+/// tag item. `tag_sizes` must hold `tags_count` item counts, and `tag_item_lengths`
+/// the byte length of each tag item. Either may be null when it would be empty.
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn verify_nostr_event_packed(
     packed: *const u8,
     packed_len: usize,
-    created_at: u64,
-    kind: u32,
-    tags_data: *const *const c_char,
-    tags_lengths: *const u32,
+    created_at: i64,
+    kind: i64,
+    text: *const u8,
+    text_len: usize,
+    content_len: usize,
+    tag_sizes: *const u32,
+    tag_item_lengths: *const u32,
     tags_count: u32,
-    content: *const c_char,
 ) -> i32 {
     const PACKED_LEN: usize = 64 + 64 + 128;
-    if packed.is_null() || packed_len != PACKED_LEN || content.is_null() {
+    if packed.is_null() || packed_len != PACKED_LEN || text.is_null() || content_len > text_len {
         return 0;
     }
     let bytes = unsafe { slice::from_raw_parts(packed, packed_len) };
@@ -42,18 +48,19 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
         Ok(s) => s,
         Err(_) => return 0,
     };
-    let content_str = match unsafe { CStr::from_ptr(content) }.to_str() {
+    let (content, tag_items) =
+        unsafe { slice::from_raw_parts(text, text_len) }.split_at(content_len);
+    let content_str = match std::str::from_utf8(content) {
         Ok(s) => s,
         Err(_) => return 0,
     };
 
-    let tags = match unsafe { parse_tags(tags_data, tags_lengths, tags_count) } {
+    let tags = match unsafe { parse_tags(tag_items, tag_sizes, tag_item_lengths, tags_count) } {
         Some(t) => t,
         None => return 0,
     };
 
-    let calc_id =
-        hash_event_data_internal(pub_key_str, created_at, kind as u16, &tags, content_str);
+    let calc_id = hash_event_data_internal(pub_key_str, created_at, kind, &tags, content_str);
     if calc_id.as_bytes() != event_id_hex {
         return 0;
     }
@@ -65,43 +72,49 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
     }
 }
 
-/// Parses the flat tags array passed across FFI back into `Vec<Vec<String>>`.
-/// `tags_lengths` holds the item count of each tag; `tags_data` holds all tag
-/// items concatenated in order. Returns `None` on any null pointer or invalid
-/// UTF-8, which callers treat as a verification failure.
+/// Splits `items`, every tag item's UTF-8 bytes concatenated in order, back into
+/// tags. `tag_sizes` holds the item count of each tag and `tag_item_lengths` the
+/// byte length of each item. Returns `None` on a null pointer, invalid UTF-8, or
+/// lengths that do not cover `items` exactly, which callers treat as a
+/// verification failure.
 ///
 /// # Safety
-/// `tags_data` must point to a flat array covering the sum of `tags_lengths`
-/// valid C strings, and `tags_lengths` to `tags_count` `u32`s.
+/// `tag_sizes` must point to `tags_count` `u32`s, and `tag_item_lengths` to as
+/// many `u32`s as `tag_sizes` adds up to.
 unsafe fn parse_tags(
-    tags_data: *const *const c_char,
-    tags_lengths: *const u32,
+    items: &[u8],
+    tag_sizes: *const u32,
+    tag_item_lengths: *const u32,
     tags_count: u32,
-) -> Option<Vec<Vec<String>>> {
-    if tags_count == 0 || tags_data.is_null() || tags_lengths.is_null() {
-        return Some(Vec::new());
-    }
+) -> Option<Vec<Vec<&str>>> {
+    let sizes = unsafe { slice_or_empty(tag_sizes, tags_count as usize) }?;
+    let item_count = sizes.iter().map(|&size| size as usize).sum();
+    let mut lengths = unsafe { slice_or_empty(tag_item_lengths, item_count) }?.iter();
 
-    let lengths = unsafe { slice::from_raw_parts(tags_lengths, tags_count as usize) };
-    let mut result: Vec<Vec<String>> = Vec::with_capacity(tags_count as usize);
-    let mut offset = 0usize;
-
-    for &len in lengths {
-        let mut tag: Vec<String> = Vec::with_capacity(len as usize);
-        for i in 0..len as usize {
-            let ptr = unsafe { *tags_data.add(offset + i) };
-            if ptr.is_null() {
-                return None;
-            }
-            match unsafe { CStr::from_ptr(ptr) }.to_str() {
-                Ok(s) => tag.push(s.to_string()),
-                Err(_) => return None,
-            }
+    let mut rest = items;
+    let mut tags = Vec::with_capacity(sizes.len());
+    for &size in sizes {
+        let mut tag = Vec::with_capacity(size as usize);
+        for _ in 0..size {
+            let (item, tail) = rest.split_at_checked(*lengths.next()? as usize)?;
+            tag.push(std::str::from_utf8(item).ok()?);
+            rest = tail;
         }
-        result.push(tag);
-        offset += len as usize;
+        tags.push(tag);
     }
-    Some(result)
+    rest.is_empty().then_some(tags)
+}
+
+/// # Safety
+/// Unless `len` is 0, `ptr` must point to `len` readable `u32`s.
+unsafe fn slice_or_empty<'a>(ptr: *const u32, len: usize) -> Option<&'a [u32]> {
+    if len == 0 {
+        Some(&[])
+    } else if ptr.is_null() {
+        None
+    } else {
+        Some(unsafe { slice::from_raw_parts(ptr, len) })
+    }
 }
 
 fn verify_schnorr_signature_bytes(
@@ -159,9 +172,9 @@ fn push_json_escaped(output: &mut String, value: &str) {
 
 fn hash_event_data_internal(
     pubkey: &str,
-    created_at: u64,
-    kind: u16,
-    tags: &[Vec<String>],
+    created_at: i64,
+    kind: i64,
+    tags: &[Vec<&str>],
     content: &str,
 ) -> String {
     let mut serialized_event = String::with_capacity(256);
@@ -236,7 +249,7 @@ mod tests {
         let pubkey = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
         let created_at = 1726215220;
         let kind = 1;
-        let tags: Vec<Vec<String>> = vec![];
+        let tags: Vec<Vec<&str>> = vec![];
         let content = "hello world";
         assert_eq!(
             hash_event_data_internal(pubkey, created_at, kind, &tags, content),
@@ -250,7 +263,7 @@ mod tests {
         let pubkey = "79be667ef9dcbbac55a06295ce870b07029bfcdb2dce28d959f2815b16f81798";
         let created_at = 1726215220;
         let kind = 1;
-        let tags: Vec<Vec<String>> = vec![];
+        let tags: Vec<Vec<&str>> = vec![];
         let content = "invalid";
         assert_ne!(
             hash_event_data_internal(pubkey, created_at, kind, &tags, content),
@@ -264,8 +277,8 @@ mod tests {
         for code in 0..0x20u8 {
             let value = format!("before{}after", char::from(code));
             for (tags, content) in [
-                (vec![], value.clone()),
-                (vec![vec!["t".to_string(), value.clone()]], String::new()),
+                (vec![], value.as_str()),
+                (vec![vec!["t", value.as_str()]], ""),
             ] {
                 let serialized = serde_json::to_vec(&serde_json::json!([
                     0, pubkey, 1726215220u64, 1, tags, content
@@ -273,7 +286,7 @@ mod tests {
                 .unwrap();
                 let expected = hex::encode(Sha256::digest(serialized));
                 assert_eq!(
-                    hash_event_data_internal(pubkey, 1726215220, 1, &tags, &content),
+                    hash_event_data_internal(pubkey, 1726215220, 1, &tags, content),
                     expected,
                     "control character {code:#04x}, tags: {tags:?}"
                 );
@@ -281,25 +294,65 @@ mod tests {
         }
     }
 
-    /// Builds a null-terminated C string on the heap, for feeding raw pointer FFI
-    /// entry points from safe test code.
-    fn cstring(value: &str) -> std::ffi::CString {
-        std::ffi::CString::new(value).unwrap()
+    #[test]
+    fn parse_tags_splits_items_by_byte_length() {
+        let items = "e\0xp日本".as_bytes();
+        let tags = unsafe { parse_tags(items, [2, 0, 1].as_ptr(), [1, 2, 7].as_ptr(), 3) };
+        assert_eq!(tags, Some(vec![vec!["e", "\0x"], vec![], vec!["p日本"]]));
+    }
+
+    #[test]
+    fn parse_tags_rejects_lengths_that_do_not_cover_items() {
+        let items = b"eabc";
+        for lengths in [[1, 2], [1, 4]] {
+            let tags = unsafe { parse_tags(items, [2].as_ptr(), lengths.as_ptr(), 1) };
+            assert_eq!(tags, None, "item lengths {lengths:?}");
+        }
+    }
+
+    #[test]
+    fn parse_tags_rejects_a_value_cut_inside_a_utf8_character() {
+        let items = "日本".as_bytes();
+        let tags = unsafe { parse_tags(items, [2].as_ptr(), [1, 5].as_ptr(), 1) };
+        assert_eq!(tags, None);
     }
 
     #[test]
     fn verify_nostr_event_packed_rejects_wrong_packed_length() {
-        let content = cstring("hello world");
+        let content = b"hello world";
         let rc = unsafe {
             verify_nostr_event_packed(
                 [0u8; 10].as_ptr(),
                 10,
                 0,
                 1,
+                content.as_ptr(),
+                content.len(),
+                content.len(),
                 std::ptr::null(),
                 std::ptr::null(),
                 0,
+            )
+        };
+        assert_eq!(rc, 0);
+    }
+
+    #[test]
+    fn verify_nostr_event_packed_rejects_content_longer_than_text() {
+        let packed = [b'0'; 256];
+        let content = b"hello world";
+        let rc = unsafe {
+            verify_nostr_event_packed(
+                packed.as_ptr(),
+                packed.len(),
+                0,
+                1,
                 content.as_ptr(),
+                content.len(),
+                content.len() + 1,
+                std::ptr::null(),
+                std::ptr::null(),
+                0,
             )
         };
         assert_eq!(rc, 0);
@@ -315,17 +368,19 @@ mod tests {
         packed.extend_from_slice(pubkey.as_bytes());
         packed.extend_from_slice(signature.as_bytes());
 
-        let content = cstring("hello world");
+        let content = b"hello world";
         let rc = unsafe {
             verify_nostr_event_packed(
                 packed.as_ptr(),
                 packed.len(),
                 1726215220,
                 1,
+                content.as_ptr(),
+                content.len(),
+                content.len(),
                 std::ptr::null(),
                 std::ptr::null(),
                 0,
-                content.as_ptr(),
             )
         };
         assert_eq!(rc, 0);

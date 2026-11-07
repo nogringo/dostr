@@ -139,9 +139,7 @@ void main() {
       expect(result, isTrue);
     });
 
-    // NUL cannot cross the current null-terminated string FFI; Rust hash tests
-    // cover its serialization directly along with all other control characters.
-    for (var code = 1; code < 0x20; code++) {
+    for (var code = 0; code < 0x20; code++) {
       for (final inTag in [false, true]) {
         test(
           'verifies control character $code in ${inTag ? 'tag' : 'content'}',
@@ -169,6 +167,53 @@ void main() {
       }
     }
 
+    group('rejects an event changed after signing', () {
+      late Nip01Event event;
+
+      setUp(() {
+        event = signed(
+          Nip01Event(
+            pubKey: keyPair.publicKey,
+            createdAt: 1726215220,
+            kind: 1,
+            tags: [
+              ['t', 'nostr'],
+            ],
+            content: 'hello',
+          ),
+        );
+      });
+
+      // copyWith recomputes the id unless it is given.
+      test('with a NUL suffix in its content', () async {
+        final forged = event.copyWith(
+          id: event.id,
+          content: 'hello\u0000 send me your nsec',
+        );
+
+        expect(await verifier.verify(forged), isFalse);
+      });
+
+      test('with a NUL suffix in a tag', () async {
+        final forged = event.copyWith(
+          id: event.id,
+          tags: [
+            ['t', 'nostr\u0000evil'],
+          ],
+        );
+
+        expect(await verifier.verify(forged), isFalse);
+      });
+
+      for (final kind in [1 + 65536, 1 + 4294967296]) {
+        test('with its kind replaced by $kind', () async {
+          final forged = event.copyWith(id: event.id, kind: kind);
+
+          expect(await verifier.verify(forged), isFalse);
+        });
+      }
+    });
+
     test('rejects malformed fixed-size signature fields', () async {
       final event = Nip01Event(
         id: 'z' * 64,
@@ -188,7 +233,7 @@ void main() {
       const oversizedLength = packedLength + 10;
       final truncatedPacked = calloc<Uint8>(packedLength - 10);
       final packed = malloc<Uint8>(oversizedLength);
-      final content = ''.toNativeUtf8();
+      final text = calloc<Uint8>(1);
 
       try {
         packed.asTypedList(packedLength).fillRange(0, packedLength, 0x7a);
@@ -199,10 +244,12 @@ void main() {
             packedLength - 10,
             0,
             1,
+            text,
+            0,
+            0,
             nullptr,
             nullptr,
             0,
-            content,
           ),
           0,
         );
@@ -212,10 +259,12 @@ void main() {
             oversizedLength,
             0,
             1,
+            text,
+            0,
+            0,
             nullptr,
             nullptr,
             0,
-            content,
           ),
           0,
         );
@@ -225,10 +274,12 @@ void main() {
             packedLength,
             0,
             1,
+            text,
+            0,
+            0,
             nullptr,
             nullptr,
             0,
-            content,
           ),
           0,
         );
@@ -239,17 +290,19 @@ void main() {
             packedLength,
             0,
             1,
+            text,
+            0,
+            0,
             nullptr,
             nullptr,
             0,
-            content,
           ),
           0,
         );
       } finally {
         calloc.free(truncatedPacked);
         malloc.free(packed);
-        malloc.free(content);
+        calloc.free(text);
       }
     });
 
