@@ -56,6 +56,7 @@ workspace:
   - packages/nip05
   - packages/broadcast_queue
   - packages/fetchers
+  - packages/home_relays
   - packages/http
   - packages/url_set
 

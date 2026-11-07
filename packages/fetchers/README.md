@@ -23,7 +23,7 @@ dependencies:
 | `MetadataFetcher` | 0, metadata | |
 | `DmRelaysFetcher` | 10050, NIP-17 DM relays | `dmRelaysOf` |
 | `BlossomServersFetcher` | 10063, BUD-03 Blossom servers | `blossomServersOf` |
-| `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` |
+| `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` of `ndk_home_relays` |
 
 `Nip65Fetcher` asks its `relays`, `defaultIndexerRelays` unless given, and the
 account's home relays when it has a `homeRelayList`. The others extend
@@ -103,7 +103,14 @@ Private relay lists (kind 10013) are not supported.
 
 ## Home relays
 
-`HomeRelayList.fetch` loads the `home-relays` list nmail.li serves and checks
-its signature. `homeRelaysOf(pubKey)` then gives the relays every client
-computes for that account, as the Computed Home Relays NIP describes. Pass the
-list to `Nip65Fetcher` to also ask them for relay lists.
+[`ndk_home_relays`](https://pub.dev/packages/ndk_home_relays) computes the
+relays every client derives for an account from a `home-relays` list, as the
+Computed Home Relays NIP describes. Pass the list to `Nip65Fetcher` to also ask
+them for relay lists:
+
+```dart
+import 'package:ndk_home_relays/ndk_home_relays.dart';
+
+final homeRelayList = await HomeRelayList.fetch(verifier: verifier);
+final nip65 = Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList);
+```

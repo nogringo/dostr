@@ -39,6 +39,7 @@ on:
           - ndk_pq
           - ndk_url_set
           - ndk_fetchers
+          - ndk_home_relays
           - ndk_wallets
           - ndk_nwc
           - ndk_cashu_protocol

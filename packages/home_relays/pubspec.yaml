@@ -1,0 +1,28 @@
+name: ndk_home_relays
+description: Computed Home Relays for Nostr, the relays every client derives from a pubkey to find its NIP-65 relay list, picked from a home-relays list.
+version: 0.1.0
+homepage: https://github.com/relaystr/ndk
+repository: https://github.com/relaystr/ndk
+
+topics:
+  - nostr
+  - ndk
+  - outbox
+  - nip65
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  crypto: ^3.0.7
+  http: ^1.6.0
+  ndk_nip01: ^0.1.0
+  ndk_nip19: ^0.1.0
+  ndk_url_set: ^0.1.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  ndk_bip340: ^0.1.0
+  test: any

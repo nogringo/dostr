@@ -1,8 +1,8 @@
 import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_home_relays/ndk_home_relays.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 
-import 'home_relays.dart';
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
 

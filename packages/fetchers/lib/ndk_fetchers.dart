@@ -6,7 +6,6 @@ library;
 export 'src/blossom_servers_fetcher.dart';
 export 'src/dm_relays_fetcher.dart';
 export 'src/home_relay_list_fetcher.dart';
-export 'src/home_relays.dart';
 export 'src/metadata_fetcher.dart';
 export 'src/nip65_fetcher.dart';
 export 'src/outbox_fetcher.dart';

@@ -97,6 +97,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_fetchers`: an account's metadata, relay list, DM relays and Blossom servers, fetched from its write relays on top of `ndk_core`.
 
+### [🔗 Home relays](./packages/home_relays/)
+
+`ndk_home_relays`: the home relays every client computes from a pubkey to find its NIP-65 relay list (Computed Home Relays NIP), in pure Dart.
+
 ### [🔗 Wallets](./packages/wallets/)
 
 `ndk_wallets`: one wallet API over Cashu, NWC, LNURL, BOLT12 and LNbits.
