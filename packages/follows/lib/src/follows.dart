@@ -1,5 +1,4 @@
 import 'package:ndk_auth/ndk_auth.dart';
-import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'contact_list.dart';
@@ -80,9 +79,8 @@ class Follows {
           loadedContactList = ContactList.fromEvent(event);
         }
       }
-    } catch (e) {
-      // probably timeout;
-      Logger.log.e(() => e);
+    } catch (_) {
+      // probably timeout, falls back to the cached contact list
     }
     if (loadedContactList != null &&
         (contactList == null ||
