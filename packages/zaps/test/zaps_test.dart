@@ -103,6 +103,33 @@ void main() {
       expect(invoiceCode, isNull);
     });
 
+    test('fetchInvoice sends the comment to the callback', () async {
+      final link = 'https://domain.com/.well-known/lnurlp/name';
+      Uri? callback;
+      final client = MockClient((request) async {
+        if (request.url == Uri.parse(link)) {
+          return http.Response(
+            jsonEncode({
+              'callback': 'https://domain.com/callback',
+              'commentAllowed': 100,
+            }),
+            200,
+          );
+        }
+        callback = request.url;
+        return http.Response(jsonEncode({'pr': 'lnbc210n1p'}), 200);
+      });
+
+      final invoice = await zapsFor(
+        relays,
+        client: client,
+      ).fetchInvoice(lud16Link: link, amountSats: 21, comment: 'thanks!');
+
+      expect(invoice, isNotNull);
+      expect(callback!.queryParameters['comment'], 'thanks!');
+      expect(callback!.queryParameters['amount'], '21000');
+    });
+
     test('zapRequest returns valid ZapRequest for correct inputs', () async {
       final amount = 1000;
       final eventId = 'eventId';

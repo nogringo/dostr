@@ -57,6 +57,7 @@ class Zaps {
         lnurlResponse: lnurlResponse,
         amountSats: amountSats,
         zapRequest: zapRequest,
+        comment: comment,
       );
     } catch (e) {
       Logger.log.d(() => e);
