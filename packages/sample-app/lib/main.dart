@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
 import 'package:media_kit/media_kit.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
@@ -15,6 +16,7 @@ import 'package:ndk_demo/router.dart';
 import 'package:ndk_drift/ndk_drift.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
 import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_nip17/ndk_nip17.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
@@ -109,14 +111,58 @@ Future<void> main() async {
       },
     ),
   );
-  nwc = Nwc(ndk);
+  nwc = Nwc(
+    query: (filter, {required relays, required timeout, onTimeout}) =>
+        ndk.requests
+            .query(
+              name: 'nwc',
+              filter: filter,
+              explicitRelays: relays,
+              timeout: timeout,
+              timeoutCallback: onTimeout,
+              cacheRead: false,
+              cacheWrite: false,
+            )
+            .future,
+    subscribe: (filter, {required relays}) {
+      final response = ndk.requests.subscription(
+        name: 'nwc',
+        filter: filter,
+        explicitRelays: relays,
+      );
+      return (
+        events: response.stream,
+        sent: (timeout) =>
+            ndk.relays.waitForRequestSent(response.requestId, timeout),
+        close: () => ndk.requests.closeSubscription(response.requestId),
+      );
+    },
+    publish: (event, {required relays, required signer}) => ndk.broadcast
+        .broadcast(
+          nostrEvent: event,
+          specificRelays: relays,
+          customSigner: signer,
+          retryDelivery: false,
+          saveToCache: false,
+        )
+        .broadcastDoneFuture,
+    eventSignerFactory: ndk.config.eventSignerFactory,
+    zaps: ndk.zaps,
+  );
+  final cashuHttp = NdkHttp(http.Client());
   cashu = Cashu(
-    ndk,
+    cashuRepo: CashuRepoImpl(client: cashuHttp),
     walletsRepo: walletsRepo,
+    storage: cacheManager,
+    cashuKeyDerivation: DartCashuKeyDerivation(),
+    mintRecommendations: CashuMintRecommendations(
+      query: (filter, {required relays, required timeout}) => ndk.requests
+          .query(filter: filter, explicitRelays: relays, timeout: timeout)
+          .future,
+    ),
     cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
   );
   wallets = Wallets(
-    ndk,
     repository: walletsRepo,
     providers: [
       CashuWalletProvider(cashu),
@@ -125,6 +171,17 @@ Future<void> main() async {
       const Bolt12WalletProvider(),
       LnBitsWalletProvider(),
     ],
+  );
+  ndk.addLifecycleHooks(
+    onBackgrounded: (backgrounded) async {
+      await nwc.setBackgrounded(backgrounded);
+      wallets.setBackgrounded(backgrounded);
+    },
+    onDestroy: () async {
+      await nwc.disconnectAll();
+      cashuHttp.abortPending();
+      await wallets.dispose();
+    },
   );
   ndkFlutter = NdkFlutter(
     ndk: ndk,

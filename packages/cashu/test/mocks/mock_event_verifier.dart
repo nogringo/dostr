@@ -1,4 +1,4 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// A mock implementation of [EventVerifier] for testing purposes.
 ///

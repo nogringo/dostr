@@ -93,19 +93,15 @@ callback, call `resumePendingWalletAuth`. Legacy untagged providers are
 revalidated every five seconds while their connection screen remains open.
 
 The wallet widgets use the `Wallets`, `Cashu` and `Nwc` usecases from
-`ndk_wallets`, `ndk_cashu` and `ndk_nwc`. Create them on top of your `Ndk` and
-pass them to `NdkFlutter`:
+`ndk_wallets`, `ndk_cashu` and `ndk_nwc`. These packages do not depend on
+`ndk`: build `Nwc` and `Cashu` from your `Ndk` as their READMEs show, with
+`walletsRepo` for Cashu, then pass all three to `NdkFlutter`:
 
 ```dart
 final walletsRepo = FlutterSecureStorageWalletsRepo();
-final nwc = Nwc(ndk);
-final cashu = Cashu(
-  ndk,
-  walletsRepo: walletsRepo,
-  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
-);
+final Nwc nwc = ...;
+final Cashu cashu = ...;
 final wallets = Wallets(
-  ndk,
   repository: walletsRepo,
   providers: [
     CashuWalletProvider(cashu),
@@ -114,6 +110,16 @@ final wallets = Wallets(
     const Bolt12WalletProvider(),
     LnBitsWalletProvider(),
   ],
+);
+ndk.addLifecycleHooks(
+  onBackgrounded: (backgrounded) async {
+    await nwc.setBackgrounded(backgrounded);
+    wallets.setBackgrounded(backgrounded);
+  },
+  onDestroy: () async {
+    await nwc.disconnectAll();
+    await wallets.dispose();
+  },
 );
 final ndkFlutter = NdkFlutter(
   ndk: ndk,

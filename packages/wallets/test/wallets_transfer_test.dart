@@ -115,10 +115,7 @@ void main() {
       supportsBip321ReceiveValue: true,
       supportsBolt11InvoiceReceiveValue: false,
     );
-    final wallets = Wallets.withDependencies(
-      providers: const [],
-      repository: MemWalletsRepo(),
-    );
+    final wallets = Wallets(providers: const [], repository: MemWalletsRepo());
     addTearDown(wallets.dispose);
 
     expect(
@@ -139,10 +136,7 @@ Future<Wallets> _wallets(
   for (final wallet in walletList) {
     await repository.storeWallet(wallet);
   }
-  final wallets = Wallets.withDependencies(
-    providers: providers,
-    repository: repository,
-  );
+  final wallets = Wallets(providers: providers, repository: repository);
   await wallets.getWallets();
   return wallets;
 }

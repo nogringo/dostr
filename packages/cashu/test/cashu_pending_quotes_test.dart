@@ -5,10 +5,9 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
-import 'mocks/mock_event_verifier.dart';
+import 'cashu_test_tools.dart';
 import 'mocks/cashu_http_client_mock.dart';
 
 const mockMintUrl = 'http://mock.mint';
@@ -53,7 +52,7 @@ Cashu _cashu({
   final repo = CashuRepoImpl(
     client: NdkHttp(mockClient ?? MockCashuHttpClient()),
   );
-  return Cashu.withDependencies(
+  return Cashu(
     cashuRepo: repo,
     walletsRepo: wallets,
     storage: cache,
@@ -75,7 +74,7 @@ Cashu _realCashu({
   required CashuStorage cache,
   required CashuUserSeedphrase seedPhrase,
 }) {
-  return Cashu.withDependencies(
+  return Cashu(
     cashuRepo: CashuRepoImpl(client: NdkHttp(client)),
     walletsRepo: wallets,
     storage: cache,
@@ -884,15 +883,8 @@ void main() {
         // repo) with the original wallet while its cache is fresh. It is built
         // before any quote exists so its startup refresh is a no-op.
         final wallets = MemWalletsRepo();
-        final ndk = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-          ),
-        );
-        final cashu = Cashu(
-          ndk,
-          cashuUserSeedphrase: seedPhrase,
+        final cashu = CashuTestTools.httpCashu(
+          seedPhrase: seedPhrase,
           walletsRepo: wallets,
         );
 

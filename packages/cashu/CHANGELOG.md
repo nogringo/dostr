@@ -1,6 +1,9 @@
 ## 0.1.0
 
- - Initial release, moved out of the `ndk` package.
+ - Initial release, moved out of the `ndk` package. It no longer depends on `ndk`: `Cashu` takes its mint repository, wallets repository, storage and key derivation, and `CashuMintRecommendations` a query callback.
+ - `CashuSpendingHistoryEvent.tokens` and `CashuSpendingHistoryEventContent.tokens`
+   hold `({String tokenId, CashuSpendMarker marker})` records instead of the
+   `Tuple` of `ndk`.
  - The protocol (blind signatures, v4 tokens, NUT-13 secrets and the mint
    API) lives in `ndk_cashu_protocol`, which `ndk_cashu` re-exports.
  - `receive` takes the input fees (NUT-02) out of the outputs it asks for, and

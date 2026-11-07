@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk/shared/helpers/mutex_simple.dart';
+import 'package:ndk_core/shared/helpers/mutex_simple.dart';
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../repositories/cashu_storage.dart';
 

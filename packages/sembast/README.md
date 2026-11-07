@@ -9,8 +9,10 @@ A [Sembast](https://pub.dev/packages/sembast) cache manager and wallets reposito
 ## Usage
 
 ```dart
+import 'package:http/http.dart' as http;
 import 'package:ndk/ndk.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 
@@ -23,15 +25,20 @@ final ndk = Ndk(
 );
 
 // Cashu proofs go to the cache, which implements CashuStorage.
-final cashu = Cashu(ndk, walletsRepo: walletsRepo);
+final cashu = Cashu(
+  cashuRepo: CashuRepoImpl(client: NdkHttp(http.Client())),
+  walletsRepo: walletsRepo,
+  storage: cache,
+  cashuKeyDerivation: DartCashuKeyDerivation(),
+);
 final wallets = Wallets(
-  ndk,
   repository: walletsRepo,
   providers: [CashuWalletProvider(cashu), LnurlWalletProvider(ndk.lnurl)],
 );
 
 // ...
 
+await wallets.dispose();
 await ndk.destroy();
 await cache.close();
 await walletsRepo.close();

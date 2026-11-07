@@ -1,7 +1,12 @@
 /// Nostr Wallet Connect (NIP-47) for NDK.
 ///
 /// ```dart
-/// final nwc = Nwc(ndk);
+/// final nwc = Nwc(
+///   query: query,
+///   subscribe: subscribe,
+///   publish: publish,
+///   eventSignerFactory: eventSignerFactory,
+/// );
 /// final connection = await nwc.connect(nwcUri);
 /// ```
 library;

@@ -2,7 +2,6 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import 'cashu_test_tools.dart';
@@ -13,16 +12,7 @@ const devMintUrl = 'https://dev.mint.camelus.app';
 const failingMintUrl = 'https://mint.example.com';
 const mockMintUrl = "https://mock.mint";
 
-Cashu _cashu() {
-  final ndk = Ndk(
-    NdkConfig(
-      cache: MemCacheManager(),
-      eventVerifier: Bip340EventVerifier(),
-      bootstrapRelays: [],
-    ),
-  );
-  return Cashu(ndk, walletsRepo: MemWalletsRepo());
-}
+Cashu _cashu() => CashuTestTools.httpCashu(walletsRepo: MemWalletsRepo());
 
 void main() {
   setUp(() {});
@@ -106,7 +96,7 @@ void main() {
 
         // Use a Cashu instance with a real HTTP client (not mock) and our custom cache
         // This will attempt real network calls and timeout quickly
-        final cashu = Cashu.withDependencies(
+        final cashu = Cashu(
           cashuRepo: CashuRepoImpl(client: NdkHttp(http.Client())),
           walletsRepo: walletsRepo,
           storage: cache,

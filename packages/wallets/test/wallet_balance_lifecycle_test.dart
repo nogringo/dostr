@@ -14,10 +14,7 @@ void main() {
       final nwc = _Provider(WalletType.NWC);
       final repo = MemWalletsRepo()
         ..wallets.addAll([_wallet('lnbits'), _wallet('nwc', WalletType.NWC)]);
-      final wallets = Wallets.withDependencies(
-        providers: [lnbits, nwc],
-        repository: repo,
-      );
+      final wallets = Wallets(providers: [lnbits, nwc], repository: repo);
       await wallets.getWallets();
       final balanceListener = wallets.combinedBalances.listen((_) {});
       final pendingListener = wallets.combinedPendingTransactions.listen(
@@ -63,10 +60,7 @@ void main() {
     () async {
       final provider = _Provider(WalletType.LNBITS);
       final repo = _DelayedRepo();
-      final wallets = Wallets.withDependencies(
-        providers: [provider],
-        repository: repo,
-      );
+      final wallets = Wallets(providers: [provider], repository: repo);
       wallets.setBackgrounded(true);
       final listener = wallets.getBalancesStream('late').listen((_) {});
       repo.loaded.complete([_wallet('late')]);

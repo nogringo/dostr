@@ -14,8 +14,10 @@ environment:
 resolution: workspace
 
 dependencies:
+  http: ^1.6.0
   ndk: ^0.11.0-dev.1
   ndk_core: ^0.11.0-dev.2
+  ndk_http: ^0.1.0
   ndk_nip19: ^0.1.0
   ndk_rust_verifier: ^0.6.0
   ndk_sembast: ^0.1.0

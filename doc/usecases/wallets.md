@@ -42,9 +42,9 @@ dependencies:
 
 ### initialize
 
-Create `Wallets` on top of your `Ndk` instance, with one provider per wallet type you support.
+Create `Wallets` with one provider per wallet type you support. `ndk_wallets`, `ndk_cashu` and `ndk_nwc` do not depend on `ndk`: build `Cashu` and `Nwc` as [cashu](cashu.md) and [nwc](nwc.md) show.
 
-Wallets are stored in a `WalletsRepo`. Without `repository`, the NDK cache is used when it implements `WalletsRepo` (`ndk_objectbox`, `ndk_drift` and `ndk_sqlite3` do). Pass the same repository to `Cashu`.
+Wallets are stored in a `WalletsRepo`. `WalletsRepo.fromCache(ndk.config.cache)` uses the NDK cache when it implements `WalletsRepo` (`ndk_objectbox`, `ndk_drift` and `ndk_sqlite3` do). Pass the same repository to `Cashu`.
 
 - without Flutter, use `SembastWalletsRepo` from the `ndk_sembast` package
 - if possible, prefer the optional `ndk_flutter` package and `FlutterSecureStorageWalletsRepo` for more secure wallet storage
@@ -56,14 +56,7 @@ final ndk = Ndk(
   NdkConfig(cache: cacheManager, eventVerifier: Bip340EventVerifier()),
 );
 
-final nwc = Nwc(ndk);
-final cashu = Cashu(
-  ndk,
-  walletsRepo: walletsRepo,
-  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
-);
 final wallets = Wallets(
-  ndk,
   repository: walletsRepo,
   providers: [
     CashuWalletProvider(cashu),
@@ -73,9 +66,13 @@ final wallets = Wallets(
     LnBitsWalletProvider(),
   ],
 );
+ndk.addLifecycleHooks(
+  onBackgrounded: (backgrounded) async => wallets.setBackgrounded(backgrounded),
+  onDestroy: wallets.dispose,
+);
 ```
 
-`ndk.destroy()` disposes `wallets`, and `ndk.setBackgrounded(true)` pauses its balance polling.
+With these hooks, `ndk.destroy()` disposes `wallets`, and `ndk.setBackgrounded(true)` pauses its balance polling.
 
 ### add wallets
 

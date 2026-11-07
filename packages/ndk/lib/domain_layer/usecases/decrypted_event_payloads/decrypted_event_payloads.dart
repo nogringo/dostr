@@ -1,4 +1,4 @@
-import '../../../shared/helpers/mutex_simple.dart';
+import 'package:ndk_core/shared/helpers/mutex_simple.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 

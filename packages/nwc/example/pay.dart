@@ -3,12 +3,13 @@
 import 'dart:io';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nwc/ndk_nwc.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
+
+import 'nwc_for_ndk.dart';
 
 void main() async {
   final ndk = Ndk.emptyBootstrapRelaysConfig();
-  final nwc = Nwc(ndk);
+  final nwc = nwcFor(ndk);
 
   // Provide an NWC connection URI and either a BIP-321 URI or BOLT11 invoice.
   final nwcUri = Platform.environment['NWC_URI']!;

@@ -1,7 +1,10 @@
 /// Wallets for NDK: one API over Cashu, NWC, LNURL, BOLT12 and LNbits.
 ///
 /// ```dart
-/// final wallets = Wallets(ndk, providers: [LnurlWalletProvider(ndk.lnurl)]);
+/// final wallets = Wallets(
+///   repository: MemWalletsRepo(),
+///   providers: [LnurlWalletProvider(lnurl)],
+/// );
 /// ```
 library;
 

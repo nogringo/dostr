@@ -1,12 +1,11 @@
-import 'package:ndk/domain_layer/entities/tuple.dart';
 import 'cashu_spending_history_event.dart';
 
 class CashuSpendingHistoryEventContent {
   final CashuSpendDirection direction;
   final int amount;
 
-  /// tokens < TOKEN,SPEND_MARKER >
-  final List<Tuple<String, CashuSpendMarker>> tokens;
+  /// the tokens and their spend markers
+  final List<({String tokenId, CashuSpendMarker marker})> tokens;
 
   CashuSpendingHistoryEventContent({
     required this.direction,
@@ -20,7 +19,7 @@ class CashuSpendingHistoryEventContent {
   ) {
     CashuSpendDirection? direction;
     int? amount;
-    List<Tuple<String, CashuSpendMarker>> tokens = [];
+    List<({String tokenId, CashuSpendMarker marker})> tokens = [];
 
     for (final item in jsonList) {
       if (item.isEmpty) continue;
@@ -45,7 +44,7 @@ class CashuSpendingHistoryEventContent {
 
             CashuSpendMarker marker = CashuSpendMarker.fromValue(markerString);
 
-            tokens.add(Tuple(tokenId, marker));
+            tokens.add((tokenId: tokenId, marker: marker));
           }
           break;
       }

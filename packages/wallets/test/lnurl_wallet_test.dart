@@ -1,7 +1,7 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:test/test.dart';
 
@@ -15,7 +15,7 @@ void main() {
         transport: LnurlTransportHttpImpl(NdkHttp(endpoint.client)),
       );
       final repository = MemWalletsRepo();
-      final wallets = Wallets.withDependencies(
+      final wallets = Wallets(
         providers: [LnurlWalletProvider(lnurl)],
         repository: repository,
       );
@@ -54,7 +54,7 @@ void main() {
         metadataFetchedAt: DateTime.now().millisecondsSinceEpoch,
       );
       await repository.storeWallet(wallet);
-      final wallets = Wallets.withDependencies(
+      final wallets = Wallets(
         providers: [LnurlWalletProvider(lnurl)],
         repository: repository,
       );

@@ -46,6 +46,7 @@ dependencies:
   ndk_rust_verifier: ^0.6.0
   ndk_pq: ^0.1.0
   ndk_drift: ^0.0.2-dev.0+1
+  ndk_http: ^0.1.0
   ndk_cashu: ^0.1.0
   ndk_nwc: ^0.1.0
   ndk_wallets: ^0.1.0

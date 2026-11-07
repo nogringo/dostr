@@ -24,22 +24,38 @@ Cashu lives in the `ndk_cashu` package. For the protocol alone (blind signatures
 
 ```yaml
 dependencies:
+  http: ^1.6.0
   ndk_cashu: ^0.1.0
+  ndk_http: ^0.1.0
   ndk_wallets: ^0.1.0 # WalletTransactionState and wallets repositories
 ```
 
+`ndk_cashu` does not depend on `ndk`: build `Cashu` from the parts of your NDK instance it uses.
+
 ```dart
+import 'package:http/http.dart' as http;
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 
+final cashuHttp = NdkHttp(http.Client());
 final cashu = Cashu(
-  ndk,
+  cashuRepo: CashuRepoImpl(client: cashuHttp),
+  walletsRepo: walletsRepo,
+  storage: cacheManager, // a CashuStorage, or MemCashuStorage()
+  cashuKeyDerivation: DartCashuKeyDerivation(),
+  mintRecommendations: CashuMintRecommendations(
+    query: (filter, {required relays, required timeout}) => ndk.requests
+        .query(filter: filter, explicitRelays: relays, timeout: timeout)
+        .future,
+  ),
   // generate one with CashuSeed.generateSeedPhrase() and store it securely
   cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase),
 );
+ndk.addLifecycleHooks(onDestroy: () async => cashuHttp.abortPending());
 ```
 
-Proofs, keysets and mint infos go to a `CashuStorage`. Without `storage`, the NDK cache is used when it implements `CashuStorage` (`ndk_objectbox`, `ndk_drift`, `ndk_sembast` and `ndk_sqlite3` do), an in memory `MemCashuStorage` otherwise. Pending quotes go to the `walletsRepo`, see [wallets](wallets.md).
+Proofs, keysets and mint infos go to `storage`: the NDK cache when it implements `CashuStorage` (`ndk_objectbox`, `ndk_drift`, `ndk_sembast` and `ndk_sqlite3` do), or an in memory `MemCashuStorage`. Pending quotes go to the `walletsRepo`, see [wallets](wallets.md). `mintRecommendations` answers `discoverMintRecommendations`.
 
 ## Examples
 

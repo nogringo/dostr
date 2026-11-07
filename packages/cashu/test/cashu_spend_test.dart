@@ -2,7 +2,6 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import 'cashu_test_tools.dart';
@@ -77,8 +76,7 @@ void main() {
     });
 
     test("spend - amount", () {
-      final ndk = Ndk.emptyBootstrapRelaysConfig();
-      final cashu = Cashu(ndk);
+      final cashu = CashuTestTools.httpCashu();
 
       expect(
         () async => await cashu.initiateSpend(
@@ -171,7 +169,7 @@ void main() {
       final cashuRepo = CashuRepoImpl(client: client);
       final cashuRepo2 = CashuRepoImpl(client: client);
       final derivation = DartCashuKeyDerivation();
-      final cashu = Cashu.withDependencies(
+      final cashu = Cashu(
         cashuRepo: cashuRepo,
         walletsRepo: MemWalletsRepo(),
         storage: cache,
@@ -179,7 +177,7 @@ void main() {
         cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seedPhrase1),
       );
 
-      final cashu2 = Cashu.withDependencies(
+      final cashu2 = Cashu(
         cashuRepo: cashuRepo2,
         walletsRepo: MemWalletsRepo(),
         storage: cache2,

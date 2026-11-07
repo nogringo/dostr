@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:meta/meta.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_core/ndk_core.dart';
 
+import 'nwc.dart';
 import 'nwc_notification.dart';
 
 import 'package:ndk_wallets/ndk_wallets.dart';
@@ -15,7 +16,7 @@ class NwcConnection {
   NostrWalletConnectUri uri;
   EventSigner? _signer;
   GetInfoResponse? info;
-  NdkResponse? subscription;
+  NwcSubscription? subscription;
   StreamSubscription<Nip01Event>? _streamSubscription;
 
   bool useETagForEachRequest = false;
@@ -44,7 +45,7 @@ class NwcConnection {
   /// listen
   void listen(void Function(Nip01Event event)? onData) {
     if (subscription != null) {
-      _streamSubscription = subscription!.stream.listen(onData);
+      _streamSubscription = subscription!.events.listen(onData);
     } else {
       Logger.log.e(
         () => "NwcConnection: Attempted to listen on a null subscription.",

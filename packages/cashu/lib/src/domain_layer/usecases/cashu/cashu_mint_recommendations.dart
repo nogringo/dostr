@@ -1,7 +1,15 @@
 import '../../entities/cashu/cashu_mint_recommendation.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk/domain_layer/usecases/requests/requests.dart';
+
+/// The events matching [filter] on [relays], until [timeout]. Cached events
+/// may answer too.
+typedef CashuMintQuery =
+    Future<List<Nip01Event>> Function(
+      Filter filter, {
+      required Iterable<String> relays,
+      required Duration timeout,
+    });
 
 /// Discovers and ranks Cashu mints using NIP-87 announcements and reviews.
 class CashuMintRecommendations {
@@ -14,20 +22,19 @@ class CashuMintRecommendations {
     'wss://relay.snort.social',
   };
 
-  final Requests _requests;
+  final CashuMintQuery _query;
   final Duration cacheDuration;
   List<CashuMintRecommendation>? _cache;
   DateTime? _cachedAt;
   Future<List<CashuMintRecommendation>>? _inFlight;
 
+  /// [query] loads the NIP-87 announcements and reviews.
   CashuMintRecommendations({
-    required Requests requests,
+    required CashuMintQuery query,
     this.cacheDuration = const Duration(minutes: 15),
-  }) : _requests = requests;
+  }) : _query = query;
 
   /// Returns recommendations ordered by review count, then average rating.
-  ///
-  /// Network-delivered events also use NDK's configured persistent event cache.
   Future<List<CashuMintRecommendation>> discoverMints({
     Set<String> relays = defaultRelays,
     Duration timeout = const Duration(seconds: 10),
@@ -79,28 +86,22 @@ class CashuMintRecommendations {
     required Duration timeout,
   }) async {
     final responses = await Future.wait([
-      _requests
-          .query(
-            filter: Filter(kinds: const [mintAnnouncementKind], limit: 5000),
-            explicitRelays: relays,
-            timeout: timeout,
-          )
-          .stream
-          .toList(),
-      _requests
-          .query(
-            filter: Filter(
-              kinds: const [mintReviewKind],
-              tags: const {
-                '#k': ['$mintAnnouncementKind'],
-              },
-              limit: 5000,
-            ),
-            explicitRelays: relays,
-            timeout: timeout,
-          )
-          .stream
-          .toList(),
+      _query(
+        Filter(kinds: const [mintAnnouncementKind], limit: 5000),
+        relays: relays,
+        timeout: timeout,
+      ),
+      _query(
+        Filter(
+          kinds: const [mintReviewKind],
+          tags: const {
+            '#k': ['$mintAnnouncementKind'],
+          },
+          limit: 5000,
+        ),
+        relays: relays,
+        timeout: timeout,
+      ),
     ]);
     return fromEvents(announcements: responses.first, reviews: responses.last);
   }

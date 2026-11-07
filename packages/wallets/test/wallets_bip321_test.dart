@@ -12,10 +12,7 @@ void main() {
       repository.setDefaultWalletForReceiving(wallet.id);
 
       final provider = _TestWalletProvider(wallet);
-      final wallets = Wallets.withDependencies(
-        providers: [provider],
-        repository: repository,
-      );
+      final wallets = Wallets(providers: [provider], repository: repository);
       addTearDown(wallets.dispose);
 
       final payResponse = await wallets.payBip321(
@@ -55,10 +52,7 @@ void main() {
     final repository = MemWalletsRepo();
     await repository.storeWallet(wallet);
     final provider = _TestWalletProvider(wallet);
-    final wallets = Wallets.withDependencies(
-      providers: [provider],
-      repository: repository,
-    );
+    final wallets = Wallets(providers: [provider], repository: repository);
     addTearDown(wallets.dispose);
 
     final balances = await wallets.refreshBalance(wallet.id);

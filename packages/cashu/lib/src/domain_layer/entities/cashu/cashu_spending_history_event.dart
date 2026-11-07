@@ -1,5 +1,3 @@
-import 'package:ndk/domain_layer/entities/tuple.dart';
-
 enum CashuSpendDirection {
   sent('out'),
   received('in');
@@ -44,8 +42,8 @@ class CashuSpendingHistoryEvent {
   final CashuSpendDirection direction;
   final int amount;
 
-  /// tokens < TOKEN,SPEND_MARKER >
-  final List<Tuple<String, CashuSpendMarker>> tokens;
+  /// the tokens and their spend markers
+  final List<({String tokenId, CashuSpendMarker marker})> tokens;
 
   final String? nutzapTokenId;
 

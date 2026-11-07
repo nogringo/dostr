@@ -1,7 +1,13 @@
 /// Cashu ecash wallet for NDK.
 ///
 /// ```dart
-/// final cashu = Cashu(ndk, cashuUserSeedphrase: seedPhrase);
+/// final cashu = Cashu(
+///   cashuRepo: CashuRepoImpl(client: NdkHttp(http.Client())),
+///   walletsRepo: walletsRepo,
+///   storage: MemCashuStorage(),
+///   cashuKeyDerivation: DartCashuKeyDerivation(),
+///   cashuUserSeedphrase: seedPhrase,
+/// );
 /// ```
 library;
 

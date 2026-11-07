@@ -2,22 +2,61 @@
 
 > Both are `@experimental`. API may change.
 
-Wallet code lives outside the `ndk` core, in three packages built on an `Ndk` instance:
+Wallet code lives outside `ndk`, in three packages that do not depend on it. Each is built from the parts of an `Ndk` instance it uses:
 
-| Package | Usecase | Construct |
-| ------- | ------- | --------- |
-| `ndk_nwc` | `Nwc` | `Nwc(ndk)` |
-| `ndk_cashu` | `Cashu` | `Cashu(ndk, cashuUserSeedphrase: ...)` |
-| `ndk_wallets` | `Wallets` | `Wallets(ndk, providers: [...])` |
+| Package | Usecase | Takes |
+| ------- | ------- | ----- |
+| `ndk_nwc` | `Nwc` | `query`, `subscribe` and `publish` callbacks, `eventSignerFactory`, `zaps` |
+| `ndk_cashu` | `Cashu` | `cashuRepo`, `walletsRepo`, `storage`, `cashuKeyDerivation`, `mintRecommendations` |
+| `ndk_wallets` | `Wallets` | `repository`, `providers` |
 
-`Nwc` and `Wallets` register on the NDK lifecycle: `ndk.destroy()` closes them and `ndk.setBackgrounded(...)` pauses their background work.
+None of them registers on the NDK lifecycle. Register their cleanup with `ndk.addLifecycleHooks(...)`, so that `ndk.destroy()` closes them and `ndk.setBackgrounded(...)` pauses their background work.
 
 ## Nostr Wallet Connect (NWC)
 
 ```dart
 import 'package:ndk_nwc/ndk_nwc.dart';
 
-final nwc = Nwc(ndk);
+final nwc = Nwc(
+  query: (filter, {required relays, required timeout, onTimeout}) => ndk
+      .requests
+      .query(
+        filter: filter,
+        explicitRelays: relays,
+        timeout: timeout,
+        timeoutCallback: onTimeout,
+        cacheRead: false,
+        cacheWrite: false,
+      )
+      .future,
+  subscribe: (filter, {required relays}) {
+    final response = ndk.requests.subscription(
+      filter: filter,
+      explicitRelays: relays,
+    );
+    return (
+      events: response.stream,
+      sent: (timeout) =>
+          ndk.relays.waitForRequestSent(response.requestId, timeout),
+      close: () => ndk.requests.closeSubscription(response.requestId),
+    );
+  },
+  publish: (event, {required relays, required signer}) => ndk.broadcast
+      .broadcast(
+        nostrEvent: event,
+        specificRelays: relays,
+        customSigner: signer,
+        retryDelivery: false,
+        saveToCache: false,
+      )
+      .broadcastDoneFuture,
+  eventSignerFactory: ndk.config.eventSignerFactory,
+  zaps: ndk.zaps,
+);
+ndk.addLifecycleHooks(
+  onBackgrounded: nwc.setBackgrounded,
+  onDestroy: nwc.disconnectAll,
+);
 
 // Connect wallet
 final connection = await nwc.connect('nostr+walletconnect://...');
@@ -53,18 +92,30 @@ await nwc.disconnectAll();
 ## Cashu (e-cash)
 
 ```dart
+import 'package:http/http.dart' as http;
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_http/ndk_http.dart';
 
 // Generate new seed phrase (store securely!)
 final seed = CashuSeed.generateSeedPhrase();
 
+final cashuHttp = NdkHttp(http.Client());
 final cashu = Cashu(
-  ndk,
+  cashuRepo: CashuRepoImpl(client: cashuHttp),
+  walletsRepo: walletsRepo,
+  storage: MemCashuStorage(),
+  cashuKeyDerivation: DartCashuKeyDerivation(),
+  mintRecommendations: CashuMintRecommendations(
+    query: (filter, {required relays, required timeout}) => ndk.requests
+        .query(filter: filter, explicitRelays: relays, timeout: timeout)
+        .future,
+  ),
   cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seed),
 );
+ndk.addLifecycleHooks(onDestroy: () async => cashuHttp.abortPending());
 ```
 
-Proofs and keysets go to a `CashuStorage`: the NDK cache when it implements it (`ndk_objectbox`, `ndk_drift`, `ndk_sembast`, `ndk_sqlite3`), else `MemCashuStorage`. Pass `storage:` to choose.
+Proofs and keysets go to `storage`, a `CashuStorage`: the NDK cache when it implements it (`ndk_objectbox`, `ndk_drift`, `ndk_sembast`, `ndk_sqlite3`), else `MemCashuStorage`. `mintRecommendations` answers `discoverMintRecommendations`.
 
 ## Combined Wallets usecase
 
@@ -73,15 +124,9 @@ Proofs and keysets go to a `CashuStorage`: the NDK cache when it implements it (
 ```dart
 import 'package:ndk_wallets/ndk_wallets.dart';
 
+// nwc and cashu built as above, cashu with this walletsRepo
 final walletsRepo = await SembastWalletsRepo.create(filename: 'wallets.db');
-final nwc = Nwc(ndk);
-final cashu = Cashu(
-  ndk,
-  walletsRepo: walletsRepo,
-  cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: seed),
-);
 final wallets = Wallets(
-  ndk,
   repository: walletsRepo,
   providers: [
     CashuWalletProvider(cashu),
@@ -90,6 +135,10 @@ final wallets = Wallets(
     const Bolt12WalletProvider(),
     LnBitsWalletProvider(),
   ],
+);
+ndk.addLifecycleHooks(
+  onBackgrounded: (backgrounded) async => wallets.setBackgrounded(backgrounded),
+  onDestroy: wallets.dispose,
 );
 
 wallets.walletsStream; // Stream<List<Wallet>>

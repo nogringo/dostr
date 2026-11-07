@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ndk/ndk.dart';
-import 'package:ndk/entities.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
 import 'package:test/test.dart';
 import 'package:ndk_nwc/ndk_nwc.dart';
@@ -15,42 +14,50 @@ final _walletPubkey = Bip340.getPublicKey(_walletSecret);
 final _uri =
     'nostr+walletconnect://$_walletPubkey?relay=wss://wallet.example&secret=$_clientSecret';
 
-class _Requests implements Requests {
+class _Requests {
   final active = <String, (List<Filter>, StreamController<Nip01Event>)>{};
   int opened = 0;
   bool failSubscription = false;
   bool failClose = false;
   Completer<void>? queryGate;
+  Future<void> Function(String id, Duration timeout) waitForSent =
+      (_, _) async {};
 
-  @override
-  dynamic noSuchMethod(Invocation call) {
-    if (call.memberName == #query) {
-      return NdkResponse(
-        'info',
-        (() async* {
-          await queryGate?.future;
-          yield Nip01Event(
-            pubKey: _walletPubkey,
-            kind: 13194,
-            tags: [],
-            content: 'get_info get_balance pay_invoice',
-          );
-        })(),
-      );
-    }
-    if (call.memberName == #subscription) {
-      if (failSubscription) throw StateError('subscription failed');
-      final filters = [call.namedArguments[#filter] as Filter];
-      final id = 'nwc-${opened++}';
-      final controller = StreamController<Nip01Event>();
-      active[id] = (filters, controller);
-      return NdkResponse(id, controller.stream);
-    }
-    return super.noSuchMethod(call);
+  Future<List<Nip01Event>> query(
+    Filter filter, {
+    required List<String> relays,
+    required Duration timeout,
+    void Function()? onTimeout,
+  }) async {
+    await queryGate?.future;
+    return [
+      Nip01Event(
+        pubKey: _walletPubkey,
+        kind: 13194,
+        tags: [],
+        content: 'get_info get_balance pay_invoice',
+      ),
+    ];
   }
 
-  @override
-  Future<void> closeSubscription(String id, {String debugLabel = ''}) async {
+  NwcSubscription subscribe(Filter filter, {required Iterable<String> relays}) {
+    final (id, events) = open(filter);
+    return (
+      events: events,
+      sent: (timeout) => waitForSent(id, timeout),
+      close: () => close(id),
+    );
+  }
+
+  (String, Stream<Nip01Event>) open(Filter filter) {
+    if (failSubscription) throw StateError('subscription failed');
+    final id = 'nwc-${opened++}';
+    final controller = StreamController<Nip01Event>();
+    active[id] = ([filter], controller);
+    return (id, controller.stream);
+  }
+
+  Future<void> close(String id) async {
     await active.remove(id)?.$2.close();
     if (failClose) throw StateError('cleanup failed');
   }
@@ -69,7 +76,7 @@ class _Requests implements Requests {
   }
 }
 
-class _Broadcast implements Broadcast {
+class _Broadcast {
   final _Requests requests;
   final sent = <Nip01Event>[];
   bool fail = false;
@@ -77,32 +84,24 @@ class _Broadcast implements Broadcast {
   Completer<void>? ackGate;
   _Broadcast(this.requests);
 
-  @override
-  dynamic noSuchMethod(Invocation call) {
-    if (call.memberName == #broadcast) {
-      final event = call.namedArguments[#nostrEvent] as Nip01Event;
-      expect(call.namedArguments[#retryDelivery], isFalse);
-      expect(call.namedArguments[#saveToCache], isFalse);
-      expect(
-        requests.active.values.any(
-          (entry) => entry.$1.any((f) => f.kinds!.contains(23195)),
-        ),
-        isTrue,
-        reason: 'response subscription must exist before publication',
-      );
-      sent.add(event);
-      if (fail) throw StateError('broadcast failed');
-      if (autoReply) reply(event);
-      return NdkBroadcastResponse(
-        publishEvent: event,
-        broadcastDoneStream: const Stream.empty(),
-        broadcastDoneFuture: (() async {
-          await ackGate?.future;
-          return <RelayBroadcastResponse>[];
-        })(),
-      );
-    }
-    return super.noSuchMethod(call);
+  Future<void> publish(
+    Nip01Event event, {
+    required List<String> relays,
+    required EventSigner signer,
+  }) {
+    expect(
+      requests.active.values.any(
+        (entry) => entry.$1.any((f) => f.kinds!.contains(23195)),
+      ),
+      isTrue,
+      reason: 'response subscription must exist before publication',
+    );
+    sent.add(event);
+    if (fail) throw StateError('broadcast failed');
+    if (autoReply) reply(event);
+    return (() async {
+      await ackGate?.future;
+    })();
   }
 
   void reply(Nip01Event event) {
@@ -156,9 +155,10 @@ void main() {
   setUp(() {
     requests = _Requests();
     broadcast = _Broadcast(requests);
-    nwc = Nwc.withDependencies(
-      requests: requests,
-      broadcast: broadcast,
+    nwc = Nwc(
+      query: requests.query,
+      subscribe: requests.subscribe,
+      publish: broadcast.publish,
       eventSignerFactory: Bip340EventSignerFactory(),
     );
   });
@@ -192,12 +192,12 @@ void main() {
     () async {
       final connection = await nwc.connect(_uri);
       await nwc.setBackgrounded(true);
-      final unrelated = requests.subscription(filter: Filter(kinds: [1]));
-      final unrelatedListener = unrelated.stream.listen((_) {});
+      final (unrelatedId, unrelatedEvents) = requests.open(Filter(kinds: [1]));
+      final unrelatedListener = unrelatedEvents.listen((_) {});
       expect((await nwc.getBalance(connection)).balanceSats, 12);
-      expect(requests.active.keys, [unrelated.requestId]);
+      expect(requests.active.keys, [unrelatedId]);
       await unrelatedListener.cancel();
-      await requests.closeSubscription(unrelated.requestId);
+      await requests.close(unrelatedId);
     },
   );
 
@@ -362,15 +362,10 @@ void main() {
   test('cold request waits until its exact subscription is sent', () async {
     final sent = Completer<void>();
     final checkedIds = <String>[];
-    nwc = Nwc.withDependencies(
-      requests: requests,
-      broadcast: broadcast,
-      eventSignerFactory: Bip340EventSignerFactory(),
-      waitForRequestSent: (id, timeout) {
-        checkedIds.add(id);
-        return sent.future.timeout(timeout);
-      },
-    );
+    requests.waitForSent = (id, timeout) {
+      checkedIds.add(id);
+      return sent.future.timeout(timeout);
+    };
     final connection = await nwc.connect(_uri);
     await nwc.setBackgrounded(true);
     final payment = nwc.payInvoice(connection, invoice: 'lnbc-test');
@@ -384,13 +379,8 @@ void main() {
   });
 
   test('subscription readiness timeout releases idle connection', () async {
-    nwc = Nwc.withDependencies(
-      requests: requests,
-      broadcast: broadcast,
-      eventSignerFactory: Bip340EventSignerFactory(),
-      waitForRequestSent: (_, timeout) =>
-          Completer<void>().future.timeout(timeout),
-    );
+    requests.waitForSent = (_, timeout) =>
+        Completer<void>().future.timeout(timeout);
     final connection = await nwc.connect(_uri);
     await nwc.setBackgrounded(true);
     await expectLater(

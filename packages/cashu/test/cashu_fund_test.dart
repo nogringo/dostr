@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import 'cashu_spend_test.dart';
@@ -472,7 +471,7 @@ void main() {
 
       final walletsRepo = MemWalletsRepo();
 
-      final cashu = Cashu.withDependencies(
+      final cashu = Cashu(
         cashuRepo: cashuRepo,
         walletsRepo: walletsRepo,
         storage: cache,
@@ -524,13 +523,4 @@ void main() {
   });
 }
 
-Cashu _cashu() {
-  final ndk = Ndk(
-    NdkConfig(
-      cache: MemCacheManager(),
-      eventVerifier: Bip340EventVerifier(),
-      bootstrapRelays: [],
-    ),
-  );
-  return Cashu(ndk, walletsRepo: MemWalletsRepo());
-}
+Cashu _cashu() => CashuTestTools.httpCashu(walletsRepo: MemWalletsRepo());

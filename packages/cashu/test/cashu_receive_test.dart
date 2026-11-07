@@ -4,7 +4,6 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
 import 'cashu_test_tools.dart';
@@ -19,16 +18,14 @@ void main() {
 
   group('receive tests - exceptions ', () {
     test("invalid token", () {
-      final ndk = Ndk.emptyBootstrapRelaysConfig();
-      final cashu = Cashu(ndk);
+      final cashu = CashuTestTools.httpCashu();
 
       final rcvStream = cashu.receive("cashuBinvalidtoken");
       expect(() async => await rcvStream.last, throwsA(isA<Exception>()));
     });
 
     test("empty token", () async {
-      final ndk = Ndk.emptyBootstrapRelaysConfig();
-      final cashu = Cashu(ndk);
+      final cashu = CashuTestTools.httpCashu();
 
       final rcvStream = cashu.receive(
         "cashuBo2FteBxodHRwczovL2Rldi5taW50LmNhbWVsdXMuYXBwYXVjc2F0YXSBomFpQGFwgaRhYQBhc2BhY0BhZKNhZUBhc0BhckA",
@@ -38,8 +35,7 @@ void main() {
     });
 
     test("invalid mint", skip: true, () async {
-      final ndk = Ndk.emptyBootstrapRelaysConfig();
-      final cashu = Cashu(ndk);
+      final cashu = CashuTestTools.httpCashu();
 
       final rcvStream = cashu.receive(
         "cashuBo2FtdGh0dHBzOi8vbWludC5pbnZhbGlkYXVjc2F0YXSBomFpSABV3vjPJfyNYXCBpGFhAWFzeEBmYmMxYWY4ZTk1YWQyZTVjMGQzY2U3MTMxNjI3MDBkOGNmN2NhNDQ2Njc1ZTE5NTc0NWE5ZWYzMDI1Zjc0NjdhYWNYIQJYTRSL3snLOVtf2OECtcqM_y7kG1VCQnVeWc9BPzP4zGFko2FlWCAlHMDORr2HAR0NNMsV4tB3s09bCB_s35QvHIEVkqed3mFzWCBLAh8gJ0J0uv7WzGkFC9gn4jZc7sFTpZvEgnitZ6ijrGFyWCC9QCslHjMWBU_2TWwnUNXj-rM7-iP6_8RqxiJMsa1Dcg",
@@ -60,7 +56,7 @@ void main() {
       final derivation = DartCashuKeyDerivation();
       final walletsRepo = MemWalletsRepo();
 
-      final cashu = Cashu.withDependencies(
+      final cashu = Cashu(
         cashuRepo: cashuRepo,
         walletsRepo: walletsRepo,
         storage: cache,
@@ -71,7 +67,7 @@ void main() {
       );
       final walletsRepo2 = MemWalletsRepo();
 
-      final cashu2 = Cashu.withDependencies(
+      final cashu2 = Cashu(
         cashuRepo: cashuRepo2,
         walletsRepo: walletsRepo2,
         storage: cache2,

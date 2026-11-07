@@ -5,20 +5,16 @@ import 'package:rxdart/rxdart.dart';
 
 import '../../../config/cashu_config.dart';
 import 'package:ndk_logger/ndk_logger.dart';
-import 'package:ndk/shared/nips/nip01/helpers.dart';
+import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import '../../entities/cashu/cashu_mint_balance.dart';
 import '../../entities/cashu/cashu_mint_recommendation.dart';
 import '../../entities/cashu/cashu_quote_recovery_progress.dart';
 import '../../entities/cashu/cashu_restore_result.dart';
 import '../../entities/cashu/cashu_spending_result.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
-import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
-import 'package:ndk/presentation_layer/ndk.dart';
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 import '../../repositories/cashu_storage.dart';
 import '../../entities/wallet/providers/cashu/cashu_wallet_types.dart';
-import '../../../data_layer/repositories/cashu_storage/mem_cashu_storage.dart';
 import 'cashu_export_import.dart';
 import 'cashu_cache_decorator.dart';
 import 'cashu_keysets.dart';
@@ -72,48 +68,20 @@ class Cashu {
 
   void _releaseQuoteOp() => _quoteOpInProgress = false;
 
-  /// Creates the Cashu wallet on top of [ndk].
+  /// Creates the Cashu wallet. [cashuRepo] talks to the mints, for example
+  /// `CashuRepoImpl(client: NdkHttp(http.Client()))`, and [storage] keeps the
+  /// proofs, keysets and quotes. Pass the same [walletsRepo] to `Wallets`.
+  /// [mintRecommendations] answers [discoverMintRecommendations].
   ///
   /// Cashu features need [cashuUserSeedphrase], see
   /// [CashuSeed.generateSeedPhrase]. Store it securely: it gives full access
   /// to the funds.
   ///
-  /// Without [storage], the NDK cache is used when it implements
-  /// [CashuStorage], an in memory storage otherwise. Without [walletsRepo],
-  /// the NDK cache is used when it implements [WalletsRepo]. Pass the same
-  /// [walletsRepo] to `Wallets`.
-  ///
   /// When [autoVerifyMintCounters] is false (default), automatic quote
   /// completion on startup requires an explicit [restore] call for the
   /// mint/unit first; when true, it runs a bounded NUT-09 scan itself to
   /// verify the mint derivation counter before minting. See [retrieveFunds].
-  factory Cashu(
-    Ndk ndk, {
-    CashuUserSeedphrase? cashuUserSeedphrase,
-    CashuStorage? storage,
-    WalletsRepo? walletsRepo,
-    bool autoVerifyMintCounters = false,
-  }) {
-    final cache = ndk.config.cache;
-    final httpDS = NdkHttp(http.Client());
-    ndk.addLifecycleHooks(onDestroy: () async => httpDS.abortPending());
-    return Cashu.withDependencies(
-      cashuRepo: CashuRepoImpl(client: httpDS),
-      walletsRepo: walletsRepo ?? WalletsRepo.fromCache(cache),
-      storage:
-          storage ??
-          switch (cache) {
-            CashuStorage cashuStorage => cashuStorage,
-            _ => MemCashuStorage(),
-          },
-      cashuKeyDerivation: DartCashuKeyDerivation(),
-      mintRecommendations: CashuMintRecommendations(requests: ndk.requests),
-      cashuUserSeedphrase: cashuUserSeedphrase,
-      autoVerifyMintCounters: autoVerifyMintCounters,
-    );
-  }
-
-  Cashu.withDependencies({
+  Cashu({
     required CashuRepo cashuRepo,
     required WalletsRepo walletsRepo,
     required CashuStorage storage,
@@ -163,7 +131,7 @@ class Cashu {
   /// Cashu mint discovery and community reviews.
   CashuMintRecommendations get mintRecommendations =>
       _mintRecommendations ??
-      (throw StateError('Cashu NIP-87 requires an NDK Requests instance'));
+      (throw StateError('Cashu NIP-87 requires mintRecommendations'));
 
   /// mints this usecase has interacted with \
   ///? does not mark trusted mints!
@@ -1937,7 +1905,7 @@ class Cashu {
       );
     });
 
-    final transactionId = "spend-${Helpers.getRandomString(5)}";
+    final transactionId = "spend-${Helpers.getSecureRandomHex(4)}";
 
     CashuWalletTransaction pendingTransaction = CashuWalletTransaction(
       id: transactionId,

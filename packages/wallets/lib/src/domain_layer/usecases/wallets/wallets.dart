@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import 'package:collection/collection.dart';
-import 'package:ndk/presentation_layer/ndk.dart';
 import 'package:rxdart/rxdart.dart';
 
 import '../../entities/wallet/wallet.dart';
@@ -64,34 +63,15 @@ class Wallets {
   late final Future<void> _initializationFuture;
   bool _isDisposed = false;
 
-  /// Creates the wallets usecase on top of [ndk], with one provider per
-  /// wallet type, e.g. `CashuWalletProvider(cashu)`, `NwcWalletProvider(nwc)`,
-  /// `LnurlWalletProvider(ndk.lnurl)`, `Bolt12WalletProvider()` and
-  /// `LnBitsWalletProvider()`.
+  /// Creates the wallets usecase with one provider per wallet type, e.g.
+  /// `CashuWalletProvider(cashu)`, `NwcWalletProvider(nwc)`,
+  /// `LnurlWalletProvider(lnurl)`, `Bolt12WalletProvider()` and
+  /// `LnBitsWalletProvider()`, stored in [repository], for example
+  /// `WalletsRepo.fromCache(cache)`.
   ///
-  /// Without [repository], the NDK cache is used when it implements
-  /// [WalletsRepo]. [Ndk.destroy] disposes it and [Ndk.setBackgrounded]
-  /// calls [setBackgrounded].
-  factory Wallets(
-    Ndk ndk, {
-    required List<WalletProvider> providers,
-    WalletsRepo? repository,
-    int latestTransactionCount = 10,
-  }) {
-    final wallets = Wallets.withDependencies(
-      providers: providers,
-      repository: repository ?? WalletsRepo.fromCache(ndk.config.cache),
-      latestTransactionCount: latestTransactionCount,
-    );
-    ndk.addLifecycleHooks(
-      onBackgrounded: (backgrounded) async =>
-          wallets.setBackgrounded(backgrounded),
-      onDestroy: wallets.dispose,
-    );
-    return wallets;
-  }
-
-  Wallets.withDependencies({
+  /// Call [setBackgrounded] when the app moves to or from the background, and
+  /// [dispose] once done.
+  Wallets({
     required List<WalletProvider> providers,
     required WalletsRepo repository,
     this.latestTransactionCount = 10,

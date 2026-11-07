@@ -30,7 +30,7 @@ void main() {
         final cacheManager1 = MemCashuStorage();
         final keyDerivation1 = DartCashuKeyDerivation();
 
-        final wallet1 = Cashu.withDependencies(
+        final wallet1 = Cashu(
           cashuRepo: cashuRepo1,
           walletsRepo: MemWalletsRepo(),
           storage: cacheManager1,
@@ -128,7 +128,7 @@ void main() {
         final cacheManager2 = MemCashuStorage(); // Fresh cache - empty!
         final keyDerivation2 = DartCashuKeyDerivation();
 
-        final wallet2 = Cashu.withDependencies(
+        final wallet2 = Cashu(
           cashuRepo: cashuRepo2,
           walletsRepo: MemWalletsRepo(),
           storage: cacheManager2,

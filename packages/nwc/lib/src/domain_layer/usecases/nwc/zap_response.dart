@@ -1,11 +1,13 @@
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
+
+import 'nwc.dart';
 
 /// zap response
 class ZapResponse {
-  NdkResponse? zapReceiptResponse;
+  NwcSubscription? zapReceiptResponse;
   PayInvoiceResponse? payInvoiceResponse;
   String? error;
   final _receiptCompleter = Completer<ZapReceipt?>();
@@ -26,7 +28,7 @@ class ZapResponse {
   ///
   ZapResponse({this.zapReceiptResponse, this.payInvoiceResponse, this.error});
 
-  set receiptResponse(NdkResponse receiptResponse) {
+  set receiptResponse(NwcSubscription receiptResponse) {
     zapReceiptResponse = receiptResponse;
   }
 }

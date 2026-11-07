@@ -2,8 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:ndk_nwc/src/domain_layer/usecases/nwc/requests/get_budget.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
+import 'package:ndk_zaps/ndk_zaps.dart';
 
 import 'consts/nwc_kind.dart';
 import 'consts/transaction_type.dart';
@@ -33,6 +34,39 @@ import 'responses/make_invoice_response.dart';
 import 'responses/list_transactions_response.dart';
 import 'responses/lookup_invoice_response.dart';
 
+/// The events matching [filter] on [relays], until [timeout], neither read
+/// from nor written to the cache. [onTimeout] runs when [timeout] ends it.
+typedef NwcQuery =
+    Future<List<Nip01Event>> Function(
+      Filter filter, {
+      required List<String> relays,
+      required Duration timeout,
+      void Function()? onTimeout,
+    });
+
+/// A live subscription: the [events] it receives, [sent] to wait until its
+/// REQ went out to a relay, failing after `timeout`, and [close] to end it.
+typedef NwcSubscription = ({
+  Stream<Nip01Event> events,
+  Future<void> Function(Duration timeout) sent,
+  Future<void> Function() close,
+});
+
+/// Opens a live subscription to [filter] on [relays], neither read from nor
+/// written to the cache.
+typedef NwcSubscribe =
+    NwcSubscription Function(Filter filter, {required Iterable<String> relays});
+
+/// Signs [event] with [signer] and publishes it to [relays], without saving
+/// it to the cache or retrying a failed delivery later. Completes once the
+/// relays answered.
+typedef NwcPublish =
+    Future<void> Function(
+      Nip01Event event, {
+      required List<String> relays,
+      required EventSigner signer,
+    });
+
 /// Main entry point for the NWC (Nostr Wallet Connect - NIP47 ) usecase
 ///
 /// ## Multiple Relay Support
@@ -53,45 +87,29 @@ import 'responses/lookup_invoice_response.dart';
 class Nwc {
   static const kNWCProtocolPrefix = "nostr+walletconnect://";
 
-  final Requests _requests;
-  final Broadcast _broadcast;
+  final NwcQuery _query;
+  final NwcSubscribe _subscribe;
+  final NwcPublish _publish;
   final LocalEventSignerFactory _eventSignerFactory;
-  final Future<void> Function(String requestId, Duration timeout)?
-  _waitForRequestSent;
 
   final Zaps? _zaps;
 
-  /// Creates the NWC client on top of [ndk]. [Ndk.destroy] disconnects every
-  /// connection and [Ndk.setBackgrounded] calls [setBackgrounded].
-  factory Nwc(Ndk ndk) {
-    final nwc = Nwc.withDependencies(
-      requests: ndk.requests,
-      broadcast: ndk.broadcast,
-      eventSignerFactory: ndk.config.eventSignerFactory,
-      waitForRequestSent: ndk.relays.waitForRequestSent,
-      zaps: ndk.zaps,
-    );
-    ndk.addLifecycleHooks(
-      onBackgrounded: nwc.setBackgrounded,
-      onDestroy: nwc.disconnectAll,
-    );
-    return nwc;
-  }
-
-  /// Creates the NWC client from its dependencies. [waitForRequestSent] waits
-  /// for the response REQ to be sent on a connected transport. [zap] needs
-  /// [zaps].
-  Nwc.withDependencies({
-    required Requests requests,
-    required Broadcast broadcast,
+  /// [query] loads the wallet's info event, [subscribe] listens to its
+  /// responses and notifications, and [publish] sends the requests. [zap]
+  /// needs [zaps].
+  ///
+  /// Call [setBackgrounded] when the app moves to or from the background, and
+  /// [disconnectAll] once done.
+  Nwc({
+    required NwcQuery query,
+    required NwcSubscribe subscribe,
+    required NwcPublish publish,
     required LocalEventSignerFactory eventSignerFactory,
-    Future<void> Function(String requestId, Duration timeout)?
-    waitForRequestSent,
     Zaps? zaps,
-  }) : _requests = requests,
-       _broadcast = broadcast,
+  }) : _query = query,
+       _subscribe = subscribe,
+       _publish = publish,
        _eventSignerFactory = eventSignerFactory,
-       _waitForRequestSent = waitForRequestSent,
        _zaps = zaps {
     registerNwcWalletTypes();
   }
@@ -129,7 +147,7 @@ class Nwc {
         final subscription = connection.subscription!;
         connection.subscription = null;
         await connection.cancelSubscriptionListener();
-        await _requests.closeSubscription(subscription.requestId);
+        await subscription.close();
         // A later resume starts with fresh notifications rather than replaying
         // the wallet's entire relay history and triggering refresh RPC storms.
         _notificationSince[connection] = Nip01Event.secondsSinceEpoch();
@@ -168,19 +186,14 @@ class Nwc {
 
     Completer<NwcConnection> completer = Completer();
 
-    List<Nip01Event> infoEvent = await _requests
-        .query(
-          name: "nwc-info",
-          explicitRelays: relays,
-          filter: filter,
-          timeout: timeout ?? Duration(seconds: 20 + relays.length * 5),
-          timeoutCallback: () {
-            onError?.call("timeout");
-          },
-          cacheRead: false,
-          cacheWrite: false,
-        )
-        .future;
+    List<Nip01Event> infoEvent = await _query(
+      filter,
+      relays: relays,
+      timeout: timeout ?? Duration(seconds: 20 + relays.length * 5),
+      onTimeout: () {
+        onError?.call("timeout");
+      },
+    );
     if (infoEvent.isNotEmpty) {
       final event = infoEvent.first;
       final connection = NwcConnection(
@@ -257,12 +270,8 @@ class Nwc {
     final relaySince = notificationSince == null
         ? null
         : notificationSince - 300;
-    connection.subscription = _requests.subscription(
-      name: "nwc-sub-${connection.useETagForEachRequest ? "notifs-only" : ""}",
-      explicitRelays: connection.uri.relays
-          .map((r) => Uri.decodeFull(r))
-          .toList(),
-      filter: Filter(
+    connection.subscription = _subscribe(
+      Filter(
         kinds: [
           connection.isLegacyNotifications()
               ? NwcKind.LEGACY_NOTIFICATION.value
@@ -273,8 +282,7 @@ class Nwc {
         pTags: [connection.signer.getPublicKey()],
         since: relaySince,
       ),
-      cacheRead: false,
-      cacheWrite: false,
+      relays: connection.uri.relays.map((r) => Uri.decodeFull(r)).toList(),
     );
     connection.listen((event) async {
       if (event.kind == NwcKind.RESPONSE.value &&
@@ -470,26 +478,21 @@ class Nwc {
     // A relay can report an error before broadcast bookkeeping completes.
     // Attach a handler immediately; the awaited future still reports it below.
     unawaited(completer.future.then<void>((_) {}, onError: (Object _) {}));
-    NdkResponse? dedicatedResponse;
+    NwcSubscription? dedicatedResponse;
     StreamSubscription<Nip01Event>? dedicatedListener;
     try {
       await _syncSubscription(connection);
       if (connection.useETagForEachRequest) {
-        dedicatedResponse = _requests.subscription(
-          name: "nwc-response-",
-          explicitRelays: connection.uri.relays
-              .map((r) => Uri.decodeFull(r))
-              .toList(),
-          filter: Filter(
+        dedicatedResponse = _subscribe(
+          Filter(
             kinds: [NwcKind.RESPONSE.value],
             authors: [connection.uri.walletPubkey],
             pTags: [connection.signer.getPublicKey()],
             eTags: [event.id],
           ),
-          cacheRead: false,
-          cacheWrite: false,
+          relays: connection.uri.relays.map((r) => Uri.decodeFull(r)).toList(),
         );
-        dedicatedListener = dedicatedResponse.stream.listen(
+        dedicatedListener = dedicatedResponse.events.listen(
           (responseEvent) async => _onResponse(responseEvent, connection),
           onError: (Object error) {
             if (!completer.isCompleted) completer.completeError(error);
@@ -497,10 +500,7 @@ class Nwc {
         );
       }
       final budget = timeout ?? kDefaultRequestTimeout;
-      await _waitForRequestSent?.call(
-        (dedicatedResponse ?? connection.subscription!).requestId,
-        budget,
-      );
+      await (dedicatedResponse ?? connection.subscription!).sent(budget);
       // Connection setup has its own bounded wait. Preserve the full reply
       // budget once publication starts, especially on cold mobile connections.
       _inflighRequestTimers[event.id] = Timer(budget, () {
@@ -510,23 +510,19 @@ class Nwc {
           );
         }
       });
-      final bResponse = _broadcast.broadcast(
-        nostrEvent: event,
-        specificRelays: connection.uri.relays
-            .map((r) => Uri.decodeFull(r))
-            .toList(),
-        customSigner: connection.signer,
-        // Requests expire with their caller; durable delivery must never keep
-        // wallet relays alive or resend an RPC after its response deadline.
-        retryDelivery: false,
-        saveToCache: false,
+      // Requests expire with their caller; durable delivery must never keep
+      // wallet relays alive or resend an RPC after its response deadline.
+      final published = _publish(
+        event,
+        relays: connection.uri.relays.map((r) => Uri.decodeFull(r)).toList(),
+        signer: connection.signer,
       );
       // A valid wallet reply proves delivery; slow ACK bookkeeping must not
       // keep a background connection alive or turn that reply into a timeout.
       // Future.any also consumes errors arriving after a reply has won.
       final response = await Future.any([
         completer.future,
-        bResponse.broadcastDoneFuture.then((_) => completer.future),
+        published.then((_) => completer.future),
       ]);
       if (response is T) return response;
       throw Exception(
@@ -543,9 +539,7 @@ class Nwc {
       }
       try {
         await dedicatedListener?.cancel();
-        if (dedicatedResponse != null) {
-          await _requests.closeSubscription(dedicatedResponse.requestId);
-        }
+        await dedicatedResponse?.close();
       } catch (_) {
         // Optional listener cleanup must not replace the RPC result or error.
       } finally {
@@ -755,7 +749,7 @@ class Nwc {
     _seenNotifications.remove(connection);
     if (connection.subscription != null) {
       Logger.log.d(() => "closing nwc subscription $connection....");
-      await _requests.closeSubscription(connection.subscription!.requestId);
+      await connection.subscription!.close();
     }
     Logger.log.d(() => "closing nwc streams $connection....");
     await connection.close();
@@ -778,9 +772,7 @@ class Nwc {
     String? eventId,
     String? addressableId,
   }) async {
-    final zaps =
-        _zaps ??
-        (throw StateError('Nwc.zap requires a Zaps instance, create Nwc(ndk)'));
+    final zaps = _zaps ?? (throw StateError('Nwc.zap requires zaps'));
     String? lud16Link = Lnurl.getLud16LinkFromLud16(lnurl);
     ZapRequest? zapRequest;
     if (pubKey != null &&
@@ -821,22 +813,20 @@ class Nwc {
             invoice.nostrPubkey != null &&
             invoice.nostrPubkey!.isNotEmpty) {
           // if it's a zap, try to find the zap receipt
-          zapResponse.receiptResponse = _requests.subscription(
-            explicitRelays: relays,
-            filter: eventId != null
+          zapResponse.receiptResponse = _subscribe(
+            eventId != null
                 ? Filter(
                     kinds: [ZapReceipt.kKind],
                     eTags: [eventId],
                     pTags: [pubKey!],
                   )
                 : Filter(kinds: [ZapReceipt.kKind], pTags: [pubKey!]),
+            relays: relays!,
           );
           // TODO make timeout waiting for receipt parameterizable somehow
           StreamSubscription<Nip01Event>? streamSubscription;
           final timeout = Timer(Duration(seconds: 30), () {
-            _requests.closeSubscription(
-              zapResponse.zapReceiptResponse!.requestId,
-            );
+            zapResponse.zapReceiptResponse!.close();
             if (streamSubscription != null) {
               streamSubscription.cancel();
             }
@@ -845,7 +835,7 @@ class Nwc {
             );
           });
 
-          streamSubscription = zapResponse.zapReceiptResponse!.stream.listen((
+          streamSubscription = zapResponse.zapReceiptResponse!.events.listen((
             event,
           ) {
             String? bolt11 = event.getFirstTag("bolt11");
@@ -863,9 +853,7 @@ class Nwc {
                 Logger.log.w(() => "Zap Receipt invalid: $receipt");
               }
               timeout.cancel();
-              _requests.closeSubscription(
-                zapResponse.zapReceiptResponse!.requestId,
-              );
+              zapResponse.zapReceiptResponse!.close();
               if (streamSubscription != null) {
                 streamSubscription.cancel();
               }

@@ -888,7 +888,7 @@ packages:
     source: path
     version: "0.1.0"
   ndk_http:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       path: "../http"
       relative: true
