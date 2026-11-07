@@ -10,7 +10,7 @@ import '../data_layer/repositories/relay_info_http_impl.dart';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_core/domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/repositories/lnurl_transport.dart';
-import '../domain_layer/usecases/accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import '../domain_layer/usecases/broadcast/broadcast.dart';
 import '../domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 import '../domain_layer/usecases/broadcast/broadcast_sender.dart';

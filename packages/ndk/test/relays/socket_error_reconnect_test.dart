@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/entities.dart';
 import 'package:test/test.dart';

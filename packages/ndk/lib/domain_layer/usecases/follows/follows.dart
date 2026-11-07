@@ -4,7 +4,7 @@ import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/contact_list.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import '../../repositories/cache_manager.dart';
-import '../accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../requests/requests.dart';
 

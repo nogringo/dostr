@@ -8,6 +8,8 @@ icon: person
 
 :::code source="../../packages/ndk/example/account_test.dart" language="dart" range="16-34" title="" :::
 
+`Accounts` lives in the `ndk_accounts` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build it with `Accounts(eventSignerFactory)`, see its [README](https://pub.dev/packages/ndk_accounts).
+
 ### External Signer (web)
 
 :::code source="../../packages/nip07/example/ndk_nip07_example.dart" language="dart"  title="" :::

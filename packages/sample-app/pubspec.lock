@@ -796,6 +796,13 @@ packages:
       relative: true
     source: path
     version: "0.11.0-dev.2"
+  ndk_accounts:
+    dependency: "direct overridden"
+    description:
+      path: "../accounts"
+      relative: true
+    source: path
+    version: "0.1.0"
   ndk_auth:
     dependency: "direct overridden"
     description:

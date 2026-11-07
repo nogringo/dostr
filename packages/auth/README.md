@@ -5,7 +5,7 @@ to a relay that asks for NIP-42 authentication, or to a Blossom server.
 
 - `Account`: a pubkey and the `EventSigner` that signs for it.
 - `AuthAccounts`: where the logged-in account comes from, implemented by
-  `ndk`'s `Accounts`.
+  `Accounts` from [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
 - `AuthPolicy`: what one operation may reveal. `never()` stays anonymous,
   `allow(account)` authenticates when asked, `require(account)` authenticates
   upfront and fails if it cannot.

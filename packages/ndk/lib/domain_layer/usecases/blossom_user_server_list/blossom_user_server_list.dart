@@ -1,7 +1,7 @@
 import 'package:ndk_core/domain_layer/entities/broadcast_state.dart';
 import 'package:ndk_core/domain_layer/entities/filter.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import '../accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../requests/requests.dart';
 

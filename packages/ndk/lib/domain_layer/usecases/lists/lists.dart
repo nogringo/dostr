@@ -9,7 +9,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../entities/nip_51_list.dart';
 import '../../repositories/cache_manager.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import '../accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import '../broadcast/broadcast.dart';
 import '../decrypted_event_payloads/decrypted_event_payloads.dart';
 import '../requests/requests.dart';

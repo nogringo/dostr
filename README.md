@@ -33,6 +33,10 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_auth`: the accounts NDK authenticates as, and the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server.
 
+### [🔗 Accounts](./packages/accounts/)
+
+`ndk_accounts`: the accounts NDK logs in with (private key, public key, external signer or NIP-46 bunker), to switch between them and sign as the logged one, without depending on `ndk`. NDK exposes it as `ndk.accounts`.
+
 ### [🔗 Isolates](./packages/isolates/)
 
 `ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.

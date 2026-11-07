@@ -80,7 +80,7 @@ export 'domain_layer/usecases/zaps/zap_receipt.dart';
 export 'domain_layer/usecases/zaps/invoice_response.dart';
 export 'domain_layer/usecases/lnurl/lnurl.dart';
 export 'domain_layer/usecases/lnurl/lnurl_response.dart';
-export 'domain_layer/usecases/accounts/accounts.dart';
+export 'package:ndk_accounts/ndk_accounts.dart';
 export 'domain_layer/usecases/blossom_user_server_list/blossom_user_server_list.dart';
 export 'domain_layer/usecases/search/search.dart';
 export 'package:ndk_nip59/ndk_nip59.dart';

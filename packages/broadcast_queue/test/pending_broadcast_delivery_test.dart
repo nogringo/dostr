@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:ndk/data_layer/repositories/cache_manager/mem_cache_manager.dart';
-import 'package:ndk/domain_layer/usecases/accounts/accounts.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_auth/ndk_auth.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';

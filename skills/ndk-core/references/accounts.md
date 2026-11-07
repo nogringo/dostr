@@ -1,6 +1,6 @@
 # Accounts & Signers
 
-Manage identities via `ndk.accounts`.
+Manage identities via `ndk.accounts`. `Accounts` lives in the `ndk_accounts` package (pure Dart, no `ndk` dependency), which `ndk` re-exports: build one with `Accounts(eventSignerFactory)` to use it without `ndk`.
 
 ## Add account
 
