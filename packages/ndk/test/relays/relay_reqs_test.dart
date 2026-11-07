@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 Future<void> _waitUntil(
   bool Function() condition, {
@@ -50,21 +50,21 @@ void main() {
     late Ndk ndk;
 
     setUp(() {
-      relayA = MockRelay(name: 'relay a', signEvents: false);
-      relayB = MockRelay(name: 'relay b', signEvents: false);
+      relayA = MockRelay(name: 'relay a');
+      relayB = MockRelay(name: 'relay b');
       ndk = buildNdk();
     });
 
     tearDown(() async {
       await ndk.destroy();
-      await relayA.stopServer();
-      await relayB.stopServer();
+      await relayA.stop();
+      await relayB.stop();
     });
 
     test('a query ends on EOSE, with one copy per relay', () async {
       final note = textNote();
-      await relayA.startServer(textNotes: {key: note});
-      await relayB.startServer(textNotes: {key: note});
+      await relayA.start(events: [note]);
+      await relayB.start(events: [note]);
 
       final req = ndk.relayReqs.req(
         relays: {
@@ -86,7 +86,7 @@ void main() {
     });
 
     test('a request does not end before it is sealed', () async {
-      await relayA.startServer();
+      await relayA.start();
       final req = ndk.relayReqs.req();
       var ended = false;
       unawaited(req.done.then((_) => ended = true));
@@ -113,7 +113,7 @@ void main() {
     });
 
     test('a subscription outlives EOSE and sends CLOSE once closed', () async {
-      await relayA.startServer();
+      await relayA.start();
       final req = ndk.relayReqs.req(
         relays: {
           relayA.url: [filter],
@@ -130,7 +130,7 @@ void main() {
       );
 
       final live = textNote();
-      relayA.sendEvent(event: live, subId: req.id);
+      relayA.sendToAll(['EVENT', req.id, live.toJson()]);
       expect((await received.future).id, live.id);
 
       await req.close();
@@ -142,7 +142,7 @@ void main() {
     });
 
     test('cancelling the events subscription closes the request', () async {
-      await relayA.startServer();
+      await relayA.start();
       final req = ndk.relayReqs.req(
         relays: {
           relayA.url: [filter],
@@ -180,13 +180,9 @@ void main() {
     });
 
     test('a timeout ends a query its relay never answers', () async {
-      final silent = MockRelay(
-        name: 'silent',
-        signEvents: false,
-        silenceRequests: true,
-      );
-      await silent.startServer();
-      addTearDown(silent.stopServer);
+      final silent = MockRelay(name: 'silent', answerRequests: false);
+      await silent.start();
+      addTearDown(silent.stop);
 
       final req = ndk.relayReqs.req(
         relays: {
@@ -201,8 +197,8 @@ void main() {
     });
 
     test('a relay takes one send, and one sent after seal counts', () async {
-      await relayA.startServer();
-      await relayB.startServer();
+      await relayA.start();
+      await relayB.start();
       final req = ndk.relayReqs.req();
 
       expect(req.send(relayA.url, [filter]), isTrue);
@@ -233,7 +229,7 @@ void main() {
     });
 
     test('events that fail verification are dropped', () async {
-      await relayA.startServer(textNotes: {key: textNote()});
+      await relayA.start(events: [textNote()]);
       final rejecting = buildNdk(validSignatures: false);
       addTearDown(rejecting.destroy);
 

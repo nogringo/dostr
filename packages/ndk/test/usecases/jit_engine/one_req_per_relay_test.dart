@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 /// A second REQ with the same id replaces the first on the relay (NIP-01), so
 /// whatever an engine routes to one relay has to travel in a single REQ.
@@ -26,9 +26,9 @@ void main() {
   test(
     'a JIT subscription keeps every pubkey it routed to one relay',
     () async {
-      final relay = MockRelay(name: 'relay', signEvents: false);
-      await relay.startServer();
-      addTearDown(relay.stopServer);
+      final relay = MockRelay(name: 'relay');
+      await relay.start();
+      addTearDown(relay.stop);
 
       // a is covered by the relay's NIP-65 entry, b by nothing, so b is blasted
       // to the same bootstrap relay

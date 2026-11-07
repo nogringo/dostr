@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 import '../tools/simple_profiler.dart';
 
 void main() async {
@@ -11,16 +11,16 @@ void main() async {
     late MockRelay relay1;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5297);
-      relay1 = MockRelay(name: "relay 1", explicitPort: 5298);
+      relay0 = MockRelay(name: "relay 0", port: 5297);
+      relay1 = MockRelay(name: "relay 1", port: 5298);
 
-      await relay0.startServer();
-      await relay1.startServer();
+      await relay0.start();
+      await relay1.start();
     });
 
     tearDown(() async {
-      await relay0.stopServer();
-      await relay1.stopServer();
+      await relay0.stop();
+      await relay1.stop();
     });
 
     test('multiple filters JIT query', () async {
@@ -95,7 +95,7 @@ void main() async {
 
       CacheManager cacheManager = MemCacheManager();
 
-      relay0.textNotes = key1TextNotes;
+      relay0.events.addAll(key1TextNotes.values);
 
       final profiler = SimpleProfiler('multiple filters JIT sub');
 
@@ -154,42 +154,54 @@ void main() async {
       // insert new events
       await Future.delayed(const Duration(milliseconds: 1000));
 
-      relay0.sendEvent(
-        event: textNote(key1, 1),
-        keyPair: key1,
-        subId: "mySubId",
-      );
-      relay0.sendEvent(
-        event: Nip01Event(
-          pubKey: key1.publicKey,
-          kind: 1,
-          tags: [],
-          content: "runntime conent",
-        ),
-        keyPair: key1,
-        subId: "mySubId",
-      );
+      relay0.sendToAll([
+        'EVENT',
+        "mySubId",
+        Bip340.signEvent(
+          event: textNote(key1, 1),
+          privateKey: key1.privateKey!,
+        ).toJson(),
+      ]);
+      relay0.sendToAll([
+        'EVENT',
+        "mySubId",
+        Bip340.signEvent(
+          event: Nip01Event(
+            pubKey: key1.publicKey,
+            kind: 1,
+            tags: [],
+            content: "runntime conent",
+          ),
+          privateKey: key1.privateKey!,
+        ).toJson(),
+      ]);
 
-      relay0.sendEvent(
-        event: Nip01Event(
-          pubKey: key1.publicKey,
-          kind: 2,
-          tags: [],
-          content: "kind 2 content",
-        ),
-        keyPair: key1,
-        subId: "mySubId",
-      );
-      relay0.sendEvent(
-        event: Nip01Event(
-          pubKey: key1.publicKey,
-          kind: 3,
-          tags: [],
-          content: "kind 3 content",
-        ),
-        keyPair: key1,
-        subId: "mySubId",
-      );
+      relay0.sendToAll([
+        'EVENT',
+        "mySubId",
+        Bip340.signEvent(
+          event: Nip01Event(
+            pubKey: key1.publicKey,
+            kind: 2,
+            tags: [],
+            content: "kind 2 content",
+          ),
+          privateKey: key1.privateKey!,
+        ).toJson(),
+      ]);
+      relay0.sendToAll([
+        'EVENT',
+        "mySubId",
+        Bip340.signEvent(
+          event: Nip01Event(
+            pubKey: key1.publicKey,
+            kind: 3,
+            tags: [],
+            content: "kind 3 content",
+          ),
+          privateKey: key1.privateKey!,
+        ).toJson(),
+      ]);
 
       await Future.delayed(const Duration(seconds: 5));
     });

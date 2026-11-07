@@ -3,9 +3,8 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../mocks/mock_relay.dart';
 
 void main() async {
   for (final engine in NdkEngine.values) {
@@ -43,11 +42,10 @@ void nip42Tests(NdkEngine engine) {
     test('respond to auth challenge', () async {
       MockRelay relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase,
+        port: portBase,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(textNotes: key1TextNotes);
+      await relay1.start(events: key1TextNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -76,7 +74,7 @@ void nip42Tests(NdkEngine engine) {
 
       // TODO: Create events and do some requests
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test(
@@ -84,10 +82,10 @@ void nip42Tests(NdkEngine engine) {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase,
+          port: portBase,
           requireAuthForRequests: true,
         );
-        await relay1.startServer(textNotes: key1TextNotes);
+        await relay1.start(events: key1TextNotes.values);
 
         final ndk = Ndk(
           NdkConfig(
@@ -109,7 +107,7 @@ void nip42Tests(NdkEngine engine) {
         List<Nip01Event> events = await response.future;
         expect(events, isEmpty);
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
   });
@@ -138,14 +136,13 @@ void nip42Tests(NdkEngine engine) {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase + 3,
+          port: portBase + 3,
           requireAuthForRequests: true,
-          signEvents: false,
         );
 
         final note1 = textNote(key1, "note from key1");
         final note2 = textNote(key2, "note from key2");
-        await relay1.startServer(textNotes: {key1: note1, key2: note2});
+        await relay1.start(events: [note1, note2]);
 
         final ndk = Ndk(
           NdkConfig(
@@ -211,7 +208,7 @@ void nip42Tests(NdkEngine engine) {
         expect(events2.first.content, equals("note from key2"));
 
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
@@ -226,14 +223,13 @@ void nip42Tests(NdkEngine engine) {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase + 5,
+          port: portBase + 5,
           requireAuthForRequests: true,
-          signEvents: false,
         );
 
         final note1 = textNote(key1, "note from key1");
         final note2 = textNote(key2, "note from key2");
-        await relay1.startServer(textNotes: {key1: note1, key2: note2});
+        await relay1.start(events: [note1, note2]);
 
         final ndk = Ndk(
           NdkConfig(
@@ -293,7 +289,7 @@ void nip42Tests(NdkEngine engine) {
         );
 
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
@@ -302,13 +298,12 @@ void nip42Tests(NdkEngine engine) {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase + 4,
+          port: portBase + 4,
           requireAuthForRequests: true,
-          signEvents: false,
         );
 
         final note1 = textNote(key1, "note from key1");
-        await relay1.startServer(textNotes: {key1: note1});
+        await relay1.start(events: [note1]);
 
         final ndk = Ndk(
           NdkConfig(
@@ -341,7 +336,7 @@ void nip42Tests(NdkEngine engine) {
         expect(events.first.content, equals("note from key1"));
 
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
@@ -350,13 +345,12 @@ void nip42Tests(NdkEngine engine) {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase + 6,
+          port: portBase + 6,
           requireAuthForRequests: true,
-          signEvents: false,
         );
 
         final note1 = textNote(key1, "note from key1");
-        await relay1.startServer(textNotes: {key1: note1});
+        await relay1.start(events: [note1]);
 
         final ndk = Ndk(
           NdkConfig(
@@ -399,21 +393,18 @@ void nip42Tests(NdkEngine engine) {
         );
 
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
     test('closing all transports leaves no authenticated connection', () async {
       MockRelay relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 7,
+        port: portBase + 7,
         requireAuthForRequests: true,
-        signEvents: false,
       );
 
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = Ndk(
         NdkConfig(
@@ -456,7 +447,7 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
   });
 
@@ -498,13 +489,10 @@ void nip42Tests(NdkEngine engine) {
     test('never stays unattributable even when a relay refuses', () async {
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 9,
+        port: portBase + 9,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       // logged in, so the only thing keeping the identity hidden is the policy
@@ -521,7 +509,7 @@ void nip42Tests(NdkEngine engine) {
       );
 
       expect(await response.future, isEmpty);
-      expect(relay1.receivedAuths, 0);
+      expect(relay1.received('AUTH'), isEmpty);
       expect(
         ndk.relays.connectivities.keys.where((key) => !key.isAnonymous),
         isEmpty,
@@ -529,19 +517,16 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('allow authenticates once the relay refuses', () async {
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 10,
+        port: portBase + 10,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       final account1 = signableAccount(key1);
@@ -567,20 +552,17 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('allow does not authenticate to a relay that never refuses', () async {
       // challenges on connect, but serves requests to anyone
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 15,
+        port: portBase + 15,
         requireAuthForEvents: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       final account1 = signableAccount(key1);
@@ -601,25 +583,22 @@ void nip42Tests(NdkEngine engine) {
       // an eager authentication is fire and forget, so leave it time to land
       await Future.delayed(Duration(seconds: 1));
       expect(
-        relay1.receivedAuths,
+        relay1.received('AUTH').length,
         0,
         reason: 'allow reveals the identity only once a relay refuses',
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('require sends the REQ only on the bound connection', () async {
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 11,
+        port: portBase + 11,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       final account1 = signableAccount(key1);
@@ -650,20 +629,17 @@ void nip42Tests(NdkEngine engine) {
       expect(relay1.connectionsThatRequested(requestId), 1);
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('require binds even when the relay never refuses', () async {
       // challenges on connect, but serves requests to anyone
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 12,
+        port: portBase + 12,
         requireAuthForEvents: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       final account1 = signableAccount(key1);
@@ -694,21 +670,15 @@ void nip42Tests(NdkEngine engine) {
       expect(relay1.connectionsThatRequested(requestId), 1);
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('require serves a relay that never challenges, unattributed', () async {
       // NIP-42 has no way to authenticate unprompted, so a relay that never
       // challenges never learns who asked. The connection is still bound: it is
       // the only identity that socket may ever assume.
-      final relay1 = MockRelay(
-        name: "relay 1",
-        explicitPort: portBase + 14,
-        signEvents: false,
-      );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      final relay1 = MockRelay(name: "relay 1", port: portBase + 14);
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       // no bootstrap relay, so every connection relay 1 sees comes from the
       // request itself
@@ -740,23 +710,20 @@ void nip42Tests(NdkEngine engine) {
         reason: 'the request must open the connection bound to its account',
       );
       // explicit relays skip the engine, so no anonymous socket is opened first
-      expect(relay1.connectedClientCount, 1);
-      expect(relay1.receivedAuths, 0);
+      expect(relay1.openClients.length, 1);
+      expect(relay1.received('AUTH'), isEmpty);
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('authenticates as an account that was never registered', () async {
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 16,
+        port: portBase + 16,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       // another identity is logged in, and key1 is not known to accounts at all
@@ -782,19 +749,16 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('allow authenticates as an unregistered account too', () async {
       final relay1 = MockRelay(
         name: "relay 1",
-        explicitPort: portBase + 17,
+        port: portBase + 17,
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
 
@@ -809,7 +773,7 @@ void nip42Tests(NdkEngine engine) {
       expect(relay1.connectionsAuthenticatedAs(key1.publicKey), 1);
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test(
@@ -862,12 +826,11 @@ void nip42Tests(NdkEngine engine) {
       () async {
         final relay1 = MockRelay(
           name: "relay 1",
-          explicitPort: portBase + 19,
+          port: portBase + 19,
           requireAuthForRequests: true,
-          signEvents: false,
         );
-        await relay1.startServer(
-          textNotes: {key1: textNote(key1, "note from key1")},
+        await relay1.start(
+          events: [textNote(key1, "note from key1")],
           // the close has to land while the bound connection is still opening,
           // and a machine under load is not a reliable way to get there
           delayConnection: Duration(milliseconds: 500),
@@ -903,27 +866,25 @@ void nip42Tests(NdkEngine engine) {
         );
 
         await ndk.destroy();
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
     test('a relay still connecting does not lose its events', () async {
       final relayA = MockRelay(
         name: "relay A",
-        explicitPort: portBase + 20,
+        port: portBase + 20,
         requireAuthForRequests: true,
-        signEvents: false,
       );
       final relayB = MockRelay(
         name: "relay B",
-        explicitPort: portBase + 21,
+        port: portBase + 21,
         requireAuthForRequests: true,
-        signEvents: false,
       );
       final noteA = textNote(key1, "note on A");
       final noteB = textNote(key1, "note on B");
-      await relayA.startServer(textNotes: {key1: noteA});
-      await relayB.startServer(textNotes: {key1: noteB});
+      await relayA.start(events: [noteA]);
+      await relayB.start(events: [noteB]);
 
       final ndk = Ndk(
         NdkConfig(
@@ -969,8 +930,8 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relayA.stopServer();
-      await relayB.stopServer();
+      await relayA.stop();
+      await relayB.stop();
     });
 
     test(
@@ -978,23 +939,18 @@ void nip42Tests(NdkEngine engine) {
       () async {
         final relayAuth = MockRelay(
           name: "relay auth",
-          explicitPort: portBase + 22,
+          port: portBase + 22,
           requireAuthForRequests: true,
-          signEvents: false,
         );
-        final relayPlain = MockRelay(
-          name: "relay plain",
-          explicitPort: portBase + 23,
-          signEvents: false,
-        );
-        await relayAuth.startServer(
-          textNotes: {key1: textNote(key1, "note on auth")},
+        final relayPlain = MockRelay(name: "relay plain", port: portBase + 23);
+        await relayAuth.start(
+          events: [textNote(key1, "note on auth")],
           // the retry opens a second connection, and this is the window the plain
           // relay's EOSE has to land in
           delayConnection: Duration(milliseconds: 200),
         );
-        await relayPlain.startServer(
-          textNotes: {key1: textNote(key1, "note on plain")},
+        await relayPlain.start(
+          events: [textNote(key1, "note on plain")],
           delayResponse: Duration(milliseconds: 300),
         );
 
@@ -1024,20 +980,14 @@ void nip42Tests(NdkEngine engine) {
         );
 
         await ndk.destroy();
-        await relayAuth.stopServer();
-        await relayPlain.stopServer();
+        await relayAuth.stop();
+        await relayPlain.stop();
       },
     );
 
     test('require with an account that cannot sign sends nothing', () async {
-      final relay1 = MockRelay(
-        name: "relay 1",
-        explicitPort: portBase + 13,
-        signEvents: false,
-      );
-      await relay1.startServer(
-        textNotes: {key1: textNote(key1, "note from key1")},
-      );
+      final relay1 = MockRelay(name: "relay 1", port: portBase + 13);
+      await relay1.start(events: [textNote(key1, "note from key1")]);
 
       final ndk = ndkFor(relay1);
       final watchOnly = Account(
@@ -1060,7 +1010,7 @@ void nip42Tests(NdkEngine engine) {
       expect(await response.future, isEmpty);
       stopwatch.stop();
 
-      expect(relay1.receivedAuths, 0);
+      expect(relay1.received('AUTH'), isEmpty);
       expect(
         timedOut,
         isFalse,
@@ -1073,7 +1023,7 @@ void nip42Tests(NdkEngine engine) {
       );
 
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
   });
 }

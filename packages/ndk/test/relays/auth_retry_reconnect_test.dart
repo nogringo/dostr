@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 Future<void> _waitUntil(
   bool Function() condition, {
@@ -36,16 +36,15 @@ void main() {
       final authRelay = MockRelay(
         name: "relay requiring auth",
         requireAuthForRequests: true,
-        signEvents: false,
-        challengePerConnection: true,
+
         // the authentication the query waits on is still unanswered when the
         // relay goes away, so it fails while the connection has no socket
-        silenceFirstAuths: 1,
+        unansweredAuths: 1,
       );
       final slowRelay = MockRelay(name: "slow relay");
-      await authRelay.startServer(textNotes: {key: note});
+      await authRelay.start(events: [note]);
       // answers late enough for its EOSE to land while the other relay is gone
-      await slowRelay.startServer(delayResponse: const Duration(seconds: 5));
+      await slowRelay.start(delayResponse: const Duration(seconds: 5));
 
       final ndk = Ndk(
         NdkConfig(
@@ -66,15 +65,15 @@ void main() {
       );
 
       await _waitUntil(
-        () => authRelay.receivedAuths == 1,
+        () => authRelay.received('AUTH').length == 1,
         reason: 'the query never authenticated',
       );
 
-      await authRelay.stopServer();
+      await authRelay.stop();
       // the EOSE of the other relay lands here, on a request whose last relay
       // is retrying its authentication on a socket that is not back yet
       await Future<void>.delayed(const Duration(seconds: 6));
-      await authRelay.startServer(textNotes: {key: note});
+      await authRelay.start(events: [note]);
 
       final events = await response.future;
 
@@ -87,8 +86,8 @@ void main() {
       );
 
       await ndk.destroy();
-      await authRelay.stopServer();
-      await slowRelay.stopServer();
+      await authRelay.stop();
+      await slowRelay.stop();
     },
   );
 }

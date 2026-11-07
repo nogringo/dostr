@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 /// Both tests use `cacheRead: true` on a subscription, which is not the default.
 /// They probe what the concurrency check does once subscriptions become
@@ -17,13 +17,13 @@ void main() {
     setUp(() async {
       queryRelay = MockRelay(name: "query relay");
       subscriptionRelay = MockRelay(name: "subscription relay");
-      await queryRelay.startServer();
-      await subscriptionRelay.startServer();
+      await queryRelay.start();
+      await subscriptionRelay.start();
     });
 
     tearDown(() async {
-      await queryRelay.stopServer();
-      await subscriptionRelay.stopServer();
+      await queryRelay.stop();
+      await subscriptionRelay.stop();
     });
 
     Future<void> waitForSubscriptionRegistration(MockRelay relay) async {

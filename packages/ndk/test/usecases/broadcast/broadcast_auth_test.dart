@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() {
   for (final engine in NdkEngine.values) {
@@ -54,9 +54,9 @@ void broadcastAuthTests(NdkEngine engine) {
       );
       // Offer a challenge on every connection; `allow` must still wait for
       // an EVENT refusal before disclosing an identity.
-      relay.sendAuthChallenge = true;
-      addTearDown(relay.stopServer);
-      await relay.startServer(delayResponse: delayResponse);
+      relay.challengeOnConnect = true;
+      addTearDown(relay.stop);
+      await relay.start(delayResponse: delayResponse);
       return relay;
     }
 
@@ -324,7 +324,7 @@ void broadcastAuthTests(NdkEngine engine) {
           result.any((r) => r.broadcastSuccessful),
           isTrue,
           reason:
-              'elapsed=${elapsed.elapsed}; AUTH received=${relay.receivedAuths}; '
+              'elapsed=${elapsed.elapsed}; AUTH received=${relay.received('AUTH').length}; '
               'accepted=${relay.acceptedAuths}; responses='
               '${result.map((r) => '${r.okReceived}/${r.broadcastSuccessful}/${r.msg}').toList()}',
         );

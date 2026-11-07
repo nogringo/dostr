@@ -1,9 +1,9 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
 import '../mocks/mock_failing_signer.dart';
-import '../mocks/mock_relay.dart';
 
 /// Tests for issue #450: Missing error handling for EventSigner methods
 /// https://github.com/relaystr/ndk/issues/450
@@ -15,8 +15,8 @@ void main() {
     late MockFailingSigner failingSigner;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5110);
-      await relay0.startServer();
+      relay0 = MockRelay(name: "relay 0", port: 5110);
+      await relay0.start();
 
       ndk = Ndk(
         NdkConfig(
@@ -33,7 +33,7 @@ void main() {
     tearDown(() async {
       await failingSigner.dispose();
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('broadcast should throw SignerRequestRejectedException', () async {

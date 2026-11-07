@@ -3,9 +3,10 @@
 import 'package:test/test.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
+import '../mocks/nip65_events.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -38,7 +39,7 @@ void main() async {
   group('Request Manager', () {
     test('Request text note', () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: key1TextNotes);
+      await relay1.start(events: key1TextNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -63,7 +64,7 @@ void main() async {
 
       await expectLater(query.stream, emitsInAnyOrder(key1TextNotes.values));
 
-      await relay1.stopServer();
+      await relay1.stop();
       await ndk.destroy();
     });
   });
@@ -79,7 +80,7 @@ void main() async {
     MockRelay relay3 = MockRelay(name: "relay 3");
     MockRelay relay4 = MockRelay(name: "relay 4");
 
-    Map<String, String> relayNames = {
+    Map<String, String?> relayNames = {
       relay1.url: relay1.name,
       relay2.url: relay2.name,
       relay3.url: relay3.name,
@@ -115,33 +116,32 @@ void main() async {
       // r3 -> k1
       // r4 -> k1,k4
       await Future.wait([
-        relay1.startServer(
-          nip65s: nip65s,
-          textNotes: {}
-            ..addAll(key1TextNotes)
-            ..addAll(key2TextNotes)
-            ..addAll(key3TextNotes),
+        relay1.start(
+          events: [
+            ...nip65Events(nip65s),
+            ...key1TextNotes.values,
+            ...key2TextNotes.values,
+            ...key3TextNotes.values,
+          ],
         ),
-        relay2.startServer(
-          nip65s: nip65s,
-          textNotes: {}
-            ..addAll(key1TextNotes)
-            ..addAll(key2TextNotes),
+        relay2.start(
+          events: [
+            ...nip65Events(nip65s),
+            ...key1TextNotes.values,
+            ...key2TextNotes.values,
+          ],
         ),
-        relay3.startServer(
-          nip65s: nip65s,
-          textNotes: {}..addAll(key1TextNotes),
-        ),
-        relay4.startServer(textNotes: key4TextNotes..addAll(key1TextNotes)),
+        relay3.start(events: [...nip65Events(nip65s), ...key1TextNotes.values]),
+        relay4.start(events: (key4TextNotes..addAll(key1TextNotes)).values),
       ]);
     }
 
     stopServers() async {
       await Future.wait([
-        relay1.stopServer(),
-        relay2.stopServer(),
-        relay3.stopServer(),
-        relay4.stopServer(),
+        relay1.stop(),
+        relay2.stop(),
+        relay3.stop(),
+        relay4.stop(),
       ]);
     }
 
@@ -477,7 +477,7 @@ void main() async {
     // }, timeout: const Timeout.factor(10));
 
     // test('metadataaa', () async {
-    //   // relay1.startServer();
+    //   // relay1.start();
     //
     //   Filter filter = Filter(authors: [
     //     // key1.publicKey

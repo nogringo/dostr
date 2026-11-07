@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   Nip01Event textNote(KeyPair key, String content) {
@@ -26,10 +26,10 @@ void main() {
       final relay1 = MockRelay(name: "relay 1");
       final relay2 = MockRelay(name: "relay 2");
 
-      await relay1.startServer(textNotes: {key: noteOnRelay1});
-      await relay2.startServer(textNotes: {key: noteOnRelay2});
-      addTearDown(relay1.stopServer);
-      addTearDown(relay2.stopServer);
+      await relay1.start(events: [noteOnRelay1]);
+      await relay2.start(events: [noteOnRelay2]);
+      addTearDown(relay1.stop);
+      addTearDown(relay2.stop);
 
       final ndk = Ndk(
         NdkConfig(

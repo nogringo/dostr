@@ -1,9 +1,10 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
+import '../../mocks/nip65_events.dart';
 
 void main() {
   test(
@@ -26,10 +27,17 @@ void main() {
         slow.url: ReadWriteMarker.readWrite,
       });
 
-      await fast.startServer(nip65s: {key1: nip65}, textNotes: {key1: note});
-      await slow.startServer(
-        nip65s: {key1: nip65},
-        textNotes: {key1: note},
+      await fast.start(
+        events: [
+          note,
+          ...nip65Events({key1: nip65}),
+        ],
+      );
+      await slow.start(
+        events: [
+          note,
+          ...nip65Events({key1: nip65}),
+        ],
         // the pubkey strategy connects to this one without holding the request
         // open, so it is long over by the time the connection is up
         delayConnection: Duration(seconds: 2),
@@ -68,8 +76,8 @@ void main() {
       );
 
       await ndk.destroy();
-      await fast.stopServer();
-      await slow.stopServer();
+      await fast.stop();
+      await slow.stop();
     },
   );
 }

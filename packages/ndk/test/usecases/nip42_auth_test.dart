@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   for (final engine in NdkEngine.values) {
@@ -33,7 +33,7 @@ void authTests(NdkEngine engine) {
               ),
             );
 
-        await relay.startServer(textNotes: {key: testEvent});
+        await relay.start(events: [testEvent]);
 
         final ndk = Ndk(
           NdkConfig(
@@ -61,7 +61,7 @@ void authTests(NdkEngine engine) {
         expect(result.first.content, "test event");
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -71,7 +71,7 @@ void authTests(NdkEngine engine) {
         final key = Bip340.generatePrivateKey();
         final relay = MockRelay(name: "relay", requireAuthForEvents: true);
 
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -102,7 +102,7 @@ void authTests(NdkEngine engine) {
         expect(result.any((r) => r.broadcastSuccessful), isTrue);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -117,7 +117,7 @@ void authTests(NdkEngine engine) {
           requireAuthForEvents: true,
         );
 
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -132,7 +132,7 @@ void authTests(NdkEngine engine) {
 
         addTearDown(() async {
           await ndk.destroy();
-          await relay.stopServer();
+          await relay.stop();
         });
 
         ndk.accounts.loginPrivateKey(
@@ -170,7 +170,7 @@ void authTests(NdkEngine engine) {
           name: "concurrent gift wrap auth relay",
           requireAuthForEvents: true,
         );
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -184,7 +184,7 @@ void authTests(NdkEngine engine) {
         );
         addTearDown(() async {
           await ndk.destroy();
-          await relay.stopServer();
+          await relay.stop();
         });
         ndk.accounts.loginPrivateKey(
           pubkey: senderKey.publicKey,
@@ -240,10 +240,11 @@ void authTests(NdkEngine engine) {
         final relay = MockRelay(
           name: "relay auth no challenge",
           requireAuthForRequests: true,
-          sendAuthChallenge: false,
+          challengeOnConnect: false,
+          challengeOnRefusal: false,
         );
 
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -266,7 +267,7 @@ void authTests(NdkEngine engine) {
         expect(result, isEmpty);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -278,10 +279,11 @@ void authTests(NdkEngine engine) {
         final relay = MockRelay(
           name: "relay auth no challenge with account",
           requireAuthForRequests: true,
-          sendAuthChallenge: false,
+          challengeOnConnect: false,
+          challengeOnRefusal: false,
         );
 
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -317,7 +319,7 @@ void authTests(NdkEngine engine) {
         );
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
   });

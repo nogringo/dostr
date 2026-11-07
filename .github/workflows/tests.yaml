@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ndk_core, nip01, signer, auth, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, pq, url_set, fetchers, wallets, nwc, bc_ur, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07, nip46, nip82, broadcast_queue, nip05, accounts, follows, metadatas, lists, search, zaps, cache, nip11, requests, broadcast, user_relay_lists]
+        package: [ndk_core, nip01, signer, auth, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, pq, url_set, fetchers, wallets, nwc, bc_ur, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07, nip46, nip82, broadcast_queue, nip05, accounts, follows, metadatas, lists, search, zaps, cache, nip11, requests, broadcast, user_relay_lists, mock_relay]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

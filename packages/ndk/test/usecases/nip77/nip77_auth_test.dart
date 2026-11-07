@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_refusing_signer.dart';
-import '../../mocks/mock_relay.dart';
 import '../../mocks/mock_slow_signer.dart';
 
 void main() async {
@@ -36,16 +36,15 @@ void main() async {
       bool requireAuth = true,
       bool refuseWithClosed = false,
     }) async {
-      final relay =
-          MockRelay(name: "neg relay", explicitPort: port, signEvents: false)
-            ..requireAuthForNegentropy = requireAuth
-            ..refuseNegentropyWithClosed = refuseWithClosed;
+      final relay = MockRelay(name: "neg relay", port: port)
+        ..requireAuthForNegentropy = requireAuth
+        ..refuseNegentropyWithClosed = refuseWithClosed;
       relay.negentropyItems['a' * 64] = 1000;
       // the relay only challenges once it refuses, which is what `allow` waits
       // for, so the challenge has to be offered on every connection
-      relay.sendAuthChallenge = true;
+      relay.challengeOnConnect = true;
       relay.requireAuthForRequests = true;
-      await relay.startServer();
+      await relay.start();
       return relay;
     }
 
@@ -79,7 +78,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('allow reconciles after the relay refuses', () async {
@@ -104,7 +103,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('allow reconciles when the relay refuses with CLOSED', () async {
@@ -127,7 +126,7 @@ void main() async {
       expect(relay.connectionsAuthenticatedAs(key1.publicKey), 1);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('never stays unattributable when a relay refuses', () async {
@@ -154,7 +153,7 @@ void main() async {
       expect(relay.connectionsAuthenticatedAs(key1.publicKey), 0);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test(
@@ -180,7 +179,7 @@ void main() async {
         expect(relay.connectionsAuthenticatedAs(key1.publicKey), 1);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -207,7 +206,7 @@ void main() async {
       expect(relay.connectionsAuthenticatedAs(key1.publicKey), 0);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('require with an account that cannot sign reaches no relay', () async {
@@ -239,7 +238,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test(
@@ -250,7 +249,7 @@ void main() async {
           requireAuth: false,
         );
         relay.requireAuthForRequests = false;
-        relay.sendAuthChallenge = false;
+        relay.challengeOnConnect = false;
         final ndk = ndkFor(relay);
         await Future.delayed(Duration(seconds: 1));
 
@@ -266,7 +265,7 @@ void main() async {
         expect(relay.connectionsAuthenticatedAs(key1.publicKey), 0);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -301,7 +300,7 @@ void main() async {
       expect(relay.connectionsAuthenticatedAs(key1.publicKey), 1);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a refused signature ends the reconciliation', () async {
@@ -338,7 +337,7 @@ void main() async {
       expect(relay.connectionsAuthenticatedAs(key1.publicKey), 0);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test(
@@ -380,7 +379,7 @@ void main() async {
         );
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
   });

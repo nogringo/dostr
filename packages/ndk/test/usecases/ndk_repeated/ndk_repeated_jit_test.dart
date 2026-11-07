@@ -1,10 +1,10 @@
 // ignore_for_file: file_names
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 import 'test_repeated.dart';
 
 void main() async {
@@ -36,10 +36,10 @@ void main() async {
     Map<KeyPair, Nip01Event> key3TextNotes = {key3: textNote(key3)};
     Map<KeyPair, Nip01Event> key4TextNotes = {key4: textNote(key4)};
 
-    MockRelay relay1 = MockRelay(name: "relay 1", explicitPort: 4140);
-    MockRelay relay2 = MockRelay(name: "relay 2", explicitPort: 4141);
-    MockRelay relay3 = MockRelay(name: "relay 3", explicitPort: 4142);
-    MockRelay relay4 = MockRelay(name: "relay 4", explicitPort: 4143);
+    MockRelay relay1 = MockRelay(name: "relay 1", port: 4140);
+    MockRelay relay2 = MockRelay(name: "relay 2", port: 4141);
+    MockRelay relay3 = MockRelay(name: "relay 3", port: 4142);
+    MockRelay relay4 = MockRelay(name: "relay 4", port: 4143);
 
     final myRelayUrls = [relay1.url, relay2.url, relay3.url, relay4.url];
 
@@ -73,17 +73,17 @@ void main() async {
     ];
 
     setUp(() async {
-      await relay1.startServer(textNotes: key1TextNotes);
-      await relay2.startServer(textNotes: key2TextNotes);
-      await relay3.startServer(textNotes: key3TextNotes);
-      await relay4.startServer(textNotes: key4TextNotes);
+      await relay1.start(events: key1TextNotes.values);
+      await relay2.start(events: key2TextNotes.values);
+      await relay3.start(events: key3TextNotes.values);
+      await relay4.start(events: key4TextNotes.values);
     });
 
     tearDown(() async {
-      await relay1.stopServer();
-      await relay2.stopServer();
-      await relay3.stopServer();
-      await relay4.stopServer();
+      await relay1.stop();
+      await relay2.stop();
+      await relay3.stop();
+      await relay4.stop();
     });
 
     test('JIT Engine', timeout: const Timeout(Duration(seconds: 3)), () async {

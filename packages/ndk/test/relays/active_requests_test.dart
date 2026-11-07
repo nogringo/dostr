@@ -1,7 +1,6 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../mocks/mock_relay.dart';
 
 Future<void> _waitUntil(
   bool Function() condition, {
@@ -26,7 +25,7 @@ Map<RelayConnectionKey, int> _activeRequests(Ndk ndk) => {
 void main() {
   test('a query leaves no active request behind', () async {
     final relay = MockRelay(name: "relay");
-    await relay.startServer();
+    await relay.start();
 
     final ndk = Ndk(
       NdkConfig(
@@ -45,7 +44,7 @@ void main() {
     expect(_activeRequests(ndk).values, everyElement(0));
 
     await ndk.destroy();
-    await relay.stopServer();
+    await relay.stop();
   });
 
   test(
@@ -56,9 +55,8 @@ void main() {
       final relay = MockRelay(
         name: "relay requiring auth",
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk(
         NdkConfig(
@@ -94,7 +92,7 @@ void main() {
       expect(_activeRequests(ndk).values, everyElement(0));
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

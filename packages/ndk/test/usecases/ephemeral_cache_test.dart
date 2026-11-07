@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 /// Tests for the ephemeral-event cache policy.
 ///
@@ -30,8 +30,8 @@ void main() {
     test('inbound ephemeral event via subscription is NOT written to cache '
         'even when cacheWrite is true', () async {
       final mockRelay = MockRelay(name: 'ephemeral-cache-test');
-      await mockRelay.startServer();
-      addTearDown(() => mockRelay.stopServer());
+      await mockRelay.start();
+      addTearDown(() => mockRelay.stop());
 
       final authorKey = Bip340.generatePrivateKey();
       final subscriberKey = Bip340.generatePrivateKey();
@@ -119,8 +119,8 @@ void main() {
     test('locally-stored ephemeral event IS returned by a query '
         '(cache read stays enabled)', () async {
       final mockRelay = MockRelay(name: 'ephemeral-read-test');
-      await mockRelay.startServer();
-      addTearDown(() => mockRelay.stopServer());
+      await mockRelay.start();
+      addTearDown(() => mockRelay.stop());
 
       final authorKey = Bip340.generatePrivateKey();
       final cache = MemCacheManager();
@@ -173,8 +173,8 @@ void main() {
     test('broadcasting an ephemeral event purges it from cache once delivery '
         'is terminal (ephemeral cache is transient)', () async {
       final mockRelay = MockRelay(name: 'ephemeral-broadcast-test');
-      await mockRelay.startServer();
-      addTearDown(() => mockRelay.stopServer());
+      await mockRelay.start();
+      addTearDown(() => mockRelay.stop());
 
       final authorKey = Bip340.generatePrivateKey();
       final cache = MemCacheManager();
@@ -242,8 +242,8 @@ void main() {
       );
 
       final mockRelay = MockRelay(name: 'non-ephemeral-test');
-      await mockRelay.startServer(textNotes: {key: textNote});
-      addTearDown(() => mockRelay.stopServer());
+      await mockRelay.start(events: [textNote]);
+      addTearDown(() => mockRelay.stop());
 
       final cache = MemCacheManager();
 
@@ -284,8 +284,8 @@ void main() {
       final key = Bip340.generatePrivateKey();
 
       final mockRelay = MockRelay(name: 'mixed-kinds-test');
-      await mockRelay.startServer();
-      addTearDown(() => mockRelay.stopServer());
+      await mockRelay.start();
+      addTearDown(() => mockRelay.stop());
 
       final cache = MemCacheManager();
 

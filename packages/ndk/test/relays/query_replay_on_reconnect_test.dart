@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_relay.dart';
 import '../mocks/mock_event_verifier.dart';
 
 /// Waits until [condition] holds, polling so the test does not depend on
@@ -37,8 +37,8 @@ void main() {
 
       final relay = MockRelay(name: "slow relay");
       // holds every REQ long enough for the socket to die before the answer
-      await relay.startServer(
-        textNotes: {author: note},
+      await relay.start(
+        events: [note],
         delayResponse: const Duration(seconds: 5),
       );
 
@@ -56,12 +56,12 @@ void main() {
       );
 
       await _waitUntil(
-        () => relay.connectedClientCount == 1,
+        () => relay.openClients.length == 1,
         reason: 'the query never reached the relay',
       );
       await Future<void>.delayed(const Duration(seconds: 1));
 
-      await relay.closeClientSockets();
+      await relay.dropConnections();
 
       final events = await response.future;
 
@@ -74,7 +74,7 @@ void main() {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

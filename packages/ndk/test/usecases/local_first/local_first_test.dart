@@ -7,9 +7,9 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart' show Reaction;
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() {
   group('local first', () {
@@ -69,7 +69,7 @@ void main() {
 
         expect(localWhileOffline.map((e) => e.id), contains(event.id));
 
-        await relay.startServer();
+        await relay.start();
         await _waitForRelayConnected(
           ndk: ndk,
           relayUrl: relay.url,
@@ -89,7 +89,7 @@ void main() {
               'Local-first should auto-deliver the unpublished event after the relay becomes reachable.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -103,7 +103,7 @@ void main() {
           bootstrapRelays: [relayOnline.url, relayOffline.url],
         );
 
-        await relayOnline.startServer();
+        await relayOnline.start();
 
         ndk.accounts.loginPrivateKey(
           pubkey: authorKey.publicKey,
@@ -142,7 +142,7 @@ void main() {
         );
         expect(onlineRelayEvents.map((e) => e.id), contains(event.id));
 
-        await relayOffline.startServer();
+        await relayOffline.start();
 
         final offlineRelayEventually = await _waitForRelayEvents(
           relay: relayOffline,
@@ -157,8 +157,8 @@ void main() {
               'After one relay succeeded and another was offline, local-first delivery should later flush only the missing relay.',
         );
 
-        await relayOnline.stopServer();
-        await relayOffline.stopServer();
+        await relayOnline.stop();
+        await relayOffline.stop();
       },
     );
 
@@ -183,7 +183,7 @@ void main() {
           pendingDeliveryRetryInterval: const Duration(seconds: 1),
         );
 
-        await relay.startServer(textNotes: {remoteAuthor: rootEvent});
+        await relay.start(events: [rootEvent]);
 
         ndk.accounts.loginPrivateKey(
           pubkey: authorKey.publicKey,
@@ -199,7 +199,7 @@ void main() {
             .future;
         expect(cachedRoot.map((e) => e.id), contains(rootEvent.id));
 
-        await relay.stopServer();
+        await relay.stop();
 
         await ndk.broadcast
             .broadcastReaction(
@@ -223,7 +223,7 @@ void main() {
 
         expect(localReaction.map((e) => e.content), contains('♡'));
 
-        await relay.startServer(textNotes: {remoteAuthor: rootEvent});
+        await relay.start(events: [rootEvent]);
 
         final relayReaction = await _waitForRelayEvents(
           relay: relay,
@@ -241,7 +241,7 @@ void main() {
               'A reaction created while offline should be immediately visible locally and later delivered when the relay becomes reachable again.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -309,7 +309,7 @@ void main() {
         expect(localCurrent.length, 1);
         expect(localCurrent.single.content, 'version 2');
 
-        await relay.startServer();
+        await relay.start();
         await _waitForRelayConnected(
           ndk: ndk,
           relayUrl: relay.url,
@@ -353,7 +353,7 @@ void main() {
               'Only the current replaceable version should be delivered during delayed flush.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -411,7 +411,7 @@ void main() {
             .future;
         expect(localAfterRestart.map((e) => e.id), contains(event.id));
 
-        await relay.startServer();
+        await relay.start();
         await _waitForRelayConnected(
           ndk: ndk,
           relayUrl: relay.url,
@@ -431,7 +431,7 @@ void main() {
               'A locally queued event should survive process restart and still be delivered once the relay becomes reachable.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -465,7 +465,7 @@ void main() {
         );
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
 
-        await relay.startServer(textNotes: {remoteAuthor: rootEvent});
+        await relay.start(events: [rootEvent]);
 
         final cachedRoot = await ndk.requests
             .query(
@@ -507,7 +507,7 @@ void main() {
               'After a valid remote deletion is seen, app-level local-first reads should stop returning the deleted foreign event.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -541,7 +541,7 @@ void main() {
         );
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
 
-        await relay.startServer();
+        await relay.start();
 
         await _publishFixtureEventToRelay(relay.url, deletionEvent);
 
@@ -590,7 +590,7 @@ void main() {
               'If the deletion arrived first, later sync of the deleted foreign target should remain suppressed instead of resurrecting locally.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -621,9 +621,7 @@ void main() {
         );
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
 
-        await relay.startServer(
-          metadatas: {remoteAuthor.publicKey: oldMetadataEvent},
-        );
+        await relay.start(events: [oldMetadataEvent]);
 
         final cachedOldMetadata = await ndk.metadata.loadMetadata(
           remoteAuthor.publicKey,
@@ -632,10 +630,8 @@ void main() {
         );
         expect(cachedOldMetadata?.name, 'old-name');
 
-        await relay.stopServer();
-        await relay.startServer(
-          metadatas: {remoteAuthor.publicKey: newMetadataEvent},
-        );
+        await relay.stop();
+        await relay.start(events: [newMetadataEvent]);
 
         final refreshedMetadata = await ndk.metadata.loadMetadata(
           remoteAuthor.publicKey,
@@ -654,7 +650,7 @@ void main() {
         );
         expect(localCurrentMetadata?.name, 'new-name');
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -663,10 +659,10 @@ void main() {
       () async {
         final relay = MockRelay(
           name: 'retry-relay',
-          rejectFirstEventPublishes: 1,
-          rejectEventMessage: 'rate-limited: retry later',
+          rejectFirstEvents: 1,
+          rejectEventsWith: 'rate-limited: retry later',
         );
-        await relay.startServer();
+        await relay.start();
         ndk = await _createNdk(
           tempDir.path,
           bootstrapRelays: [relay.url],
@@ -736,7 +732,7 @@ void main() {
               'The retry path should produce a second publish attempt after the initial transient rejection.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -745,10 +741,10 @@ void main() {
       () async {
         final relay = MockRelay(
           name: 'permanent-failure-relay',
-          rejectFirstEventPublishes: 99,
-          rejectEventMessage: 'policy violation: forbidden kind',
+          rejectFirstEvents: 99,
+          rejectEventsWith: 'policy violation: forbidden kind',
         );
-        await relay.startServer();
+        await relay.start();
         ndk = await _createNdk(
           tempDir.path,
           bootstrapRelays: [relay.url],
@@ -808,7 +804,7 @@ void main() {
               'Permanent failures should not be retried by the periodic retry pump.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -824,7 +820,7 @@ void main() {
           transportRelayUrls: () => [signerRelay.url],
         );
 
-        await publishRelay.startServer();
+        await publishRelay.start();
         ndk = await _createNdk(
           tempDir.path,
           bootstrapRelays: [publishRelay.url, signerRelay.url],
@@ -865,7 +861,7 @@ void main() {
         );
 
         signer.available = true;
-        await signerRelay.startServer();
+        await signerRelay.start();
         await ndk.connectivity.tryReconnect();
         await _waitForRelayConnected(
           ndk: ndk,
@@ -886,8 +882,8 @@ void main() {
               'When the signer transport relay comes online, local-first should retry signing and then immediately publish to connected delivery relays.',
         );
 
-        await publishRelay.stopServer();
-        await signerRelay.stopServer();
+        await publishRelay.stop();
+        await signerRelay.stop();
       },
     );
 
@@ -901,7 +897,7 @@ void main() {
           requiresSignerNetwork: false,
         );
 
-        await relay.startServer();
+        await relay.start();
         ndk = await _createNdk(
           tempDir.path,
           bootstrapRelays: [relay.url],
@@ -977,7 +973,7 @@ void main() {
               'Unsigned interactive-signing work should survive restart and later complete once a compatible signer becomes available again.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -993,7 +989,7 @@ void main() {
           transportRelayUrls: () => [signerRelay.url],
         );
 
-        await signerRelay.startServer();
+        await signerRelay.start();
         ndk = await _createNdk(
           tempDir.path,
           bootstrapRelays: [publishRelay.url, signerRelay.url],
@@ -1044,7 +1040,7 @@ void main() {
               'Even if signing succeeds immediately, target relay delivery should stay queued while the publish relay is still offline.',
         );
 
-        await publishRelay.startServer();
+        await publishRelay.start();
         await _waitForRelayConnected(
           ndk: ndk,
           relayUrl: publishRelay.url,
@@ -1064,8 +1060,8 @@ void main() {
               'After signing succeeded while the publish relay was offline, the queued signed event should later be delivered once that relay reconnects.',
         );
 
-        await publishRelay.stopServer();
-        await signerRelay.stopServer();
+        await publishRelay.stop();
+        await signerRelay.stop();
       },
     );
   });

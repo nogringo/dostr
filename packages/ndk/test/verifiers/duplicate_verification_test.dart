@@ -4,8 +4,7 @@ import 'package:ndk_core/domain_layer/usecases/requests/verify_event_stream.dart
 import 'package:ndk_core/domain_layer/usecases/requests/verified_event_cache.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
-
-import '../mocks/mock_relay.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 /// counts how often each event id is handed to the verifier
 class CountingEventVerifier implements EventVerifier {
@@ -108,10 +107,10 @@ void main() async {
     verifier = CountingEventVerifier();
     cache = CountingMemCacheManager();
 
-    relay1 = MockRelay(name: "relay 1", explicitPort: 6090);
-    relay2 = MockRelay(name: "relay 2", explicitPort: 6091);
-    await relay1.startServer();
-    await relay2.startServer();
+    relay1 = MockRelay(name: "relay 1", port: 6090);
+    relay2 = MockRelay(name: "relay 2", port: 6091);
+    await relay1.start();
+    await relay2.start();
 
     ndk = Ndk(
       NdkConfig(
@@ -126,8 +125,8 @@ void main() async {
 
   tearDown(() async {
     await ndk.destroy();
-    await relay1.stopServer();
-    await relay2.stopServer();
+    await relay1.stop();
+    await relay2.stop();
   });
 
   group('re-verification of already verified events (issue #715)', () {
@@ -385,7 +384,7 @@ void main() async {
           id: event.id,
           content: 'forged content',
         );
-        relay2.textNotes = {key1: forgedEvent};
+        relay2.events.add(forgedEvent);
 
         final received = await ndk.requests
             .query(
@@ -420,7 +419,7 @@ void main() async {
         await receiveAndCacheFromRelay1(event);
 
         final forgedEvent = event.copyWith(sig: List.filled(128, '0').join());
-        relay2.textNotes = {key1: forgedEvent};
+        relay2.events.add(forgedEvent);
 
         final received = await ndk.requests
             .query(
@@ -458,7 +457,7 @@ void main() async {
         expect(cachedBefore, isNotNull);
         cache.resetSaveIfAbsentCounts();
 
-        relay2.textNotes = {key1: event};
+        relay2.events.add(event);
 
         final received = await ndk.requests
             .query(
@@ -494,7 +493,7 @@ void main() async {
 
         await cache.clearAll();
         cache.resetSaveIfAbsentCounts();
-        relay2.textNotes = {key1: event};
+        relay2.events.add(event);
 
         final received = await ndk.requests
             .query(

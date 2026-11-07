@@ -2,9 +2,9 @@ import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_clien
 import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   for (final engine in NdkEngine.values) {
@@ -51,12 +51,8 @@ Future<void> _waitUntil(
 void deadConnectionTests() {
   group('relay outcomes on a dead connection', () {
     test('a request nothing will send again reports disconnected', () async {
-      final relay = MockRelay(
-        name: "relay 1",
-        signEvents: false,
-        silenceRequests: true,
-      );
-      await relay.startServer();
+      final relay = MockRelay(name: "relay 1", answerRequests: false);
+      await relay.start();
 
       final manager = RelayManager(
         nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -78,13 +74,13 @@ void deadConnectionTests() {
           );
       await manager.waitForRequestSent(req.id, const Duration(seconds: 5));
       await _waitUntil(
-        () => relay.connectedClientCount == 1,
+        () => relay.openClients.length == 1,
         reason: 'the request never reached the relay',
       );
 
       // nothing will bring the socket back, so nothing owes the request a reply
       manager.allowReconnectRelays = false;
-      await relay.closeClientSockets();
+      await relay.dropConnections();
 
       await _waitUntil(
         () =>
@@ -93,7 +89,7 @@ void deadConnectionTests() {
       );
       await req.done.timeout(const Duration(seconds: 5));
 
-      await relay.stopServer();
+      await relay.stop();
     });
   });
 }
@@ -129,19 +125,15 @@ void notSentEndTests() {
     test(
       'a notSent relay with an open socket does not hold the request once the others are gone',
       () async {
-        final notSent = MockRelay(name: "not sent", signEvents: false);
-        final dropped = MockRelay(
-          name: "dropped",
-          signEvents: false,
-          silenceRequests: true,
-        );
-        await notSent.startServer();
-        await dropped.startServer();
+        final notSent = MockRelay(name: "not sent");
+        final dropped = MockRelay(name: "dropped", answerRequests: false);
+        await notSent.start();
+        await dropped.start();
         final manager = buildManager();
         addTearDown(() async {
           await manager.closeAllTransports();
-          await notSent.stopServer();
-          await dropped.stopServer();
+          await notSent.stop();
+          await dropped.stop();
         });
         await connectAll(manager, [notSent.url, dropped.url]);
 
@@ -168,7 +160,7 @@ void notSentEndTests() {
         );
 
         manager.allowReconnectRelays = false;
-        await dropped.closeClientSockets();
+        await dropped.dropConnections();
 
         await _waitUntil(
           () =>
@@ -188,13 +180,13 @@ void notSentEndTests() {
     test(
       'a relay still connecting is waited for, not reported notSent',
       () async {
-        final connected = MockRelay(name: "connected", signEvents: false);
-        final connecting = MockRelay(name: "connecting", signEvents: false);
+        final connected = MockRelay(name: "connected");
+        final connecting = MockRelay(name: "connecting");
         final connectedNote = textNote(key1);
         final connectingNote = textNote(key2);
-        await connected.startServer(textNotes: {key1: connectedNote});
-        await connecting.startServer(
-          textNotes: {key2: connectingNote},
+        await connected.start(events: [connectedNote]);
+        await connecting.start(
+          events: [connectingNote],
           delayConnection: Duration(seconds: 1),
         );
         final manager = buildManager();
@@ -203,8 +195,8 @@ void notSentEndTests() {
           // MockRelay fails a handshake it still holds once its server stops
           await opening;
           await manager.closeAllTransports();
-          await connected.stopServer();
-          await connecting.stopServer();
+          await connected.stop();
+          await connecting.stop();
         });
         await connectAll(manager, [connected.url]);
 
@@ -276,12 +268,12 @@ void relayOutcomesTests(NdkEngine engine) {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('a relay that sends its EOSE reports eose', () async {
-      relay1 = MockRelay(name: "relay 1", signEvents: false);
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1");
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = queryKey1();
@@ -297,8 +289,8 @@ void relayOutcomesTests(NdkEngine engine) {
     test(
       'a request merged into an identical one reports its outcomes',
       () async {
-        relay1 = MockRelay(name: "relay 1", signEvents: false);
-        await relay1.startServer(textNotes: {key1: textNote(key1)});
+        relay1 = MockRelay(name: "relay 1");
+        await relay1.start(events: [textNote(key1)]);
         ndk = buildNdk();
 
         final filter = Filter(
@@ -318,8 +310,8 @@ void relayOutcomesTests(NdkEngine engine) {
     );
 
     test('the stream ends on the request, on its final outcomes', () async {
-      relay1 = MockRelay(name: "relay 1", signEvents: false);
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1");
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = queryKey1();
@@ -334,8 +326,8 @@ void relayOutcomesTests(NdkEngine engine) {
     });
 
     test('the stream still ends when it is asked for too late', () async {
-      relay1 = MockRelay(name: "relay 1", signEvents: false);
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1");
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = queryKey1();
@@ -352,8 +344,8 @@ void relayOutcomesTests(NdkEngine engine) {
     test(
       'a merged request streams the outcomes of the one serving it',
       () async {
-        relay1 = MockRelay(name: "relay 1", signEvents: false);
-        await relay1.startServer(textNotes: {key1: textNote(key1)});
+        relay1 = MockRelay(name: "relay 1");
+        await relay1.start(events: [textNote(key1)]);
         ndk = buildNdk();
 
         final filter = Filter(
@@ -376,10 +368,10 @@ void relayOutcomesTests(NdkEngine engine) {
     test('a relay that closes the request reports closed and why', () async {
       relay1 = MockRelay(
         name: "relay 1",
-        signEvents: false,
-        closeRequestsMessage: "blocked: you are not whitelisted",
+
+        closeRequestsWith: "blocked: you are not whitelisted",
       );
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = queryKey1();
@@ -394,12 +386,8 @@ void relayOutcomesTests(NdkEngine engine) {
     });
 
     test('a relay that stays silent reports timedOut', () async {
-      relay1 = MockRelay(
-        name: "relay 1",
-        signEvents: false,
-        silenceRequests: true,
-      );
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1", answerRequests: false);
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = queryKey1(timeout: Duration(seconds: 1));
@@ -413,10 +401,10 @@ void relayOutcomesTests(NdkEngine engine) {
     test(
       'a relay no connection reaches reports notSent, and the others end the request',
       () async {
-        relay1 = MockRelay(name: "relay 1", signEvents: false);
-        await relay1.startServer(textNotes: {key1: textNote(key1)});
+        relay1 = MockRelay(name: "relay 1");
+        await relay1.start(events: [textNote(key1)]);
         // never started, so nothing listens on its port
-        final unreachable = MockRelay(name: "unreachable", signEvents: false);
+        final unreachable = MockRelay(name: "unreachable");
         ndk = buildNdk();
 
         var timedOut = false;
@@ -442,16 +430,16 @@ void relayOutcomesTests(NdkEngine engine) {
           ),
         });
 
-        await unreachable.stopServer();
+        await unreachable.stop();
       },
     );
 
     test(
       'a request none of its relays can be sent to ends without its timeout',
       () async {
-        relay1 = MockRelay(name: "relay 1", signEvents: false);
-        await relay1.startServer(textNotes: {key1: textNote(key1)});
-        final unreachable = MockRelay(name: "unreachable", signEvents: false);
+        relay1 = MockRelay(name: "relay 1");
+        await relay1.start(events: [textNote(key1)]);
+        final unreachable = MockRelay(name: "unreachable");
         ndk = buildNdk();
 
         var timedOut = false;
@@ -475,16 +463,16 @@ void relayOutcomesTests(NdkEngine engine) {
           ),
         });
 
-        await unreachable.stopServer();
+        await unreachable.stop();
       },
     );
 
     test(
       'a paginated query streams a relay while its page is running',
       () async {
-        relay1 = MockRelay(name: "relay 1", signEvents: false);
-        await relay1.startServer(
-          textNotes: {key1: textNote(key1)},
+        relay1 = MockRelay(name: "relay 1");
+        await relay1.start(
+          events: [textNote(key1)],
           delayResponse: Duration(seconds: 1),
         );
         ndk = buildNdk();
@@ -517,12 +505,8 @@ void relayOutcomesTests(NdkEngine engine) {
     );
 
     test('a subscription still waiting on a relay reports pending', () async {
-      relay1 = MockRelay(
-        name: "relay 1",
-        signEvents: false,
-        silenceRequests: true,
-      );
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1", answerRequests: false);
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = ndk.requests.subscription(
@@ -546,8 +530,8 @@ void relayOutcomesTests(NdkEngine engine) {
     });
 
     test('a subscription reports the relays that caught up', () async {
-      relay1 = MockRelay(name: "relay 1", signEvents: false);
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1");
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = ndk.requests.subscription(
@@ -569,12 +553,8 @@ void relayOutcomesTests(NdkEngine engine) {
     });
 
     test('a subscription streams its relays until it is closed', () async {
-      relay1 = MockRelay(
-        name: "relay 1",
-        signEvents: false,
-        silenceRequests: true,
-      );
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1", answerRequests: false);
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk();
 
       final response = ndk.requests.subscription(
@@ -597,12 +577,8 @@ void relayOutcomesTests(NdkEngine engine) {
     test(
       'a relay asking for auth we cannot answer reports its refusal',
       () async {
-        relay1 = MockRelay(
-          name: "relay 1",
-          signEvents: false,
-          requireAuthForRequests: true,
-        );
-        await relay1.startServer(textNotes: {key1: textNote(key1)});
+        relay1 = MockRelay(name: "relay 1", requireAuthForRequests: true);
+        await relay1.start(events: [textNote(key1)]);
         ndk = buildNdk();
 
         final response = queryKey1(timeout: Duration(seconds: 5));
@@ -615,12 +591,8 @@ void relayOutcomesTests(NdkEngine engine) {
     );
 
     test('the connections to one relay collapse into one outcome', () async {
-      relay1 = MockRelay(
-        name: "relay 1",
-        signEvents: false,
-        requireAuthForRequests: true,
-      );
-      await relay1.startServer(textNotes: {key1: textNote(key1)});
+      relay1 = MockRelay(name: "relay 1", requireAuthForRequests: true);
+      await relay1.start(events: [textNote(key1)]);
       ndk = buildNdk(authHandler: (_, _) async => true);
 
       ndk.accounts.loginPrivateKey(

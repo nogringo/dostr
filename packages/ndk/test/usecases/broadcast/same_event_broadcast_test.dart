@@ -1,9 +1,9 @@
 import 'package:ndk/entities.dart' show RelayBroadcastResponse;
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() {
   for (final engine in NdkEngine.values) {
@@ -22,8 +22,8 @@ void sameEventBroadcastTests(NdkEngine engine) {
         name: 'same event relay',
         requireAuthForEvents: requireAuthForEvents,
       );
-      addTearDown(relay.stopServer);
-      await relay.startServer();
+      addTearDown(relay.stop);
+      await relay.start();
       return relay;
     }
 

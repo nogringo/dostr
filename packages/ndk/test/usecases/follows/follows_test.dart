@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('follows', () {
@@ -41,12 +41,9 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5095);
-      await relay0.startServer(
-        contactLists: {
-          key0.publicKey: network0ContactList.toEvent(),
-          key1.publicKey: network1ContactList.toEvent(),
-        },
+      relay0 = MockRelay(name: "relay 0", port: 5095);
+      await relay0.start(
+        events: [network0ContactList.toEvent(), network1ContactList.toEvent()],
       );
 
       final cache = MemCacheManager();
@@ -68,7 +65,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('contactList equal', () {

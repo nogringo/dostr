@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() {
   group('broadcast retryDelivery', () {
@@ -12,8 +12,12 @@ void main() {
     late Nip01Event event;
 
     setUp(() async {
-      relay = MockRelay(name: 'refusing relay', rejectFirstEventPublishes: 1);
-      await relay.startServer();
+      relay = MockRelay(
+        name: 'refusing relay',
+        rejectEventsWith: 'rate-limited: retry later',
+        rejectFirstEvents: 1,
+      );
+      await relay.start();
 
       cache = MemCacheManager();
       ndk = Ndk(
@@ -45,7 +49,7 @@ void main() {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a refused broadcast is enrolled for retry by default', () async {

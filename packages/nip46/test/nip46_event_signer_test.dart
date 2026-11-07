@@ -4,7 +4,6 @@ import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:test/test.dart';
 
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
-import 'mocks/mock_remote_signer.dart';
 
 const _clientPrivateKey =
     '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc';

@@ -1,5 +1,5 @@
-/// A NIP-01 and NIP-42 relay on a free local port, for the tests of the NDK
-/// packages.
+/// A NIP-01, NIP-42 and NIP-77 relay on a local port, and a NIP-46 remote
+/// signer behind it, for the tests of the NDK packages.
 ///
 /// ```dart
 /// final relay = MockRelay(requireAuthForRequests: true);
@@ -11,3 +11,4 @@
 library;
 
 export 'src/mock_relay.dart';
+export 'src/mock_remote_signer.dart';

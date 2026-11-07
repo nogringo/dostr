@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   for (final engine in NdkEngine.values) {
@@ -58,9 +58,8 @@ void authHandlerTests(NdkEngine engine) {
         name: "auth relay",
         requireAuthForRequests: true,
         requireAuthForEvents: requireAuthForEvents,
-        signEvents: false,
       );
-      await relay.startServer(textNotes: {key: _textNote(key, "note")});
+      await relay.start(events: [_textNote(key, "note")]);
       return relay;
     }
 
@@ -104,12 +103,12 @@ void authHandlerTests(NdkEngine engine) {
         expect(relay.connectionsThatRequested(requestId), 1);
       }
       expect(refused.connectionsThatRequested(requestId), 0);
-      expect(refused.receivedAuths, 0);
+      expect(refused.received('AUTH'), isEmpty);
       expect(boundKeys(ndk, refused.url), isEmpty);
 
       await ndk.destroy();
       for (final relay in relays) {
-        await relay.stopServer();
+        await relay.stop();
       }
     });
 
@@ -126,11 +125,11 @@ void authHandlerTests(NdkEngine engine) {
 
       expect(await response.future, isEmpty);
       expect(handler.asked, [(relay.url, key.publicKey)]);
-      expect(relay.receivedAuths, 0);
+      expect(relay.received('AUTH'), isEmpty);
       expect(boundKeys(ndk, relay.url), isEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('never is not asked about', () async {
@@ -152,7 +151,7 @@ void authHandlerTests(NdkEngine engine) {
       expect(handler.asked, isEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('without auth or handler the logged account stays hidden', () async {
@@ -169,11 +168,11 @@ void authHandlerTests(NdkEngine engine) {
       );
 
       expect(await response.future, isEmpty);
-      expect(relay.receivedAuths, 0);
+      expect(relay.received('AUTH'), isEmpty);
       expect(boundKeys(ndk, relay.url), isEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test(
@@ -194,10 +193,10 @@ void authHandlerTests(NdkEngine engine) {
 
         expect(await response.future, isEmpty);
         expect(handler.asked, [(relay.url, key.publicKey)]);
-        expect(relay.receivedAuths, 0);
+        expect(relay.received('AUTH'), isEmpty);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -214,11 +213,11 @@ void authHandlerTests(NdkEngine engine) {
       );
 
       expect(await response.future, isEmpty);
-      expect(relay.receivedAuths, 0);
+      expect(relay.received('AUTH'), isEmpty);
       expect(boundKeys(ndk, relay.url), isEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a connection is asked about once, not per request', () async {
@@ -242,7 +241,7 @@ void authHandlerTests(NdkEngine engine) {
       expect(handler.asked, hasLength(1));
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a bound connection coming back is not asked about again', () async {
@@ -261,7 +260,7 @@ void authHandlerTests(NdkEngine engine) {
         () => relay.subscriptionsAuthenticatedAs(key.publicKey).contains(subId),
         reason: 'the subscription never reached an authenticated connection',
       );
-      await relay.closeClientSockets();
+      await relay.dropConnections();
       await _waitUntil(
         () => relay.subscriptionsAuthenticatedAs(key.publicKey).contains(subId),
         reason: 'the bound connection never came back',
@@ -271,7 +270,7 @@ void authHandlerTests(NdkEngine engine) {
 
       await ndk.requests.closeSubscription(subId);
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('waiting on the handler does not spend the query timeout', () async {
@@ -294,7 +293,7 @@ void authHandlerTests(NdkEngine engine) {
       expect(await response.future, isNotEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test(
@@ -328,7 +327,7 @@ void authHandlerTests(NdkEngine engine) {
 
         await ndk.destroy();
         for (final relay in relays) {
-          await relay.stopServer();
+          await relay.stop();
         }
       },
     );
@@ -364,7 +363,7 @@ void authHandlerTests(NdkEngine engine) {
         expect(timeouts, 0);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -397,7 +396,7 @@ void authHandlerTests(NdkEngine engine) {
         expect(result.any((r) => r.broadcastSuccessful), isTrue);
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
   });
@@ -409,11 +408,11 @@ void nip77AuthHandlerTests() {
       'waiting on the handler does not spend the reconciliation timeout',
       () async {
         final key = Bip340.generatePrivateKey();
-        final relay = MockRelay(name: "neg relay", signEvents: false)
+        final relay = MockRelay(name: "neg relay")
           ..requireAuthForNegentropy = true
           ..requireAuthForRequests = true;
         relay.negentropyItems['a' * 64] = 1000;
-        await relay.startServer();
+        await relay.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -439,7 +438,7 @@ void nip77AuthHandlerTests() {
         expect(result.needIds, contains('a' * 64));
 
         await ndk.destroy();
-        await relay.stopServer();
+        await relay.stop();
       },
     );
   });

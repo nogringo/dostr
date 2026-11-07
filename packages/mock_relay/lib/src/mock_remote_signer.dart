@@ -3,9 +3,11 @@ import 'dart:convert';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_nip44/ndk_nip44.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
 
-import 'package:ndk_mock_relay/ndk_mock_relay.dart';
+import 'mock_relay.dart';
+
+/// NIP-46
+const _kNip46Kind = 24133;
 
 /// A NIP-46 remote signer that answers the requests its relays receive, on
 /// the relay each request came through.
@@ -34,7 +36,7 @@ class MockRemoteSigner {
   }
 
   Future<void> _onEvent(MockRelay relay, Nip01Event event) async {
-    if (event.kind != BunkerRequest.kKind) return;
+    if (event.kind != _kNip46Kind) return;
     if (event.getFirstTag('p') != publicKey) return;
 
     final request = jsonDecode(
@@ -68,7 +70,7 @@ class MockRemoteSigner {
       Bip340.signEvent(
         event: Nip01Event(
           pubKey: publicKey,
-          kind: BunkerRequest.kKind,
+          kind: _kNip46Kind,
           tags: [
             ['p', recipient],
           ],

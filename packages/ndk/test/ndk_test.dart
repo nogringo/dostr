@@ -1,10 +1,10 @@
 // ignore_for_file: avoid_print
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import 'mocks/mock_event_verifier.dart';
-import 'mocks/mock_relay.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -42,12 +42,8 @@ void main() async {
       'query simple note LISTS',
       timeout: const Timeout(Duration(seconds: 3)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay 1",
-          explicitPort: 3960,
-          signEvents: false,
-        );
-        await relay1.startServer(textNotes: key1TextNotes);
+        MockRelay relay1 = MockRelay(name: "relay 1", port: 3960);
+        await relay1.start(events: key1TextNotes.values);
 
         final ndk = Ndk(
           NdkConfig(
@@ -91,7 +87,7 @@ void main() async {
           emitsInAnyOrder(key1TextNotes.values),
         );
 
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
 
@@ -99,12 +95,8 @@ void main() async {
       'query simple event by id',
       timeout: const Timeout(Duration(seconds: 3)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay 1",
-          explicitPort: 3961,
-          signEvents: false,
-        );
-        await relay1.startServer(textNotes: key1TextNotes);
+        MockRelay relay1 = MockRelay(name: "relay 1", port: 3961);
+        await relay1.start(events: key1TextNotes.values);
 
         final cache = MemCacheManager();
 
@@ -142,18 +134,14 @@ void main() async {
           emitsInAnyOrder(key1TextNotes.values),
         );
 
-        await relay1.stopServer();
+        await relay1.stop();
       },
     );
     // ================================================================================================
 
     test('verify signatures of events', () async {
-      MockRelay relay1 = MockRelay(
-        name: "relay 1",
-        explicitPort: 3962,
-        signEvents: false,
-      );
-      await relay1.startServer(textNotes: key1TextNotes);
+      MockRelay relay1 = MockRelay(name: "relay 1", port: 3962);
+      await relay1.start(events: key1TextNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -173,7 +161,7 @@ void main() async {
       await for (final event in response.stream) {
         fail("should not emit any events, since relay does not sign");
       }
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test(
@@ -181,12 +169,9 @@ void main() async {
       () async {
         final welcomeMessage =
             '{"welcome": {"motd": "test message"}, "type": "welcome"}';
-        MockRelay explicitRelay = MockRelay(
-          name: "explicitRelay",
-          explicitPort: 3963,
-          customWelcomeMessage: welcomeMessage,
-        );
-        await explicitRelay.startServer();
+        MockRelay explicitRelay = MockRelay(name: "explicitRelay", port: 3963)
+          ..onConnect = (client) => client.sendRaw(welcomeMessage);
+        await explicitRelay.start();
 
         final ndk = Ndk.emptyBootstrapRelaysConfig();
 
@@ -200,19 +185,33 @@ void main() async {
         await query.future;
 
         ndk.destroy();
-        await explicitRelay.stopServer();
+        await explicitRelay.stop();
       },
     );
 
     test(
       'should handle null values in events from relays gracefully',
       () async {
-        MockRelay explicitRelay = MockRelay(
-          name: "malformedRelay",
-          explicitPort: 3966,
-          sendMalformedEvents: true,
-        );
-        await explicitRelay.startServer(textNotes: key1TextNotes);
+        MockRelay explicitRelay = MockRelay(name: "malformedRelay", port: 3966)
+          ..onMessage = (client, message) {
+            if (message[0] != 'REQ') return false;
+            client.send([
+              'EVENT',
+              message[1],
+              {
+                'id': null,
+                'pubkey': null,
+                'created_at': DateTime.now().millisecondsSinceEpoch ~/ 1000,
+                'kind': 0,
+                'tags': [],
+                'content': null,
+                'sig': null,
+              },
+            ]);
+            client.send(['EOSE', message[1]]);
+            return true;
+          };
+        await explicitRelay.start(events: key1TextNotes.values);
 
         final ndk = Ndk.emptyBootstrapRelaysConfig();
 
@@ -226,7 +225,7 @@ void main() async {
         await query.future;
 
         ndk.destroy();
-        await explicitRelay.stopServer();
+        await explicitRelay.stop();
       },
     );
   });

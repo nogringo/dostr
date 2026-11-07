@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('lists', () {
@@ -65,9 +65,7 @@ void main() async {
       final signedEvent0 = await signer0.sign(event0);
       final signedEvent1 = await signer1.sign(event1);
 
-      await relay0.startServer(
-        textNotes: {key0: signedEvent0, key1: signedEvent1},
-      );
+      await relay0.start(events: [signedEvent0, signedEvent1]);
 
       final cache = MemCacheManager();
       final NdkConfig config = NdkConfig(
@@ -102,7 +100,7 @@ void main() async {
     });
 
     tearDown(() async {
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('lists get bookmarks', () async {

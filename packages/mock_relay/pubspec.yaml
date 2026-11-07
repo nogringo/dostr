@@ -1,5 +1,5 @@
 name: ndk_mock_relay
-description: A NIP-01 and NIP-42 relay on a free local port, for the tests of the NDK packages.
+description: A NIP-01, NIP-42 and NIP-77 relay on a local port, with a NIP-46 remote signer, for the tests of the NDK packages.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
 repository: https://github.com/relaystr/ndk
@@ -11,7 +11,11 @@ environment:
 resolution: workspace
 
 dependencies:
+  ndk_bip340: ^0.1.0
   ndk_core: ^0.11.0-dev.2
+  ndk_nip44: ^0.1.0
+  ndk_nip77: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0
+  test: any

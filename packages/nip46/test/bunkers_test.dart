@@ -6,7 +6,6 @@ import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:test/test.dart';
 
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
-import 'mocks/mock_remote_signer.dart';
 
 void main() {
   group('bunker connect', () {

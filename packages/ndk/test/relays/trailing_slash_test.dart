@@ -1,7 +1,6 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../mocks/mock_relay.dart';
 
 void main() {
   group('Trailing slash', () {
@@ -9,7 +8,7 @@ void main() {
 
     setUp(() async {
       relay = MockRelay(name: 'test');
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk.emptyBootstrapRelaysConfig();
 
@@ -44,7 +43,7 @@ void main() {
     });
 
     tearDown(() async {
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('Query without trailling /', () async {

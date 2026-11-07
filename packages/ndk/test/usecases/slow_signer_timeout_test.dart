@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 import '../mocks/mock_slow_signer.dart';
 
 void main() {
@@ -12,7 +12,7 @@ void main() {
     () async {
       final key = Bip340.generatePrivateKey();
       final relay = MockRelay(name: "relay");
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk(
         NdkConfig(
@@ -52,7 +52,7 @@ void main() {
       expect(result.any((r) => r.broadcastSuccessful), isTrue);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 
@@ -76,7 +76,7 @@ void main() {
             ),
           );
 
-      await relay.startServer(textNotes: {key: testEvent});
+      await relay.start(events: [testEvent]);
 
       final ndk = Ndk(
         NdkConfig(
@@ -110,7 +110,7 @@ void main() {
       expect(result, isNotEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

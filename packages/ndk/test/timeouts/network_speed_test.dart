@@ -1,9 +1,10 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
+import '../mocks/nip65_events.dart';
 
 /// test to check if the network is faster then the timeout (this should always be the case)
 void main() {
@@ -19,8 +20,8 @@ void main() {
 
   group('low level - network faster then timeout', () {
     KeyPair key1 = Bip340.generatePrivateKey();
-    MockRelay relay1 = MockRelay(name: "relay 1", explicitPort: 8221);
-    MockRelay relay2 = MockRelay(name: "relay 2", explicitPort: 8222);
+    MockRelay relay1 = MockRelay(name: "relay 1", port: 8221);
+    MockRelay relay2 = MockRelay(name: "relay 2", port: 8222);
 
     Map<KeyPair, Nip01Event> key1TextNotes = {key1: textNote(key1)};
 
@@ -28,13 +29,13 @@ void main() {
 
     // startup and teardown
     setUp(() async {
-      await relay1.startServer(textNotes: key1TextNotes);
-      await relay2.startServer();
+      await relay1.start(events: key1TextNotes.values);
+      await relay2.start();
     });
 
     tearDown(() async {
-      await relay1.server!.close(force: true);
-      await relay2.server!.close(force: true);
+      await relay1.stop();
+      await relay2.stop();
     });
 
     test('query', () async {
@@ -139,11 +140,11 @@ void main() {
   group('high level - network faster then timeout', () {
     KeyPair key1 = Bip340.generatePrivateKey();
 
-    MockRelay relay3 = MockRelay(name: "relay 3", explicitPort: 8203);
-    MockRelay relay4 = MockRelay(name: "relay 4", explicitPort: 8204);
+    MockRelay relay3 = MockRelay(name: "relay 3", port: 8203);
+    MockRelay relay4 = MockRelay(name: "relay 4", port: 8204);
 
-    MockRelay relay5 = MockRelay(name: "relay 3", explicitPort: 8205);
-    MockRelay relay6 = MockRelay(name: "relay 4", explicitPort: 8206);
+    MockRelay relay5 = MockRelay(name: "relay 3", port: 8205);
+    MockRelay relay6 = MockRelay(name: "relay 4", port: 8206);
 
     Nip65 nip65ForKey1 = Nip65.fromMap(key1.publicKey, {
       relay3.url: ReadWriteMarker.readWrite,
@@ -160,17 +161,17 @@ void main() {
 
     // startup and teardown
     setUp(() async {
-      await relay3.startServer(textNotes: key1TextNotes);
-      await relay4.startServer(nip65s: nip65s);
-      await relay5.startServer(textNotes: key1TextNotes);
-      await relay6.startServer(nip65s: nip65s);
+      await relay3.start(events: key1TextNotes.values);
+      await relay4.start(events: nip65Events(nip65s));
+      await relay5.start(events: key1TextNotes.values);
+      await relay6.start(events: nip65Events(nip65s));
     });
 
     tearDown(() async {
-      await relay3.server!.close(force: true);
-      await relay4.server!.close(force: true);
-      await relay5.server!.close(force: true);
-      await relay6.server!.close(force: true);
+      await relay3.stop();
+      await relay4.stop();
+      await relay5.stop();
+      await relay6.stop();
     });
 
     test('query - nip65', () async {

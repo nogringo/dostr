@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_relay.dart';
 import '../mocks/mock_slow_signer.dart';
 
 Future<void> _waitUntil(
@@ -28,9 +28,8 @@ void main() {
       final relay = MockRelay(
         name: "relay requiring auth",
         requireAuthForRequests: true,
-        signEvents: false,
       );
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk(
         NdkConfig(
@@ -76,7 +75,7 @@ void main() {
       expect(relay.activeSubscriptionCount, 0);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

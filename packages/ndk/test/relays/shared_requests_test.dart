@@ -1,10 +1,10 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 Future<void> _waitUntil(bool Function() condition, String reason) async {
   final deadline = DateTime.now().add(const Duration(seconds: 10));
@@ -59,14 +59,14 @@ void main() {
     late Ndk ndk;
 
     setUp(() async {
-      relay = MockRelay(name: 'relay', signEvents: false);
-      await relay.startServer();
+      relay = MockRelay(name: 'relay');
+      await relay.start();
       ndk = buildNdk();
     });
 
     tearDown(() async {
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     NdkResponse subscribe() => ndk.requests.subscription(
@@ -107,7 +107,7 @@ void main() {
 
         final live = note('after one closed');
         final received = nextEvent(kept);
-        relay.sendEvent(event: live, subId: first.requestId);
+        relay.sendToAll(['EVENT', first.requestId, live.toJson()]);
         expect((await received).id, live.id);
 
         await ndk.requests.closeSubscription(kept.requestId);
@@ -121,9 +121,9 @@ void main() {
 
   test('a query whose cache cannot be read still asks its relays', () async {
     final stored = note('stored on the relay');
-    final relay = MockRelay(name: 'relay', signEvents: false);
-    await relay.startServer(textNotes: {key: stored});
-    addTearDown(relay.stopServer);
+    final relay = MockRelay(name: 'relay');
+    await relay.start(events: [stored]);
+    addTearDown(relay.stop);
     final ndk = buildNdk(cache: _UnreadableCache());
     addTearDown(ndk.destroy);
 

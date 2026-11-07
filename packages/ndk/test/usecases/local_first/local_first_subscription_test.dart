@@ -4,11 +4,11 @@ import 'dart:io';
 
 import 'package:ndk/ndk.dart';
 import 'package:ndk_cache/ndk_cache.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() {
   group('local first subscription', () {
@@ -51,7 +51,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        await relay.startServer(textNotes: {remoteAuthor: cachedEvent});
+        await relay.start(events: [cachedEvent]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
         await ndk.bootstrapRelaysConnected;
 
@@ -95,7 +95,7 @@ void main() {
         expect(receivedEvents.map((e) => e.id), contains(cachedEvent.id));
         expect(receivedEvents.map((e) => e.id), contains(liveEvent.id));
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -127,7 +127,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        await relay.startServer(textNotes: {remoteAuthor: targetEvent});
+        await relay.start(events: [targetEvent]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
         await ndk.bootstrapRelaysConnected;
 
@@ -173,7 +173,7 @@ void main() {
               'A tombstoned foreign target should stay suppressed on the public reactive stream even if replayed later.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
 
@@ -220,9 +220,7 @@ void main() {
           ),
           privateKey: remoteAuthor.privateKey!,
         );
-        await relay.startServer(
-          metadatas: {remoteAuthor.publicKey: cachedVersion},
-        );
+        await relay.start(events: [cachedVersion]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
         await ndk.bootstrapRelaysConnected;
 
@@ -284,7 +282,7 @@ void main() {
               'A stale replaceable event that arrives after a newer winner should not be emitted on the local-first reactive stream.',
         );
 
-        await relay.stopServer();
+        await relay.stop();
       },
     );
   });

@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 /// NIP-01: an empty list matches nothing, it does not stand for an absent one.
 void main() {
@@ -22,8 +22,8 @@ void main() {
       ),
       privateKey: key.privateKey!,
     );
-    relay = MockRelay(name: 'empty list relay', signEvents: false);
-    await relay.startServer(textNotes: {key: note});
+    relay = MockRelay(name: 'empty list relay');
+    await relay.start(events: [note]);
     ndk = Ndk(
       NdkConfig(
         eventVerifier: MockEventVerifier(),
@@ -36,7 +36,7 @@ void main() {
 
   tearDown(() async {
     await ndk.destroy();
-    await relay.stopServer();
+    await relay.stop();
   });
 
   test(

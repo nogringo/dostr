@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   test(
@@ -11,9 +11,9 @@ void main() {
       final key = Bip340.generatePrivateKey();
 
       // Create a mock relay that responds quickly
-      final relay = MockRelay(name: "relay duplicate test", explicitPort: 5105);
+      final relay = MockRelay(name: "relay duplicate test", port: 5105);
 
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk(
         NdkConfig(
@@ -67,7 +67,7 @@ void main() {
       expect(futures[1], isEmpty);
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

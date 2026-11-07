@@ -6,9 +6,9 @@ import 'package:test/test.dart';
 import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk/presentation_layer/init.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -58,7 +58,7 @@ void main() async {
   group('Requests', () {
     test('Request text note with single filter parameter', () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: textNotes);
+      await relay1.start(events: textNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -88,12 +88,12 @@ void main() async {
 
       await ndk.destroy();
       expect(ndk.relayReqs.openIds.isEmpty, true);
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('Request text note', () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: textNotes);
+      await relay1.start(events: textNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -122,7 +122,7 @@ void main() async {
 
       await ndk.destroy();
       expect(ndk.relayReqs.openIds.isEmpty, true);
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test(
@@ -131,8 +131,8 @@ void main() async {
         final sharedEvent = textNotes.values.first;
         final relay1 = MockRelay(name: "relay 1");
         final relay2 = MockRelay(name: "relay 2");
-        await relay1.startServer(textNotes: {key1: sharedEvent});
-        await relay2.startServer(textNotes: {key1: sharedEvent});
+        await relay1.start(events: [sharedEvent]);
+        await relay2.start(events: [sharedEvent]);
 
         final cache = MemCacheManager();
         final ndk = Ndk(
@@ -165,14 +165,14 @@ void main() async {
 
         await ndk.destroy();
         expect(ndk.relayReqs.openIds.isEmpty, true);
-        await relay1.stopServer();
-        await relay2.stopServer();
+        await relay1.stop();
+        await relay2.stop();
       },
     );
 
     test('Request multiple filters text note', () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: textNotes);
+      await relay1.start(events: textNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -203,11 +203,11 @@ void main() async {
 
       await ndk.destroy();
       expect(ndk.relayReqs.openIds.isEmpty, true);
-      await relay1.stopServer();
+      await relay1.stop();
     });
     test('Request multiple filters text note JIT', skip: true, () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: textNotes);
+      await relay1.start(events: textNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -238,12 +238,12 @@ void main() async {
 
       await ndk.destroy();
       expect(ndk.relayReqs.openIds.isEmpty, true);
-      await relay1.stopServer();
+      await relay1.stop();
     });
 
     test('Subscription with single filter parameter', () async {
       MockRelay relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer(textNotes: textNotes);
+      await relay1.start(events: textNotes.values);
 
       final ndk = Ndk(
         NdkConfig(
@@ -280,7 +280,7 @@ void main() async {
         await ndk.requests.closeSubscription(subscription.requestId);
         await ndk.destroy();
         expect(ndk.relayReqs.openIds.isEmpty, true);
-        await relay1.stopServer();
+        await relay1.stop();
       }
     });
 
@@ -290,7 +290,7 @@ void main() async {
         // This test would FAIL with the previous VerifyEventStream implementation
         // because events would remain stuck in buffer until stream closes
         MockRelay relay1 = MockRelay(name: "relay 1");
-        await relay1.startServer(textNotes: textNotes);
+        await relay1.start(events: textNotes.values);
 
         final ndk = Ndk(
           NdkConfig(
@@ -332,7 +332,7 @@ void main() async {
           await ndk.requests.closeSubscription(subscription.requestId);
           await ndk.destroy();
           expect(ndk.relayReqs.openIds.isEmpty, true);
-          await relay1.stopServer();
+          await relay1.stop();
         }
       },
     );
@@ -351,7 +351,7 @@ void main() async {
           key3: textNote(key3),
           key4: textNote(key4),
         };
-        await relay1.startServer(textNotes: multipleEvents);
+        await relay1.start(events: multipleEvents.values);
 
         final ndk = Ndk(
           NdkConfig(
@@ -409,7 +409,7 @@ void main() async {
           await ndk.requests.closeSubscription(subscription.requestId);
           await ndk.destroy();
           expect(ndk.relayReqs.openIds.isEmpty, true);
-          await relay1.stopServer();
+          await relay1.stop();
         }
       },
     );
@@ -518,12 +518,12 @@ void main() async {
   });
 
   test('Response with FormatException', () async {
-    final mockRelay = MockRelay(
-      name: 'test-relay-format-exception',
-      explicitPort: 6062,
-      allwaysSendBadJson: true,
-    );
-    await mockRelay.startServer();
+    final mockRelay = MockRelay(name: 'test-relay-format-exception', port: 6062)
+      ..onMessage = (client, _) {
+        client.sendRaw('{"bad_json":,}');
+        return true;
+      };
+    await mockRelay.start();
 
     final ndk = Ndk.defaultConfig();
 
@@ -537,7 +537,7 @@ void main() async {
     final events = await query.future;
     expect(events, isEmpty);
 
-    await mockRelay.stopServer();
+    await mockRelay.stop();
   });
 }
 

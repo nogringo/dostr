@@ -2,10 +2,10 @@ import 'dart:async';
 
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('connectivity test', () {
@@ -14,11 +14,11 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5197);
-      relay1 = MockRelay(name: "relay 1", explicitPort: 5198);
+      relay0 = MockRelay(name: "relay 0", port: 5197);
+      relay1 = MockRelay(name: "relay 1", port: 5198);
 
-      await relay0.startServer();
-      await relay1.startServer();
+      await relay0.start();
+      await relay1.start();
 
       final cache = MemCacheManager();
       final NdkConfig config = NdkConfig(
@@ -36,8 +36,8 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
-      await relay1.stopServer();
+      await relay0.stop();
+      await relay1.stop();
     });
 
     test('state updates are received', () async {

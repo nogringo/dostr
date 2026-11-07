@@ -53,9 +53,9 @@ dependencies:
   http: ^1.6.0
 
 dev_dependencies:
-  bip340: ">=0.3.0 <0.4.0"
   # persistent cache for the local_first restart tests
   ndk_sembast: ^0.1.0
   flutter_lints: ^6.0.0
+  ndk_mock_relay: ^0.1.0
   rxdart: ^0.28.0
   test: any

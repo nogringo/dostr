@@ -2,9 +2,10 @@ import 'package:ndk/entities.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart' show Reaction;
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
+import '../mocks/nip65_events.dart';
 
 void main() async {
   group('broadcast', () {
@@ -14,15 +15,15 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5102);
-      await relay0.startServer(
-        nip65s: {
+      relay0 = MockRelay(name: "relay 0", port: 5102);
+      await relay0.start(
+        events: nip65Events({
           key0: Nip65(
             pubKey: key0.publicKey,
             relays: {relay0.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
       );
 
       final cache = MemCacheManager();
@@ -50,7 +51,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('broadcast 2 events', () async {
@@ -286,15 +287,15 @@ void main() async {
       );
 
       // Create a slow relay that won't respond in time
-      MockRelay slowRelay = MockRelay(name: "slow relay", explicitPort: 5103);
-      await slowRelay.startServer(
-        nip65s: {
+      MockRelay slowRelay = MockRelay(name: "slow relay", port: 5103);
+      await slowRelay.start(
+        events: nip65Events({
           key0: Nip65(
             pubKey: key0.publicKey,
             relays: {slowRelay.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
         delayResponse: const Duration(
           seconds: 2,
         ), // Add delay to simulate slow relay
@@ -346,7 +347,7 @@ void main() async {
             .future;
         expect(result.length, 1);
       } finally {
-        await slowRelay.stopServer();
+        await slowRelay.stop();
       }
     });
 
@@ -356,27 +357,27 @@ void main() async {
         privkey: key0.privateKey!,
       );
 
-      MockRelay relay1 = MockRelay(name: "relay 1", explicitPort: 5104);
-      MockRelay relay2 = MockRelay(name: "relay 2", explicitPort: 5106);
+      MockRelay relay1 = MockRelay(name: "relay 1", port: 5104);
+      MockRelay relay2 = MockRelay(name: "relay 2", port: 5106);
 
-      await relay1.startServer(
-        nip65s: {
+      await relay1.start(
+        events: nip65Events({
           key0: Nip65(
             pubKey: key0.publicKey,
             relays: {relay1.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
       );
 
-      await relay2.startServer(
-        nip65s: {
+      await relay2.start(
+        events: nip65Events({
           key0: Nip65(
             pubKey: key0.publicKey,
             relays: {relay2.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
         delayResponse: const Duration(seconds: 2), // Add delay to the second
       );
 
@@ -429,8 +430,8 @@ void main() async {
           const Duration(milliseconds: 100),
         ); // Small delay to ensure events are indexed
       } finally {
-        await relay1.stopServer();
-        await relay2.stopServer();
+        await relay1.stop();
+        await relay2.stop();
       }
     });
 

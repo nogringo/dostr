@@ -4,9 +4,10 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';
 
 import 'package:test/test.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
+import '../../mocks/nip65_events.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -36,10 +37,10 @@ void main() async {
   Map<KeyPair, Nip01Event> key3TextNotes = {key3: textNote(key3)};
   Map<KeyPair, Nip01Event> key4TextNotes = {key4: textNote(key4)};
 
-  MockRelay relay21 = MockRelay(name: "relay 21", explicitPort: 5021);
-  MockRelay relay22 = MockRelay(name: "relay 22", explicitPort: 5022);
-  MockRelay relay23 = MockRelay(name: "relay 23", explicitPort: 5023);
-  MockRelay relay24 = MockRelay(name: "relay 24", explicitPort: 5024);
+  MockRelay relay21 = MockRelay(name: "relay 21", port: 5021);
+  MockRelay relay22 = MockRelay(name: "relay 22", port: 5022);
+  MockRelay relay23 = MockRelay(name: "relay 23", port: 5023);
+  MockRelay relay24 = MockRelay(name: "relay 24", port: 5024);
 
   group("Calculate best relays (internal MOCKs)", () {
     Nip65 nip65ForKey1 = Nip65.fromMap(key1.publicKey, {
@@ -68,10 +69,10 @@ void main() async {
 
     stopServers() async {
       await Future.wait([
-        relay21.stopServer(),
-        relay22.stopServer(),
-        relay23.stopServer(),
-        relay24.stopServer(),
+        relay21.stop(),
+        relay22.stop(),
+        relay23.stop(),
+        relay24.stop(),
       ]);
     }
 
@@ -82,24 +83,25 @@ void main() async {
       // r3 -> k1
       // r4 -> k1,k4
       await Future.wait([
-        relay21.startServer(
-          nip65s: nip65s,
-          textNotes: {}
-            ..addAll(key1TextNotes)
-            ..addAll(key2TextNotes)
-            ..addAll(key3TextNotes),
+        relay21.start(
+          events: [
+            ...nip65Events(nip65s),
+            ...key1TextNotes.values,
+            ...key2TextNotes.values,
+            ...key3TextNotes.values,
+          ],
         ),
-        relay22.startServer(
-          nip65s: nip65s,
-          textNotes: {}
-            ..addAll(key1TextNotes)
-            ..addAll(key2TextNotes),
+        relay22.start(
+          events: [
+            ...nip65Events(nip65s),
+            ...key1TextNotes.values,
+            ...key2TextNotes.values,
+          ],
         ),
-        relay23.startServer(
-          nip65s: nip65s,
-          textNotes: {}..addAll(key1TextNotes),
+        relay23.start(
+          events: [...nip65Events(nip65s), ...key1TextNotes.values],
         ),
-        relay24.startServer(textNotes: key4TextNotes..addAll(key1TextNotes)),
+        relay24.start(events: (key4TextNotes..addAll(key1TextNotes)).values),
       ]);
     }
 

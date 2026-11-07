@@ -1,9 +1,9 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('user relay lists', () {
@@ -31,8 +31,8 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5101);
-      await relay0.startServer();
+      relay0 = MockRelay(name: "relay 0", port: 5101);
+      await relay0.start();
 
       final cache = MemCacheManager();
       final NdkConfig config = NdkConfig(
@@ -53,7 +53,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('user relay lists equal', () {

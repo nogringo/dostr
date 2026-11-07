@@ -1,8 +1,8 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   Nip01Event textNote(KeyPair key2) {
@@ -25,17 +25,17 @@ void main() {
     // startup and teardown
     setUp(() async {
       relay1 = MockRelay(name: "relay 1");
-      await relay1.startServer();
-      relay1.textNotes = key1TextNotes;
+      await relay1.start();
+      relay1.events.addAll(key1TextNotes.values);
 
-      silentRelay = MockRelay(name: "silent relay", ignoreRequests: true);
-      await silentRelay.startServer();
+      silentRelay = MockRelay(name: "silent relay", answerRequests: false);
+      await silentRelay.start();
     });
 
     tearDown(() async {
       await ndk.destroy();
-      await relay1.stopServer();
-      await silentRelay.stopServer();
+      await relay1.stop();
+      await silentRelay.stop();
     });
 
     test('timeout does not trigger on normal request', () async {

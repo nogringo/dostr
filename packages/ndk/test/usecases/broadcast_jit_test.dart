@@ -1,10 +1,11 @@
 import 'package:ndk/entities.dart';
 import 'package:ndk/ndk.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart' show Reaction;
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
+import '../mocks/nip65_events.dart';
 
 void main() async {
   group('broadcast JIT', () {
@@ -14,15 +15,15 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5085);
-      await relay0.startServer(
-        nip65s: {
+      relay0 = MockRelay(name: "relay 0", port: 5085);
+      await relay0.start(
+        events: nip65Events({
           key0: Nip65(
             pubKey: key0.publicKey,
             relays: {relay0.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
       );
 
       final cache = MemCacheManager();
@@ -43,7 +44,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('broadcast 2 events', () async {
@@ -280,21 +281,21 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay1 = MockRelay(name: "relay 1", explicitPort: 5086);
-      relay2 = MockRelay(name: "relay 2", explicitPort: 5087);
-      relay3 = MockRelay(name: "relay 3", explicitPort: 5088);
-      await relay1.startServer(
-        nip65s: {
+      relay1 = MockRelay(name: "relay 1", port: 5086);
+      relay2 = MockRelay(name: "relay 2", port: 5087);
+      relay3 = MockRelay(name: "relay 3", port: 5088);
+      await relay1.start(
+        events: nip65Events({
           key1: Nip65(
             pubKey: key1.publicKey,
             relays: {relay1.url: ReadWriteMarker.readWrite},
             createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),
-        },
+        }),
       );
-      await relay2.startServer();
+      await relay2.start();
 
-      await relay3.startServer();
+      await relay3.start();
 
       final cache = MemCacheManager();
       final NdkConfig config = NdkConfig(
@@ -348,9 +349,9 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay1.stopServer();
-      await relay2.stopServer();
-      await relay3.stopServer();
+      await relay1.stop();
+      await relay2.stop();
+      await relay3.stop();
     });
 
     test('broadcast JIT - specific', () async {

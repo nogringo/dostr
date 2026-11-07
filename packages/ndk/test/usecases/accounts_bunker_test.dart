@@ -1,7 +1,6 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../mocks/mock_relay.dart';
 
 void main() {
   final eventSignerFactory = Bip340EventSignerFactory();
@@ -11,8 +10,9 @@ void main() {
   late Accounts accounts;
 
   setUp(() async {
-    mockRelay = MockRelay(name: 'accounts-bunker-relay', signEvents: true);
-    await mockRelay.startServer();
+    mockRelay = MockRelay(name: 'accounts-bunker-relay');
+    MockRemoteSigner([mockRelay]);
+    await mockRelay.start();
 
     ndk = Ndk(
       NdkConfig(
@@ -30,12 +30,12 @@ void main() {
       await account.signer.dispose();
     }
     await ndk.destroy();
-    await mockRelay.stopServer();
+    await mockRelay.stop();
   });
 
   Future<void> expectSignsThroughBunker(String content) async {
     expect(accounts.isLoggedIn, isTrue);
-    expect(accounts.getPublicKey(), equals(MockRelay.remoteSignerPublicKey));
+    expect(accounts.getPublicKey(), equals(MockRemoteSigner.publicKey));
 
     final signedTestEvent = await accounts.sign(
       Nip01Event(
@@ -53,14 +53,14 @@ void main() {
   test('loginWithBunkerUrl should set up account correctly', () async {
     final connection = await accounts.loginWithBunkerUrl(
       bunkerUrl:
-          'bunker://${MockRelay.remoteSignerPublicKey}'
+          'bunker://${MockRemoteSigner.publicKey}'
           '?relay=${mockRelay.url}'
           '&secret=bunker-url-test-secret',
       bunkers: ndk.bunkers,
     );
 
     expect(connection, isNotNull);
-    expect(connection!.remotePubkey, equals(MockRelay.remoteSignerPublicKey));
+    expect(connection!.remotePubkey, equals(MockRemoteSigner.publicKey));
     expect(connection.relays, contains(mockRelay.url));
     await expectSignsThroughBunker('Test event via loginWithBunkerUrl');
   });
@@ -70,7 +70,7 @@ void main() {
       connection: BunkerConnection(
         privateKey:
             "7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc",
-        remotePubkey: MockRelay.remoteSignerPublicKey,
+        remotePubkey: MockRemoteSigner.publicKey,
         relays: [mockRelay.url],
       ),
       bunkers: ndk.bunkers,

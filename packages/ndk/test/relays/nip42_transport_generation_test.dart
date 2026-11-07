@@ -1,7 +1,7 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
 
-import '../mocks/mock_relay.dart';
 import '../mocks/mock_slow_signer.dart';
 
 Future<void> _waitUntil(
@@ -28,10 +28,8 @@ void main() {
       final relay = MockRelay(
         name: "relay requiring auth",
         requireAuthForRequests: true,
-        signEvents: false,
-        challengePerConnection: true,
       );
-      await relay.startServer();
+      await relay.start();
 
       final ndk = Ndk(
         NdkConfig(
@@ -62,7 +60,7 @@ void main() {
         reason: 'the request never reached the bound connection',
       );
 
-      await relay.closeClientSockets();
+      await relay.dropConnections();
 
       // the replacement socket must answer its own challenge. Sharing the
       // attempt of the dead one replays a challenge this socket never sent,
@@ -74,7 +72,7 @@ void main() {
 
       await ndk.requests.closeSubscription(subId);
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     },
   );
 }

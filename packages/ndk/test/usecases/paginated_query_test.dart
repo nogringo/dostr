@@ -2,9 +2,9 @@
 
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() async {
   late KeyPair key1;
@@ -20,13 +20,9 @@ void main() async {
       publicKey: key1.publicKey,
     );
 
-    relay1 = MockRelay(
-      name: "relay 1",
-      explicitPort: 6070,
-      maxEventsPerRequest: 2,
-    );
+    relay1 = MockRelay(name: "relay 1", port: 6070, maxEventsPerRequest: 2);
 
-    await relay1.startServer();
+    await relay1.start();
 
     ndk = Ndk(
       NdkConfig(
@@ -42,7 +38,7 @@ void main() async {
 
   tearDown(() async {
     await ndk.destroy();
-    await relay1.stopServer();
+    await relay1.stop();
   });
 
   group('Paginated Query', () {
@@ -229,8 +225,8 @@ void main() async {
     test('closing it stops asking for pages', () async {
       // one event per page, each answered late: the query outlives the close
       final slow = MockRelay(name: "slow", maxEventsPerRequest: 1);
-      await slow.startServer(delayResponse: const Duration(milliseconds: 200));
-      addTearDown(slow.stopServer);
+      await slow.start(delayResponse: const Duration(milliseconds: 200));
+      addTearDown(slow.stop);
       await publish(slow, 8);
 
       final query = ndk.requests.query(
@@ -260,8 +256,8 @@ void main() async {
         MockRelay(name: "goes silent 2", maxEventsPerRequest: 1),
       ];
       for (final (index, relay) in relays.indexed) {
-        await relay.startServer();
-        addTearDown(relay.stopServer);
+        await relay.start();
+        addTearDown(relay.stop);
         await publish(relay, 2, offset: index * 100);
       }
 
@@ -279,7 +275,7 @@ void main() async {
       // every page after the first one runs into the timeout, on each relay
       await query.stream.first;
       for (final relay in relays) {
-        relay.silenceRequests = true;
+        relay.answerRequests = false;
       }
 
       await query.future;
@@ -351,8 +347,8 @@ void main() async {
       ];
 
       // Create a second relay
-      final relay2 = MockRelay(name: "relay 2", explicitPort: 6071);
-      await relay2.startServer();
+      final relay2 = MockRelay(name: "relay 2", port: 6071);
+      await relay2.start();
 
       try {
         for (final event in relay1Events) {
@@ -388,7 +384,7 @@ void main() async {
 
       expect(events.length, equals(5));
 
-      await relay2.stopServer();
+      await relay2.stop();
     });
 
     test('paginates each relay of a relay set independently', () async {
@@ -418,10 +414,10 @@ void main() async {
 
       final relay2 = MockRelay(
         name: "relay 2",
-        explicitPort: 6072,
+        port: 6072,
         maxEventsPerRequest: 2,
       );
-      await relay2.startServer();
+      await relay2.start();
 
       try {
         for (final ts in relay1Timestamps) {
@@ -464,7 +460,7 @@ void main() async {
         final createdAt = events.map((e) => e.createdAt).toSet();
         expect(createdAt, equals({...relay1Timestamps, ...relay2Timestamps}));
       } finally {
-        await relay2.stopServer();
+        await relay2.stop();
       }
     });
   });

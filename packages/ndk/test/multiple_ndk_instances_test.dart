@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import 'mocks/mock_relay.dart';
 
 Future<void> _waitUntil(
   bool Function() condition, {
@@ -45,7 +44,7 @@ void main() {
       'destroying one instance leaves the other subscribed and connected',
       () async {
         final relay = MockRelay(name: 'multiple-ndk-lifecycle');
-        await relay.startServer();
+        await relay.start();
 
         final first = _createNdk(bootstrapRelays: [relay.url]);
         final second = _createNdk(bootstrapRelays: [relay.url]);
@@ -57,7 +56,7 @@ void main() {
             second.bootstrapRelaysConnected,
           ]);
           await _waitUntil(
-            () => relay.connectedClientCount == 2,
+            () => relay.openClients.length == 2,
             reason: 'each NDK instance did not open its own relay connection',
           );
 
@@ -94,19 +93,19 @@ void main() {
 
           await _waitUntil(
             () =>
-                relay.connectedClientCount == 1 &&
+                relay.openClients.length == 1 &&
                 relay.activeSubscriptionCount == 1,
             reason: 'destroying the second NDK affected the first NDK runtime',
           );
 
-          await relay.closeClientSockets();
+          await relay.dropConnections();
           await _waitUntil(
-            () => relay.connectedClientCount == 0,
+            () => relay.openClients.isEmpty,
             reason: 'the relay never observed the closed client sockets',
           );
           await _waitUntil(
             () =>
-                relay.connectedClientCount == 1 &&
+                relay.openClients.length == 1 &&
                 relay.activeSubscriptionCount == 1,
             reason: 'the destroyed NDK reconnected or the live NDK did not',
           );
@@ -133,7 +132,7 @@ void main() {
         } finally {
           if (!secondDestroyed) await second.destroy();
           await first.destroy();
-          await relay.stopServer();
+          await relay.stop();
         }
       },
     );
@@ -142,13 +141,13 @@ void main() {
       final acceptingRelay = MockRelay(name: 'multiple-ndk-accept');
       final rejectingRelay = MockRelay(
         name: 'multiple-ndk-reject',
-        rejectFirstEventPublishes: 1,
-        rejectEventMessage: 'blocked: test rejection',
+        rejectFirstEvents: 1,
+        rejectEventsWith: 'blocked: test rejection',
       );
-      await acceptingRelay.startServer(
+      await acceptingRelay.start(
         delayResponse: const Duration(milliseconds: 300),
       );
-      await rejectingRelay.startServer();
+      await rejectingRelay.start();
 
       final first = _createNdk(bootstrapRelays: [acceptingRelay.url]);
       final second = _createNdk(bootstrapRelays: [rejectingRelay.url]);
@@ -195,8 +194,8 @@ void main() {
       } finally {
         await first.destroy();
         await second.destroy();
-        await acceptingRelay.stopServer();
-        await rejectingRelay.stopServer();
+        await acceptingRelay.stop();
+        await rejectingRelay.stop();
       }
     });
 
@@ -204,8 +203,6 @@ void main() {
       final relay = MockRelay(
         name: 'multiple-ndk-auth',
         requireAuthForRequests: true,
-        signEvents: false,
-        challengePerConnection: true,
       );
       final noteKey = Bip340.generatePrivateKey();
       final note = Bip340.signEvent(
@@ -217,7 +214,7 @@ void main() {
         ),
         privateKey: noteKey.privateKey!,
       );
-      await relay.startServer(textNotes: {noteKey: note});
+      await relay.start(events: [note]);
 
       final firstKey = Bip340.generatePrivateKey();
       final secondKey = Bip340.generatePrivateKey();
@@ -294,7 +291,7 @@ void main() {
       } finally {
         await first.destroy();
         await second.destroy();
-        await relay.stopServer();
+        await relay.stop();
       }
     });
   });

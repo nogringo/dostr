@@ -1,8 +1,8 @@
 import 'package:test/test.dart';
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('metadatas', () {
@@ -35,12 +35,9 @@ void main() async {
     late Ndk ndk;
 
     setUp(() async {
-      relay0 = MockRelay(name: "relay 0", explicitPort: 5096);
-      await relay0.startServer(
-        metadatas: {
-          key0.publicKey: network0Metadata.toEvent(),
-          key1.publicKey: network1Metadata.toEvent(),
-        },
+      relay0 = MockRelay(name: "relay 0", port: 5096);
+      await relay0.start(
+        events: [network0Metadata.toEvent(), network1Metadata.toEvent()],
       );
 
       final cache = MemCacheManager();
@@ -59,7 +56,7 @@ void main() async {
 
     tearDown(() async {
       await ndk.destroy();
-      await relay0.stopServer();
+      await relay0.stop();
     });
 
     test('metadata equal', () {

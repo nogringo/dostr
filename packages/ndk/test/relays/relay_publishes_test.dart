@@ -1,9 +1,9 @@
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 
 import '../mocks/mock_event_verifier.dart';
-import '../mocks/mock_relay.dart';
 
 void main() {
   final author = Bip340.generatePrivateKey();
@@ -42,13 +42,13 @@ void main() {
 
     tearDown(() async {
       await ndk.destroy();
-      await relayA.stopServer();
-      await relayB.stopServer();
+      await relayA.stop();
+      await relayB.stop();
     });
 
     test('collects the OK of every relay, each sent the event once', () async {
-      await relayA.startServer();
-      await relayB.startServer();
+      await relayA.start();
+      await relayB.start();
       final note = signedNote();
 
       final responses = await ndk.relayPublishes
@@ -101,8 +101,8 @@ void main() {
     test('[${engine.name}] a relay both in the outbox and an inbox gets the '
         'event once', () async {
       final relay = MockRelay(name: 'outbox and inbox');
-      await relay.startServer();
-      addTearDown(relay.stopServer);
+      await relay.start();
+      addTearDown(relay.stop);
 
       // the relay lists with the events they come from: saving the note
       // rebuilds the author's list from the cached kind 10002 events

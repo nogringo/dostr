@@ -1,7 +1,6 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   KeyPair key1 = Bip340.generatePrivateKey();
@@ -27,10 +26,9 @@ void main() async {
         // Setup mock relay
         MockRelay relay1 = MockRelay(
           name: "relay fetched ranges test",
-          explicitPort: 4200,
-          signEvents: false,
+          port: 4200,
         );
-        await relay1.startServer(textNotes: textNotes);
+        await relay1.start(events: textNotes.values);
 
         // Setup NDK
         final cache = MemCacheManager();
@@ -103,7 +101,7 @@ void main() async {
           reason: 'Range until should match filter until',
         );
 
-        await relay1.stopServer();
+        await relay1.stop();
         await ndk.destroy();
       },
     );
@@ -112,12 +110,8 @@ void main() async {
       'multiple queries merge fetched ranges',
       timeout: const Timeout(Duration(seconds: 5)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay merge test",
-          explicitPort: 4201,
-          signEvents: false,
-        );
-        await relay1.startServer(textNotes: textNotes);
+        MockRelay relay1 = MockRelay(name: "relay merge test", port: 4201);
+        await relay1.start(events: textNotes.values);
 
         final cache = MemCacheManager();
         final ndk = Ndk(
@@ -171,7 +165,7 @@ void main() async {
         expect(relayFetchedRanges.ranges.first.since, equals(100));
         expect(relayFetchedRanges.ranges.first.until, equals(300));
 
-        await relay1.stopServer();
+        await relay1.stop();
         await ndk.destroy();
       },
     );
@@ -180,12 +174,8 @@ void main() async {
       'findGaps returns correct gaps after query',
       timeout: const Timeout(Duration(seconds: 5)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay gaps test",
-          explicitPort: 4202,
-          signEvents: false,
-        );
-        await relay1.startServer(textNotes: textNotes);
+        MockRelay relay1 = MockRelay(name: "relay gaps test", port: 4202);
+        await relay1.start(events: textNotes.values);
 
         final cache = MemCacheManager();
         final ndk = Ndk(
@@ -226,7 +216,7 @@ void main() async {
         expect(gaps[1].since, equals(301));
         expect(gaps[1].until, equals(500));
 
-        await relay1.stopServer();
+        await relay1.stop();
         await ndk.destroy();
       },
     );
@@ -235,12 +225,8 @@ void main() async {
       'getOptimizedFilters returns filters for gaps only',
       timeout: const Timeout(Duration(seconds: 5)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay optimized test",
-          explicitPort: 4203,
-          signEvents: false,
-        );
-        await relay1.startServer(textNotes: textNotes);
+        MockRelay relay1 = MockRelay(name: "relay optimized test", port: 4203);
+        await relay1.start(events: textNotes.values);
 
         final cache = MemCacheManager();
         final ndk = Ndk(
@@ -289,7 +275,7 @@ void main() async {
         expect(filters[1].since, equals(301));
         expect(filters[1].until, equals(500));
 
-        await relay1.stopServer();
+        await relay1.stop();
         await ndk.destroy();
       },
     );
@@ -298,11 +284,8 @@ void main() async {
       'limited query only records the range actually covered by the returned events',
       timeout: const Timeout(Duration(seconds: 30)),
       () async {
-        MockRelay relay1 = MockRelay(
-          name: "relay limit test",
-          explicitPort: 4204,
-        );
-        await relay1.startServer();
+        MockRelay relay1 = MockRelay(name: "relay limit test", port: 4204);
+        await relay1.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -313,7 +296,7 @@ void main() async {
           ),
         );
         addTearDown(() async {
-          await relay1.stopServer();
+          await relay1.stop();
           await ndk.destroy();
         });
 
@@ -410,10 +393,10 @@ void main() async {
         // way a relay enforces its own NIP-11 max_limit
         MockRelay relay1 = MockRelay(
           name: "relay max limit test",
-          explicitPort: 4205,
+          port: 4205,
           maxEventsPerRequest: 20,
         );
-        await relay1.startServer();
+        await relay1.start();
 
         final ndk = Ndk(
           NdkConfig(
@@ -424,7 +407,7 @@ void main() async {
           ),
         );
         addTearDown(() async {
-          await relay1.stopServer();
+          await relay1.stop();
           await ndk.destroy();
         });
 
@@ -515,11 +498,11 @@ void main() async {
       () async {
         MockRelay relay1 = MockRelay(
           name: "relay auth required test",
-          explicitPort: 4210,
-          signEvents: false,
+          port: 4210,
+
           requireAuthForRequests: true,
         );
-        await relay1.startServer(textNotes: textNotes);
+        await relay1.start(events: textNotes.values);
 
         final ndk = Ndk(
           NdkConfig(
@@ -550,7 +533,7 @@ void main() async {
               'FetchedRanges should NOT be recorded when relay returns CLOSED auth-required',
         );
 
-        await relay1.stopServer();
+        await relay1.stop();
         await ndk.destroy();
       },
     );

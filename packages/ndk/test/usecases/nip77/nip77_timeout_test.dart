@@ -1,7 +1,6 @@
 import 'package:ndk/ndk.dart';
+import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';
-
-import '../../mocks/mock_relay.dart';
 
 void main() async {
   group('NIP-77 timeouts', () {
@@ -19,15 +18,11 @@ void main() async {
       int port, {
       Duration? delayResponse,
     }) async {
-      final relay = MockRelay(
-        name: "neg relay",
-        explicitPort: port,
-        signEvents: false,
-      );
+      final relay = MockRelay(name: "neg relay", port: port);
       for (var i = 0; i < itemCount; i++) {
         relay.negentropyItems[idOf(i)] = 0;
       }
-      await relay.startServer(delayResponse: delayResponse);
+      await relay.start(delayResponse: delayResponse);
       return relay;
     }
 
@@ -77,7 +72,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a relay that never answers NEG-OPEN times out', () async {
@@ -103,7 +98,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
 
     test('a relay that goes silent between two rounds times out', () async {
@@ -129,7 +124,7 @@ void main() async {
       );
 
       await ndk.destroy();
-      await relay.stopServer();
+      await relay.stop();
     });
   });
 }
