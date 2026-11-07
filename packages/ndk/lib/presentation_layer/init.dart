@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
+import 'cache_manager_replaceable_events.dart';
 import 'connectivity.dart';
 import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_broadcast/ndk_broadcast.dart';
@@ -19,12 +20,7 @@ import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart'
-    show
-        BlossomServersFetcher,
-        CacheManagerReplaceableEvents,
-        DmRelaysFetcher,
-        Nip65Fetcher,
-        fetcherUrlListFn;
+    show BlossomServersFetcher, DmRelaysFetcher, Nip65Fetcher, fetcherUrlListFn;
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show MemoryUrlListCheckStore;
 import 'package:ndk_search/ndk_search.dart';

@@ -1,5 +1,5 @@
 import 'package:ndk_cache/ndk_cache.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:ndk/presentation_layer/cache_manager_replaceable_events.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:test/test.dart';
 

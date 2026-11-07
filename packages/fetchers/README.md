@@ -73,8 +73,7 @@ ago.
 
 Without a cache, a cold start asks the relays for every list again. Give the
 fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds,
-then stores each newer one. `CacheManagerReplaceableEvents` is one on the
-`CacheManager` of [`ndk_cache`](https://pub.dev/packages/ndk_cache).
+then stores each newer one.
 
 Give them a `UrlListCheckStore` from `ndk_url_set` too, and a lookup a relay
 answered less than `maxAge` ago is answered from the cache alone, an absent

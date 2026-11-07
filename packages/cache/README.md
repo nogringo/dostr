@@ -62,4 +62,3 @@ The classes keep their names, and `package:ndk/ndk.dart` and `package:ndk/entiti
 - `shared/nips/nip01/event_visibility_resolver.dart` and `event_eviction_planner.dart`
 - `shared/nips/nip09/deletion.dart` and `shared/nips/nip28/channel_metadata.dart`
 - `domain_layer/usecases/decrypted_event_payloads/decrypted_event_payloads.dart`
-- `data_layer/repositories/cache_manager/cache_manager_replaceable_events.dart`

@@ -6,8 +6,8 @@ import 'package:ndk_url_set/ndk_url_set.dart';
 import 'replaceable_events.dart';
 
 /// Where the fetchers keep the events they found, so a cold start does not
-/// ask the relays for each of them again. [CacheManagerReplaceableEvents]
-/// implements it on a `CacheManager`.
+/// ask the relays for each of them again. `CacheManagerReplaceableEvents` of
+/// ndk implements it on a `CacheManager`.
 abstract interface class ReplaceableEventCache {
   /// The stored [kind] event of [pubKey] (hex), named [dTag] if addressable,
   /// or null if there is none.
