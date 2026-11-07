@@ -35,6 +35,7 @@ build/
 .flutter-plugins-dependencies
 /packages/ndk/coverage/*
 /packages/ndk/coverage.lcov
+/packages/ndk/android/
 pubspec_overrides.yaml
 /packages/rust_verifier/rust/target/
 /packages/pq/rust/target/

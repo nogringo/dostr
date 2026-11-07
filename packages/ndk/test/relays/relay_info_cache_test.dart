@@ -1,9 +1,8 @@
 import 'dart:async';
 
-import 'package:ndk/ndk.dart' show Connectivy;
+import 'package:ndk/ndk.dart' show Connectivy, RelayManager;
 import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_core/domain_layer/usecases/relay_manager.dart';
 import 'package:test/test.dart';
 
 class _Repo implements RelayInfoRepo {

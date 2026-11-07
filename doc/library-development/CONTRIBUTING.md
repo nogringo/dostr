@@ -53,7 +53,7 @@ Feel free to reach out to us via the following channels:
 
 Each feature lives in its own package under `packages/`, named `ndk_<feature>`: `ndk_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `ndk_requests` for queries and subscriptions, `ndk_nip59` for gift wraps, and so on. A package depends on what it needs, and its `dependencies` never include `ndk`.
 
-`ndk` is only a facade: `Ndk` and `NdkConfig`, `Initialization`, which builds the packages and wires them together, and the exports of `package:ndk/ndk.dart` and `package:ndk/entities.dart`. New code goes into the package it belongs to, or into a new one, and `ndk` only builds it and exports it.
+`ndk` is only a facade: `Ndk` and `NdkConfig`, `Initialization`, which builds the packages and wires them together, `Connectivy`, which puts the relay connections of `ndk_core` and the NIP-11 info of `ndk_nip11` behind `ndk.connectivity`, and the exports of `package:ndk/ndk.dart` and `package:ndk/entities.dart`. New code goes into the package it belongs to, or into a new one, and `ndk` only builds it and exports it.
 
 Tests follow the code: a package tests itself, with [`ndk_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay. `packages/ndk/test` only keeps the tests of the facade itself, most of them through `Ndk`.
 

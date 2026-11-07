@@ -17,9 +17,12 @@ export 'package:ndk_core/ndk_core.dart'
         Nip01Utils,
         packageVersion,
         Relay,
+        RelayBroadcastResponse,
         RelayConnectionKey,
+        RelayConnectivity,
         RelayFailure,
         RelayFailureKind,
+        RelayManager,
         RelayPublish,
         RelayPublishes,
         RelayReq,
@@ -27,6 +30,7 @@ export 'package:ndk_core/ndk_core.dart'
         RelayReqs,
         RelayRequestOutcome,
         RelayRequestStatus,
+        RelayStats,
         TimeoutPausable;
 export 'package:ndk_requests/ndk_requests.dart'
     show
