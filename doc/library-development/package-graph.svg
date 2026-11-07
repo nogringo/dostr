@@ -1,0 +1,212 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1090.8 644.0" width="1090.8" height="644.0" role="img" aria-label="Dependency graph of the 50 workspace packages, in 8 layers">
+<style>
+svg{--bg:#ffffff;--box:#f6f8fa;--line:#d0d7de;--edge:#8c959f;--text:#1f2328;--muted:#656d76;--accent:#0969da}
+@media (prefers-color-scheme:dark){svg{--bg:#0d1117;--box:#161b22;--line:#3d444d;--edge:#6e7681;--text:#e6edf3;--muted:#9198a1;--accent:#4493f8}}
+.bg{fill:var(--bg)}.box{fill:var(--box);stroke:var(--line)}.facade{stroke:var(--accent);stroke-width:2}.edge{fill:none;stroke:var(--edge);stroke-opacity:.7}.head{fill:var(--edge)}text{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--text)}.layer{fill:var(--muted);font-size:11px}
+</style>
+<defs><marker id="head" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="head" d="M0 0L8 4L0 8z"/></marker></defs>
+<rect class="bg" width="1090.8" height="644.0" rx="8"/>
+<text class="layer" x="16.0" y="616.0" dominant-baseline="central">layer 0</text>
+<text class="layer" x="16.0" y="532.0" dominant-baseline="central">layer 1</text>
+<text class="layer" x="16.0" y="448.0" dominant-baseline="central">layer 2</text>
+<text class="layer" x="16.0" y="364.0" dominant-baseline="central">layer 3</text>
+<text class="layer" x="16.0" y="280.0" dominant-baseline="central">layer 4</text>
+<text class="layer" x="16.0" y="196.0" dominant-baseline="central">layer 5</text>
+<text class="layer" x="16.0" y="112.0" dominant-baseline="central">layer 6</text>
+<text class="layer" x="16.0" y="28.0" dominant-baseline="central">layer 7</text>
+<path class="edge" marker-end="url(#head)" d="M850.9 40.0C850.9 70.0 970.0 70.0 970.0 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M809.9 40.0C809.9 238.0 584.6 238.0 584.6 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M823.6 40.0C823.6 238.0 869.4 238.0 869.4 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M837.2 40.0C837.2 280.0 872.4 280.0 872.4 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M969.4 40.0C969.4 70.0 983.2 70.0 983.2 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M959.5 40.0C959.5 280.0 909.6 280.0 909.6 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M979.3 40.0C979.3 70.0 1040.6 70.0 1040.6 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M711.8 124.0C711.8 154.0 755.5 154.0 755.5 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M1040.6 124.0C1040.6 154.0 778.7 154.0 778.7 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M626.2 124.0C626.2 154.0 747.8 154.0 747.8 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M547.8 124.0C547.8 154.0 740.1 154.0 740.1 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M883.2 124.0C883.2 280.0 921.7 280.0 921.7 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M819.6 124.0C819.6 154.0 763.3 154.0 763.3 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M959.0 124.0C959.0 280.0 659.4 280.0 659.4 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M985.4 124.0C985.4 280.0 937.0 280.0 937.0 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M972.2 124.0C972.2 280.0 798.2 280.0 798.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M961.2 124.0C961.2 196.0 704.6 196.0 704.6 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M965.6 124.0C965.6 154.0 771.0 154.0 771.0 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M987.6 124.0C987.6 238.0 973.0 238.0 973.0 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M974.4 124.0C974.4 322.0 798.2 322.0 798.2 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M989.8 124.0C989.8 322.0 983.8 322.0 983.8 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M963.4 124.0C963.4 238.0 706.2 238.0 706.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M967.8 124.0C967.8 238.0 770.2 238.0 770.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M992.0 124.0C992.0 364.0 1027.1 364.0 1027.1 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M994.2 124.0C994.2 238.0 1038.8 238.0 1038.8 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M978.8 124.0C978.8 238.0 834.2 238.0 834.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M981.0 124.0C981.0 238.0 898.2 238.0 898.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M976.6 124.0C976.6 154.0 816.2 154.0 816.2 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M970.0 124.0C970.0 196.0 793.8 196.0 793.8 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M983.2 124.0C983.2 196.0 908.2 196.0 908.2 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M822.8 208.0C822.8 406.0 813.5 406.0 813.5 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M809.6 208.0C809.6 238.0 630.4 238.0 630.4 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M768.4 208.0C768.4 364.0 701.8 364.0 701.8 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M750.4 208.0C750.4 238.0 607.6 238.0 607.6 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M607.6 292.0C607.6 322.0 494.6 322.0 494.6 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M630.4 292.0C630.4 322.0 645.8 322.0 645.8 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M886.0 292.0C886.0 322.0 527.0 322.0 527.0 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M930.4 292.0C930.4 364.0 741.2 364.0 741.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M781.2 292.0C781.2 322.0 516.2 322.0 516.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M806.4 292.0C806.4 364.0 728.5 364.0 728.5 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M1014.8 292.0C1014.8 364.0 952.3 364.0 952.3 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M1044.8 292.0C1044.8 322.0 1056.8 322.0 1056.8 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M690.8 292.0C690.8 322.0 505.4 322.0 505.4 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M718.4 292.0C718.4 364.0 715.7 364.0 715.7 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M638.0 376.0C638.0 406.0 711.5 406.0 711.5 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M653.6 376.0C653.6 490.0 745.3 490.0 745.3 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M898.2 376.0C898.2 406.0 737.0 406.0 737.0 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M834.2 376.0C834.2 406.0 732.7 406.0 732.7 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M1047.8 376.0C1047.8 406.0 749.7 406.0 749.7 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M770.2 376.0C770.2 406.0 724.2 406.0 724.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M715.2 376.0C715.2 406.0 720.0 406.0 720.0 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M697.2 376.0C697.2 406.0 487.2 406.0 487.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M960.4 376.0C960.4 406.0 745.5 406.0 745.5 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M985.6 376.0C985.6 406.0 1026.2 406.0 1026.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M507.0 376.0C507.0 406.0 299.8 406.0 299.8 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M514.7 376.0C514.7 406.0 407.0 406.0 407.0 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M491.6 376.0C491.6 406.0 107.0 406.0 107.0 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M499.3 376.0C499.3 406.0 185.4 406.0 185.4 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M530.1 376.0C530.1 448.0 605.4 448.0 605.4 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M522.4 376.0C522.4 406.0 469.2 406.0 469.2 436.0"/>
+<path class="edge" marker-end="url(#head)" d="M536.8 460.0C536.8 532.0 800.0 532.0 800.0 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M526.0 460.0C526.0 490.0 535.4 490.0 535.4 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M478.2 460.0C478.2 490.0 530.7 490.0 530.7 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M878.4 460.0C878.4 490.0 1038.8 490.0 1038.8 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M860.4 460.0C860.4 490.0 559.0 490.0 559.0 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M584.6 460.0C584.6 490.0 540.2 490.0 540.2 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M171.6 460.0C171.6 532.0 324.6 532.0 324.6 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M199.2 460.0C199.2 490.0 516.6 490.0 516.6 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M98.0 460.0C98.0 532.0 312.3 532.0 312.3 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M116.0 460.0C116.0 490.0 511.9 490.0 511.9 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M1042.4 460.0C1042.4 490.0 1056.8 490.0 1056.8 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M1010.0 460.0C1010.0 532.0 702.6 532.0 702.6 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M407.0 460.0C407.0 490.0 526.0 490.0 526.0 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M744.6 460.0C744.6 532.0 865.7 532.0 865.7 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M716.6 460.0C716.6 532.0 349.1 532.0 349.1 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M725.9 460.0C725.9 490.0 549.6 490.0 549.6 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M735.3 460.0C735.3 532.0 685.5 532.0 685.5 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M268.3 460.0C268.3 532.0 336.8 532.0 336.8 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M299.8 460.0C299.8 490.0 521.3 490.0 521.3 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M331.3 460.0C331.3 532.0 668.4 532.0 668.4 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M798.2 460.0C798.2 532.0 768.7 532.0 768.7 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M815.3 460.0C815.3 532.0 880.8 532.0 880.8 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M781.1 460.0C781.1 490.0 554.3 490.0 554.3 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M952.3 460.0C952.3 532.0 895.9 532.0 895.9 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M937.0 460.0C937.0 532.0 827.0 532.0 827.0 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M921.7 460.0C921.7 490.0 563.7 490.0 563.7 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M659.4 460.0C659.4 490.0 544.9 490.0 544.9 520.0"/>
+<path class="edge" marker-end="url(#head)" d="M537.8 544.0C537.8 574.0 946.9 574.0 946.9 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M891.0 544.0C891.0 574.0 957.7 574.0 957.7 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M1047.8 544.0C1047.8 574.0 979.3 574.0 979.3 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M974.8 544.0C974.8 574.0 911.0 574.0 911.0 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M992.8 544.0C992.8 574.0 968.5 574.0 968.5 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M798.2 544.0C798.2 574.0 760.9 574.0 760.9 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M605.4 544.0C605.4 574.0 737.5 574.0 737.5 604.0"/>
+<path class="edge" marker-end="url(#head)" d="M701.8 544.0C701.8 574.0 753.1 574.0 753.1 604.0"/>
+<rect class="box" x="729.7" y="604.0" width="46.8" height="24.0" rx="4"/>
+<text x="753.1" y="616.0" text-anchor="middle" dominant-baseline="central">http</text>
+<rect class="box" x="850.5" y="604.0" width="75.6" height="24.0" rx="4"/>
+<text x="888.3" y="616.0" text-anchor="middle" dominant-baseline="central">isolates</text>
+<rect class="box" x="300.1" y="604.0" width="61.2" height="24.0" rx="4"/>
+<text x="330.7" y="616.0" text-anchor="middle" dominant-baseline="central">logger</text>
+<rect class="box" x="936.1" y="604.0" width="54.0" height="24.0" rx="4"/>
+<text x="963.1" y="616.0" text-anchor="middle" dominant-baseline="central">nip01</text>
+<rect class="box" x="786.5" y="604.0" width="54.0" height="24.0" rx="4"/>
+<text x="813.5" y="616.0" text-anchor="middle" dominant-baseline="central">nip44</text>
+<rect class="box" x="1000.1" y="604.0" width="54.0" height="24.0" rx="4"/>
+<text x="1027.1" y="616.0" text-anchor="middle" dominant-baseline="central">nip49</text>
+<rect class="box" x="651.3" y="604.0" width="68.4" height="24.0" rx="4"/>
+<text x="685.5" y="616.0" text-anchor="middle" dominant-baseline="central">url_set</text>
+<rect class="box" x="642.4" y="520.0" width="118.8" height="24.0" rx="4"/>
+<text x="701.8" y="532.0" text-anchor="middle" dominant-baseline="central">cashu_protocol</text>
+<rect class="box" x="578.4" y="520.0" width="54.0" height="24.0" rx="4"/>
+<text x="605.4" y="532.0" text-anchor="middle" dominant-baseline="central">nip05</text>
+<rect class="box" x="771.2" y="520.0" width="54.0" height="24.0" rx="4"/>
+<text x="798.2" y="532.0" text-anchor="middle" dominant-baseline="central">nip11</text>
+<rect class="box" x="956.8" y="520.0" width="54.0" height="24.0" rx="4"/>
+<text x="983.8" y="532.0" text-anchor="middle" dominant-baseline="central">nip13</text>
+<rect class="box" x="1020.8" y="520.0" width="54.0" height="24.0" rx="4"/>
+<text x="1047.8" y="532.0" text-anchor="middle" dominant-baseline="central">nip19</text>
+<rect class="box" x="835.2" y="520.0" width="111.6" height="24.0" rx="4"/>
+<text x="891.0" y="532.0" text-anchor="middle" dominant-baseline="central">rust_verifier</text>
+<rect class="box" x="507.2" y="520.0" width="61.2" height="24.0" rx="4"/>
+<text x="537.8" y="532.0" text-anchor="middle" dominant-baseline="central">signer</text>
+<rect class="box" x="621.6" y="436.0" width="75.6" height="24.0" rx="4"/>
+<text x="659.4" y="448.0" text-anchor="middle" dominant-baseline="central">accounts</text>
+<rect class="box" x="906.4" y="436.0" width="61.2" height="24.0" rx="4"/>
+<text x="937.0" y="448.0" text-anchor="middle" dominant-baseline="central">bip340</text>
+<rect class="box" x="764.0" y="436.0" width="68.4" height="24.0" rx="4"/>
+<text x="798.2" y="448.0" text-anchor="middle" dominant-baseline="central">blossom</text>
+<rect class="box" x="236.8" y="436.0" width="126.0" height="24.0" rx="4"/>
+<text x="299.8" y="448.0" text-anchor="middle" dominant-baseline="central">broadcast_queue</text>
+<rect class="box" x="707.2" y="436.0" width="46.8" height="24.0" rx="4"/>
+<text x="730.6" y="448.0" text-anchor="middle" dominant-baseline="central">core</text>
+<rect class="box" x="372.8" y="436.0" width="68.4" height="24.0" rx="4"/>
+<text x="407.0" y="448.0" text-anchor="middle" dominant-baseline="central">follows</text>
+<rect class="box" x="977.6" y="436.0" width="97.2" height="24.0" rx="4"/>
+<text x="1026.2" y="448.0" text-anchor="middle" dominant-baseline="central">home_relays</text>
+<rect class="box" x="80.0" y="436.0" width="54.0" height="24.0" rx="4"/>
+<text x="107.0" y="448.0" text-anchor="middle" dominant-baseline="central">lists</text>
+<rect class="box" x="144.0" y="436.0" width="82.8" height="24.0" rx="4"/>
+<text x="185.4" y="448.0" text-anchor="middle" dominant-baseline="central">metadatas</text>
+<rect class="box" x="557.6" y="436.0" width="54.0" height="24.0" rx="4"/>
+<text x="584.6" y="448.0" text-anchor="middle" dominant-baseline="central">nip07</text>
+<rect class="box" x="842.4" y="436.0" width="54.0" height="24.0" rx="4"/>
+<text x="869.4" y="448.0" text-anchor="middle" dominant-baseline="central">nip55</text>
+<rect class="box" x="451.2" y="436.0" width="54.0" height="24.0" rx="4"/>
+<text x="478.2" y="448.0" text-anchor="middle" dominant-baseline="central">nip59</text>
+<rect class="box" x="515.2" y="436.0" width="32.4" height="24.0" rx="4"/>
+<text x="531.4" y="448.0" text-anchor="middle" dominant-baseline="central">pq</text>
+<rect class="box" x="483.8" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="510.8" y="364.0" text-anchor="middle" dominant-baseline="central">cache</text>
+<rect class="box" x="935.2" y="352.0" width="75.6" height="24.0" rx="4"/>
+<text x="973.0" y="364.0" text-anchor="middle" dominant-baseline="central">fetchers</text>
+<rect class="box" x="679.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="706.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip17</text>
+<rect class="box" x="743.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="770.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip46</text>
+<rect class="box" x="1020.8" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="1047.8" y="364.0" text-anchor="middle" dominant-baseline="central">nip77</text>
+<rect class="box" x="807.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="834.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip82</text>
+<rect class="box" x="871.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="898.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip85</text>
+<rect class="box" x="622.4" y="352.0" width="46.8" height="24.0" rx="4"/>
+<text x="645.8" y="364.0" text-anchor="middle" dominant-baseline="central">zaps</text>
+<rect class="box" x="663.2" y="268.0" width="82.8" height="24.0" rx="4"/>
+<text x="704.6" y="280.0" text-anchor="middle" dominant-baseline="central">broadcast</text>
+<rect class="box" x="984.8" y="268.0" width="90.0" height="24.0" rx="4"/>
+<text x="1029.8" y="280.0" text-anchor="middle" dominant-baseline="central">mock_relay</text>
+<rect class="box" x="756.0" y="268.0" width="75.6" height="24.0" rx="4"/>
+<text x="793.8" y="280.0" text-anchor="middle" dominant-baseline="central">requests</text>
+<rect class="box" x="841.6" y="268.0" width="133.2" height="24.0" rx="4"/>
+<text x="908.2" y="280.0" text-anchor="middle" dominant-baseline="central">user_relay_lists</text>
+<rect class="box" x="584.8" y="268.0" width="68.4" height="24.0" rx="4"/>
+<text x="619.0" y="280.0" text-anchor="middle" dominant-baseline="central">wallets</text>
+<rect class="box" x="732.4" y="184.0" width="54.0" height="24.0" rx="4"/>
+<text x="759.4" y="196.0" text-anchor="middle" dominant-baseline="central">cashu</text>
+<rect class="box" x="796.4" y="184.0" width="39.6" height="24.0" rx="4"/>
+<text x="816.2" y="196.0" text-anchor="middle" dominant-baseline="central">nwc</text>
+<rect class="box facade" x="956.8" y="100.0" width="39.6" height="24.0" rx="4"/>
+<text x="976.6" y="112.0" text-anchor="middle" dominant-baseline="central">ndk</text>
+<rect class="box" x="756.0" y="100.0" width="190.8" height="24.0" rx="4"/>
+<text x="851.4" y="112.0" text-anchor="middle" dominant-baseline="central">cache_manager_test_suite</text>
+<rect class="box" x="520.8" y="100.0" width="54.0" height="24.0" rx="4"/>
+<text x="547.8" y="112.0" text-anchor="middle" dominant-baseline="central">drift</text>
+<rect class="box" x="584.8" y="100.0" width="82.8" height="24.0" rx="4"/>
+<text x="626.2" y="112.0" text-anchor="middle" dominant-baseline="central">objectbox</text>
+<rect class="box" x="1006.4" y="100.0" width="68.4" height="24.0" rx="4"/>
+<text x="1040.6" y="112.0" text-anchor="middle" dominant-baseline="central">sembast</text>
+<rect class="box" x="677.6" y="100.0" width="68.4" height="24.0" rx="4"/>
+<text x="711.8" y="112.0" text-anchor="middle" dominant-baseline="central">sqlite3</text>
+<rect class="box" x="949.6" y="16.0" width="39.6" height="24.0" rx="4"/>
+<text x="969.4" y="28.0" text-anchor="middle" dominant-baseline="central">cli</text>
+<rect class="box" x="796.2" y="16.0" width="68.4" height="24.0" rx="4"/>
+<text x="830.4" y="28.0" text-anchor="middle" dominant-baseline="central">flutter</text>
+</svg>

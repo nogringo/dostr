@@ -6,6 +6,7 @@ environment:
   sdk: '>=3.6.0 <4.0.0'
 dev_dependencies:
   melos: ^7.8.1
+  yaml: ^3.1.4
 
 
 workspace:
@@ -69,6 +70,10 @@ melos:
           git add packages/ndk_core/lib/src/version.dart
 
   scripts:
+    graph:
+      run: dart run tool/package_graph.dart
+      description: Write the package dependency graph to doc/library-development/package-graph.md and package-graph.svg.
+
     analyze:
       exec: flutter analyze --fatal-infos --fatal-warnings .
       description: Analyze a specific package in this project.

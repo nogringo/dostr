@@ -1,0 +1,415 @@
+import 'dart:io';
+import 'dart:math';
+
+import 'package:yaml/yaml.dart';
+
+const _markdownPath = 'doc/library-development/package-graph.md';
+const _svgPath = 'doc/library-development/package-graph.svg';
+const _command = 'melos run graph';
+
+/// Writes the dependency graph of the workspace packages to [_markdownPath]
+/// and [_svgPath]. With `--check`, only fails when they are out of date.
+void main(List<String> args) {
+  final root = File.fromUri(Platform.script).parent.parent;
+  final graph = _Graph(_readDependencies(root));
+  final outputs = {
+    _markdownPath: _renderMarkdown(graph),
+    _svgPath: _renderSvg(graph),
+  };
+
+  if (args.contains('--check')) {
+    for (final MapEntry(key: path, value: content) in outputs.entries) {
+      final file = File('${root.path}/$path');
+      if (!file.existsSync() || file.readAsStringSync() != content) {
+        stderr.writeln('$path is out of date, run `$_command`.');
+        exit(1);
+      }
+    }
+    return;
+  }
+  for (final MapEntry(key: path, value: content) in outputs.entries) {
+    File('${root.path}/$path').writeAsStringSync(content);
+    stdout.writeln('Wrote $path.');
+  }
+}
+
+Map<String, Set<String>> _readDependencies(Directory root) {
+  final workspace = loadYaml(
+          File('${root.path}/pubspec.yaml').readAsStringSync())['workspace']
+      as YamlList;
+  final dependencies = <String, Set<String>>{};
+  for (final dir in workspace.cast<String>()) {
+    final pubspec =
+        loadYaml(File('${root.path}/$dir/pubspec.yaml').readAsStringSync())
+            as YamlMap;
+    final declared = pubspec['dependencies'] as YamlMap?;
+    dependencies[pubspec['name'] as String] = {
+      ...?declared?.keys.cast<String>(),
+    };
+  }
+  for (final declared in dependencies.values) {
+    declared.retainAll(dependencies.keys);
+  }
+  return dependencies;
+}
+
+class _Graph {
+  _Graph(this.dependencies) {
+    dependencies.keys.forEach(_layerOf);
+    dependencies.keys.forEach(_reach);
+    for (final MapEntry(key: package, value: direct) in dependencies.entries) {
+      drawn[package] = {
+        for (final dependency in direct)
+          if (!direct.any(
+            (other) =>
+                other != dependency && reachable[other]!.contains(dependency),
+          ))
+            dependency,
+      };
+    }
+    packages = dependencies.keys.toList()
+      ..sort((a, b) {
+        final byLayer = layers[a]!.compareTo(layers[b]!);
+        return byLayer != 0 ? byLayer : a.compareTo(b);
+      });
+    topLayer = layers.values.reduce(max);
+  }
+
+  final Map<String, Set<String>> dependencies;
+
+  /// One more than the deepest layer a package depends on, 0 without any.
+  final Map<String, int> layers = {};
+
+  final Map<String, Set<String>> reachable = {};
+
+  /// The dependencies that no path through another dependency implies.
+  final Map<String, Set<String>> drawn = {};
+
+  late final List<String> packages;
+  late final int topLayer;
+  final List<String> _path = [];
+
+  int get edgeCount => dependencies.values.fold(0, (sum, d) => sum + d.length);
+
+  int get drawnCount => drawn.values.fold(0, (sum, d) => sum + d.length);
+
+  int dependentCount(String package) =>
+      dependencies.values.where((d) => d.contains(package)).length;
+
+  int _layerOf(String package) {
+    final known = layers[package];
+    if (known != null) return known;
+    if (_path.contains(package)) {
+      final cycle = [..._path.sublist(_path.indexOf(package)), package];
+      stderr.writeln('Dependency cycle: ${cycle.join(' -> ')}');
+      exit(1);
+    }
+    _path.add(package);
+    final layer = dependencies[package]!.fold(
+      0,
+      (deepest, dependency) => max(deepest, _layerOf(dependency) + 1),
+    );
+    _path.removeLast();
+    return layers[package] = layer;
+  }
+
+  Set<String> _reach(String package) => reachable[package] ??= {
+        for (final dependency in dependencies[package]!) ...{
+          dependency,
+          ..._reach(dependency),
+        },
+      };
+
+  /// A dependency the graph leaves out, as the clause that ends a sentence.
+  String? omittedExample() {
+    for (final package in [
+      if (dependencies.containsKey('ndk')) 'ndk',
+      ...packages.reversed,
+    ]) {
+      final omitted = dependencies[package]!.difference(drawn[package]!);
+      if (omitted.isEmpty) continue;
+      final dependency = (omitted.toList()..sort()).first;
+      final via = (drawn[package]!.toList()..sort()).firstWhere(
+        (other) => reachable[other]!.contains(dependency),
+      );
+      return ': `$package` depends on `$dependency`, but no arrow goes from '
+          'one to the other since `$package` reaches it through `$via`';
+    }
+    return null;
+  }
+}
+
+String _renderMarkdown(_Graph graph) {
+  final out = StringBuffer()
+    ..writeln('---')
+    ..writeln('label: Package graph')
+    ..writeln('icon: workflow')
+    ..writeln('order: 90')
+    ..writeln('---')
+    ..writeln()
+    ..writeln('<!-- Generated by `$_command`. Do not edit by hand. -->')
+    ..writeln()
+    ..writeln('# Package graph')
+    ..writeln()
+    ..writeln(
+      'The workspace has ${graph.packages.length} packages and '
+      '${graph.edgeCount} direct dependencies between them, with no cycle. A '
+      'package sits one layer above the deepest package it depends on: layer '
+      '0, at the bottom, depends on no other package of the workspace.',
+    )
+    ..writeln()
+    ..writeln(
+      'An arrow from A to B means that A depends on B. The graph draws '
+      '${graph.drawnCount} of the ${graph.edgeCount} dependencies and leaves '
+      'out those a longer path already implies'
+      '${graph.omittedExample() ?? ''}. Names drop their `ndk_` prefix. The '
+      'outlined box is `ndk`, the facade that apps depend on. The table lists '
+      'every direct dependency.',
+    )
+    ..writeln()
+    ..writeln('Run `$_command` after changing a dependency between packages.')
+    ..writeln()
+    ..writeln(
+        '![Dependency graph of the workspace packages](package-graph.svg)')
+    ..writeln()
+    ..writeln('| Layer | Package | Depends on | Used by |')
+    ..writeln('| ---: | --- | --- | ---: |');
+  for (final package in graph.packages) {
+    final direct = graph.dependencies[package]!.toList()..sort();
+    out.writeln(
+      '| ${graph.layers[package]} | `$package` | '
+      '${direct.map((d) => '`$d`').join(', ')} | '
+      '${graph.dependentCount(package)} |',
+    );
+  }
+  return out.toString();
+}
+
+const _charWidth = 7.2;
+const _boxPadding = 9.0;
+const _boxHeight = 24.0;
+const _boxGap = 10.0;
+const _rowGap = 84.0;
+const _margin = 16.0;
+const _labelColumn = 64.0;
+
+String _label(String package) =>
+    package == 'ndk' ? package : package.replaceFirst('ndk_', '');
+
+double _boxWidth(String package) =>
+    _label(package).length * _charWidth + 2 * _boxPadding;
+
+String _n(double value) => value.toStringAsFixed(1);
+
+String _renderSvg(_Graph graph) {
+  final rows = [
+    for (var layer = 0; layer <= graph.topLayer; layer++)
+      graph.packages.where((p) => graph.layers[p] == layer).toList(),
+  ];
+  final dependents = <String, List<String>>{
+    for (final package in graph.packages) package: [],
+  };
+  for (final MapEntry(key: package, value: drawn) in graph.drawn.entries) {
+    for (final dependency in drawn) {
+      dependents[dependency]!.add(package);
+    }
+  }
+
+  _orderRows(rows, graph.drawn, dependents);
+  final x = _placeRows(rows, graph.drawn, dependents);
+  final width = rows
+      .map((row) => row.fold(-_boxGap, (w, p) => w + _boxWidth(p) + _boxGap))
+      .reduce(max);
+
+  double top(String package) =>
+      _margin + (graph.topLayer - graph.layers[package]!) * _rowGap;
+  double centre(String package) => x[package]! + _boxWidth(package) / 2;
+
+  // Spread the arrows leaving or reaching a box along its edge, in the order
+  // of the boxes at their other end, so that they do not cross at the box.
+  final outPort = <(String, String), double>{};
+  final inPort = <(String, String), double>{};
+  for (final package in graph.packages) {
+    final outgoing = graph.drawn[package]!.toList()
+      ..sort((a, b) => centre(a).compareTo(centre(b)));
+    for (final (i, dependency) in outgoing.indexed) {
+      outPort[(package, dependency)] =
+          x[package]! + _boxWidth(package) * (i + 1) / (outgoing.length + 1);
+    }
+    final incoming = dependents[package]!
+      ..sort((a, b) => centre(a).compareTo(centre(b)));
+    for (final (i, dependent) in incoming.indexed) {
+      inPort[(dependent, package)] =
+          x[package]! + _boxWidth(package) * (i + 1) / (incoming.length + 1);
+    }
+  }
+
+  final svgWidth = _labelColumn + width + 2 * _margin;
+  final svgHeight = 2 * _margin + graph.topLayer * _rowGap + _boxHeight;
+  final out = StringBuffer()
+    ..writeln(
+      '<svg xmlns="http://www.w3.org/2000/svg" '
+      'viewBox="0 0 ${_n(svgWidth)} ${_n(svgHeight)}" '
+      'width="${_n(svgWidth)}" height="${_n(svgHeight)}" role="img" '
+      'aria-label="Dependency graph of the ${graph.packages.length} workspace '
+      'packages, in ${graph.topLayer + 1} layers">',
+    )
+    ..writeln('<style>')
+    ..writeln(
+      'svg{--bg:#ffffff;--box:#f6f8fa;--line:#d0d7de;--edge:#8c959f;'
+      '--text:#1f2328;--muted:#656d76;--accent:#0969da}',
+    )
+    ..writeln(
+      '@media (prefers-color-scheme:dark){svg{--bg:#0d1117;--box:#161b22;'
+      '--line:#3d444d;--edge:#6e7681;--text:#e6edf3;--muted:#9198a1;'
+      '--accent:#4493f8}}',
+    )
+    ..writeln(
+      '.bg{fill:var(--bg)}.box{fill:var(--box);stroke:var(--line)}'
+      '.facade{stroke:var(--accent);stroke-width:2}'
+      '.edge{fill:none;stroke:var(--edge);stroke-opacity:.7}'
+      '.head{fill:var(--edge)}'
+      'text{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;'
+      'fill:var(--text)}.layer{fill:var(--muted);font-size:11px}',
+    )
+    ..writeln('</style>')
+    ..writeln(
+      '<defs><marker id="head" viewBox="0 0 8 8" refX="8" refY="4" '
+      'markerWidth="6" markerHeight="6" orient="auto">'
+      '<path class="head" d="M0 0L8 4L0 8z"/></marker></defs>',
+    )
+    ..writeln(
+      '<rect class="bg" width="${_n(svgWidth)}" height="${_n(svgHeight)}" '
+      'rx="8"/>',
+    );
+
+  for (var layer = 0; layer <= graph.topLayer; layer++) {
+    final y = _margin + (graph.topLayer - layer) * _rowGap + _boxHeight / 2;
+    out.writeln(
+      '<text class="layer" x="${_n(_margin)}" y="${_n(y)}" '
+      'dominant-baseline="central">layer $layer</text>',
+    );
+  }
+
+  final left = _margin + _labelColumn;
+  for (final package in graph.packages.reversed) {
+    for (final dependency in graph.drawn[package]!.toList()..sort()) {
+      final x1 = left + outPort[(package, dependency)]!;
+      final y1 = top(package) + _boxHeight;
+      final x2 = left + inPort[(package, dependency)]!;
+      final y2 = top(dependency);
+      final bend = (y2 - y1) / 2;
+      out.writeln(
+        '<path class="edge" marker-end="url(#head)" '
+        'd="M${_n(x1)} ${_n(y1)}C${_n(x1)} ${_n(y1 + bend)} '
+        '${_n(x2)} ${_n(y2 - bend)} ${_n(x2)} ${_n(y2)}"/>',
+      );
+    }
+  }
+
+  for (final package in graph.packages) {
+    final boxX = left + x[package]!;
+    final boxY = top(package);
+    final facade = package == 'ndk' ? ' facade' : '';
+    out
+      ..writeln(
+        '<rect class="box$facade" x="${_n(boxX)}" y="${_n(boxY)}" '
+        'width="${_n(_boxWidth(package))}" height="${_n(_boxHeight)}" rx="4"/>',
+      )
+      ..writeln(
+        '<text x="${_n(boxX + _boxWidth(package) / 2)}" '
+        'y="${_n(boxY + _boxHeight / 2)}" text-anchor="middle" '
+        'dominant-baseline="central">${_label(package)}</text>',
+      );
+  }
+  out.writeln('</svg>');
+  return out.toString();
+}
+
+/// Orders each row by the mean position of its neighbours in the rows
+/// already ordered, sweeping down then up, to cut the crossings.
+void _orderRows(
+  List<List<String>> rows,
+  Map<String, Set<String>> drawn,
+  Map<String, List<String>> dependents,
+) {
+  double position(String package) {
+    final row = rows.firstWhere((r) => r.contains(package));
+    return (row.indexOf(package) + 0.5) / row.length;
+  }
+
+  void sortRow(List<String> row, Iterable<String> Function(String) neighbours) {
+    final keys = {
+      for (final package in row)
+        package: switch (neighbours(package).map(position).toList()) {
+          [] => position(package),
+          final positions =>
+            positions.reduce((a, b) => a + b) / positions.length,
+        },
+    };
+    row.sort((a, b) {
+      final byKey = keys[a]!.compareTo(keys[b]!);
+      return byKey != 0 ? byKey : a.compareTo(b);
+    });
+  }
+
+  for (var sweep = 0; sweep < 8; sweep++) {
+    for (var layer = rows.length - 2; layer >= 0; layer--) {
+      sortRow(rows[layer], (p) => [...drawn[p]!, ...dependents[p]!]);
+    }
+    for (var layer = 1; layer < rows.length; layer++) {
+      sortRow(rows[layer], (p) => [...drawn[p]!, ...dependents[p]!]);
+    }
+  }
+}
+
+/// The left edge of each box, pulling every box toward its neighbours while
+/// keeping the order and the gaps of its row.
+Map<String, double> _placeRows(
+  List<List<String>> rows,
+  Map<String, Set<String>> drawn,
+  Map<String, List<String>> dependents,
+) {
+  final width = rows
+      .map((row) => row.fold(-_boxGap, (w, p) => w + _boxWidth(p) + _boxGap))
+      .reduce(max);
+  final x = <String, double>{};
+  for (final row in rows) {
+    var left =
+        (width - row.fold(-_boxGap, (w, p) => w + _boxWidth(p) + _boxGap)) / 2;
+    for (final package in row) {
+      x[package] = left;
+      left += _boxWidth(package) + _boxGap;
+    }
+  }
+
+  double centre(String package) => x[package]! + _boxWidth(package) / 2;
+
+  for (var pass = 0; pass < 6; pass++) {
+    for (final row in rows) {
+      final wanted = {
+        for (final package in row)
+          package: switch ([...drawn[package]!, ...dependents[package]!]) {
+            [] => centre(package),
+            final neighbours => neighbours.map(centre).reduce((a, b) => a + b) /
+                neighbours.length,
+          },
+      };
+      row.sort((a, b) {
+        final byWanted = wanted[a]!.compareTo(wanted[b]!);
+        return byWanted != 0 ? byWanted : a.compareTo(b);
+      });
+      var left = 0.0;
+      for (final package in row) {
+        x[package] = max(wanted[package]! - _boxWidth(package) / 2, left);
+        left = x[package]! + _boxWidth(package) + _boxGap;
+      }
+      var right = width;
+      for (final package in row.reversed) {
+        x[package] = min(x[package]!, right - _boxWidth(package));
+        right = x[package]! - _boxGap;
+      }
+    }
+  }
+  return x;
+}
