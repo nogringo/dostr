@@ -4,15 +4,18 @@ import 'package:ndk_nip11/ndk_nip11.dart';
 const _relayInfoMaxAge = Duration(hours: 1);
 const _relayInfoFailureMaxAge = Duration(minutes: 1);
 
+@Deprecated('Use Connectivity')
+typedef Connectivy = Connectivity;
+
 /// get connectivity status \
 /// & update ndk about your application connectivity for faster reconnects
-class Connectivy {
+class Connectivity {
   final RelayManager _relayManager;
   final CachedRelayInfoRepo _relayInfoRepo;
 
   /// [cache] keeps the NIP-11 documents across restarts, ndk gives it
   /// `NdkConfig.cache`
-  Connectivy(
+  Connectivity(
     this._relayManager,
     RelayInfoRepo relayInfoRepo, {
     RelayInfoCache? cache,

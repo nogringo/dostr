@@ -18,7 +18,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model, from `ndk_user_relay_lists` |
 | `ndk.nip05` | `Nip05Usecase` | NIP-05 verify and fetch, from `ndk_nip05` |
 | `ndk.giftWrap` | `GiftWrap` | NIP-59 gift wrap create/unwrap |
-| `ndk.connectivity` | `Connectivy` | Relay connectivity events and NIP-11 relay info (`RelayInfo` from `ndk_nip11`) |
+| `ndk.connectivity` | `Connectivity` | Relay connectivity events and NIP-11 relay info (`RelayInfo` from `ndk_nip11`) |
 
 ## Experimental
 

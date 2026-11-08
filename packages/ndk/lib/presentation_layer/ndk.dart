@@ -127,7 +127,7 @@ class Ndk {
   /// get notified about relay connectivity changes \
   /// and update NDK about your application connectivity \
   /// for faster reconnects
-  Connectivy get connectivity => _initialization.connectivity;
+  Connectivity get connectivity => _initialization.connectivity;
 
   /// Background cache eviction scheduler, when enabled in config.
   CacheEvictionScheduler? get cacheEvictionScheduler =>

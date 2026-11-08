@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk/ndk.dart' show Connectivy, MemCacheManager, RelayManager;
+import 'package:ndk/ndk.dart' show Connectivity, MemCacheManager, RelayManager;
 import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:ndk_core/domain_layer/repositories/nostr_transport.dart';
 import 'package:test/test.dart';
@@ -26,7 +26,7 @@ void main() {
     const url = 'wss://relay.example';
     final info = RelayInfo.fromJson({'name': 'Example'});
     final repo = _Repo();
-    final connectivity = Connectivy(
+    final connectivity = Connectivity(
       RelayManager(nostrTransportFactory: _NoTransport()),
       repo,
     );
@@ -44,7 +44,7 @@ void main() {
   test('an unreachable relay gives null and is asked again later', () async {
     const url = 'wss://relay.example';
     final repo = _Repo();
-    final connectivity = Connectivy(
+    final connectivity = Connectivity(
       RelayManager(nostrTransportFactory: _NoTransport()),
       repo,
     );
@@ -60,7 +60,7 @@ void main() {
     final info = RelayInfo.fromJson({'name': 'Example'});
     final cache = MemCacheManager();
     final repo = _Repo();
-    Connectivy restart() => Connectivy(
+    Connectivity restart() => Connectivity(
       RelayManager(nostrTransportFactory: _NoTransport()),
       repo,
       cache: cache,

@@ -71,7 +71,7 @@ class Initialization {
   blossomUserServerList;
   late Search search;
   late GiftWrap giftWrap;
-  late Connectivy connectivity;
+  late Connectivity connectivity;
   late DecryptedEventPayloads decryptedEventPayloads;
   late FetchedRanges fetchedRanges;
   CacheEvictionScheduler? cacheEvictionScheduler;
@@ -276,7 +276,7 @@ class Initialization {
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
       subscriptionLimit: _subscriptionLimit,
     );
-    connectivity = Connectivy(
+    connectivity = Connectivity(
       relayManager,
       HttpRelayInfoRepo(_httpRequestDS),
       cache: _ndkConfig.cache,
