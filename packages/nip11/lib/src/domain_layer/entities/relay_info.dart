@@ -1,3 +1,5 @@
+import 'dart:collection';
+
 import 'package:collection/collection.dart';
 
 /// NIP-11 relay information document, as declared by the relay and not
@@ -22,7 +24,8 @@ class RelayInfo with _Document {
   /// Alternative contact of the relay admin
   final String? contact;
 
-  /// Supported NIPs, normalized by [normalizeNip]
+  /// Supported NIPs, normalized by [normalizeNip], numbered ones first and in
+  /// order, without duplicates
   final List<String> nips;
 
   /// Software description
@@ -43,7 +46,7 @@ class RelayInfo with _Document {
   final RelayFees? fees;
 
   /// The fields this class does not read, as the relay served them, such as
-  /// `retention` or `relay_countries`
+  /// `retention` or `relay_countries`. Read-only, nested values included
   final Map<String, dynamic> extra;
 
   RelayInfo({
@@ -63,8 +66,10 @@ class RelayInfo with _Document {
     this.limitation,
     this.fees,
     Map<String, dynamic> extra = const {},
-  }) : nips = List.unmodifiable(nips.map(normalizeNip)),
-       extra = Map.unmodifiable(extra);
+  }) : nips = List.unmodifiable(
+         SplayTreeSet<String>.of(nips.map(normalizeNip), _compareNips),
+       ),
+       extra = _frozenExtra(extra, _fields);
 
   static const _fields = {
     'name',
@@ -85,29 +90,31 @@ class RelayInfo with _Document {
   };
 
   /// Fields with an unexpected type are read as null instead of failing the
-  /// whole document. A number field takes an integer, `1.0` included
-  factory RelayInfo.fromJson(Map<String, dynamic> json) {
-    final limitation = _map(json["limitation"]);
-    final fees = _map(json["fees"]);
+  /// whole document. A number field takes an integer, `1.0` included. [json]
+  /// can be any `Map`, such as one a Hive box gives back
+  factory RelayInfo.fromJson(Map json) {
+    final document = _map(json)!;
+    final limitation = _map(document["limitation"]);
+    final fees = _map(document["fees"]);
     return RelayInfo(
-      name: _string(json["name"]),
-      description: _string(json["description"]),
-      banner: _string(json["banner"]),
-      icon: _string(json["icon"]),
-      pubKey: _string(json["pubkey"]),
-      self: _string(json["self"]),
-      contact: _string(json["contact"]),
-      nips: [for (final nip in _list(json["supported_nips"])) ?_nip(nip)],
-      software: _string(json["software"]),
-      version: _string(json["version"]),
-      privacyPolicy: _string(json["privacy_policy"]),
-      termsOfService: _string(json["terms_of_service"]),
-      paymentsUrl: _string(json["payments_url"]),
+      name: _string(document["name"]),
+      description: _string(document["description"]),
+      banner: _string(document["banner"]),
+      icon: _string(document["icon"]),
+      pubKey: _string(document["pubkey"]),
+      self: _string(document["self"]),
+      contact: _string(document["contact"]),
+      nips: [for (final nip in _list(document["supported_nips"])) ?_nip(nip)],
+      software: _string(document["software"]),
+      version: _string(document["version"]),
+      privacyPolicy: _string(document["privacy_policy"]),
+      termsOfService: _string(document["terms_of_service"]),
+      paymentsUrl: _string(document["payments_url"]),
       limitation: limitation != null
           ? RelayLimitation.fromJson(limitation)
           : null,
       fees: fees != null ? RelayFees.fromJson(fees) : null,
-      extra: _extra(json, _fields),
+      extra: document,
     );
   }
 
@@ -125,7 +132,7 @@ class RelayInfo with _Document {
     'self': ?self,
     'contact': ?contact,
     if (nips.isNotEmpty)
-      'supported_nips': [for (final nip in nips) int.tryParse(nip) ?? nip],
+      'supported_nips': [for (final nip in nips) _number(nip) ?? nip],
     'software': ?software,
     'version': ?version,
     'privacy_policy': ?privacyPolicy,
@@ -171,7 +178,7 @@ class RelayLimitation with _Document {
   final int? defaultLimit;
 
   /// The fields this class does not read, as the relay served them, such as
-  /// `max_filters`
+  /// `max_filters`. Read-only, nested values included
   final Map<String, dynamic> extra;
 
   RelayLimitation({
@@ -189,7 +196,7 @@ class RelayLimitation with _Document {
     this.createdAtUpperLimit,
     this.defaultLimit,
     Map<String, dynamic> extra = const {},
-  }) : extra = Map.unmodifiable(extra);
+  }) : extra = _frozenExtra(extra, _fields);
 
   static const _fields = {
     'max_message_length',
@@ -207,22 +214,23 @@ class RelayLimitation with _Document {
     'default_limit',
   };
 
-  factory RelayLimitation.fromJson(Map<String, dynamic> json) {
+  factory RelayLimitation.fromJson(Map json) {
+    final document = _map(json)!;
     return RelayLimitation(
-      maxMessageLength: _int(json["max_message_length"]),
-      maxSubscriptions: _int(json["max_subscriptions"]),
-      maxLimit: _int(json["max_limit"]),
-      maxSubidLength: _int(json["max_subid_length"]),
-      maxEventTags: _int(json["max_event_tags"]),
-      maxContentLength: _int(json["max_content_length"]),
-      minPowDifficulty: _int(json["min_pow_difficulty"]),
-      authRequired: _bool(json["auth_required"]),
-      paymentRequired: _bool(json["payment_required"]),
-      restrictedWrites: _bool(json["restricted_writes"]),
-      createdAtLowerLimit: _int(json["created_at_lower_limit"]),
-      createdAtUpperLimit: _int(json["created_at_upper_limit"]),
-      defaultLimit: _int(json["default_limit"]),
-      extra: _extra(json, _fields),
+      maxMessageLength: _int(document["max_message_length"]),
+      maxSubscriptions: _int(document["max_subscriptions"]),
+      maxLimit: _int(document["max_limit"]),
+      maxSubidLength: _int(document["max_subid_length"]),
+      maxEventTags: _int(document["max_event_tags"]),
+      maxContentLength: _int(document["max_content_length"]),
+      minPowDifficulty: _int(document["min_pow_difficulty"]),
+      authRequired: _bool(document["auth_required"]),
+      paymentRequired: _bool(document["payment_required"]),
+      restrictedWrites: _bool(document["restricted_writes"]),
+      createdAtLowerLimit: _int(document["created_at_lower_limit"]),
+      createdAtUpperLimit: _int(document["created_at_upper_limit"]),
+      defaultLimit: _int(document["default_limit"]),
+      extra: document,
     );
   }
 
@@ -251,7 +259,8 @@ class RelayFees with _Document {
   final List<RelayFee> subscription;
   final List<RelayFee> publication;
 
-  /// The fields this class does not read, as the relay served them
+  /// The fields this class does not read, as the relay served them.
+  /// Read-only, nested values included
   final Map<String, dynamic> extra;
 
   RelayFees({
@@ -262,20 +271,21 @@ class RelayFees with _Document {
   }) : admission = List.unmodifiable(admission),
        subscription = List.unmodifiable(subscription),
        publication = List.unmodifiable(publication),
-       extra = Map.unmodifiable(extra);
+       extra = _frozenExtra(extra, _fields);
 
   static const _fields = {'admission', 'subscription', 'publication'};
 
-  factory RelayFees.fromJson(Map<String, dynamic> json) {
+  factory RelayFees.fromJson(Map json) {
+    final document = _map(json)!;
     List<RelayFee> fees(Object? value) => [
       for (final fee in _list(value))
         if (_map(fee) case final json?) RelayFee.fromJson(json),
     ];
     return RelayFees(
-      admission: fees(json["admission"]),
-      subscription: fees(json["subscription"]),
-      publication: fees(json["publication"]),
-      extra: _extra(json, _fields),
+      admission: fees(document["admission"]),
+      subscription: fees(document["subscription"]),
+      publication: fees(document["publication"]),
+      extra: document,
     );
   }
 
@@ -305,7 +315,8 @@ class RelayFee with _Document {
   /// Event kinds a publication fee applies to
   final List<int> kinds;
 
-  /// The fields this class does not read, as the relay served them
+  /// The fields this class does not read, as the relay served them.
+  /// Read-only, nested values included
   final Map<String, dynamic> extra;
 
   RelayFee({
@@ -315,17 +326,18 @@ class RelayFee with _Document {
     Iterable<int> kinds = const [],
     Map<String, dynamic> extra = const {},
   }) : kinds = List.unmodifiable(kinds),
-       extra = Map.unmodifiable(extra);
+       extra = _frozenExtra(extra, _fields);
 
   static const _fields = {'amount', 'unit', 'period', 'kinds'};
 
-  factory RelayFee.fromJson(Map<String, dynamic> json) {
+  factory RelayFee.fromJson(Map json) {
+    final document = _map(json)!;
     return RelayFee(
-      amount: _int(json["amount"]),
-      unit: _string(json["unit"]),
-      period: _int(json["period"]),
-      kinds: [for (final kind in _list(json["kinds"])) ?_int(kind)],
-      extra: _extra(json, _fields),
+      amount: _int(document["amount"]),
+      unit: _string(document["unit"]),
+      period: _int(document["period"]),
+      kinds: [for (final kind in _list(document["kinds"])) ?_int(kind)],
+      extra: document,
     );
   }
 
@@ -339,21 +351,25 @@ class RelayFee with _Document {
   };
 }
 
-/// Equal when their documents are
+/// Equal when their documents are. Every field is read-only, so the document
+/// is built once
 mixin _Document {
   Map<String, dynamic> toJson();
+
+  late final Map<String, dynamic> _document = toJson();
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other.runtimeType == runtimeType &&
-          _equality.equals(toJson(), (other as _Document).toJson());
+      other is _Document &&
+          other.runtimeType == runtimeType &&
+          _equality.equals(_document, other._document);
 
   @override
-  int get hashCode => _equality.hash(toJson());
+  late final int hashCode = _equality.hash(_document);
 
   @override
-  String toString() => '$runtimeType${toJson()}';
+  String toString() => '$runtimeType$_document';
 }
 
 const _equality = DeepCollectionEquality();
@@ -384,7 +400,34 @@ Map<String, dynamic>? _map(Object? json) => switch (json) {
   _ => null,
 };
 
-Map<String, dynamic> _extra(Map<String, dynamic> json, Set<String> fields) => {
-  for (final MapEntry(:key, :value) in json.entries)
-    if (!fields.contains(key)) key: value,
+/// [extra] without the [fields] its class reads, read-only all the way down
+Map<String, dynamic> _frozenExtra(
+  Map<String, dynamic> extra,
+  Set<String> fields,
+) => Map.unmodifiable({
+  for (final MapEntry(:key, :value) in extra.entries)
+    if (!fields.contains(key)) key: _frozen(value),
+});
+
+Object? _frozen(Object? value) => switch (value) {
+  Map<String, dynamic>() => Map<String, dynamic>.unmodifiable(
+    value.map((key, value) => MapEntry(key, _frozen(value))),
+  ),
+  Map() => Map.unmodifiable(
+    value.map((key, value) => MapEntry(key, _frozen(value))),
+  ),
+  List() => List<dynamic>.unmodifiable(value.map(_frozen)),
+  _ => value,
+};
+
+final _digits = RegExp(r'^\d+$');
+
+/// null for a lettered NIP such as "7D"; `int.tryParse` alone would take "+5"
+int? _number(String nip) => _digits.hasMatch(nip) ? int.tryParse(nip) : null;
+
+int _compareNips(String a, String b) => switch ((_number(a), _number(b))) {
+  (final a?, final b?) => a.compareTo(b),
+  (_?, null) => -1,
+  (null, _?) => 1,
+  (null, null) => a.compareTo(b),
 };

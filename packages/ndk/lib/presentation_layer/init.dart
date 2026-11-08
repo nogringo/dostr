@@ -274,7 +274,9 @@ class Initialization {
       authCallbackTimeout: _ndkConfig.authCallbackTimeout,
       authHandler: _ndkConfig.authHandler,
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
+      subscriptionLimit: _subscriptionLimit,
     );
+    connectivity = Connectivy(relayManager, HttpRelayInfoRepo(_httpRequestDS));
     // connectRelay reports its failures in its record, so this never fails
     bootstrapRelaysConnected = Future.wait(
       _ndkConfig.bootstrapRelays.map(
@@ -525,8 +527,6 @@ class Initialization {
       cache: DecryptedPayloadsGiftWrapCache(decryptedEventPayloads),
     );
 
-    connectivity = Connectivy(relayManager, HttpRelayInfoRepo(_httpRequestDS));
-
     nip77 = Nip77(
       relayManager: relayManager,
       loadEventIds: _ndkConfig.cache.loadEventIdsWithCreatedAt,
@@ -543,6 +543,10 @@ class Initialization {
       )..start();
     }
   }
+
+  Future<int?> _subscriptionLimit(String url) async =>
+      await _ndkConfig.subscriptionLimit?.call(url) ??
+      (await connectivity.getRelayInfo(url))?.limitation?.maxSubscriptions;
 
   /// Close all active NIP-77 negotiations
   void closeAllNip77Negotiations() {

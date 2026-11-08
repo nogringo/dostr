@@ -13,6 +13,12 @@ class _CompressionRelay {
   Future<void> start() async {
     _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     _server.listen((request) async {
+      // ndk also asks for the NIP-11 document of the relay
+      if (!WebSocketTransformer.isUpgradeRequest(request)) {
+        request.response.statusCode = HttpStatus.badRequest;
+        await request.response.close();
+        return;
+      }
       final path = request.uri.path;
       extensionOffers
           .putIfAbsent(path, () => [])

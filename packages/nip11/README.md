@@ -35,7 +35,7 @@ print(info?.limitation?.maxSubscriptions);
 
 `getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay answers without one: an error status, a body that is not a JSON object, or one past `maxBytes` (1 MiB by default). It throws when the relay could not be reached, since asking again later may work: a timeout, a network failure, a 408, a 429 or a 5xx. A url that is not ws, wss, http or https throws an `ArgumentError`.
 
-To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document, and serves each answer for `maxAge`, or as long as it lives without one. Concurrent calls share the request. A fetch that throws is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
+To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document, and serves each answer for `maxAge`, or as long as it lives without one. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
 
 ```dart
 final cached = CachedRelayInfoRepo(
@@ -45,9 +45,11 @@ final cached = CachedRelayInfoRepo(
 );
 ```
 
-`RelayInfo.toJson` gives the document back under its NIP-11 names, so it can be persisted and read again with `RelayInfo.fromJson`. The fields the package does not read, such as `retention` or `relay_countries`, stay in `extra` and come back in `toJson`.
+It ages answers with a `Stopwatch`, which a change of the system clock does not move. A test can pass `stopwatch: clock.stopwatch()` from `package:clock` and drive it with `fakeAsync`.
 
-The constructors build a document to fake a relay in a test, and two documents with the same fields are equal:
+`RelayInfo.toJson` gives the document back under its NIP-11 names, so it can be persisted and read again with `RelayInfo.fromJson`, which takes any `Map`, such as one a Hive box gives back. The fields the package does not read, such as `retention` or `relay_countries`, stay in `extra`, read-only all the way down, and come back in `toJson`. `nips` lists the numbered NIPs first and in order, then the lettered ones, without duplicates.
+
+The constructors build a document to fake a relay in a test, and two documents with the same fields are equal, whatever the order of their NIPs:
 
 ```dart
 final info = RelayInfo(

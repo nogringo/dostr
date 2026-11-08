@@ -30,6 +30,7 @@ export 'package:ndk_core/ndk_core.dart'
         RelayRequestOutcome,
         RelayRequestStatus,
         RelayStats,
+        SubscriptionLimit,
         TimeoutPausable;
 export 'package:ndk_requests/ndk_requests.dart'
     show

@@ -24,6 +24,6 @@ It stores the events it accepts by the NIP-01 rules: ephemeral ones are only del
 
 `url` is known before `start`, and stays the same across a `stop` and a new `start`, so a test can point a client at a relay that is not up yet or restart it. Pass `port` to pick it.
 
-The flags of `MockRelay` make it refuse or leave unanswered what a real relay may: REQs, EVENTs and NEG-OPENs before AUTH, with or without a challenge, EVENTs (all of them or the first few), REQs past a number per socket (`maxSubscriptions`, like strfry), or AUTH, REQ and EVENT answers. `start` can also hold every message or handshake for a while. `onConnect`, `onMessage` and `onEvent` let a test answer in place of the relay, and `publish` and `sendToAll` push from the relay side.
+The flags of `MockRelay` make it refuse or leave unanswered what a real relay may: REQs, EVENTs and NEG-OPENs before AUTH, with or without a challenge, EVENTs (all of them or the first few), REQs past a number per socket (`maxSubscriptions`, like strfry, which its NIP-11 document publishes), or AUTH, REQ and EVENT answers. `start` can also hold every message or handshake for a while. `onConnect`, `onMessage` and `onEvent` let a test answer in place of the relay, and `publish` and `sendToAll` push from the relay side.
 
 `MockRemoteSigner` answers the NIP-46 requests that reach the relays it is given, with a fixed key.

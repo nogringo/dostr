@@ -13,8 +13,8 @@ icon: rss
 ndkInstance.connectivity.relayConnectivityChanges;
 
 /// NIP-11 info of a relay, fetched on first call and then cached for an hour
-/// null when the relay serves no document or could not be reached
-/// a relay that could not be reached is asked again after a minute
+/// null when the relay serves no document, or could not be reached and never answered
+/// a relay that could not be reached is asked again after a minute, and keeps its last document meanwhile
 await ndkInstance.connectivity.getRelayInfo(relayConnectivity.url);
 
 /// forces all relays to reconnect \
@@ -53,9 +53,23 @@ You can instantly reconnect using the `tryReconnect()` method, as shown in the e
 
 `relayConnectivityChanges` can be used to display connectivity status in the UI. 
 
+### REQs per relay
+
+NDK keeps at most the `limitation.max_subscriptions` of a relay open as REQs on one socket, and queues the others. It reads the limit from the NIP-11 document when the socket opens, through the same cache as `getRelayInfo`. A relay that publishes no limit, or does not answer within 2 seconds, gets 20. `NdkConfig.subscriptionLimit` comes first: a number it gives for a relay replaces NIP-11, and null falls back on it.
+
+```dart
+final ndk = Ndk(
+  NdkConfig(
+    eventVerifier: Bip340EventVerifier(),
+    cache: MemCacheManager(),
+    subscriptionLimit: (url) => url == 'wss://relay.example.com' ? 50 : null,
+  ),
+);
+```
+
 ### Migrating from `RelayConnectivity.relayInfo`
 
-`RelayConnectivity.relayInfo` and `ndk.relays.doesRelaySupportNip` are removed, so `relayConnectivityChanges` no longer carries NIP-11 info. NDK used to fetch it for every relay it connected to, whether the app read it or not. Ask for it where you need it:
+`RelayConnectivity.relayInfo` and `ndk.relays.doesRelaySupportNip` are removed, so `relayConnectivityChanges` no longer carries NIP-11 info. Ask for it where you need it. NDK fetches it when it connects, for the limit above, so the call is often served from the cache:
 
 ```dart
 // before

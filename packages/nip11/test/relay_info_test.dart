@@ -143,6 +143,59 @@ void main() {
       expect(() => relayInfo.extra['name'] = 'x', throwsUnsupportedError);
     });
 
+    test('NIPs are sorted, numbered ones first, without duplicates', () {
+      final relayInfo = RelayInfo(nips: ['EE', 50, '01', 1, '7D', 11, '+5']);
+
+      expect(relayInfo.nips, ['1', '11', '50', '+5', '7D', 'EE']);
+      expect(relayInfo.toJson()['supported_nips'], [
+        1,
+        11,
+        50,
+        '+5',
+        '7D',
+        'EE',
+      ]);
+      expect(RelayInfo(nips: [50, 1]), RelayInfo(nips: [1, 50, 1]));
+    });
+
+    test('extra is read-only all the way down', () {
+      final relayInfo = RelayInfo.fromJson({
+        "retention": [
+          {
+            "kinds": [0, 1],
+            "time": 3600,
+          },
+        ],
+      });
+      final retention = relayInfo.extra['retention'] as List;
+      final rule = retention.single as Map<String, dynamic>;
+
+      expect(() => retention.clear(), throwsUnsupportedError);
+      expect(() => rule['time'] = 0, throwsUnsupportedError);
+      expect(() => (rule['kinds'] as List).add(2), throwsUnsupportedError);
+    });
+
+    test('extra drops the fields its class reads', () {
+      final relayInfo = RelayInfo(extra: {'name': 'x', 'retention': []});
+      final limitation = RelayLimitation(extra: {'max_limit': 10});
+
+      expect(relayInfo.name, isNull);
+      expect(relayInfo.extra, {'retention': []});
+      expect(relayInfo.toJson(), {'retention': []});
+      expect(limitation.toJson(), isEmpty);
+      expect(relayInfo, isNot(RelayInfo(name: 'x', extra: {'retention': []})));
+    });
+
+    test('fromJson reads a document from any Map', () {
+      final relayInfo = RelayInfo.fromJson(<dynamic, dynamic>{
+        "name": "Relay 1",
+        1: "x",
+      });
+
+      expect(relayInfo.name, "Relay 1");
+      expect(relayInfo.extra, isEmpty);
+    });
+
     test('fields the classes do not read stay in extra and toJson', () {
       final json = {
         "name": "Relay 1",

@@ -5,6 +5,7 @@ import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_core/ndk_core.dart' show SubscriptionLimit;
 import 'package:ndk_nip85/ndk_nip85.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -121,6 +122,11 @@ class NdkConfig {
   /// `(_, _) async => true` authenticates as the logged account wherever asked.
   AuthHandler? authHandler;
 
+  /// How many REQs a relay keeps open on one websocket, asked each time a
+  /// socket opens. Null, or a null answer for a relay, falls back on its NIP-11
+  /// `limitation.max_subscriptions`, then on 20.
+  SubscriptionLimit? subscriptionLimit;
+
   /// Interval for retrying pending broadcast deliveries while relays remain connected.
   Duration pendingDeliveryRetryInterval;
 
@@ -194,6 +200,7 @@ class NdkConfig {
     this.eagerAuth = false,
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     this.authHandler,
+    this.subscriptionLimit,
     this.pendingDeliveryRetryInterval = const Duration(seconds: 15),
     this.pendingDeliveryRetriesEnabled = true,
     this.cacheEvictionEnabled = false,

@@ -82,7 +82,7 @@ class MockRelay {
   bool refuseNegentropyWithClosed;
 
   /// refuses a REQ past this many open on one socket, like strfry: with a
-  /// NOTICE that names no subscription
+  /// NOTICE that names no subscription. [relayInfo] publishes it
   int? maxSubscriptions;
 
   /// sends at most this many of the newest stored events for one REQ
@@ -130,6 +130,13 @@ class MockRelay {
   String get url => 'ws://127.0.0.1:${_port ??= _reservePort()}';
 
   Iterable<MockRelayClient> get openClients => clients.where((c) => !c.closed);
+
+  /// the NIP-11 document served to a GET that accepts `application/nostr+json`
+  Map<String, dynamic> get relayInfo => {
+    'name': ?name,
+    if (maxSubscriptions case final max?)
+      'limitation': {'max_subscriptions': max},
+  };
 
   /// every message of [type] the relay received, on any socket
   List<List<dynamic>> received(String type) => [
@@ -320,7 +327,14 @@ class MockRelay {
 
   Future<void> _onHttpRequest(HttpRequest request) async {
     if (!WebSocketTransformer.isUpgradeRequest(request)) {
-      request.response.statusCode = HttpStatus.badRequest;
+      final accept = request.headers[HttpHeaders.acceptHeader] ?? const [];
+      if (accept.any((value) => value.contains('application/nostr+json'))) {
+        request.response
+          ..headers.contentType = ContentType('application', 'nostr+json')
+          ..write(jsonEncode(relayInfo));
+      } else {
+        request.response.statusCode = HttpStatus.badRequest;
+      }
       await request.response.close();
       return;
     }
