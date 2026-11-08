@@ -85,10 +85,10 @@ class RelayInfo with _Document {
   };
 
   /// Fields with an unexpected type are read as null instead of failing the
-  /// whole document
+  /// whole document. A number field takes an integer, `1.0` included
   factory RelayInfo.fromJson(Map<String, dynamic> json) {
-    final limitation = json["limitation"];
-    final fees = json["fees"];
+    final limitation = _map(json["limitation"]);
+    final fees = _map(json["fees"]);
     return RelayInfo(
       name: _string(json["name"]),
       description: _string(json["description"]),
@@ -97,16 +97,16 @@ class RelayInfo with _Document {
       pubKey: _string(json["pubkey"]),
       self: _string(json["self"]),
       contact: _string(json["contact"]),
-      nips: [for (final nip in _list(json["supported_nips"])) ?nip],
+      nips: [for (final nip in _list(json["supported_nips"])) ?_nip(nip)],
       software: _string(json["software"]),
       version: _string(json["version"]),
       privacyPolicy: _string(json["privacy_policy"]),
       termsOfService: _string(json["terms_of_service"]),
       paymentsUrl: _string(json["payments_url"]),
-      limitation: limitation is Map<String, dynamic>
+      limitation: limitation != null
           ? RelayLimitation.fromJson(limitation)
           : null,
-      fees: fees is Map<String, dynamic> ? RelayFees.fromJson(fees) : null,
+      fees: fees != null ? RelayFees.fromJson(fees) : null,
       extra: _extra(json, _fields),
     );
   }
@@ -269,7 +269,7 @@ class RelayFees with _Document {
   factory RelayFees.fromJson(Map<String, dynamic> json) {
     List<RelayFee> fees(Object? value) => [
       for (final fee in _list(value))
-        if (fee is Map<String, dynamic>) RelayFee.fromJson(fee),
+        if (_map(fee) case final json?) RelayFee.fromJson(json),
     ];
     return RelayFees(
       admission: fees(json["admission"]),
@@ -324,7 +324,7 @@ class RelayFee with _Document {
       amount: _int(json["amount"]),
       unit: _string(json["unit"]),
       period: _int(json["period"]),
-      kinds: _list(json["kinds"]).whereType<int>(),
+      kinds: [for (final kind in _list(json["kinds"])) ?_int(kind)],
       extra: _extra(json, _fields),
     );
   }
@@ -360,11 +360,29 @@ const _equality = DeepCollectionEquality();
 
 String? _string(Object? value) => value is String ? value : null;
 
-int? _int(Object? value) => value is num ? value.toInt() : null;
+int? _int(Object? value) => switch (value) {
+  int() => value,
+  // jsonDecode reads 1e400 as infinity, whose toInt throws
+  double() when value.isFinite && value % 1 == 0 => value.toInt(),
+  _ => null,
+};
+
+/// NIP-11 lists NIPs as integers, and lettered ones as strings
+Object? _nip(Object? value) => value is String ? value : _int(value);
 
 bool? _bool(Object? value) => value is bool ? value : null;
 
 List<Object?> _list(Object? value) => value is List ? value : const [];
+
+/// a map from a store such as Hive is not a `Map<String, dynamic>`
+Map<String, dynamic>? _map(Object? json) => switch (json) {
+  Map<String, dynamic>() => json,
+  Map() => {
+    for (final MapEntry(:key, :value) in json.entries)
+      if (key is String) key: value,
+  },
+  _ => null,
+};
 
 Map<String, dynamic> _extra(Map<String, dynamic> json, Set<String> fields) => {
   for (final MapEntry(:key, :value) in json.entries)

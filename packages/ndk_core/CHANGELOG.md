@@ -83,9 +83,9 @@ replaces `Helpers.now`. `MutexSimple` is in
 `package:ndk_core/shared/helpers/mutex_simple.dart`. `castToListOfListOfString`
 of `package:ndk/shared/helpers/list_casting.dart` is gone.
 
-`ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`,
-`RelayInfoRepo` and `RelayInfoHttpRepoImpl` are in
-[`ndk_nip11`](https://pub.dev/packages/ndk_nip11).
+`ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
+and `RelayInfoRepo` are in [`ndk_nip11`](https://pub.dev/packages/ndk_nip11),
+and `RelayInfoHttpRepoImpl(httpDS: http)` is its `HttpRelayInfoRepo(http)`.
 `HttpRequestDS` is in [`ndk_http`](https://pub.dev/packages/ndk_http):
 `package:ndk/data_layer/data_sources/http_request.dart` is now
 `package:ndk_http/ndk_http.dart`. `ndk.connectivity.getRelayInfo` fetches and

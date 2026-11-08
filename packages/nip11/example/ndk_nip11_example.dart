@@ -5,7 +5,7 @@ import 'package:ndk_nip11/ndk_nip11.dart';
 /// `dart run example/ndk_nip11_example.dart wss://relay.example.com`
 Future<void> main(List<String> args) async {
   final client = http.Client();
-  final repo = RelayInfoHttpRepoImpl(httpDS: NdkHttp(client));
+  final repo = HttpRelayInfoRepo(NdkHttp(client));
 
   try {
     final info = await repo.getRelayInfo(args.first);

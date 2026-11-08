@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:test/test.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
@@ -225,6 +227,43 @@ void main() {
       expect(relayInfo.fees!.admission.single.amount, isNull);
       expect(relayInfo.fees!.admission.single.unit, "msats");
       expect(relayInfo.fees!.publication, isEmpty);
+    });
+
+    test('fromJson reads a number that is not an integer as null', () {
+      final relayInfo = RelayInfo.fromJson(
+        jsonDecode('''{
+          "supported_nips": [1.0, 2.5, 1e400, true, "7D"],
+          "limitation": {
+            "max_subscriptions": 1e400,
+            "max_limit": 2.5,
+            "default_limit": 500.0
+          },
+          "fees": {"publication": [{"kinds": [4.0, 1.5, 1e400], "amount": 1e400}]}
+        }''')
+            as Map<String, dynamic>,
+      );
+
+      expect(relayInfo.nips, ['1', '7D']);
+      expect(relayInfo.limitation!.maxSubscriptions, isNull);
+      expect(relayInfo.limitation!.maxLimit, isNull);
+      expect(relayInfo.limitation!.defaultLimit, 500);
+      expect(relayInfo.fees!.publication.single.kinds, [4]);
+      expect(relayInfo.fees!.publication.single.amount, isNull);
+    });
+
+    test('fromJson reads nested objects from any Map', () {
+      final relayInfo = RelayInfo.fromJson({
+        "limitation": <dynamic, dynamic>{"max_subscriptions": 200, 1: "x"},
+        "fees": <dynamic, dynamic>{
+          "admission": [
+            <dynamic, dynamic>{"amount": 1000, "unit": "msats"},
+          ],
+        },
+      });
+
+      expect(relayInfo.limitation!.maxSubscriptions, 200);
+      expect(relayInfo.limitation!.extra, isEmpty);
+      expect(relayInfo.fees!.admission.single.amount, 1000);
     });
 
     test('supportsNip matches numbered and lettered NIPs', () {

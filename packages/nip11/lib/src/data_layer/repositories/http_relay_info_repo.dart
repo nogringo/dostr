@@ -2,9 +2,10 @@ import '../../domain_layer/entities/relay_info.dart';
 import '../../domain_layer/repositories/relay_info_repo.dart';
 import 'package:ndk_http/ndk_http.dart';
 
-/// implementation of the [RelayInfoRepo] interface with http
-class RelayInfoHttpRepoImpl implements RelayInfoRepo {
-  final NdkHttp httpDS;
+/// [RelayInfoRepo] that fetches the document over HTTP(S) on every call, with
+/// no cache
+class HttpRelayInfoRepo implements RelayInfoRepo {
+  final NdkHttp _http;
 
   /// deadline covering connection setup and the entire response body, so a
   /// stalled relay does not retain an HTTP socket
@@ -13,9 +14,8 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
   /// a larger document is read as none, so a relay cannot fill the memory
   final int maxBytes;
 
-  /// creates a new [RelayInfoHttpRepoImpl] instance
-  RelayInfoHttpRepoImpl({
-    required this.httpDS,
+  HttpRelayInfoRepo(
+    this._http, {
     this.timeout = const Duration(seconds: 5),
     this.maxBytes = 1024 * 1024,
   });
@@ -28,7 +28,7 @@ class RelayInfoHttpRepoImpl implements RelayInfoRepo {
   Future<RelayInfo?> getRelayInfo(String url) async {
     final documentUrl = _documentUrl(url);
     try {
-      final json = await httpDS.jsonRequest(
+      final json = await _http.jsonRequest(
         url: documentUrl,
         timeout: timeout,
         maxBytes: maxBytes,

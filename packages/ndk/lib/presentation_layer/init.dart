@@ -525,10 +525,7 @@ class Initialization {
       cache: DecryptedPayloadsGiftWrapCache(decryptedEventPayloads),
     );
 
-    connectivity = Connectivy(
-      relayManager,
-      RelayInfoHttpRepoImpl(httpDS: _httpRequestDS),
-    );
+    connectivity = Connectivy(relayManager, HttpRelayInfoRepo(_httpRequestDS));
 
     nip77 = Nip77(
       relayManager: relayManager,

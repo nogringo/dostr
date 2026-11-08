@@ -69,4 +69,4 @@ final supportsSearch = info?.supportsNip('50') ?? false;
 
 ## Without NDK
 
-`RelayInfo` and `RelayInfoHttpRepoImpl` live in the `ndk_nip11` package, which `ndk` depends on and re-exports. It depends on neither `ndk` nor `ndk_core`: `RelayInfoHttpRepoImpl` fetches the document without caching, see its [README](https://pub.dev/packages/ndk_nip11).
+`RelayInfo` and `HttpRelayInfoRepo` live in the `ndk_nip11` package, which `ndk` depends on and re-exports. It depends on neither `ndk` nor `ndk_core`: `HttpRelayInfoRepo` fetches the document without caching, see its [README](https://pub.dev/packages/ndk_nip11).

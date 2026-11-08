@@ -27,7 +27,7 @@ import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
-final repo = RelayInfoHttpRepoImpl(httpDS: NdkHttp(http.Client()));
+final repo = HttpRelayInfoRepo(NdkHttp(http.Client()));
 
 final info = await repo.getRelayInfo('wss://relay.example.com');
 print(info?.limitation?.maxSubscriptions);
@@ -60,4 +60,4 @@ More in [example/](example/) and the [connectivity docs](https://dart-nostr.com/
 
 ## Coming from `ndk`
 
-`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee`, `RelayInfoRepo` and `RelayInfoHttpRepoImpl` keep their names, and `package:ndk/ndk.dart` now exports them all. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:ndk_nip11/ndk_nip11.dart`. `Connectivy` stays in `ndk`, and its cache is now `CachedRelayInfoRepo`.
+`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee` and `RelayInfoRepo` keep their names, and `package:ndk/ndk.dart` now exports them all. `RelayInfoHttpRepoImpl(httpDS: http)` is now `HttpRelayInfoRepo(http)`. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:ndk_nip11/ndk_nip11.dart`. `Connectivy` stays in `ndk`, and its cache is now `CachedRelayInfoRepo`.
