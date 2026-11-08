@@ -41,7 +41,7 @@ void main() {
     expect(repo.requested, [url]);
   });
 
-  test('an unreachable relay gives null and is asked again', () async {
+  test('an unreachable relay gives null and is asked again later', () async {
     const url = 'wss://relay.example';
     final repo = _Repo();
     final connectivity = Connectivy(
@@ -52,6 +52,6 @@ void main() {
     repo.next.completeError(TimeoutException(url));
     expect(await connectivity.getRelayInfo(url), isNull);
     expect(await connectivity.getRelayInfo(url), isNull);
-    expect(repo.requested, [url, url]);
+    expect(repo.requested, [url]);
   });
 }

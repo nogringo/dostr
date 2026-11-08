@@ -125,6 +125,75 @@ void main() {
       );
     });
 
+    test('the constructor normalizes NIPs and copies its lists', () {
+      final kinds = [4];
+      final relayInfo = RelayInfo(
+        nips: [1, '011', 'ee'],
+        fees: RelayFees(publication: [RelayFee(kinds: kinds)]),
+        extra: {'retention': []},
+      );
+      kinds.add(5);
+
+      expect(relayInfo.nips, ['1', '11', 'EE']);
+      expect(relayInfo.fees!.publication.single.kinds, [4]);
+      expect(() => relayInfo.nips.add('2'), throwsUnsupportedError);
+      expect(() => relayInfo.fees!.publication.clear(), throwsUnsupportedError);
+      expect(() => relayInfo.extra['name'] = 'x', throwsUnsupportedError);
+    });
+
+    test('fields the classes do not read stay in extra and toJson', () {
+      final json = {
+        "name": "Relay 1",
+        "retention": [
+          {
+            "kinds": [0, 1],
+            "time": 3600,
+          },
+        ],
+        "relay_countries": ["FR"],
+        "limitation": {"max_subscriptions": 200, "max_filters": 100},
+        "fees": {
+          "admission": [
+            {"amount": 1, "unit": "msats", "method": "lightning"},
+          ],
+          "currency": "sats",
+        },
+      };
+      final relayInfo = RelayInfo.fromJson(json);
+
+      expect(relayInfo.extra, {
+        "retention": json["retention"],
+        "relay_countries": ["FR"],
+      });
+      expect(relayInfo.limitation!.extra, {"max_filters": 100});
+      expect(relayInfo.fees!.extra, {"currency": "sats"});
+      expect(relayInfo.fees!.admission.single.extra, {"method": "lightning"});
+      expect(relayInfo.toJson(), json);
+    });
+
+    test('documents with the same fields are equal', () {
+      final relayInfo = RelayInfo.fromJson({
+        "name": "Relay 1",
+        "supported_nips": [1, "7D"],
+        "limitation": {"max_limit": 10},
+        "retention": [],
+      });
+      final built = RelayInfo(
+        name: "Relay 1",
+        nips: ['01', '7d'],
+        limitation: RelayLimitation(maxLimit: 10),
+        extra: {"retention": []},
+      );
+
+      expect(built, relayInfo);
+      expect(built.hashCode, relayInfo.hashCode);
+      expect(RelayInfo(name: "Relay 2"), isNot(RelayInfo(name: "Relay 1")));
+      expect(
+        RelayInfo(extra: {"max_limit": 10}),
+        isNot(RelayLimitation(maxLimit: 10)),
+      );
+    });
+
     test('fromJson leaves omitted fields null', () {
       final relayInfo = RelayInfo.fromJson({});
 

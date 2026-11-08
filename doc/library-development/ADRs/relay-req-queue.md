@@ -77,7 +77,8 @@ RelayManager({SubscriptionLimit? subscriptionLimit, ...})
   publishes its limit there.
 - `getRelayInfo` remembers a relay that answered without NIP-11 as it remembers a
   document, for an hour, so a connection to it does not fetch again and wait for the
-  timeout. Only a relay that could not be reached is asked again.
+  timeout. A relay that could not be reached is asked again after a minute, so a
+  connection opened within that minute keeps the default limit.
 
 ### Gate and queue
 

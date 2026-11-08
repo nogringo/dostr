@@ -23,6 +23,7 @@ platforms:
   windows:
 
 dependencies:
+  collection: ^1.19.1
   ndk_http: ^0.1.0
 
 dev_dependencies:

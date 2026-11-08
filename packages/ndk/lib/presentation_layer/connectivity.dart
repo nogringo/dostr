@@ -2,6 +2,7 @@ import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
 const _relayInfoMaxAge = Duration(hours: 1);
+const _relayInfoFailureMaxAge = Duration(minutes: 1);
 
 /// get connectivity status \
 /// & update ndk about your application connectivity for faster reconnects
@@ -13,6 +14,7 @@ class Connectivy {
     : _relayInfoRepo = CachedRelayInfoRepo(
         relayInfoRepo,
         maxAge: _relayInfoMaxAge,
+        failureMaxAge: _relayInfoFailureMaxAge,
       );
 
   /// streams connectivity status of every connection \
@@ -21,7 +23,7 @@ class Connectivy {
       _relayManager.relayConnectivityChanges;
 
   /// NIP-11 info of the relay at [url], fetched once and then cached for an hour \
-  /// concurrent calls share the request, a relay that could not be reached is asked again on the next call \
+  /// concurrent calls share the request, a relay that could not be reached is asked again after a minute \
   /// returns null when the relay serves no document or could not be reached
   Future<RelayInfo?> getRelayInfo(String url) async {
     try {

@@ -1,6 +1,8 @@
+import 'package:collection/collection.dart';
+
 /// NIP-11 relay information document, as declared by the relay and not
 /// verified. Every field the relay omits is null
-class RelayInfo {
+class RelayInfo with _Document {
   final String? name;
 
   final String? description;
@@ -40,8 +42,11 @@ class RelayInfo {
   final RelayLimitation? limitation;
   final RelayFees? fees;
 
-  RelayInfo._({
-    required this.nips,
+  /// The fields this class does not read, as the relay served them, such as
+  /// `retention` or `relay_countries`
+  final Map<String, dynamic> extra;
+
+  RelayInfo({
     this.name,
     this.description,
     this.banner,
@@ -49,6 +54,7 @@ class RelayInfo {
     this.pubKey,
     this.self,
     this.contact,
+    Iterable<Object> nips = const [],
     this.software,
     this.version,
     this.privacyPolicy,
@@ -56,14 +62,34 @@ class RelayInfo {
     this.paymentsUrl,
     this.limitation,
     this.fees,
-  });
+    Map<String, dynamic> extra = const {},
+  }) : nips = List.unmodifiable(nips.map(normalizeNip)),
+       extra = Map.unmodifiable(extra);
+
+  static const _fields = {
+    'name',
+    'description',
+    'banner',
+    'icon',
+    'pubkey',
+    'self',
+    'contact',
+    'supported_nips',
+    'software',
+    'version',
+    'privacy_policy',
+    'terms_of_service',
+    'payments_url',
+    'limitation',
+    'fees',
+  };
 
   /// Fields with an unexpected type are read as null instead of failing the
   /// whole document
   factory RelayInfo.fromJson(Map<String, dynamic> json) {
     final limitation = json["limitation"];
     final fees = json["fees"];
-    return RelayInfo._(
+    return RelayInfo(
       name: _string(json["name"]),
       description: _string(json["description"]),
       banner: _string(json["banner"]),
@@ -71,10 +97,7 @@ class RelayInfo {
       pubKey: _string(json["pubkey"]),
       self: _string(json["self"]),
       contact: _string(json["contact"]),
-      nips: List.unmodifiable([
-        for (final nip in _list(json["supported_nips"]))
-          if (nip != null) normalizeNip(nip),
-      ]),
+      nips: [for (final nip in _list(json["supported_nips"])) ?nip],
       software: _string(json["software"]),
       version: _string(json["version"]),
       privacyPolicy: _string(json["privacy_policy"]),
@@ -84,13 +107,16 @@ class RelayInfo {
           ? RelayLimitation.fromJson(limitation)
           : null,
       fees: fees is Map<String, dynamic> ? RelayFees.fromJson(fees) : null,
+      extra: _extra(json, _fields),
     );
   }
 
-  /// The document under its NIP-11 names, without the fields left null or
-  /// empty, so [RelayInfo.fromJson] reads it back, from a persistent cache
-  /// for example
+  /// The document under its NIP-11 names, [extra] included, without the
+  /// fields left null or empty, so [RelayInfo.fromJson] reads it back, from a
+  /// persistent cache for example
+  @override
   Map<String, dynamic> toJson() => {
+    ...extra,
     'name': ?name,
     'description': ?description,
     'banner': ?banner,
@@ -124,7 +150,7 @@ class RelayInfo {
 }
 
 /// NIP-11 `limitation` object
-class RelayLimitation {
+class RelayLimitation with _Document {
   final int? maxMessageLength;
   final int? maxSubscriptions;
   final int? maxLimit;
@@ -144,7 +170,11 @@ class RelayLimitation {
 
   final int? defaultLimit;
 
-  RelayLimitation._({
+  /// The fields this class does not read, as the relay served them, such as
+  /// `max_filters`
+  final Map<String, dynamic> extra;
+
+  RelayLimitation({
     this.maxMessageLength,
     this.maxSubscriptions,
     this.maxLimit,
@@ -158,10 +188,27 @@ class RelayLimitation {
     this.createdAtLowerLimit,
     this.createdAtUpperLimit,
     this.defaultLimit,
-  });
+    Map<String, dynamic> extra = const {},
+  }) : extra = Map.unmodifiable(extra);
+
+  static const _fields = {
+    'max_message_length',
+    'max_subscriptions',
+    'max_limit',
+    'max_subid_length',
+    'max_event_tags',
+    'max_content_length',
+    'min_pow_difficulty',
+    'auth_required',
+    'payment_required',
+    'restricted_writes',
+    'created_at_lower_limit',
+    'created_at_upper_limit',
+    'default_limit',
+  };
 
   factory RelayLimitation.fromJson(Map<String, dynamic> json) {
-    return RelayLimitation._(
+    return RelayLimitation(
       maxMessageLength: _int(json["max_message_length"]),
       maxSubscriptions: _int(json["max_subscriptions"]),
       maxLimit: _int(json["max_limit"]),
@@ -175,10 +222,13 @@ class RelayLimitation {
       createdAtLowerLimit: _int(json["created_at_lower_limit"]),
       createdAtUpperLimit: _int(json["created_at_upper_limit"]),
       defaultLimit: _int(json["default_limit"]),
+      extra: _extra(json, _fields),
     );
   }
 
+  @override
   Map<String, dynamic> toJson() => {
+    ...extra,
     'max_message_length': ?maxMessageLength,
     'max_subscriptions': ?maxSubscriptions,
     'max_limit': ?maxLimit,
@@ -196,34 +246,46 @@ class RelayLimitation {
 }
 
 /// NIP-11 `fees` object
-class RelayFees {
+class RelayFees with _Document {
   final List<RelayFee> admission;
   final List<RelayFee> subscription;
   final List<RelayFee> publication;
 
-  RelayFees._({
-    required this.admission,
-    required this.subscription,
-    required this.publication,
-  });
+  /// The fields this class does not read, as the relay served them
+  final Map<String, dynamic> extra;
+
+  RelayFees({
+    Iterable<RelayFee> admission = const [],
+    Iterable<RelayFee> subscription = const [],
+    Iterable<RelayFee> publication = const [],
+    Map<String, dynamic> extra = const {},
+  }) : admission = List.unmodifiable(admission),
+       subscription = List.unmodifiable(subscription),
+       publication = List.unmodifiable(publication),
+       extra = Map.unmodifiable(extra);
+
+  static const _fields = {'admission', 'subscription', 'publication'};
 
   factory RelayFees.fromJson(Map<String, dynamic> json) {
-    List<RelayFee> fees(Object? value) => List.unmodifiable([
+    List<RelayFee> fees(Object? value) => [
       for (final fee in _list(value))
         if (fee is Map<String, dynamic>) RelayFee.fromJson(fee),
-    ]);
-    return RelayFees._(
+    ];
+    return RelayFees(
       admission: fees(json["admission"]),
       subscription: fees(json["subscription"]),
       publication: fees(json["publication"]),
+      extra: _extra(json, _fields),
     );
   }
 
+  @override
   Map<String, dynamic> toJson() {
     List<Map<String, dynamic>> json(List<RelayFee> fees) => [
       for (final fee in fees) fee.toJson(),
     ];
     return {
+      ...extra,
       if (admission.isNotEmpty) 'admission': json(admission),
       if (subscription.isNotEmpty) 'subscription': json(subscription),
       if (publication.isNotEmpty) 'publication': json(publication),
@@ -231,7 +293,7 @@ class RelayFees {
   }
 }
 
-class RelayFee {
+class RelayFee with _Document {
   final int? amount;
 
   /// e.g. "msats"
@@ -243,24 +305,58 @@ class RelayFee {
   /// Event kinds a publication fee applies to
   final List<int> kinds;
 
-  RelayFee._({required this.kinds, this.amount, this.unit, this.period});
+  /// The fields this class does not read, as the relay served them
+  final Map<String, dynamic> extra;
+
+  RelayFee({
+    this.amount,
+    this.unit,
+    this.period,
+    Iterable<int> kinds = const [],
+    Map<String, dynamic> extra = const {},
+  }) : kinds = List.unmodifiable(kinds),
+       extra = Map.unmodifiable(extra);
+
+  static const _fields = {'amount', 'unit', 'period', 'kinds'};
 
   factory RelayFee.fromJson(Map<String, dynamic> json) {
-    return RelayFee._(
+    return RelayFee(
       amount: _int(json["amount"]),
       unit: _string(json["unit"]),
       period: _int(json["period"]),
-      kinds: List.unmodifiable(_list(json["kinds"]).whereType<int>()),
+      kinds: _list(json["kinds"]).whereType<int>(),
+      extra: _extra(json, _fields),
     );
   }
 
+  @override
   Map<String, dynamic> toJson() => {
+    ...extra,
     if (kinds.isNotEmpty) 'kinds': kinds,
     'amount': ?amount,
     'unit': ?unit,
     'period': ?period,
   };
 }
+
+/// Equal when their documents are
+mixin _Document {
+  Map<String, dynamic> toJson();
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other.runtimeType == runtimeType &&
+          _equality.equals(toJson(), (other as _Document).toJson());
+
+  @override
+  int get hashCode => _equality.hash(toJson());
+
+  @override
+  String toString() => '$runtimeType${toJson()}';
+}
+
+const _equality = DeepCollectionEquality();
 
 String? _string(Object? value) => value is String ? value : null;
 
@@ -269,3 +365,8 @@ int? _int(Object? value) => value is num ? value.toInt() : null;
 bool? _bool(Object? value) => value is bool ? value : null;
 
 List<Object?> _list(Object? value) => value is List ? value : const [];
+
+Map<String, dynamic> _extra(Map<String, dynamic> json, Set<String> fields) => {
+  for (final MapEntry(:key, :value) in json.entries)
+    if (!fields.contains(key)) key: value,
+};
