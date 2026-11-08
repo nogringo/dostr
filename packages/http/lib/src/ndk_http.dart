@@ -58,6 +58,52 @@ class HttpRequestException extends http.ClientException {
   }
 }
 
+/// Exception thrown when a response body passes the `maxBytes` of its request,
+/// which is then aborted without reading the rest. It is a
+/// [http.ClientException], like [HttpRequestException].
+class HttpResponseTooLargeException extends http.ClientException {
+  final int statusCode;
+  final int maxBytes;
+
+  HttpResponseTooLargeException({
+    required this.statusCode,
+    required this.maxBytes,
+    required Uri uri,
+  }) : super('response of $uri exceeds $maxBytes bytes', uri);
+
+  @override
+  Uri get uri => super.uri!;
+}
+
+/// [response] whose body fails once it passes [maxBytes], aborting the
+/// request so the rest is never read
+http.StreamedResponse _limited(
+  http.StreamedResponse response,
+  int maxBytes,
+  _Abort abort,
+  Uri url,
+) {
+  Never tooLarge() {
+    abort();
+    throw HttpResponseTooLargeException(
+      statusCode: response.statusCode,
+      maxBytes: maxBytes,
+      uri: url,
+    );
+  }
+
+  if ((response.contentLength ?? 0) > maxBytes) tooLarge();
+  var received = 0;
+  return _StreamedResponse(
+    response.stream.map((chunk) {
+      received += chunk.length;
+      if (received > maxBytes) tooLarge();
+      return chunk;
+    }),
+    response,
+  );
+}
+
 /// Upload progress information
 class UploadProgress {
   final int sentBytes;
@@ -208,6 +254,7 @@ class NdkHttp {
     Object? body,
     bool followRedirects = true,
     Duration? timeout,
+    int? maxBytes,
   }) async {
     final abort = _Abort(url, timeout);
     final request =
@@ -241,9 +288,9 @@ class NdkHttp {
     _pending.add(abort);
     abort.startTimer();
     try {
-      final response = await http.Response.fromStream(
-        await _client.send(request),
-      );
+      var streamed = await _client.send(request);
+      if (maxBytes != null) streamed = _limited(streamed, maxBytes, abort, url);
+      final response = await http.Response.fromStream(streamed);
       if (!_isSuccessStatus(response.statusCode)) {
         throw _failure(method, response, url);
       }
@@ -327,11 +374,13 @@ class NdkHttp {
   /// make a get request to the given url and decode its JSON body, which must
   /// be an object: anything else throws a [FormatException]. The url is used
   /// as given: the caller picks the scheme. [headers] add to
-  /// `Accept: application/json`, which they can replace
+  /// `Accept: application/json`, which they can replace. A body past
+  /// [maxBytes], whatever its status, throws an [HttpResponseTooLargeException]
   Future<Map<String, dynamic>> jsonRequest({
     required Uri url,
     bool followRedirects = true,
     Duration? timeout,
+    int? maxBytes,
     Map<String, String> headers = const {},
   }) async {
     final response = await _send(
@@ -341,6 +390,7 @@ class NdkHttp {
       headers: {'Accept': 'application/json', ...headers},
       followRedirects: followRedirects,
       timeout: timeout,
+      maxBytes: maxBytes,
     );
     // JSON is UTF-8 (RFC 8259); `body` would fall back to latin1 for media
     // types such as application/nostr+json that carry no charset.

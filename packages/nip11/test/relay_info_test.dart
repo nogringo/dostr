@@ -86,6 +86,43 @@ void main() {
       expect(fees.subscription.single.period, 2592000);
       expect(fees.publication.single.kinds, [4]);
       expect(fees.publication.single.amount, 100);
+
+      expect(relayInfo.toJson(), json);
+    });
+
+    test('toJson leaves out omitted fields and keeps lettered NIPs', () {
+      final json = {
+        "supported_nips": [1, "7D"],
+        "limitation": {"auth_required": false},
+        "fees": {
+          "publication": [
+            {"amount": 1},
+          ],
+        },
+      };
+
+      expect(RelayInfo.fromJson({}).toJson(), isEmpty);
+      expect(RelayInfo.fromJson(json).toJson(), json);
+    });
+
+    test('lists are read-only', () {
+      final relayInfo = RelayInfo.fromJson({
+        "supported_nips": [1],
+        "fees": {
+          "publication": [
+            {
+              "kinds": [4],
+            },
+          ],
+        },
+      });
+
+      expect(() => relayInfo.nips.add('2'), throwsUnsupportedError);
+      expect(() => relayInfo.fees!.admission.clear(), throwsUnsupportedError);
+      expect(
+        () => relayInfo.fees!.publication.single.kinds.add(1),
+        throwsUnsupportedError,
+      );
     });
 
     test('fromJson leaves omitted fields null', () {

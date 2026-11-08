@@ -7,14 +7,18 @@ Future<void> main(List<String> args) async {
   final client = http.Client();
   final repo = RelayInfoHttpRepoImpl(httpDS: NdkHttp(client));
 
-  final info = await repo.getRelayInfo(args.first);
-  if (info == null) {
-    print('${args.first} serves no NIP-11 document');
-  } else {
-    print('${info.name} runs ${info.software} ${info.version}');
-    print('NIP-50 search: ${info.supportsNip('50')}');
-    print('max subscriptions: ${info.limitation?.maxSubscriptions}');
+  try {
+    final info = await repo.getRelayInfo(args.first);
+    if (info == null) {
+      print('${args.first} serves no NIP-11 document');
+    } else {
+      print('${info.name} runs ${info.software} ${info.version}');
+      print('NIP-50 search: ${info.supportsNip('50')}');
+      print('max subscriptions: ${info.limitation?.maxSubscriptions}');
+    }
+  } on Exception catch (error) {
+    print('${args.first} could not be reached: $error');
+  } finally {
+    client.close();
   }
-
-  client.close();
 }

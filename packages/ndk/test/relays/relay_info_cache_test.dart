@@ -40,4 +40,18 @@ void main() {
     expect(await connectivity.getRelayInfo(url), same(info));
     expect(repo.requested, [url]);
   });
+
+  test('an unreachable relay gives null and is asked again', () async {
+    const url = 'wss://relay.example';
+    final repo = _Repo();
+    final connectivity = Connectivy(
+      RelayManager(nostrTransportFactory: _NoTransport()),
+      repo,
+    );
+
+    repo.next.completeError(TimeoutException(url));
+    expect(await connectivity.getRelayInfo(url), isNull);
+    expect(await connectivity.getRelayInfo(url), isNull);
+    expect(repo.requested, [url, url]);
+  });
 }

@@ -37,8 +37,10 @@ final json = await ds.jsonRequest(
 `jsonRequest` uses the url as given, so the caller picks the scheme, and
 decodes the body as UTF-8. A body that is not a JSON object throws a
 `FormatException`. Its `headers` add to `Accept: application/json`, which they
-can replace. `abortPending` aborts every request still in flight without
-closing the client.
+can replace. With `maxBytes`, a body larger than that, whatever its status,
+aborts the request without reading the rest and throws an
+`HttpResponseTooLargeException`, which keeps the status code. `abortPending`
+aborts every request still in flight without closing the client.
 
 `get`, `head`, `getStream` and `jsonRequest` take `followRedirects`. With it
 off, a redirect throws its 3xx as an `HttpRequestException`, except on the web,

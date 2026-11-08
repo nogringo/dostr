@@ -29,7 +29,9 @@ class RelayInfo {
   /// Relay software version identifier
   final String? version;
 
+  /// Dropped from NIP-11, still read when a relay serves it
   final String? privacyPolicy;
+
   final String? termsOfService;
 
   /// Where to pay the relay [fees]
@@ -69,10 +71,10 @@ class RelayInfo {
       pubKey: _string(json["pubkey"]),
       self: _string(json["self"]),
       contact: _string(json["contact"]),
-      nips: [
+      nips: List.unmodifiable([
         for (final nip in _list(json["supported_nips"]))
           if (nip != null) normalizeNip(nip),
-      ],
+      ]),
       software: _string(json["software"]),
       version: _string(json["version"]),
       privacyPolicy: _string(json["privacy_policy"]),
@@ -84,6 +86,28 @@ class RelayInfo {
       fees: fees is Map<String, dynamic> ? RelayFees.fromJson(fees) : null,
     );
   }
+
+  /// The document under its NIP-11 names, without the fields left null or
+  /// empty, so [RelayInfo.fromJson] reads it back, from a persistent cache
+  /// for example
+  Map<String, dynamic> toJson() => {
+    'name': ?name,
+    'description': ?description,
+    'banner': ?banner,
+    'icon': ?icon,
+    'pubkey': ?pubKey,
+    'self': ?self,
+    'contact': ?contact,
+    if (nips.isNotEmpty)
+      'supported_nips': [for (final nip in nips) int.tryParse(nip) ?? nip],
+    'software': ?software,
+    'version': ?version,
+    'privacy_policy': ?privacyPolicy,
+    'terms_of_service': ?termsOfService,
+    'payments_url': ?paymentsUrl,
+    'limitation': ?limitation?.toJson(),
+    'fees': ?fees?.toJson(),
+  };
 
   /// does this relay support given nip, e.g. "1", "01", "77" or "EE"
   bool supportsNip(String nip) {
@@ -153,6 +177,22 @@ class RelayLimitation {
       defaultLimit: _int(json["default_limit"]),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'max_message_length': ?maxMessageLength,
+    'max_subscriptions': ?maxSubscriptions,
+    'max_limit': ?maxLimit,
+    'max_subid_length': ?maxSubidLength,
+    'max_event_tags': ?maxEventTags,
+    'max_content_length': ?maxContentLength,
+    'min_pow_difficulty': ?minPowDifficulty,
+    'auth_required': ?authRequired,
+    'payment_required': ?paymentRequired,
+    'restricted_writes': ?restrictedWrites,
+    'created_at_lower_limit': ?createdAtLowerLimit,
+    'created_at_upper_limit': ?createdAtUpperLimit,
+    'default_limit': ?defaultLimit,
+  };
 }
 
 /// NIP-11 `fees` object
@@ -168,15 +208,26 @@ class RelayFees {
   });
 
   factory RelayFees.fromJson(Map<String, dynamic> json) {
-    List<RelayFee> fees(Object? value) => [
+    List<RelayFee> fees(Object? value) => List.unmodifiable([
       for (final fee in _list(value))
         if (fee is Map<String, dynamic>) RelayFee.fromJson(fee),
-    ];
+    ]);
     return RelayFees._(
       admission: fees(json["admission"]),
       subscription: fees(json["subscription"]),
       publication: fees(json["publication"]),
     );
+  }
+
+  Map<String, dynamic> toJson() {
+    List<Map<String, dynamic>> json(List<RelayFee> fees) => [
+      for (final fee in fees) fee.toJson(),
+    ];
+    return {
+      if (admission.isNotEmpty) 'admission': json(admission),
+      if (subscription.isNotEmpty) 'subscription': json(subscription),
+      if (publication.isNotEmpty) 'publication': json(publication),
+    };
   }
 }
 
@@ -199,9 +250,16 @@ class RelayFee {
       amount: _int(json["amount"]),
       unit: _string(json["unit"]),
       period: _int(json["period"]),
-      kinds: _list(json["kinds"]).whereType<int>().toList(),
+      kinds: List.unmodifiable(_list(json["kinds"]).whereType<int>()),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    if (kinds.isNotEmpty) 'kinds': kinds,
+    'amount': ?amount,
+    'unit': ?unit,
+    'period': ?period,
+  };
 }
 
 String? _string(Object? value) => value is String ? value : null;

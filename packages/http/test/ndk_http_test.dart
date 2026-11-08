@@ -88,6 +88,60 @@ void main() {
     expect(ds.jsonRequest(url: url), throwsFormatException);
   });
 
+  test('jsonRequest aborts a body once it passes maxBytes', () async {
+    final body = StreamController<List<int>>();
+    final aborted = Completer<void>();
+    final ds = NdkHttp(
+      MockClient.streaming((request, _) async {
+        (request as http.Abortable).abortTrigger!.whenComplete(
+          aborted.complete,
+        );
+        return http.StreamedResponse(body.stream, 200);
+      }),
+    );
+
+    final json = ds.jsonRequest(url: url, maxBytes: 4);
+    body.add(utf8.encode('{"a"'));
+    body.add(utf8.encode(':1}'));
+
+    await expectLater(
+      json,
+      throwsA(
+        isA<HttpResponseTooLargeException>()
+            .having((e) => e.statusCode, 'statusCode', 200)
+            .having((e) => e.maxBytes, 'maxBytes', 4)
+            .having((e) => e.uri, 'uri', url),
+      ),
+    );
+    await aborted.future.timeout(const Duration(seconds: 1));
+  });
+
+  test('jsonRequest refuses a declared length past maxBytes', () async {
+    final ds = NdkHttp(
+      MockClient(
+        (request) async => request.url.path == '/error'
+            ? http.Response('x' * 10, 503)
+            : http.Response('{"a":1}', 200),
+      ),
+    );
+
+    expect(await ds.jsonRequest(url: url, maxBytes: 7), {'a': 1});
+    expect(
+      ds.jsonRequest(url: url, maxBytes: 6),
+      throwsA(isA<HttpResponseTooLargeException>()),
+    );
+    expect(
+      ds.jsonRequest(url: url.replace(path: '/error'), maxBytes: 6),
+      throwsA(
+        isA<HttpResponseTooLargeException>().having(
+          (e) => e.statusCode,
+          'statusCode',
+          503,
+        ),
+      ),
+    );
+  });
+
   test(
     'jsonRequest headers add to its Accept, which they can replace',
     () async {

@@ -79,7 +79,7 @@ void main() {
           timeout: const Duration(milliseconds: 300),
         ).getRelayInfo('wss://127.0.0.1:${server.port}');
         await connected.future.timeout(const Duration(seconds: 2));
-        expect(await result, isNull);
+        await expectLater(result, throwsA(isA<TimeoutException>()));
         await _waitUntil(() => client.aborted);
         await peerClosed.future.timeout(const Duration(seconds: 2));
       },

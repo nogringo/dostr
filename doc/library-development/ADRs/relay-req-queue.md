@@ -75,9 +75,9 @@ RelayManager({SubscriptionLimit? subscriptionLimit, ...})
   `NdkConfig.subscriptionLimit`, of the same type, then the NIP-11
   `max_subscriptions` that `Connectivity.getRelayInfo` already caches. strfry
   publishes its limit there.
-- `getRelayInfo` drops a missing answer to retry it, so the provider of `ndk`
-  remembers a relay without NIP-11 for the session. Otherwise every connection to it
-  would fetch again and wait for the timeout.
+- `getRelayInfo` remembers a relay that answered without NIP-11 as it remembers a
+  document, for an hour, so a connection to it does not fetch again and wait for the
+  timeout. Only a relay that could not be reached is asked again.
 
 ### Gate and queue
 

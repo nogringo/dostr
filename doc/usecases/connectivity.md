@@ -12,7 +12,8 @@ icon: rss
 /// value: relay connectivity
 ndkInstance.connectivity.relayConnectivityChanges;
 
-/// NIP-11 info of a relay, fetched on first call and then cached
+/// NIP-11 info of a relay, fetched on first call and then cached for an hour
+/// null when the relay serves no document or could not be reached
 await ndkInstance.connectivity.getRelayInfo(relayConnectivity.url);
 
 /// forces all relays to reconnect \
