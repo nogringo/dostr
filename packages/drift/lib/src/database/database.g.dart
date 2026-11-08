@@ -2462,6 +2462,216 @@ class Nip05sCompanion extends UpdateCompanion<DbNip05> {
   }
 }
 
+class $RelayInfosTable extends RelayInfos
+    with TableInfo<$RelayInfosTable, DbRelayInfo> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $RelayInfosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _dataJsonMeta = const VerificationMeta(
+    'dataJson',
+  );
+  @override
+  late final GeneratedColumn<String> dataJson = GeneratedColumn<String>(
+    'data_json',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [url, dataJson];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'relay_infos';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DbRelayInfo> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_urlMeta);
+    }
+    if (data.containsKey('data_json')) {
+      context.handle(
+        _dataJsonMeta,
+        dataJson.isAcceptableOrUnknown(data['data_json']!, _dataJsonMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dataJsonMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {url};
+  @override
+  DbRelayInfo map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DbRelayInfo(
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      )!,
+      dataJson: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}data_json'],
+      )!,
+    );
+  }
+
+  @override
+  $RelayInfosTable createAlias(String alias) {
+    return $RelayInfosTable(attachedDatabase, alias);
+  }
+}
+
+class DbRelayInfo extends DataClass implements Insertable<DbRelayInfo> {
+  final String url;
+  final String dataJson;
+  const DbRelayInfo({required this.url, required this.dataJson});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['url'] = Variable<String>(url);
+    map['data_json'] = Variable<String>(dataJson);
+    return map;
+  }
+
+  RelayInfosCompanion toCompanion(bool nullToAbsent) {
+    return RelayInfosCompanion(url: Value(url), dataJson: Value(dataJson));
+  }
+
+  factory DbRelayInfo.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DbRelayInfo(
+      url: serializer.fromJson<String>(json['url']),
+      dataJson: serializer.fromJson<String>(json['dataJson']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'url': serializer.toJson<String>(url),
+      'dataJson': serializer.toJson<String>(dataJson),
+    };
+  }
+
+  DbRelayInfo copyWith({String? url, String? dataJson}) =>
+      DbRelayInfo(url: url ?? this.url, dataJson: dataJson ?? this.dataJson);
+  DbRelayInfo copyWithCompanion(RelayInfosCompanion data) {
+    return DbRelayInfo(
+      url: data.url.present ? data.url.value : this.url,
+      dataJson: data.dataJson.present ? data.dataJson.value : this.dataJson,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DbRelayInfo(')
+          ..write('url: $url, ')
+          ..write('dataJson: $dataJson')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(url, dataJson);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DbRelayInfo &&
+          other.url == this.url &&
+          other.dataJson == this.dataJson);
+}
+
+class RelayInfosCompanion extends UpdateCompanion<DbRelayInfo> {
+  final Value<String> url;
+  final Value<String> dataJson;
+  final Value<int> rowid;
+  const RelayInfosCompanion({
+    this.url = const Value.absent(),
+    this.dataJson = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  RelayInfosCompanion.insert({
+    required String url,
+    required String dataJson,
+    this.rowid = const Value.absent(),
+  }) : url = Value(url),
+       dataJson = Value(dataJson);
+  static Insertable<DbRelayInfo> custom({
+    Expression<String>? url,
+    Expression<String>? dataJson,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (url != null) 'url': url,
+      if (dataJson != null) 'data_json': dataJson,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  RelayInfosCompanion copyWith({
+    Value<String>? url,
+    Value<String>? dataJson,
+    Value<int>? rowid,
+  }) {
+    return RelayInfosCompanion(
+      url: url ?? this.url,
+      dataJson: dataJson ?? this.dataJson,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    if (dataJson.present) {
+      map['data_json'] = Variable<String>(dataJson.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('RelayInfosCompanion(')
+          ..write('url: $url, ')
+          ..write('dataJson: $dataJson, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $FilterFetchedRangeRecordsTable extends FilterFetchedRangeRecords
     with
         TableInfo<$FilterFetchedRangeRecordsTable, DbFilterFetchedRangeRecord> {
@@ -7434,6 +7644,7 @@ abstract class _$NdkCacheDatabase extends GeneratedDatabase {
   late final $UserRelayListsTable userRelayLists = $UserRelayListsTable(this);
   late final $RelaySetsTable relaySets = $RelaySetsTable(this);
   late final $Nip05sTable nip05s = $Nip05sTable(this);
+  late final $RelayInfosTable relayInfos = $RelayInfosTable(this);
   late final $FilterFetchedRangeRecordsTable filterFetchedRangeRecords =
       $FilterFetchedRangeRecordsTable(this);
   late final $EventSourcesTableTable eventSourcesTable =
@@ -7502,6 +7713,7 @@ abstract class _$NdkCacheDatabase extends GeneratedDatabase {
     userRelayLists,
     relaySets,
     nip05s,
+    relayInfos,
     filterFetchedRangeRecords,
     eventSourcesTable,
     eventDeliveryRecordsTable,
@@ -9287,6 +9499,149 @@ typedef $$Nip05sTableProcessedTableManager =
       $$Nip05sTableUpdateCompanionBuilder,
       (DbNip05, BaseReferences<_$NdkCacheDatabase, $Nip05sTable, DbNip05>),
       DbNip05,
+      PrefetchHooks Function()
+    >;
+typedef $$RelayInfosTableCreateCompanionBuilder =
+    RelayInfosCompanion Function({
+      required String url,
+      required String dataJson,
+      Value<int> rowid,
+    });
+typedef $$RelayInfosTableUpdateCompanionBuilder =
+    RelayInfosCompanion Function({
+      Value<String> url,
+      Value<String> dataJson,
+      Value<int> rowid,
+    });
+
+class $$RelayInfosTableFilterComposer
+    extends Composer<_$NdkCacheDatabase, $RelayInfosTable> {
+  $$RelayInfosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$RelayInfosTableOrderingComposer
+    extends Composer<_$NdkCacheDatabase, $RelayInfosTable> {
+  $$RelayInfosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get dataJson => $composableBuilder(
+    column: $table.dataJson,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$RelayInfosTableAnnotationComposer
+    extends Composer<_$NdkCacheDatabase, $RelayInfosTable> {
+  $$RelayInfosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<String> get dataJson =>
+      $composableBuilder(column: $table.dataJson, builder: (column) => column);
+}
+
+class $$RelayInfosTableTableManager
+    extends
+        RootTableManager<
+          _$NdkCacheDatabase,
+          $RelayInfosTable,
+          DbRelayInfo,
+          $$RelayInfosTableFilterComposer,
+          $$RelayInfosTableOrderingComposer,
+          $$RelayInfosTableAnnotationComposer,
+          $$RelayInfosTableCreateCompanionBuilder,
+          $$RelayInfosTableUpdateCompanionBuilder,
+          (
+            DbRelayInfo,
+            BaseReferences<_$NdkCacheDatabase, $RelayInfosTable, DbRelayInfo>,
+          ),
+          DbRelayInfo,
+          PrefetchHooks Function()
+        > {
+  $$RelayInfosTableTableManager(_$NdkCacheDatabase db, $RelayInfosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$RelayInfosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$RelayInfosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$RelayInfosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> url = const Value.absent(),
+                Value<String> dataJson = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => RelayInfosCompanion(
+                url: url,
+                dataJson: dataJson,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String url,
+                required String dataJson,
+                Value<int> rowid = const Value.absent(),
+              }) => RelayInfosCompanion.insert(
+                url: url,
+                dataJson: dataJson,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$RelayInfosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NdkCacheDatabase,
+      $RelayInfosTable,
+      DbRelayInfo,
+      $$RelayInfosTableFilterComposer,
+      $$RelayInfosTableOrderingComposer,
+      $$RelayInfosTableAnnotationComposer,
+      $$RelayInfosTableCreateCompanionBuilder,
+      $$RelayInfosTableUpdateCompanionBuilder,
+      (
+        DbRelayInfo,
+        BaseReferences<_$NdkCacheDatabase, $RelayInfosTable, DbRelayInfo>,
+      ),
+      DbRelayInfo,
       PrefetchHooks Function()
     >;
 typedef $$FilterFetchedRangeRecordsTableCreateCompanionBuilder =
@@ -11980,6 +12335,8 @@ class $NdkCacheDatabaseManager {
       $$RelaySetsTableTableManager(_db, _db.relaySets);
   $$Nip05sTableTableManager get nip05s =>
       $$Nip05sTableTableManager(_db, _db.nip05s);
+  $$RelayInfosTableTableManager get relayInfos =>
+      $$RelayInfosTableTableManager(_db, _db.relayInfos);
   $$FilterFetchedRangeRecordsTableTableManager get filterFetchedRangeRecords =>
       $$FilterFetchedRangeRecordsTableTableManager(
         _db,

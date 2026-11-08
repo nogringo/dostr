@@ -22,6 +22,7 @@ dependencies:
   ndk_metadatas: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_nip05: ^0.1.0
+  ndk_nip11: ^0.1.0
   sqlite3: ^3.5.2
   ndk_cashu: ^0.1.0
   ndk_wallets: ^0.1.0

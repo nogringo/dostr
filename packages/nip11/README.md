@@ -4,7 +4,7 @@
 
 ## With NDK
 
-`ndk` depends on this package and re-exports it. `ndk.connectivity` fetches the document once per relay and caches it for an hour, and asks a relay that could not be reached again after a minute. It returns null when the relay serves no document or could not be reached:
+`ndk` depends on this package and re-exports it. `ndk.connectivity` fetches the document once per relay and caches it for an hour, in `NdkConfig.cache` too, so a persistent backend keeps it across restarts. It asks a relay that could not be reached again after a minute. It returns null when the relay serves no document or could not be reached:
 
 ```dart
 import 'package:ndk/ndk.dart';
@@ -45,7 +45,19 @@ final cached = CachedRelayInfoRepo(
 );
 ```
 
-It ages answers with a `Stopwatch`, which a change of the system clock does not move. A test can pass `stopwatch: clock.stopwatch()` from `package:clock` and drive it with `fakeAsync`.
+To keep the answers across restarts, give it a `RelayInfoCache`. It saves each answer as a `RelayInfoRecord`, a relay without a document included, and reads it on the first call for that relay, so a restart serves it without a request until `maxAge` passes since it was fetched, or until it is evicted without a `maxAge`. A failure is not saved, and `evict(url)` and `clear()` forget the relays in `cache` too. A read that throws fetches the relay, and a write that throws keeps the answer in memory only. NDK's `CacheManager` implements `RelayInfoCache`, so every NDK cache backend persists them:
+
+```dart
+final cached = CachedRelayInfoRepo(
+  repo,
+  cache: SqliteCacheManager(sqlite3.open('ndk.db')),
+  maxAge: const Duration(hours: 1),
+);
+```
+
+To write your own, store `RelayInfoRecord.toJson` under `RelayInfoRecord.url` and read it back with `RelayInfoRecord.fromJson`.
+
+It ages answers in memory with a `Stopwatch`, which a change of the system clock does not move, and those of `cache` with the system clock, since a `Stopwatch` does not outlive the process. A test can pass `stopwatch: clock.stopwatch()` from `package:clock` and drive both with `fakeAsync`.
 
 `RelayInfo.toJson` gives the document back under its NIP-11 names, so it can be persisted and read again with `RelayInfo.fromJson`, which takes any `Map`, such as one a Hive box gives back. The fields the package does not read, such as `retention` or `relay_countries`, stay in `extra`, read-only all the way down, and come back in `toJson`. `nips` lists the numbered NIPs first and in order, then the lettered ones, without duplicates.
 

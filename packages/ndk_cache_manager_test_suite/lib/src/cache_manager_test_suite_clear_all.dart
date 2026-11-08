@@ -31,6 +31,15 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
     );
     await cacheManager.saveNip05(nip05);
 
+    const relayUrl = 'wss://clearall-relay-info.example';
+    await cacheManager.saveRelayInfo(
+      RelayInfoRecord(
+        url: relayUrl,
+        info: RelayInfo(name: 'clearall'),
+        fetchedAt: DateTime.utc(2026),
+      ),
+    );
+
     final userRelayList = UserRelayList(
       pubKey: 'clearall_relay_pubkey',
       createdAt: 1234567890,
@@ -87,6 +96,7 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
       isNotNull,
     );
     expect(await cacheManager.loadNip05('test@example.com'), isNotNull);
+    expect(await cacheManager.loadRelayInfo(relayUrl), isNotNull);
     expect(
       await cacheManager.loadUserRelayList('clearall_relay_pubkey'),
       isNotNull,
@@ -122,6 +132,7 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
       isNull,
     );
     expect(await cacheManager.loadNip05('test@example.com'), isNull);
+    expect(await cacheManager.loadRelayInfo(relayUrl), isNull);
     expect(
       await cacheManager.loadUserRelayList('clearall_relay_pubkey'),
       isNull,

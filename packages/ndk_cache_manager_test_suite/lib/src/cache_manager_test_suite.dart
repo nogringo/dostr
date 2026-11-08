@@ -28,6 +28,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_url_set/ndk_url_set.dart' show UrlSet;
 import 'package:test/test.dart';
@@ -43,6 +44,7 @@ part 'cache_manager_test_suite_event_delivery.dart';
 part 'cache_manager_test_suite_hidden_event.dart';
 part 'cache_manager_test_suite_metadata.dart';
 part 'cache_manager_test_suite_nip05.dart';
+part 'cache_manager_test_suite_relay_info.dart';
 part 'cache_manager_test_suite_relay_set.dart';
 part 'cache_manager_test_suite_search.dart';
 part 'cache_manager_test_suite_user_relay_list.dart';
@@ -112,6 +114,10 @@ void runCacheManagerTestSuite({
 
     group('Nip05 Operations', () {
       _runNip05Tests(() => cacheManager);
+    });
+
+    group('RelayInfo Operations', () {
+      _runRelayInfoTests(() => cacheManager);
     });
 
     group('UserRelayList Operations', () {

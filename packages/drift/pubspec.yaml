@@ -24,6 +24,7 @@ dependencies:
   ndk_metadatas: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_nip05: ^0.1.0
+  ndk_nip11: ^0.1.0
   drift: ^2.34.0
   drift_flutter: ^0.3.1
   path_provider: ^2.1.6

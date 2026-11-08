@@ -8,6 +8,7 @@ import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 import 'relay_set.dart';
 import 'user_relay_list.dart';
 
@@ -22,6 +23,7 @@ import 'user_relay_list.dart';
 /// - decrypted plaintext sidecars for encrypted events
 /// - convenience projections like metadata/contact list/user relay list
 /// - NIP-05 records, the [Nip05Cache] of `ndk_nip05`
+/// - NIP-11 documents, the [RelayInfoCache] of `ndk_nip11`
 /// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - metadata, the [MetadataCache] of `ndk_metadatas`
 /// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
@@ -40,6 +42,7 @@ abstract class CacheManager
     implements
         DeliveryStore,
         Nip05Cache,
+        RelayInfoCache,
         ContactListCache,
         MetadataCache,
         Nip51ListCache,
@@ -351,6 +354,7 @@ abstract class CacheManager
   ///
   /// **DANGER**: This will permanently delete ALL cached data including events,
   /// metadata, contact lists, relay sets, user relay lists, nip05 records,
-  /// and filter fetched range records. This operation cannot be undone.
+  /// NIP-11 documents and filter fetched range records. This operation cannot
+  /// be undone.
   Future<void> clearAll();
 }

@@ -18,6 +18,7 @@ dependencies:
   ndk_metadatas: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_nip05: ^0.1.0
+  ndk_nip11: ^0.1.0
   ndk_signer: ^0.1.0
   ndk_url_set: ^0.1.0
   test: any

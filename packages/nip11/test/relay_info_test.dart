@@ -333,4 +333,32 @@ void main() {
       expect(relayInfo.supportsNip('10'), isFalse);
     });
   });
+
+  group('RelayInfoRecord', () {
+    test('reads back equal from its JSON, through jsonEncode', () {
+      final record = RelayInfoRecord(
+        url: 'wss://relay.example',
+        info: RelayInfo(name: 'Example', nips: [1, 11]),
+        fetchedAt: DateTime(2026, 11, 8, 12, 30, 15, 123, 456),
+      );
+      final json = jsonDecode(jsonEncode(record.toJson())) as Map;
+
+      expect(RelayInfoRecord.fromJson(json), record);
+      expect(record.fetchedAt.isUtc, isTrue);
+      expect(record.fetchedAt.microsecond, 0);
+    });
+
+    test('keeps an answer without document', () {
+      final record = RelayInfoRecord(
+        url: 'wss://relay.example',
+        fetchedAt: DateTime.utc(2026),
+      );
+
+      expect(record.toJson(), {
+        'url': 'wss://relay.example',
+        'fetched_at': DateTime.utc(2026).millisecondsSinceEpoch,
+      });
+      expect(RelayInfoRecord.fromJson(record.toJson()).info, isNull);
+    });
+  });
 }

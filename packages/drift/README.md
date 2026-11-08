@@ -69,4 +69,5 @@ The cache manager uses Drift tables for each data type:
 | UserRelayLists | pubKey | User relay configurations |
 | RelaySets | id | Relay set configurations |
 | Nip05s | pubKey | NIP-05 verification data |
+| RelayInfos | url | NIP-11 documents of relays |
 | FilterFetchedRangeRecords | key | Query range tracking |

@@ -276,7 +276,11 @@ class Initialization {
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
       subscriptionLimit: _subscriptionLimit,
     );
-    connectivity = Connectivy(relayManager, HttpRelayInfoRepo(_httpRequestDS));
+    connectivity = Connectivy(
+      relayManager,
+      HttpRelayInfoRepo(_httpRequestDS),
+      cache: _ndkConfig.cache,
+    );
     // connectRelay reports its failures in its record, so this never fails
     bootstrapRelaysConnected = Future.wait(
       _ndkConfig.bootstrapRelays.map(

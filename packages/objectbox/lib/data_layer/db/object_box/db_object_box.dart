@@ -8,6 +8,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:ndk_objectbox/data_layer/db/object_box/schema/db_nip_05.dart';
@@ -21,6 +22,7 @@ import 'schema/db_cashu_secret_counter.dart';
 import 'schema/db_filter_fetched_range_record.dart';
 import 'schema/db_key_value.dart';
 import 'schema/db_nip_01_event.dart';
+import 'schema/db_relay_info.dart';
 import 'schema/db_relay_set.dart';
 import 'schema/db_user_relay_list.dart';
 import 'schema/db_wallet.dart';
@@ -1323,6 +1325,42 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
   }
 
   @override
+  Future<void> saveRelayInfo(RelayInfoRecord record) async {
+    await dbRdy;
+    final box = _objectBox.store.box<DbRelayInfo>();
+    _objectBox.store.runInTransaction(TxMode.write, () {
+      _relayInfoQuery(box, record.url).remove();
+      box.put(
+        DbRelayInfo(url: record.url, dataJson: jsonEncode(record.toJson())),
+      );
+    });
+  }
+
+  @override
+  Future<RelayInfoRecord?> loadRelayInfo(String url) async {
+    await dbRdy;
+    final box = _objectBox.store.box<DbRelayInfo>();
+    final existing = _relayInfoQuery(box, url).findFirst();
+    if (existing == null) return null;
+    return RelayInfoRecord.fromJson(jsonDecode(existing.dataJson) as Map);
+  }
+
+  @override
+  Future<void> removeRelayInfo(String url) async {
+    await dbRdy;
+    _relayInfoQuery(_objectBox.store.box<DbRelayInfo>(), url).remove();
+  }
+
+  @override
+  Future<void> removeAllRelayInfos() async {
+    await dbRdy;
+    _objectBox.store.box<DbRelayInfo>().removeAll();
+  }
+
+  Query<DbRelayInfo> _relayInfoQuery(Box<DbRelayInfo> box, String url) =>
+      box.query(DbRelayInfo_.url.equals(url, caseSensitive: true)).build();
+
+  @override
   Future<void> saveNip05s(List<Nip05> nip05s) async {
     await dbRdy;
     for (final nip05 in nip05s) {
@@ -1953,6 +1991,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
       store.box<DbUserRelayList>().removeAll();
       store.box<DbRelaySet>().removeAll();
       store.box<DbNip05>().removeAll();
+      store.box<DbRelayInfo>().removeAll();
       store.box<DbFilterFetchedRangeRecord>().removeAll();
       store.box<DbKeyValue>().removeAll();
       store.box<DbCashuMintInfo>().removeAll();

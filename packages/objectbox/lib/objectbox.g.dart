@@ -22,6 +22,7 @@ import 'data_layer/db/object_box/schema/db_filter_fetched_range_record.dart';
 import 'data_layer/db/object_box/schema/db_key_value.dart';
 import 'data_layer/db/object_box/schema/db_nip_01_event.dart';
 import 'data_layer/db/object_box/schema/db_nip_05.dart';
+import 'data_layer/db/object_box/schema/db_relay_info.dart';
 import 'data_layer/db/object_box/schema/db_relay_set.dart';
 import 'data_layer/db/object_box/schema/db_user_relay_list.dart';
 import 'data_layer/db/object_box/schema/db_wallet.dart';
@@ -659,6 +660,35 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(15, 6237618022962771779),
+    name: 'DbRelayInfo',
+    lastPropertyId: const obx_int.IdUid(3, 2284610490757030250),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 6965044011233199339),
+        name: 'dbId',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 1630295342072867784),
+        name: 'url',
+        type: 9,
+        flags: 2048,
+        indexId: const obx_int.IdUid(6, 3364679219012760055),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 2284610490757030250),
+        name: 'dataJson',
+        type: 9,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -704,8 +734,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(14, 5469921152275641897),
-    lastIndexId: const obx_int.IdUid(5, 8083061451592629115),
+    lastEntityId: const obx_int.IdUid(15, 6237618022962771779),
+    lastIndexId: const obx_int.IdUid(6, 3364679219012760055),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [3682591720006600703, 1919098435759190214],
@@ -1545,6 +1575,39 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    DbRelayInfo: obx_int.EntityDefinition<DbRelayInfo>(
+      model: _entities[12],
+      toOneRelations: (DbRelayInfo object) => [],
+      toManyRelations: (DbRelayInfo object) => {},
+      getId: (DbRelayInfo object) => object.dbId,
+      setId: (DbRelayInfo object, int id) {
+        object.dbId = id;
+      },
+      objectToFB: (DbRelayInfo object, fb.Builder fbb) {
+        final urlOffset = fbb.writeString(object.url);
+        final dataJsonOffset = fbb.writeString(object.dataJson);
+        fbb.startTable(4);
+        fbb.addInt64(0, object.dbId);
+        fbb.addOffset(1, urlOffset);
+        fbb.addOffset(2, dataJsonOffset);
+        fbb.finish(fbb.endTable());
+        return object.dbId;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final urlParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final dataJsonParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 8, '');
+        final object = DbRelayInfo(url: urlParam, dataJson: dataJsonParam)
+          ..dbId = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -2006,5 +2069,23 @@ class DbKeyValue_ {
   /// See [DbKeyValue.value].
   static final value = obx.QueryStringProperty<DbKeyValue>(
     _entities[11].properties[2],
+  );
+}
+
+/// [DbRelayInfo] entity fields to define ObjectBox queries.
+class DbRelayInfo_ {
+  /// See [DbRelayInfo.dbId].
+  static final dbId = obx.QueryIntegerProperty<DbRelayInfo>(
+    _entities[12].properties[0],
+  );
+
+  /// See [DbRelayInfo.url].
+  static final url = obx.QueryStringProperty<DbRelayInfo>(
+    _entities[12].properties[1],
+  );
+
+  /// See [DbRelayInfo.dataJson].
+  static final dataJson = obx.QueryStringProperty<DbRelayInfo>(
+    _entities[12].properties[2],
   );
 }

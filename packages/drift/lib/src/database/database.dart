@@ -22,6 +22,7 @@ part 'database.g.dart';
     UserRelayLists,
     RelaySets,
     Nip05s,
+    RelayInfos,
     FilterFetchedRangeRecords,
     EventSourcesTable,
     EventDeliveryRecordsTable,
@@ -47,7 +48,7 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
   NdkCacheDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration {
@@ -132,6 +133,9 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
         // Nip01Event.validSig is gone, nothing read it
         if (from < 12) {
           await m.dropColumn(events, 'valid_sig');
+        }
+        if (from < 13) {
+          await m.createTable(relayInfos);
         }
       },
       // event_tags and deletion_targets follow their event through ON DELETE

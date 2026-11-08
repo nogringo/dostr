@@ -10,6 +10,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 
 import 'database/database.dart';
 import 'database/event_index.dart';
@@ -1004,6 +1005,41 @@ class DriftCacheManager extends WalletsRepo
           .map((e) => e.toString())
           .toList(),
     );
+  }
+
+  // =====================
+  // NIP-11
+  // =====================
+
+  @override
+  Future<void> saveRelayInfo(RelayInfoRecord record) async {
+    await _db
+        .into(_db.relayInfos)
+        .insertOnConflictUpdate(
+          RelayInfosCompanion.insert(
+            url: record.url,
+            dataJson: jsonEncode(record.toJson()),
+          ),
+        );
+  }
+
+  @override
+  Future<RelayInfoRecord?> loadRelayInfo(String url) async {
+    final row = await (_db.select(
+      _db.relayInfos,
+    )..where((t) => t.url.equals(url))).getSingleOrNull();
+    if (row == null) return null;
+    return RelayInfoRecord.fromJson(jsonDecode(row.dataJson) as Map);
+  }
+
+  @override
+  Future<void> removeRelayInfo(String url) async {
+    await (_db.delete(_db.relayInfos)..where((t) => t.url.equals(url))).go();
+  }
+
+  @override
+  Future<void> removeAllRelayInfos() async {
+    await _db.delete(_db.relayInfos).go();
   }
 
   // =====================
@@ -2059,6 +2095,7 @@ class DriftCacheManager extends WalletsRepo
       _db.delete(_db.userRelayLists).go(),
       _db.delete(_db.relaySets).go(),
       _db.delete(_db.nip05s).go(),
+      _db.delete(_db.relayInfos).go(),
       _db.delete(_db.filterFetchedRangeRecords).go(),
       _db.delete(_db.eventSourcesTable).go(),
       _db.delete(_db.eventDeliveryRecordsTable).go(),

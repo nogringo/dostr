@@ -8,6 +8,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'ndk_extensions.dart';
@@ -880,6 +881,39 @@ class SqliteCacheManager extends WalletsRepo
   }
 
   // =====================
+  // NIP-11
+  // =====================
+
+  @override
+  Future<void> saveRelayInfo(RelayInfoRecord record) async {
+    _db.execute(
+      'INSERT OR REPLACE INTO relay_infos (url, data) VALUES (?, ?)',
+      [record.url, jsonEncode(record.toJson())],
+    );
+  }
+
+  @override
+  Future<RelayInfoRecord?> loadRelayInfo(String url) async {
+    final rows = _db.select('SELECT data FROM relay_infos WHERE url = ?', [
+      url,
+    ]);
+    if (rows.isEmpty) return null;
+    return RelayInfoRecord.fromJson(
+      jsonDecode(rows.first['data'] as String) as Map,
+    );
+  }
+
+  @override
+  Future<void> removeRelayInfo(String url) async {
+    _db.execute('DELETE FROM relay_infos WHERE url = ?', [url]);
+  }
+
+  @override
+  Future<void> removeAllRelayInfos() async {
+    _db.execute('DELETE FROM relay_infos');
+  }
+
+  // =====================
   // Filter Fetched Ranges
   // =====================
 
@@ -1667,6 +1701,7 @@ class SqliteCacheManager extends WalletsRepo
         'user_relay_lists',
         'relay_sets',
         'nip05s',
+        'relay_infos',
         'filter_fetched_ranges',
         'cashu_keysets',
         'cashu_proofs',

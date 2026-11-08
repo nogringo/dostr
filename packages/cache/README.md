@@ -48,7 +48,7 @@ More in [example/](example/) and the [cache behavior docs](https://dart-nostr.co
 
 ## Writing a backend
 
-Implement `CacheManager`. It also implements the caches the NDK packages ask for (`DeliveryStore`, `Nip05Cache`, `ContactListCache`, `MetadataCache`, `Nip51ListCache` and `SearchCache`), so one backend serves them all. `EventVisibilityResolver` and `EventEvictionPlanner` hold the visibility and eviction rules, for a backend to reuse rather than reimplement. Check a backend against the shared [cache manager test suite](https://github.com/relaystr/ndk/tree/master/packages/ndk_cache_manager_test_suite).
+Implement `CacheManager`. It also implements the caches the NDK packages ask for (`DeliveryStore`, `Nip05Cache`, `RelayInfoCache`, `ContactListCache`, `MetadataCache`, `Nip51ListCache` and `SearchCache`), so one backend serves them all. `EventVisibilityResolver` and `EventEvictionPlanner` hold the visibility and eviction rules, for a backend to reuse rather than reimplement. Check a backend against the shared [cache manager test suite](https://github.com/relaystr/ndk/tree/master/packages/ndk_cache_manager_test_suite).
 
 ## Coming from `ndk`
 

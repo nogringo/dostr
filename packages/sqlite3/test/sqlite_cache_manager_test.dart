@@ -8,6 +8,7 @@ import 'package:ndk_sqlite3/ndk_sqlite3.dart';
 import 'package:ndk_sqlite3/src/migrations/v1.dart';
 import 'package:ndk_sqlite3/src/migrations/v2.dart';
 import 'package:ndk_sqlite3/src/migrations/v3.dart';
+import 'package:ndk_sqlite3/src/migrations/v4.dart';
 import 'package:ndk_sqlite3/src/sql.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
@@ -239,6 +240,27 @@ void main() {
       db.select('PRAGMA table_info(events)').map((column) => column['name']),
       isNot(contains('valid_sig')),
     );
+    await cacheManager.close();
+  });
+
+  test('v4 -> v5 adds relay_infos', () async {
+    final db = sqlite3.openInMemory()
+      ..execute(v1)
+      ..execute(v2)
+      ..execute(v3)
+      ..execute(v4)
+      ..userVersion = 4;
+    final cacheManager = SqliteCacheManager(db);
+    final record = RelayInfoRecord(
+      url: 'wss://relay.example',
+      info: RelayInfo(name: 'Example'),
+      fetchedAt: DateTime.utc(2026),
+    );
+
+    await cacheManager.saveRelayInfo(record);
+
+    expect(await cacheManager.loadRelayInfo(record.url), record);
+    expect(db.userVersion, 5);
     await cacheManager.close();
   });
 

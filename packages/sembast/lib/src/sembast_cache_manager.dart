@@ -5,6 +5,7 @@ import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:sembast/sembast.dart' as sembast;
 
 import 'ndk_extensions.dart';
@@ -88,6 +89,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
   late final sembast.StoreRef<String, Map<String, Object?>> _contactListStore;
   late final sembast.StoreRef<String, Map<String, Object?>> _relayListStore;
   late final sembast.StoreRef<String, Map<String, Object?>> _nip05Store;
+  late final sembast.StoreRef<String, Map<String, Object?>> _relayInfoStore;
   late final sembast.StoreRef<String, Map<String, Object?>> _relaySetStore;
   late final sembast.StoreRef<String, Map<String, Object?>>
   _filterFetchedRangeStore;
@@ -120,6 +122,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     _contactListStore = sembast.stringMapStoreFactory.store('contact_lists');
     _relayListStore = sembast.stringMapStoreFactory.store('relay_lists');
     _nip05Store = sembast.stringMapStoreFactory.store('nip05');
+    _relayInfoStore = sembast.stringMapStoreFactory.store('relay_infos');
     _relaySetStore = sembast.stringMapStoreFactory.store('relay_sets');
     _keysetStore = sembast.stringMapStoreFactory.store('keysets');
     _proofStore = sembast.stringMapStoreFactory.store('proofs');
@@ -798,6 +801,27 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
   @override
   Future<void> removeAllNip05s() async {
     await _nip05Store.delete(_database);
+  }
+
+  @override
+  Future<void> saveRelayInfo(RelayInfoRecord record) async {
+    await _relayInfoStore.record(record.url).put(_database, record.toJson());
+  }
+
+  @override
+  Future<RelayInfoRecord?> loadRelayInfo(String url) async {
+    final data = await _relayInfoStore.record(url).get(_database);
+    return data == null ? null : RelayInfoRecord.fromJson(data);
+  }
+
+  @override
+  Future<void> removeRelayInfo(String url) async {
+    await _relayInfoStore.record(url).delete(_database);
+  }
+
+  @override
+  Future<void> removeAllRelayInfos() async {
+    await _relayInfoStore.delete(_database);
   }
 
   @override
@@ -1549,6 +1573,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
       _contactListStore.delete(_database),
       _relayListStore.delete(_database),
       _nip05Store.delete(_database),
+      _relayInfoStore.delete(_database),
       _relaySetStore.delete(_database),
       _filterFetchedRangeStore.delete(_database),
       _keysetStore.delete(_database),

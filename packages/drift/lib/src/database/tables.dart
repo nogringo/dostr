@@ -105,6 +105,16 @@ class Nip05s extends Table {
   Set<Column> get primaryKey => {nip05};
 }
 
+/// Table for storing NIP-11 documents, a `RelayInfoRecord` as JSON per url
+@DataClassName('DbRelayInfo')
+class RelayInfos extends Table {
+  TextColumn get url => text()();
+  TextColumn get dataJson => text()();
+
+  @override
+  Set<Column> get primaryKey => {url};
+}
+
 /// Table for storing filter fetched range records
 @DataClassName('DbFilterFetchedRangeRecord')
 class FilterFetchedRangeRecords extends Table {

@@ -10,6 +10,7 @@ import 'package:ndk_metadatas/ndk_metadatas.dart';
 import 'nip_65.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
 import 'relay_set.dart';
 import 'user_relay_list.dart';
 import 'cache_manager.dart';
@@ -28,6 +29,9 @@ class MemCacheManager implements CacheManager {
 
   /// In memory storage indexed by nip05 identifier
   Map<String, Nip05> nip05s = {};
+
+  /// In memory storage indexed by relay url
+  Map<String, RelayInfoRecord> relayInfos = {};
 
   /// In memory storage
   Map<String, Nip01Event> events = {};
@@ -119,6 +123,28 @@ class MemCacheManager implements CacheManager {
   @override
   Future<void> removeNip05(String identifier) async {
     nip05s.remove(identifier);
+  }
+
+  /// **************************************************************************
+
+  @override
+  Future<void> saveRelayInfo(RelayInfoRecord record) async {
+    relayInfos[record.url] = record;
+  }
+
+  @override
+  Future<RelayInfoRecord?> loadRelayInfo(String url) async {
+    return relayInfos[url];
+  }
+
+  @override
+  Future<void> removeRelayInfo(String url) async {
+    relayInfos.remove(url);
+  }
+
+  @override
+  Future<void> removeAllRelayInfos() async {
+    relayInfos.clear();
   }
 
   /// **************************************************************************
@@ -945,6 +971,7 @@ class MemCacheManager implements CacheManager {
     userRelayLists.clear();
     relaySets.clear();
     nip05s.clear();
+    relayInfos.clear();
     filterFetchedRangeRecords.clear();
   }
 
