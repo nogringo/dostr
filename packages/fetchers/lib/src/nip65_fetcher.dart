@@ -2,6 +2,7 @@ import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_home_relays/ndk_home_relays.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 
+import 'replaceable_asks.dart';
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
 
@@ -33,9 +34,20 @@ class Nip65Fetcher {
   /// is seen, and the checks spare the relays across restarts too.
   final Duration maxAge;
 
+  /// How long the pubkeys looked up are gathered into one REQ per relay.
+  final Duration batchWindow;
+
   late final SharedLookups _lookups = SharedLookups(
     _lookUp,
     reuseFor: checks == null ? maxAge : Duration.zero,
+  );
+
+  late final _asks = ReplaceableAsks(
+    _reqs,
+    kind: _kind,
+    name: 'nip65',
+    timeout: timeout,
+    window: batchWindow,
   );
 
   Nip65Fetcher({
@@ -46,6 +58,7 @@ class Nip65Fetcher {
     this.cache,
     this.checks,
     this.maxAge = const Duration(minutes: 10),
+    this.batchWindow = defaultBatchWindow,
   }) : _reqs = reqs;
 
   /// Each `kind:10002` event of [pubKey] (hex) found on [relays] and on its
@@ -65,19 +78,24 @@ class Nip65Fetcher {
   /// How the lookup [watch] runs for [pubKey] ended.
   Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
 
+  /// [fetch] for each of [pubKeys]. Their REQs go out once each lookup asked
+  /// for them, without waiting for the end of [batchWindow].
+  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubKeys) async =>
+      foundEvents(await lookupAll(pubKeys));
+
+  /// [lookup] for each of [pubKeys], their REQs sent as [fetchAll] does.
+  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubKeys) =>
+      _lookups.lookupAll(pubKeys, onAsked: (_) => _asks.flush());
+
   ReplaceableLookup _lookUp(String pubKey) => lookUpReplaceable(
     kind: _kind,
     pubKey: pubKey,
     cache: cache,
     checks: checks,
     maxAge: maxAge,
-    ask: (outcomes) => askReplaceable(
-      _reqs,
-      kind: _kind,
-      pubKey: pubKey,
+    ask: (outcomes) => _asks.ask(
+      pubKey,
       relays: [...relays, ...?homeRelayList?.homeRelaysOf(pubKey)],
-      name: 'nip65',
-      timeout: timeout,
       outcomes: outcomes,
     ),
   );

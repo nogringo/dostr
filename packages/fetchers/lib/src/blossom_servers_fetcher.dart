@@ -13,6 +13,7 @@ class BlossomServersFetcher extends OutboxFetcher {
     super.cache,
     super.checks,
     super.maxAge,
+    super.batchWindow,
   }) : super(kind: 10063, name: 'blossom-servers');
 }
 

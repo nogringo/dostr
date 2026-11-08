@@ -13,6 +13,7 @@ class DmRelaysFetcher extends OutboxFetcher {
     super.cache,
     super.checks,
     super.maxAge,
+    super.batchWindow,
   }) : super(kind: 10050, name: 'dm-relays');
 }
 

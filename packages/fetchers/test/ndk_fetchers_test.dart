@@ -3,6 +3,8 @@ import 'dart:io';
 
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:ndk_fetchers/src/replaceable_asks.dart'
+    show maxAuthorsPerFilter, maxFiltersPerReq;
 import 'package:ndk_home_relays/ndk_home_relays.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:test/test.dart';
@@ -62,14 +64,46 @@ class MemoryCache implements ReplaceableEventCache {
 }
 
 /// Answers every REQ with all its [events], whatever the filter, then EOSE.
+/// A REQ of more than [maxFilters] filters or asking for more than
+/// [maxAuthors] authors gets a CLOSED with [refusal] instead.
 class LocalRelay {
   final List<Nip01Event> events;
+  final int? maxFilters;
+  final int? maxAuthors;
+  final String refusal;
   late final HttpServer _server;
-  int reqCount = 0;
 
-  LocalRelay(this.events);
+  /// The filters of each REQ received.
+  final List<List<Object?>> reqFilters = [];
+
+  LocalRelay(
+    this.events, {
+    this.maxFilters,
+    this.maxAuthors,
+    this.refusal = 'bad req: too big',
+  });
 
   String get url => 'ws://127.0.0.1:${_server.port}';
+
+  int get reqCount => reqFilters.length;
+
+  /// The authors each REQ received asks for.
+  List<List<Object?>> get reqAuthors => [
+    for (final filters in reqFilters) _authorsOf(filters),
+  ];
+
+  /// How many authors each filter of each REQ received asks for.
+  List<List<int>> get reqLotSizes => [
+    for (final filters in reqFilters)
+      [
+        for (final filter in filters)
+          ((filter as Map)['authors'] as List).length,
+      ],
+  ];
+
+  static List<Object?> _authorsOf(List<Object?> filters) => [
+    for (final filter in filters) ...(filter as Map)['authors'] as List,
+  ];
 
   Future<void> start() async {
     _server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
@@ -77,8 +111,14 @@ class LocalRelay {
       socket.listen((data) {
         final message = jsonDecode(data as String) as List;
         if (message[0] != 'REQ') return;
-        reqCount++;
         final id = message[1];
+        final filters = message.sublist(2);
+        reqFilters.add(filters);
+        if (filters.length > (maxFilters ?? filters.length) ||
+            _authorsOf(filters).length > (maxAuthors ?? double.infinity)) {
+          socket.add(jsonEncode(['CLOSED', id, refusal]));
+          return;
+        }
         for (final event in events) {
           socket.add(jsonEncode(['EVENT', id, event.toJson()]));
         }
@@ -710,6 +750,225 @@ void main() {
       expect((await checks.read(alice, 30000, dTag: 'a'))?.found, isFalse);
       expect((await checks.read(alice, 30000, dTag: 'b'))?.found, isTrue);
     });
+  });
+
+  group('batching', () {
+    List<String> pubKeysOf(int count) => [
+      for (var i = 0; i < count; i++) i.toRadixString(16).padLeft(64, '0'),
+    ];
+
+    test('asks the pubkeys looked up together in one REQ per relay', () async {
+      final ofAlice = metadata('alice');
+      final ofBob = metadata('bob', pubKey: bob);
+      final relay = await startCountedRelay([ofAlice, ofBob]);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final profiles = await Future.wait([
+        fetcher.fetch(alice),
+        fetcher.fetch(bob),
+      ]);
+
+      expect(
+        [for (final profile in profiles) profile?.id],
+        [ofAlice.id, ofBob.id],
+      );
+      expect(relay.reqFilters, [
+        [
+          {
+            'kinds': [0],
+            'authors': [alice, bob],
+            'limit': 2,
+          },
+        ],
+      ]);
+    });
+
+    test('asks a write relay shared by pubkeys in one REQ', () async {
+      final writeRelay = await startCountedRelay([]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [
+            await startRelay([
+              for (final pubKey in [alice, bob])
+                relayList([
+                  ['r', writeRelay.url],
+                ], pubKey: pubKey),
+            ]),
+          ],
+        ),
+      );
+
+      final lookups = await Future.wait([
+        fetcher.lookup(alice),
+        fetcher.lookup(bob),
+      ]);
+
+      expect(lookups, everyElement(isA<EventNotFound>()));
+      expect(writeRelay.reqAuthors.single, hasLength(2));
+    });
+
+    test('puts up to $maxFiltersPerReq filters of $maxAuthorsPerFilter authors '
+        'in a REQ', () async {
+      final relay = await startCountedRelay([]);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      await fetcher.lookupAll(
+        pubKeysOf(maxFiltersPerReq * maxAuthorsPerFilter + 1),
+      );
+
+      expect(
+        relay.reqLotSizes,
+        unorderedEquals([
+          List.filled(maxFiltersPerReq, maxAuthorsPerFilter),
+          [1],
+        ]),
+      );
+    });
+
+    test('asks each lot alone on a relay that refuses the REQ', () async {
+      final relay = LocalRelay([], maxFilters: 1);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final lookups = await fetcher.lookupAll(
+        pubKeysOf(maxAuthorsPerFilter + 1),
+      );
+
+      expect(lookups.values, everyElement(isA<EventNotFound>()));
+      expect(relay.reqLotSizes, [
+        [maxAuthorsPerFilter, 1],
+        [maxAuthorsPerFilter],
+        [1],
+      ]);
+    });
+
+    test('asks each pubkey alone on a relay that refuses the REQ', () async {
+      final relay = LocalRelay([
+        metadata('alice'),
+        metadata('bob', pubKey: bob),
+      ], maxAuthors: 1);
+      await relay.start();
+      relays.add(relay);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final lookups = await Future.wait([
+        fetcher.lookup(alice),
+        fetcher.lookup(bob),
+      ]);
+
+      expect(lookups, everyElement(isA<EventFound>()));
+      expect(
+        [for (final authors in relay.reqAuthors) authors.length],
+        [2, 1, 1],
+      );
+    });
+
+    for (final refusal in [
+      'auth-required: we only serve our members',
+      'restricted: not allowed',
+      'rate-limited: slow down',
+      'blocked: go away',
+    ]) {
+      test('asks no pubkey alone after "$refusal"', () async {
+        final relay = LocalRelay(
+          [metadata('alice'), metadata('bob', pubKey: bob)],
+          maxAuthors: 1,
+          refusal: refusal,
+        );
+        await relay.start();
+        relays.add(relay);
+        final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+        final lookups = await Future.wait([
+          fetcher.lookup(alice),
+          fetcher.lookup(bob),
+        ]);
+
+        expect(lookups, everyElement(isA<EventUnavailable>()));
+        expect(relay.reqCount, 1);
+      });
+    }
+  });
+
+  group('fetchAll', () {
+    const neverEnds = Duration(minutes: 1);
+
+    Map<String, String?> idsOf(Map<String, Nip01Event?> events) =>
+        events.map((pubKey, event) => MapEntry(pubKey, event?.id));
+
+    test('sends the REQ once each pubkey asked', () async {
+      final ofAlice = relayList([]);
+      final ofBob = relayList([], pubKey: bob);
+      final relay = await startCountedRelay([ofAlice, ofBob]);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [relay.url],
+        batchWindow: neverEnds,
+      );
+
+      final lists = await fetcher.fetchAll([alice, bob, alice]);
+
+      expect(idsOf(lists), {alice: ofAlice.id, bob: ofBob.id});
+      expect(relay.reqAuthors.single, hasLength(2));
+    }, timeout: const Timeout(Duration(seconds: 5)));
+
+    test('does not wait for a pubkey the cache answers', () async {
+      final cache = MemoryCache();
+      final checks = MemoryUrlListCheckStore();
+      final cached = relayList([]);
+      await cache.save(cached);
+      await checks.write(
+        UrlListCheck(
+          pubkey: alice,
+          kind: 10002,
+          checkedAt: DateTime.now().toUtc(),
+          found: true,
+        ),
+      );
+      final ofBob = relayList([], pubKey: bob);
+      final relay = await startCountedRelay([ofBob]);
+      final fetcher = Nip65Fetcher(
+        reqs: reqs,
+        relays: [relay.url],
+        cache: cache,
+        checks: checks,
+        batchWindow: neverEnds,
+      );
+
+      final lists = await fetcher.fetchAll([alice, bob]);
+
+      expect(idsOf(lists), {alice: cached.id, bob: ofBob.id});
+      expect(relay.reqAuthors, [
+        [bob],
+      ]);
+    }, timeout: const Timeout(Duration(seconds: 5)));
+
+    test('sends the REQs to the indexers and for the relay lists', () async {
+      final ofAlice = metadata('alice');
+      final ofBob = metadata('bob', pubKey: bob);
+      final indexer = await startCountedRelay([ofAlice, ofBob]);
+      final listRelay = await startCountedRelay([]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [indexer.url],
+        nip65Fetcher: Nip65Fetcher(
+          reqs: reqs,
+          relays: [listRelay.url],
+          batchWindow: neverEnds,
+        ),
+        batchWindow: neverEnds,
+      );
+
+      final profiles = await fetcher.fetchAll([alice, bob]);
+
+      expect(idsOf(profiles), {alice: ofAlice.id, bob: ofBob.id});
+      expect(indexer.reqAuthors.single, hasLength(2));
+      expect(listRelay.reqAuthors.single, hasLength(2));
+    }, timeout: const Timeout(Duration(seconds: 5)));
   });
 
   test('dmRelaysOf keeps the relay tags, each once, in order', () {

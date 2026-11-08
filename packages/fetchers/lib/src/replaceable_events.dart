@@ -8,36 +8,6 @@ const List<String> defaultIndexerRelays = [
   'wss://relay.ditto.pub',
 ];
 
-/// What [relays] send for the newest [kind] event of [pubKey] (hex), named
-/// [dTag] if addressable, until each of them answered or [timeout]. The REQ
-/// opens on listen. Once it ended, [outcomes] gets what each relay did.
-Stream<Nip01Event> askReplaceable(
-  RelayReqs reqs, {
-  required int kind,
-  required String pubKey,
-  String? dTag,
-  required Iterable<String> relays,
-  required String name,
-  required Duration timeout,
-  Map<String, RelayRequestOutcome>? outcomes,
-}) async* {
-  final filter = Filter(
-    kinds: [kind],
-    authors: [pubKey],
-    dTags: dTag == null ? null : [dTag],
-    limit: 1,
-  );
-  final req = reqs.req(
-    relays: {
-      for (final url in relays) url: [filter],
-    },
-    name: name,
-    timeout: timeout,
-  );
-  yield* req.events.map((received) => received.event);
-  outcomes?.addAll(await req.done);
-}
-
 /// The [kind] events of [pubKey] among [events], named [dTag] if addressable,
 /// each newer than the ones before it and than [after], the lowest id winning
 /// a tie (NIP-01).

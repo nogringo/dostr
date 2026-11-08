@@ -7,11 +7,13 @@ import 'package:test/test.dart';
 void main() {
   ReplaceableLookup finished(String _) => (
     versions: const Stream<Nip01Event>.empty(),
+    asked: Future.value(true),
     result: Future.value(const EventNotFound()),
   );
 
   ReplaceableLookup running(String _) => (
     versions: StreamController<Nip01Event>().stream,
+    asked: Future.value(true),
     result: Completer<EventLookup>().future,
   );
 

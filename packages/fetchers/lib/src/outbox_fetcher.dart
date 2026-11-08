@@ -5,6 +5,7 @@ import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'nip65_fetcher.dart';
+import 'replaceable_asks.dart';
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
 
@@ -38,9 +39,21 @@ class OutboxFetcher {
   /// Only shows in logs.
   final String name;
 
+  /// How long the pubkeys looked up are gathered into one REQ per relay.
+  final Duration batchWindow;
+
   late final SharedLookups _lookups = SharedLookups(
     _lookUp,
     reuseFor: checks == null ? maxAge : Duration.zero,
+  );
+
+  late final _asks = ReplaceableAsks(
+    _reqs,
+    kind: kind,
+    dTag: dTag,
+    name: name,
+    timeout: timeout,
+    window: batchWindow,
   );
 
   OutboxFetcher({
@@ -53,6 +66,7 @@ class OutboxFetcher {
     this.cache,
     this.checks,
     this.maxAge = const Duration(minutes: 10),
+    this.batchWindow = defaultBatchWindow,
     String? name,
   }) : _reqs = reqs,
        name = name ?? 'kind-$kind';
@@ -81,6 +95,23 @@ class OutboxFetcher {
   /// [relays] lacking the event does not make it [EventNotFound].
   Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
 
+  /// [fetch] for each of [pubKeys]. Their REQs to [relays] and for their
+  /// relay lists go out once each lookup asked for them, without waiting for
+  /// the end of [batchWindow]. Their write relays are asked as for [fetch].
+  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubKeys) async =>
+      foundEvents(await lookupAll(pubKeys));
+
+  /// [lookup] for each of [pubKeys], their REQs sent as [fetchAll] does.
+  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubKeys) =>
+      _lookups.lookupAll(
+        pubKeys,
+        onAsked: (asking) {
+          _asks.flush();
+          // their lookups started the relay list lookups this one reuses
+          nip65Fetcher?.lookupAll(asking).ignore();
+        },
+      );
+
   ReplaceableLookup _lookUp(String pubKey) {
     Future<EventLookup>? nip65Lookup;
     return lookUpReplaceable(
@@ -92,17 +123,12 @@ class OutboxFetcher {
       maxAge: maxAge,
       ask: (outcomes) {
         final asked = <String>{};
-        Stream<Nip01Event> askOn(List<String> urls) => askReplaceable(
-          _reqs,
-          kind: kind,
-          pubKey: pubKey,
-          dTag: dTag,
+        Stream<Nip01Event> askOn(List<String> urls) => _asks.ask(
+          pubKey,
           relays: [
             for (final url in cleanRelayUrls(urls))
               if (asked.add(url)) url,
           ],
-          name: name,
-          timeout: timeout,
           outcomes: outcomes,
         );
 

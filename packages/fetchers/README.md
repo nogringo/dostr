@@ -57,6 +57,14 @@ Every fetcher reads one account three ways:
 - `fetch(pubKey)`: the newest version, or null if no relay has one.
 - `lookup(pubKey)`: how the lookup ended, as an `EventLookup`.
 
+`fetchAll(pubKeys)` and `lookupAll(pubKeys)` do the same for several accounts,
+in a map by pubkey:
+
+```dart
+final profiles = await metadata.fetchAll([alice, bob]);
+print(profiles[bob]?.content);
+```
+
 A lookup ends in one of three states:
 
 - `EventFound`: the newest version, from the cache or a relay.
@@ -66,9 +74,29 @@ A lookup ends in one of three states:
   the relays that would hold the event are unknown.
 
 A lookup runs until every relay answered or `timeout`, five seconds unless
-given, even once no one listens. Each fetcher reuses a lookup still running,
-and one finished less than `maxAge` ago, ten minutes unless given, when it has
-no checks.
+given, counted from when its REQs go out, even once no one listens. Each
+fetcher reuses a lookup still running, and one finished less than `maxAge`
+ago, ten minutes unless given, when it has no checks.
+
+## Batching
+
+The pubkeys a fetcher looks up within `batchWindow`, 50 ms unless given, share
+the REQs of each relay. Each filter holds up to 100 of them in `authors`, with
+their number as `limit`, since a relay returns only the latest version of each.
+100 is the lowest `max_limit` seen in relays' NIP-11, so a relay that clamps
+`limit` still returns every author. A REQ holds up to 9 such filters, about
+61 KB: under 65,535 bytes and under the 10 filters nostream accepts by default.
+
+A relay that refuses a REQ with a CLOSED is asked again for each of its filters
+alone, then for each pubkey alone, unless the CLOSED starts with
+`auth-required:`, `restricted:`, `rate-limited:` or `blocked:`, which refuse a
+REQ whatever its size.
+
+`fetchAll` and `lookupAll` know their pubkeys up front: their REQs go out as
+soon as each of their lookups read the cache, without waiting for the end of
+`batchWindow`. An `OutboxFetcher` sends those for the relay lists the same
+way, while the write relays, asked as each relay list arrives, still wait for
+the window.
 
 ## Cache and checks
 

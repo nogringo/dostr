@@ -11,5 +11,6 @@ class MetadataFetcher extends OutboxFetcher {
     super.cache,
     super.checks,
     super.maxAge,
+    super.batchWindow,
   }) : super(kind: 0, name: 'metadata');
 }

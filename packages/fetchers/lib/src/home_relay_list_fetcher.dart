@@ -14,6 +14,7 @@ class HomeRelayListFetcher extends OutboxFetcher {
     super.cache,
     super.checks,
     super.maxAge,
+    super.batchWindow,
   }) : super(
          kind: HomeRelayList.kind,
          dTag: HomeRelayList.dTag,

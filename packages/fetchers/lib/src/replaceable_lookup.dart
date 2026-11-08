@@ -48,11 +48,23 @@ final class EventUnavailable extends EventLookup {
   const EventUnavailable(this.reason);
 }
 
-/// [result] completes once [versions] is done, and never if it is cancelled.
+/// [asked] completes once [versions] asked the relays, with true, or found it
+/// needs not, with false. [result] completes once [versions] is done, and
+/// never if it is cancelled.
 typedef ReplaceableLookup = ({
   Stream<Nip01Event> versions,
+  Future<bool> asked,
   Future<EventLookup> result,
 });
+
+/// The event each of [lookups] found, or null.
+Map<String, Nip01Event?> foundEvents(Map<String, EventLookup> lookups) => {
+  for (final MapEntry(key: pubKey, value: lookup) in lookups.entries)
+    pubKey: switch (lookup) {
+      EventFound(:final event) => event,
+      _ => null,
+    },
+};
 
 /// A lookup of the newest [kind] event of [pubKey], named [dTag] if
 /// addressable: its versions start on the one in [cache], then each newer one
@@ -81,6 +93,7 @@ ReplaceableLookup lookUpReplaceable({
   UrlListCheckStore? checks,
   required Duration maxAge,
 }) {
+  final asked = Completer<bool>();
   final result = Completer<EventLookup>();
 
   Stream<Nip01Event> versions() async* {
@@ -89,6 +102,7 @@ ReplaceableLookup lookUpReplaceable({
     final now = DateTime.now().toUtc();
     if (cached != null) yield cached;
     if (_isFresh(check, cached != null, now, maxAge)) {
+      asked.complete(false);
       result.complete(
         cached != null ? EventFound(cached) : const EventNotFound(),
       );
@@ -96,9 +110,11 @@ ReplaceableLookup lookUpReplaceable({
     }
 
     final outcomes = <String, RelayRequestOutcome>{};
+    final answers = ask(outcomes);
+    asked.complete(true);
     var newest = cached;
     yield* newerVersions(
-      ask(outcomes),
+      answers,
       kind: kind,
       pubKey: pubKey,
       dTag: dTag,
@@ -141,7 +157,7 @@ ReplaceableLookup lookUpReplaceable({
     });
   }
 
-  return (versions: versions(), result: result.future);
+  return (versions: versions(), asked: asked.future, result: result.future);
 }
 
 /// A check vouches for the cache while it is younger than [maxAge], unless
@@ -172,10 +188,29 @@ class SharedLookups {
 
   Stream<Nip01Event> watch(String pubKey) => _lookupOf(pubKey).versions;
 
-  Future<EventLookup> lookup(String pubKey) async {
-    final lookup = _lookupOf(pubKey);
-    await lookup.versions.drain<void>();
-    return lookup.result;
+  Future<EventLookup> lookup(String pubKey) => _lookupOf(pubKey).done;
+
+  /// The lookups of [pubKeys], each once. Once each of them asked the relays
+  /// or found it needs not, [onAsked] gets the pubkeys that asked.
+  Future<Map<String, EventLookup>> lookupAll(
+    Iterable<String> pubKeys, {
+    required void Function(List<String> asking) onAsked,
+  }) async {
+    final lookups = {for (final pubKey in pubKeys) pubKey: _lookupOf(pubKey)};
+    final dones = [for (final lookup in lookups.values) lookup.done];
+    final asked = await Future.wait([
+      for (final (i, lookup) in lookups.values.indexed)
+        Future.any([
+          lookup.asked,
+          // a lookup failing before it asked never completes asked
+          dones[i].then((_) => false, onError: (_) => false),
+        ]),
+    ]);
+    onAsked([
+      for (final (i, pubKey) in lookups.keys.indexed)
+        if (asked[i]) pubKey,
+    ]);
+    return Map.fromIterables(lookups.keys, await Future.wait(dones));
   }
 
   _SharedLookup _lookupOf(String pubKey) {
@@ -192,11 +227,16 @@ class SharedLookups {
 
 class _SharedLookup {
   late final Stream<Nip01Event> versions;
+  final Future<bool> asked;
   final Future<EventLookup> result;
+  late final Future<EventLookup> done = versions.drain<void>().then(
+    (_) => result,
+  );
   DateTime? _staleAt;
 
   _SharedLookup(ReplaceableLookup lookup, Duration reuseFor)
-    : result = lookup.result {
+    : asked = lookup.asked,
+      result = lookup.result {
     versions = lookup.versions
         .doOnDone(() => _staleAt = DateTime.now().add(reuseFor))
         .publishReplay(maxSize: 1)
