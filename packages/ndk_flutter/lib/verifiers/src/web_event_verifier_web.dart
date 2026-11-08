@@ -60,7 +60,7 @@ class WebEventVerifier implements EventVerifier {
     final jsEvent = NostrEventJS();
     jsEvent.id = event.id;
     jsEvent.pubkey = event.pubKey;
-    jsEvent.created_at = event.createdAt;
+    jsEvent.createdAt = event.createdAt;
     jsEvent.kind = event.kind;
     jsEvent.content = event.content;
     jsEvent.sig = sig;

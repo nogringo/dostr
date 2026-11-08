@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:ndk/ndk.dart';
 
 String _formatPaidAt(int? paidAt) {

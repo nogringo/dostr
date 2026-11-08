@@ -484,8 +484,6 @@ void main() {
 
       test('Profile each step of V2 derivation', () {
         final cachedSeed = seedBytes;
-        // ignore: unused_local_variable
-        final derivation = DartCashuKeyDerivation();
         const keysetId =
             "015ba18a8adcd02e715a58358eb618da4a4b3791151a4bee5e968bb88406ccf76a";
 

@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:test/test.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk/ndk.dart';

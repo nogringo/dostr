@@ -71,10 +71,12 @@ class CashuRestore {
           final r = BigInt.parse(derivedSecret.blindingHex, radix: 16);
 
           // Create blinded message
-          // ignore: non_constant_identifier_names, constant_identifier_names
-          final (B_, rActual) = CashuBdhke.blindMessage(secret, r: r);
+          final (blindedMessageHex, rActual) = CashuBdhke.blindMessage(
+            secret,
+            r: r,
+          );
 
-          if (B_.isEmpty) {
+          if (blindedMessageHex.isEmpty) {
             Logger.log.w(() => 'Empty blinded message for counter $counter');
             continue;
           }
@@ -84,7 +86,7 @@ class CashuRestore {
           final blindedMessage = CashuBlindedMessage(
             id: keysetId,
             amount: 0, // Amount is unknown during restore
-            blindedMessage: B_,
+            blindedMessage: blindedMessageHex,
           );
 
           blindedMessageItems.add(

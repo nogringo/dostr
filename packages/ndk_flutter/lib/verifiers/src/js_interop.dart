@@ -52,10 +52,10 @@ extension type NostrEventJS._(JSObject _) implements JSObject {
   external String get pubkey;
   external set pubkey(String value);
 
-  // ignore: non_constant_identifier_names
-  external int get created_at;
-  // ignore: non_constant_identifier_names
-  external set created_at(int value);
+  @JS('created_at')
+  external int get createdAt;
+  @JS('created_at')
+  external set createdAt(int value);
 
   external int get kind;
   external set kind(int value);

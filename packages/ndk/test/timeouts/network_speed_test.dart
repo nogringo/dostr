@@ -85,7 +85,6 @@ void main() {
 
       expect(stopwatch.elapsedMilliseconds, lessThan(timoutMiliseconds));
 
-      // ignore: avoid_print
       print(
         'high level - network faster then timeout Query took: ${stopwatch.elapsedMilliseconds}ms',
       );

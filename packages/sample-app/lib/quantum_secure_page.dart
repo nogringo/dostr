@@ -1,4 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -94,6 +93,7 @@ class _QuantumSecurePageState extends State<QuantumSecurePage> {
       final signedEvents = await Future.wait(
         unsignedEvents.map((event) => _signer!.sign(event)),
       );
+      if (!mounted) return;
 
       final endTime = DateTime.now();
       _signTimeMs =
@@ -119,6 +119,7 @@ class _QuantumSecurePageState extends State<QuantumSecurePage> {
         ),
       );
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _signTimeMs = null;
       });
@@ -151,6 +152,7 @@ class _QuantumSecurePageState extends State<QuantumSecurePage> {
       final isValidations = await Future.wait(
         _signedEvents.map((signedEvent) => _verifier!.verify(signedEvent)),
       );
+      if (!mounted) return;
 
       final endTime = DateTime.now();
       _verifyTimeMs =
@@ -180,6 +182,7 @@ class _QuantumSecurePageState extends State<QuantumSecurePage> {
         );
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _verifyTimeMs = null;
         _failedVerifications = null;

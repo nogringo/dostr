@@ -4,3 +4,7 @@ analyzer:
   errors:
     # tests exercise the deprecated core API on purpose
     deprecated_member_use: ignore
+
+linter:
+  rules:
+    avoid_print: false

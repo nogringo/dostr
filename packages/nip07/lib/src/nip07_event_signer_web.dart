@@ -225,7 +225,7 @@ class Nip07EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     return _trackRequest(SignerMethod.signEvent, () async {
       final jsEvent = js.NostrEvent()
         ..pubkey = event.pubKey
-        ..created_at = event.createdAt
+        ..createdAt = event.createdAt
         ..kind = event.kind
         ..content = event.content
         ..tags = event.tags
@@ -239,7 +239,7 @@ class Nip07EventSigner with ConcurrencyLimiterMixin implements EventSigner {
         id: signedEvent.id!,
         sig: signedEvent.sig!,
         pubKey: signedEvent.pubkey,
-        createdAt: signedEvent.created_at,
+        createdAt: signedEvent.createdAt,
         kind: signedEvent.kind,
         content: signedEvent.content,
         tags: signedEvent.tagsList,

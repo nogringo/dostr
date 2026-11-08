@@ -1,5 +1,3 @@
-// ignore_for_file: non_constant_identifier_names
-
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_pq/ndk_pq.dart';
 import 'package:test/test.dart';
@@ -11,12 +9,12 @@ void main() async {
     test('dev - test', () async {
       final profiler = SimpleProfiler('QS Sign + Verify');
 
-      final LEVEL = 2;
+      final level = 2;
 
-      final myKeyPair = QsRustEventSigner.generateKeypair(level: LEVEL);
+      final myKeyPair = QsRustEventSigner.generateKeypair(level: level);
 
-      final eventVerifier = QsRustEventVerifier(level: LEVEL);
-      final signer = QsRustEventSigner(level: LEVEL, keypair: myKeyPair);
+      final eventVerifier = QsRustEventVerifier(level: level);
+      final signer = QsRustEventSigner(level: level, keypair: myKeyPair);
 
       final usignedEvent = Nip01Event(
         content: "hello",
@@ -35,7 +33,7 @@ void main() async {
 
       expect(isValid, true);
 
-      print("\n\nLevel: $LEVEL\n");
+      print("\n\nLevel: $level\n");
       print("Signature: ${signedEvent.sig}\n");
       print("Event ID: ${signedEvent.id}\n");
       print("Public Key: ${signedEvent.pubKey}\n\n");
@@ -44,19 +42,19 @@ void main() async {
     test('dev - bulk speed test', () async {
       final profiler = SimpleProfiler('QS Bulk Sign + Verify');
 
-      final LEVEL = 5;
-      final MESSAGE_COUNT = 1000; // Configurable via variable
+      final level = 5;
+      final messageCount = 1000; // Configurable via variable
 
-      final myKeyPair = QsRustEventSigner.generateKeypair(level: LEVEL);
+      final myKeyPair = QsRustEventSigner.generateKeypair(level: level);
 
-      final eventVerifier = QsRustEventVerifier(level: LEVEL);
-      final signer = QsRustEventSigner(level: LEVEL, keypair: myKeyPair);
+      final eventVerifier = QsRustEventVerifier(level: level);
+      final signer = QsRustEventSigner(level: level, keypair: myKeyPair);
 
-      profiler.checkpoint('Started bulk test with $MESSAGE_COUNT messages');
+      profiler.checkpoint('Started bulk test with $messageCount messages');
 
       // Create all unsigned events first
       final unsignedEvents = List.generate(
-        MESSAGE_COUNT,
+        messageCount,
         (index) => Nip01Event(
           content: "hello message $index",
           kind: 1,
@@ -65,37 +63,37 @@ void main() async {
         ),
       );
 
-      profiler.checkpoint('Created $MESSAGE_COUNT unsigned events');
+      profiler.checkpoint('Created $messageCount unsigned events');
 
       // Sign all events in parallel
       final signedEvents = await Future.wait(
         unsignedEvents.map((event) => signer.sign(event)),
       );
 
-      profiler.checkpoint('Signed $MESSAGE_COUNT events');
+      profiler.checkpoint('Signed $messageCount events');
 
       // Verify all events in parallel
       final isValidations = await Future.wait(
         signedEvents.map((signedEvent) => eventVerifier.verify(signedEvent)),
       );
 
-      profiler.checkpoint('Verified $MESSAGE_COUNT events');
+      profiler.checkpoint('Verified $messageCount events');
 
       // Check if all verifications passed
       bool allValid = isValidations.every((valid) => valid);
       int failedCount = isValidations.where((valid) => !valid).length;
 
       final checkpointString =
-          'QS sign + verify completed: $MESSAGE_COUNT total, $failedCount failed';
+          'QS sign + verify completed: $messageCount total, $failedCount failed';
       profiler.checkpoint(checkpointString);
 
       expect(allValid, true);
 
       profiler.end();
 
-      print("Events processed: $MESSAGE_COUNT");
+      print("Events processed: $messageCount");
       print("Verification failures: $failedCount");
-      print("Used Level: $LEVEL\n\n");
+      print("Used Level: $level\n\n");
     });
   });
 }

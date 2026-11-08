@@ -155,8 +155,7 @@ void main() async {
           Filter(authors: [key1.publicKey], kinds: [Nip01Event.kTextNoteKind]),
         ],
       );
-      // ignore: unused_local_variable
-      await for (final event in response.stream) {
+      await for (final _ in response.stream) {
         fail("should not emit any events, since relay does not sign");
       }
       await relay1.stop();

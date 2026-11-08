@@ -1,4 +1,3 @@
-// ignore_for_file: use_build_context_synchronously
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
@@ -260,6 +259,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
           // clientKeyPair: nwcAppKey, // Removed as per user feedback
           doGetInfoMethod: true,
         );
+        if (!mounted) return;
 
         setState(() {
           connection = establishedConn;
@@ -286,6 +286,7 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
         );
       } catch (e) {
         print('Error during NIP-47 callback processing: $e');
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error processing NWC callback: $e')),
         );
@@ -371,9 +372,11 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
               await launchUrl(launchUri, mode: LaunchMode.externalApplication);
             } catch (e) {
               print("Error launching NIP-47 Auth URI: $e");
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Could not launch wallet app: $e')),
-              );
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Could not launch wallet app: $e')),
+                );
+              }
               // Clear pending state if launch fails
               _pendingDiscoveryRelayUrl = null;
               _pendingAppPubkeyForAuth = null;
@@ -685,13 +688,15 @@ class NwcPageState extends State<NwcPage> with WidgetsBindingObserver {
                   await launchUrl(launchUri);
                 } else {
                   // Optionally, show a message if no app can handle the URI
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Could not launch Lightning invoice. No app found to handle it.',
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Could not launch Lightning invoice. No app found to handle it.',
+                        ),
                       ),
-                    ),
-                  );
+                    );
+                  }
                   print('Could not launch $launchUri');
                 }
               },
