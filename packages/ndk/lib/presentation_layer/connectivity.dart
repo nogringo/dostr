@@ -31,15 +31,18 @@ class Connectivity {
   Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
       _relayManager.relayConnectivityChanges;
 
-  /// NIP-11 info of the relay at [url], fetched once and then cached for an hour, across restarts in `NdkConfig.cache` \
+  /// NIP-11 info of the relay at [url], fetched once and then cached, across restarts in `NdkConfig.cache` \
+  /// past an hour, a call gets the cached document while it is fetched again in the background \
   /// concurrent calls share the request, a relay that could not be reached is asked again after a minute \
   /// and keeps its last document meanwhile \
-  /// returns null when the relay serves no document, or could not be reached and never answered \
+  /// returns null when the relay serves no document, could not be reached and never answered, or [url] is not a relay url \
   /// ndk also asks it each time it opens a socket, for `limitation.max_subscriptions`
   Future<RelayInfo?> getRelayInfo(String url) async {
     try {
       return await _relayInfoRepo.getRelayInfo(cleanRelayUrl(url) ?? url);
     } on Exception {
+      return null;
+    } on ArgumentError {
       return null;
     }
   }

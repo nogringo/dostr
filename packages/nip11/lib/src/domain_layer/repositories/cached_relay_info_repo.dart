@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:clock/clock.dart';
@@ -9,20 +10,22 @@ import 'relay_info_repo.dart';
 
 /// [RelayInfoRepo] that fetches the info of a relay once and then serves it
 /// from memory, a relay that answered without one included, and from [cache]
-/// after a restart. Concurrent calls share the request. A fetch that throws
-/// serves the last answer of the relay, or throws when it never answered, and
-/// is asked again on the next call, or once [failureMaxAge] passes. Urls are
-/// keys as given, so normalize them first.
+/// after a restart. Concurrent calls share the request. An answer older than
+/// [maxAge] is served while the relay is fetched again in the background. A
+/// fetch that throws serves the last answer of the relay, or throws when it
+/// never answered, and is asked again on the next call, or once
+/// [failureMaxAge] passes. Urls are keys as given, so normalize them first.
 class CachedRelayInfoRepo implements RelayInfoRepo {
   final RelayInfoRepo _repo;
 
   /// keeps every answer, read on the first call for a relay. A read that
-  /// throws fetches the relay, and a write that throws keeps the answer in
-  /// memory only
+  /// throws fetches the relay. A call does not wait for the write, and a write
+  /// that throws keeps the answer in memory only
   final RelayInfoCache? cache;
 
-  /// how long an answer is served before it is fetched again, aged by the
-  /// system clock once read from [cache]; null keeps it until evicted
+  /// how long an answer is served before it is fetched again, in the
+  /// background while it is still served, aged by the system clock once read
+  /// from [cache]; null keeps it until evicted
   final Duration? maxAge;
 
   /// how long a fetch that throws is not asked again, so a relay that is down
@@ -58,9 +61,11 @@ class CachedRelayInfoRepo implements RelayInfoRepo {
     }
     _sweep();
     final entry = _entries[url] = _Entry(cached?.answer);
-    return entry.info = cached == null && cache != null
-        ? _load(url, entry)
-        : _fetch(url, entry);
+    if (cached == null && cache != null) return entry.info = _load(url, entry);
+    if (entry.answer case final answer?) {
+      return _refresh(url, entry, answer.info);
+    }
+    return entry.info = _fetch(url, entry);
   }
 
   Future<RelayInfo?> _load(String url, _Entry entry) async {
@@ -74,7 +79,7 @@ class CachedRelayInfoRepo implements RelayInfoRepo {
     entry.answer = (info: record.info);
     final remaining = _remaining(record.fetchedAt);
     if (remaining != null && remaining <= Duration.zero) {
-      return _fetch(url, entry);
+      return _refresh(url, entry, record.info);
     }
     entry.expiresAt = _after(remaining);
     return record.info;
@@ -89,6 +94,12 @@ class CachedRelayInfoRepo implements RelayInfoRepo {
     return age.isNegative ? maxAge : maxAge - age;
   }
 
+  /// serves [info], the expired answer of [entry], while it is fetched again
+  Future<RelayInfo?> _refresh(String url, _Entry entry, RelayInfo? info) {
+    unawaited(_fetch(url, entry));
+    return entry.info = Future.value(info);
+  }
+
   Future<RelayInfo?> _fetch(String url, _Entry entry) async {
     final RelayInfo? info;
     try {
@@ -100,16 +111,27 @@ class CachedRelayInfoRepo implements RelayInfoRepo {
     }
     entry
       ..answer = (info: info)
+      ..info = Future.value(info)
       ..expiresAt = _after(maxAge);
     // a fetch evicted while it ran must not bring its relay back
     if (cache case final cache? when identical(_entries[url], entry)) {
-      try {
-        await cache.saveRelayInfo(
+      unawaited(
+        _save(
+          cache,
           RelayInfoRecord(url: url, info: info, fetchedAt: clock.now()),
-        );
-      } catch (_) {}
+        ),
+      );
     }
     return info;
+  }
+
+  static Future<void> _save(
+    RelayInfoCache cache,
+    RelayInfoRecord record,
+  ) async {
+    try {
+      await cache.saveRelayInfo(record);
+    } catch (_) {}
   }
 
   Duration? _after(Duration? age) => age == null ? null : _clock.elapsed + age;
@@ -142,7 +164,9 @@ class _Entry {
   /// what the relay last answered, null while it never did
   ({RelayInfo? info})? answer;
 
-  late final Future<RelayInfo?> info;
+  /// what a call gets until [expiresAt]: the request while the relay never
+  /// answered, its last answer once it did
+  late Future<RelayInfo?> info;
 
   /// null while the fetch runs, or when the answer never expires
   Duration? expiresAt;

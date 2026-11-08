@@ -4,7 +4,7 @@
 
 ## With NDK
 
-`ndk` depends on this package and re-exports it. `ndk.connectivity` fetches the document once per relay and caches it for an hour, in `NdkConfig.cache` too, so a persistent backend keeps it across restarts. It asks a relay that could not be reached again after a minute. It returns null when the relay serves no document or could not be reached:
+`ndk` depends on this package and re-exports it. `ndk.connectivity` fetches the document once per relay and caches it, in `NdkConfig.cache` too, so a persistent backend keeps it across restarts. Past an hour, a call gets the cached document while it is fetched again in the background. It asks a relay that could not be reached again after a minute. It returns null when the relay serves no document, could not be reached, or the url is not a relay url:
 
 ```dart
 import 'package:ndk/ndk.dart';
@@ -35,7 +35,7 @@ print(info?.limitation?.maxSubscriptions);
 
 `getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay answers without one: an error status, a body that is not a JSON object, or one past `maxBytes` (1 MiB by default). It throws when the relay could not be reached, since asking again later may work: a timeout, a network failure, a 408, a 429 or a 5xx. A url that is not ws, wss, http or https throws an `ArgumentError`.
 
-To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document, and serves each answer for `maxAge`, or as long as it lives without one. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
+To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document. Once an answer is older than `maxAge`, a call still gets it right away while the relay is fetched again in the background, so a call waits for the network only while its relay never answered. Without `maxAge`, an answer stays until it is evicted. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
 
 ```dart
 final cached = CachedRelayInfoRepo(
@@ -45,7 +45,7 @@ final cached = CachedRelayInfoRepo(
 );
 ```
 
-To keep the answers across restarts, give it a `RelayInfoCache`. It saves each answer as a `RelayInfoRecord`, a relay without a document included, and reads it on the first call for that relay, so a restart serves it without a request until `maxAge` passes since it was fetched, or until it is evicted without a `maxAge`. A failure is not saved, and `evict(url)` and `clear()` forget the relays in `cache` too. A read that throws fetches the relay, and a write that throws keeps the answer in memory only. NDK's `CacheManager` implements `RelayInfoCache`, so every NDK cache backend persists them:
+To keep the answers across restarts, give it a `RelayInfoCache`. It saves each answer as a `RelayInfoRecord`, a relay without a document included, and reads it on the first call for that relay, so a restart serves it without waiting for a request. Once `maxAge` has passed since it was fetched, it is fetched again in the background, as above. A failure is not saved, and `evict(url)` and `clear()` forget the relays in `cache` too. A read that throws fetches the relay. A call does not wait for the write, and a write that throws keeps the answer in memory only. NDK's `CacheManager` implements `RelayInfoCache`, so every NDK cache backend persists them:
 
 ```dart
 final cached = CachedRelayInfoRepo(

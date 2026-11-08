@@ -80,6 +80,9 @@ RelayManager({SubscriptionLimit? subscriptionLimit, ...})
   timeout. A relay that could not be reached is asked again after a minute, so a
   connection opened within that minute keeps the limit of its last document, or
   the default when it never answered.
+- Past that hour, `getRelayInfo` serves the last answer at once and fetches the
+  relay again in the background, so only a relay that never answered makes a
+  connection wait for NIP-11.
 
 ### Gate and queue
 

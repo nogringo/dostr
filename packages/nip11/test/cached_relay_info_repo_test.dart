@@ -26,6 +26,7 @@ class _Repo implements RelayInfoRepo {
 class _Cache implements RelayInfoCache {
   final records = <String, RelayInfoRecord>{};
   var failing = false;
+  var writesHang = false;
 
   void _check() {
     if (failing) throw StateError('disk full');
@@ -34,6 +35,7 @@ class _Cache implements RelayInfoCache {
   @override
   Future<void> saveRelayInfo(RelayInfoRecord record) async {
     _check();
+    if (writesHang) await Completer<void>().future;
     records[record.url] = record;
   }
 
@@ -118,7 +120,7 @@ void main() {
     expect(repo.requested, [url]);
   });
 
-  test('an answer is fetched again once maxAge passes', () {
+  test('an answer older than maxAge is served while it is fetched again', () {
     fake(maxAge: minute, (async) {
       repo.answer(info);
       expect(_outcome(async, cached.getRelayInfo(url)), same(info));
@@ -127,7 +129,13 @@ void main() {
       expect(repo.requested, [url]);
 
       async.elapse(const Duration(seconds: 1));
-      repo.answer(updated);
+      repo.next = Completer();
+      expect(_outcome(async, cached.getRelayInfo(url)), same(info));
+      expect(_outcome(async, cached.getRelayInfo(url)), same(info));
+      expect(repo.requested, [url, url]);
+
+      repo.next.complete(updated);
+      async.flushMicrotasks();
       expect(_outcome(async, cached.getRelayInfo(url)), same(updated));
       expect(repo.requested, [url, url]);
     });
@@ -189,6 +197,7 @@ void main() {
 
       async.elapse(minute);
       repo.answer(updated);
+      expect(_outcome(async, cached.getRelayInfo(url)), same(info));
       expect(_outcome(async, cached.getRelayInfo(url)), same(updated));
     });
   });
@@ -324,8 +333,27 @@ void main() {
 
         async.elapse(const Duration(seconds: 1));
         repo.answer(updated);
+        expect(_outcome(async, cached.getRelayInfo(url)), info);
         expect(_outcome(async, cached.getRelayInfo(url)), updated);
         expect(repo.requested, [url, url]);
+        expect(cache.records[url]?.info, updated);
+      });
+    });
+
+    test('an expired saved answer is served while it is fetched again', () {
+      fake(cache: cache, maxAge: minute, (async) {
+        repo.answer(info);
+        _outcome(async, cached.getRelayInfo(url));
+        async.elapse(minute);
+
+        restart(maxAge: minute);
+        repo.next = Completer();
+        expect(_outcome(async, cached.getRelayInfo(url)), info);
+        expect(repo.requested, [url, url]);
+
+        repo.next.complete(updated);
+        async.flushMicrotasks();
+        expect(_outcome(async, cached.getRelayInfo(url)), updated);
         expect(cache.records[url]?.info, updated);
       });
     });
@@ -358,6 +386,7 @@ void main() {
 
         async.elapse(const Duration(seconds: 1));
         repo.answer(updated);
+        expect(_outcome(async, cached.getRelayInfo(url)), info);
         expect(_outcome(async, cached.getRelayInfo(url)), updated);
       });
     });
@@ -370,6 +399,14 @@ void main() {
 
     test('a cache that throws is skipped', () async {
       cache.failing = true;
+      repo.answer(info);
+      expect(await cached.getRelayInfo(url), same(info));
+      expect(await cached.getRelayInfo(url), same(info));
+      expect(repo.requested, [url]);
+    });
+
+    test('an answer does not wait for its write', () async {
+      cache.writesHang = true;
       repo.answer(info);
       expect(await cached.getRelayInfo(url), same(info));
       expect(await cached.getRelayInfo(url), same(info));

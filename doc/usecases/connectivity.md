@@ -12,9 +12,10 @@ icon: rss
 /// value: relay connectivity
 ndkInstance.connectivity.relayConnectivityChanges;
 
-/// NIP-11 info of a relay, fetched on first call and then cached for an hour,
+/// NIP-11 info of a relay, fetched on first call and then cached,
 /// across restarts in NdkConfig.cache
-/// null when the relay serves no document, or could not be reached and never answered
+/// past an hour, a call gets the cached document while it is fetched again in the background
+/// null when the relay serves no document, could not be reached and never answered, or the url is not a relay url
 /// a relay that could not be reached is asked again after a minute, and keeps its last document meanwhile
 await ndkInstance.connectivity.getRelayInfo(relayConnectivity.url);
 
@@ -56,7 +57,7 @@ You can instantly reconnect using the `tryReconnect()` method, as shown in the e
 
 ### REQs per relay
 
-NDK keeps at most the `limitation.max_subscriptions` of a relay open as REQs on one socket, and queues the others. It reads the limit from the NIP-11 document when the socket opens, through the same cache as `getRelayInfo`, which keeps the documents in `NdkConfig.cache`: after a restart, a persistent backend serves them without a request for an hour after they were fetched. A relay that publishes no limit, or does not answer within 2 seconds, gets 20. `NdkConfig.subscriptionLimit` comes first: a number it gives for a relay replaces NIP-11, and null falls back on it.
+NDK keeps at most the `limitation.max_subscriptions` of a relay open as REQs on one socket, and queues the others. It reads the limit from the NIP-11 document when the socket opens, through the same cache as `getRelayInfo`, which keeps the documents in `NdkConfig.cache`: after a restart, a persistent backend serves them without waiting for a request. A document fetched more than an hour ago is fetched again in the background, and the socket uses the old one meanwhile. A relay that publishes no limit, or does not answer within 2 seconds, gets 20. `NdkConfig.subscriptionLimit` comes first: a number it gives for a relay replaces NIP-11, and null falls back on it.
 
 ```dart
 final ndk = Ndk(
