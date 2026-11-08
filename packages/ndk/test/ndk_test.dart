@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:ndk/ndk.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:test/test.dart';

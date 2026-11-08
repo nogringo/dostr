@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
 
 /// Example demonstrating NUT-16 Animated QR codes using UR encoding

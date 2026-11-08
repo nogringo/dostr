@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/ndk_core.dart';

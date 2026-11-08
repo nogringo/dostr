@@ -79,7 +79,6 @@ void main() {
 
       expect(stopwatch.elapsedMilliseconds, lessThan(timoutMiliseconds));
 
-      // ignore: avoid_print
       print(
         'low level - network faster then timeout Query took: ${stopwatch.elapsedMilliseconds}ms',
       );
@@ -129,7 +128,6 @@ void main() {
 
       expect(stopwatch.elapsedMilliseconds, lessThan(timoutMiliseconds));
 
-      // ignore: avoid_print
       print('low level - dead relay took: ${stopwatch.elapsedMilliseconds}ms');
     });
   });

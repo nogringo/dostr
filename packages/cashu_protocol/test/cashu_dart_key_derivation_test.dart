@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'dart:typed_data';
 
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';

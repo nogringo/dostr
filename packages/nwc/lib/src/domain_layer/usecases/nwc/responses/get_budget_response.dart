@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 import '../consts/budget_renewal_period.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 

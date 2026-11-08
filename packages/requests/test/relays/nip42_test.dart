@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import '../mocks/requests_client.dart';
 import 'dart:async';
 

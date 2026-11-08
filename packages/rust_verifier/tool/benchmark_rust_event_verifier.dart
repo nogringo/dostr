@@ -56,7 +56,6 @@ Future<void> main() async {
     ),
   );
 
-  // ignore: avoid_print
   print(jsonEncode(results));
 }
 

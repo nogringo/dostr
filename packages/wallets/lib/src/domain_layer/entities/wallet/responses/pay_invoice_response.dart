@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 import 'nwc_response.dart';
 
 /// Represents the result of an pay_invoice response.

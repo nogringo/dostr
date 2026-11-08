@@ -27,8 +27,6 @@ void main() async {
     });
 
     test('multiple filters JIT query', () async {
-      // ignore: non_constant_identifier_names
-
       CacheManager cacheManager = MemCacheManager();
 
       final profiler = SimpleProfiler('multiple filters JIT query');

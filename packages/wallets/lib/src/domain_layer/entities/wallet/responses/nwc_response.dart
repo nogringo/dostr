@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 /// Represents the result of an error response.
 class NwcResponse {
   /// The error code.

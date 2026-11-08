@@ -3,3 +3,6 @@ analyzer:
     - build/**
     - android/**
 include: package:flutter_lints/flutter.yaml
+linter:
+  rules:
+    unnecessary_ignore: true

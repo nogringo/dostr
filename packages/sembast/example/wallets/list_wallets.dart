@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'wallets_setup.dart';
 
 Future<void> main() async {

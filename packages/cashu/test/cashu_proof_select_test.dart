@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'package:ndk_cashu/ndk_cashu.dart';
 import 'package:test/test.dart';
 

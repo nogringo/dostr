@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use_from_same_package
-
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
 

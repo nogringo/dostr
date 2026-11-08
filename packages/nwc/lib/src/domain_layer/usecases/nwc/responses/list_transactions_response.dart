@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 import 'package:equatable/equatable.dart';
 
 import '../consts/transaction_type.dart';

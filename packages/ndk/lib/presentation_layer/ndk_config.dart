@@ -191,7 +191,6 @@ class NdkConfig {
     this.webSocketPingInterval = const Duration(seconds: 10),
     this.webSocketReconnectMaximumStep = 4,
     this.fetchedRangesEnabled = false,
-    // ignore: deprecated_member_use_from_same_package
     this.eagerAuth = false,
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     this.authHandler,

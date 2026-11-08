@@ -66,7 +66,6 @@ class NwcConnection {
   bool get isClosed => _closed;
 
   /// Marks the connection closed before its asynchronous teardown starts.
-  // ignore: invalid_internal_annotation
   @internal
   void markClosed() => _closed = true;
 

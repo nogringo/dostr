@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 import 'package:ndk_wallets/ndk_wallets.dart';
 
 /// Represents the result of a 'get_balance' response.

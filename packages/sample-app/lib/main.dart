@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';

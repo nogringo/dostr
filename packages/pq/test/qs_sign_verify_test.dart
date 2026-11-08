@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print, non_constant_identifier_names
+// ignore_for_file: non_constant_identifier_names
 
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_pq/ndk_pq.dart';

@@ -1,6 +1,3 @@
-// Avoiding const constructors for equality comparison tests.
-// ignore_for_file: prefer_const_constructors
-
 import 'package:test/test.dart';
 import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
 

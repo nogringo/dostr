@@ -213,7 +213,6 @@ void _isolateEntry(SendPort sendPort) {
 
         replyPort.send({'type': 'done'});
       } catch (e, stackTrace) {
-        // ignore: avoid_print
         print('_isolateEntry Stream Error: $e\n$stackTrace');
         replyPort.send({'error': 'Error: $e'});
       }
@@ -232,7 +231,6 @@ void _isolateEntry(SendPort sendPort) {
       final result = task(argument);
       replyPort.send(result);
     } catch (e, stackTrace) {
-      // ignore: avoid_print
       print('_isolateEntry Error: $e\n$stackTrace');
       replyPort.send({'error': 'Error: $e'});
     }

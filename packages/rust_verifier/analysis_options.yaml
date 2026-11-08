@@ -3,3 +3,6 @@ analyzer:
     - build/**
     - rust/**
 include: package:lints/recommended.yaml
+linter:
+  rules:
+    unnecessary_ignore: true

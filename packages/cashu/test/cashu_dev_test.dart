@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print
 import 'package:http/http.dart' as http;
 import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';

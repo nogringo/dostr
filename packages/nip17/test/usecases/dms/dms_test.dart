@@ -752,10 +752,8 @@ class _CountingBip340EventSigner extends Bip340EventSigner {
   }) : super(privateKey: privateKey, publicKey: pubkey);
 
   @override
-  // ignore: deprecated_member_use
   Future<String?> decrypt(String msg, String destPubKey) {
     nip04DecryptCalls++;
-    // ignore: deprecated_member_use
     return super.decrypt(msg, destPubKey);
   }
 }

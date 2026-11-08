@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'dart:core';
 
 import 'package:ndk_logger/ndk_logger.dart';

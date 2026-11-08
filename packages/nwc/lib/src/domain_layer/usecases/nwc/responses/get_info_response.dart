@@ -1,5 +1,3 @@
-// ignore_for_file: camel_case_types
-
 import 'package:ndk_nwc/src/domain_layer/usecases/nwc/consts/bitcoin_network.dart';
 import 'package:ndk_nwc/src/domain_layer/usecases/nwc/consts/nwc_extension.dart';
 
