@@ -22,19 +22,26 @@ class OutboxFetcher {
   /// Where the events found are kept. [watch] starts on the one it holds.
   final ReplaceableEventCache? cache;
 
-  /// When the relays last answered for each event, keyed by pubkey and kind:
-  /// fetchers of one kind with different [dTag]s need a store each. A lookup
-  /// a relay answered less than [maxAge] ago is answered from [cache] alone,
-  /// unless the event it found is gone from it. Past [maxAge] the relays are
-  /// asked again, and while none answers the last known state holds: the
-  /// cached event, or [EventNotFound] when there was none.
+  /// When the relays last answered for each event. A lookup a relay answered
+  /// less than [maxAge] ago is answered from [cache] alone, unless the event
+  /// it found is gone from it. Past [maxAge] the relays are asked again, and
+  /// while none answers the last known state holds: the cached event, or
+  /// [EventNotFound] when there was none.
   final UrlListCheckStore? checks;
 
-  /// With [checks], how long a lookup a relay answered is trusted.
+  /// How long a finished lookup is trusted. Without [checks], its result is
+  /// reused that long. With them, each lookup reads [cache] again, so an
+  /// event saved there since is seen, and the checks spare the relays across
+  /// restarts too.
   final Duration maxAge;
 
   /// Only shows in logs.
   final String name;
+
+  late final SharedLookups _lookups = SharedLookups(
+    _lookUp,
+    reuseFor: checks == null ? maxAge : Duration.zero,
+  );
 
   OutboxFetcher({
     required RelayReqs reqs,
@@ -57,21 +64,22 @@ class OutboxFetcher {
   /// NIP-65 puts it on the write relays, asked as soon as a relay list
   /// arrives. [relays] are asked meanwhile, since many clients also publish
   /// there. Each relay is asked once.
-  Stream<Nip01Event> watch(String pubKey) => _lookUp(pubKey).versions;
+  ///
+  /// A lookup still running is reused, starting on the newest event it found
+  /// so far, and so is one finished less than [maxAge] ago when there are no
+  /// [checks]. Once started, a lookup runs until every relay answered or
+  /// [timeout], even with no one listening.
+  Stream<Nip01Event> watch(String pubKey) => _lookups.watch(pubKey);
 
   /// The newest [kind] event of [pubKey] (hex) found on its write relays and
   /// on [relays], or null if none has one.
   Future<Nip01Event?> fetch(String pubKey) => lastVersion(watch(pubKey));
 
-  /// How a lookup like [watch] ends for [pubKey].
+  /// How the lookup [watch] runs for [pubKey] ended.
   ///
   /// While no relay answers [nip65Fetcher], the write relays are unknown, and
   /// [relays] lacking the event does not make it [EventNotFound].
-  Future<EventLookup> lookup(String pubKey) async {
-    final lookup = _lookUp(pubKey);
-    await lookup.versions.drain<void>();
-    return lookup.result;
-  }
+  Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
 
   ReplaceableLookup _lookUp(String pubKey) {
     Future<EventLookup>? nip65Lookup;
@@ -99,7 +107,7 @@ class OutboxFetcher {
         );
 
         final nip65Fetcher = this.nip65Fetcher;
-        // a lookup cancelled before its end never awaits it
+        // a lookup failing before its end never awaits it
         nip65Lookup = nip65Fetcher?.lookup(pubKey)?..ignore();
         return MergeStream([
           askOn(relays),

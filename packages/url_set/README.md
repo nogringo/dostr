@@ -96,13 +96,14 @@ that is up to the consumer.
 ## Remembering when a list was checked
 
 A `UrlListCheck` says when the relays last answered a query for one list of an
-account, and whether they held it. A lookup keeps them in a
-`UrlListCheckStore`, so a list checked recently is not asked again, and a list
-known to be absent stays `notFound` instead of `unavailable` while offline.
+account, and whether they held it. Addressable lists are told apart by their
+`dTag`. A lookup keeps them in a `UrlListCheckStore`, so a list checked
+recently is not asked again, and a list known to be absent stays `notFound`
+instead of `unavailable` while offline.
 
 `MemoryUrlListCheckStore` forgets everything on restart. To keep the checks,
-implement `UrlListCheckStore` on your database: `UrlListCheck.toMap()` gives a
-JSON-compatible record.
+implement `UrlListCheckStore` on your database, one check per pubkey, kind and
+`dTag`: `UrlListCheck.toMap()` gives a JSON-compatible record.
 
 ## Storage
 
@@ -114,5 +115,6 @@ new: older readers reject a set that uses it.
 ## Coming from `url_set_for_ndk`
 
 `UrlSet`, `resolveUrlSet`, the lookup types and `UrlListCheckStore` moved here
-unchanged. [`url_set_for_ndk`](https://pub.dev/packages/url_set_for_ndk)
+unchanged, except for the `dTag` of `UrlListCheckStore.read` and
+`UrlListCheck`. [`url_set_for_ndk`](https://pub.dev/packages/url_set_for_ndk)
 re-exports them and keeps `ndkUrlListFn` and `defaultIndexerRelays`.

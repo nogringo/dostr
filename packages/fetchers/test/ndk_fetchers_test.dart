@@ -649,6 +649,69 @@ void main() {
     });
   });
 
+  group('OutboxFetcher lookups', () {
+    test('looks up a pubkey watched and looked up at once once', () async {
+      final current = metadata('alice');
+      final relay = await startCountedRelay([current]);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final (profile, lookup) = await (
+        fetcher.fetch(alice),
+        fetcher.lookup(alice),
+      ).wait;
+
+      expect(profile?.id, current.id);
+      expect((lookup as EventFound).event.id, current.id);
+      expect(relay.reqCount, 1);
+    });
+
+    test('reuses a lookup that finished less than maxAge ago', () async {
+      final current = metadata('alice');
+      final relay = await startCountedRelay([current]);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      await fetcher.fetch(alice);
+
+      expect((await fetcher.fetch(alice))?.id, current.id);
+      expect(relay.reqCount, 1);
+    });
+
+    test('looks up again once maxAge passed', () async {
+      final relay = await startCountedRelay([metadata('alice')]);
+      final fetcher = MetadataFetcher(
+        reqs: reqs,
+        relays: [relay.url],
+        maxAge: Duration.zero,
+      );
+
+      await fetcher.fetch(alice);
+      await fetcher.fetch(alice);
+
+      expect(relay.reqCount, 2);
+    });
+
+    test('keeps a check for each d tag of a kind', () async {
+      final checks = MemoryUrlListCheckStore();
+      final relay = await startRelay([
+        relayList([
+          ['d', 'b'],
+        ], kind: 30000),
+      ]);
+      OutboxFetcher fetcherOf(String dTag) => OutboxFetcher(
+        reqs: reqs,
+        kind: 30000,
+        dTag: dTag,
+        relays: [relay],
+        checks: checks,
+      );
+
+      expect(await fetcherOf('a').lookup(alice), isA<EventNotFound>());
+      expect(await fetcherOf('b').lookup(alice), isA<EventFound>());
+      expect((await checks.read(alice, 30000, dTag: 'a'))?.found, isFalse);
+      expect((await checks.read(alice, 30000, dTag: 'b'))?.found, isTrue);
+    });
+  });
+
   test('dmRelaysOf keeps the relay tags, each once, in order', () {
     final list = relayList([
       ['relay', 'wss://b.example.com/'],

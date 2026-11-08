@@ -7,6 +7,9 @@ class UrlListCheck {
   /// Event kind of the list, such as 10002 or 10050.
   final int kind;
 
+  /// The `d` tag of an addressable list, null for a replaceable one.
+  final String? dTag;
+
   /// When a relay last answered the query.
   final DateTime checkedAt;
 
@@ -17,6 +20,7 @@ class UrlListCheck {
   const UrlListCheck({
     required this.pubkey,
     required this.kind,
+    this.dTag,
     required this.checkedAt,
     required this.found,
   });
@@ -25,6 +29,7 @@ class UrlListCheck {
   Map<String, Object?> toMap() => {
     'pubkey': pubkey,
     'kind': kind,
+    'dTag': ?dTag,
     'checkedAt': checkedAt.millisecondsSinceEpoch,
     'found': found,
   };
@@ -33,6 +38,7 @@ class UrlListCheck {
   factory UrlListCheck.fromMap(Map map) => UrlListCheck(
     pubkey: map['pubkey'] as String,
     kind: map['kind'] as int,
+    dTag: map['dTag'] as String?,
     checkedAt: DateTime.fromMillisecondsSinceEpoch(
       map['checkedAt'] as int,
       isUtc: true,
@@ -41,26 +47,27 @@ class UrlListCheck {
   );
 }
 
-/// Where a lookup keeps its [UrlListCheck]s, one per pubkey and kind.
+/// Where a lookup keeps its [UrlListCheck]s, one per pubkey, kind and d tag.
 /// Implement it on the database the app already has to keep them across
 /// restarts. [UrlListCheck.toMap] gives a JSON-compatible record.
 abstract interface class UrlListCheckStore {
-  /// The check of the [kind] list of [pubkey], or null if it never ran.
-  Future<UrlListCheck?> read(String pubkey, int kind);
+  /// The check of the [kind] list of [pubkey], named [dTag] if addressable,
+  /// or null if it never ran.
+  Future<UrlListCheck?> read(String pubkey, int kind, {String? dTag});
 
-  /// Replaces the check of the same pubkey and kind.
+  /// Replaces the check of the same pubkey, kind and d tag.
   Future<void> write(UrlListCheck check);
 }
 
 /// A [UrlListCheckStore] that lives as long as the process.
 class MemoryUrlListCheckStore implements UrlListCheckStore {
-  final _checks = <String, UrlListCheck>{};
+  final _checks = <(String, int, String?), UrlListCheck>{};
 
   @override
-  Future<UrlListCheck?> read(String pubkey, int kind) async =>
-      _checks['$kind|$pubkey'];
+  Future<UrlListCheck?> read(String pubkey, int kind, {String? dTag}) async =>
+      _checks[(pubkey, kind, dTag)];
 
   @override
   Future<void> write(UrlListCheck check) async =>
-      _checks['${check.kind}|${check.pubkey}'] = check;
+      _checks[(check.pubkey, check.kind, check.dTag)] = check;
 }

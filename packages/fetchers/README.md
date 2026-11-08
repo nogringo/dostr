@@ -66,8 +66,9 @@ A lookup ends in one of three states:
   the relays that would hold the event are unknown.
 
 A lookup runs until every relay answered or `timeout`, five seconds unless
-given. `Nip65Fetcher` reuses one still running or finished less than `maxAge`
-ago.
+given, even once no one listens. Each fetcher reuses a lookup still running,
+and one finished less than `maxAge` ago, ten minutes unless given, when it has
+no checks.
 
 ## Cache and checks
 
@@ -78,8 +79,7 @@ then stores each newer one.
 Give them a `UrlListCheckStore` from `ndk_url_set` too, and a lookup a relay
 answered less than `maxAge` ago is answered from the cache alone, an absent
 event included. Past `maxAge` the relays are asked again, and while none
-answers the last known state holds. Fetchers of one kind with different `dTag`s
-need a store each.
+answers the last known state holds.
 
 ## Resolving a `UrlSet`
 

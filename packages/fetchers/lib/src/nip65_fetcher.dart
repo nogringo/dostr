@@ -1,7 +1,6 @@
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_home_relays/ndk_home_relays.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
-import 'package:rxdart/rxdart.dart';
 
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
@@ -34,7 +33,10 @@ class Nip65Fetcher {
   /// is seen, and the checks spare the relays across restarts too.
   final Duration maxAge;
 
-  final Map<String, _Lookup> _lookups = {};
+  late final SharedLookups _lookups = SharedLookups(
+    _lookUp,
+    reuseFor: checks == null ? maxAge : Duration.zero,
+  );
 
   Nip65Fetcher({
     required RelayReqs reqs,
@@ -54,27 +56,14 @@ class Nip65Fetcher {
   /// so far, and so is one finished less than [maxAge] ago when there are no
   /// [checks]. Once started, a lookup runs until every relay answered or
   /// [timeout], even with no one listening.
-  Stream<Nip01Event> watch(String pubKey) => _lookupOf(pubKey).versions;
+  Stream<Nip01Event> watch(String pubKey) => _lookups.watch(pubKey);
 
   /// The newest `kind:10002` event of [pubKey] (hex) found on [relays] and on
   /// its home relays, or null if none has one.
   Future<Nip01Event?> fetch(String pubKey) => lastVersion(watch(pubKey));
 
   /// How the lookup [watch] runs for [pubKey] ended.
-  Future<EventLookup> lookup(String pubKey) async {
-    final lookup = _lookupOf(pubKey);
-    await lookup.versions.drain<void>();
-    return lookup.result;
-  }
-
-  _Lookup _lookupOf(String pubKey) {
-    final lookup = _lookups[pubKey];
-    if (lookup != null && !lookup.isStale) return lookup;
-    return _lookups[pubKey] = _Lookup(
-      _lookUp(pubKey),
-      checks == null ? maxAge : Duration.zero,
-    );
-  }
+  Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
 
   ReplaceableLookup _lookUp(String pubKey) => lookUpReplaceable(
     kind: _kind,
@@ -92,24 +81,6 @@ class Nip65Fetcher {
       outcomes: outcomes,
     ),
   );
-}
-
-class _Lookup {
-  late final Stream<Nip01Event> versions;
-  final Future<EventLookup> result;
-  DateTime? _staleAt;
-
-  _Lookup(ReplaceableLookup lookup, Duration maxAge) : result = lookup.result {
-    versions = lookup.versions
-        .doOnDone(() => _staleAt = DateTime.now().add(maxAge))
-        .publishReplay(maxSize: 1)
-        .autoConnect();
-  }
-
-  bool get isStale {
-    final staleAt = _staleAt;
-    return staleAt != null && !DateTime.now().isBefore(staleAt);
-  }
 }
 
 /// The normalized write relays of [relayList], a `kind:10002`: the `r` tags

@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:rxdart/rxdart.dart';
 
 import 'replaceable_events.dart';
 
@@ -83,7 +85,7 @@ ReplaceableLookup lookUpReplaceable({
 
   Stream<Nip01Event> versions() async* {
     final cached = await cache?.load(kind: kind, pubKey: pubKey, dTag: dTag);
-    final check = await checks?.read(pubKey, kind);
+    final check = await checks?.read(pubKey, kind, dTag: dTag);
     final now = DateTime.now().toUtc();
     if (cached != null) yield cached;
     if (_isFresh(check, cached != null, now, maxAge)) {
@@ -117,6 +119,7 @@ ReplaceableLookup lookUpReplaceable({
         UrlListCheck(
           pubkey: pubKey,
           kind: kind,
+          dTag: dTag,
           checkedAt: now,
           found: newest != null,
         ),
@@ -148,4 +151,60 @@ bool _isFresh(UrlListCheck? check, bool cached, DateTime now, Duration maxAge) {
   if (check == null || check.checkedAt.isAfter(now)) return false;
   if (check.found && !cached) return false;
   return now.difference(check.checkedAt) < maxAge;
+}
+
+/// The lookups of one fetcher, one per pubkey: one still running is reused,
+/// starting on the newest version it found so far, and so is one finished
+/// less than [reuseFor] ago. Once started, a lookup runs to its end, even with
+/// no one listening.
+class SharedLookups {
+  final ReplaceableLookup Function(String pubKey) _start;
+  final Duration reuseFor;
+  final Map<String, _SharedLookup> _lookups = {};
+  int _sweepAt = _minSweep;
+
+  static const _minSweep = 64;
+
+  SharedLookups(this._start, {required this.reuseFor});
+
+  /// How many lookups are kept, the stale ones until the next sweep.
+  int get length => _lookups.length;
+
+  Stream<Nip01Event> watch(String pubKey) => _lookupOf(pubKey).versions;
+
+  Future<EventLookup> lookup(String pubKey) async {
+    final lookup = _lookupOf(pubKey);
+    await lookup.versions.drain<void>();
+    return lookup.result;
+  }
+
+  _SharedLookup _lookupOf(String pubKey) {
+    final lookup = _lookups[pubKey];
+    if (lookup != null && !lookup.isStale) return lookup;
+    // swept on insertion: a timer would keep the isolate alive
+    if (_lookups.length >= _sweepAt) {
+      _lookups.removeWhere((_, lookup) => lookup.isStale);
+      _sweepAt = max(_minSweep, 2 * _lookups.length);
+    }
+    return _lookups[pubKey] = _SharedLookup(_start(pubKey), reuseFor);
+  }
+}
+
+class _SharedLookup {
+  late final Stream<Nip01Event> versions;
+  final Future<EventLookup> result;
+  DateTime? _staleAt;
+
+  _SharedLookup(ReplaceableLookup lookup, Duration reuseFor)
+    : result = lookup.result {
+    versions = lookup.versions
+        .doOnDone(() => _staleAt = DateTime.now().add(reuseFor))
+        .publishReplay(maxSize: 1)
+        .autoConnect();
+  }
+
+  bool get isStale {
+    final staleAt = _staleAt;
+    return staleAt != null && !DateTime.now().isBefore(staleAt);
+  }
 }
