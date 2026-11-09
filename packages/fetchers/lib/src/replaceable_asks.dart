@@ -18,9 +18,9 @@ const int maxFiltersPerReq = 9;
 /// addressable. The pubkeys asked within [window] share the REQs of each
 /// relay: up to [maxFiltersPerReq] filters of up to [maxAuthorsPerFilter]
 /// authors, each filter's `limit` their number, since a relay returns only
-/// the latest version of each (NIP-01). A relay that closes a REQ gets each
-/// of its filters alone, then each pubkey, unless its CLOSED refuses a REQ
-/// whatever its size.
+/// the latest version of each (NIP-01). A relay that closes a REQ, or that
+/// the REQ is too long for, gets each of its filters alone, then each pubkey,
+/// unless its CLOSED refuses a REQ whatever its size.
 class ReplaceableAsks {
   final RelayReqs _reqs;
   final int kind;
@@ -171,10 +171,16 @@ const _refusalsOfAnySize = [
   'blocked',
 ];
 
-/// Whether a relay may have closed a REQ for its size.
+/// Whether a REQ may have ended for its size: closed by its relay, or not sent
+/// for being longer than the relay reads.
 bool _mayBeTooBig(RelayRequestOutcome? outcome) => switch (outcome) {
   RelayRequestOutcome(status: RelayRequestStatus.closed, :final message) =>
     !_refusalsOfAnySize.any((prefix) => message?.startsWith(prefix) ?? false),
+  RelayRequestOutcome(
+    status: RelayRequestStatus.notSent,
+    failure: RelayFailure(kind: RelayFailureKind.messageTooLong),
+  ) =>
+    true,
   _ => false,
 };
 

@@ -868,6 +868,30 @@ void main() {
       );
     });
 
+    test('asks each pubkey alone on a relay the REQ is too long for', () async {
+      final relay = await startCountedRelay([
+        metadata('alice'),
+        metadata('bob', pubKey: bob),
+      ]);
+      relayManager = RelayManager(
+        nostrTransportFactory: WebSocketClientNostrTransportFactory(
+          pingInterval: null,
+        ),
+        // a REQ for one pubkey is 145 bytes, for two 212
+        messageLengthLimit: (_) => 180,
+      );
+      reqs = RelayReqs(relayManager: relayManager, eventVerifier: AcceptAll());
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final lookups = await Future.wait([
+        fetcher.lookup(alice),
+        fetcher.lookup(bob),
+      ]);
+
+      expect(lookups, everyElement(isA<EventFound>()));
+      expect([for (final authors in relay.reqAuthors) authors.length], [1, 1]);
+    });
+
     for (final refusal in [
       'auth-required: we only serve our members',
       'restricted: not allowed',
