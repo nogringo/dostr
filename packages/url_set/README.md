@@ -93,6 +93,33 @@ Resolution follows from that:
 `UrlsResolved.urls` keeps tree order and is not deduplicated or normalized:
 that is up to the consumer.
 
+## Watching
+
+`resolveUrlSet` waits for every list, so one silent relay holds back the whole
+set. `watchUrlSet` gives the URLs as the lists arrive, so a request can ask a
+relay as soon as a list names it. It takes a `UrlListWatchFn`, which emits each
+newer version of a list as `found`, or ends with `notFound` or `unavailable`:
+
+```dart
+final asked = <String>{};
+await for (final snapshot in watchUrlSet(UrlSet.dm(pubkey), watch)) {
+  for (final url in snapshot.urls) {
+    if (asked.add(url)) print('ask $url');
+  }
+  if (snapshot.done) print('ended: ${snapshot.resolution}');
+}
+```
+
+Each `UrlSetSnapshot` holds the URLs known so far and the lookups found
+unavailable. A later one may drop URLs: a newer version of a list replaces the
+one before, and a fallback moves past a set whose list turns out empty. The
+last one is `done`, and its `resolution` is what `resolveUrlSet` gives with the
+lists as they ended.
+
+A DM, private or Blossom list is watched along with the NIP-65 of its owner,
+whose write relays come later as the `outboxRelays` future, so a lookup that
+finds them itself starts right away.
+
 ## Remembering when a list was checked
 
 A `UrlListCheck` says when the relays last answered a query for one list of an

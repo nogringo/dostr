@@ -1,3 +1,7 @@
+import 'dart:async';
+
+part 'url_set_watch.dart';
+
 /// Which list of an account a [UrlSet] leaf reads.
 enum UrlListKind {
   /// NIP-65 (kind 10002) relays marked for writing, or unmarked.
@@ -395,10 +399,8 @@ Future<UrlResolution> _resolveList(
   UrlListKind kind,
   UrlListFn lookup,
 ) async {
-  UrlResolution unavailable(String? reason) => UrlsUnavailable(
-    '${kind.name} list of $pubkey unavailable'
-    '${reason == null ? '' : ': $reason'}',
-  );
+  UrlResolution unavailable(String? reason) =>
+      UrlsUnavailable(_unavailableReason(pubkey, kind, reason));
 
   var outboxRelays = const <String>[];
   if (kind.onOutbox) {
@@ -418,6 +420,10 @@ Future<UrlResolution> _resolveList(
     UrlListUnavailable(:final reason) => unavailable(reason),
   };
 }
+
+String _unavailableReason(String pubkey, UrlListKind kind, String? reason) =>
+    '${kind.name} list of $pubkey unavailable'
+    '${reason == null ? '' : ': $reason'}';
 
 UrlResolution _merge(List<UrlResolution> parts) {
   final unavailable = parts.whereType<UrlsUnavailable>();
