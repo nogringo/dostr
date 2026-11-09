@@ -153,9 +153,17 @@ filter. Each relay is asked as soon as a list names it, with its own REQ and
 timeout, so the defaults of a fallback reached late still get their full time:
 
 ```dart
-final events = EventFetcher(reqs: reqs, urlLists: watch);
+final nip65 = Nip65Fetcher(reqs: reqs);
+final eventFetcher = EventFetcher(
+  reqs: reqs,
+  urlLists: fetcherUrlListWatchFn(
+    nip65: nip65,
+    dmRelays: DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65),
+    blossomServers: BlossomServersFetcher(reqs: reqs, nip65Fetcher: nip65),
+  ),
+);
 
-final fetch = events.fetch(
+final fetch = eventFetcher.fetch(
   Filter(kinds: [1], authors: [alice], limit: 20),
   from: UrlSet.outbox(alice),
 );
@@ -163,6 +171,10 @@ fetch.events.listen(print);
 final result = await fetch.done;
 if (!result.complete) print('partial: ${result.unavailable}');
 ```
+
+`urlLists` reads the lists the set names, here the NIP-65 of `alice`.
+`EventFetcher` does not build these fetchers itself: give it the ones the rest
+of the app uses, so each list is looked up once and kept in one cache.
 
 `events` gives each matching event once, as soon as a relay sends it. `done`
 says how the fetch ended: the events, what each relay did, and the lists that
