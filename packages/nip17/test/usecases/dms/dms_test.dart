@@ -40,7 +40,6 @@ void main() async {
         ignoreRelays: [],
       );
       ndk = Ndk(config);
-      await ndk.bootstrapRelaysConnected;
       dms = dmsFor(ndk);
 
       // Alice logs in

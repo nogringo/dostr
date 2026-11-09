@@ -36,6 +36,25 @@ void main() async {
   Map<KeyPair, Nip01Event> key1TextNotes = {key1: textNote(key1)};
 
   group('Ndk', () {
+    test('opens no connection to its bootstrap relays when built', () async {
+      final relay = MockRelay(name: "bootstrap");
+      await relay.start();
+      final ndk = Ndk(
+        NdkConfig(
+          eventVerifier: Bip340EventVerifier(),
+          cache: MemCacheManager(),
+          bootstrapRelays: [relay.url],
+        ),
+      );
+
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(relay.clients, isEmpty);
+      expect(ndk.relays.connectivities, isEmpty);
+
+      await ndk.destroy();
+      await relay.stop();
+    });
+
     test(
       'query simple note LISTS',
       timeout: const Timeout(Duration(seconds: 3)),
@@ -51,7 +70,6 @@ void main() async {
             bootstrapRelays: [relay1.url],
           ),
         );
-        await ndk.bootstrapRelaysConnected;
         ndk.accounts.loginPrivateKey(
           pubkey: key1.publicKey,
           privkey: key1.privateKey!,
@@ -106,8 +124,6 @@ void main() async {
             bootstrapRelays: [relay1.url],
           ),
         );
-        await ndk.bootstrapRelaysConnected;
-
         final response = ndk.requests.query(
           filters: [
             Filter(ids: [key1TextNotes[key1]!.id]),

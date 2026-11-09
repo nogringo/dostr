@@ -21,7 +21,6 @@ void main() {
         bootstrapRelays: [mockRelay.url],
       ),
     );
-    await ndk.bootstrapRelaysConnected;
     accounts = Accounts(eventSignerFactory);
   });
 

@@ -56,8 +56,6 @@ void main() {
         );
         await relay.start(events: [cachedEvent]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.bootstrapRelaysConnected;
-
         final initiallyCached = await ndk.requests
             .query(
               filter: Filter(ids: [cachedEvent.id]),
@@ -132,8 +130,6 @@ void main() {
         );
         await relay.start(events: [targetEvent]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.bootstrapRelaysConnected;
-
         final cachedTarget = await ndk.requests
             .query(
               filter: Filter(ids: [targetEvent.id]),
@@ -223,8 +219,6 @@ void main() {
         );
         await relay.start(events: [cachedVersion]);
         ndk = await _createNdk(tempDir.path, bootstrapRelays: [relay.url]);
-        await ndk.bootstrapRelaysConnected;
-
         final cachedLoad = await ndk.requests
             .query(
               filter: Filter(

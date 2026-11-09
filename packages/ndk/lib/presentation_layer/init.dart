@@ -252,8 +252,6 @@ class Initialization {
 
   late final NetworkEngine engine;
 
-  late final Future<void> bootstrapRelaysConnected;
-
   /// [NdkConfig] is user defined
   Initialization({required NdkConfig ndkConfig}) : _ndkConfig = ndkConfig {
     // first, so what the use cases log while they are built respects it
@@ -284,19 +282,9 @@ class Initialization {
       HttpRelayInfoRepo(_httpRequestDS),
       cache: _ndkConfig.cache,
     );
-    // connectRelay reports its failures in its record, so this never fails
-    bootstrapRelaysConnected = Future.wait(
-      _ndkConfig.bootstrapRelays.map(
-        (url) => relayManager.connectRelay(dirtyUrl: url),
-      ),
-    );
-
     switch (_ndkConfig.engine) {
       case NdkEngine.RELAY_SETS:
-        engine = RelaySetsEngine(
-          bootstrapRelays: _ndkConfig.bootstrapRelays,
-          bootstrapRelaysConnected: bootstrapRelaysConnected,
-        );
+        engine = RelaySetsEngine(bootstrapRelays: _ndkConfig.bootstrapRelays);
         break;
       case NdkEngine.JIT:
         engine = JitEngine(
@@ -304,7 +292,6 @@ class Initialization {
           ignoreRelays: _ndkConfig.ignoreRelays,
           relayManagerLight: relayManager,
           bootstrapRelays: _ndkConfig.bootstrapRelays,
-          bootstrapRelaysConnected: bootstrapRelaysConnected,
         );
         break;
     }

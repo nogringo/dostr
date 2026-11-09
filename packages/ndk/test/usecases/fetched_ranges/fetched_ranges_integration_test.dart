@@ -42,8 +42,6 @@ void main() async {
           ),
         );
 
-        await ndk.bootstrapRelaysConnected;
-
         // Define filter with time bounds
         final since =
             DateTime.now()
@@ -124,8 +122,6 @@ void main() async {
           ),
         );
 
-        await ndk.bootstrapRelaysConnected;
-
         // First query: 100-200
         final filter1 = Filter(
           kinds: [Nip01Event.kTextNoteKind],
@@ -188,8 +184,6 @@ void main() async {
           ),
         );
 
-        await ndk.bootstrapRelaysConnected;
-
         // Query for 200-300
         final filter = Filter(
           kinds: [Nip01Event.kTextNoteKind],
@@ -238,8 +232,6 @@ void main() async {
             fetchedRangesEnabled: true,
           ),
         );
-
-        await ndk.bootstrapRelaysConnected;
 
         // Query for 200-300
         final filter = Filter(
@@ -305,8 +297,6 @@ void main() async {
           privkey: author.privateKey!,
           pubkey: author.publicKey,
         );
-
-        await ndk.bootstrapRelaysConnected;
 
         // 30 events, one per second, oldest first
         final baseCreatedAt =
@@ -417,8 +407,6 @@ void main() async {
           pubkey: author.publicKey,
         );
 
-        await ndk.bootstrapRelaysConnected;
-
         // 60 events, one per second, oldest first
         final baseCreatedAt =
             (DateTime.now().millisecondsSinceEpoch ~/ 1000) - 1000;
@@ -512,8 +500,6 @@ void main() async {
             fetchedRangesEnabled: true,
           ),
         );
-
-        await ndk.bootstrapRelaysConnected;
 
         final filter = Filter(
           kinds: [Nip01Event.kTextNoteKind],

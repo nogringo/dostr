@@ -39,7 +39,6 @@ void main() async {
       ndk = Ndk(config);
 
       //cache.saveUserRelayList(UserRelayList.fromNip65(Nip65(pubKey: key0.publicKey, relays: {relay0.url: ReadWriteMarker.readWrite},createdAt: DateTime.now().millisecondsSinceEpoch ~/ 1000 )));
-      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {
@@ -343,8 +342,6 @@ void main() async {
           ),
         ),
       );
-
-      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {

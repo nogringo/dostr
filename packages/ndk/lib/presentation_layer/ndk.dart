@@ -90,11 +90,6 @@ class Ndk {
   /// Relay Manager
   RelayManager get relays => _initialization.relayManager;
 
-  /// Completes once every relay of [NdkConfig.bootstrapRelays] has connected
-  /// or failed to.
-  Future<void> get bootstrapRelaysConnected =>
-      _initialization.bootstrapRelaysConnected;
-
   /// Handles operations related to user follows
   ///
   /// Use getContactList() to retrieve contact lists

@@ -71,8 +71,6 @@ void main() async {
           pubkey: key1.publicKey,
           privkey: key1.privateKey!,
         );
-        await ndkJit.bootstrapRelaysConnected;
-
         final myfilter = Filter(
           kinds: [Nip01Event.kTextNoteKind],
           authors: [key1.publicKey],
@@ -135,8 +133,6 @@ void main() async {
           pubkey: key.publicKey,
           privkey: key.privateKey!,
         );
-        await ndk.bootstrapRelaysConnected;
-
         final filter = Filter(
           kinds: [Nip01Event.kTextNoteKind],
           authors: [key.publicKey],

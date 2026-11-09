@@ -41,9 +41,6 @@ void main() {
       );
       addTearDown(ndk.destroy);
 
-      await _waitForRelayConnected(ndk: ndk, relayUrl: relay1.url);
-      await _waitForRelayConnected(ndk: ndk, relayUrl: relay2.url);
-
       final filter = Filter(
         kinds: [Nip01Event.kTextNoteKind],
         authors: [key.publicKey],
@@ -66,23 +63,4 @@ void main() {
       );
     },
   );
-}
-
-Future<void> _waitForRelayConnected({
-  required RequestsClient ndk,
-  required String relayUrl,
-  Duration timeout = const Duration(seconds: 10),
-}) async {
-  final current = ndk.relays.getRelayConnectivity(relayUrl);
-  if (current?.isConnected == true) {
-    return;
-  }
-
-  await ndk.relays.relayConnectivityChanges
-      .firstWhere(
-        (connections) => connections.any(
-          (connection) => connection.url == relayUrl && connection.isConnected,
-        ),
-      )
-      .timeout(timeout);
 }

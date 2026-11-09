@@ -14,9 +14,6 @@ Future<void> main(List<String> args) async {
   final relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
-  final bootstrapRelaysConnected = Future.wait(
-    bootstrapRelays.map((url) => relayManager.connectRelay(dirtyUrl: url)),
-  );
 
   final requests = Requests(
     cacheRead: CacheRead(cache),
@@ -26,7 +23,6 @@ Future<void> main(List<String> args) async {
       cache: cache,
       ignoreRelays: const [],
       bootstrapRelays: bootstrapRelays,
-      bootstrapRelaysConnected: bootstrapRelaysConnected,
     ),
     relayManager: relayManager,
     eventVerifier: Bip340EventVerifier(),

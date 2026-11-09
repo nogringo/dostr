@@ -96,8 +96,6 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.bootstrapRelaysConnected;
-
       ta = trustedAssertionsFor(
         ndk,
         defaultProviders: [

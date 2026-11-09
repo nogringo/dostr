@@ -52,8 +52,8 @@ void main() {
 
         try {
           await Future.wait([
-            first.bootstrapRelaysConnected,
-            second.bootstrapRelaysConnected,
+            first.relays.connectRelay(dirtyUrl: relay.url),
+            second.relays.connectRelay(dirtyUrl: relay.url),
           ]);
           await _waitUntil(
             () => relay.openClients.length == 2,
@@ -153,11 +153,6 @@ void main() {
       final second = _createNdk(bootstrapRelays: [rejectingRelay.url]);
 
       try {
-        await Future.wait([
-          first.bootstrapRelaysConnected,
-          second.bootstrapRelaysConnected,
-        ]);
-
         final key = Bip340.generatePrivateKey();
         final event = Bip340.signEvent(
           event: Nip01Event(
@@ -230,11 +225,6 @@ void main() {
           pubkey: secondKey.publicKey,
           privkey: secondKey.privateKey!,
         );
-
-        await Future.wait([
-          first.bootstrapRelaysConnected,
-          second.bootstrapRelaysConnected,
-        ]);
 
         final results = await Future.wait([
           first.requests

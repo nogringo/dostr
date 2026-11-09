@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_logger/ndk_logger.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
@@ -14,8 +16,12 @@ class JitRequestPlan {
   // relay -> filter -> the pubkeys it covers there, null for the whole filter
   final Map<String, Map<Filter, Set<String>?>> _collected = {};
   final Set<String> _sent = {};
+  final Completer<void> _firstSent = Completer();
 
   JitRequestPlan(this._send);
+
+  /// Completes once a relay got the request.
+  Future<void> get firstSent => _firstSent.future;
 
   /// [filter] restricted to [pubkeys], its authors or p tags, on [relayUrl].
   void addPubkeys(String relayUrl, Filter filter, Iterable<String> pubkeys) {
@@ -30,6 +36,10 @@ class JitRequestPlan {
   }
 
   bool isSent(String relayUrl) => _sent.contains(_normalize(relayUrl));
+
+  /// Whether the next [flush] sends something to [relayUrl].
+  bool isCollected(String relayUrl) =>
+      _collected[_normalize(relayUrl)]?.isNotEmpty ?? false;
 
   bool get hasSent => _sent.isNotEmpty;
 
@@ -47,6 +57,7 @@ class JitRequestPlan {
         for (final MapEntry(key: filter, value: pubkeys) in filters.entries)
           pubkeys == null ? filter : _restrict(filter, pubkeys.toList()),
       ]);
+      if (!_firstSent.isCompleted) _firstSent.complete();
     });
   }
 

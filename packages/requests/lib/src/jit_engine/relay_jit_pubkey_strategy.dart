@@ -21,8 +21,7 @@ import 'jit_request_plan.dart';
 /// 2.) for not covered pubkeys look for relays in nip65 data, while boosting
 /// already connected relays
 ///
-/// 3.) case=> if no relay is found, blast the request to all connected
-/// bootstrap relays
+/// 3.) case=> if no relay is found, blast the request to all bootstrap relays
 ///
 /// 4.) case=> good relay found but not connected yet: connect, then send out
 /// the request, see [RelayJitPubkeyStrategy.connectCandidates]
@@ -113,8 +112,7 @@ class RelayJitPubkeyStrategy with Logger {
         plan: plan,
         filter: filter,
         pubkeys: coveragePubkeys.map((e) => e.pubkey),
-        connectedRelays: connectedRelays,
-        bootstrapRelays: bootstrapRelays,
+        relays: bootstrapRelays,
       );
       return const [];
     }
@@ -158,8 +156,7 @@ class RelayJitPubkeyStrategy with Logger {
         plan: plan,
         filter: filter,
         pubkeys: notCovered,
-        connectedRelays: connectedRelays,
-        bootstrapRelays: bootstrapRelays,
+        relays: bootstrapRelays,
       );
     }
     return candidates;
@@ -167,8 +164,8 @@ class RelayJitPubkeyStrategy with Logger {
 
   /// Connects to [candidates], all at once, and sends each the request as soon
   /// as it is up. The pubkeys of a relay that cannot be reached go to the
-  /// connected bootstrap relays that have not received the request yet; when
-  /// every one of them has, they stay uncovered.
+  /// bootstrap relays that have not received the request yet; when every one
+  /// of them has, they stay uncovered.
   static Future<void> connectCandidates({
     required List<JitRelayCandidate> candidates,
     required JitRequestPlan plan,
@@ -207,16 +204,15 @@ class RelayJitPubkeyStrategy with Logger {
     );
 
     if (unreachable.isEmpty) return;
-    final fallbackRelays = relayManager.connectedAnonymousRelays
-        .where((relay) => !plan.isSent(relay.url))
+    final fallbackRelays = bootstrapRelays
+        .where((url) => !plan.isSent(url))
         .toList();
     for (final candidate in unreachable) {
       RelayJitBlastAllStrategy.plan(
         plan: plan,
         filter: candidate.filter,
         pubkeys: candidate.pubkeys,
-        connectedRelays: fallbackRelays,
-        bootstrapRelays: bootstrapRelays,
+        relays: fallbackRelays,
       );
     }
     plan.flush();

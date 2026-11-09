@@ -27,24 +27,19 @@ class JitEngine with Logger implements NetworkEngine {
   /// ndk config
   List<String> bootstrapRelays;
 
-  final Future<void> _bootstrapRelaysConnected;
-
   /// Creates a new JIT engine.
-  ///
-  /// Requests wait for [bootstrapRelaysConnected], if given, before they are
-  /// routed.
   JitEngine({
     required this.relayManagerLight,
     required this.cache,
     required this.ignoreRelays,
     required this.bootstrapRelays,
-    Future<void>? bootstrapRelaysConnected,
-  }) : _bootstrapRelaysConnected = bootstrapRelaysConnected ?? Future.value();
+  });
 
   /// Finds the right relays for each filter. The connected ones get the
   /// request before this completes; the others are connected to afterwards,
-  /// without holding the request open. If no relay is found the request is
-  /// blasted to the connected bootstrap relays.
+  /// without holding the request open. When none is connected, this completes
+  /// once the first of them got it. If no relay is found the request is
+  /// blasted to the bootstrap relays, connected or not.
   @override
   Future<void> route(
     List<Filter> filters,
@@ -52,8 +47,6 @@ class JitEngine with Logger implements NetworkEngine {
     RelaySet? relaySet,
     required int desiredCoverage,
   }) async {
-    await _bootstrapRelaysConnected;
-
     final plan = JitRequestPlan(send);
     final connectedRelays = relayManagerLight.connectedAnonymousRelays;
     final cleanIgnoreRelays = cleanRelayUrls(ignoreRelays);
@@ -76,8 +69,7 @@ class JitEngine with Logger implements NetworkEngine {
         RelayJitBlastAllStrategy.plan(
           plan: plan,
           filter: filter,
-          connectedRelays: connectedRelays,
-          bootstrapRelays: bootstrapRelays,
+          relays: bootstrapRelays,
         );
         continue;
       }
@@ -95,6 +87,12 @@ class JitEngine with Logger implements NetworkEngine {
         ),
       );
     }
+    // a relay the plan sends to anyway gets these pubkeys in the same REQ
+    candidates.removeWhere((candidate) {
+      if (!plan.isCollected(candidate.url)) return false;
+      plan.addPubkeys(candidate.url, candidate.filter, candidate.pubkeys);
+      return true;
+    });
     plan.flush();
 
     if (candidates.isEmpty) return;
@@ -104,8 +102,9 @@ class JitEngine with Logger implements NetworkEngine {
       relayManager: relayManagerLight,
       bootstrapRelays: bootstrapRelays,
     );
-    // a request no relay serves yet has nothing to end on but these
-    if (!plan.hasSent) return connecting;
+    // a request no relay serves yet has nothing to end on but these: the first
+    // one to take it holds it open, the others join while it lasts
+    if (!plan.hasSent) await Future.any([connecting, plan.firstSent]);
     unawaited(
       connecting.catchError((Object error, StackTrace stackTrace) {
         Logger.log.e(

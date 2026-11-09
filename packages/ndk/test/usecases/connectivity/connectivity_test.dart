@@ -29,8 +29,7 @@ void main() async {
       );
 
       ndk = Ndk(config);
-
-      await ndk.bootstrapRelaysConnected;
+      await ndk.relays.connectRelay(dirtyUrl: relay0.url);
     });
 
     tearDown(() async {

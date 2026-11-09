@@ -39,7 +39,8 @@ class NdkConfig {
   List<String> ignoreRelays;
 
   /// A list of initial relay URLs to use for bootstrapping the network.
-  /// These connect on start.
+  /// Nothing connects to them on start: a request opens them when it goes to
+  /// them.
   ///
   /// Defaults to [DEFAULT_BOOTSTRAP_RELAYS].
   List<String> bootstrapRelays;

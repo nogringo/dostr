@@ -21,8 +21,6 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.bootstrapRelaysConnected;
-
       ndk.accounts.loginExternalSigner(
         signer: MockSlowSigner(
           innerSigner: Bip340EventSigner(
@@ -86,8 +84,6 @@ void main() {
           bootstrapRelays: [relay.url],
         ),
       );
-      await ndk.bootstrapRelaysConnected;
-
       ndk.accounts.loginExternalSigner(
         signer: MockSlowSigner(
           innerSigner: Bip340EventSigner(

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:ndk_core/domain_layer/entities/relay_protocol_handler.dart';
 import 'package:ndk/ndk.dart';
 import 'package:test/test.dart';
 
@@ -37,6 +38,16 @@ class _CompressionRelay {
     }
     await _server.close(force: true);
   }
+}
+
+/// Still needs the connection to [url], so it comes back when it drops.
+class _ClaimConnection extends RelayProtocolHandler {
+  _ClaimConnection(String url) : key = RelayConnectionKey.anonymous(url);
+
+  final RelayConnectionKey key;
+
+  @override
+  bool hasWorkOn(RelayConnectionKey key) => key == this.key;
 }
 
 Future<void> _waitUntil(
@@ -128,6 +139,8 @@ void main() {
         ),
       );
 
+      manager.addProtocolHandler(_ClaimConnection(url));
+
       try {
         expect((await manager.connectRelay(dirtyUrl: url)).connected, isTrue);
 
@@ -158,7 +171,11 @@ void main() {
           );
 
           try {
-            await ndk.bootstrapRelaysConnected;
+            ndk.requests.subscription(filter: Filter(kinds: [1]));
+            await _waitUntil(
+              () => relay.extensionOffers[path]?.isNotEmpty ?? false,
+              reason: 'the request never opened the bootstrap relay',
+            );
             expect(relay.extensionOffers[path], everyElement(isNull));
           } finally {
             await ndk.destroy();
@@ -181,8 +198,12 @@ void main() {
 
       try {
         await Future.wait([
-          compressed.bootstrapRelaysConnected,
-          uncompressed.bootstrapRelaysConnected,
+          compressed.relays.connectRelay(
+            dirtyUrl: relay.url('/compressed-instance'),
+          ),
+          uncompressed.relays.connectRelay(
+            dirtyUrl: relay.url('/uncompressed-instance'),
+          ),
         ]);
         expect(
           relay.extensionOffers['/compressed-instance']!.single,

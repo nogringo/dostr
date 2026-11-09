@@ -46,7 +46,6 @@ void main() async {
           ),
         ),
       );
-      await ndk.bootstrapRelaysConnected;
     });
 
     tearDown(() async {

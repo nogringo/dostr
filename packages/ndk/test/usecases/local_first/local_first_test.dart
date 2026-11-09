@@ -997,11 +997,8 @@ void main() {
         );
         ndk.accounts.loginExternalSigner(signer: signer);
 
-        await _waitForRelayConnected(
-          ndk: ndk,
-          relayUrl: signerRelay.url,
-          timeout: const Duration(seconds: 10),
-        );
+        // a bunker holds the connection to its transport relay
+        await ndk.relays.connectRelay(dirtyUrl: signerRelay.url);
 
         final event = Nip01Event(
           pubKey: authorKey.publicKey,

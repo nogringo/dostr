@@ -11,17 +11,9 @@ class RelaySetsEngine implements NetworkEngine {
 
   final List<String> _bootstrapRelays;
 
-  final Future<void> _bootstrapRelaysConnected;
-
   /// engine that pre-calculates relay sets for gossip
-  ///
-  /// Requests wait for [bootstrapRelaysConnected], if given, before they are
-  /// routed.
-  RelaySetsEngine({
-    required List<String> bootstrapRelays,
-    Future<void>? bootstrapRelaysConnected,
-  }) : _bootstrapRelays = bootstrapRelays,
-       _bootstrapRelaysConnected = bootstrapRelaysConnected ?? Future.value();
+  RelaySetsEngine({required List<String> bootstrapRelays})
+    : _bootstrapRelays = bootstrapRelays;
 
   @override
   Future<void> route(
@@ -30,8 +22,6 @@ class RelaySetsEngine implements NetworkEngine {
     RelaySet? relaySet,
     required int desiredCoverage,
   }) async {
-    await _bootstrapRelaysConnected;
-
     final byRelay = <String, List<Filter>>{};
     void add(String url, List<Filter> relayFilters) => byRelay
         .putIfAbsent(cleanRelayUrl(url) ?? url, () => [])

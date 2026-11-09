@@ -25,18 +25,6 @@ void main() {
         defaultQueryTimeout: const Duration(seconds: 5),
       );
 
-      final current = ndk.relays.getRelayConnectivity(relay.url);
-      if (current?.isConnected != true) {
-        await ndk.relays.relayConnectivityChanges
-            .firstWhere(
-              (connections) => connections.any(
-                (connection) =>
-                    connection.url == relay.url && connection.isConnected,
-              ),
-            )
-            .timeout(const Duration(seconds: 10));
-      }
-
       final stopwatch = Stopwatch()..start();
       final filter = Filter(
         kinds: [Nip01Event.kTextNoteKind],

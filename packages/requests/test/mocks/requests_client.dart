@@ -27,9 +27,6 @@ class RequestsClient {
       nostrTransportFactory: WebSocketClientNostrTransportFactory(),
       authHandler: authHandler,
     );
-    bootstrapRelaysConnected = Future.wait(
-      bootstrapRelays.map((url) => relays.connectRelay(dirtyUrl: url)),
-    );
     relayReqs = RelayReqs(relayManager: relays, eventVerifier: eventVerifier);
     relayPublishes = RelayPublishes(relayManager: relays);
     requests = Requests(
@@ -37,16 +34,12 @@ class RequestsClient {
       cacheRead: CacheRead(this.cache),
       cacheManager: this.cache,
       networkEngine: switch (engine) {
-        Engine.relaySets => RelaySetsEngine(
-          bootstrapRelays: bootstrapRelays,
-          bootstrapRelaysConnected: bootstrapRelaysConnected,
-        ),
+        Engine.relaySets => RelaySetsEngine(bootstrapRelays: bootstrapRelays),
         Engine.jit => JitEngine(
           cache: this.cache,
           ignoreRelays: ignoreRelays,
           relayManagerLight: relays,
           bootstrapRelays: bootstrapRelays,
-          bootstrapRelaysConnected: bootstrapRelaysConnected,
         ),
       },
       relayManager: relays,
@@ -64,7 +57,6 @@ class RequestsClient {
   late final RelayReqs relayReqs;
   late final RelayPublishes relayPublishes;
   late final Requests requests;
-  late final Future<void> bootstrapRelaysConnected;
 
   Future<void> destroy() async {
     requests.clearVerifiedEventCache();
