@@ -5,7 +5,7 @@ order: 98
 
 Ndk comes with several database offerings. The simplest is the `MemCacheManager` which is an in-memory cache. This is useful for testing and small applications.
 
-If you are building a real app, prefer a persistent cache backend. NDK stores events, delivery state, decrypted payload sidecars, and the NIP-11 documents of relays in the configured cache backend.
+If you are building a real app, prefer a persistent cache backend. NDK stores events, delivery state, decrypted payload sidecars, the NIP-11 documents of relays, and the message lengths relays showed they read in the configured cache backend.
 
 For a behavioral overview of how the cache works from an app perspective, see [Cache Behavior](/guides/cache-behavior.md).
 

@@ -233,7 +233,10 @@ void main() {
     'fails a relay that reads less than the event, without sending it',
     () async {
       final relay = await startRelay();
-      final manager = newRelayManager(messageLengthLimit: (_) => 1000);
+      final manager = newRelayManager(
+        messageLengthLimit: (_) =>
+            Future.delayed(const Duration(milliseconds: 100), () => 1000),
+      );
       addTearDown(manager.closeAllTransports);
 
       final responses = await RelayPublishes(

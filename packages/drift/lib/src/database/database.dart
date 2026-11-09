@@ -23,6 +23,7 @@ part 'database.g.dart';
     RelaySets,
     Nip05s,
     RelayInfos,
+    LearnedMessageLengths,
     FilterFetchedRangeRecords,
     EventSourcesTable,
     EventDeliveryRecordsTable,
@@ -48,7 +49,7 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
   NdkCacheDatabase.forTesting(super.e);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration {
@@ -136,6 +137,9 @@ class NdkCacheDatabase extends _$NdkCacheDatabase {
         }
         if (from < 13) {
           await m.createTable(relayInfos);
+        }
+        if (from < 14) {
+          await m.createTable(learnedMessageLengths);
         }
       },
       // event_tags and deletion_targets follow their event through ON DELETE

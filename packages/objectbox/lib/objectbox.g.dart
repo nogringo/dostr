@@ -20,6 +20,7 @@ import 'data_layer/db/object_box/schema/db_cashu_proof.dart';
 import 'data_layer/db/object_box/schema/db_cashu_secret_counter.dart';
 import 'data_layer/db/object_box/schema/db_filter_fetched_range_record.dart';
 import 'data_layer/db/object_box/schema/db_key_value.dart';
+import 'data_layer/db/object_box/schema/db_learned_message_length.dart';
 import 'data_layer/db/object_box/schema/db_nip_01_event.dart';
 import 'data_layer/db/object_box/schema/db_nip_05.dart';
 import 'data_layer/db/object_box/schema/db_relay_info.dart';
@@ -689,6 +690,35 @@ final _entities = <obx_int.ModelEntity>[
     relations: <obx_int.ModelRelation>[],
     backlinks: <obx_int.ModelBacklink>[],
   ),
+  obx_int.ModelEntity(
+    id: const obx_int.IdUid(16, 2191636999467561296),
+    name: 'DbLearnedMessageLength',
+    lastPropertyId: const obx_int.IdUid(3, 3114379801431331642),
+    flags: 0,
+    properties: <obx_int.ModelProperty>[
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(1, 3895088819878738469),
+        name: 'dbId',
+        type: 6,
+        flags: 1,
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(2, 7724611429412138400),
+        name: 'url',
+        type: 9,
+        flags: 2048,
+        indexId: const obx_int.IdUid(7, 1366495419252638936),
+      ),
+      obx_int.ModelProperty(
+        id: const obx_int.IdUid(3, 3114379801431331642),
+        name: 'length',
+        type: 6,
+        flags: 0,
+      ),
+    ],
+    relations: <obx_int.ModelRelation>[],
+    backlinks: <obx_int.ModelBacklink>[],
+  ),
 ];
 
 /// Shortcut for [obx.Store.new] that passes [getObjectBoxModel] and for Flutter
@@ -734,8 +764,8 @@ obx_int.ModelDefinition getObjectBoxModel() {
     // Typically, this is done with `dart run build_runner build`.
     generatorVersion: obx_int.GeneratorVersion.v2025_12_16,
     entities: _entities,
-    lastEntityId: const obx_int.IdUid(15, 6237618022962771779),
-    lastIndexId: const obx_int.IdUid(6, 3364679219012760055),
+    lastEntityId: const obx_int.IdUid(16, 2191636999467561296),
+    lastIndexId: const obx_int.IdUid(7, 1366495419252638936),
     lastRelationId: const obx_int.IdUid(0, 0),
     lastSequenceId: const obx_int.IdUid(0, 0),
     retiredEntityUids: const [3682591720006600703, 1919098435759190214],
@@ -1608,6 +1638,43 @@ obx_int.ModelDefinition getObjectBoxModel() {
         return object;
       },
     ),
+    DbLearnedMessageLength: obx_int.EntityDefinition<DbLearnedMessageLength>(
+      model: _entities[13],
+      toOneRelations: (DbLearnedMessageLength object) => [],
+      toManyRelations: (DbLearnedMessageLength object) => {},
+      getId: (DbLearnedMessageLength object) => object.dbId,
+      setId: (DbLearnedMessageLength object, int id) {
+        object.dbId = id;
+      },
+      objectToFB: (DbLearnedMessageLength object, fb.Builder fbb) {
+        final urlOffset = fbb.writeString(object.url);
+        fbb.startTable(4);
+        fbb.addInt64(0, object.dbId);
+        fbb.addOffset(1, urlOffset);
+        fbb.addInt64(2, object.length);
+        fbb.finish(fbb.endTable());
+        return object.dbId;
+      },
+      objectFromFB: (obx.Store store, ByteData fbData) {
+        final buffer = fb.BufferContext(fbData);
+        final rootOffset = buffer.derefObject(0);
+        final urlParam = const fb.StringReader(
+          asciiOptimization: true,
+        ).vTableGet(buffer, rootOffset, 6, '');
+        final lengthParam = const fb.Int64Reader().vTableGet(
+          buffer,
+          rootOffset,
+          8,
+          0,
+        );
+        final object = DbLearnedMessageLength(
+          url: urlParam,
+          length: lengthParam,
+        )..dbId = const fb.Int64Reader().vTableGet(buffer, rootOffset, 4, 0);
+
+        return object;
+      },
+    ),
   };
 
   return obx_int.ModelDefinition(model, bindings);
@@ -2087,5 +2154,23 @@ class DbRelayInfo_ {
   /// See [DbRelayInfo.dataJson].
   static final dataJson = obx.QueryStringProperty<DbRelayInfo>(
     _entities[12].properties[2],
+  );
+}
+
+/// [DbLearnedMessageLength] entity fields to define ObjectBox queries.
+class DbLearnedMessageLength_ {
+  /// See [DbLearnedMessageLength.dbId].
+  static final dbId = obx.QueryIntegerProperty<DbLearnedMessageLength>(
+    _entities[13].properties[0],
+  );
+
+  /// See [DbLearnedMessageLength.url].
+  static final url = obx.QueryStringProperty<DbLearnedMessageLength>(
+    _entities[13].properties[1],
+  );
+
+  /// See [DbLearnedMessageLength.length].
+  static final length = obx.QueryIntegerProperty<DbLearnedMessageLength>(
+    _entities[13].properties[2],
   );
 }

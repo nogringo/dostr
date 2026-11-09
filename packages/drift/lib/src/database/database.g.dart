@@ -2672,6 +2672,224 @@ class RelayInfosCompanion extends UpdateCompanion<DbRelayInfo> {
   }
 }
 
+class $LearnedMessageLengthsTable extends LearnedMessageLengths
+    with TableInfo<$LearnedMessageLengthsTable, DbLearnedMessageLength> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LearnedMessageLengthsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _urlMeta = const VerificationMeta('url');
+  @override
+  late final GeneratedColumn<String> url = GeneratedColumn<String>(
+    'url',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _lengthMeta = const VerificationMeta('length');
+  @override
+  late final GeneratedColumn<int> length = GeneratedColumn<int>(
+    'length',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [url, length];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'learned_message_lengths';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<DbLearnedMessageLength> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('url')) {
+      context.handle(
+        _urlMeta,
+        url.isAcceptableOrUnknown(data['url']!, _urlMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_urlMeta);
+    }
+    if (data.containsKey('length')) {
+      context.handle(
+        _lengthMeta,
+        length.isAcceptableOrUnknown(data['length']!, _lengthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_lengthMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {url};
+  @override
+  DbLearnedMessageLength map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return DbLearnedMessageLength(
+      url: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}url'],
+      )!,
+      length: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}length'],
+      )!,
+    );
+  }
+
+  @override
+  $LearnedMessageLengthsTable createAlias(String alias) {
+    return $LearnedMessageLengthsTable(attachedDatabase, alias);
+  }
+}
+
+class DbLearnedMessageLength extends DataClass
+    implements Insertable<DbLearnedMessageLength> {
+  final String url;
+  final int length;
+  const DbLearnedMessageLength({required this.url, required this.length});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['url'] = Variable<String>(url);
+    map['length'] = Variable<int>(length);
+    return map;
+  }
+
+  LearnedMessageLengthsCompanion toCompanion(bool nullToAbsent) {
+    return LearnedMessageLengthsCompanion(
+      url: Value(url),
+      length: Value(length),
+    );
+  }
+
+  factory DbLearnedMessageLength.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return DbLearnedMessageLength(
+      url: serializer.fromJson<String>(json['url']),
+      length: serializer.fromJson<int>(json['length']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'url': serializer.toJson<String>(url),
+      'length': serializer.toJson<int>(length),
+    };
+  }
+
+  DbLearnedMessageLength copyWith({String? url, int? length}) =>
+      DbLearnedMessageLength(
+        url: url ?? this.url,
+        length: length ?? this.length,
+      );
+  DbLearnedMessageLength copyWithCompanion(
+    LearnedMessageLengthsCompanion data,
+  ) {
+    return DbLearnedMessageLength(
+      url: data.url.present ? data.url.value : this.url,
+      length: data.length.present ? data.length.value : this.length,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('DbLearnedMessageLength(')
+          ..write('url: $url, ')
+          ..write('length: $length')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(url, length);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is DbLearnedMessageLength &&
+          other.url == this.url &&
+          other.length == this.length);
+}
+
+class LearnedMessageLengthsCompanion
+    extends UpdateCompanion<DbLearnedMessageLength> {
+  final Value<String> url;
+  final Value<int> length;
+  final Value<int> rowid;
+  const LearnedMessageLengthsCompanion({
+    this.url = const Value.absent(),
+    this.length = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LearnedMessageLengthsCompanion.insert({
+    required String url,
+    required int length,
+    this.rowid = const Value.absent(),
+  }) : url = Value(url),
+       length = Value(length);
+  static Insertable<DbLearnedMessageLength> custom({
+    Expression<String>? url,
+    Expression<int>? length,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (url != null) 'url': url,
+      if (length != null) 'length': length,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LearnedMessageLengthsCompanion copyWith({
+    Value<String>? url,
+    Value<int>? length,
+    Value<int>? rowid,
+  }) {
+    return LearnedMessageLengthsCompanion(
+      url: url ?? this.url,
+      length: length ?? this.length,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (url.present) {
+      map['url'] = Variable<String>(url.value);
+    }
+    if (length.present) {
+      map['length'] = Variable<int>(length.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LearnedMessageLengthsCompanion(')
+          ..write('url: $url, ')
+          ..write('length: $length, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $FilterFetchedRangeRecordsTable extends FilterFetchedRangeRecords
     with
         TableInfo<$FilterFetchedRangeRecordsTable, DbFilterFetchedRangeRecord> {
@@ -7645,6 +7863,8 @@ abstract class _$NdkCacheDatabase extends GeneratedDatabase {
   late final $RelaySetsTable relaySets = $RelaySetsTable(this);
   late final $Nip05sTable nip05s = $Nip05sTable(this);
   late final $RelayInfosTable relayInfos = $RelayInfosTable(this);
+  late final $LearnedMessageLengthsTable learnedMessageLengths =
+      $LearnedMessageLengthsTable(this);
   late final $FilterFetchedRangeRecordsTable filterFetchedRangeRecords =
       $FilterFetchedRangeRecordsTable(this);
   late final $EventSourcesTableTable eventSourcesTable =
@@ -7714,6 +7934,7 @@ abstract class _$NdkCacheDatabase extends GeneratedDatabase {
     relaySets,
     nip05s,
     relayInfos,
+    learnedMessageLengths,
     filterFetchedRangeRecords,
     eventSourcesTable,
     eventDeliveryRecordsTable,
@@ -9642,6 +9863,168 @@ typedef $$RelayInfosTableProcessedTableManager =
         BaseReferences<_$NdkCacheDatabase, $RelayInfosTable, DbRelayInfo>,
       ),
       DbRelayInfo,
+      PrefetchHooks Function()
+    >;
+typedef $$LearnedMessageLengthsTableCreateCompanionBuilder =
+    LearnedMessageLengthsCompanion Function({
+      required String url,
+      required int length,
+      Value<int> rowid,
+    });
+typedef $$LearnedMessageLengthsTableUpdateCompanionBuilder =
+    LearnedMessageLengthsCompanion Function({
+      Value<String> url,
+      Value<int> length,
+      Value<int> rowid,
+    });
+
+class $$LearnedMessageLengthsTableFilterComposer
+    extends Composer<_$NdkCacheDatabase, $LearnedMessageLengthsTable> {
+  $$LearnedMessageLengthsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get length => $composableBuilder(
+    column: $table.length,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LearnedMessageLengthsTableOrderingComposer
+    extends Composer<_$NdkCacheDatabase, $LearnedMessageLengthsTable> {
+  $$LearnedMessageLengthsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get url => $composableBuilder(
+    column: $table.url,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get length => $composableBuilder(
+    column: $table.length,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LearnedMessageLengthsTableAnnotationComposer
+    extends Composer<_$NdkCacheDatabase, $LearnedMessageLengthsTable> {
+  $$LearnedMessageLengthsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get url =>
+      $composableBuilder(column: $table.url, builder: (column) => column);
+
+  GeneratedColumn<int> get length =>
+      $composableBuilder(column: $table.length, builder: (column) => column);
+}
+
+class $$LearnedMessageLengthsTableTableManager
+    extends
+        RootTableManager<
+          _$NdkCacheDatabase,
+          $LearnedMessageLengthsTable,
+          DbLearnedMessageLength,
+          $$LearnedMessageLengthsTableFilterComposer,
+          $$LearnedMessageLengthsTableOrderingComposer,
+          $$LearnedMessageLengthsTableAnnotationComposer,
+          $$LearnedMessageLengthsTableCreateCompanionBuilder,
+          $$LearnedMessageLengthsTableUpdateCompanionBuilder,
+          (
+            DbLearnedMessageLength,
+            BaseReferences<
+              _$NdkCacheDatabase,
+              $LearnedMessageLengthsTable,
+              DbLearnedMessageLength
+            >,
+          ),
+          DbLearnedMessageLength,
+          PrefetchHooks Function()
+        > {
+  $$LearnedMessageLengthsTableTableManager(
+    _$NdkCacheDatabase db,
+    $LearnedMessageLengthsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LearnedMessageLengthsTableFilterComposer(
+                $db: db,
+                $table: table,
+              ),
+          createOrderingComposer: () =>
+              $$LearnedMessageLengthsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$LearnedMessageLengthsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> url = const Value.absent(),
+                Value<int> length = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LearnedMessageLengthsCompanion(
+                url: url,
+                length: length,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String url,
+                required int length,
+                Value<int> rowid = const Value.absent(),
+              }) => LearnedMessageLengthsCompanion.insert(
+                url: url,
+                length: length,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LearnedMessageLengthsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$NdkCacheDatabase,
+      $LearnedMessageLengthsTable,
+      DbLearnedMessageLength,
+      $$LearnedMessageLengthsTableFilterComposer,
+      $$LearnedMessageLengthsTableOrderingComposer,
+      $$LearnedMessageLengthsTableAnnotationComposer,
+      $$LearnedMessageLengthsTableCreateCompanionBuilder,
+      $$LearnedMessageLengthsTableUpdateCompanionBuilder,
+      (
+        DbLearnedMessageLength,
+        BaseReferences<
+          _$NdkCacheDatabase,
+          $LearnedMessageLengthsTable,
+          DbLearnedMessageLength
+        >,
+      ),
+      DbLearnedMessageLength,
       PrefetchHooks Function()
     >;
 typedef $$FilterFetchedRangeRecordsTableCreateCompanionBuilder =
@@ -12337,6 +12720,8 @@ class $NdkCacheDatabaseManager {
       $$Nip05sTableTableManager(_db, _db.nip05s);
   $$RelayInfosTableTableManager get relayInfos =>
       $$RelayInfosTableTableManager(_db, _db.relayInfos);
+  $$LearnedMessageLengthsTableTableManager get learnedMessageLengths =>
+      $$LearnedMessageLengthsTableTableManager(_db, _db.learnedMessageLengths);
   $$FilterFetchedRangeRecordsTableTableManager get filterFetchedRangeRecords =>
       $$FilterFetchedRangeRecordsTableTableManager(
         _db,

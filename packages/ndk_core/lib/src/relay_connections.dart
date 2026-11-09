@@ -90,6 +90,8 @@ class RelayConnections {
   final int _reconnectMaximumStep;
   final SubscriptionLimit? _subscriptionLimit;
   final MessageLengthLimit? _messageLengthLimit;
+  final FutureOr<void> Function(String url, int length)?
+  _onMessageLengthLearned;
 
   /// most UTF-8 bytes each relay reads in one message, by url, learned from
   /// the sockets it closed with a 1009
@@ -138,11 +140,13 @@ class RelayConnections {
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
+    FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
   }) : _auth = auth,
        _onMessage = onMessage,
        _reconnectMaximumStep = reconnectMaximumStep,
        _subscriptionLimit = subscriptionLimit,
-       _messageLengthLimit = messageLengthLimit;
+       _messageLengthLimit = messageLengthLimit,
+       _onMessageLengthLearned = onMessageLengthLearned;
 
   /// every connection on each change, the latest one cached
   Stream<List<RelayConnection>> get changes => _updates.stream;
@@ -379,6 +383,9 @@ class RelayConnections {
     final generation = ++connectivity.limitsGeneration;
     connectivity.subscriptionLimit = null;
     connectivity.messageLengthLimit = null;
+    final previous = connectivity.limitsKnown;
+    connectivity.limitsKnown = Completer();
+    if (!previous.isCompleted) previous.complete();
     final url = connectivity.url;
     final subscriptions = _askLimit(_subscriptionLimit, url, "subscription");
     final messageLength = _askLimit(_messageLengthLimit, url, "message length");
@@ -433,6 +440,9 @@ class RelayConnections {
         messageLengthLimit != null && messageLengthLimit > 0
         ? messageLengthLimit
         : null;
+    if (!connectivity.limitsKnown.isCompleted) {
+      connectivity.limitsKnown.complete();
+    }
     listener.admitQueuedOn(connectivity);
   }
 
@@ -726,6 +736,10 @@ class RelayConnections {
       }
     }
 
+    // a REQ already waited for them in its queue
+    if (message.first == ClientMsgType.kEvent) {
+      await relayConnectivity.limitsKnown.future;
+    }
     final String encodedMsg = jsonEncode(message);
     if (!identical(relayConnectivity.relayTransport, transport) ||
         !transport.isOpen()) {
@@ -894,10 +908,20 @@ class RelayConnections {
     final longest = connectivity.longestMessage;
     if (longest == 0) return;
     final url = connectivity.url;
-    final learned = _learnedMessageLengths[url];
-    if (learned != null && learned < longest) return;
-    _learnedMessageLengths[url] = longest - 1;
+    final previous = _learnedMessageLengths[url];
+    if (previous != null && previous < longest) return;
+    final learned = _learnedMessageLengths[url] = longest - 1;
     Logger.log.w(() => "$url closed a socket over a message of $longest bytes");
+    final onLearned = _onMessageLengthLearned;
+    if (onLearned == null) return;
+    unawaited(
+      Future.sync(() => onLearned(url, learned)).catchError((Object error) {
+        Logger.log.e(
+          () => "onMessageLengthLearned failed for $url",
+          error: error,
+        );
+      }),
+    );
   }
 
   Future<void> _handleIncomingMessage(

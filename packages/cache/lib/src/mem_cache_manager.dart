@@ -33,6 +33,9 @@ class MemCacheManager implements CacheManager {
   /// In memory storage indexed by relay url
   Map<String, RelayInfoRecord> relayInfos = {};
 
+  /// In memory storage indexed by relay url
+  Map<String, int> learnedMessageLengths = {};
+
   /// In memory storage
   Map<String, Nip01Event> events = {};
 
@@ -145,6 +148,28 @@ class MemCacheManager implements CacheManager {
   @override
   Future<void> removeAllRelayInfos() async {
     relayInfos.clear();
+  }
+
+  /// **************************************************************************
+
+  @override
+  Future<void> saveLearnedMessageLength(String url, int length) async {
+    learnedMessageLengths[url] = length;
+  }
+
+  @override
+  Future<int?> loadLearnedMessageLength(String url) async {
+    return learnedMessageLengths[url];
+  }
+
+  @override
+  Future<void> removeLearnedMessageLength(String url) async {
+    learnedMessageLengths.remove(url);
+  }
+
+  @override
+  Future<void> removeAllLearnedMessageLengths() async {
+    learnedMessageLengths.clear();
   }
 
   /// **************************************************************************
@@ -972,6 +997,7 @@ class MemCacheManager implements CacheManager {
     relaySets.clear();
     nip05s.clear();
     relayInfos.clear();
+    learnedMessageLengths.clear();
     filterFetchedRangeRecords.clear();
   }
 

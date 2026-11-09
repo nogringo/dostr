@@ -39,6 +39,7 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
         fetchedAt: DateTime.utc(2026),
       ),
     );
+    await cacheManager.saveLearnedMessageLength(relayUrl, 65535);
 
     final userRelayList = UserRelayList(
       pubKey: 'clearall_relay_pubkey',
@@ -97,6 +98,7 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
     );
     expect(await cacheManager.loadNip05('test@example.com'), isNotNull);
     expect(await cacheManager.loadRelayInfo(relayUrl), isNotNull);
+    expect(await cacheManager.loadLearnedMessageLength(relayUrl), isNotNull);
     expect(
       await cacheManager.loadUserRelayList('clearall_relay_pubkey'),
       isNotNull,
@@ -133,6 +135,7 @@ void _runClearAllTests(CacheManager Function() getCacheManager) {
     );
     expect(await cacheManager.loadNip05('test@example.com'), isNull);
     expect(await cacheManager.loadRelayInfo(relayUrl), isNull);
+    expect(await cacheManager.loadLearnedMessageLength(relayUrl), isNull);
     expect(
       await cacheManager.loadUserRelayList('clearall_relay_pubkey'),
       isNull,

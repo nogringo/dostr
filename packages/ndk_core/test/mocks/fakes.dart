@@ -112,6 +112,7 @@ RelayManager newRelayManager({
   NostrTransportFactory? transportFactory,
   SubscriptionLimit? subscriptionLimit,
   MessageLengthLimit? messageLengthLimit,
+  void Function(String url, int length)? onMessageLengthLearned,
 }) => RelayManager(
   nostrTransportFactory:
       transportFactory ??
@@ -120,6 +121,7 @@ RelayManager newRelayManager({
   authHandler: authHandler,
   subscriptionLimit: subscriptionLimit,
   messageLengthLimit: messageLengthLimit,
+  onMessageLengthLearned: onMessageLengthLearned,
 );
 
 /// Starts a [MockRelay] for the current test and stops it afterwards.

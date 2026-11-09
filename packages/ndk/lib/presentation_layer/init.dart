@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
@@ -276,6 +277,7 @@ class Initialization {
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
       subscriptionLimit: _subscriptionLimit,
       messageLengthLimit: _messageLengthLimit,
+      onMessageLengthLearned: _ndkConfig.cache.saveLearnedMessageLength,
     );
     connectivity = Connectivity(
       relayManager,
@@ -553,9 +555,27 @@ class Initialization {
       await _ndkConfig.subscriptionLimit?.call(url) ??
       (await connectivity.getRelayInfo(url))?.limitation?.maxSubscriptions;
 
-  Future<int?> _messageLengthLimit(String url) async =>
-      await _ndkConfig.messageLengthLimit?.call(url) ??
-      (await connectivity.getRelayInfo(url))?.limitation?.maxMessageLength;
+  Future<int?> _messageLengthLimit(String url) async {
+    final learned = _learnedMessageLength(url);
+    final limit =
+        await _ndkConfig.messageLengthLimit?.call(url) ??
+        (await connectivity.getRelayInfo(url))?.limitation?.maxMessageLength;
+    final known = await learned;
+    if (limit == null || known == null) return limit ?? known;
+    return min(limit, known);
+  }
+
+  Future<int?> _learnedMessageLength(String url) async {
+    try {
+      return await _ndkConfig.cache.loadLearnedMessageLength(url);
+    } catch (error) {
+      Logger.log.w(
+        () => "Could not load the learned message length of $url",
+        error: error,
+      );
+      return null;
+    }
+  }
 
   /// Close all active NIP-77 negotiations
   void closeAllNip77Negotiations() {

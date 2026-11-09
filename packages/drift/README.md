@@ -70,4 +70,5 @@ The cache manager uses Drift tables for each data type:
 | RelaySets | id | Relay set configurations |
 | Nip05s | pubKey | NIP-05 verification data |
 | RelayInfos | url | NIP-11 documents of relays |
+| LearnedMessageLengths | url | Message lengths relays showed they read |
 | FilterFetchedRangeRecords | key | Query range tracking |

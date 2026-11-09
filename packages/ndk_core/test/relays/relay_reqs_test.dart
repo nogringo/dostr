@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:ndk_core/ndk_core.dart';
 import 'package:test/test.dart';
@@ -167,6 +168,26 @@ void main() {
         await subscription.close();
       },
     );
+
+    test('a limit learned from a 1009 is handed out to be kept', () async {
+      final relay = await startRelay(maxMessageLength: 64 * 1024);
+      final learned = <(String, int)>[];
+      final manager = newRelayManager(
+        onMessageLengthLearned: (url, length) => learned.add((url, length)),
+      );
+      addTearDown(manager.closeAllTransports);
+      final reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
+
+      final req = reqs.req(
+        relays: {
+          relay.url: [hundredKilobytes],
+        },
+      );
+      await req.done;
+
+      final sent = jsonEncode(['REQ', req.id, hundredKilobytes.toMap()]);
+      expect(learned, [(relay.url, utf8.encode(sent).length - 1)]);
+    });
 
     test('reports a blocked relay as notSent', () async {
       const blocked = 'wss://blocked.example';

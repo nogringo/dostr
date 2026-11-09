@@ -24,6 +24,8 @@ import 'user_relay_list.dart';
 /// - convenience projections like metadata/contact list/user relay list
 /// - NIP-05 records, the [Nip05Cache] of `ndk_nip05`
 /// - NIP-11 documents, the [RelayInfoCache] of `ndk_nip11`
+/// - the message lengths relays showed they read, by closing a socket with a
+///   1009
 /// - contact lists, the [ContactListCache] of `ndk_follows`
 /// - metadata, the [MetadataCache] of `ndk_metadatas`
 /// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
@@ -309,6 +311,19 @@ abstract class CacheManager
   Future<void> removeAllNip05s();
 
   // =====================
+  // Learned message lengths
+  // =====================
+
+  /// Keeps [length], the most UTF-8 bytes the relay at [url] may be sent in
+  /// one message, as `RelayManager` of `ndk_core` learned it from a socket the
+  /// relay closed with a 1009. Replaces the length of its url. Urls are keys
+  /// as given.
+  Future<void> saveLearnedMessageLength(String url, int length);
+  Future<int?> loadLearnedMessageLength(String url);
+  Future<void> removeLearnedMessageLength(String url);
+  Future<void> removeAllLearnedMessageLengths();
+
+  // =====================
   // Filter Fetched Ranges
   // =====================
 
@@ -354,7 +369,7 @@ abstract class CacheManager
   ///
   /// **DANGER**: This will permanently delete ALL cached data including events,
   /// metadata, contact lists, relay sets, user relay lists, nip05 records,
-  /// NIP-11 documents and filter fetched range records. This operation cannot
-  /// be undone.
+  /// NIP-11 documents, learned message lengths and filter fetched range
+  /// records. This operation cannot be undone.
   Future<void> clearAll();
 }

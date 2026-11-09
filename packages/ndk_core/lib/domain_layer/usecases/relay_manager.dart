@@ -77,9 +77,12 @@ class RelayManager {
   ///
   /// A message longer than [messageLengthLimit] says its relay reads, also
   /// asked each time a socket opens, is not sent: a REQ ends there as notSent,
-  /// an EVENT fails, both with [RelayFailureKind.messageTooLong]. A relay that
-  /// closes a socket with a 1009 reads less than the longest message written
-  /// there: nothing that long is sent to it again.
+  /// an EVENT fails, both with [RelayFailureKind.messageTooLong]. REQs and
+  /// EVENTs wait for its answer. A relay that closes a socket with a 1009 reads
+  /// less than the longest message written there: nothing that long is sent to
+  /// it again, and [onMessageLengthLearned] gets the url of the relay and the
+  /// most bytes it may still be sent. Keep them to answer [messageLengthLimit]
+  /// after a restart, so the limit is not learned again.
   RelayManager({
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
@@ -92,6 +95,7 @@ class RelayManager {
     AuthHandler? authHandler,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
+    FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
   }) {
     if (reconnectMaximumStep <= 0) {
       throw ArgumentError.value(
@@ -114,6 +118,7 @@ class RelayManager {
       reconnectMaximumStep: reconnectMaximumStep,
       subscriptionLimit: subscriptionLimit,
       messageLengthLimit: messageLengthLimit,
+      onMessageLengthLearned: onMessageLengthLearned,
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
     _broadcasts = RelayBroadcasts(connections: _connections, auth: _auth);

@@ -9,6 +9,7 @@ import 'package:ndk_sqlite3/src/migrations/v1.dart';
 import 'package:ndk_sqlite3/src/migrations/v2.dart';
 import 'package:ndk_sqlite3/src/migrations/v3.dart';
 import 'package:ndk_sqlite3/src/migrations/v4.dart';
+import 'package:ndk_sqlite3/src/migrations/v5.dart';
 import 'package:ndk_sqlite3/src/sql.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:test/test.dart';
@@ -260,7 +261,27 @@ void main() {
     await cacheManager.saveRelayInfo(record);
 
     expect(await cacheManager.loadRelayInfo(record.url), record);
-    expect(db.userVersion, 5);
+    expect(db.userVersion, 6);
+    await cacheManager.close();
+  });
+
+  test('v5 -> v6 adds learned_message_lengths', () async {
+    final db = sqlite3.openInMemory()
+      ..execute(v1)
+      ..execute(v2)
+      ..execute(v3)
+      ..execute(v4)
+      ..execute(v5)
+      ..userVersion = 5;
+    final cacheManager = SqliteCacheManager(db);
+
+    await cacheManager.saveLearnedMessageLength('wss://relay.example', 65535);
+
+    expect(
+      await cacheManager.loadLearnedMessageLength('wss://relay.example'),
+      65535,
+    );
+    expect(db.userVersion, 6);
     await cacheManager.close();
   });
 

@@ -914,6 +914,38 @@ class SqliteCacheManager extends WalletsRepo
   }
 
   // =====================
+  // Learned message lengths
+  // =====================
+
+  @override
+  Future<void> saveLearnedMessageLength(String url, int length) async {
+    _db.execute(
+      'INSERT OR REPLACE INTO learned_message_lengths (url, length) '
+      'VALUES (?, ?)',
+      [url, length],
+    );
+  }
+
+  @override
+  Future<int?> loadLearnedMessageLength(String url) async {
+    final rows = _db.select(
+      'SELECT length FROM learned_message_lengths WHERE url = ?',
+      [url],
+    );
+    return rows.isEmpty ? null : rows.first['length'] as int;
+  }
+
+  @override
+  Future<void> removeLearnedMessageLength(String url) async {
+    _db.execute('DELETE FROM learned_message_lengths WHERE url = ?', [url]);
+  }
+
+  @override
+  Future<void> removeAllLearnedMessageLengths() async {
+    _db.execute('DELETE FROM learned_message_lengths');
+  }
+
+  // =====================
   // Filter Fetched Ranges
   // =====================
 
@@ -1702,6 +1734,7 @@ class SqliteCacheManager extends WalletsRepo
         'relay_sets',
         'nip05s',
         'relay_infos',
+        'learned_message_lengths',
         'filter_fetched_ranges',
         'cashu_keysets',
         'cashu_proofs',

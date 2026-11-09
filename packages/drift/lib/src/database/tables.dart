@@ -115,6 +115,17 @@ class RelayInfos extends Table {
   Set<Column> get primaryKey => {url};
 }
 
+/// Table for storing the message lengths relays showed they read, by closing a
+/// socket with a 1009
+@DataClassName('DbLearnedMessageLength')
+class LearnedMessageLengths extends Table {
+  TextColumn get url => text()();
+  IntColumn get length => integer()();
+
+  @override
+  Set<Column> get primaryKey => {url};
+}
+
 /// Table for storing filter fetched range records
 @DataClassName('DbFilterFetchedRangeRecord')
 class FilterFetchedRangeRecords extends Table {

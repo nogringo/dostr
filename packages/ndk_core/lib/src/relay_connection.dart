@@ -37,6 +37,10 @@ class RelayConnection implements RelayConnectivity {
   /// tells a late answer for a previous socket from the current one
   int limitsGeneration = 0;
 
+  /// completes once [subscriptionLimit] and [messageLengthLimit] are settled
+  /// for this socket
+  Completer<void> limitsKnown = Completer()..complete();
+
   /// UTF-8 length of the longest message written on this socket
   int longestMessage = 0;
 

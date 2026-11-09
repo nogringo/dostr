@@ -1043,6 +1043,39 @@ class DriftCacheManager extends WalletsRepo
   }
 
   // =====================
+  // Learned message lengths
+  // =====================
+
+  @override
+  Future<void> saveLearnedMessageLength(String url, int length) async {
+    await _db
+        .into(_db.learnedMessageLengths)
+        .insertOnConflictUpdate(
+          LearnedMessageLengthsCompanion.insert(url: url, length: length),
+        );
+  }
+
+  @override
+  Future<int?> loadLearnedMessageLength(String url) async {
+    final row = await (_db.select(
+      _db.learnedMessageLengths,
+    )..where((t) => t.url.equals(url))).getSingleOrNull();
+    return row?.length;
+  }
+
+  @override
+  Future<void> removeLearnedMessageLength(String url) async {
+    await (_db.delete(
+      _db.learnedMessageLengths,
+    )..where((t) => t.url.equals(url))).go();
+  }
+
+  @override
+  Future<void> removeAllLearnedMessageLengths() async {
+    await _db.delete(_db.learnedMessageLengths).go();
+  }
+
+  // =====================
   // Filter Fetched Ranges
   // =====================
 
@@ -2096,6 +2129,7 @@ class DriftCacheManager extends WalletsRepo
       _db.delete(_db.relaySets).go(),
       _db.delete(_db.nip05s).go(),
       _db.delete(_db.relayInfos).go(),
+      _db.delete(_db.learnedMessageLengths).go(),
       _db.delete(_db.filterFetchedRangeRecords).go(),
       _db.delete(_db.eventSourcesTable).go(),
       _db.delete(_db.eventDeliveryRecordsTable).go(),

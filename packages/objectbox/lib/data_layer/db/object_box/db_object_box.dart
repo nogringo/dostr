@@ -21,6 +21,7 @@ import 'schema/db_cashu_proof.dart';
 import 'schema/db_cashu_secret_counter.dart';
 import 'schema/db_filter_fetched_range_record.dart';
 import 'schema/db_key_value.dart';
+import 'schema/db_learned_message_length.dart';
 import 'schema/db_nip_01_event.dart';
 import 'schema/db_relay_info.dart';
 import 'schema/db_relay_set.dart';
@@ -1361,6 +1362,45 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
       box.query(DbRelayInfo_.url.equals(url, caseSensitive: true)).build();
 
   @override
+  Future<void> saveLearnedMessageLength(String url, int length) async {
+    await dbRdy;
+    final box = _objectBox.store.box<DbLearnedMessageLength>();
+    _objectBox.store.runInTransaction(TxMode.write, () {
+      _learnedMessageLengthQuery(box, url).remove();
+      box.put(DbLearnedMessageLength(url: url, length: length));
+    });
+  }
+
+  @override
+  Future<int?> loadLearnedMessageLength(String url) async {
+    await dbRdy;
+    final box = _objectBox.store.box<DbLearnedMessageLength>();
+    return _learnedMessageLengthQuery(box, url).findFirst()?.length;
+  }
+
+  @override
+  Future<void> removeLearnedMessageLength(String url) async {
+    await dbRdy;
+    _learnedMessageLengthQuery(
+      _objectBox.store.box<DbLearnedMessageLength>(),
+      url,
+    ).remove();
+  }
+
+  @override
+  Future<void> removeAllLearnedMessageLengths() async {
+    await dbRdy;
+    _objectBox.store.box<DbLearnedMessageLength>().removeAll();
+  }
+
+  Query<DbLearnedMessageLength> _learnedMessageLengthQuery(
+    Box<DbLearnedMessageLength> box,
+    String url,
+  ) => box
+      .query(DbLearnedMessageLength_.url.equals(url, caseSensitive: true))
+      .build();
+
+  @override
   Future<void> saveNip05s(List<Nip05> nip05s) async {
     await dbRdy;
     for (final nip05 in nip05s) {
@@ -1992,6 +2032,7 @@ class DbObjectBox extends WalletsRepo implements CacheManager, CashuStorage {
       store.box<DbRelaySet>().removeAll();
       store.box<DbNip05>().removeAll();
       store.box<DbRelayInfo>().removeAll();
+      store.box<DbLearnedMessageLength>().removeAll();
       store.box<DbFilterFetchedRangeRecord>().removeAll();
       store.box<DbKeyValue>().removeAll();
       store.box<DbCashuMintInfo>().removeAll();

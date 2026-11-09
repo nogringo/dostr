@@ -90,6 +90,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
   late final sembast.StoreRef<String, Map<String, Object?>> _relayListStore;
   late final sembast.StoreRef<String, Map<String, Object?>> _nip05Store;
   late final sembast.StoreRef<String, Map<String, Object?>> _relayInfoStore;
+  late final sembast.StoreRef<String, int> _learnedMessageLengthStore;
   late final sembast.StoreRef<String, Map<String, Object?>> _relaySetStore;
   late final sembast.StoreRef<String, Map<String, Object?>>
   _filterFetchedRangeStore;
@@ -123,6 +124,9 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
     _relayListStore = sembast.stringMapStoreFactory.store('relay_lists');
     _nip05Store = sembast.stringMapStoreFactory.store('nip05');
     _relayInfoStore = sembast.stringMapStoreFactory.store('relay_infos');
+    _learnedMessageLengthStore = sembast.StoreRef<String, int>(
+      'learned_message_lengths',
+    );
     _relaySetStore = sembast.stringMapStoreFactory.store('relay_sets');
     _keysetStore = sembast.stringMapStoreFactory.store('keysets');
     _proofStore = sembast.stringMapStoreFactory.store('proofs');
@@ -822,6 +826,26 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
   @override
   Future<void> removeAllRelayInfos() async {
     await _relayInfoStore.delete(_database);
+  }
+
+  @override
+  Future<void> saveLearnedMessageLength(String url, int length) async {
+    await _learnedMessageLengthStore.record(url).put(_database, length);
+  }
+
+  @override
+  Future<int?> loadLearnedMessageLength(String url) async {
+    return _learnedMessageLengthStore.record(url).get(_database);
+  }
+
+  @override
+  Future<void> removeLearnedMessageLength(String url) async {
+    await _learnedMessageLengthStore.record(url).delete(_database);
+  }
+
+  @override
+  Future<void> removeAllLearnedMessageLengths() async {
+    await _learnedMessageLengthStore.delete(_database);
   }
 
   @override
@@ -1574,6 +1598,7 @@ class SembastCacheManager extends CacheManager implements CashuStorage {
       _relayListStore.delete(_database),
       _nip05Store.delete(_database),
       _relayInfoStore.delete(_database),
+      _learnedMessageLengthStore.delete(_database),
       _relaySetStore.delete(_database),
       _filterFetchedRangeStore.delete(_database),
       _keysetStore.delete(_database),

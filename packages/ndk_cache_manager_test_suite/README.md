@@ -42,6 +42,7 @@ The suite covers all `CacheManager` operations:
 | **ContactList Operations** | Save, load, and query contact lists |
 | **Nip05 Operations** | Save, load, and query NIP-05 domain verification data |
 | **RelayInfo Operations** | Save, load, and remove the NIP-11 documents of relays |
+| **LearnedMessageLength Operations** | Save, load, and remove the message lengths relays showed they read |
 | **UserRelayList Operations** | Save, load, and query user relay lists |
 | **RelaySet Operations** | Save, load, and query relay sets |
 | **Search Operations** | Full-text search over events |

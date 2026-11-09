@@ -130,7 +130,9 @@ class NdkConfig {
 
   /// How many UTF-8 bytes a relay reads in one message, asked each time a
   /// socket opens. Null, or a null answer for a relay, falls back on its NIP-11
-  /// `limitation.max_message_length`. A longer message is not sent to it.
+  /// `limitation.max_message_length`. A longer message is not sent to it. A
+  /// relay that closes a socket with a 1009 shows it reads less: [cache] keeps
+  /// that limit, which applies whatever this answers.
   MessageLengthLimit? messageLengthLimit;
 
   /// Interval for retrying pending broadcast deliveries while relays remain connected.
