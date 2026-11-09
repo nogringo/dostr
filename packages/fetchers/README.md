@@ -146,6 +146,30 @@ await for (final snapshot in watchUrlSet(UrlSet.dm(bob), watch)) {
 
 A DM list found on the indexers then comes before the NIP-65 lookup ends.
 
+## Fetching any filter
+
+`EventFetcher` asks the relays a `UrlSet` resolves to for the events of any
+filter. Each relay is asked as soon as a list names it, with its own REQ and
+timeout, so the defaults of a fallback reached late still get their full time:
+
+```dart
+final events = EventFetcher(reqs: reqs, urlLists: watch);
+
+final fetch = events.fetch(
+  Filter(kinds: [1], authors: [alice], limit: 20),
+  from: UrlSet.outbox(alice),
+);
+fetch.events.listen(print);
+final result = await fetch.done;
+if (!result.complete) print('partial: ${result.unavailable}');
+```
+
+`events` gives each matching event once, as soon as a relay sends it. `done`
+says how the fetch ended: the events, what each relay did, and the lists that
+were unavailable. `complete` is true only when every list was available and
+every relay sent its EOSE, so an empty result is then known to be empty. Each
+relay applies the filter's `limit` on its own.
+
 ## Home relays
 
 [`ndk_home_relays`](https://pub.dev/packages/ndk_home_relays) computes the

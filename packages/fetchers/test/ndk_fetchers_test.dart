@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -102,7 +103,7 @@ class LocalRelay {
   ];
 
   static List<Object?> _authorsOf(List<Object?> filters) => [
-    for (final filter in filters) ...(filter as Map)['authors'] as List,
+    for (final filter in filters) ...?(filter as Map)['authors'] as List?,
   ];
 
   Future<void> start() async {
@@ -1546,6 +1547,207 @@ void main() {
         ),
         throwsArgumentError,
       );
+    });
+  });
+
+  group('EventFetcher', () {
+    Nip01Event note(String content, {int kind = 1, String pubKey = alice}) =>
+        Nip01Event(
+          pubKey: pubKey,
+          kind: kind,
+          tags: [],
+          content: content,
+          createdAt: 1000,
+        ).copyWith(sig: 'f' * 128);
+
+    /// The lists the fetches watch, answered by hand, by `kind|pubkey`.
+    final lists = <String, StreamController<UrlListLookup>>{};
+    tearDown(lists.clear);
+
+    EventFetcher fetcher({Duration timeout = const Duration(seconds: 5)}) =>
+        EventFetcher(
+          reqs: reqs,
+          urlLists: (pubkey, kind, _) =>
+              (lists['${kind.name}|$pubkey'] = StreamController()).stream,
+          timeout: timeout,
+        );
+
+    List<String> contents(List<Nip01Event> events) => [
+      for (final event in events) event.content,
+    ];
+
+    test('fetches the events matching the filter, each once', () async {
+      final a = await startRelay([
+        note('kept'),
+        note('other kind', kind: 7),
+        note('by bob', pubKey: bob),
+      ]);
+      final b = await startRelay([note('kept')]);
+
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1], authors: [alice]),
+        from: UrlSet.explicit([a, b]),
+      );
+      final streamed = fetch.events.toList();
+      final result = await fetch.done;
+
+      expect(contents(await streamed), ['kept']);
+      expect(contents(result.events), ['kept']);
+      expect(result.outcomes.keys, unorderedEquals([a, b]));
+      expect(result.complete, isTrue);
+    });
+
+    test('asks a relay as soon as a list names it', () async {
+      final url = await startRelay([note('hello')]);
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: const UrlSet.outbox(alice),
+      );
+      final first = Completer<Nip01Event>();
+      fetch.events.listen((event) {
+        if (!first.isCompleted) first.complete(event);
+      });
+      var ended = false;
+      unawaited(fetch.done.then((_) => ended = true));
+
+      lists['outbox|$alice']!.add(UrlListLookup.found([url]));
+
+      expect((await first.future).content, 'hello');
+      expect(ended, isFalse);
+      await lists['outbox|$alice']!.close();
+      expect((await fetch.done).complete, isTrue);
+    });
+
+    test('gives each relay its own timeout, from when it is asked', () async {
+      const timeout = Duration(milliseconds: 300);
+      final url = await startRelay([note('late')]);
+      final fetch = fetcher(timeout: timeout).fetch(
+        Filter(kinds: [1]),
+        from: UrlSet.fallback([
+          const UrlSet.outbox(alice),
+          UrlSet.explicit([url]),
+        ]),
+      );
+
+      await Future<void>.delayed(timeout * 2);
+      lists['outbox|$alice']!.add(const UrlListLookup.notFound());
+      final result = await fetch.done;
+
+      expect(contents(result.events), ['late']);
+      expect(result.complete, isTrue);
+    });
+
+    test('is not complete while a list is unavailable', () async {
+      final url = await startRelay([note('hello')]);
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: UrlSet.union([
+          const UrlSet.outbox(alice),
+          UrlSet.explicit([url]),
+        ]),
+      );
+
+      lists['outbox|$alice']!.add(const UrlListLookup.unavailable('offline'));
+      final result = await fetch.done;
+
+      expect(contents(result.events), ['hello']);
+      expect(result.unavailable, [
+        'outbox list of $alice unavailable: offline',
+      ]);
+      expect(result.complete, isFalse);
+    });
+
+    test('is not complete when a relay does not answer', () async {
+      final silent = await startSilentRelay();
+      final result = await fetcher(
+        timeout: const Duration(milliseconds: 200),
+      ).fetch(Filter(kinds: [1]), from: UrlSet.explicit([silent])).done;
+
+      expect(result.outcomes[silent]?.status, RelayRequestStatus.timedOut);
+      expect(result.complete, isFalse);
+    });
+
+    test('cancelling its events closes its REQs', () async {
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: UrlSet.explicit([await startSilentRelay()]),
+      );
+      final subscription = fetch.events.listen(null);
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      await subscription.cancel();
+      final result = await fetch.done.timeout(const Duration(seconds: 1));
+
+      expect(result.complete, isFalse);
+      expect(reqs.openIds, isEmpty);
+    });
+
+    test('skips the urls that are not relays', () async {
+      final url = await startRelay([]);
+      final result = await fetcher()
+          .fetch(
+            Filter(kinds: [1]),
+            from: UrlSet.explicit(['https://cdn.example.com', url]),
+          )
+          .done;
+
+      expect(result.outcomes.keys, [url]);
+      expect(result.complete, isTrue);
+    });
+
+    test('rejects Blossom servers', () {
+      expect(
+        () => fetcher().fetch(
+          Filter(kinds: [1]),
+          from: const UrlSet.blossom(alice),
+        ),
+        throwsArgumentError,
+      );
+    });
+
+    test('ends with the error of a list', () async {
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: const UrlSet.outbox(alice),
+      );
+      final streamed = fetch.events.toList();
+
+      lists['outbox|$alice']!.addError(StateError('broken'));
+
+      await expectLater(fetch.done, throwsStateError);
+      await expectLater(streamed, throwsStateError);
+    });
+
+    test('fetches from the write relays the fetchers find', () async {
+      final outbox = await startRelay([note('on her outbox')]);
+      final indexer = await startRelay([
+        relayList([
+          ['r', outbox],
+        ]),
+      ]);
+      final nip65 = Nip65Fetcher(reqs: reqs, relays: [indexer]);
+      final fetcher = EventFetcher(
+        reqs: reqs,
+        urlLists: fetcherUrlListWatchFn(
+          nip65: nip65,
+          dmRelays: DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65),
+          blossomServers: BlossomServersFetcher(
+            reqs: reqs,
+            nip65Fetcher: nip65,
+          ),
+        ),
+      );
+
+      final result = await fetcher
+          .fetch(
+            Filter(kinds: [1], authors: [alice]),
+            from: const UrlSet.outbox(alice),
+          )
+          .done;
+
+      expect(contents(result.events), ['on her outbox']);
+      expect(result.outcomes.keys, [outbox]);
+      expect(result.complete, isTrue);
     });
   });
 }
