@@ -26,6 +26,12 @@ void main() {
   bool subscribed(MockRelay relay, RelayReq req) =>
       relay.openClients.any((c) => c.subscriptions.containsKey(req.id));
 
+  final hundredKilobytes = Filter(
+    authors: [
+      for (var i = 0; i < 1600; i++) i.toRadixString(16).padLeft(64, '0'),
+    ],
+  );
+
   group('query', () {
     test('returns the matching events, tagged with their relay', () async {
       final relay = await startRelay();
@@ -95,6 +101,72 @@ void main() {
       expect(outcomes[relay.url]!.status, RelayRequestStatus.timedOut);
       await eventually(() => relay.received('CLOSE').isNotEmpty);
     });
+
+    test('a 100 KB filter sent to a relay that accepts 64 KB ends the query '
+        'instead of being sent again', () async {
+      final relay = await startRelay(maxMessageLength: 64 * 1024);
+
+      final req = reqs.req(
+        relays: {
+          relay.url: [hundredKilobytes],
+        },
+        timeout: const Duration(seconds: 2),
+      );
+      final outcome = (await req.done)[relay.url]!;
+
+      expect(relay.oversizedMessages, 1);
+      expect(outcome.status, RelayRequestStatus.notSent);
+      expect(outcome.failure?.kind, RelayFailureKind.messageTooLong);
+    });
+
+    test(
+      'a filter longer than the relay says it reads is never sent',
+      () async {
+        final relay = await startRelay(maxMessageLength: 64 * 1024);
+        final manager = newRelayManager(messageLengthLimit: (_) => 64 * 1024);
+        addTearDown(manager.closeAllTransports);
+        final reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
+
+        final req = reqs.req(
+          relays: {
+            relay.url: [hundredKilobytes],
+          },
+        );
+        final outcome = (await req.done)[relay.url]!;
+
+        expect(outcome.status, RelayRequestStatus.notSent);
+        expect(outcome.failure?.kind, RelayFailureKind.messageTooLong);
+        expect(relay.oversizedMessages, 0);
+        expect(relay.clients, hasLength(1));
+      },
+    );
+
+    test(
+      'the REQs a 1009 cut off go out again, but not the one too long',
+      () async {
+        final relay = await startRelay(maxMessageLength: 64 * 1024);
+        final subscription = reqs.req(
+          relays: {relay.url: notes},
+          closeOnEose: false,
+        );
+        await eventually(() => subscribed(relay, subscription));
+
+        final query = reqs.req(
+          relays: {
+            relay.url: [hundredKilobytes],
+          },
+        );
+
+        expect(
+          (await query.done)[relay.url]!.failure?.kind,
+          RelayFailureKind.messageTooLong,
+        );
+        await eventually(() => subscribed(relay, subscription));
+        expect(relay.clients, hasLength(2));
+        expect(relay.oversizedMessages, 1);
+        await subscription.close();
+      },
+    );
 
     test('reports a blocked relay as notSent', () async {
       const blocked = 'wss://blocked.example';

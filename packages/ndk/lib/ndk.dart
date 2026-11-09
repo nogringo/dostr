@@ -9,6 +9,7 @@ export 'presentation_layer/ndk.dart';
 export 'presentation_layer/ndk_config.dart';
 export 'package:ndk_core/ndk_core.dart'
     show
+        MessageLengthLimit,
         Nip01EventBase64,
         Nip01EventDeprecated,
         // ignore: deprecated_member_use

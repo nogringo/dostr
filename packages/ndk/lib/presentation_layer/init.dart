@@ -275,6 +275,7 @@ class Initialization {
       authHandler: _ndkConfig.authHandler,
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
       subscriptionLimit: _subscriptionLimit,
+      messageLengthLimit: _messageLengthLimit,
     );
     connectivity = Connectivity(
       relayManager,
@@ -551,6 +552,10 @@ class Initialization {
   Future<int?> _subscriptionLimit(String url) async =>
       await _ndkConfig.subscriptionLimit?.call(url) ??
       (await connectivity.getRelayInfo(url))?.limitation?.maxSubscriptions;
+
+  Future<int?> _messageLengthLimit(String url) async =>
+      await _ndkConfig.messageLengthLimit?.call(url) ??
+      (await connectivity.getRelayInfo(url))?.limitation?.maxMessageLength;
 
   /// Close all active NIP-77 negotiations
   void closeAllNip77Negotiations() {

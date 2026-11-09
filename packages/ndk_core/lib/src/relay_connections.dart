@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:rxdart/rxdart.dart';
 
 import '../config/relay_defaults.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
+import '../domain_layer/entities/message_length_limit.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/subscription_limit.dart';
@@ -13,6 +15,7 @@ import '../domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
 import 'package:ndk_isolates/ndk_isolates.dart';
 import 'package:ndk_logger/ndk_logger.dart';
+import 'package:web_socket_channel/status.dart' as ws_status;
 import 'client_msg.dart';
 import 'decode_nostr_msg.dart';
 import 'nostr_message_raw.dart';
@@ -46,11 +49,26 @@ typedef RelayMessageHandler =
       dynamic raw,
     );
 
+/// What [RelayConnections.sendOrThrow] throws for a message longer than its
+/// relay reads.
+class MessageTooLong implements Exception {
+  final RelayFailure failure;
+
+  MessageTooLong(String detail)
+    : failure = RelayFailure(RelayFailureKind.messageTooLong, detail);
+
+  @override
+  String toString() => "$failure";
+}
+
 /// A connection whose socket dropped, while it is being brought back.
 class _Revival {
   final RelayConnection connectivity;
   final Backoff backoff;
   final Stopwatch since = Stopwatch()..start();
+
+  /// how long the socket it brought back has lived
+  final Stopwatch up = Stopwatch();
   Timer? next;
   Future<bool>? attempt;
 
@@ -71,6 +89,11 @@ class RelayConnections {
   final RelayMessageHandler _onMessage;
   final int _reconnectMaximumStep;
   final SubscriptionLimit? _subscriptionLimit;
+  final MessageLengthLimit? _messageLengthLimit;
+
+  /// most UTF-8 bytes each relay reads in one message, by url, learned from
+  /// the sockets it closed with a 1009
+  final Map<String, int> _learnedMessageLengths = {};
 
   /// told when a socket comes back or goes away, set before any connection
   late final ConnectionListener listener;
@@ -104,6 +127,9 @@ class RelayConnections {
 
   final Map<RelayConnectionKey, _Revival> _revivals = {};
 
+  /// the revivals that brought their connection back, until its socket drops
+  final Map<RelayConnectionKey, _Revival> _revived = {};
+
   RelayConnections({
     required this.nostrTransportFactory,
     required RelayAuth auth,
@@ -111,10 +137,12 @@ class RelayConnections {
     this.allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     SubscriptionLimit? subscriptionLimit,
+    MessageLengthLimit? messageLengthLimit,
   }) : _auth = auth,
        _onMessage = onMessage,
        _reconnectMaximumStep = reconnectMaximumStep,
-       _subscriptionLimit = subscriptionLimit;
+       _subscriptionLimit = subscriptionLimit,
+       _messageLengthLimit = messageLengthLimit;
 
   /// every connection on each change, the latest one cached
   Stream<List<RelayConnection>> get changes => _updates.stream;
@@ -263,7 +291,7 @@ class RelayConnections {
           'Connection was removed while replacing its transport',
         );
       }
-      _askSubscriptionLimit(relayConnectivity);
+      _askLimits(relayConnectivity);
       final elapsed = Stopwatch()..start();
       final backoff = BinaryExponentialBackoff(
         initial: RECONNECT_INITIAL_DELAY,
@@ -344,55 +372,83 @@ class RelayConnections {
     return failed;
   }
 
-  /// Asks the [SubscriptionLimit] for the socket [connectivity] is about to
-  /// open. Its REQs wait in their queue until it answers, or until
-  /// [SUBSCRIPTION_LIMIT_TIMEOUT] gives them the default.
-  void _askSubscriptionLimit(RelayConnection connectivity) {
-    final generation = ++connectivity.subscriptionLimitGeneration;
+  /// Asks the [SubscriptionLimit] and the [MessageLengthLimit] for the socket
+  /// [connectivity] is about to open. Its REQs wait in their queue until both
+  /// answer, or until [SUBSCRIPTION_LIMIT_TIMEOUT] gives them the defaults.
+  void _askLimits(RelayConnection connectivity) {
+    final generation = ++connectivity.limitsGeneration;
     connectivity.subscriptionLimit = null;
-    final provider = _subscriptionLimit;
-    if (provider == null) {
-      _setSubscriptionLimit(connectivity, generation, null);
+    connectivity.messageLengthLimit = null;
+    final url = connectivity.url;
+    final subscriptions = _askLimit(_subscriptionLimit, url, "subscription");
+    final messageLength = _askLimit(_messageLengthLimit, url, "message length");
+    if (subscriptions is! Future<int?> && messageLength is! Future<int?>) {
+      _setLimits(connectivity, generation, subscriptions, messageLength);
       return;
     }
-    FutureOr<int?> answer;
-    try {
-      answer = provider(connectivity.url);
-    } catch (error) {
-      Logger.log.w(
-        () => "No subscription limit for ${connectivity.url}",
-        error: error,
-      );
-      answer = null;
-    }
-    if (answer is! Future<int?>) {
-      _setSubscriptionLimit(connectivity, generation, answer);
-      return;
-    }
-    answer
-        .timeout(SUBSCRIPTION_LIMIT_TIMEOUT)
-        .then(
-          (limit) => _setSubscriptionLimit(connectivity, generation, limit),
-          onError: (Object error) {
-            Logger.log.w(
-              () => "No subscription limit for ${connectivity.url}",
-              error: error,
-            );
-            _setSubscriptionLimit(connectivity, generation, null);
-          },
-        );
+    Future.wait([
+      Future.value(subscriptions),
+      Future.value(messageLength),
+    ]).then(
+      (limits) => _setLimits(connectivity, generation, limits[0], limits[1]),
+    );
   }
 
-  void _setSubscriptionLimit(
+  static FutureOr<int?> _askLimit(
+    FutureOr<int?> Function(String url)? provider,
+    String url,
+    String name,
+  ) {
+    if (provider == null) return null;
+    void warn(Object error) =>
+        Logger.log.w(() => "No $name limit for $url", error: error);
+    final FutureOr<int?> answer;
+    try {
+      answer = provider(url);
+    } catch (error) {
+      warn(error);
+      return null;
+    }
+    if (answer is! Future<int?>) return answer;
+    return answer.timeout(SUBSCRIPTION_LIMIT_TIMEOUT).catchError((
+      Object error,
+    ) {
+      warn(error);
+      return null;
+    });
+  }
+
+  void _setLimits(
     RelayConnection connectivity,
     int generation,
-    int? limit,
+    int? subscriptionLimit,
+    int? messageLengthLimit,
   ) {
-    if (connectivity.subscriptionLimitGeneration != generation) return;
-    connectivity.subscriptionLimit = limit != null && limit > 0
-        ? limit
+    if (connectivity.limitsGeneration != generation) return;
+    connectivity.subscriptionLimit =
+        subscriptionLimit != null && subscriptionLimit > 0
+        ? subscriptionLimit
         : DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION;
+    connectivity.messageLengthLimit =
+        messageLengthLimit != null && messageLengthLimit > 0
+        ? messageLengthLimit
+        : null;
     listener.admitQueuedOn(connectivity);
+  }
+
+  /// Throws [MessageTooLong] when [length] bytes are more than the relay
+  /// behind [connectivity] publishes it reads, or than it closed a socket over.
+  void _checkLength(RelayConnection connectivity, int length) {
+    final published = connectivity.messageLengthLimit;
+    if (published != null && length > published) {
+      throw MessageTooLong("$length bytes, the relay reads at most $published");
+    }
+    final learned = _learnedMessageLengths[connectivity.url];
+    if (learned != null && length > learned) {
+      throw MessageTooLong(
+        "$length bytes, the relay closed a socket over ${learned + 1}",
+      );
+    }
   }
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
@@ -578,6 +634,11 @@ class RelayConnections {
     notifyChanged();
     if (connected) {
       _revivals.remove(key);
+      _revived[key] = revival;
+      revival.since.reset();
+      revival.up
+        ..reset()
+        ..start();
       listener.replayOn(connectivity);
       listener.endAuthRetriesOn(key);
       return true;
@@ -592,8 +653,27 @@ class RelayConnections {
     return false;
   }
 
-  void _stopReviving(RelayConnectionKey key) =>
-      _revivals.remove(key)?.next?.cancel();
+  void _stopReviving(RelayConnectionKey key) {
+    _revived.remove(key);
+    _revivals.remove(key)?.next?.cancel();
+  }
+
+  /// Takes up again the revival that brought [connectivity] back, when its
+  /// socket dropped before [RECONNECT_STABLE_AFTER]: the next attempt waits
+  /// the next step of its backoff, so a relay that drops every socket it gets
+  /// is not reconnected in a loop. Says whether it did.
+  bool _resumeRevival(RelayConnection connectivity) {
+    final key = connectivity.key;
+    final revival = _revived.remove(key);
+    if (revival == null ||
+        !identical(revival.connectivity, connectivity) ||
+        revival.up.elapsed >= RECONNECT_STABLE_AFTER) {
+      return false;
+    }
+    _revivals[key] = revival;
+    revival.next = Timer(revival.backoff.next(), () => _revive(connectivity));
+    return true;
+  }
 
   /// Writes [data] and tells whether it reached the transport
   bool _sendRaw(
@@ -653,7 +733,13 @@ class RelayConnections {
         "transport closed before send: ${relayConnectivity.url}",
       );
     }
+    final length = utf8.encode(encodedMsg).length;
+    _checkLength(relayConnectivity, length);
     if (_sendRaw(relayConnectivity, transport, encodedMsg)) {
+      relayConnectivity.longestMessage = max(
+        relayConnectivity.longestMessage,
+        length,
+      );
       _countRequest(relayConnectivity, message);
     }
   }
@@ -713,7 +799,11 @@ class RelayConnections {
   void sendTo(RelayConnection relayConnectivity, List<dynamic> message) {
     unawaited(
       sendOrThrow(relayConnectivity, message).catchError((Object error) {
-        Logger.log.t(() => "skip send to ${relayConnectivity.url}: $error");
+        if (error is MessageTooLong) {
+          Logger.log.w(() => "skip send to ${relayConnectivity.url}: $error");
+        } else {
+          Logger.log.t(() => "skip send to ${relayConnectivity.url}: $error");
+        }
       }),
     );
   }
@@ -765,6 +855,9 @@ class RelayConnections {
     // reports and the backoff retries: reviving it here would skip that wait
     if (_connectReadyCompleters.containsKey(key)) return;
     relayConnectivity.stats.connectionErrors++;
+    if (transport?.closeCode() == ws_status.messageTooBig) {
+      _learnMessageLength(relayConnectivity);
+    }
     // the AUTH the relay accepted died with the socket, and so did any still
     // waiting for its OK
     _auth.forget(key);
@@ -784,11 +877,27 @@ class RelayConnections {
     // deliberate closes cancel the stream subscription first and never get here
     if (allowReconnect) {
       Logger.log.i(() => "closed ${relayConnectivity.url}. Reconnecting");
-      unawaited(_revive(relayConnectivity));
+      if (!_resumeRevival(relayConnectivity)) {
+        unawaited(_revive(relayConnectivity));
+      }
       return;
     }
+    _revived.remove(key);
     listener.endAuthRetriesOn(key);
     listener.endRequestsOn(key);
+  }
+
+  /// The relay closed the socket of [connectivity] with a 1009 over a message
+  /// longer than it reads. It reads them in order and closes on the first one
+  /// too long, so the longest one written there is too long as well.
+  void _learnMessageLength(RelayConnection connectivity) {
+    final longest = connectivity.longestMessage;
+    if (longest == 0) return;
+    final url = connectivity.url;
+    final learned = _learnedMessageLengths[url];
+    if (learned != null && learned < longest) return;
+    _learnedMessageLengths[url] = longest - 1;
+    Logger.log.w(() => "$url closed a socket over a message of $longest bytes");
   }
 
   Future<void> _handleIncomingMessage(

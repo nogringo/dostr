@@ -15,8 +15,13 @@ const int DEFAULT_RECONNECT_MAXIMUM_STEP = 4;
 /// how long a dropped connection is retried before its requests are given up
 const Duration RECONNECT_GIVE_UP_AFTER = Duration(hours: 1);
 
+/// how long a socket that came back must live for its next drop to be retried
+/// right away. One that drops sooner waits the next step of its backoff
+const Duration RECONNECT_STABLE_AFTER = Duration(seconds: 10);
+
 /// REQs a connection keeps open at once when its relay does not say otherwise
 const int DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION = 20;
 
-/// how long a `SubscriptionLimit` may take to answer, counted from the call
+/// how long a `SubscriptionLimit` or a `MessageLengthLimit` may take to
+/// answer, counted from the call
 const Duration SUBSCRIPTION_LIMIT_TIMEOUT = Duration(seconds: 2);

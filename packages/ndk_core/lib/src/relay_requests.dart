@@ -81,6 +81,7 @@ class RelayRequests implements ConnectionListener {
             (req) =>
                 req.key == relayConnectivity.key &&
                 (!req.receivedClosed || req.retryingAuth) &&
+                req.notSentFailure?.kind != RelayFailureKind.messageTooLong &&
                 // a query is over once this connection answered EOSE, while a
                 // subscription outlives its EOSE and has to go back up
                 (state.isSubscription || !req.receivedEOSE),
@@ -276,6 +277,11 @@ class RelayRequests implements ConnectionListener {
         ).toJson(),
       );
       return null;
+    } on MessageTooLong catch (e) {
+      Logger.log.w(() => "REQ ${state.id} not sent to ${request.url}: $e");
+      // a replay or a queued REQ has nobody else to report it
+      _failRelayRequest(state, request.key, request.filters, e.failure);
+      return e.failure;
     } catch (e) {
       Logger.log.w(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
       return RelayFailure(RelayFailureKind.connectionLost, "$e");

@@ -229,6 +229,25 @@ void main() {
     expect(silent.events, hasLength(1));
   });
 
+  test(
+    'fails a relay that reads less than the event, without sending it',
+    () async {
+      final relay = await startRelay();
+      final manager = newRelayManager(messageLengthLimit: (_) => 1000);
+      addTearDown(manager.closeAllTransports);
+
+      final responses = await RelayPublishes(
+        relayManager: manager,
+      ).publish(signedEvent(content: 'x' * 1000), relays: [relay.url]).done;
+
+      expect(
+        responses.values.single.failure?.kind,
+        RelayFailureKind.messageTooLong,
+      );
+      expect(relay.received('EVENT'), isEmpty);
+    },
+  );
+
   group('open', () {
     test('is in flight before it is signed', () async {
       final relay = await startRelay();

@@ -69,6 +69,12 @@ final ndk = Ndk(
 );
 ```
 
+### Message length
+
+A relay closes the socket, with a 1009, on a message longer than it reads, and every REQ open on that socket goes down with it. NDK does not send a message longer than the `limitation.max_message_length` of the relay, read from the same NIP-11 document: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`. A relay that publishes no limit and closes a socket with a 1009 shows that it reads less than the longest message written there: nothing that long is sent to it again, and the other REQs go out again on the new socket. `NdkConfig.messageLengthLimit` comes first, like `subscriptionLimit`.
+
+A socket that drops within 10 seconds of coming back is not reconnected right away: it waits the next step of the backoff, so a relay that drops every socket it gets is not reconnected in a loop.
+
 ### Migrating from `RelayConnectivity.relayInfo`
 
 `RelayConnectivity.relayInfo` and `ndk.relays.doesRelaySupportNip` are removed, so `relayConnectivityChanges` no longer carries NIP-11 info. Ask for it where you need it. NDK fetches it when it connects, for the limit above, so the call is often served from the cache:

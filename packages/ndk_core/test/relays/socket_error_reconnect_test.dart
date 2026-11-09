@@ -131,4 +131,34 @@ void main() {
     },
     timeout: const Timeout(Duration(seconds: 60)),
   );
+
+  test('a relay that drops every socket once it gets a REQ is reconnected '
+      'on a backoff', () async {
+    final relay = await startRelay();
+    relay.onMessage = (client, message) {
+      if (message.first != 'REQ') return false;
+      client.close();
+      return true;
+    };
+    final manager = newRelayManager();
+    addTearDown(manager.closeAllTransports);
+    final reqs = RelayReqs(
+      relayManager: manager,
+      eventVerifier: FakeVerifier(),
+    );
+
+    final req = reqs.req(
+      relays: {
+        relay.url: [
+          Filter(kinds: [1]),
+        ],
+      },
+      closeOnEose: false,
+    );
+    await Future<void>.delayed(const Duration(seconds: 2));
+
+    // right away, then after 0.5 and 1 more seconds
+    expect(relay.clients, hasLength(inInclusiveRange(3, 5)));
+    await req.close();
+  });
 }

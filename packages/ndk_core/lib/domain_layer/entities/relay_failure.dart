@@ -24,6 +24,10 @@ enum RelayFailureKind {
   /// the request was over before its connection opened
   requestEnded,
 
+  /// the message is longer than the relay reads: than the limit it publishes,
+  /// or than one it closed a socket over with a 1009
+  messageTooLong,
+
   /// the identity it had to go out as cannot sign
   cannotSign,
 

@@ -12,6 +12,7 @@ import '../../src/relay_connections.dart';
 import '../../src/relay_manager_parts.dart';
 import '../../src/relay_requests.dart';
 import 'package:ndk_signer/ndk_signer.dart';
+import '../entities/message_length_limit.dart';
 import '../entities/timeout_pausable.dart';
 import '../entities/relay_connection_key.dart';
 import '../entities/relay_connectivity.dart';
@@ -64,13 +65,21 @@ class RelayManager {
   /// A connection that drops is retried right away, then after a wait that
   /// starts at 500 milliseconds and doubles each time, for an hour. The
   /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
-  /// requests are replayed once it is back.
+  /// requests are replayed once it is back. A socket that drops again within
+  /// [RECONNECT_STABLE_AFTER] of coming back is not retried right away: it
+  /// goes on with that wait.
   ///
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
   /// a slot, and subscriptions leave a quarter of them to queries. No answer
   /// within [SUBSCRIPTION_LIMIT_TIMEOUT], or none at all, gives
   /// [DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION].
+  ///
+  /// A message longer than [messageLengthLimit] says its relay reads, also
+  /// asked each time a socket opens, is not sent: a REQ ends there as notSent,
+  /// an EVENT fails, both with [RelayFailureKind.messageTooLong]. A relay that
+  /// closes a socket with a 1009 reads less than the longest message written
+  /// there: nothing that long is sent to it again.
   RelayManager({
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
@@ -82,6 +91,7 @@ class RelayManager {
         RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
     AuthHandler? authHandler,
     SubscriptionLimit? subscriptionLimit,
+    MessageLengthLimit? messageLengthLimit,
   }) {
     if (reconnectMaximumStep <= 0) {
       throw ArgumentError.value(
@@ -103,6 +113,7 @@ class RelayManager {
       allowReconnect: allowReconnect,
       reconnectMaximumStep: reconnectMaximumStep,
       subscriptionLimit: subscriptionLimit,
+      messageLengthLimit: messageLengthLimit,
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
     _broadcasts = RelayBroadcasts(connections: _connections, auth: _auth);

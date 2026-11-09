@@ -30,8 +30,15 @@ class RelayConnection implements RelayConnectivity {
   /// how many REQs the relay keeps open on this socket, null until known
   int? subscriptionLimit;
 
+  /// how many UTF-8 bytes the relay reads in one message, as it publishes it,
+  /// null when unknown
+  int? messageLengthLimit;
+
   /// tells a late answer for a previous socket from the current one
-  int subscriptionLimitGeneration = 0;
+  int limitsGeneration = 0;
+
+  /// UTF-8 length of the longest message written on this socket
+  int longestMessage = 0;
 
   /// ids of the REQs that hold a slot here but are not written yet, each with
   /// the write it waits for, see [MutableRelayStats.openRequestIds] for the
@@ -80,6 +87,7 @@ class RelayConnection implements RelayConnectivity {
     // the socket carried them, they die with it
     stats.openRequestIds.clear();
     reservedRequestIds.clear();
+    longestMessage = 0;
 
     if (streamSubscription != null) {
       await streamSubscription.cancel();

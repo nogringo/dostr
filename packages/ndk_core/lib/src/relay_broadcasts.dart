@@ -152,6 +152,8 @@ class RelayBroadcasts {
         relay,
         ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
       );
+    } on MessageTooLong catch (error) {
+      _failBroadcast(state, url, error.failure);
     } catch (error) {
       _failBroadcast(
         state,
@@ -374,7 +376,9 @@ class RelayBroadcasts {
           _failBroadcast(
             broadcastState,
             relayUrl,
-            RelayFailure(RelayFailureKind.connectionLost, "$error"),
+            error is MessageTooLong
+                ? error.failure
+                : RelayFailure(RelayFailureKind.connectionLost, "$error"),
           );
         }
       } finally {

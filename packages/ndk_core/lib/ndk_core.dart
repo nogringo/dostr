@@ -10,6 +10,7 @@ export 'package:ndk_url_set/ndk_url_set.dart'
 export 'data_layer/models/nip_01_event_model.dart';
 export 'data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 export 'domain_layer/entities/broadcast_state.dart';
+export 'domain_layer/entities/message_length_limit.dart';
 export 'domain_layer/entities/nip_01_utils.dart';
 export 'domain_layer/entities/relay.dart';
 export 'domain_layer/entities/relay_connection_key.dart';
