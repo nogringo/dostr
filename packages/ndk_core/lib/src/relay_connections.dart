@@ -91,6 +91,10 @@ class RelayConnections {
   /// whether something still needs the connection behind a key: one that
   /// drops without is forgotten instead of brought back
   final bool Function(RelayConnectionKey key) _hasWorkOn;
+  final Duration? _anonymousIdleTimeout;
+  final Duration? _authenticatedIdleTimeout;
+  Timer? _idleSweep;
+  bool _sweepingIdle = false;
   final int _reconnectMaximumStep;
   final SubscriptionLimit? _subscriptionLimit;
   final MessageLengthLimit? _messageLengthLimit;
@@ -141,6 +145,8 @@ class RelayConnections {
     required RelayAuth auth,
     required RelayMessageHandler onMessage,
     required bool Function(RelayConnectionKey key) hasWorkOn,
+    Duration? anonymousIdleTimeout,
+    Duration? authenticatedIdleTimeout,
     this.allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     SubscriptionLimit? subscriptionLimit,
@@ -149,6 +155,8 @@ class RelayConnections {
   }) : _auth = auth,
        _onMessage = onMessage,
        _hasWorkOn = hasWorkOn,
+       _anonymousIdleTimeout = anonymousIdleTimeout,
+       _authenticatedIdleTimeout = authenticatedIdleTimeout,
        _reconnectMaximumStep = reconnectMaximumStep,
        _subscriptionLimit = subscriptionLimit,
        _messageLengthLimit = messageLengthLimit,
@@ -287,6 +295,8 @@ class RelayConnections {
       }
 
       relayConnectivity.relay.tryingToConnect();
+      relayConnectivity.idleFor.reset();
+      _watchIdleConnections();
 
       Logger.log.i(() => "connecting to relay $dirtyUrl");
 
@@ -713,6 +723,7 @@ class RelayConnections {
       return false;
     }
     transport.send(data);
+    relayConnectivity.idleFor.reset();
     Logger.log.d(() => "send message to ${relayConnectivity.url}: $data");
     return true;
   }
@@ -949,6 +960,7 @@ class RelayConnections {
     RelayConnection relayConnectivity,
   ) async {
     final relayUrl = relayConnectivity.url;
+    relayConnectivity.idleFor.reset();
     final previousMessage = _lastMessageCompleters[relayUrl];
 
     final myCompleter = Completer<void>();
@@ -993,6 +1005,63 @@ class RelayConnections {
     }
   }
 
+  /// Starts closing the connections left idle, unless no idle timeout is set.
+  /// It checks every quarter of the shortest one, and stops once no
+  /// connection is left.
+  void _watchIdleConnections() {
+    if (_idleSweep != null) return;
+    final timeouts = [?_anonymousIdleTimeout, ?_authenticatedIdleTimeout];
+    if (timeouts.isEmpty) return;
+    final shortest = timeouts.reduce((a, b) => a < b ? a : b);
+    final period = shortest ~/ 4;
+    const finest = Duration(milliseconds: 1);
+    _idleSweep = Timer.periodic(period < finest ? finest : period, (_) {
+      unawaited(
+        _closeIdleConnections().catchError((Object error) {
+          Logger.log.e(() => "Could not close idle connections", error: error);
+        }),
+      );
+    });
+  }
+
+  void _stopWatchingIdle() {
+    _idleSweep?.cancel();
+    _idleSweep = null;
+  }
+
+  /// Closes the connections that went without work for their idle timeout.
+  /// Work is polled, since a protocol handler only tells when asked: the
+  /// traffic counted by [RelayConnection.idleFor] catches the work that
+  /// started and ended between two checks.
+  Future<void> _closeIdleConnections() async {
+    if (_sweepingIdle) return;
+    _sweepingIdle = true;
+    var changed = false;
+    try {
+      for (final key in relays.keys.toList()) {
+        final connectivity = relays[key];
+        final timeout = key.isAnonymous
+            ? _anonymousIdleTimeout
+            : _authenticatedIdleTimeout;
+        if (connectivity == null || timeout == null) continue;
+        if (_hasWorkOn(key)) {
+          connectivity.idleFor.reset();
+          continue;
+        }
+        if (connectivity.idleFor.elapsed < timeout) continue;
+        Logger.log.d(
+          () => "closing $key, idle for ${connectivity.idleFor.elapsed}",
+        );
+        await closeConnection(key);
+        changed = true;
+      }
+    } finally {
+      _sweepingIdle = false;
+      if (changed) notifyChanged();
+      if (relays.isEmpty) _stopWatchingIdle();
+    }
+  }
+
   /// Closes one connection and forgets it. An entry that lost its transport, to
   /// a reset or to a failed connection attempt, is forgotten just the same:
   /// leaving it behind keeps its auth state alive and makes it reconnect.
@@ -1012,6 +1081,7 @@ class RelayConnections {
 
   /// Closes all transports
   Future<void> closeAll() async {
+    _stopWatchingIdle();
     final keys = relays.keys.toList();
     try {
       await Future.wait(keys.map(closeConnection));

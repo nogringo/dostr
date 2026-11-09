@@ -19,6 +19,13 @@ const Duration RECONNECT_GIVE_UP_AFTER = Duration(hours: 1);
 /// right away. One that drops sooner waits the next step of its backoff
 const Duration RECONNECT_STABLE_AFTER = Duration(seconds: 10);
 
+/// how long an anonymous connection stays open with nothing to do
+const Duration DEFAULT_ANONYMOUS_IDLE_TIMEOUT = Duration(minutes: 1);
+
+/// how long a connection bound to an identity stays open with nothing to do:
+/// opening it again means authenticating again
+const Duration DEFAULT_AUTHENTICATED_IDLE_TIMEOUT = Duration(minutes: 5);
+
 /// REQs a connection keeps open at once when its relay does not say otherwise
 const int DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION = 20;
 

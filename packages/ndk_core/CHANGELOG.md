@@ -199,6 +199,16 @@ used to get them reopened forever.
 `RelayManager` does, and `NdkConfig.webSocketReconnectMaximumStep` still sets
 it.
 
+#### Idle connections
+
+A connection is closed once it went without work, as `closeIdleConnections`
+counts it, and without any message sent or received, for
+`anonymousIdleTimeout` (a minute by default) or, when it is bound to an
+identity, `authenticatedIdleTimeout` (five minutes by default). Connections
+used to stay open until they were closed explicitly. Null keeps them open, and
+`NdkConfig.anonymousConnectionIdleTimeout` and
+`NdkConfig.authenticatedConnectionIdleTimeout` set both in `ndk`.
+
 `WebSocketNostrTransportFactory`, `WebSocketNostrTransport` and `WebsocketDS`
 are gone: they reported a socket open before its handshake, which skipped the
 connect timeout and kept `closeIdleConnections` from closing anything. Use

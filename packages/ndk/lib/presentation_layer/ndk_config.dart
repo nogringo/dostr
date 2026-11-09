@@ -5,6 +5,7 @@ import 'package:ndk/config/request_defaults.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_cashu/ndk_cashu.dart';
+import 'package:ndk_core/config/relay_defaults.dart';
 import 'package:ndk_core/ndk_core.dart'
     show MessageLengthLimit, SubscriptionLimit;
 import 'package:ndk_nip85/ndk_nip85.dart';
@@ -103,6 +104,17 @@ class NdkConfig {
   /// at 32 seconds. This only affects failed connections, not event delivery
   /// on healthy connections.
   int webSocketReconnectMaximumStep;
+
+  /// How long an anonymous relay connection stays open with nothing to do: no
+  /// live subscription, no request waiting for its answer, no broadcast or
+  /// authentication in flight, and no message sent or received. Null keeps it
+  /// open until [Ndk.destroy] or [Ndk.setBackgrounded].
+  Duration? anonymousConnectionIdleTimeout;
+
+  /// The same as [anonymousConnectionIdleTimeout], for a connection bound to
+  /// an identity. Longer by default, since opening it again means
+  /// authenticating again, possibly through a remote signer.
+  Duration? authenticatedConnectionIdleTimeout;
 
   /// Enable fetched ranges tracking.
   /// When enabled, NDK tracks which time ranges have been fetched from which relays.
@@ -205,6 +217,9 @@ class NdkConfig {
     this.webSocketCompression = true,
     this.webSocketPingInterval = const Duration(seconds: 10),
     this.webSocketReconnectMaximumStep = 4,
+    this.anonymousConnectionIdleTimeout = DEFAULT_ANONYMOUS_IDLE_TIMEOUT,
+    this.authenticatedConnectionIdleTimeout =
+        DEFAULT_AUTHENTICATED_IDLE_TIMEOUT,
     this.fetchedRangesEnabled = false,
     this.eagerAuth = false,
     this.authCallbackTimeout = RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,

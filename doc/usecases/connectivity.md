@@ -75,6 +75,21 @@ A relay closes the socket, with a 1009, on a message longer than it reads, and e
 
 A socket that drops within 10 seconds of coming back is not reconnected right away: it waits the next step of the backoff, so a relay that drops every socket it gets is not reconnected in a loop.
 
+### Idle connections
+
+NDK opens a connection when a request or a broadcast goes to its relay, the bootstrap relays included, and closes it once nothing needs it: no live subscription, no request waiting for its answer, no broadcast or authentication in flight, and no message sent or received for `NdkConfig.anonymousConnectionIdleTimeout`, a minute by default. A connection bound to an identity waits `NdkConfig.authenticatedConnectionIdleTimeout`, five minutes by default, since opening it again means authenticating again. Null keeps idle connections open. A connection that drops with nothing to do is not reconnected. `ndk.setBackgrounded(true)` closes idle connections right away.
+
+```dart
+final ndk = Ndk(
+  NdkConfig(
+    eventVerifier: Bip340EventVerifier(),
+    cache: MemCacheManager(),
+    anonymousConnectionIdleTimeout: const Duration(seconds: 30),
+    authenticatedConnectionIdleTimeout: null,
+  ),
+);
+```
+
 ### Migrating from `RelayConnectivity.relayInfo`
 
 `RelayConnectivity.relayInfo` and `ndk.relays.doesRelaySupportNip` are removed, so `relayConnectivityChanges` no longer carries NIP-11 info. Ask for it where you need it. NDK fetches it when it connects, for the limit above, so the call is often served from the cache:

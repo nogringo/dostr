@@ -44,6 +44,10 @@ class RelayConnection implements RelayConnectivity {
   /// UTF-8 length of the longest message written on this socket
   int longestMessage = 0;
 
+  /// time since a message went through, a socket was tried, or the connection
+  /// was last found with work
+  final Stopwatch idleFor = Stopwatch()..start();
+
   /// ids of the REQs that hold a slot here but are not written yet, each with
   /// the write it waits for, see [MutableRelayStats.openRequestIds] for the
   /// written ones

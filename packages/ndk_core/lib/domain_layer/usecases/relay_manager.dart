@@ -71,6 +71,11 @@ class RelayManager {
   /// [closeIdleConnections] would keep, when it drops or before an attempt, is
   /// forgotten instead.
   ///
+  /// A connection with nothing [closeIdleConnections] would keep it for, and
+  /// no message sent or received, is closed after [anonymousIdleTimeout], or
+  /// [authenticatedIdleTimeout] when it is bound to an identity: reopening that
+  /// one means authenticating again. Null keeps such connections open.
+  ///
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
   /// a slot, and subscriptions leave a quarter of them to queries. No answer
@@ -90,6 +95,8 @@ class RelayManager {
     AuthAccounts? accounts,
     bool allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
+    Duration? anonymousIdleTimeout = DEFAULT_ANONYMOUS_IDLE_TIMEOUT,
+    Duration? authenticatedIdleTimeout = DEFAULT_AUTHENTICATED_IDLE_TIMEOUT,
     Duration authCallbackTimeout =
         RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
     Duration authChallengeTimeout =
@@ -106,6 +113,14 @@ class RelayManager {
         'must be positive',
       );
     }
+    for (final (name, timeout) in [
+      ('anonymousIdleTimeout', anonymousIdleTimeout),
+      ('authenticatedIdleTimeout', authenticatedIdleTimeout),
+    ]) {
+      if (timeout != null && timeout <= Duration.zero) {
+        throw ArgumentError.value(timeout, name, 'must be positive');
+      }
+    }
     _auth = RelayAuth(
       accounts: accounts,
       authHandler: authHandler,
@@ -117,6 +132,8 @@ class RelayManager {
       auth: _auth,
       onMessage: _dispatch,
       hasWorkOn: _connectionHasWork,
+      anonymousIdleTimeout: anonymousIdleTimeout,
+      authenticatedIdleTimeout: authenticatedIdleTimeout,
       allowReconnect: allowReconnect,
       reconnectMaximumStep: reconnectMaximumStep,
       subscriptionLimit: subscriptionLimit,
@@ -372,9 +389,10 @@ class RelayManager {
   /// Closes connections that no longer carry any tracked network work.
   ///
   /// Call this after optional subscriptions stop, for example when an app goes
-  /// into the background. This is not an eviction timer: a live subscription
-  /// keeps its connection even after EOSE, and authentication/reconnect work
-  /// keeps the exact connection it is preparing to use.
+  /// into the background, to close them without waiting for the idle timeouts
+  /// given to the constructor. A live subscription keeps its connection even
+  /// after EOSE, and authentication/reconnect work keeps the exact connection
+  /// it is preparing to use.
   ///
   /// A request or a broadcast that has yet to pick a relay keeps no connection
   /// open: sending to the relay it picks reopens the connection when needed.

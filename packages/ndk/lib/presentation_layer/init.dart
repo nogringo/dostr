@@ -273,6 +273,8 @@ class Initialization {
       authCallbackTimeout: _ndkConfig.authCallbackTimeout,
       authHandler: _ndkConfig.authHandler,
       reconnectMaximumStep: _ndkConfig.webSocketReconnectMaximumStep,
+      anonymousIdleTimeout: _ndkConfig.anonymousConnectionIdleTimeout,
+      authenticatedIdleTimeout: _ndkConfig.authenticatedConnectionIdleTimeout,
       subscriptionLimit: _subscriptionLimit,
       messageLengthLimit: _messageLengthLimit,
       onMessageLengthLearned: _ndkConfig.cache.saveLearnedMessageLength,
