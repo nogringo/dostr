@@ -87,6 +87,10 @@ class RelayConnections {
   final NostrTransportFactory nostrTransportFactory;
   final RelayAuth _auth;
   final RelayMessageHandler _onMessage;
+
+  /// whether something still needs the connection behind a key: one that
+  /// drops without is forgotten instead of brought back
+  final bool Function(RelayConnectionKey key) _hasWorkOn;
   final int _reconnectMaximumStep;
   final SubscriptionLimit? _subscriptionLimit;
   final MessageLengthLimit? _messageLengthLimit;
@@ -136,6 +140,7 @@ class RelayConnections {
     required this.nostrTransportFactory,
     required RelayAuth auth,
     required RelayMessageHandler onMessage,
+    required bool Function(RelayConnectionKey key) hasWorkOn,
     this.allowReconnect = true,
     int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
     SubscriptionLimit? subscriptionLimit,
@@ -143,6 +148,7 @@ class RelayConnections {
     FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
   }) : _auth = auth,
        _onMessage = onMessage,
+       _hasWorkOn = hasWorkOn,
        _reconnectMaximumStep = reconnectMaximumStep,
        _subscriptionLimit = subscriptionLimit,
        _messageLengthLimit = messageLengthLimit,
@@ -633,6 +639,13 @@ class RelayConnections {
   Future<bool> _attemptRevival(_Revival revival) async {
     final connectivity = revival.connectivity;
     final key = connectivity.key;
+    // an open one was just opened by a caller that has yet to use it
+    if (!isConnectionOpen(key) && !_hasWorkOn(key)) {
+      Logger.log.i(() => "nothing left to reconnect $key for");
+      await closeConnection(key);
+      notifyChanged();
+      return false;
+    }
     final connected = await reconnectConnection(key, force: true).catchError((
       Object error,
     ) {
@@ -853,9 +866,10 @@ class RelayConnections {
     );
   }
 
-  /// Cleans up after [transport] died and brings the connection back. Both ways
-  /// a socket can end land here: an error cancels the stream subscription, so
-  /// the done event that would otherwise follow never arrives.
+  /// Cleans up after [transport] died and brings the connection back, or
+  /// forgets it when nothing needs it any more. Both ways a socket can end land
+  /// here: an error cancels the stream subscription, so the done event that
+  /// would otherwise follow never arrives.
   ///
   /// Runs once per transport, so a late event from a socket that was already
   /// replaced leaves the current one alone.
@@ -885,6 +899,12 @@ class RelayConnections {
     // and subscriptions belong to the replacement, not this retired socket.
     if (!identical(relays[key], relayConnectivity) ||
         relayConnectivity.relayTransport != null) {
+      return;
+    }
+    if (!_hasWorkOn(key)) {
+      Logger.log.i(() => "closed $key, nothing left on it");
+      await closeConnection(key);
+      notifyChanged();
       return;
     }
     notifyChanged();

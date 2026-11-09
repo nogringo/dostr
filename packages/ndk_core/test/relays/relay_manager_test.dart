@@ -160,11 +160,12 @@ void main() {
     expect(relay.clients, hasLength(1));
   });
 
-  test('reconnects on its own once the relay drops the socket', () async {
+  test('reconnects on its own once the relay drops a socket in use', () async {
     final relay = await startRelay();
+    final key = RelayConnectionKey.anonymous(relay.url);
+    manager.addProtocolHandler(ClaimConnections({key}));
     await manager.connectRelay(dirtyUrl: relay.url);
-    final stats =
-        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!.stats;
+    final stats = manager.connectivities[key]!.stats;
     expect(stats.connections, 1);
 
     await relay.dropConnections();
@@ -175,6 +176,17 @@ void main() {
     );
     await eventually(() => manager.isRelayConnected(relay.url));
     expect(stats.connections, 2);
+  });
+
+  test('forgets a dropped socket nothing uses', () async {
+    final relay = await startRelay();
+    await manager.connectRelay(dirtyUrl: relay.url);
+
+    await relay.dropConnections();
+
+    await eventually(() => manager.connectivities.isEmpty);
+    await Future<void>.delayed(const Duration(seconds: 1));
+    expect(relay.clients, hasLength(1));
   });
 
   test('closeIdleConnections keeps the connections still in use', () async {

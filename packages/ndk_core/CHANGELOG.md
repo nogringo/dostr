@@ -189,7 +189,10 @@ A connection that drops is retried at once, then after a wait that doubles
 from 500 milliseconds, for an hour. Its requests are replayed once it is back,
 and given up as `disconnected` after that hour. `allowReconnect` set to false
 now stops these retries: the transport used to retry on its own regardless. A
-connection that drops within a minute of opening comes back too.
+connection that drops within a minute of opening comes back too. One that
+carries nothing `closeIdleConnections` would keep is forgotten instead, when it
+drops or before an attempt to bring it back: a relay that closes idle sockets
+used to get them reopened forever.
 `WebSocketClientNostrTransportFactory` no longer takes `reconnectMaximumStep`:
 `RelayManager` does, and `NdkConfig.webSocketReconnectMaximumStep` still sets
 it.

@@ -76,6 +76,16 @@ class FakeVerifier implements EventVerifier {
   }
 }
 
+/// Still needs the connections behind [keys], so they come back when they drop.
+class ClaimConnections extends RelayProtocolHandler {
+  ClaimConnections(this.keys);
+
+  final Set<RelayConnectionKey> keys;
+
+  @override
+  bool hasWorkOn(RelayConnectionKey key) => keys.contains(key);
+}
+
 class FakeAuthAccounts implements AuthAccounts {
   @override
   final Map<String, Account> accounts = {};

@@ -67,7 +67,9 @@ class RelayManager {
   /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
   /// requests are replayed once it is back. A socket that drops again within
   /// [RECONNECT_STABLE_AFTER] of coming back is not retried right away: it
-  /// goes on with that wait.
+  /// goes on with that wait. A connection that carries nothing
+  /// [closeIdleConnections] would keep, when it drops or before an attempt, is
+  /// forgotten instead.
   ///
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
@@ -114,6 +116,7 @@ class RelayManager {
       nostrTransportFactory: nostrTransportFactory,
       auth: _auth,
       onMessage: _dispatch,
+      hasWorkOn: _connectionHasWork,
       allowReconnect: allowReconnect,
       reconnectMaximumStep: reconnectMaximumStep,
       subscriptionLimit: subscriptionLimit,

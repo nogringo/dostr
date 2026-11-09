@@ -143,7 +143,8 @@ void main() {
     addTearDown(manager.closeAllTransports);
 
     final connectivity = await manager.openConnectionAs(relay.url, account);
-    expect(await manager.authenticateConnection(connectivity!.key), true);
+    manager.addProtocolHandler(ClaimConnections({connectivity!.key}));
+    expect(await manager.authenticateConnection(connectivity.key), true);
     expect(acceptedAuths(relay), 1);
 
     factory.down = true;
@@ -256,6 +257,29 @@ void main() {
     );
 
     await subscribed.tearDown();
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  test('a connection whose work ended during an outage is forgotten', () async {
+    final relay = await startRelay();
+    final factory = _FlakyTransportFactory();
+    final manager = RelayManager(nostrTransportFactory: factory);
+    addTearDown(manager.closeAllTransports);
+    final key = RelayConnectionKey.anonymous(relay.url);
+    final claim = ClaimConnections({key});
+    manager.addProtocolHandler(claim);
+    await manager.connectRelay(dirtyUrl: relay.url);
+
+    factory.down = true;
+    factory.created.last.dropConnection();
+    await _waitUntil(
+      () => manager.connectivities[key]!.stats.connectionErrors >= 1,
+    );
+    claim.keys.clear();
+
+    await _waitUntil(() => manager.connectivities.isEmpty);
+    factory.down = false;
+    await Future<void>.delayed(const Duration(seconds: 1));
+    expect(factory.created, hasLength(1));
   }, timeout: const Timeout(Duration(seconds: 60)));
 }
 
