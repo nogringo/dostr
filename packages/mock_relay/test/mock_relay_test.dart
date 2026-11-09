@@ -313,6 +313,43 @@ void main() {
     );
   });
 
+  group('maxMessageLength', () {
+    final filter = Filter(authors: [alice], search: 'café');
+    final req = jsonEncode(['REQ', 'sub0', filter.toMap()]);
+
+    test('a message one UTF-8 byte too long closes the socket', () async {
+      final relay = MockRelay(maxMessageLength: utf8.encode(req).length - 1);
+      await relay.start(events: [note()]);
+      addTearDown(relay.stop);
+      final client = await Client.connect(relay);
+
+      client._socket.add(req);
+      await client._incoming.stream.drain<void>();
+
+      expect(client._socket.closeCode, WebSocketStatus.messageTooBig);
+      expect(relay.oversizedMessages, 1);
+      expect(relay.received('REQ'), isEmpty);
+    });
+
+    test('a message of exactly that length is answered', () async {
+      final relay = MockRelay(maxMessageLength: utf8.encode(req).length);
+      await relay.start(events: [note()]);
+      addTearDown(relay.stop);
+      final client = await Client.connect(relay);
+
+      expect(await client.query(filter), hasLength(1));
+      expect(relay.oversizedMessages, 0);
+    });
+
+    test('the NIP-11 document publishes it', () {
+      final relay = MockRelay(maxSubscriptions: 20, maxMessageLength: 1000);
+
+      expect(relay.relayInfo, {
+        'limitation': {'max_subscriptions': 20, 'max_message_length': 1000},
+      });
+    });
+  });
+
   group('lifecycle', () {
     test('stop closes the client websockets', () async {
       final relay = MockRelay();

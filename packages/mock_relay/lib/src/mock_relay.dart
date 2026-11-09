@@ -27,6 +27,7 @@ class MockRelay {
     this.closeRequestsWith,
     this.refuseNegentropyWithClosed = false,
     this.maxSubscriptions,
+    this.maxMessageLength,
     this.maxEventsPerRequest,
     this.silenceNegentropyAfter,
   }) : _fixedPort = port,
@@ -85,6 +86,10 @@ class MockRelay {
   /// NOTICE that names no subscription. [relayInfo] publishes it
   int? maxSubscriptions;
 
+  /// closes the socket with a 1009 on a message longer than this many UTF-8
+  /// bytes, without reading it. [relayInfo] publishes it
+  int? maxMessageLength;
+
   /// sends at most this many of the newest stored events for one REQ
   int? maxEventsPerRequest;
 
@@ -94,6 +99,9 @@ class MockRelay {
 
   /// REQs refused for [maxSubscriptions]
   int refusedRequests = 0;
+
+  /// messages refused for [maxMessageLength]
+  int oversizedMessages = 0;
 
   /// AUTHs the relay accepted, on any socket, open or not
   int acceptedAuths = 0;
@@ -132,11 +140,13 @@ class MockRelay {
   Iterable<MockRelayClient> get openClients => clients.where((c) => !c.closed);
 
   /// the NIP-11 document served to a GET that accepts `application/nostr+json`
-  Map<String, dynamic> get relayInfo => {
-    'name': ?name,
-    if (maxSubscriptions case final max?)
-      'limitation': {'max_subscriptions': max},
-  };
+  Map<String, dynamic> get relayInfo {
+    final limitation = {
+      'max_subscriptions': ?maxSubscriptions,
+      'max_message_length': ?maxMessageLength,
+    };
+    return {'name': ?name, if (limitation.isNotEmpty) 'limitation': limitation};
+  }
 
   /// every message of [type] the relay received, on any socket
   List<List<dynamic>> received(String type) => [
@@ -361,6 +371,12 @@ class MockRelay {
   Future<void> _onData(MockRelayClient client, dynamic data) async {
     final delay = _delayResponse;
     if (delay != null) await Future.delayed(delay);
+    final max = maxMessageLength;
+    if (max != null && utf8.encode(data as String).length > max) {
+      oversizedMessages++;
+      await client.close(WebSocketStatus.messageTooBig, 'message too big');
+      return;
+    }
     final Object? message;
     try {
       message = jsonDecode(data as String);
@@ -593,8 +609,8 @@ class MockRelayClient {
     }
   }
 
-  Future<void> close() async {
+  Future<void> close([int? code, String? reason]) async {
     closed = true;
-    await _socket.close();
+    await _socket.close(code, reason);
   }
 }
