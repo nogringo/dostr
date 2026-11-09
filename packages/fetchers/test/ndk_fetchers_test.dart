@@ -1354,4 +1354,198 @@ void main() {
       );
     });
   });
+
+  group('fetcherUrlListWatchFn', () {
+    const timeout = Duration(milliseconds: 500);
+    final noRelays = Future.value(const <String>[]);
+
+    UrlListWatchFn watchesOn({
+      required List<String> nip65Relays,
+      required List<String> relays,
+      ReplaceableEventCache? cache,
+      UrlListCheckStore? checks,
+    }) {
+      final nip65 = Nip65Fetcher(
+        reqs: reqs,
+        relays: nip65Relays,
+        timeout: timeout,
+        cache: cache,
+        checks: checks,
+      );
+      return fetcherUrlListWatchFn(
+        nip65: nip65,
+        dmRelays: DmRelaysFetcher(
+          reqs: reqs,
+          relays: relays,
+          nip65Fetcher: nip65,
+          timeout: timeout,
+        ),
+        blossomServers: BlossomServersFetcher(
+          reqs: reqs,
+          relays: relays,
+          nip65Fetcher: nip65,
+          timeout: timeout,
+        ),
+      );
+    }
+
+    test('reads each list kind', () async {
+      final url = await startRelay([
+        relayList([
+          ['r', 'wss://both.example.com'],
+          ['r', 'wss://read.example.com', 'read'],
+          ['r', 'wss://write.example.com', 'write'],
+        ]),
+        relayList(
+          [
+            ['relay', 'wss://dm.example.com'],
+          ],
+          kind: 10050,
+          pubKey: bob,
+        ),
+        relayList(
+          [
+            ['server', 'https://cdn.example.com'],
+          ],
+          kind: 10063,
+          pubKey: bob,
+        ),
+      ]);
+      final snapshot = await watchUrlSet(
+        const UrlSet.union([
+          UrlSet.outbox(alice),
+          UrlSet.inbox(alice),
+          UrlSet.nip65(alice),
+          UrlSet.dm(bob),
+          UrlSet.blossom(bob),
+        ]),
+        watchesOn(nip65Relays: [url], relays: [url]),
+      ).last;
+
+      expect(snapshot.done, isTrue);
+      expect(snapshot.unavailable, isEmpty);
+      expect(snapshot.urls, [
+        'wss://both.example.com',
+        'wss://write.example.com',
+        'wss://both.example.com',
+        'wss://read.example.com',
+        'wss://both.example.com',
+        'wss://read.example.com',
+        'wss://write.example.com',
+        'wss://dm.example.com',
+        'https://cdn.example.com',
+      ]);
+    });
+
+    test('gives a DM list before its relay list lookup ends', () async {
+      final watch = watchesOn(
+        nip65Relays: [await startSilentRelay()],
+        relays: [
+          await startRelay([
+            relayList(
+              [
+                ['relay', 'wss://dm.example.com'],
+              ],
+              kind: 10050,
+              pubKey: bob,
+            ),
+          ]),
+        ],
+      );
+
+      final snapshots = await watchUrlSet(const UrlSet.dm(bob), watch).toList();
+
+      final found = snapshots.firstWhere((s) => s.urls.isNotEmpty);
+      expect(found.urls, ['wss://dm.example.com']);
+      expect(found.done, isFalse);
+      expect(snapshots.last.urls, ['wss://dm.example.com']);
+      expect(
+        (snapshots.last.resolution as UrlsUnavailable).reason,
+        contains('NIP-65'),
+      );
+    });
+
+    test('gives each version of a list, the cached one first', () async {
+      final cache = MemoryCache();
+      await cache.save(
+        relayList([
+          ['r', 'wss://old.example.com'],
+        ]),
+      );
+      final watch = watchesOn(
+        nip65Relays: [
+          await startRelay([
+            relayList([
+              ['r', 'wss://new.example.com'],
+            ], createdAt: 2000),
+          ]),
+        ],
+        relays: [],
+        cache: cache,
+      );
+
+      final lookups = await watch(alice, UrlListKind.outbox, noRelays).toList();
+
+      expect(
+        [for (final lookup in lookups) (lookup as UrlListFound).urls],
+        [
+          ['wss://old.example.com'],
+          ['wss://new.example.com'],
+        ],
+      );
+    });
+
+    test('tells a missing list from an unanswered one', () async {
+      Future<List<UrlListLookup>> lookupsOn(String url) => watchesOn(
+        nip65Relays: [url],
+        relays: [],
+      )(alice, UrlListKind.outbox, noRelays).toList();
+
+      expect(await lookupsOn(await startRelay([])), [isA<UrlListNotFound>()]);
+      expect(await lookupsOn(await startSilentRelay()), [
+        isA<UrlListUnavailable>(),
+      ]);
+    });
+
+    test('asks once for a list that ended unavailable, with checks', () async {
+      final relay = LocalRelay([], maxFilters: 0);
+      await relay.start();
+      relays.add(relay);
+      final watch = watchesOn(
+        nip65Relays: [relay.url],
+        relays: [],
+        checks: MemoryUrlListCheckStore(),
+      );
+
+      final lookups = await watch(alice, UrlListKind.outbox, noRelays).toList();
+
+      expect(lookups, [isA<UrlListUnavailable>()]);
+      expect(relay.reqCount, 1);
+    });
+
+    test('rejects private relay lists', () async {
+      final watch = watchesOn(nip65Relays: [], relays: []);
+
+      expect(
+        watch(alice, UrlListKind.private, noRelays),
+        emitsError(isUnsupportedError),
+      );
+    });
+
+    test('requires the fetchers to find write relays with nip65', () {
+      final nip65 = Nip65Fetcher(reqs: reqs);
+
+      expect(
+        () => fetcherUrlListWatchFn(
+          nip65: nip65,
+          dmRelays: DmRelaysFetcher(reqs: reqs),
+          blossomServers: BlossomServersFetcher(
+            reqs: reqs,
+            nip65Fetcher: nip65,
+          ),
+        ),
+        throwsArgumentError,
+      );
+    });
+  });
 }

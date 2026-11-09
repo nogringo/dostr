@@ -129,6 +129,23 @@ final resolution = await resolveUrlSet(UrlSet.dm(bob), lists);
 `dmRelays` and `blossomServers` must find the write relays with `nip65`.
 Private relay lists (kind 10013) are not supported.
 
+`resolveUrlSet` waits for every list. To ask a relay as soon as a list names
+it, watch the set with `fetcherUrlListWatchFn`, which takes the same fetchers
+and gives each version of a list they find:
+
+```dart
+final watch = fetcherUrlListWatchFn(
+  nip65: nip65,
+  dmRelays: dmRelays,
+  blossomServers: blossomServers,
+);
+await for (final snapshot in watchUrlSet(UrlSet.dm(bob), watch)) {
+  print(snapshot.urls);
+}
+```
+
+A DM list found on the indexers then comes before the NIP-65 lookup ends.
+
 ## Home relays
 
 [`ndk_home_relays`](https://pub.dev/packages/ndk_home_relays) computes the
