@@ -11,12 +11,12 @@ dev_dependencies:
 
 workspace:
   - packages/ndk
-  - packages/ndk_core
+  - packages/core
   - packages/nip01
   - packages/signer
   - packages/accounts
   - packages/follows
-  - packages/metadatas
+  - packages/metadata
   - packages/lists
   - packages/zaps
   - packages/cache
@@ -32,16 +32,16 @@ workspace:
   - packages/nip49
   - packages/nip77
   - packages/rust_verifier
-  - packages/pq
-  - packages/ndk_cache_manager_test_suite
-  - packages/ndk_event_verifier_test_suite
+  - packages/post_quantum
+  - packages/cache_manager_test_suite
+  - packages/event_verifier_test_suite
   - packages/mock_relay
   - packages/objectbox
   - packages/sembast
   - packages/drift
   - packages/cli
   - packages/sqlite3
-  - packages/ndk_flutter
+  - packages/flutter
   - packages/wallets
   - packages/nwc
   - packages/cashu_protocol
@@ -68,7 +68,7 @@ melos:
       hooks:
         preCommit: |
           melos exec --fail-fast --scope="ndk_core" -- "dart run tool/update_version.dart"
-          git add packages/ndk_core/lib/src/version.dart
+          git add packages/core/lib/src/version.dart
 
   scripts:
     graph:

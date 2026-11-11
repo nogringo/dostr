@@ -5,7 +5,7 @@ import 'dart:io';
 
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
 import 'package:ndk_sembast/ndk_sembast.dart';

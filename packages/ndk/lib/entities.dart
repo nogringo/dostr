@@ -34,7 +34,7 @@ export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart'
         RelayDeliveryState,
         RelayDeliveryTarget,
         UnresolvedUrlSet;
-export 'package:ndk_metadatas/ndk_metadatas.dart' show Metadata;
+export 'package:ndk_metadata/ndk_metadata.dart' show Metadata;
 export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_nip05/ndk_nip05.dart'
     show

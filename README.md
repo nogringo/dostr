@@ -37,9 +37,9 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_follows`: NIP-02 contact lists, to load one and follow or unfollow pubkeys, hashtags, communities and events as the logged account, without depending on `ndk`. NDK exposes it as `ndk.follows`.
 
-### [🔗 Metadatas](./packages/metadatas/)
+### [🔗 Metadata](./packages/metadata/)
 
-`ndk_metadatas`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, and to search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.metadata` and `ndk.search`.
+`ndk_metadata`: user metadata (NIP-01 kind 0), to load the profiles of pubkeys and publish the logged account's own, and to search cached metadata, and events in the cache and on relays with NIP-50, without depending on `ndk`. NDK exposes it as `ndk.metadata` and `ndk.search`.
 
 ### [🔗 Lists](./packages/lists/)
 
@@ -85,9 +85,9 @@ Core package of the NDK. Go here for instructions on how to use the NDK. 📜
 
 `ndk_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI. Needs the Rust toolchain.
 
-### [🔗 Post-quantum](./packages/pq/)
+### [🔗 Post-quantum](./packages/post_quantum/)
 
-`ndk_pq`: ML-DSA event signer and verifier, and post-quantum hybrid encryption, in native Rust through FFI. Experimental, needs the Rust toolchain.
+`ndk_post_quantum`: ML-DSA event signer and verifier, and post-quantum hybrid encryption, in native Rust through FFI. Experimental, needs the Rust toolchain.
 
 ### [🔗 URL sets](./packages/url_set/)
 
@@ -189,7 +189,7 @@ ObjectBox database implementation.
 
 Sembast cache manager and wallets repository, in pure Dart.
 
-### [🔗 Ndk Flutter](./packages/ndk_flutter/)
+### [🔗 Ndk Flutter](./packages/flutter/)
 
 Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `ndk_nip07` and the NIP-55 signer of `ndk_nip55`.
 
@@ -197,6 +197,6 @@ Flutter widgets and utilities that require Flutter as a dependency. It exports t
 
 The `ndk` command line interface.
 
-### [🔗 sample app](./packages/sample-app/)
+### [🔗 sample app](./packages/demo/)
 
 example app using the NDK.

@@ -12,7 +12,7 @@ All accessible via `ndk.<accessor>`.
 | `ndk.bunkers` | `Bunkers` | NIP-46 remote signing, from `ndk_nip46` |
 | `ndk.relays` | `RelayManager` | Relay connections and management |
 | `ndk.follows` | `Follows` | Contact lists (NIP-02), from `ndk_follows` |
-| `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0), from `ndk_metadatas` |
+| `ndk.metadata` | `Metadatas` | User profile metadata (NIP-01 kind 0), from `ndk_metadata` |
 | `ndk.userRelayLists` | `UserRelayLists` | NIP-65 relay lists, from `ndk_user_relay_lists` |
 | `ndk.lists` | `Lists` | NIP-51 generic lists, from `ndk_lists` |
 | `ndk.relaySets` | `RelaySets` | Calculate relay sets for outbox model, from `ndk_user_relay_lists` |
@@ -25,7 +25,7 @@ All accessible via `ndk.<accessor>`.
 | Accessor | Type | Description |
 | -------- | ---- | ----------- |
 | `ndk.zaps` | `Zaps` | Zap requests, invoices and receipts, from `ndk_zaps` (pay with `Nwc.zap`, see wallets.md) |
-| `ndk.search` | `Search` | NIP-50 relay search, from `ndk_metadatas` |
+| `ndk.search` | `Search` | NIP-50 relay search, from `ndk_metadata` |
 | `ndk.fetchedRanges` | `FetchedRanges` | Track fetched time ranges per relay, from `ndk_requests` |
 | `ndk.nip77` | `Nip77` | Negentropy set reconciliation |
 
@@ -52,7 +52,7 @@ await for (final result in response.stream) {
 
 ## Metadata
 
-`Metadatas` and `Metadata` live in the `ndk_metadatas` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
+`Metadatas` and `Metadata` live in the `ndk_metadata` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
 
 ```dart
 final metadata = await ndk.metadata.loadMetadata(pubkey);

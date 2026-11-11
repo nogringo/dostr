@@ -38,7 +38,7 @@ dev_dependencies:
   ndk_accounts: ^0.1.0
   ndk_bip340: ^0.1.0
   ndk_follows: ^0.1.0
-  ndk_metadatas: ^0.1.0
+  ndk_metadata: ^0.1.0
   ndk_mock_relay: ^0.1.0
   ndk_nip19: ^0.1.0
   ndk_sembast: ^0.1.0

@@ -81,7 +81,7 @@ documentation and sample-app deployments share one deployment queue and retain
 each other's files on the `gh-pages` branch.
 
 The sample app is not a melos workspace package, so the version in
-`packages/sample-app/pubspec.yaml` is not bumped by releases. The release
+`packages/demo/pubspec.yaml` is not bumped by releases. The release
 workflow sets the APK `versionName` from the tag (for example `0.9.2`) and
 derives a `versionCode` that preserves version order
 (`MAJOR*1000000 + MINOR*10000 + PATCH*100 + N` for `-dev.N`, or `+ 99` for

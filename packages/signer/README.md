@@ -13,7 +13,7 @@ server.
 
 Pure Dart, interfaces only. A signer such as
 [`ndk_bip340`](https://pub.dev/packages/ndk_bip340) or
-[`ndk_pq`](https://pub.dev/packages/ndk_pq) only needs this package and
+[`ndk_post_quantum`](https://pub.dev/packages/ndk_post_quantum) only needs this package and
 [`ndk_nip01`](https://pub.dev/packages/ndk_nip01), not `ndk_core`. So does a
 package that authenticates on behalf of NDK accounts, such as
 [`ndk_blossom`](https://pub.dev/packages/ndk_blossom).

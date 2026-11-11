@@ -5,7 +5,7 @@ import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_wallets/ndk_wallets.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'package:ndk_follows/ndk_follows.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';

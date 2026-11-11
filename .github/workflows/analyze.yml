@@ -22,11 +22,11 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: flutter analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/ndk_cache_manager_test_suite
+          - package: ./packages/cache_manager_test_suite
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: flutter analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/ndk_event_verifier_test_suite
+          - package: ./packages/event_verifier_test_suite
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
@@ -54,7 +54,7 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/ndk_core
+          - package: ./packages/core
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
@@ -74,7 +74,7 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/metadatas
+          - package: ./packages/metadata
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
@@ -142,7 +142,7 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/pq
+          - package: ./packages/post_quantum
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
@@ -218,12 +218,12 @@ jobs:
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/ndk_flutter
+          - package: ./packages/flutter
             pub_get_directory: .
             pub_get_command: dart pub get
             analyze_command: flutter analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/sample-app
-            pub_get_directory: ./packages/sample-app
+          - package: ./packages/demo
+            pub_get_directory: ./packages/demo
             pub_get_command: flutter pub get
             analyze_command: flutter analyze --fatal-infos --fatal-warnings .
     steps:

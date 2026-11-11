@@ -36,7 +36,7 @@ on:
           - ndk_nip49
           - ndk_nip77
           - ndk_rust_verifier
-          - ndk_pq
+          - ndk_post_quantum
           - ndk_url_set
           - ndk_fetchers
           - ndk_home_relays
@@ -57,7 +57,7 @@ on:
           - ndk_nip05
           - ndk_accounts
           - ndk_follows
-          - ndk_metadatas
+          - ndk_metadata
           - ndk_lists
           - ndk_zaps
           - ndk_cache

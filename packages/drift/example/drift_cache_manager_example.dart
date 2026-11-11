@@ -4,7 +4,7 @@ import 'package:ndk/ndk.dart';
 /// Example demonstrating how to use DriftCacheManager with NDK.
 ///
 /// Note: This example requires a Flutter environment to run.
-/// For a complete working example, see the sample-app in the NDK repository.
+/// For a complete working example, see the demo app in packages/demo of the NDK repository.
 Future<void> main() async {
   // 1. Create the cache manager
   // Uses 'ndk_cache_debug' in debug mode, 'ndk_cache' in release mode

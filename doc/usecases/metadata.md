@@ -15,7 +15,7 @@ Uses caching, so repeated calls are ok.
 
 Use `broadcastMetadata()` to update or set metadata.
 
-`Metadatas` and `Metadata` live in the `ndk_metadatas` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Metadatas` with `query`, `publish`, `cache` and `accounts`, see its [README](https://pub.dev/packages/ndk_metadatas).
+`Metadatas` and `Metadata` live in the `ndk_metadata` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Metadatas` with `query`, `publish`, `cache` and `accounts`, see its [README](https://pub.dev/packages/ndk_metadata).
 
 ## Current behavior
 

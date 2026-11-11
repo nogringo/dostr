@@ -19,7 +19,7 @@ The repository includes a **sample app** that demonstrates many implemented
 features, usecases, and Flutter widgets end to end.
 
 - [sample app live demo](https://dart-nostr.com/app/)
-- source: `packages/sample-app`
+- source: `packages/demo`
 !!!
 
 ## Apps using NDK

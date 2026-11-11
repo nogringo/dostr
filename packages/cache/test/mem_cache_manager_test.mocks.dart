@@ -14,7 +14,7 @@ import 'package:ndk_cache/src/relay_set.dart' as _i8;
 import 'package:ndk_cache/src/user_relay_list.dart' as _i5;
 import 'package:ndk_nip01/ndk_nip01.dart' as _i11;
 import 'package:ndk_follows/src/contact_list.dart' as _i12;
-import 'package:ndk_metadatas/src/metadata.dart' as _i3;
+import 'package:ndk_metadata/src/metadata.dart' as _i3;
 import 'package:ndk_nip01/ndk_nip01.dart' as _i13;
 import 'package:ndk_nip05/src/domain_layer/entities/nip_05.dart' as _i4;
 

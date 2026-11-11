@@ -100,7 +100,7 @@ export 'package:ndk_cache/ndk_cache.dart'
  */
 
 export 'package:ndk_follows/ndk_follows.dart';
-export 'package:ndk_metadatas/ndk_metadatas.dart';
+export 'package:ndk_metadata/ndk_metadata.dart';
 export 'package:ndk_user_relay_lists/ndk_user_relay_lists.dart';
 export 'package:ndk_lists/ndk_lists.dart';
 export 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';

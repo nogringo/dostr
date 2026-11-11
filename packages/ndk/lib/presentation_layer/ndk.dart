@@ -15,7 +15,7 @@ import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_follows/ndk_follows.dart';
 import 'package:ndk_nip59/ndk_nip59.dart';
 import 'package:ndk_lists/ndk_lists.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 import 'package:ndk_nip77/ndk_nip77.dart';
 import 'package:ndk_core/ndk_core.dart';

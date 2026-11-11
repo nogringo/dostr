@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [ndk_core, nip01, signer, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, pq, url_set, fetchers, home_relays, wallets, nwc, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07, nip46, nip82, broadcast_queue, nip05, accounts, follows, metadatas, lists, zaps, cache, nip11, requests, broadcast, user_relay_lists, mock_relay]
+        package: [core, nip01, signer, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, post_quantum, url_set, fetchers, home_relays, wallets, nwc, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07, nip46, nip82, broadcast_queue, nip05, accounts, follows, metadata, lists, zaps, cache, nip11, requests, broadcast, user_relay_lists, mock_relay]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}
@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./packages/ndk_flutter
+        working-directory: ./packages/flutter
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1

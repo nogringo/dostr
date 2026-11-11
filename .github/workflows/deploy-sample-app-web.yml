@@ -47,7 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./packages/sample-app
+        working-directory: ./packages/demo
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -84,6 +84,6 @@ jobs:
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./packages/sample-app/build/web
+          publish_dir: ./packages/demo/build/web
           destination_dir: ${{ inputs.destination_dir || github.event.inputs.destination_dir || 'app' }}
           keep_files: true

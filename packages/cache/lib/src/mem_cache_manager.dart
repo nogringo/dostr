@@ -6,7 +6,7 @@ import 'event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'filter_fetched_ranges.dart';
 import 'hidden_event.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'nip_65.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';

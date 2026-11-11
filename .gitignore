@@ -38,7 +38,7 @@ build/
 /packages/ndk/android/
 pubspec_overrides.yaml
 /packages/rust_verifier/rust/target/
-/packages/pq/rust/target/
+/packages/post_quantum/rust/target/
 /packages/ndk/wallets_db.db
 
 # Node.js build tools

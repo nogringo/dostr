@@ -40,7 +40,7 @@ final ndk = Ndk(
 
 `package:ndk/ndk.dart` no longer exports `RustEventVerifier`. Import
 `package:ndk_rust_verifier/ndk_rust_verifier.dart` instead. The post-quantum
-signer, verifier and encryption are in [`ndk_pq`](../pq/).
+signer, verifier and encryption are in [`ndk_post_quantum`](../post_quantum/).
 
 Versions up to 0.5.0 were built with flutter_rust_bridge and needed Flutter.
 From 0.6.0 a native assets hook builds the crate, and the package is pure Dart.

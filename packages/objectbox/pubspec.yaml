@@ -23,7 +23,7 @@ dependencies:
   ndk_cache: ^0.1.0
   ndk_core: ^0.11.0-dev.2
   ndk_follows: ^0.1.0
-  ndk_metadatas: ^0.1.0
+  ndk_metadata: ^0.1.0
   ndk_nip01: ^0.1.0
   ndk_nip05: ^0.1.0
   ndk_nip11: ^0.1.0

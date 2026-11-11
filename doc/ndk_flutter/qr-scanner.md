@@ -29,7 +29,7 @@ typedef WalletInputScanner = Future<WalletInputScanResult?> Function(
 
 Pass it to the widget (or dialog) that needs it. For wallets, that's `NWallets`:
 
-:::code source="../../packages/sample-app/lib/wallets.dart" language="dart" range="72-76" title="wire a scanner into NWallets" :::
+:::code source="../../packages/demo/lib/wallets.dart" language="dart" range="72-76" title="wire a scanner into NWallets" :::
 
 Pass the scanner to the unified dialog directly when you do not use `NWallets`:
 
@@ -158,7 +158,7 @@ flutter pub add mobile_scanner
 
 The callback just opens a dialog that wraps the camera view and pops the first decoded value:
 
-:::code source="../../packages/sample-app/lib/nwc_qr_scanner.dart" language="dart" range="7-12" title="scanWalletInput callback" :::
+:::code source="../../packages/demo/lib/nwc_qr_scanner.dart" language="dart" range="7-12" title="scanWalletInput callback" :::
 
-`packages/sample-app/lib/nwc_qr_scanner.dart` only adapts the host camera implementation.
+`packages/demo/lib/nwc_qr_scanner.dart` only adapts the host camera implementation.
 Wallet choices, paste/manual input, errors, and layout live in `ndk_flutter`.

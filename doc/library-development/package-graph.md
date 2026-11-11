@@ -41,12 +41,12 @@ Run `melos run graph` after changing a dependency between packages.
 | 2 | `ndk_follows` | `ndk_nip01`, `ndk_signer` | 7 |
 | 2 | `ndk_home_relays` | `ndk_nip01`, `ndk_nip19`, `ndk_url_set` | 1 |
 | 2 | `ndk_lists` | `ndk_logger`, `ndk_nip01`, `ndk_signer` | 2 |
-| 2 | `ndk_metadatas` | `ndk_logger`, `ndk_nip01`, `ndk_signer` | 7 |
+| 2 | `ndk_metadata` | `ndk_logger`, `ndk_nip01`, `ndk_signer` | 7 |
 | 2 | `ndk_nip07` | `ndk_nip01`, `ndk_signer` | 1 |
 | 2 | `ndk_nip55` | `ndk_nip01`, `ndk_nip19`, `ndk_signer` | 1 |
 | 2 | `ndk_nip59` | `ndk_nip01`, `ndk_signer` | 3 |
-| 2 | `ndk_pq` | `ndk_nip01`, `ndk_nip44`, `ndk_signer` | 0 |
-| 3 | `ndk_cache` | `ndk_broadcast_queue`, `ndk_follows`, `ndk_lists`, `ndk_logger`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_nip59`, `ndk_url_set` | 10 |
+| 2 | `ndk_post_quantum` | `ndk_nip01`, `ndk_nip44`, `ndk_signer` | 0 |
+| 3 | `ndk_cache` | `ndk_broadcast_queue`, `ndk_follows`, `ndk_lists`, `ndk_logger`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_nip59`, `ndk_url_set` | 10 |
 | 3 | `ndk_fetchers` | `ndk_core`, `ndk_home_relays`, `ndk_url_set` | 1 |
 | 3 | `ndk_nip17` | `ndk_core`, `ndk_nip01`, `ndk_nip59` | 1 |
 | 3 | `ndk_nip46` | `ndk_core` | 1 |
@@ -61,11 +61,11 @@ Run `melos run graph` after changing a dependency between packages.
 | 4 | `ndk_wallets` | `ndk_cache`, `ndk_core`, `ndk_logger`, `ndk_zaps` | 10 |
 | 5 | `ndk_cashu` | `ndk_cashu_protocol`, `ndk_core`, `ndk_logger`, `ndk_nip01`, `ndk_signer`, `ndk_wallets` | 8 |
 | 5 | `ndk_nwc` | `ndk_core`, `ndk_nip44`, `ndk_wallets`, `ndk_zaps` | 3 |
-| 6 | `ndk` | `ndk_accounts`, `ndk_bip340`, `ndk_blossom`, `ndk_broadcast`, `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_fetchers`, `ndk_follows`, `ndk_http`, `ndk_lists`, `ndk_logger`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_nip13`, `ndk_nip17`, `ndk_nip19`, `ndk_nip44`, `ndk_nip46`, `ndk_nip49`, `ndk_nip59`, `ndk_nip77`, `ndk_nip82`, `ndk_nip85`, `ndk_nwc`, `ndk_requests`, `ndk_signer`, `ndk_url_set`, `ndk_user_relay_lists`, `ndk_wallets`, `ndk_zaps` | 2 |
-| 6 | `ndk_cache_manager_test_suite` | `ndk_bip340`, `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_signer`, `ndk_url_set`, `ndk_wallets` | 0 |
-| 6 | `ndk_drift` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
-| 6 | `ndk_objectbox` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
-| 6 | `ndk_sembast` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 1 |
-| 6 | `ndk_sqlite3` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadatas`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
+| 6 | `ndk` | `ndk_accounts`, `ndk_bip340`, `ndk_blossom`, `ndk_broadcast`, `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_fetchers`, `ndk_follows`, `ndk_http`, `ndk_lists`, `ndk_logger`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_nip13`, `ndk_nip17`, `ndk_nip19`, `ndk_nip44`, `ndk_nip46`, `ndk_nip49`, `ndk_nip59`, `ndk_nip77`, `ndk_nip82`, `ndk_nip85`, `ndk_nwc`, `ndk_requests`, `ndk_signer`, `ndk_url_set`, `ndk_user_relay_lists`, `ndk_wallets`, `ndk_zaps` | 2 |
+| 6 | `ndk_cache_manager_test_suite` | `ndk_bip340`, `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_signer`, `ndk_url_set`, `ndk_wallets` | 0 |
+| 6 | `ndk_drift` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
+| 6 | `ndk_objectbox` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
+| 6 | `ndk_sembast` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 1 |
+| 6 | `ndk_sqlite3` | `ndk_broadcast_queue`, `ndk_cache`, `ndk_cashu`, `ndk_core`, `ndk_follows`, `ndk_metadata`, `ndk_nip01`, `ndk_nip05`, `ndk_nip11`, `ndk_wallets` | 0 |
 | 7 | `ndk_cli` | `ndk`, `ndk_blossom`, `ndk_cashu`, `ndk_core`, `ndk_http`, `ndk_nip19`, `ndk_nwc`, `ndk_rust_verifier`, `ndk_sembast`, `ndk_url_set`, `ndk_wallets` | 0 |
 | 7 | `ndk_flutter` | `ndk`, `ndk_cashu`, `ndk_core`, `ndk_nip01`, `ndk_nip07`, `ndk_nip55`, `ndk_nip82`, `ndk_nwc`, `ndk_rust_verifier`, `ndk_wallets` | 0 |

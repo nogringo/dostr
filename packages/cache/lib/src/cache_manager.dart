@@ -4,7 +4,7 @@ import 'event_cache_records.dart';
 import 'package:ndk_broadcast_queue/ndk_broadcast_queue.dart';
 import 'filter_fetched_ranges.dart';
 import 'hidden_event.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'package:ndk_lists/ndk_lists.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
@@ -27,9 +27,9 @@ import 'user_relay_list.dart';
 /// - the message lengths relays showed they read, by closing a socket with a
 ///   1009
 /// - contact lists, the [ContactListCache] of `ndk_follows`
-/// - metadata, the [MetadataCache] of `ndk_metadatas`
+/// - metadata, the [MetadataCache] of `ndk_metadata`
 /// - NIP-51 lists and sets, the [Nip51ListCache] of `ndk_lists`
-/// - metadata and event search, the [SearchCache] of `ndk_metadatas`
+/// - metadata and event search, the [SearchCache] of `ndk_metadata`
 /// - optional fetched-ranges state
 ///
 /// Backend authors should treat this class as a behavior contract, not just a

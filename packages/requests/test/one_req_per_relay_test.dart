@@ -1,7 +1,7 @@
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_cache/ndk_cache.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_metadatas/ndk_metadatas.dart';
+import 'package:ndk_metadata/ndk_metadata.dart';
 import 'package:ndk_requests/ndk_requests.dart';
 import 'package:ndk_requests/src/jit_engine/jit_request_plan.dart';
 import 'package:test/test.dart';
