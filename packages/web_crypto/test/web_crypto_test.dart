@@ -1,13 +1,10 @@
 @TestOn('browser')
 library;
 
-import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_flutter/signers/src/event_signer_web.dart'
-    show NdkEventSignerFactory;
-import 'package:ndk_flutter/signers/web_event_signer.dart';
-import 'package:ndk_flutter/verifiers/web_event_verifier.dart';
+import 'package:ndk_web_crypto/ndk_web_crypto.dart';
+import 'package:test/test.dart';
 
 void main() {
   group('WebEventSigner', () {
@@ -225,8 +222,8 @@ void main() {
     });
   });
 
-  group('NdkEventSignerFactory', () {
-    const factory = NdkEventSignerFactory();
+  group('WebEventSignerFactory', () {
+    const factory = WebEventSignerFactory();
 
     test('derivePublicKey matches Bip340', () {
       final keyPair = Bip340.generatePrivateKey();

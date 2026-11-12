@@ -22,6 +22,7 @@ workspace:
   - packages/nip49
   - packages/nip77
   - packages/rust_verifier
+  - packages/web_crypto
   - packages/event_verifier_test_suite
   - packages/mock_relay
   - packages/flutter

@@ -1,21 +1,18 @@
 import 'dart:async';
 import 'dart:js_interop';
+import 'dart:math';
 
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:web/web.dart' as web;
 
-import '../../verifiers/src/js_interop.dart';
-import 'nostr_sign_js.dart';
-
-/// Web alias of [NdkEventSigner]: fast [WebEventSigner] via JS interop.
-typedef NdkEventSigner = WebEventSigner;
+import 'js_interop.dart';
+import 'nostr_crypto_js.dart';
 
 /// Web factory: produces [WebEventSigner] instances using @noble/curves.
-class NdkEventSignerFactory implements LocalEventSignerFactory {
-  const NdkEventSignerFactory();
+class WebEventSignerFactory implements LocalEventSignerFactory {
+  const WebEventSignerFactory();
 
   @override
   EventSigner create({String? privateKey, String? publicKey}) {
@@ -39,7 +36,11 @@ class NdkEventSignerFactory implements LocalEventSignerFactory {
 
   @override
   (String, String) generateKeyPair() {
-    final privateKey = Helpers.getSecureRandomHex(32);
+    final random = Random.secure();
+    final privateKey = List.generate(
+      32,
+      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ).join();
     return (privateKey, derivePublicKey(privateKey));
   }
 

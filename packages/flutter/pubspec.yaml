@@ -41,15 +41,13 @@ dependencies:
   ndk_nip55: ^0.1.0
   ndk_rust_verifier: ^0.6.0
   ndk_signer: ^0.1.0
+  ndk_web_crypto: ^0.1.0
   pretty_qr_code: ">=3.6.0 <4.0.0"
   url_launcher: ">=6.0.0 <7.0.0"
-  web: ">=1.0.0 <2.0.0"
-  rxdart: ^0.28.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  ndk_event_verifier_test_suite: ^0.1.0
   flutter_lints: ^6.0.0
 
 flutter:

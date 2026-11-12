@@ -611,6 +611,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  ndk_web_crypto:
+    dependency: "direct overridden"
+    description:
+      path: "../web_crypto"
+      relative: true
+    source: path
+    version: "0.1.0"
   objective_c:
     dependency: transitive
     description:

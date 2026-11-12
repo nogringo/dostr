@@ -52,6 +52,10 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 `ndk_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI. Needs the Rust toolchain.
 
+#### [🔗 Web crypto](./packages/web_crypto/)
+
+`ndk_web_crypto`: fast BIP-340 event signer and verifier for the web, with @noble/curves through JS interop. Pure Dart, no Flutter needed.
+
 #### [🔗 Accounts](./packages/accounts/)
 
 `ndk_accounts`: log in with a private key, a public key, an external signer or a NIP-46 bunker, switch between the logged accounts and sign as the current one.

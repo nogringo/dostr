@@ -10,7 +10,7 @@ There is no facade: each feature is its own package, built from the parts it nee
 | Computed home relays | `ndk_home_relays` | `HomeRelayList` |
 | Relay information (NIP-11) | `ndk_nip11` | `HttpRelayInfoRepo`, `CachedRelayInfoRepo` |
 | Events and verification interface | `ndk_nip01` | `Nip01Event`, `Filter`, `EventVerifier` |
-| Signing and verification | `ndk_bip340`, `ndk_rust_verifier` | `Bip340EventSigner`, `Bip340EventVerifier`, `RustEventVerifier` |
+| Signing and verification | `ndk_bip340`, `ndk_rust_verifier`, `ndk_web_crypto` | `Bip340EventSigner`, `Bip340EventVerifier`, `RustEventVerifier`, `WebEventSigner`, `WebEventVerifier` |
 | Accounts | `ndk_accounts` | `Accounts` |
 | Remote signing (NIP-46) | `ndk_nip46` | `Bunkers`, `Nip46EventSigner` |
 | Browser extension (NIP-07) | `ndk_nip07` | `Nip07EventSigner` |

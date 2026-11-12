@@ -1,88 +1,92 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 885.2 392.0" width="885.2" height="392.0" role="img" aria-label="Dependency graph of the 27 workspace packages, in 5 layers">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 985.2 392.0" width="985.2" height="392.0" role="img" aria-label="Dependency graph of the 28 workspace packages, in 5 layers">
 <style>
 svg{--bg:#ffffff;--box:#f6f8fa;--line:#d0d7de;--edge:#8c959f;--text:#1f2328;--muted:#656d76}
 @media (prefers-color-scheme:dark){svg{--bg:#0d1117;--box:#161b22;--line:#3d444d;--edge:#6e7681;--text:#e6edf3;--muted:#9198a1}}
 .bg{fill:var(--bg)}.box{fill:var(--box);stroke:var(--line)}.edge{fill:none;stroke:var(--edge);stroke-opacity:.7}.head{fill:var(--edge)}text{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:var(--text)}.layer{fill:var(--muted);font-size:11px}
 </style>
 <defs><marker id="head" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="6" markerHeight="6" orient="auto"><path class="head" d="M0 0L8 4L0 8z"/></marker></defs>
-<rect class="bg" width="885.2" height="392.0" rx="8"/>
+<rect class="bg" width="985.2" height="392.0" rx="8"/>
 <text class="layer" x="16.0" y="364.0" dominant-baseline="central">layer 0</text>
 <text class="layer" x="16.0" y="280.0" dominant-baseline="central">layer 1</text>
 <text class="layer" x="16.0" y="196.0" dominant-baseline="central">layer 2</text>
 <text class="layer" x="16.0" y="112.0" dominant-baseline="central">layer 3</text>
 <text class="layer" x="16.0" y="28.0" dominant-baseline="central">layer 4</text>
-<path class="edge" marker-end="url(#head)" d="M500.2 40.0C500.2 112.0 498.4 112.0 498.4 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M470.2 40.0C470.2 70.0 481.0 70.0 481.0 100.0"/>
-<path class="edge" marker-end="url(#head)" d="M387.4 40.0C387.4 112.0 345.8 112.0 345.8 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M421.6 40.0C421.6 112.0 478.0 112.0 478.0 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M378.9 40.0C378.9 70.0 342.2 70.0 342.2 100.0"/>
-<path class="edge" marker-end="url(#head)" d="M404.5 40.0C404.5 112.0 420.6 112.0 420.6 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M396.0 40.0C396.0 70.0 417.0 70.0 417.0 100.0"/>
-<path class="edge" marker-end="url(#head)" d="M370.3 40.0C370.3 112.0 271.0 112.0 271.0 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M413.1 40.0C413.1 154.0 487.1 154.0 487.1 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M549.6 40.0C549.6 112.0 598.4 112.0 598.4 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M519.6 40.0C519.6 70.0 481.0 70.0 481.0 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M411.2 40.0C411.2 112.0 345.8 112.0 345.8 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M449.2 40.0C449.2 112.0 578.0 112.0 578.0 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M403.6 40.0C403.6 70.0 342.2 70.0 342.2 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M426.4 40.0C426.4 112.0 420.6 112.0 420.6 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M418.8 40.0C418.8 70.0 417.0 70.0 417.0 100.0"/>
+<path class="edge" marker-end="url(#head)" d="M396.0 40.0C396.0 112.0 271.0 112.0 271.0 184.0"/>
+<path class="edge" marker-end="url(#head)" d="M434.0 40.0C434.0 154.0 493.4 154.0 493.4 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M441.6 40.0C441.6 112.0 502.6 112.0 502.6 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M271.0 124.0C271.0 154.0 202.8 154.0 202.8 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M210.6 124.0C210.6 154.0 195.0 154.0 195.0 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M481.0 124.0C481.0 154.0 226.2 154.0 226.2 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M417.0 124.0C417.0 154.0 218.4 154.0 218.4 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M354.8 124.0C354.8 154.0 210.6 154.0 210.6 184.0"/>
 <path class="edge" marker-end="url(#head)" d="M329.6 124.0C329.6 154.0 128.6 154.0 128.6 184.0"/>
-<path class="edge" marker-end="url(#head)" d="M842.2 208.0C842.2 238.0 607.3 238.0 607.3 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M262.0 208.0C262.0 238.0 334.9 238.0 334.9 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M280.0 208.0C280.0 238.0 566.5 238.0 566.5 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M420.6 208.0C420.6 238.0 580.1 238.0 580.1 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M144.8 208.0C144.8 238.0 316.9 238.0 316.9 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M502.6 208.0C502.6 238.0 589.8 238.0 589.8 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M942.2 208.0C942.2 238.0 614.3 238.0 614.3 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M262.0 208.0C262.0 238.0 330.3 238.0 330.3 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M280.0 208.0C280.0 238.0 571.4 238.0 571.4 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M420.6 208.0C420.6 238.0 583.7 238.0 583.7 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M144.8 208.0C144.8 238.0 312.3 238.0 312.3 268.0"/>
 <path class="edge" marker-end="url(#head)" d="M112.4 208.0C112.4 280.0 158.2 280.0 158.2 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M706.2 208.0C706.2 238.0 600.5 238.0 600.5 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M218.4 208.0C218.4 238.0 559.7 238.0 559.7 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M806.2 208.0C806.2 238.0 608.2 238.0 608.2 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M218.4 208.0C218.4 238.0 565.3 238.0 565.3 268.0"/>
 <path class="edge" marker-end="url(#head)" d="M202.8 208.0C202.8 280.0 181.0 280.0 181.0 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M563.0 208.0C563.0 238.0 593.7 238.0 593.7 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M478.0 208.0C478.0 280.0 514.2 280.0 514.2 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M498.4 208.0C498.4 238.0 586.9 238.0 586.9 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M345.8 208.0C345.8 238.0 573.3 238.0 573.3 268.0"/>
-<path class="edge" marker-end="url(#head)" d="M583.5 292.0C583.5 322.0 583.6 322.0 583.6 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M487.1 292.0C487.1 322.0 572.8 322.0 572.8 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M325.9 292.0C325.9 322.0 562.0 322.0 562.0 352.0"/>
-<path class="edge" marker-end="url(#head)" d="M651.1 292.0C651.1 322.0 594.4 322.0 594.4 352.0"/>
-<rect class="box" x="245.8" y="352.0" width="118.8" height="24.0" rx="4"/>
-<text x="305.2" y="364.0" text-anchor="middle" dominant-baseline="central">cashu_protocol</text>
-<rect class="box" x="551.2" y="352.0" width="54.0" height="24.0" rx="4"/>
-<text x="578.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip01</text>
-<rect class="box" x="423.2" y="352.0" width="54.0" height="24.0" rx="4"/>
-<text x="450.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip05</text>
-<rect class="box" x="615.2" y="352.0" width="54.0" height="24.0" rx="4"/>
-<text x="642.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip11</text>
-<rect class="box" x="487.2" y="352.0" width="54.0" height="24.0" rx="4"/>
-<text x="514.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip44</text>
-<rect class="box" x="679.2" y="352.0" width="54.0" height="24.0" rx="4"/>
-<text x="706.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip49</text>
+<path class="edge" marker-end="url(#head)" d="M663.0 208.0C663.0 238.0 602.0 238.0 602.0 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M598.4 208.0C598.4 280.0 628.2 280.0 628.2 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M578.0 208.0C578.0 238.0 595.9 238.0 595.9 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M345.8 208.0C345.8 238.0 577.6 238.0 577.6 268.0"/>
+<path class="edge" marker-end="url(#head)" d="M589.8 292.0C589.8 322.0 569.6 322.0 569.6 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M493.4 292.0C493.4 322.0 558.8 322.0 558.8 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M321.3 292.0C321.3 322.0 548.0 322.0 548.0 352.0"/>
+<path class="edge" marker-end="url(#head)" d="M657.4 292.0C657.4 322.0 580.4 322.0 580.4 352.0"/>
+<rect class="box" x="266.0" y="352.0" width="118.8" height="24.0" rx="4"/>
+<text x="325.4" y="364.0" text-anchor="middle" dominant-baseline="central">cashu_protocol</text>
+<rect class="box" x="537.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="564.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip01</text>
+<rect class="box" x="473.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="500.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip05</text>
+<rect class="box" x="665.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="692.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip11</text>
+<rect class="box" x="601.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="628.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip44</text>
+<rect class="box" x="729.2" y="352.0" width="54.0" height="24.0" rx="4"/>
+<text x="756.2" y="364.0" text-anchor="middle" dominant-baseline="central">nip49</text>
 <rect class="box" x="135.4" y="352.0" width="68.4" height="24.0" rx="4"/>
 <text x="169.6" y="364.0" text-anchor="middle" dominant-baseline="central">url_set</text>
-<rect class="box" x="624.1" y="268.0" width="54.0" height="24.0" rx="4"/>
-<text x="651.1" y="280.0" text-anchor="middle" dominant-baseline="central">nip13</text>
-<rect class="box" x="298.9" y="268.0" width="54.0" height="24.0" rx="4"/>
-<text x="325.9" y="280.0" text-anchor="middle" dominant-baseline="central">nip19</text>
-<rect class="box" x="431.3" y="268.0" width="111.6" height="24.0" rx="4"/>
-<text x="487.1" y="280.0" text-anchor="middle" dominant-baseline="central">rust_verifier</text>
-<rect class="box" x="552.9" y="268.0" width="61.2" height="24.0" rx="4"/>
-<text x="583.5" y="280.0" text-anchor="middle" dominant-baseline="central">signer</text>
+<rect class="box" x="630.4" y="268.0" width="54.0" height="24.0" rx="4"/>
+<text x="657.4" y="280.0" text-anchor="middle" dominant-baseline="central">nip13</text>
+<rect class="box" x="294.3" y="268.0" width="54.0" height="24.0" rx="4"/>
+<text x="321.3" y="280.0" text-anchor="middle" dominant-baseline="central">nip19</text>
+<rect class="box" x="437.6" y="268.0" width="111.6" height="24.0" rx="4"/>
+<text x="493.4" y="280.0" text-anchor="middle" dominant-baseline="central">rust_verifier</text>
+<rect class="box" x="559.2" y="268.0" width="61.2" height="24.0" rx="4"/>
+<text x="589.8" y="280.0" text-anchor="middle" dominant-baseline="central">signer</text>
 <rect class="box" x="308.0" y="184.0" width="75.6" height="24.0" rx="4"/>
 <text x="345.8" y="196.0" text-anchor="middle" dominant-baseline="central">accounts</text>
-<rect class="box" x="457.6" y="184.0" width="61.2" height="24.0" rx="4"/>
-<text x="488.2" y="196.0" text-anchor="middle" dominant-baseline="central">bip340</text>
-<rect class="box" x="528.8" y="184.0" width="68.4" height="24.0" rx="4"/>
-<text x="563.0" y="196.0" text-anchor="middle" dominant-baseline="central">blossom</text>
+<rect class="box" x="557.6" y="184.0" width="61.2" height="24.0" rx="4"/>
+<text x="588.2" y="196.0" text-anchor="middle" dominant-baseline="central">bip340</text>
+<rect class="box" x="628.8" y="184.0" width="68.4" height="24.0" rx="4"/>
+<text x="663.0" y="196.0" text-anchor="middle" dominant-baseline="central">blossom</text>
 <rect class="box" x="187.2" y="184.0" width="46.8" height="24.0" rx="4"/>
 <text x="210.6" y="196.0" text-anchor="middle" dominant-baseline="central">core</text>
-<rect class="box" x="607.2" y="184.0" width="198.0" height="24.0" rx="4"/>
-<text x="706.2" y="196.0" text-anchor="middle" dominant-baseline="central">event_verifier_test_suite</text>
+<rect class="box" x="707.2" y="184.0" width="198.0" height="24.0" rx="4"/>
+<text x="806.2" y="196.0" text-anchor="middle" dominant-baseline="central">event_verifier_test_suite</text>
 <rect class="box" x="80.0" y="184.0" width="97.2" height="24.0" rx="4"/>
 <text x="128.6" y="196.0" text-anchor="middle" dominant-baseline="central">home_relays</text>
 <rect class="box" x="393.6" y="184.0" width="54.0" height="24.0" rx="4"/>
 <text x="420.6" y="196.0" text-anchor="middle" dominant-baseline="central">nip07</text>
 <rect class="box" x="244.0" y="184.0" width="54.0" height="24.0" rx="4"/>
 <text x="271.0" y="196.0" text-anchor="middle" dominant-baseline="central">nip55</text>
-<rect class="box" x="815.2" y="184.0" width="54.0" height="24.0" rx="4"/>
-<text x="842.2" y="196.0" text-anchor="middle" dominant-baseline="central">nip59</text>
+<rect class="box" x="915.2" y="184.0" width="54.0" height="24.0" rx="4"/>
+<text x="942.2" y="196.0" text-anchor="middle" dominant-baseline="central">nip59</text>
+<rect class="box" x="457.6" y="184.0" width="90.0" height="24.0" rx="4"/>
+<text x="502.6" y="196.0" text-anchor="middle" dominant-baseline="central">web_crypto</text>
 <rect class="box" x="304.4" y="100.0" width="75.6" height="24.0" rx="4"/>
 <text x="342.2" y="112.0" text-anchor="middle" dominant-baseline="central">fetchers</text>
 <rect class="box" x="390.0" y="100.0" width="54.0" height="24.0" rx="4"/>
@@ -93,8 +97,8 @@ svg{--bg:#ffffff;--box:#f6f8fa;--line:#d0d7de;--edge:#8c959f;--text:#1f2328;--mu
 <text x="210.6" y="112.0" text-anchor="middle" dominant-baseline="central">nip85</text>
 <rect class="box" x="247.6" y="100.0" width="46.8" height="24.0" rx="4"/>
 <text x="271.0" y="112.0" text-anchor="middle" dominant-baseline="central">zaps</text>
-<rect class="box" x="361.8" y="16.0" width="68.4" height="24.0" rx="4"/>
-<text x="396.0" y="28.0" text-anchor="middle" dominant-baseline="central">flutter</text>
-<rect class="box" x="440.2" y="16.0" width="90.0" height="24.0" rx="4"/>
-<text x="485.2" y="28.0" text-anchor="middle" dominant-baseline="central">mock_relay</text>
+<rect class="box" x="388.4" y="16.0" width="68.4" height="24.0" rx="4"/>
+<text x="422.6" y="28.0" text-anchor="middle" dominant-baseline="central">flutter</text>
+<rect class="box" x="489.6" y="16.0" width="90.0" height="24.0" rx="4"/>
+<text x="534.6" y="28.0" text-anchor="middle" dominant-baseline="central">mock_relay</text>
 </svg>

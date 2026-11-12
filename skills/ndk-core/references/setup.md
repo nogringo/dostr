@@ -8,7 +8,7 @@ dart pub add ndk_core ndk_bip340
 dart pub add ndk_fetchers ndk_url_set
 ```
 
-`ndk_core` has no signing or verification code: it takes any `EventVerifier`, and `ndk_bip340` gives a pure Dart one (`Bip340EventVerifier`). `RustEventVerifier` from `ndk_rust_verifier` is faster on native platforms but needs the Rust toolchain.
+`ndk_core` has no signing or verification code: it takes any `EventVerifier`, and `ndk_bip340` gives a pure Dart one (`Bip340EventVerifier`). `RustEventVerifier` from `ndk_rust_verifier` is faster on native platforms but needs the Rust toolchain. On the web, `WebEventVerifier` from `ndk_web_crypto` is faster.
 
 ## Minimum init
 

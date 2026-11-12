@@ -9,14 +9,14 @@ echo "Building JS bundle..."
 npm run build
 
 echo "Updating nostr_crypto_js.dart..."
-cat > ../src/nostr_crypto_js.dart << 'DARTEOF'
+cat > ../lib/src/nostr_crypto_js.dart << 'DARTEOF'
 /// Bundled nostr-crypto-bundle JS code.
-/// Generated from lib/assets/nostr_crypto.src.js using esbuild.
-/// To regenerate: cd lib/assets && ./build.sh
+/// Generated from js/nostr_crypto.src.js using esbuild.
+/// To regenerate: cd js && ./build.sh
 const String nostrCryptoJs = r'''
 DARTEOF
 
-cat nostr_crypto.js >> ../src/nostr_crypto_js.dart
-echo "''';" >> ../src/nostr_crypto_js.dart
+cat nostr_crypto.js >> ../lib/src/nostr_crypto_js.dart
+echo "''';" >> ../lib/src/nostr_crypto_js.dart
 
 echo "Done!"

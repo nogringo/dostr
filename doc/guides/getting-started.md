@@ -78,4 +78,4 @@ The examples above talk to relays you name. To read an account's events from the
 
 ## Faster verification
 
-`Bip340EventVerifier` checks signatures in pure Dart, on the calling isolate. On native platforms `RustEventVerifier` from [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) is much faster. It needs the Rust toolchain, see its README.
+`Bip340EventVerifier` checks signatures in pure Dart, on the calling isolate. On native platforms `RustEventVerifier` from [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) is much faster. It needs the Rust toolchain, see its README. On the web, `WebEventVerifier` from [`ndk_web_crypto`](https://pub.dev/packages/ndk_web_crypto) is much faster.

@@ -2,6 +2,29 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 
 /// Stub implementation for non-web platforms.
+/// WebEventSignerFactory is only available on web platforms.
+class WebEventSignerFactory implements LocalEventSignerFactory {
+  const WebEventSignerFactory();
+
+  Never _unsupported() => throw UnsupportedError(
+    'WebEventSignerFactory is only available on web platforms. '
+    'Use Bip340EventSignerFactory for native platforms.',
+  );
+
+  @override
+  EventSigner create({String? privateKey, String? publicKey}) => _unsupported();
+
+  @override
+  String derivePublicKey(String privateKey) => _unsupported();
+
+  @override
+  (String, String) generateKeyPair() => _unsupported();
+
+  @override
+  EventSigner createWithNewKeyPair() => _unsupported();
+}
+
+/// Stub implementation for non-web platforms.
 /// WebEventSigner is only available on web platforms.
 class WebEventSigner implements EventSigner {
   /// hex private key

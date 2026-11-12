@@ -38,7 +38,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [nip01, signer, nip19, bip340, nip44, nip49, nip77, rust_verifier, url_set, fetchers, home_relays, cashu_protocol, blossom, nip59, nip85, nip13, nip07, nip46, nip05, accounts, zaps, nip11, mock_relay]
+        package: [nip01, signer, nip19, bip340, nip44, nip49, nip77, rust_verifier, web_crypto, url_set, fetchers, home_relays, cashu_protocol, blossom, nip59, nip85, nip13, nip07, nip46, nip05, accounts, zaps, nip11, mock_relay]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

@@ -1,18 +1,14 @@
 @TestOn('browser')
 library;
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter_test/flutter_test.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_flutter/signers/web_event_signer.dart';
-import 'package:ndk_flutter/verifiers/web_event_verifier.dart';
+import 'package:ndk_web_crypto/ndk_web_crypto.dart';
+import 'package:test/test.dart';
 
 void _report(String label, int count, int ms) {
   final perOp = count > 0 ? (ms / count).toStringAsFixed(2) : '0';
-  if (kDebugMode) {
-    print('[$label] $count ops in ${ms}ms ($perOp ms/op)');
-  }
+  print('[$label] $count ops in ${ms}ms ($perOp ms/op)');
 }
 
 void main() {

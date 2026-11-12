@@ -55,6 +55,7 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 - **Pure Dart** BIP-340 verification in an isolate (`ndk_bip340`)
 - **Native Rust** verification through FFI (`ndk_rust_verifier`), much faster on mobile and desktop
+- **Web** signing and verification with @noble/curves through JS interop (`ndk_web_crypto`), much faster in the browser
 
 ## Not included
 
