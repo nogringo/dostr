@@ -4,24 +4,58 @@ order: 50
 icon: agent
 ---
 
-[!badge variant="primary" text="low level"]
+# Trusted Assertions (NIP-85)
 
-## When to use
+[`ndk_nip85`](https://pub.dev/packages/ndk_nip85) reads [NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions: metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`). Use it when a metric would cost the device too much bandwidth or compute to work out itself.
 
-Trusted assertions are data events computed by a provider. It's useful when certain operations might be too expensive (bandwidth, compute) on the edge device.
+```yaml
+dependencies:
+  ndk_nip85: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_bip340: ^0.1.0
+```
 
 ## Setup
 
-NDK exposes trusted assertions as `ndk.ta`, or `ndk.trustedAssertions`.
-
-`TrustedAssertions` lives in the `ndk_nip85` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `TrustedAssertions` with how to reach a relay, `query` for the `get*` methods and `subscribe` for the `stream*` ones, see its [README](https://pub.dev/packages/ndk_nip85).
-
-## 1) Option A: Use the default trusted providers
-
-`ndk.ta` uses `DEFAULT_NIP85_PROVIDERS` unless `NdkConfig.defaultTrustedProviders` says otherwise.
+`TrustedAssertions` asks you how to query and subscribe to a relay. Here both run on [RelayReqs](/usecases/relay-reqs.md):
 
 ```dart
-final metrics = await ndk.ta.getUserMetrics(
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
+
+final relayManager = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+);
+final reqs = RelayReqs(
+  relayManager: relayManager,
+  eventVerifier: Bip340EventVerifier(),
+);
+
+final ta = TrustedAssertions(
+  query: (filter, {required relay}) => reqs
+      .req(relays: {relay: [filter]})
+      .events
+      .map((received) => received.event)
+      .toList(),
+  subscribe: (filter, {required relay}) {
+    final req = reqs.req(relays: {relay: [filter]}, closeOnEose: false);
+    return (
+      events: req.events.map((received) => received.event),
+      close: req.close,
+    );
+  },
+);
+```
+
+`query` answers the `get*` methods and `subscribe` the `stream*` ones. Both are called once per relay of the providers asked.
+
+## Default providers
+
+Without `providers`, calls use `defaultProviders`, which defaults to `DEFAULT_NIP85_PROVIDERS`, served by `wss://nip85.uid.ovh`:
+
+```dart
+final metrics = await ta.getUserMetrics(
   '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   metrics: {Nip85Metric.rank, Nip85Metric.followers},
 );
@@ -29,73 +63,75 @@ final metrics = await ndk.ta.getUserMetrics(
 print('rank=${metrics?.rank}, followers=${metrics?.followers}');
 ```
 
-## 2) Option B: Override providers with your Cipolin instance
+## Your own providers
 
-For every call:
+A provider is a `Nip85TrustedProvider`: the assertion kind, the metric, the provider's pubkey and the relay it publishes on. `Nip85TrustedProvider.fromTag` reads one from a kind `10040` tag such as `["30382:rank", "<pubkey>", "<relay>"]`.
+
+Set them for every call:
 
 ```dart
-final ndk = Ndk(
-  NdkConfig(
-    cache: cacheManager,
-    eventVerifier: Bip340EventVerifier(),
-    defaultTrustedProviders: APP_DEFAULT_NIP85_PROVIDERS,
-  ),
+final ta = TrustedAssertions(
+  query: query,
+  subscribe: subscribe,
+  defaultProviders: myProviders,
 );
 ```
 
-or per request:
+or per call:
 
 ```dart
-final user = await ndk.ta.getUserMetrics(
+final user = await ta.getUserMetrics(
   '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
   metrics: {Nip85Metric.rank, Nip85Metric.postCount, Nip85Metric.replyCount},
-  providers: providers,
+  providers: myProviders,
 );
 
 print('user rank=${user?.rank} postCount=${user?.postCount}');
 ```
 
-## 3) Streaming updates (recommended for trust providers that stream their values like cipolin)
+## Streaming updates
 
-Providers like [Cipolin](https://github.com/nogringo/cipolin/) emit progressive updates while syncing, so streaming APIs are the best fit.
+Providers like [Cipolin](https://github.com/nogringo/cipolin/) emit progressive updates while syncing, so the `stream*` methods fit them best:
 
 ```dart
-final sub = ndk.ta
+final sub = ta
     .streamUserMetrics(
       '0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef',
       metrics: {Nip85Metric.rank, Nip85Metric.followers, Nip85Metric.reactionsCount},
-      providers: providers,
+      providers: myProviders,
     )
     .listen((m) {
       print('update createdAt=${m.createdAt} rank=${m.rank} followers=${m.followers}');
     });
 
-// Later: closes the relay subscriptions
+// closes the relay subscriptions
 await sub.cancel();
 ```
 
-## 4) Event and addressable lookups
+## Event and addressable lookups
 
-Event metrics (kind 30383):
+Event metrics (kind `30383`):
 
 ```dart
-final eventMetrics = await ndk.ta.getEventMetrics(
+final eventMetrics = await ta.getEventMetrics(
   '<eventId>',
   metrics: {Nip85Metric.rank, Nip85Metric.commentCount, Nip85Metric.zapAmount},
-  providers: providers,
+  providers: myProviders,
 );
 
 print('event rank=${eventMetrics?.rank} comments=${eventMetrics?.commentCount}');
 ```
 
-Addressable metrics (kind 30384):
+Addressable metrics (kind `30384`):
 
 ```dart
-final addressMetrics = await ndk.ta.getAddressableMetrics(
+final addressMetrics = await ta.getAddressableMetrics(
   '30023:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef:my-article-slug',
   metrics: {Nip85Metric.rank, Nip85Metric.reactionCount, Nip85Metric.zapCount},
-  providers: providers,
+  providers: myProviders,
 );
 
 print('address rank=${addressMetrics?.rank} zaps=${addressMetrics?.zapCount}');
 ```
+
+`getExternalIdMetrics` and `streamExternalIdMetrics` do the same for external identifiers (kind `30385`).

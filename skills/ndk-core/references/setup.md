@@ -2,72 +2,51 @@
 
 ## Install
 
-```yaml
-# pubspec.yaml
-dependencies:
-  ndk: ^0.8.4-dev.1
+```bash
+dart pub add ndk_core ndk_bip340
+# outbox model
+dart pub add ndk_fetchers ndk_url_set
 ```
 
-```bash
-dart pub add ndk
-# or
-flutter pub add ndk
-```
+`ndk_core` has no signing or verification code: it takes any `EventVerifier`, and `ndk_bip340` gives a pure Dart one (`Bip340EventVerifier`). `RustEventVerifier` from `ndk_rust_verifier` is faster on native platforms but needs the Rust toolchain.
 
 ## Minimum init
 
 ```dart
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: Bip340EventVerifier(), // or RustEventVerifier() from ndk_rust_verifier for better perf
-    cache: MemCacheManager(),             // or a persistent cache, see Cache options
-  ),
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
+final reqs = RelayReqs(relayManager: relays, eventVerifier: Bip340EventVerifier());
+final publishes = RelayPublishes(relayManager: relays);
 ```
 
-## NdkConfig reference
+Keep one `RelayManager` per app: it owns the connections.
 
-| Field | Type | Default | Notes |
-| ----- | ---- | ------- | ----- |
-| `eventVerifier` | `EventVerifier` | **required** | `Bip340EventVerifier`, or `RustEventVerifier` from `ndk_rust_verifier` |
-| `cache` | `CacheManager` | **required** | `MemCacheManager` or `SembastCacheManager` (`ndk_sembast`) |
-| `engine` | `NdkEngine` | `RELAY_SETS` | `RELAY_SETS` (inbox/outbox) or `JIT` |
-| `bootstrapRelays` | `List<String>` | DEFAULT_BOOTSTRAP_RELAYS | Connect on start |
-| `ignoreRelays` | `List<String>` | `[]` | Skip for inbox/outbox |
-| `eventSignerFactory` | `LocalEventSignerFactory` | `Bip340EventSignerFactory()` | Key signing |
-| `defaultQueryTimeout` | `Duration` | 5s | Per-query timeout |
-| `defaultBroadcastTimeout` | `Duration` | — | Broadcast timeout |
-| `logLevel` | `LogLevel` | warning | Logging verbosity |
-| `fetchedRangesEnabled` | `bool` | `false` | Track fetched time ranges per relay |
-| `eagerAuth` | `bool` | `false` | AUTH on challenge vs on auth-required |
+## RelayManager options
 
-## Engine modes
+| Parameter | Default | Purpose |
+|-----------|---------|---------|
+| `nostrTransportFactory` | required | Opens the sockets. `WebSocketClientNostrTransportFactory(compressionEnabled: false)` saves memory on native |
+| `accounts` | null | `AuthAccounts` (e.g. `Accounts` from `ndk_accounts`) a request without `auth` may authenticate as |
+| `authHandler` | null | Asked before a pubkey is revealed to a relay (NIP-42). Without it, a request without `auth` stays anonymous |
+| `allowReconnect` | true | Reconnect dropped connections with backoff |
+| `reconnectMaximumStep` | 4 | Caps the doubling reconnect wait (4 → 4 s) |
+| `anonymousIdleTimeout` | 1 min | Close an unused anonymous connection; null keeps it |
+| `authenticatedIdleTimeout` | 5 min | Same for a connection bound to an identity |
+| `subscriptionLimit` | null | `(url) => int?`, REQs per socket, e.g. NIP-11 `max_subscriptions`; 20 when unknown |
+| `messageLengthLimit` | null | `(url) => int?`, max bytes per message, e.g. NIP-11 `max_message_length` |
+| `onMessageLengthLearned` | null | Called when a relay closes with 1009; store it and answer `messageLengthLimit` after a restart |
 
-```dart
-// RELAY_SETS (default) — inbox/outbox model, uses nip65 relay lists
-NdkEngine.RELAY_SETS
+NIP-11 documents come from `ndk_nip11` (`HttpRelayInfoRepo`, `CachedRelayInfoRepo`).
 
-// JIT — Just-In-Time relay discovery
-NdkEngine.JIT
-```
-
-## Cache options
-
-`CacheManager` and `MemCacheManager` live in the `ndk_cache` package (pure Dart, no `ndk` dependency), which `ndk` re-exports.
+## Lifecycle
 
 ```dart
-// In-memory (no persistence)
-cache: MemCacheManager()
-
-// Sembast (persistent, native and web), from package:ndk_sembast/ndk_sembast.dart
-cache: await SembastCacheManager.create(databasePath: '/path/to/db')
-```
-
-## Cleanup
-
-```dart
-// Close all relays/subscriptions before app exit
-await ndk.destroy();
+relays.relayConnectivityChanges.listen(print); // Stream<List<RelayConnectivity>>
+await relays.reconnectClosedConnections();     // network back, app resumed
+await relays.closeIdleConnections();           // app backgrounded
+await relays.closeAllTransports();             // shutdown
 ```

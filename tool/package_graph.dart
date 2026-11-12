@@ -122,10 +122,7 @@ class _Graph {
 
   /// A dependency the graph leaves out, as the clause that ends a sentence.
   String? omittedExample() {
-    for (final package in [
-      if (dependencies.containsKey('ndk')) 'ndk',
-      ...packages.reversed,
-    ]) {
+    for (final package in packages.reversed) {
       final omitted = dependencies[package]!.difference(drawn[package]!);
       if (omitted.isEmpty) continue;
       final dependency = (omitted.toList()..sort()).first;
@@ -163,8 +160,7 @@ String _renderMarkdown(_Graph graph) {
       '${graph.drawnCount} of the ${graph.edgeCount} dependencies and leaves '
       'out those a longer path already implies'
       '${graph.omittedExample() ?? ''}. Names drop their `ndk_` prefix. The '
-      'outlined box is `ndk`, the facade that apps depend on. The table lists '
-      'every direct dependency.',
+      'table lists every direct dependency.',
     )
     ..writeln()
     ..writeln('Run `$_command` after changing a dependency between packages.')
@@ -193,8 +189,7 @@ const _rowGap = 84.0;
 const _margin = 16.0;
 const _labelColumn = 64.0;
 
-String _label(String package) =>
-    package == 'ndk' ? package : package.replaceFirst('ndk_', '');
+String _label(String package) => package.replaceFirst('ndk_', '');
 
 double _boxWidth(String package) =>
     _label(package).length * _charWidth + 2 * _boxPadding;
@@ -257,16 +252,14 @@ String _renderSvg(_Graph graph) {
     ..writeln('<style>')
     ..writeln(
       'svg{--bg:#ffffff;--box:#f6f8fa;--line:#d0d7de;--edge:#8c959f;'
-      '--text:#1f2328;--muted:#656d76;--accent:#0969da}',
+      '--text:#1f2328;--muted:#656d76}',
     )
     ..writeln(
       '@media (prefers-color-scheme:dark){svg{--bg:#0d1117;--box:#161b22;'
-      '--line:#3d444d;--edge:#6e7681;--text:#e6edf3;--muted:#9198a1;'
-      '--accent:#4493f8}}',
+      '--line:#3d444d;--edge:#6e7681;--text:#e6edf3;--muted:#9198a1}}',
     )
     ..writeln(
       '.bg{fill:var(--bg)}.box{fill:var(--box);stroke:var(--line)}'
-      '.facade{stroke:var(--accent);stroke-width:2}'
       '.edge{fill:none;stroke:var(--edge);stroke-opacity:.7}'
       '.head{fill:var(--edge)}'
       'text{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;'
@@ -310,10 +303,9 @@ String _renderSvg(_Graph graph) {
   for (final package in graph.packages) {
     final boxX = left + x[package]!;
     final boxY = top(package);
-    final facade = package == 'ndk' ? ' facade' : '';
     out
       ..writeln(
-        '<rect class="box$facade" x="${_n(boxX)}" y="${_n(boxY)}" '
+        '<rect class="box" x="${_n(boxX)}" y="${_n(boxY)}" '
         'width="${_n(_boxWidth(package))}" height="${_n(_boxHeight)}" rx="4"/>',
       )
       ..writeln(

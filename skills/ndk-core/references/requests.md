@@ -1,79 +1,72 @@
-# Requests & Subscriptions
+# Requests and publishes
 
-Low-level relay queries via `ndk.requests`.
+## REQ on chosen relays (`RelayReqs`)
 
-## Query (one-shot)
+No cache, no outbox routing, no deduplication across relays.
 
 ```dart
-final response = ndk.requests.query(
-  filters: [Filter(kinds: [1], limit: 20)],
+final req = reqs.req(
+  relays: {
+    'wss://relay.example.com': [Filter(kinds: [1], authors: [pubkey], limit: 20)],
+  },
+  timeout: Duration(seconds: 10),
+);
+await for (final received in req.events) {
+  print('${received.relayUrl}: ${received.event.content}');
+}
+final outcomes = await req.done; // per relay: eose, closed, notSent, disconnected, timedOut
+```
+
+- `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.
+- Without `relays`, call `req.send(url, filters)` per relay, then `req.seal()`.
+- `auth: AuthPolicy.never() / allow(account) / require(account)` picks the identity (NIP-42).
+- Events are verified; an event two relays hold arrives twice.
+
+## EVENT on chosen relays (`RelayPublishes`)
+
+```dart
+final signed = await signer.sign(event);
+final outcomes = await publishes
+    .publish(signed, relays: ['wss://relay.example.com'])
+    .done; // Map<String, RelayBroadcastResponse>
+```
+
+The event must be signed. No retry, no cache.
+
+## Outbox model (`ndk_fetchers` + `ndk_url_set`)
+
+```dart
+final nip65 = Nip65Fetcher(reqs: reqs);
+final dmRelays = DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65);
+final blossomServers = BlossomServersFetcher(reqs: reqs, nip65Fetcher: nip65);
+final metadata = MetadataFetcher(reqs: reqs, nip65Fetcher: nip65);
+
+final profile = await metadata.fetch(pubkey); // also watch, lookup, fetchAll
+
+// any filter, from the write relays of an author
+final eventFetcher = EventFetcher(
+  reqs: reqs,
+  urlLists: fetcherUrlListWatchFn(
+    nip65: nip65,
+    dmRelays: dmRelays,
+    blossomServers: blossomServers,
+  ),
+);
+final fetch = eventFetcher.fetch(
+  Filter(kinds: [1], authors: [alice]),
+  from: UrlSet.outbox(alice),
 );
 
-// Stream of events as they arrive
-await for (final event in response.stream) {
-  print(event.content);
+// publish to own write relays and tagged pubkeys' read relays
+final resolution = await resolveUrlSet(
+  UrlSet.union([UrlSet.outbox(me), for (final p in tagged) UrlSet.inbox(p)]),
+  fetcherUrlListFn(nip65: nip65, dmRelays: dmRelays, blossomServers: blossomServers),
+);
+if (resolution case UrlsResolved(:final urls)) {
+  await publishes.publish(signed, relays: cleanRelayUrls(urls)).done;
 }
 ```
 
-## Subscription (live stream)
+`UrlSet` leaves: `explicit`, `outbox`, `inbox`, `nip65`, `dm`, `private`, `blossom`; combinators: `union`, `fallback`, `first`. It serializes with `toMap()` / `UrlSet.fromMap()`.
 
-```dart
-final sub = ndk.requests.subscription(
-  filters: [Filter(kinds: [1], authors: [pubkey])],
-);
-
-sub.stream.listen((event) {
-  print(event);
-});
-
-// Cancel when done
-sub.close();
-```
-
-## Filter fields
-
-```dart
-Filter(
-  ids: ['<event-id>'],           // specific event IDs
-  authors: ['<hex-pubkey>'],     // specific authors
-  kinds: [1, 6, 7],              // event kinds
-  tags: {'e': ['<event-id>']},   // tag filters (#e, #p, etc.)
-  since: DateTime.now().subtract(Duration(hours: 1)),
-  until: DateTime.now(),
-  limit: 50,
-  search: 'keyword',             // NIP-50 search (if relay supports)
-)
-```
-
-## Response object
-
-```dart
-final response = ndk.requests.query(filters: [...]);
-
-response.stream        // Stream<Nip01Event>
-response.future        // Future<List<Nip01Event>> — waits for EOSE
-response.requestId     // String
-response.close()       // cancel early
-```
-
-## Nip01Event fields
-
-```dart
-event.id         // String — event ID
-event.pubkey     // String — author hex pubkey
-event.kind       // int
-event.content    // String
-event.tags       // List<List<String>>
-event.createdAt  // int — unix timestamp
-event.sig        // String — signature
-```
-
-## High-level usecases (prefer over raw requests)
-
-| Usecase | Accessor | Description |
-| ------- | -------- | ----------- |
-| Metadata | `ndk.metadata` | Fetch user profiles |
-| Follows | `ndk.follows` | Contact lists |
-| Lists | `ndk.lists` | NIP-51 lists |
-| NIP-05 | `ndk.nip05` | Verify/fetch NIP-05 |
-| Search | `ndk.search` | NIP-50 search (experimental) |
+Lookups end `EventFound`, `EventNotFound` (a relay answered, none holds it) or `EventUnavailable` (no relay answered).

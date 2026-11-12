@@ -6,7 +6,7 @@ branding:
   label: v0.11.0-dev.2
 links:
 - text: pub.dev
-  link: https://pub.dev/packages/ndk
+  link: https://pub.dev/packages?q=topic%3Andk
 - text: nips
   link: https://github.com/nostr-protocol/nips/?tab=readme-ov-file#event-kinds
 footer:

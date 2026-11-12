@@ -1,50 +1,99 @@
 ---
 icon: broadcast
 order: 99
+label: Outbox model
 ---
 
-The simplest way to enable inbox/outbox (gossip) is to use the `JIT` engine, as it does everything automatically.
+# Outbox model (gossip)
+
+The [outbox model](/concepts/gossip.md) reads an account's events from the relays it writes to, and publishes an event where its readers look: the author's write relays and the read relays of the pubkeys it tags. Both come from NIP-65 relay lists (kind 10002), which [`ndk_fetchers`](/usecases/fetchers.md) reads and [`ndk_url_set`](/usecases/relay-sets.md) turns into relays.
+
+The examples share this setup, on top of the `reqs` of [Relay REQs](/usecases/relay-reqs.md#setup):
 
 ```dart
-  final ndkConfig = NdkConfig(
-    engine: NdkEngine.JIT,
-    cache: cache,
-    eventSigner: eventSigner,
-    eventVerifier: eventVerifier,
-  );
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 
-  final ndk = Ndk(ndkConfig);
+final nip65 = Nip65Fetcher(reqs: reqs);
+final dmRelays = DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65);
+final blossomServers = BlossomServersFetcher(reqs: reqs, nip65Fetcher: nip65);
 ```
 
-For more granular control you can use the `RELAY_SETS` engine.
+## Reading
+
+`EventFetcher` asks the write relays of the authors as soon as their relay lists arrive:
 
 ```dart
-NdkEngine.RELAY_SETS,
+final eventFetcher = EventFetcher(
+  reqs: reqs,
+  urlLists: fetcherUrlListWatchFn(
+    nip65: nip65,
+    dmRelays: dmRelays,
+    blossomServers: blossomServers,
+  ),
+);
+
+final fetch = eventFetcher.fetch(
+  Filter(kinds: [1], authors: [alice], limit: 20),
+  from: UrlSet.outbox(alice),
+);
+fetch.events.listen(print);
 ```
 
-To make use of gossip you need to pass a `RelaySet` to the usecase.
+For several authors, pass `UrlSet.union([for (final p in authors) UrlSet.outbox(p)])`.
 
-[!ref](/usecases/relay-sets.md)
+## Publishing
 
-## Broadcast using Outbox
-
-Broadcasts use the outbox model with either engine: NDK fetches the `nip65`
-data it is missing, see [where a broadcast goes](/usecases/broadcast.md#where-it-goes).
-
-### new account
-
-If you are creating a new account, you can use the `UserRelayLists` use case to set the `RelaySet` for the new account.\
-The data will be published to the nostr network and saved in the cache.
+Resolve the relays first, then publish there:
 
 ```dart
-await ndk.userRelayLists.setInitialUserRelayList(UserRelayList(
- refreshedTimestamp: 0, // ok to init with 0
- createdAt: 0, // ok to init with 0
- pubKey: "<pubKey>",
- relays: {
-      "wss://relay.readonly.example": ReadWriteMarker.readOnly,
-      "wss://relay.writeonly.example": ReadWriteMarker.writeOnly,
-      "wss://relay.readwrite.example": ReadWriteMarker.readWrite,
- },
-))
+final lists = fetcherUrlListFn(
+  nip65: nip65,
+  dmRelays: dmRelays,
+  blossomServers: blossomServers,
+);
+
+final resolution = await resolveUrlSet(
+  UrlSet.union([
+    UrlSet.outbox(signed.pubKey),
+    for (final p in taggedPubkeys) UrlSet.inbox(p),
+  ]),
+  lists,
+);
+
+if (resolution case UrlsResolved(:final urls)) {
+  await RelayPublishes(relayManager: relays)
+      .publish(signed, relays: cleanRelayUrls(urls))
+      .done;
+}
+```
+
+`UrlsUnavailable` means a relay list could not be read: keep the event and try again later rather than publishing to fewer relays than intended. A `UrlSet` serializes to JSON for that.
+
+## A new account
+
+A new account has no relay list yet, so nobody can find its events. Publish its kind 10002 first, on its write relays and where the fetchers of other clients look for it: the indexer relays (`defaultIndexerRelays`) and its [home relays](/usecases/fetchers.md#home-relays).
+
+```dart
+final relayList = await signer.sign(
+  Nip01Event(
+    pubKey: publicKey,
+    kind: 10002,
+    tags: [
+      ['r', 'wss://relay.example.com'],
+      ['r', 'wss://inbox.example.com', 'read'],
+      ['r', 'wss://outbox.example.com', 'write'],
+    ],
+    content: '',
+  ),
+);
+
+await RelayPublishes(relayManager: relays).publish(
+  relayList,
+  relays: [
+    'wss://relay.example.com',
+    'wss://outbox.example.com',
+    ...defaultIndexerRelays,
+    ...homeRelayList.homeRelaysOf(publicKey),
+  ],
+).done;
 ```

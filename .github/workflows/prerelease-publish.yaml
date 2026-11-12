@@ -54,7 +54,7 @@ jobs:
         run: melos publish -y --no-dry-run --scope="$PACKAGE_NAME"
 
       - name: Create NDK release tag
-        if: inputs.package_name == 'ndk'
+        if: inputs.package_name == 'ndk_core'
         env:
           PACKAGE_VERSION: ${{ inputs.package_version }}
           COMMIT_SHA: ${{ inputs.commit_sha }}
@@ -68,7 +68,7 @@ jobs:
           gh workflow run release.yml --ref "$release_tag"
 
       - name: Deploy documentation for full NDK release
-        if: inputs.package_name == 'ndk' && !contains(inputs.package_version, '-')
+        if: inputs.package_name == 'ndk_core' && !contains(inputs.package_version, '-')
         env:
           PACKAGE_VERSION: ${{ inputs.package_version }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

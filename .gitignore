@@ -33,13 +33,10 @@ build/
 /lcov_badge_generator
 .flutter-plugins
 .flutter-plugins-dependencies
-/packages/ndk/coverage/*
-/packages/ndk/coverage.lcov
-/packages/ndk/android/
+/packages/core/coverage/*
+/packages/core/coverage.lcov
 pubspec_overrides.yaml
 /packages/rust_verifier/rust/target/
-/packages/post_quantum/rust/target/
-/packages/ndk/wallets_db.db
 
 # Node.js build tools
 **/node_modules/

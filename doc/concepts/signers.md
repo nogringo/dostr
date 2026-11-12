@@ -1,97 +1,74 @@
 # Signers
 
-Signers are responsible for cryptographic operations: signing events, encrypting and decrypting messages. NDK supports multiple signer types with a unified API.
+A signer signs events and encrypts and decrypts messages. Every signer implements `EventSigner` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), so code that signs takes any of them.
 
-## Signer Types
+## Signer types
 
-| Type | Description | Pending Requests |
-|------|-------------|------------------|
-| `Bip340EventSigner` | Local signer with private key (pure Dart) | No (instant) |
-| `WebEventSigner` | Fast local signer for web (JS crypto) | No (instant) |
-| `NdkEventSigner` | Automatic platform selection (web/native) | No (instant) |
-| `Nip46EventSigner` | Remote signer via NIP-46 bunker, from `ndk_nip46` | Yes |
-| `Nip07EventSigner` | Browser extension (NIP-07), from `ndk_nip07` | Yes |
-| `Nip55EventSigner` | Android NIP-55 external signer app, from `ndk_nip55` | Yes |
+| Type | Package | Description | Pending requests |
+|------|---------|-------------|------------------|
+| `Bip340EventSigner` | `ndk_bip340` | Local signer with the private key, pure Dart | No (instant) |
+| `Nip46EventSigner` | `ndk_nip46` | Remote signer through a NIP-46 bunker | Yes |
+| `Nip07EventSigner` | `ndk_nip07` | Browser extension (NIP-07) | Yes |
+| `Nip55EventSigner` | `ndk_nip55` | Android signer app (NIP-55), Flutter plugin | Yes |
 
-## Pending Requests
+To keep several accounts and switch between them, see [Accounts](/usecases/accounts.md).
 
-External signers (NIP-46, NIP-07, NIP-55) require user approval for operations. The unified pending requests API allows your UI to:
+## Pending requests
+
+External signers (NIP-46, NIP-07, NIP-55) wait for the user to approve each operation. The pending requests API lets your UI:
 
 - Display pending operations to the user
 - Cancel pending requests
 - React to request completion
 
-### Listening to Pending Requests
+### Listening to pending requests
 
-You can access pending requests directly from an `Account` or through its signer:
+Read them on the signer, or on the `Account` that holds it:
 
 ```dart
-final account = ndk.accounts.getLoggedAccount();
-
-// Stream-based (reactive) - directly on account
-account?.pendingRequestsStream.listen((requests) {
+signer.pendingRequestsStream.listen((requests) {
   print('${requests.length} pending request(s)');
   for (final request in requests) {
     print('- ${request.method.protocolString} (${request.id})');
   }
 });
 
-// Snapshot (synchronous)
-final currentRequests = account?.pendingRequests ?? [];
+// synchronous snapshot
+final current = account.pendingRequests;
 ```
 
-### PendingSignerRequest Properties
+### PendingSignerRequest properties
 
 ```dart
 class PendingSignerRequest {
-  final String id;                    // Unique request identifier
+  final String id;
   final SignerMethod method;          // signEvent, nip44Encrypt, etc.
-  final DateTime createdAt;           // When the request was created
-  final String signerPubkey;          // Public key of the signer
-  final Nip01Event? event;            // Event being signed (for signEvent)
-  final String? plaintext;            // Text being encrypted
-  final String? ciphertext;           // Text being decrypted
-  final String? counterpartyPubkey;   // Other party's pubkey (encrypt/decrypt)
+  final DateTime createdAt;
+  final String signerPubkey;
+  final Nip01Event? event;            // for signEvent
+  final String? plaintext;            // for encrypt
+  final String? ciphertext;           // for decrypt
+  final String? counterpartyPubkey;   // for encrypt and decrypt
 
-  String? get content;                // Returns plaintext or ciphertext
+  String? get content;                // plaintext or ciphertext
 }
 ```
 
-### Cancelling Requests
+### Cancelling requests
 
 ```dart
-// Cancel a specific request
 final cancelled = account.cancelRequest(requestId);
-
-if (cancelled) {
-  print('Request cancelled');
-} else {
-  print('Request not found');
-}
 ```
 
-When cancelled, the caller receives a `SignerRequestCancelledException`:
-
-```dart
-try {
-  await signer.sign(event);
-} on SignerRequestCancelledException catch (e) {
-  print('User cancelled locally: ${e.requestId}');
-}
-```
-
-### Handling Remote Rejections
-
-When the user rejects a request on the remote signer (bunker, browser extension, NIP-55 signer app), the caller receives a `SignerRequestRejectedException`:
+The caller then receives a `SignerRequestCancelledException`. When the user rejects a request on the remote signer (bunker, browser extension, signer app), the caller receives a `SignerRequestRejectedException`:
 
 ```dart
 try {
   await signer.sign(event);
 } on SignerRequestRejectedException catch (e) {
-  print('User rejected on remote signer: ${e.requestId}');
-  print('Original message: ${e.originalMessage}');
+  print('rejected on the remote signer: ${e.requestId}');
 } on SignerRequestCancelledException catch (e) {
-  print('User cancelled locally: ${e.requestId}');
+  print('cancelled locally: ${e.requestId}');
 }
 ```
 
@@ -100,17 +77,14 @@ try {
 | `SignerRequestCancelledException` | `cancelRequest()` called locally |
 | `SignerRequestRejectedException` | User rejected on remote signer |
 
-## UI Example
+## UI example
 
 ```dart
 StreamBuilder<List<PendingSignerRequest>>(
   stream: account.pendingRequestsStream,
   builder: (context, snapshot) {
     final requests = snapshot.data ?? [];
-
-    if (requests.isEmpty) {
-      return Text('No pending requests');
-    }
+    if (requests.isEmpty) return Text('No pending requests');
 
     return ListView.builder(
       itemCount: requests.length,
@@ -130,65 +104,14 @@ StreamBuilder<List<PendingSignerRequest>>(
 )
 ```
 
-## Web Crypto
+## Disposing
 
-On web platforms, pure Dart elliptic curve operations are slow. `WebEventSigner` uses `@noble/curves` and the Web Crypto API via JS interop for fast BIP-340 signing, NIP-04 and NIP-44 encryption.
-
-```dart
-import 'package:ndk_flutter/signers/web_event_signer.dart';
-
-final signer = WebEventSigner(
-  privateKey: myPrivkey,
-  publicKey: myPubkey,
-);
-```
-
-`WebEventSigner` is only available on web. Use `Bip340EventSigner` for native platforms.
-
-## Platform Selection
-
-`NdkEventSigner` automatically picks the best implementation for the current platform:
-
-- **Web**: uses `WebEventSigner` (fast JS crypto)
-- **Native**: uses `Bip340EventSigner` (pure Dart)
-
-```dart
-import 'package:ndk_flutter/ndk_flutter.dart';
-
-final signer = NdkEventSigner(
-  privateKey: myPrivkey,
-  publicKey: myPubkey,
-);
-```
-
-To wire it into NDK so it is used everywhere internally (accounts, bunkers,
-ephemeral signers, etc.), pass the matching factory to `NdkConfig`:
-
-```dart
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: NdkEventVerifier(),
-    cache: MemCacheManager(),
-    eventSignerFactory: const NdkEventSignerFactory(),
-  ),
-);
-```
-
-This is the recommended setup for Flutter apps that target both mobile and web.
-
-## Disposing Accounts
-
-Always dispose accounts when done to avoid memory leaks:
+Dispose a signer, or the account that holds it, when done:
 
 ```dart
 await account.dispose();
 ```
 
-## When to Use
+## Writing a signer
 
-Use the pending requests API when:
-
-- Building UI for external signers (bunkers, browser extensions, mobile apps)
-- Showing users what operations are waiting for approval
-- Allowing users to cancel stuck or unwanted requests
-- Implementing request timeouts in your application
+Implement `EventSigner`, and `LocalEventSignerFactory` if it can be created from a private key. `ConcurrencyLimiterMixin` caps how many requests an interactive signer sends at once and queues the rest.

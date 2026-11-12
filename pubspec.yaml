@@ -10,53 +10,31 @@ dev_dependencies:
 
 
 workspace:
-  - packages/ndk
   - packages/core
   - packages/nip01
   - packages/signer
   - packages/accounts
-  - packages/follows
-  - packages/metadata
-  - packages/lists
   - packages/zaps
-  - packages/cache
   - packages/nip11
-  - packages/requests
-  - packages/broadcast
-  - packages/user_relay_lists
   - packages/isolates
-  - packages/logger
   - packages/nip19
   - packages/bip340
   - packages/nip44
   - packages/nip49
   - packages/nip77
   - packages/rust_verifier
-  - packages/post_quantum
-  - packages/cache_manager_test_suite
   - packages/event_verifier_test_suite
   - packages/mock_relay
-  - packages/objectbox
-  - packages/sembast
-  - packages/drift
-  - packages/cli
-  - packages/sqlite3
   - packages/flutter
-  - packages/wallets
-  - packages/nwc
   - packages/cashu_protocol
-  - packages/cashu
   - packages/blossom
-  - packages/nip17
   - packages/nip59
   - packages/nip85
   - packages/nip13
   - packages/nip07
   - packages/nip46
   - packages/nip55
-  - packages/nip82
   - packages/nip05
-  - packages/broadcast_queue
   - packages/fetchers
   - packages/home_relays
   - packages/http
@@ -86,23 +64,6 @@ melos:
     format:
       exec: dart format .
       description: Format a specific package in this project.
-
-
-    build:
-      run: melos run build:apple && melos run build:android && melos run build:other
-      description: Build all native libraries for the project.
-
-    build:apple:
-      run: bash scripts/build-apple.sh
-      description: Build the XCFramework for iOS and macOS.
-
-    build:android:
-      run: bash scripts/build-android.sh
-      description: Build the .tar.gz for Android.
-
-    build:other:
-      run: bash scripts/build-other.sh
-      description: Build the .tar.gz for all other platforms.
 
     test:
       run: melos run test:dart --no-select && melos run test:flutter --no-select

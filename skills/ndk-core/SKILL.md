@@ -1,28 +1,25 @@
 ---
 name: ndk-core
-description: NDK Dart library — Nostr Development Kit core package. Event requests, relay management, accounts, wallets (NWC/Cashu), zaps, files (Blossom), and more.
+description: NDK Dart packages for Nostr. ndk_core for relay connections, REQ and EVENT on chosen relays and NIP-42; ndk_fetchers and ndk_url_set for the outbox model; signers, accounts and one package per NIP.
 metadata:
   author: relaystr
 ---
 
-# NDK Core Library Skill
+# NDK Skill
 
-Core Dart library for building Nostr apps. Not a binary — this is library development guidance.
-
-> **Scope:** `ndk` Dart package (`packages/ndk`). CLI tool → `ndk` skill. Flutter widgets → `ndk-flutter` skill.
+NDK is a set of Dart packages, not a binary: this is library development guidance. There is no `Ndk` facade: build the parts you need and wire them yourself.
 
 ## Quick Reference
 
 | Topic | Reference |
 |-------|-----------|
-| Setup + Ndk init (NdkConfig, engines, cache) | [references/setup.md](references/setup.md) |
-| Requests + subscriptions (query relays) | [references/requests.md](references/requests.md) |
-| Accounts + signers | [references/accounts.md](references/accounts.md) |
-| Usecases overview (all ndk.* accessors, files with ndk_blossom, DMs with ndk_nip17, trusted assertions with ndk_nip85, proof of work with ndk_nip13, software updates with ndk_nip82) | [references/usecases.md](references/usecases.md) |
-| Wallets (NWC + Cashu, separate packages) | [references/wallets.md](references/wallets.md) |
+| Install, `RelayManager` and its options | [references/setup.md](references/setup.md) |
+| REQ and EVENT on chosen relays, outbox reads and publishes | [references/requests.md](references/requests.md) |
+| Signers and accounts | [references/accounts.md](references/accounts.md) |
+| Which package for which NIP | [references/usecases.md](references/usecases.md) |
 
 ## One-Line Summary
 
 ```
-NdkConfig(cache, eventVerifier) → Ndk(config) → ndk.requests / ndk.accounts / ndk.zaps / ...
+RelayManager → RelayReqs / RelayPublishes → fetchers (ndk_fetchers) → UrlSet (ndk_url_set)
 ```

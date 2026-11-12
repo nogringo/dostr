@@ -51,11 +51,9 @@ Feel free to reach out to us via the following channels:
 
 ## Project Structure
 
-Each feature lives in its own package under `packages/`, named `ndk_<feature>`: `ndk_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `ndk_requests` for queries and subscriptions, `ndk_nip59` for gift wraps, and so on. A package depends on what it needs, and its `dependencies` never include `ndk`.
+Each feature lives in its own package under `packages/`, named `ndk_<feature>`: `ndk_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `ndk_fetchers` for the lists of accounts, `ndk_nip59` for gift wraps, and so on. A package depends on what it needs, see the [package graph](package-graph.md). New code goes into the package it belongs to, or into a new one.
 
-`ndk` is only a facade: `Ndk` and `NdkConfig`, `Initialization`, which builds the packages and wires them together, `Connectivity`, which puts the relay connections of `ndk_core` and the NIP-11 info of `ndk_nip11` behind `ndk.connectivity`, and the exports of `package:ndk/ndk.dart` and `package:ndk/entities.dart`. New code goes into the package it belongs to, or into a new one, and `ndk` only builds it and exports it.
-
-Tests follow the code: a package tests itself, with [`ndk_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay. `packages/ndk/test` only keeps the tests of the facade itself, most of them through `Ndk`.
+Tests follow the code: a package tests itself, with [`ndk_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay.
 
 Inside a package, the code follows a layered architecture.
 
@@ -92,7 +90,7 @@ If you are unsure where to put your code, please ask us. We are happy to help yo
 Every public-facing API should be documented. <br>
 Types of documentation we use are inline docs and retype deployed on [dart-nostr.com](https://dart-nostr.com/).
 When you add a new use case or edit a feature, make sure to create/edit a corresponding markdown file in `/doc`.
-Generally we use examples in our docs if you do, please add them to `/packages/ndk/example` as a test so we can ensure everything continues to work.
+Generally we use examples in our docs if you do, please add them to the `example/` folder of the package as a test so we can ensure everything continues to work.
 
 
 

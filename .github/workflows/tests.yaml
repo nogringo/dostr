@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ./packages/ndk
+        working-directory: ./packages/core
     steps:
       - uses: actions/checkout@v7
       - uses: dart-lang/setup-dart@v1
@@ -31,7 +31,6 @@ jobs:
       - run: dart format --output=none .
       - run: dart analyze --no-fatal-warnings
       - run: dart test --coverage="coverage" -j 1
-      - run: dart test ./example -j 2
       - run: dart pub global activate coverage
       - run: $HOME/.pub-cache/bin/format_coverage --ignore-files **/*.g.dart --lcov --check-ignore --in=coverage --out=coverage.lcov --report-on=lib
       - name: Upload coverage reports to Codecov
@@ -44,34 +43,13 @@ jobs:
           fail_ci_if_error: ${{ secrets.CODECOV_TOKEN != '' }}
           verbose: true # optional (default = false)
 
-  cli-tests:
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ./packages/cli
-    steps:
-      - uses: actions/checkout@v7
-      - uses: dart-lang/setup-dart@v1
-        with:
-          # Pin to the Dart version bundled with Flutter stable (3.47.5).
-          sdk: 3.13.4
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: stable
-          cache: true
-          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:" # optional, change this to force refresh cache
-          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:" # optional, change this to specify the cache path
-          architecture: x64 # optional, x64 or arm64
-      - run: dart pub get
-      - run: dart test
-
   addon-tests:
     name: ${{ matrix.package }} tests
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        package: [core, nip01, signer, isolates, logger, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, post_quantum, url_set, fetchers, home_relays, wallets, nwc, cashu_protocol, cashu, blossom, nip17, nip59, nip85, nip13, nip07, nip46, nip82, broadcast_queue, nip05, accounts, follows, metadata, lists, zaps, cache, nip11, requests, broadcast, user_relay_lists, mock_relay]
+        package: [nip01, signer, isolates, http, nip19, bip340, nip44, nip49, nip77, rust_verifier, url_set, fetchers, home_relays, cashu_protocol, blossom, nip59, nip85, nip13, nip07, nip46, nip05, accounts, zaps, nip11, mock_relay]
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

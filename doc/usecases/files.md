@@ -2,51 +2,56 @@
 icon: file-zip
 ---
 
-[!badge variant="primary" text="high level"]
+# Files
 
-[!badge text="CLI"](/guides/cli/files.md) — `ndk files upload|download|delete|check`
+`Files`, from [`ndk_blossom`](https://pub.dev/packages/ndk_blossom), uploads, downloads and deletes files with a simpler API than [Blossom](/usecases/blossom.md): it takes any url, and goes through Blossom only when the url names a blob.
 
-## Setup
-
-NDK exposes Files as `ndk.files`, on top of [Blossom](/usecases/blossom.md) (`ndk.blossom`).
-
-`Files` lives in the `ndk_blossom` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Files` from a `Blossom` client, see its [README](https://pub.dev/packages/ndk_blossom).
+```yaml
+dependencies:
+  ndk_blossom: ^0.1.0
+```
 
 ## Example
 
-:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="10-13" title="blossom" :::
+Build it from a `Blossom` client, set up as in [Blossom](/usecases/blossom.md#setup):
 
-:::code source="../../packages/blossom/example/files_example_test.dart" language="dart" range="25-27" title="non blossom url" :::
+```dart blossom url
+final files = Files(blossom);
 
-## How to use
+final blob = await files.download(
+  url: 'https://cdn.example.com/b1674191a88ec5cdd733e4240a81803105dc412d6c6708d53ab94fc248f4f553.pdf',
+);
+print('${blob.mimeType}, ${blob.data.length} bytes');
+```
 
-Files uses blossom under the hood to get, upload and delete files. \
-The default user server list, specified by kind `10063` is used for upload and delete
+```dart plain url
+final json = await files.download(
+  url: 'https://example.com/.well-known/nostr.json',
+);
+```
 
-A url naming a sha256, with or without a file extension
-(`https://cdn.example.com/<sha256>.pdf`), goes through blossom. Its own server
-is tried first, then `serverUrls`, then the server list of `pubkey`, which is
-read only once the others failed. The bytes must hash to that sha256. Any other
-url is fetched directly.
+```dart upload
+final results = await files.upload(
+  file: NdkFile(data: bytes, mimeType: 'image/png'),
+);
+```
 
-`checkUrl` answers the url itself when its server has the blob, extension
-included, and otherwise the url of a server that has it.
+## How it works
 
-`upload` takes the same `strategy` as `Blossom.uploadBlob`. An `NdkFile` that
-already knows its `sha256` is not hashed again.
+A url naming a sha256, with or without a file extension (`https://cdn.example.com/<sha256>.pdf`), goes through Blossom. Its own server is tried first, then `serverUrls`, then the server list of `pubkey`, which is read only once the others failed. The bytes must hash to that sha256. Any other url is fetched directly.
 
-If you need more granular control check out:
-[!ref](/usecases/blossom.md)
+`upload`, `uploadFromFile` and `delete` use the logged account's server list (kind `10063`) when no `serverUrls` are given.
+
+`checkUrl` answers the url itself when its server has the blob, extension included, and otherwise the url of a server that has it.
+
+`upload` takes the same `strategy` as `Blossom.uploadBlob`. An `NdkFile` that already knows its `sha256` is not hashed again. `uploadFromFile` and `downloadToFile` stream from and to disk, so a large file is never held whole in memory.
 
 ## Server authentication
 
-Every method takes an `auth` parameter saying which identity a blossom server
-may learn, described in
-[blossom](/usecases/blossom.md#server-authentication-bud-01). It is ignored for
-a plain url, which is fetched directly.
+Every method takes an `auth` parameter saying which identity a Blossom server may learn, described in [Blossom](/usecases/blossom.md#server-authentication-bud-01). It is ignored for a plain url, which is fetched directly.
 
 ```dart
-await ndk.files.upload(
+await files.upload(
   file: myFile,
   auth: AuthPolicy.require(account),
 );

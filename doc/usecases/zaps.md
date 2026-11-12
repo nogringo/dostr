@@ -2,24 +2,46 @@
 icon: zap
 ---
 
-[!badge variant="primary" text="high level"]
+# Zaps
 
-[!badge text="CLI"](/guides/cli/zaps.md) — `ndk zaps invoice|zap|receipts`
+[`ndk_zaps`](https://pub.dev/packages/ndk_zaps) handles [NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) zaps: it creates zap requests, fetches the invoice to pay from a lightning address ([LUD-06](https://github.com/lnurl/luds/blob/luds/06.md), [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md)) and reads zap receipts. Paying the invoice is up to your wallet.
 
-`Zaps`, `Lnurl` and the zap entities live in the `ndk_zaps` package, which `ndk` depends on and re-exports. It does not depend on `ndk`: build `Zaps` with `query`, `subscribe` and `lnurl`, see its [README](https://pub.dev/packages/ndk_zaps).
+```yaml
+dependencies:
+  ndk_zaps: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_bip340: ^0.1.0
+  ndk_http: ^0.1.0
+  http: ^1.6.0
+```
 
-## Example
+## Setup
 
-Paying a zap goes through a wallet: with NWC, `ndk.nwc.zap(...)` fetches the invoice, pays it and waits for the receipt. Without a wallet, `ndk.zaps.fetchInvoice(...)` returns the invoice to pay.
+`Zaps` takes how to query and subscribe to relays, and an `Lnurl` to talk to the lightning address server. Here both run on [RelayReqs](/usecases/relay-reqs.md):
 
-:::code source="../../packages/nwc/example/zap.dart" language="dart" range="10-50" title="zap, receipt" :::
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="14-45" title="" :::
 
-:::code source="../../packages/ndk/example/zaps/receipts_for_profile.dart" language="dart" range="8-31" title="receipts for profile" :::
+`query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription and returns its events and a `close` to end it.
 
-:::code source="../../packages/ndk/example/zaps/receipts_for_event.dart" language="dart" range="8-31" title="receipts for event" :::
+## Invoice
 
-## How to use
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="54-69" title="zap request and invoice" :::
 
-You need a `nostr+walletconnect://...` uri from your NWC wallet service provider.
+`fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. Pass `eventId` or `addressableId` to `createZapRequest` to zap an event, and `comment` for a message.
 
-see https://github.com/getAlby/awesome-nwc for more info how to get a wallet supporting NWC
+## Receipts
+
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="47-51" title="receipts for a profile" :::
+
+`fetchZappedReceipts` and `subscribeToZapReceipts` match the receipts (kind `9735`) by recipient, and by event or addressable event when given:
+
+```dart receipts for an event
+final receipts =
+    await zaps.fetchZappedReceipts(pubKey: author, eventId: eventId).toList();
+
+final live = zaps.subscribeToZapReceipts(pubKey: author, eventId: eventId);
+live.events.listen((event) => print(ZapReceipt.fromEvent(event).amountSats));
+await live.close();
+```
+
+The receipts are parsed, not verified. `receipt.isValid(nostrPubKey: ..., recipientLnurl: ...)` checks one against the `nostrPubkey` of the recipient's LNURL server, which `getLnurlResponse(link)` of your `Lnurl` returns. Per NIP-57 this proves the receipt came from that server, not that the payment happened.

@@ -6,189 +6,76 @@ order: 100
 
 # Getting started with NDK
 
-NDK ships as two packages that work together:
+NDK is a set of Dart packages, each covering one part of Nostr, so an app only depends on what it uses:
 
-- **`ndk`** — the core library: relay gossip (inbox/outbox), requests, caching, signers, and high-level usecases. Pure Dart, no Flutter dependency.
-- **`ndk_flutter`** — Flutter integration on top of `ndk`: a platform-aware event verifier, Flutter signers, login persistence, and ready-to-use widgets.
+- [`ndk_core`](https://pub.dev/packages/ndk_core): relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
+- [`ndk_bip340`](https://pub.dev/packages/ndk_bip340): a signer that holds a private key, and a signature verifier.
+- [`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers): the metadata and relay lists of accounts, read where NIP-65 puts them.
+- [`ndk_url_set`](https://pub.dev/packages/ndk_url_set): relay sets described rather than listed, resolved when needed.
+- One package per NIP for the rest, listed in the [README](https://github.com/relaystr/ndk#readme).
 
-If you are building a **Flutter app** (the common case), start with `ndk_flutter` — it depends on `ndk` and gives you the best defaults for each platform automatically. Use the core `ndk` package alone only for pure-Dart projects (CLIs, servers).
+They are pure Dart unless their README says otherwise, so the same code runs in a Flutter app, a server or a CLI.
 
-!!!
-Looking for a ready-to-run tool instead of a library? NDK also ships a prebuilt **CLI** for querying relays and managing wallets. See [the CLI guide](./cli.md).
-!!!
-
-## Flutter apps (recommended)
-
-### Install
+## Install
 
 ```bash
-flutter pub add ndk ndk_flutter
+dart pub add ndk_core ndk_bip340
 ```
 
-### Import
+## Query relays
 
 ```dart
-import 'package:ndk/ndk.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
-```
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 
-### Initialize
-
-`NdkEventVerifier` (from `ndk_flutter`) is the recommended verifier for Flutter apps. It automatically selects the best backend for the current platform:
-
-- **Web** → `WebEventVerifier` (native Web Crypto APIs)
-- **Android / iOS / desktop** → `RustEventVerifier` (offloaded to a separate thread)
-
-This means you write one line and get the optimal verifier everywhere, with no conditional imports or platform checks.
-
-```dart
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: NdkEventVerifier(),
-    cache: MemCacheManager(),
-  ),
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
-```
-
-!!!
-If you code with AI then your AI must read https://github.com/relaystr/ndk/blob/master/AI_GUIDE.md
-!!!
-
-#### Prerequisites for native platforms
-
-On native platforms `NdkEventVerifier` uses the Rust verifier, which requires the Rust toolchain. **On web, no Rust toolchain is needed** — it falls back to Web Crypto.
-
-Install Rust:
-
-```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-```
-
-Rust toolchain android:
-
-```bash
-rustup target add \
-    aarch64-linux-android \
-    armv7-linux-androideabi \
-    x86_64-linux-android \
-    i686-linux-android
-```
-
-Rust toolchain ios:
-
-```bash
-# 64 bit targets (real device & simulator):
-rustup target add aarch64-apple-ios x86_64-apple-ios
-# New simulator target for Xcode 12 and later
-rustup target add aarch64-apple-ios-sim
-# 32 bit targets (you probably don't need these):
-rustup target add armv7-apple-ios i386-apple-ios
-```
-
-### Query events
-
-```dart
-final response = ndk.requests.query(
-  filters: [
-    Filter(
-      authors: ['hexPubkey'],
-      kinds: [Nip01Event.kTextNoteKind],
-      limit: 10,
-    ),
-  ],
+final reqs = RelayReqs(
+  relayManager: relays,
+  eventVerifier: Bip340EventVerifier(),
 );
 
-await for (final event in response.stream) {
-  print(event);
+final req = reqs.req(
+  relays: {
+    'wss://relay.example.com': [
+      Filter(kinds: [Nip01Event.kTextNoteKind], authors: [pubkey], limit: 10),
+    ],
+  },
+);
+
+await for (final received in req.events) {
+  print(received.event.content);
 }
 ```
 
-[!ref create user accounts/login](/usecases/accounts.md)
+Keep one `RelayManager` for the whole app. [Relay REQs](/usecases/relay-reqs.md) covers subscriptions and adding relays to a running request.
 
-### Widgets & login persistence
-
-`ndk_flutter` gives you ready-to-use Nostr widgets and helpers so you don't have to wire accounts/signers yourself:
-
-- `NdkFlutter.restoreAccountsState()` / `saveAccountsState()` — persist and restore logged accounts to `flutter_secure_storage`
-- Widgets: `NLogin`, `NUserProfile`, `NName`, `NPicture`, `NBanner`, `NSwitchAccount`, ...
-
-The widgets rely on Flutter's internationalization. Add the delegate to your `MaterialApp`:
+## Sign and publish
 
 ```dart
-import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
+final signer = Bip340EventSigner(privateKey: privateKey, publicKey: publicKey);
 
-MaterialApp(
-  localizationsDelegates: [
-    ndk_flutter.AppLocalizations.delegate,
-  ],
-);
-```
-
-Then wrap `ndk` and restore saved accounts (typically before `runApp`), and save again whenever the auth state changes:
-
-```dart
-final ndkFlutter = NdkFlutter(ndk: ndk);
-
-await ndkFlutter.restoreAccountsState();
-
-// ...later, whenever login/logout/switch happens:
-await ndkFlutter.saveAccountsState();
-```
-
-```dart
-// available widgets
-NLogin(ndkFlutter: ndkFlutter);
-NUserProfile(ndkFlutter: ndkFlutter);
-NName(ndkFlutter: ndkFlutter);
-NPicture(ndkFlutter: ndkFlutter);
-NBanner(ndkFlutter: ndkFlutter);
-NSwitchAccount(ndkFlutter: ndkFlutter);
-```
-
-By default these widgets target the logged-in user; pass a `pubkey` to render any other user.
-
-[!ref widgets](https://pub.dev/packages/ndk_flutter)
-
----
-
-## Pure Dart (non-Flutter)
-
-For Dart CLIs, servers, or any project without a Flutter dependency, use `ndk` directly. Add `ndk_rust_verifier` for the fast Rust verifier.
-
-### Install
-
-```bash
-dart pub add ndk ndk_rust_verifier
-```
-
-### Usage
-
-```dart
-import 'package:ndk/ndk.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
-
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: RustEventVerifier(),
-    cache: MemCacheManager(),
+final signed = await signer.sign(
+  Nip01Event(
+    pubKey: publicKey,
+    kind: Nip01Event.kTextNoteKind,
+    tags: [],
+    content: 'hello nostr',
   ),
 );
 
-final response = ndk.requests.query(
-  filters: [
-    Filter(
-      authors: ['hexPubkey'],
-      kinds: [Nip01Event.kTextNoteKind],
-      limit: 10,
-    ),
-  ],
-);
-
-await for (final event in response.stream) {
-  print(event);
-}
+final outcomes = await RelayPublishes(relayManager: relays)
+    .publish(signed, relays: ['wss://relay.example.com'])
+    .done;
 ```
 
-!!!
-`RustEventVerifier()` comes from `ndk_rust_verifier` and requires the Rust toolchain (see the prerequisites above). For a pure-Dart setup with no native dependencies, skip `ndk_rust_verifier` and use `Bip340EventVerifier()` instead. It is slower but needs no Rust.
-!!!
+See [Relay publishes](/usecases/relay-publishes.md). Other signers (NIP-46 bunkers, NIP-07 extensions, NIP-55 apps) implement the same `EventSigner`, see [Signers](/concepts/signers.md).
+
+## Read where accounts publish
+
+The examples above talk to relays you name. To read an account's events from the relays it writes to, and publish where its readers look, use [Fetchers](/usecases/fetchers.md) and [Relay sets](/usecases/relay-sets.md). [Outbox model](enabling-gossip.md) puts them together.
+
+## Faster verification
+
+`Bip340EventVerifier` checks signatures in pure Dart, in an isolate. On native platforms `RustEventVerifier` from [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) is much faster. It needs the Rust toolchain, see its README.

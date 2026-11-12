@@ -3,91 +3,61 @@ icon: info
 order: 0
 ---
 
-## how to keep the ndk obj global
+# Tips
 
-If you have a relatively simple app you can initialize ndk in your main method and pass down ndk on the widget tree.\
-For more more complex applications we recommend using [riverpod](<[test](https://pub.dev/packages/riverpod)>) or simmilar packages/methods (get_it, singletons etc).
+## Keep one RelayManager
 
-riverpod example:
+A `RelayManager` holds the relay connections, and every `RelayReqs`, `RelayPublishes` and fetcher built on it shares them. Create it once and pass it down, or provide it with [riverpod](https://pub.dev/packages/riverpod), get_it or a singleton:
 
 ```dart
-import 'package:ndk/ndk.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:riverpod/riverpod.dart';
 
-final ndkProvider = Provider<Ndk>((ref) {
-  final EventSigner eventSigner = Bip340EventSigner("privateKey", "publicKey");
-  // For Flutter apps targeting web, use NdkEventSigner / NdkEventSignerFactory
-  // from ndk_flutter for automatic platform selection (fast JS crypto on web,
-  // pure Dart on native).
-  final EventVerifier eventVerifier = RustEventVerifier();
-  final CacheManager cache = MemCacheManager();
-
-  final ndkConfig = NdkConfig(
-    engine: NdkEngine.JIT,
-    cache: cache,
-    eventSigner: eventSigner,
-    eventVerifier: eventVerifier,
+final relayManagerProvider = Provider<RelayManager>((ref) {
+  final relays = RelayManager(
+    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
-
-  final ndk = Ndk(ndkConfig);
-  return ndk;
-});
-```
-
-## avoid layout shifts
-
-Sometimes, it makes sense to buffer the response from a query and only update the UI periodically.
-
-The package used to achieve this is [rxdart](https://pub.dev/packages/rxdart).
-
-```dart
-import 'package:rxdart/rxdart.dart';
-import 'package:ndk/ndk.dart';
-
-...
-
-// query
-final myquery = ndk.requests.query(
-  filters: [
-    Filter(
-      authors: ['hexPubkey']
-      kinds: [Nip01Event.TEXT_NODE_KIND],
-      limit: 10,
-    ),
-  ],
-);
-
-
-myquery.stream
-    // rxdart
-    .bufferTime(const Duration(milliseconds: 500))
-    // if no events are received in 500ms, an empty list is emitted => filter out
-    .where((events) => events.isNotEmpty)
-    .listen((events) { // List<Nip01Event>
-    // update UI
-    print(events.toString());
+  ref.onDispose(relays.closeAllTransports);
+  return relays;
 });
 
-```
-
-## reduce native WebSocket memory overhead
-
-Native applications can opt out of `permessage-deflate` negotiation:
-
-```dart
-final ndk = Ndk(
-  NdkConfig(
-    cache: MemCacheManager(),
+final relayReqsProvider = Provider<RelayReqs>(
+  (ref) => RelayReqs(
+    relayManager: ref.watch(relayManagerProvider),
     eventVerifier: Bip340EventVerifier(),
-    webSocketCompression: false,
   ),
 );
 ```
 
-Disabling compression can reduce memory and codec overhead for long-running
-services, but sends more bytes for compressible traffic and can perform worse
-on bandwidth-constrained links. Compression remains enabled by default.
+## Avoid layout shifts
 
-Browser WebSocket APIs do not expose compression negotiation controls, so this
-setting has no effect on web builds.
+Buffering events and updating the UI periodically avoids a redraw per event. With [rxdart](https://pub.dev/packages/rxdart):
+
+```dart
+import 'package:rxdart/rxdart.dart';
+
+req.events
+    .map((received) => received.event)
+    .bufferTime(const Duration(milliseconds: 500))
+    .where((events) => events.isNotEmpty)
+    .listen((events) {
+      // update the UI
+    });
+```
+
+## Reduce native WebSocket memory overhead
+
+Native applications can opt out of `permessage-deflate` negotiation:
+
+```dart
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(
+    compressionEnabled: false,
+  ),
+);
+```
+
+Disabling compression can reduce memory and codec overhead for long-running services, but sends more bytes for compressible traffic and can perform worse on bandwidth-constrained links. Compression remains enabled by default.
+
+Browser WebSocket APIs do not expose compression negotiation controls, so this setting has no effect on web builds.

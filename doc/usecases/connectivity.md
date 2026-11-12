@@ -2,108 +2,80 @@
 icon: rss
 ---
 
-[!badge variant="primary" text="high level"]
+# Connectivity
 
-## Example
+The `RelayManager` of [`ndk_core`](https://pub.dev/packages/ndk_core) opens, keeps and closes the relay connections. These are the knobs and signals it gives an app.
+
+## Connection changes
 
 ```dart
-/// Stream<Map<String, RelayConnectivity>>
-/// key: relay url/identifier
-/// value: relay connectivity
-ndkInstance.connectivity.relayConnectivityChanges;
-
-/// NIP-11 info of a relay, fetched on first call and then cached,
-/// across restarts in NdkConfig.cache
-/// past an hour, a call gets the cached document while it is fetched again in the background
-/// null when the relay serves no document, could not be reached and never answered, or the url is not a relay url
-/// a relay that could not be reached is asked again after a minute, and keeps its last document meanwhile
-await ndkInstance.connectivity.getRelayInfo(relayConnectivity.url);
-
-/// forces all relays to reconnect \
-/// use this for faster reconnects based on your application/os connectivity \
-tryReconnect();
-
-```
-
-```dart example in a flutter app
-  // listen to lifecycle changes
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
- 
-    switch (state) {
-      case AppLifecycleState.resumed:
-        // reconnect instantly when resuming
-        ndkInstance.connectivity.tryReconnect();
-        break;
-      case AppLifecycleState.inactive:
-        break;
-      case AppLifecycleState.paused:
-        break;
-      case AppLifecycleState.detached:
-        break;
-      case AppLifecycleState.hidden:
-        break;
-    }
+// every connection, connected or not, each time one changes
+relays.relayConnectivityChanges.listen((connections) {
+  for (final c in connections) {
+    print('${c.url}: ${c.isConnected}');
   }
+});
 ```
 
-## When to use
+A relay can hold several connections, one anonymous and one per identity it authenticated as (see [NIP-42](/concepts/nip42-auth.md)), so group them by `url` to show one status per relay.
 
-Ndk uses exponential backoff to reconnect to relays.\
-The reconnect interval might be too long when the app is in the background and then resumed. \
-You can instantly reconnect using the `tryReconnect()` method, as shown in the example above.
+## Reconnecting
 
-`relayConnectivityChanges` can be used to display connectivity status in the UI. 
+A connection that drops is retried right away, then after a wait that starts at 500 milliseconds and doubles, up to `reconnectMaximumStep` (4 seconds by default), for an hour. Its requests are replayed once it is back. A socket that drops again within 10 seconds of coming back is not retried right away, so a relay that drops every socket is not reconnected in a loop.
 
-### REQs per relay
-
-NDK keeps at most the `limitation.max_subscriptions` of a relay open as REQs on one socket, and queues the others. It reads the limit from the NIP-11 document when the socket opens, through the same cache as `getRelayInfo`, which keeps the documents in `NdkConfig.cache`: after a restart, a persistent backend serves them without waiting for a request. A document fetched more than an hour ago is fetched again in the background, and the socket uses the old one meanwhile. A relay that publishes no limit, or does not answer within 2 seconds, gets 20. `NdkConfig.subscriptionLimit` comes first: a number it gives for a relay replaces NIP-11, and null falls back on it.
+When the app learns that the network is back, or comes back to the foreground, it does not have to wait for the backoff:
 
 ```dart
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: Bip340EventVerifier(),
-    cache: MemCacheManager(),
-    subscriptionLimit: (url) => url == 'wss://relay.example.com' ? 50 : null,
-  ),
+@override
+void didChangeAppLifecycleState(AppLifecycleState state) {
+  if (state == AppLifecycleState.resumed) relays.reconnectClosedConnections();
+  if (state == AppLifecycleState.paused) relays.closeIdleConnections();
+}
+```
+
+## Idle connections
+
+A connection opens when a request or a publish goes to its relay, and closes once nothing needs it: no live subscription, no request waiting for its answer, no publish or authentication in flight, and no message sent or received for `anonymousIdleTimeout`, a minute by default. A connection bound to an identity waits `authenticatedIdleTimeout`, five minutes by default, since opening it again means authenticating again. Null keeps idle connections open. `closeIdleConnections()` closes them right away.
+
+```dart
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  anonymousIdleTimeout: const Duration(seconds: 30),
+  authenticatedIdleTimeout: null,
 );
 ```
 
-### Message length
+## Relay limits
 
-A relay closes the socket, with a 1009, on a message longer than it reads, and every REQ open on that socket goes down with it. NDK does not send a message longer than the `limitation.max_message_length` of the relay, read from the same NIP-11 document: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`. A relay that publishes no limit and closes a socket with a 1009 shows that it reads less than the longest message written there: nothing that long is sent to it again, and the other REQs go out again on the new socket. NDK keeps that limit in `NdkConfig.cache`, so it applies after a restart without a new 1009, and never forgets it: `removeLearnedMessageLength` of the cache lets a relay that raised its limit get longer messages again. REQs and EVENTs wait for these limits once a socket opens. `NdkConfig.messageLengthLimit` comes before NIP-11, like `subscriptionLimit`, and a learned limit applies either way.
+`RelayManager` asks two callbacks each time a socket opens, and waits up to 2 seconds for them:
 
-A socket that drops within 10 seconds of coming back is not reconnected right away: it waits the next step of the backoff, so a relay that drops every socket it gets is not reconnected in a loop.
+- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries. No answer gives 20.
+- `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
-### Idle connections
-
-NDK opens a connection when a request or a broadcast goes to its relay, the bootstrap relays included, and closes it once nothing needs it: no live subscription, no request waiting for its answer, no broadcast or authentication in flight, and no message sent or received for `NdkConfig.anonymousConnectionIdleTimeout`, a minute by default. A connection bound to an identity waits `NdkConfig.authenticatedConnectionIdleTimeout`, five minutes by default, since opening it again means authenticating again. Null keeps idle connections open. A connection that drops with nothing to do is not reconnected. `ndk.setBackgrounded(true)` closes idle connections right away.
+Both are in the NIP-11 document of the relay, which [`ndk_nip11`](https://pub.dev/packages/ndk_nip11) fetches. `CachedRelayInfoRepo` fetches it once per relay and refreshes it in the background:
 
 ```dart
-final ndk = Ndk(
-  NdkConfig(
-    eventVerifier: Bip340EventVerifier(),
-    cache: MemCacheManager(),
-    anonymousConnectionIdleTimeout: const Duration(seconds: 30),
-    authenticatedConnectionIdleTimeout: null,
-  ),
+import 'package:http/http.dart' as http;
+import 'package:ndk_http/ndk_http.dart';
+import 'package:ndk_nip11/ndk_nip11.dart';
+
+final relayInfo = CachedRelayInfoRepo(
+  HttpRelayInfoRepo(NdkHttp(http.Client())),
+  maxAge: const Duration(hours: 1),
+  failureMaxAge: const Duration(minutes: 1),
+);
+
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  subscriptionLimit: (url) async =>
+      (await relayInfo.getRelayInfo(url))?.limitation?.maxSubscriptions,
+  messageLengthLimit: (url) async =>
+      (await relayInfo.getRelayInfo(url))?.limitation?.maxMessageLength,
 );
 ```
 
-### Migrating from `RelayConnectivity.relayInfo`
+Give `CachedRelayInfoRepo` a `RelayInfoCache` to keep the documents across restarts, so a socket does not wait for the network to read them.
 
-`RelayConnectivity.relayInfo` and `ndk.relays.doesRelaySupportNip` are removed, so `relayConnectivityChanges` no longer carries NIP-11 info. Ask for it where you need it. NDK fetches it when it connects, for the limit above, so the call is often served from the cache:
+### Learned message lengths
 
-```dart
-// before
-final info = relayConnectivity.relayInfo;
-final supportsSearch = ndk.relays.doesRelaySupportNip(url, '50');
-
-// after
-final info = await ndk.connectivity.getRelayInfo(relayConnectivity.url);
-final supportsSearch = info?.supportsNip('50') ?? false;
-```
-
-## Without NDK
-
-`RelayInfo` and `HttpRelayInfoRepo` live in the `ndk_nip11` package, which `ndk` depends on and re-exports. It depends on neither `ndk` nor `ndk_core`: `HttpRelayInfoRepo` fetches the document without caching, and `CachedRelayInfoRepo` caches it, in a `RelayInfoCache` such as a `CacheManager` to keep it across restarts, see its [README](https://pub.dev/packages/ndk_nip11).
+A relay that publishes no limit and closes a socket with a 1009 reads less than the longest message written there: nothing that long is sent to it again, and the other REQs go out again on the new socket. `onMessageLengthLearned` gets the url and the most bytes the relay may still be sent. Store them and answer `messageLengthLimit` from them after a restart, so the limit is not learned again with another 1009.

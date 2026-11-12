@@ -2,29 +2,28 @@
 icon: sync
 ---
 
-[!badge variant="primary" text="low level"]
+# Negentropy (NIP-77)
+
+[`ndk_nip77`](https://pub.dev/packages/ndk_nip77) runs [NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy sync: it finds which events a relay has that you don't, and the other way around, without downloading either set. It runs on the connections of an `ndk_core` `RelayManager`, NIP-42 authentication included.
+
+```yaml
+dependencies:
+  ndk_core: ^0.11.0-dev.2
+  ndk_nip77: ^0.1.0
+```
 
 ## Basic reconciliation
 
-```dart
-final filter = Filter(
-  authors: ['your_pubkey'],
-);
+:::code source="../../packages/nip77/example/ndk_nip77_example.dart" language="dart" range="5-21" title="" :::
 
-final response = ndk.nip77.reconcile(
-  relayUrl: 'wss://relay.example.com',
-  filter: filter,
-);
+`Nip77` compares the relay's events with your local ones. `loadEventIds` returns the id and creation time of the local events matching a filter, and `loadEvent` reads one local event, for the ids you pass to `reconcile` as `localIds`.
 
-// Wait for completion
-final result = await response.future;
-print('Sync complete: ${result.needIds.length} events to fetch, ${result.haveIds.length} events to broadcast');
-```
+`result.needIds` are on the relay and not stored locally: fetch them with [RelayReqs](/usecases/relay-reqs.md). `result.haveIds` are stored locally and not on the relay: publish them with [RelayPublishes](/usecases/relay-publishes.md). `needStream` and `haveStream` emit the ids as rounds complete.
 
 ## Timeouts
 
 ```dart
-final response = ndk.nip77.reconcile(
+final response = nip77.reconcile(
   relayUrl: 'wss://relay.example.com',
   filter: filter,
   openTimeout: Duration(seconds: 30), // first answer to NEG-OPEN
@@ -32,19 +31,14 @@ final response = ndk.nip77.reconcile(
 );
 ```
 
-There is no overall deadline: a large sync runs for as long as the relay keeps
-answering. When one of the two runs out, the future fails with
-`Nip77TimeoutException`, whose `openUnanswered` tells which.
+There is no overall deadline: a large sync runs for as long as the relay keeps answering. When one of the two runs out, the future fails with `Nip77TimeoutException`, whose `openUnanswered` tells which.
 
 ## Relay authentication (NIP-42)
 
-Some relays only reconcile with a client that authenticated, the same way they
-only serve a request to one. The `auth` parameter says which identity the
-reconciliation may be attributed to, exactly like on
-[requests](/usecases/requests.md#relay-authentication-nip-42):
+Some relays only reconcile with a client that authenticated, the same way they only serve a REQ to one. The `auth` parameter says which identity the reconciliation may be attributed to, as on [RelayReqs](/usecases/relay-reqs.md):
 
 ```dart
-final response = ndk.nip77.reconcile(
+final response = nip77.reconcile(
   relayUrl: 'wss://relay.example.com',
   filter: Filter(authors: [myPubkey]),
   auth: AuthPolicy.require(account),
@@ -57,35 +51,27 @@ final response = ndk.nip77.reconcile(
 | `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses | who you are, but only after that relay asked |
 | `AuthPolicy.require(a)` | bound to `a` from the start | who you are, as soon as it sends a challenge |
 
-Without `auth`, a negotiation reveals no identity. With an [`AuthHandler`](/concepts/nip42-auth.md#authhandler), a
-refused negotiation authenticates as the logged-in account where the handler
-agrees.
+Without `auth`, a negotiation reveals no identity, unless the `RelayManager` has `accounts` and an `authHandler`: a refused negotiation then authenticates as the logged account where the handler agrees. See [NIP-42 authentication](/concepts/nip42-auth.md).
 
-If `require` names an account that cannot sign, no connection can carry the
-reconciliation. Rather than fall back to the anonymous one, which is what
-`require` rules out, nothing is sent and `reconcile` itself throws
-`Nip77AuthUnavailableException`.
+If `require` names an account that cannot sign, no connection can carry the reconciliation. Rather than fall back to the anonymous one, which is what `require` rules out, nothing is sent and `reconcile` itself throws `Nip77AuthUnavailableException`.
 
 ## Error handling
 
 ### Relay doesn't support NIP-77
 
-A relay that ignores `NEG-OPEN` only fails with `Nip77TimeoutException` once
-`timeout` runs out (30 s by default). Pass a shorter `timeout` if that wait is
-too long:
+A relay that refuses the negotiation with a `NEG-ERR` naming `CLOSED` fails it with `Nip77NotSupportedException`. One that ignores `NEG-OPEN` only fails with `Nip77TimeoutException` once `openTimeout` runs out (30 s by default). Pass a shorter `openTimeout` if that wait is too long:
 
 ```dart
 try {
-  final response = ndk.nip77.reconcile(
+  final response = nip77.reconcile(
     relayUrl: 'wss://relay.example.com',
     filter: filter,
-    timeout: const Duration(seconds: 10),
+    openTimeout: const Duration(seconds: 10),
   );
   await response.future;
 } on Nip77NotSupportedException catch (e) {
   print('Relay does not support NIP-77: ${e.message}');
-  // Fall back to traditional query with paginate true
-  ndk.requests.query(filter: filter, paginate: true);
+  // fall back to a plain REQ
 } on Nip77TimeoutException catch (e) {
   print('Reconciliation timed out: ${e.timeout}');
 }
@@ -95,7 +81,7 @@ try {
 
 ```dart
 try {
-  await ndk.nip77.reconcile(
+  await nip77.reconcile(
     relayUrl: 'wss://relay.example.com',
     filter: filter,
     auth: const AuthPolicy.never(),
@@ -109,11 +95,11 @@ try {
 
 ## When to use
 
-✅ **Good for:**
+Good for:
+
 - Syncing large event sets (long history)
-- Periodic reconciliation with home relays
-- Ensuring relay has all your events
+- Periodic reconciliation with your relays
+- Making sure a relay has all your events
 - Discovering events you missed
 
-❌ **Use other methods for:**
-- Small queries → use `ndk.requests.query()`
+For small queries, a plain REQ with [RelayReqs](/usecases/relay-reqs.md) is simpler.

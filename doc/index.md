@@ -6,25 +6,13 @@ icon: home
 
 # Dart Nostr Development Kit (NDK)
 
-[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Coverage](https://img.shields.io/codecov/c/github/relaystr/ndk?color=green)](https://codecov.io/github/relaystr/ndk) [![Pub](https://img.shields.io/pub/v/ndk.svg)](https://pub.dev/packages/ndk) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
+[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Coverage](https://img.shields.io/codecov/c/github/relaystr/ndk?color=green)](https://codecov.io/github/relaystr/ndk) [![Pub](https://img.shields.io/pub/v/ndk_core.svg)](https://pub.dev/packages/ndk_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
 
-NDK (Nostr Development Kit) is a Dart library that enhances the Nostr development experience.\
-NDK supplies you with high-level usecases like lists or metadata while still allowing you to use low-level queries enhanced with inbox/outbox (gossip) by default.\
-Our Target is to make it easy to build constrained Nostr clients, particularly for mobile devices.
-
-!!!
-Want to see NDK in action?
-
-The repository includes a **sample app** that demonstrates many implemented
-features, usecases, and Flutter widgets end to end.
-
-- [sample app live demo](https://dart-nostr.com/app/)
-- source: `packages/demo`
-!!!
+NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients, particularly constrained ones such as mobile apps. Each package covers one part of Nostr and depends only on what it needs, so an app picks the parts it uses.
 
 ## Apps using NDK
 
-- [sample app](https://dart-nostr.com/app/), [yana](https://github.com/frnandu/yana), [camelus](https://github.com/leo-lox/camelus), [zap.stream](https://github.com/nostrlabs-io/zap-stream-flutter), [zapstore](https://github.com/zapstore/zapstore), [freeflow](https://github.com/nostrlabs-io/freeflow), [hostr](https://github.com/sudonym-btc/hostr), [bitblik](https://github.com/bit-blik/bitblik), [donow](https://github.com/nogringo/donow), [submarine](https://github.com/nogringo/submarine), [nostr-mail-client](https://github.com/nogringo/nostr-mail-client)
+[yana](https://github.com/frnandu/yana), [camelus](https://github.com/leo-lox/camelus), [zap.stream](https://github.com/nostrlabs-io/zap-stream-flutter), [zapstore](https://github.com/zapstore/zapstore), [freeflow](https://github.com/nostrlabs-io/freeflow), [hostr](https://github.com/sudonym-btc/hostr), [bitblik](https://github.com/bit-blik/bitblik), [donow](https://github.com/nogringo/donow), [submarine](https://github.com/nogringo/submarine), [nostr-mail-client](https://github.com/nogringo/nostr-mail-client)
 
 # ➡️ [Getting Started 🔗](https://dart-nostr.com/guides/getting-started/)
 
@@ -32,52 +20,42 @@ features, usecases, and Flutter widgets end to end.
 
 ---
 
-## Core Features
+## Features
 
-### Network & Data Management
+### Relays (`ndk_core`)
 
-- **Automatic relay discovery** using inbox/outbox (gossip) model for optimal relay selection
-- **Flexible data fetching** with query (one-time) and subscription (real-time) modes
-- **Smart caching** to reduce network bandwidth and improve performance
-- **Concurrent event streaming** from both cache and network
-- **Request coverage control** to specify desired relay coverage per request
-- **Local-first delivery** so events can become visible from cache before every relay confirms them
-- **Background retry and recovery** for relay delivery across reconnects, periodic due-retry, and restart persistence when using a persistent cache
-- **Visibility-aware reads** that apply replaceable winner selection, expiration filtering, and deletion suppression consistently
+- **REQ and EVENT on the relays you pick**, with verified events and an outcome per relay
+- **Reconnects** with backoff, replaying the requests a connection carried
+- **Idle connections closed** once nothing needs them
+- **Relay limits** from NIP-11: REQs queued past `max_subscriptions`, messages past `max_message_length` not sent
+- **NIP-42 authentication**, with the identity each request may reveal chosen per request
 
-### Account & Authentication
+### Outbox model (`ndk_fetchers`, `ndk_url_set`, `ndk_home_relays`)
 
-- **Multiple signer support**: Built-in (BIP-340), WebEventSigner (fast web crypto), NIP-55 external signers with `ndk_nip55`, NIP-07 (web) with `ndk_nip07`, and NIP-46 (remote signing/bunkers) with `ndk_nip46`
-- **Account management** with state tracking and multiple account support
-- **Relay authentication** (NIP-42) for private relay access
-- **Delayed external signing support** so local-first publish can survive signer approval delays or temporary signer unavailability
+- **Account lists read where NIP-65 puts them**: relay lists, metadata, DM relays, Blossom servers
+- **Batched lookups**, one REQ per relay for many pubkeys
+- **Relay sets described rather than listed**, stored as JSON and resolved when the network is back
+- **Any filter fetched from the relays a set resolves to**, each relay asked as soon as a list names it
+- **Computed home relays**, to find the relay list of any pubkey
 
-### High-Level Use Cases
+### Signers and accounts
 
-- **Metadata management**: Query and update user profiles with automatic caching
-- **Contact lists**: Follow/unfollow users and manage contact lists
-- **NIP-51 lists**: Public and private relay sets, mute lists, and custom lists
-- **DMs** (NIP-17): Cached direct-message loading with decrypted payload reuse and live updates
-- **Gift wrap** (NIP-59): Encrypted, metadata-obscured messaging
-- **Zaps** (NIP-57): Lightning payments on Nostr
-- **Nostr Wallet Connect** (NIP-47): Integrate Lightning wallets
-- **Domain verification** (NIP-05): Verify and cache Nostr addresses
-- **File management**: Upload, download, and delete files on Blossom servers
-- **Connectivity**: Get notified about connection issues
-- **Proof of Work** (NIP-13): Create and verify PoW events with `Nip13`
+- **Signers**: local BIP-340 (`ndk_bip340`), NIP-46 bunkers (`ndk_nip46`), NIP-07 browser extensions (`ndk_nip07`), NIP-55 Android signer apps (`ndk_nip55`)
+- **Accounts** (`ndk_accounts`): log in, switch between accounts and sign as the current one
+- **Pending requests** of external signers, to show and cancel them
 
-### Developer Experience
+### NIPs
 
-- **Pluggable architecture**: Bring your own cache, verifier, or signer, replace any component
-- **Multiple database options**: In-memory, ObjectBox, Sembast
-- **Event verification**: BIP-340, Rust-based (recommended for mobile/desktop), or `NdkEventVerifier` from `ndk_flutter` (recommended for Flutter apps)
-- **Comprehensive logging** with configurable log levels and outputs
-- **Clean architecture** for maintainability and extensibility
-- **Decrypted payload sidecar cache** to avoid repeatedly asking slow or remote signers to decrypt the same encrypted events
+- **Gift wrap** (NIP-59), **encryption** (NIP-44, NIP-04), **private key encryption** (NIP-49), **bech32 entities** (NIP-19)
+- **Zaps** (NIP-57), **domain verification** (NIP-05), **proof of work** (NIP-13)
+- **Negentropy sync** (NIP-77), **trusted assertions** (NIP-85)
+- **Blossom** file storage
 
-## not Included
+### Verification
 
-- ready to use feeds, you have to build them on your own (🚫 not planned)
-- create && manage keypairs. You have to provide them (🚫 not planned)
-- threading, you can do this on your own if you move ndk or only the event_verifier into its own thread (🔜 planned)
-- support for request overrides (you have to close and reopen requests) (🚫 not planned)
+- **Pure Dart** BIP-340 verification in an isolate (`ndk_bip340`)
+- **Native Rust** verification through FFI (`ndk_rust_verifier`), much faster on mobile and desktop
+
+## Not included
+
+- ready to use feeds, you build them from the packages (🚫 not planned)

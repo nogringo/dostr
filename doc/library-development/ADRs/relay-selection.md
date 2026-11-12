@@ -51,7 +51,7 @@ store their destinations this way. The package depends on `ndk`, but only for
 
 ## Main Proposal
 
-`ndk` stays the package apps depend on, as [reduce-packages](reduce-packages.md) set
+`ndk` stays the package apps depend on, as the reduce-packages ADR set
 out. Its use cases describe where they read and send with a `UrlSet`, resolved through
 the fetchers package, the same way `ndk_core`, `ndk_bip340`, `ndk_nip44` and `ndk_nip77`
 moved out of `ndk` while `package:ndk/ndk.dart` kept its exports.

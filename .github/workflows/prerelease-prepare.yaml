@@ -69,7 +69,7 @@ jobs:
 
       - name: Keep the documentation version aligned with NDK
         run: |
-          ndk_version=$(awk '$1 == "version:" { print $2; exit }' packages/ndk/pubspec.yaml)
+          ndk_version=$(awk '$1 == "version:" { print $2; exit }' packages/core/pubspec.yaml)
           sed -i -E "s/^  label: .*/  label: v${ndk_version}/" doc/retype.yml
 
           if ! git diff --quiet -- doc/retype.yml; then
