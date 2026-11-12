@@ -6,84 +6,70 @@ order: 100
 
 # Publishing
 
-## Full release order
+Packages are published by hand with `dart pub publish`. Each package has its own version, and a package is released only when it changed since its last release.
 
-Complete releases have two distinct stages, in this order:
+## Choose the version
 
-1. Prepare and merge the package release PR. Automation creates a
-   package-scoped tag such as `dostr_core-v0.11.0`, which pub.dev uses to
-   authenticate the publication workflow, and then publishes the package.
-2. After `dostr_core` publication succeeds, automation also creates the plain
-   release tag, such as `v0.11.0`, and dispatches the tag-based release and
-   documentation workflows. For other packages, the package-scoped tag is the
-   release tag.
+List what changed in a package since its last stable release:
 
-## 1. Publish packages to pub.dev
+```sh
+git log dostr_nip01-v0.1.0..HEAD -- packages/nip01
+```
 
-Open the [Prepare package release workflow](https://github.com/relaystr/ndk/actions/workflows/prerelease-manual.yaml),
-select **Run workflow**, and choose one release mode:
+The largest change since that **stable** release sets the version, not the changes since the last prerelease:
 
-| Release mode | Result |
-| --- | --- |
-| `stable` | Calculates the next stable versions from conventional commits. |
-| `development-prerelease` | Calculates the next development versions, such as `0.11.0-dev.3`. This mode is also run automatically after ordinary PRs merge. |
-| `graduate-prerelease` | Removes the prerelease suffix without changing its base version; for example, `0.11.0-dev.3` becomes `0.11.0`. |
-| `exact` | Sets one selected package to the exact version entered. Melos also updates affected workspace dependents and creates a changelog stub to review. |
+| Change | Below 1.0.0 | From 1.0.0 |
+| --- | --- | --- |
+| Breaking | `0.4.2` → `0.5.0` | `1.4.2` → `2.0.0` |
+| New feature | `0.4.2` → `0.4.3` | `1.4.2` → `1.5.0` |
+| Fix | `0.4.2` → `0.4.3` | `1.4.2` → `1.4.3` |
 
-The `exact_package` and `exact_version` inputs are used only with `exact` mode.
-For the other modes, leave them at their defaults.
+A prerelease appends `-dev.N` to the version it leads to: `0.5.0-dev.0`, then `0.5.0-dev.1`. When a breaking change lands during a `0.4.3-dev.N` series, the next prerelease is `0.5.0-dev.0`. Releasing that series as `0.4.3` would ship the breaking change to every app on `^0.4.2`.
 
-### Release dostr_core 0.11.0 as a stable version
+A package that re-exports another one (`export 'package:dostr_...'` in its `lib/`) breaks when that package breaks: a breaking change in `dostr_nip01` is a breaking change in `dostr_core`.
 
-Run the workflow with:
+A package that depends on a released package needs a release of its own only when its constraint no longer accepts the new version, or when it re-exports the package. Otherwise leave it as it is.
 
-- `release_mode`: `exact`
-- `exact_package`: `dostr_core`
-- `exact_version`: `0.11.0`
+## Prepare the release
 
-The workflow opens a versioned PR named
-`chore(release): publish dostr_core 0.11.0`. Development versions instead use
-`chore(prerelease)`. The title lists every publishable package whose version
-changed. Replace the generated `Stable release.` changelog stub with the actual
-release notes, then review the generated dependent-package constraint updates
-before merging the PR.
+For each package to release:
 
-Merging that release PR creates package-scoped authentication tags and
-publishes every changed, publishable package to pub.dev. Each publication
-workflow must run from its package tag because pub.dev's trusted publisher is
-configured to accept tag identities. Preparing the PR performs only a publish
-dry run; it does not publish anything.
+1. Set `version` in its `pubspec.yaml`.
+2. Add a `## <version>` section at the top of its `CHANGELOG.md`.
+3. Update the constraint of each workspace package that depends on it, where the constraint no longer accepts the new version.
 
-!!!
-Do not use `graduate-prerelease` to change `0.10.1-dev.N` into `0.11.0`.
-Graduation only removes `-dev.N`, so it would produce `0.10.1`. Use `exact` for
-the `0.11.0` release.
-!!!
+For `dostr_core`, also set `packageVersion` in `packages/core/lib/src/version.dart`.
 
-## 2. Verify the GitHub release
+Run `flutter pub get` at the root, then commit. Publish from that commit, so the tags point at the published source.
 
-After pub.dev publication succeeds, the package workflow creates `v0.11.0` on
-the release commit and dispatches the release and documentation workflows from
-that tag. The release workflow creates the GitHub release with the matching
-section of `packages/core/CHANGELOG.md`.
+## Publish
 
-The release preparation keeps `doc/retype.yml` aligned with the `dostr_core`
-version. The tag-triggered docs deployment also derives the displayed version
-from the tag so the published site cannot retain a stale version label.
+Publish a package after the packages it depends on: the [package graph](package-graph.md) sorts them by layer, and layer 0 goes first. In each package directory:
 
-Verify the completed release on the
-[GitHub releases page](https://github.com/relaystr/ndk/releases).
+```sh
+dart pub publish --dry-run
+dart pub publish
+```
 
-Do not create `v0.11.0` manually before package publication finishes.
-Otherwise the tag can point to source that still reports the previous package
-version.
+Then tag each published package and push its tag. The tag is where the next release starts listing changes:
 
-## Manual alternative
+```sh
+git tag dostr_nip01-v0.2.0
+git push origin dostr_nip01-v0.2.0
+```
 
-1. Either change the versions manually, including dependency constraints, or
-   run `melos version` (which creates a Git commit).
-2. Run `melos run format`.
-3. Commit your changes.
-4. Run `melos publish` to validate the release, then run
-   `melos publish --no-dry-run`. To publish one package, use
-   `melos publish --scope=<package_name> --no-dry-run`.
+## Release dostr_core
+
+Once `dostr_core` is on pub.dev, tag the same commit `v<version>` and push the tag:
+
+```sh
+git tag v0.11.0
+git push origin v0.11.0
+```
+
+That tag runs two workflows:
+
+- `release.yml` creates the GitHub release from the `## 0.11.0` section of `packages/core/CHANGELOG.md`, and marks it as a prerelease when the version contains `-dev`.
+- `deploy-docs.yml` deploys the documentation with that version as its label. It skips prerelease tags.
+
+Push `v<version>` only after the publication succeeded.

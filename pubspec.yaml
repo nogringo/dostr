@@ -1,13 +1,11 @@
 name: dostr_workspace
 publish_to: none
-description: Workspace configuration for the NDK melos monorepo.
+description: Workspace configuration for the NDK monorepo.
 
 environment:
   sdk: '>=3.6.0 <4.0.0'
 dev_dependencies:
-  melos: ^7.8.1
   yaml: ^3.1.4
-
 
 workspace:
   - packages/core
@@ -38,46 +36,3 @@ workspace:
   - packages/fetchers
   - packages/home_relays
   - packages/url_set
-
-melos:
-  command:
-    version:
-      hooks:
-        preCommit: |
-          melos exec --fail-fast --scope="dostr_core" -- "dart run tool/update_version.dart"
-          git add packages/core/lib/src/version.dart
-
-  scripts:
-    graph:
-      run: dart run tool/package_graph.dart
-      description: Write the package dependency graph to doc/library-development/package-graph.md and package-graph.svg.
-
-    analyze:
-      exec: flutter analyze --fatal-infos --fatal-warnings .
-      description: Analyze a specific package in this project.
-
-    check-format:
-      exec: dart format --set-exit-if-changed .
-      description: Check the format of a specific package in this project.
-
-    format:
-      exec: dart format .
-      description: Format a specific package in this project.
-
-    test:
-      run: melos run test:dart --no-select && melos run test:flutter --no-select
-      description: Run all Dart & Flutter tests in this project.
-
-    test:dart:
-      run: melos exec -c 1 --fail-fast -- "dart test test"
-      description: Run Dart tests for a specific package in this project.
-      select-package:
-        flutter: false
-        dir-exists: test
-
-    test:flutter:
-      run: melos exec -c 1 --fail-fast -- "flutter test test"
-      description: Run Flutter tests for a specific package in this project.
-      select-package:
-        flutter: true
-        dir-exists: test

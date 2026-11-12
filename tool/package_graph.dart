@@ -5,7 +5,7 @@ import 'package:yaml/yaml.dart';
 
 const _markdownPath = 'doc/library-development/package-graph.md';
 const _svgPath = 'doc/library-development/package-graph.svg';
-const _command = 'melos run graph';
+const _command = 'dart run tool/package_graph.dart';
 
 /// Writes the dependency graph of the workspace packages to [_markdownPath]
 /// and [_svgPath]. With `--check`, only fails when they are out of date.

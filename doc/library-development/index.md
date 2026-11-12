@@ -9,7 +9,7 @@ icon: repo-clone
 
 ## Setup
 
-Run `melos bootstrap` to install all dependencies.
+Run `flutter pub get` at the root to install the dependencies of every package.
 
 Run build runner (e.g. for generating mocks):\
 `dart run build_runner build`
