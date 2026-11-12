@@ -8,7 +8,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import 'logger/logger.dart';
 import 'broadcast_state.dart';
 import 'client_msg.dart';
 import 'relay_auth.dart';

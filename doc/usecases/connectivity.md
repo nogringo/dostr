@@ -56,11 +56,10 @@ Both are in the NIP-11 document of the relay, which [`ndk_nip11`](https://pub.de
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
 final relayInfo = CachedRelayInfoRepo(
-  HttpRelayInfoRepo(NdkHttp(http.Client())),
+  HttpRelayInfoRepo(http.Client()),
   maxAge: const Duration(hours: 1),
   failureMaxAge: const Duration(minutes: 1),
 );

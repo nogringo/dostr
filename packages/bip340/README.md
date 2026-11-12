@@ -34,8 +34,8 @@ final event = await signer.sign(
 final valid = await Bip340EventVerifier().verify(event);
 ```
 
-`Bip340EventVerifier` runs in an isolate by default. On mobile, the Rust
-verifier that ships with `ndk` is much faster.
+`Bip340EventVerifier` verifies on the calling isolate. On mobile, the Rust
+verifier of `ndk_rust_verifier` is much faster.
 
 ## Coming from `ndk` or `ndk_core`
 

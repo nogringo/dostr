@@ -4,10 +4,12 @@ import 'dart:io';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
 import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:test/test.dart';
 
 final _blob = utf8.encode('a blob from a note');
@@ -22,27 +24,23 @@ class _Servers {
   _Servers(this.having);
 
   late final repository = BlossomRepositoryImpl(
-    client: NdkHttp(
-      MockClient((request) async {
-        requests.add(
-          '${request.method} ${request.url.host}${request.url.path}',
-        );
-        if (!having.contains(request.url.host) ||
-            !request.url.path.endsWith('/$_hash')) {
-          return http.Response('', 404);
-        }
-        return http.Response.bytes(request.method == 'HEAD' ? [] : _blob, 200);
-      }),
-    ),
+    client: MockClient((request) async {
+      requests.add('${request.method} ${request.url.host}${request.url.path}');
+      if (!having.contains(request.url.host) ||
+          !request.url.path.endsWith('/$_hash')) {
+        return http.Response('', 404);
+      }
+      return http.Response.bytes(request.method == 'HEAD' ? [] : _blob, 200);
+    }),
     fileIO: createFileIO(),
   );
 }
 
 void main() {
-  late Ndk ndk;
+  late Accounts accounts;
 
-  setUp(() => ndk = Ndk.emptyBootstrapRelaysConfig());
-  tearDown(() => ndk.destroy());
+  setUp(() => accounts = Accounts(const Bip340EventSignerFactory()));
+  tearDown(() => accounts.dispose());
 
   /// Files on [servers], [lists] giving each pubkey's server list and [asked]
   /// recording whose list was read
@@ -53,8 +51,8 @@ void main() {
     AuthHandler? authHandler,
   }) => Files(
     Blossom(
-      accounts: ndk.accounts,
-      eventSignerFactory: ndk.config.eventSignerFactory,
+      accounts: accounts,
+      eventSignerFactory: const Bip340EventSignerFactory(),
       authHandler: authHandler,
       getUserServerList: (pubkey) async {
         asked?.add(pubkey);

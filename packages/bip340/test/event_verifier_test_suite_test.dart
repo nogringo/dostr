@@ -11,7 +11,7 @@ void main() {
 
   runEventVerifierTestSuite(
     name: 'Bip340EventVerifier without isolate',
-    createVerifier: () => Bip340EventVerifier(useIsolate: false),
+    createVerifier: () => Bip340EventVerifier(),
     createSigner: const Bip340EventSignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );

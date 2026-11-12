@@ -3,7 +3,7 @@
 /// ```dart
 /// final nip05 = Nip05Usecase(
 ///   cache: cache,
-///   nip05Repository: Nip05HttpRepositoryImpl(httpDS: NdkHttp(http.Client())),
+///   nip05Repository: Nip05HttpRepositoryImpl(client: http.Client()),
 /// );
 /// final result = await nip05.resolve('bob@example.com');
 /// ```

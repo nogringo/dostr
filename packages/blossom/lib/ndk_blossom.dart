@@ -6,8 +6,7 @@
 /// ```
 library;
 
-export 'package:ndk_http/ndk_http.dart' show HttpRequestException;
-
+export 'src/data_layer/http/blossom_http.dart' show HttpRequestException;
 export 'src/domain_layer/entities/blob_upload_progress.dart';
 export 'src/domain_layer/entities/blossom_authorization.dart';
 export 'src/domain_layer/entities/blossom_blobs.dart';

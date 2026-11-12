@@ -4,7 +4,7 @@ import 'package:ndk_signer/ndk_signer.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import 'logger/logger.dart';
 import 'auth_session.dart';
 
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and

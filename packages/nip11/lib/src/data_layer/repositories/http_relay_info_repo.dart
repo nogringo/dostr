@@ -1,11 +1,24 @@
+import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:http/http.dart' as http;
+
 import '../../domain_layer/entities/relay_info.dart';
 import '../../domain_layer/repositories/relay_info_repo.dart';
-import 'package:ndk_http/ndk_http.dart';
+
+/// A relay answered with a status that may pass: 408, 429 or 5xx.
+class RelayInfoStatusException extends http.ClientException {
+  final int statusCode;
+
+  RelayInfoStatusException(this.statusCode, Uri uri)
+    : super('GET $uri returned $statusCode', uri);
+}
 
 /// [RelayInfoRepo] that fetches the document over HTTP(S) on every call, with
 /// no cache
 class HttpRelayInfoRepo implements RelayInfoRepo {
-  final NdkHttp _http;
+  final http.Client _client;
 
   /// deadline covering connection setup and the entire response body, so a
   /// stalled relay does not retain an HTTP socket
@@ -15,30 +28,74 @@ class HttpRelayInfoRepo implements RelayInfoRepo {
   final int maxBytes;
 
   HttpRelayInfoRepo(
-    this._http, {
+    this._client, {
     this.timeout = const Duration(seconds: 5),
     this.maxBytes = 1024 * 1024,
   });
 
   /// Null for an error status, a body that is not a JSON object or one past
-  /// [maxBytes]. A timeout, a network failure, a 408, a 429 or a 5xx throw,
-  /// since they may pass. A url that is not ws, wss, http or https throws an
-  /// [ArgumentError]
+  /// [maxBytes]. A timeout, a network failure or a [RelayInfoStatusException]
+  /// throw, since they may pass. A url that is not ws, wss, http or https
+  /// throws an [ArgumentError]
   @override
   Future<RelayInfo?> getRelayInfo(String url) async {
     final documentUrl = _documentUrl(url);
+    final abort = Completer<void>();
+    var timedOut = false;
+    final timer = Timer(timeout, () {
+      timedOut = true;
+      if (!abort.isCompleted) abort.complete();
+    });
+    final request = http.AbortableRequest(
+      'GET',
+      documentUrl,
+      abortTrigger: abort.future,
+    )..headers['Accept'] = 'application/nostr+json';
+    final int statusCode;
+    final Uint8List? body;
     try {
-      final json = await _http.jsonRequest(
-        url: documentUrl,
-        timeout: timeout,
-        maxBytes: maxBytes,
-        headers: const {'Accept': 'application/nostr+json'},
-      );
-      return RelayInfo.fromJson(json);
-    } on Exception catch (error) {
-      if (_servesNoDocument(error)) return null;
+      final response = await _client.send(request);
+      statusCode = response.statusCode;
+      body = await _readAtMost(response, abort);
+    } on http.RequestAbortedException {
+      if (timedOut) throw TimeoutException('$documentUrl', timeout);
       rethrow;
+    } finally {
+      timer.cancel();
     }
+
+    if (_mayPass(statusCode)) {
+      throw RelayInfoStatusException(statusCode, documentUrl);
+    }
+    if (statusCode < 200 || statusCode >= 300 || body == null) return null;
+    try {
+      // JSON is UTF-8 (RFC 8259), whatever charset application/nostr+json carries
+      return switch (jsonDecode(utf8.decode(body))) {
+        final Map<String, dynamic> json => RelayInfo.fromJson(json),
+        _ => null,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// null past [maxBytes], after aborting the request so the rest is never read
+  Future<Uint8List?> _readAtMost(
+    http.StreamedResponse response,
+    Completer<void> abort,
+  ) async {
+    Uint8List? tooLarge() {
+      if (!abort.isCompleted) abort.complete();
+      return null;
+    }
+
+    if ((response.contentLength ?? 0) > maxBytes) return tooLarge();
+    final bytes = BytesBuilder(copy: false);
+    await for (final chunk in response.stream) {
+      bytes.add(chunk);
+      if (bytes.length > maxBytes) return tooLarge();
+    }
+    return bytes.takeBytes();
   }
 }
 
@@ -52,14 +109,6 @@ Uri _documentUrl(String relayUrl) => switch (Uri.tryParse(relayUrl)) {
     'url',
     'is not a ws, wss, http or https url',
   ),
-};
-
-/// the relay answered, and asking again would get the same answer
-bool _servesNoDocument(Exception error) => switch (error) {
-  HttpRequestException(:final statusCode) ||
-  HttpResponseTooLargeException(:final statusCode) => !_mayPass(statusCode),
-  FormatException() => true,
-  _ => false,
 };
 
 bool _mayPass(int statusCode) =>

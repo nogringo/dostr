@@ -13,7 +13,7 @@ Future<void> main() async {
     ),
   );
 
-  final valid = await Bip340EventVerifier(useIsolate: false).verify(event);
+  final valid = await Bip340EventVerifier().verify(event);
   print('${event.id} signed, valid: $valid');
 
   await signer.dispose();

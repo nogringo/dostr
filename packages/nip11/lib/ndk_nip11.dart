@@ -1,7 +1,7 @@
 /// NIP-11 relay information for NDK.
 ///
 /// ```dart
-/// final repo = HttpRelayInfoRepo(NdkHttp(http.Client()));
+/// final repo = HttpRelayInfoRepo(http.Client());
 /// final info = await repo.getRelayInfo('wss://relay.example.com');
 /// print(info?.supportsNip('50'));
 /// ```

@@ -1,11 +1,10 @@
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
 /// `dart run example/ndk_nip11_example.dart wss://relay.example.com`
 Future<void> main(List<String> args) async {
   final client = http.Client();
-  final repo = HttpRelayInfoRepo(NdkHttp(client));
+  final repo = HttpRelayInfoRepo(client);
 
   try {
     final info = await repo.getRelayInfo(args.first);

@@ -1,15 +1,17 @@
 import 'dart:async';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_nip85/ndk_nip85.dart';
 import 'package:test/test.dart';
 
 import 'package:ndk_mock_relay/ndk_mock_relay.dart';
-import '../../mocks/trusted_assertions_for_ndk.dart';
+import '../../mocks/trusted_assertions_for_reqs.dart';
 
 void main() {
   group('TrustedAssertions', () {
     late MockRelay relay;
-    late Ndk ndk;
+    late RelayManager relayManager;
     late TrustedAssertions ta;
 
     // Provider keys
@@ -88,16 +90,16 @@ void main() {
 
       relay.events.add(assertionEvent);
 
-      ndk = Ndk(
-        NdkConfig(
-          eventVerifier: Bip340EventVerifier(useIsolate: false),
-          cache: MemCacheManager(),
-          engine: NdkEngine.RELAY_SETS,
-          bootstrapRelays: [relay.url],
+      relayManager = RelayManager(
+        nostrTransportFactory: WebSocketClientNostrTransportFactory(
+          pingInterval: null,
         ),
       );
       ta = trustedAssertionsFor(
-        ndk,
+        RelayReqs(
+          relayManager: relayManager,
+          eventVerifier: Bip340EventVerifier(),
+        ),
         defaultProviders: [
           Nip85TrustedProvider(
             kind: Nip85Kind.user,
@@ -122,7 +124,7 @@ void main() {
     });
 
     tearDown(() async {
-      await ndk.destroy();
+      await relayManager.closeAllTransports();
       await relay.stop();
     });
 
@@ -161,7 +163,10 @@ void main() {
 
     test('getUserMetrics returns null when no providers configured', () async {
       final metrics = await trustedAssertionsFor(
-        ndk,
+        RelayReqs(
+          relayManager: relayManager,
+          eventVerifier: Bip340EventVerifier(),
+        ),
         defaultProviders: [],
       ).getUserMetrics(subjectKey.publicKey);
 

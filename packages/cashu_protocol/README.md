@@ -25,10 +25,9 @@ Decode a token and ask its mint which proofs are still unspent:
 ```dart
 import 'package:http/http.dart' as http;
 import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
-import 'package:ndk_http/ndk_http.dart';
 
 final token = CashuTokenEncoder.decodedToken(encoded)!;
-final mint = CashuRepoImpl(client: NdkHttp(http.Client()));
+final mint = CashuRepoImpl(client: http.Client());
 
 final states = await mint.checkTokenState(
   mintUrl: token.mintUrl,
@@ -121,7 +120,7 @@ code goes in as its `cashuB` string.
   `cashuB` tokens (`CashuTokenEncoder`). V3 `cashuA` tokens are not supported.
 - NUT-01, NUT-02: keys and keysets (`CahsuKeyset`).
 - NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepo`, whose
-  `CashuRepoImpl` talks to the mint over [`ndk_http`](https://pub.dev/packages/ndk_http).
+  `CashuRepoImpl` talks to the mint over an `http.Client`.
 - NUT-06: mint info (`CashuMintInfo`).
 - NUT-07: proof states.
 - NUT-09: restore.

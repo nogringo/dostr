@@ -1,10 +1,10 @@
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 
 import '../../domain_layer/entities/file_hash_progress.dart';
-import 'package:ndk_isolates/ndk_isolates.dart';
 import 'file_io.dart';
 
 /// Native platform implementation using dart:io
@@ -79,18 +79,36 @@ class FileIONative implements FileIO {
       );
     }
 
-    yield* IsolateManager.instance
-        .runInComputeIsolateStream<String, FileHashProgress>(
-          _computeFileHashTask,
-          filePath,
-        );
+    final messages = ReceivePort();
+    final isolate = await Isolate.spawn(
+      _computeFileHashTask,
+      (filePath, messages.sendPort),
+      onError: messages.sendPort,
+      onExit: messages.sendPort,
+    );
+    try {
+      await for (final message in messages) {
+        switch (message) {
+          case FileHashProgress progress:
+            yield progress;
+            if (progress.isComplete) return;
+          case [final Object? error, final Object? stackTrace]:
+            throw RemoteError('$error', '$stackTrace');
+          default:
+            throw StateError('hashing $filePath stopped before the end');
+        }
+      }
+    } finally {
+      messages.close();
+      isolate.kill(priority: Isolate.immediate);
+    }
   }
 }
 
-Future<void> _computeFileHashTask(
-  String filePath,
-  void Function(FileHashProgress progress) emit,
-) async {
+Future<void> _computeFileHashTask((String, SendPort) task) async {
+  final (filePath, progress) = task;
+  void emit(FileHashProgress update) => progress.send(update);
+
   final file = File(filePath);
   final totalBytes = await file.length();
 

@@ -18,7 +18,7 @@ void main() {
     );
 
     expect(Bip340.verify(signed.id, signed.sig!, keyPair.publicKey), isTrue);
-    expect(await Bip340EventVerifier(useIsolate: false).verify(signed), isTrue);
+    expect(await Bip340EventVerifier().verify(signed), isTrue);
   });
 
   test('verifier rejects an event signed by another key', () async {
@@ -27,9 +27,6 @@ void main() {
       privateKey: Bip340.generatePrivateKey().privateKey!,
     );
 
-    expect(
-      await Bip340EventVerifier(useIsolate: false).verify(signed),
-      isFalse,
-    );
+    expect(await Bip340EventVerifier().verify(signed), isFalse);
   });
 }

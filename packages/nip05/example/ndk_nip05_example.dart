@@ -1,5 +1,4 @@
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 
 class MemoryNip05Cache implements Nip05Cache {
@@ -18,7 +17,7 @@ Future<void> main(List<String> args) async {
   final client = http.Client();
   final nip05 = Nip05Usecase(
     cache: MemoryNip05Cache(),
-    nip05Repository: Nip05HttpRepositoryImpl(httpDS: NdkHttp(client)),
+    nip05Repository: Nip05HttpRepositoryImpl(client: client),
   );
 
   final result = await nip05.resolve(args.first);

@@ -1,4 +1,4 @@
-import 'package:ndk_http/ndk_http.dart';
+import '../../data_layer/http/blossom_http.dart';
 
 /// Thrown when no server served a read: each one failed or refused it.
 class BlossomRequestException implements Exception {

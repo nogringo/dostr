@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_core/ndk_core.dart' show Logger;
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 

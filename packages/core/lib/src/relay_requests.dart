@@ -6,7 +6,7 @@ import 'package:ndk_nip01/ndk_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import 'logger/logger.dart';
 import 'client_msg.dart';
 import 'nostr_message_raw.dart';
 import 'relay_auth.dart';

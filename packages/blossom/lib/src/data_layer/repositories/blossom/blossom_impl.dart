@@ -15,7 +15,7 @@ import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import '../../../domain_layer/repositories/blossom.dart';
-import 'package:ndk_http/ndk_http.dart';
+import '../../http/blossom_http.dart';
 import '../../io/file_io.dart';
 
 Uint8List _bytes(List<int> chunk) =>
@@ -147,18 +147,19 @@ Nip01Event? _initial(BlossomAuthorization authorization, String serverUrl) =>
     authorization.upfront ?? authorization.resolvedFor(serverUrl);
 
 class BlossomRepositoryImpl implements BlossomRepository {
-  final NdkHttp client;
+  final BlossomHttp _http;
   final FileIO fileIO;
 
   /// how many times [abortPending] ran
   int _aborts = 0;
 
-  BlossomRepositoryImpl({required this.client, required this.fileIO});
+  BlossomRepositoryImpl({required http.Client client, required this.fileIO})
+    : _http = BlossomHttp(client);
 
   @override
   void abortPending() {
     _aborts++;
-    client.abortPending();
+    _http.abortPending();
   }
 
   /// An operation reads [_aborts] before it waits on something other than a
@@ -566,7 +567,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       'Content-Length': '$contentLength',
     };
 
-    Stream<UploadProgress> send(Nip01Event? authEvent) => client.putStream(
+    Stream<UploadProgress> send(Nip01Event? authEvent) => _http.putStream(
       url: endpoint,
       body: dataStreamFactory(),
       headers: headersFor(authEvent),
@@ -621,7 +622,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       final response = await _withAuthRetry(
         authorization,
         serverUrl,
-        (authEvent) => client.head(
+        (authEvent) => _http.head(
           url: _endpoint(serverUrl, endpoint),
           headers: {
             'X-SHA-256': sha256,
@@ -660,7 +661,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       final response = await _withAuthRetry(
         authorization,
         serverUrl,
-        (authEvent) => client.put(
+        (authEvent) => _http.put(
           url: _endpoint(serverUrl, 'mirror'),
           body: body,
           headers: {
@@ -699,7 +700,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         final response = await _withAuthRetry(
           authorization,
           url,
-          (authEvent) => client.get(
+          (authEvent) => _http.get(
             url: _endpoint(url, sha256),
             headers: headersFor(authEvent),
           ),
@@ -743,7 +744,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         await _withAuthRetry(
           authorization,
           url,
-          (authEvent) => client.head(
+          (authEvent) => _http.head(
             url: blobUrl,
             headers: <String, String>{
               if (authEvent != null) 'Authorization': _authHeader(authEvent),
@@ -771,7 +772,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       final response = await _withAuthRetry(
         authorization,
         serverUrl,
-        (authEvent) => client.head(
+        (authEvent) => _http.head(
           url: _endpoint(serverUrl, sha256),
           headers: <String, String>{
             if (authEvent != null) 'Authorization': _authHeader(authEvent),
@@ -887,7 +888,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         final response = await _withAuthRetry(
           authorization,
           url,
-          (authEvent) => client.getStream(
+          (authEvent) => _http.getStream(
             url: _endpoint(url, sha256),
             headers: <String, String>{
               if (authEvent != null) 'Authorization': _authHeader(authEvent),
@@ -935,7 +936,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
         final response = await _withAuthRetry(
           authorization,
           url,
-          (authEvent) => client.get(
+          (authEvent) => _http.get(
             url: _endpoint(
               url,
               'list/$pubkey',
@@ -982,7 +983,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
       await _withAuthRetry(
         authorization,
         serverUrl,
-        (authEvent) => client.delete(
+        (authEvent) => _http.delete(
           url: _endpoint(serverUrl, sha256),
           headers: {
             if (authEvent != null) 'Authorization': _authHeader(authEvent),
@@ -1003,7 +1004,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
 
   @override
   Future<BlobResponse> directDownload({required Uri url}) async {
-    final response = await client.get(url: url);
+    final response = await _http.get(url: url);
     return BlobResponse(
       data: response.bodyBytes,
       mimeType: response.headers['content-type'],
@@ -1017,7 +1018,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required Uri url,
     required String outputPath,
   }) async {
-    final response = await client.getStream(url: url);
+    final response = await _http.getStream(url: url);
     await fileIO.writeFileStream(outputPath, response.stream.map(_bytes));
   }
 
@@ -1047,7 +1048,7 @@ class BlossomRepositoryImpl implements BlossomRepository {
     required String sha256,
     required Nip01Event reportEvent,
   }) async {
-    final response = await client.put(
+    final response = await _http.put(
       url: _endpoint(serverUrl, 'report'),
       body: jsonEncode(reportEvent.toJson()),
       headers: {'Content-Type': 'application/json'},

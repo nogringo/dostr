@@ -1,4 +1,4 @@
-import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_core/ndk_core.dart' show Logger;
 
 import 'invoice_response.dart';
 import 'lnurl_response.dart';

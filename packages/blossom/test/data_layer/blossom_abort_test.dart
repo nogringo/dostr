@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
 import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:test/test.dart';
 
 const _servers = ['https://a.example', 'https://b.example'];
@@ -27,7 +29,7 @@ class _StalledServers {
 }
 
 BlossomRepositoryImpl _repo(http.Client client) =>
-    BlossomRepositoryImpl(client: NdkHttp(client), fileIO: createFileIO());
+    BlossomRepositoryImpl(client: client, fileIO: createFileIO());
 
 /// lets the operation reach its first request, or whatever it waits on
 Future<void> _settle() => Future<void>.delayed(Duration.zero);
@@ -35,17 +37,17 @@ Future<void> _settle() => Future<void>.delayed(Duration.zero);
 final _aborted = throwsA(isA<http.RequestAbortedException>());
 
 void main() {
-  late Ndk ndk;
+  late Accounts accounts;
 
-  setUp(() => ndk = Ndk.emptyBootstrapRelaysConfig());
-  tearDown(() => ndk.destroy());
+  setUp(() => accounts = Accounts(const Bip340EventSignerFactory()));
+  tearDown(() => accounts.dispose());
 
   Blossom blossomFor(
     BlossomServerListResolver getUserServerList, {
     BlossomRepository? repository,
   }) => Blossom(
-    accounts: ndk.accounts,
-    eventSignerFactory: ndk.config.eventSignerFactory,
+    accounts: accounts,
+    eventSignerFactory: const Bip340EventSignerFactory(),
     getUserServerList: getUserServerList,
     blossomRepository: repository,
   );

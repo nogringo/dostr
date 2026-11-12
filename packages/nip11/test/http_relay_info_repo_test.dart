@@ -1,11 +1,10 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:test/test.dart';
 
 HttpRelayInfoRepo _answering(http.Response response) =>
-    HttpRelayInfoRepo(NdkHttp(MockClient((_) async => response)), maxBytes: 64);
+    HttpRelayInfoRepo(MockClient((_) async => response), maxBytes: 64);
 
 void main() {
   const url = 'wss://relay.example';
@@ -31,7 +30,7 @@ void main() {
       await expectLater(
         _answering(http.Response('', status)).getRelayInfo(url),
         throwsA(
-          isA<HttpRequestException>().having(
+          isA<RelayInfoStatusException>().having(
             (e) => e.statusCode,
             'statusCode',
             status,
@@ -43,11 +42,9 @@ void main() {
 
   test('a relay that cannot be reached throws', () {
     final repo = HttpRelayInfoRepo(
-      NdkHttp(
-        MockClient(
-          (request) async =>
-              throw http.ClientException('connection refused', request.url),
-        ),
+      MockClient(
+        (request) async =>
+            throw http.ClientException('connection refused', request.url),
       ),
     );
 

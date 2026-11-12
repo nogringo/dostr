@@ -5,7 +5,7 @@
 /// final zaps = Zaps(
 ///   query: query,
 ///   subscribe: subscribe,
-///   lnurl: Lnurl(transport: LnurlTransportHttpImpl(NdkHttp(http.Client()))),
+///   lnurl: Lnurl(transport: LnurlTransportHttpImpl(http.Client())),
 /// );
 /// final receipts = await zaps.fetchZappedReceipts(pubKey: pubKey).toList();
 /// ```

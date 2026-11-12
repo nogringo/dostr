@@ -2,7 +2,6 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 import 'package:test/test.dart';
 
@@ -32,7 +31,7 @@ void main() {
         }
         return http.Response('unexpected request', 500);
       });
-      final transport = LnurlTransportHttpImpl(NdkHttp(client));
+      final transport = LnurlTransportHttpImpl(client);
       final Lnurl lnurl = Lnurl(transport: transport);
 
       var lnurlResponse = await lnurl.getLnurlResponse(link);
@@ -42,7 +41,7 @@ void main() {
 
     test('getLnurlResponse returns null for invalid link', () async {
       final client = MockClient((_) async => http.Response('not found', 404));
-      final transport = LnurlTransportHttpImpl(NdkHttp(client));
+      final transport = LnurlTransportHttpImpl(client);
       final Lnurl lnurl = Lnurl(transport: transport);
 
       final link = 'https://invalid.com';

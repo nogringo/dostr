@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/blossom_for_ndk.dart';
+import '../../mocks/blossom_for_accounts.dart';
 
 void main() {
   late MockBlossomServer server;
@@ -23,20 +25,11 @@ void main() {
 
     KeyPair key1 = Bip340.generatePrivateKey();
 
-    final ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: NdkEngine.JIT,
-      ),
-    );
-    ndk.accounts.loginPrivateKey(
-      pubkey: key1.publicKey,
-      privkey: key1.privateKey!,
-    );
+    final accounts = Accounts(const Bip340EventSignerFactory());
+    accounts.loginPrivateKey(pubkey: key1.publicKey, privkey: key1.privateKey!);
 
-    loggedAccount = ndk.accounts.getLoggedAccount()!;
-    client = Files(blossomFor(ndk));
+    loggedAccount = accounts.getLoggedAccount()!;
+    client = Files(blossomFor(accounts));
   });
 
   tearDown(() async {

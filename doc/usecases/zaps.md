@@ -11,7 +11,6 @@ dependencies:
   ndk_zaps: ^0.1.0
   ndk_core: ^0.11.0-dev.2
   ndk_bip340: ^0.1.0
-  ndk_http: ^0.1.0
   http: ^1.6.0
 ```
 
@@ -19,19 +18,19 @@ dependencies:
 
 `Zaps` takes how to query and subscribe to relays, and an `Lnurl` to talk to the lightning address server. Here both run on [RelayReqs](/usecases/relay-reqs.md):
 
-:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="14-45" title="" :::
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="13-44" title="" :::
 
 `query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription and returns its events and a `close` to end it.
 
 ## Invoice
 
-:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="54-69" title="zap request and invoice" :::
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="53-68" title="zap request and invoice" :::
 
 `fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. Pass `eventId` or `addressableId` to `createZapRequest` to zap an event, and `comment` for a message.
 
 ## Receipts
 
-:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="47-51" title="receipts for a profile" :::
+:::code source="../../packages/zaps/example/ndk_zaps_example.dart" language="dart" range="46-50" title="receipts for a profile" :::
 
 `fetchZappedReceipts` and `subscribeToZapReceipts` match the receipts (kind `9735`) by recipient, and by event or addressable event when given:
 

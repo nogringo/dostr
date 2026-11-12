@@ -13,8 +13,7 @@ import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/subscription_limit.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
 import 'package:ndk_url_set/ndk_url_set.dart';
-import 'package:ndk_isolates/ndk_isolates.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import 'logger/logger.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'client_msg.dart';
 import 'decode_nostr_msg.dart';
@@ -966,19 +965,7 @@ class RelayConnections {
     final myCompleter = Completer<void>();
     _lastMessageCompleters[relayUrl] = myCompleter;
 
-    NostrMessageRaw? nostrMsg;
-    if (message is String) {
-      try {
-        nostrMsg = await IsolateManager.instance
-            .runInEncodingIsolate<String, NostrMessageRaw>(
-              decodeNostrMsg,
-              message,
-            );
-      } catch (e) {
-        // Isolates not available on web
-        nostrMsg = decodeNostrMsg(message);
-      }
-    }
+    final nostrMsg = message is String ? decodeNostrMsg(message) : null;
 
     // a relay controls what it sends: nothing it sends may throw out of here,
     // where it would kill a process that has no zone to catch it

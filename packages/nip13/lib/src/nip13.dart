@@ -1,7 +1,9 @@
 import 'dart:math';
 
 import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_isolates/ndk_isolates.dart';
+
+import 'run_in_isolate_stub.dart'
+    if (dart.library.isolate) 'run_in_isolate_io.dart';
 
 class _MiningParams {
   final Nip01Event event;
@@ -47,16 +49,15 @@ class Nip13 {
     Nip01Event event,
     int targetDifficulty, {
     int? maxIterations,
-  }) async {
-    return await IsolateManager.instance
-        .runInComputeIsolate<_MiningParams, Nip01Event>(
-          _mineEventInIsolate,
-          _MiningParams(
-            event: event,
-            targetDifficulty: targetDifficulty,
-            maxIterations: maxIterations ?? 1000000,
-          ),
-        );
+  }) {
+    return runInIsolate(
+      _mineEventInIsolate,
+      _MiningParams(
+        event: event,
+        targetDifficulty: targetDifficulty,
+        maxIterations: maxIterations ?? 1000000,
+      ),
+    );
   }
 
   static Nip01Event _mineEventInIsolate(_MiningParams params) {

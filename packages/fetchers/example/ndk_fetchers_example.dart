@@ -7,7 +7,7 @@ Future<void> main() async {
   final relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
-  final verifier = Bip340EventVerifier(useIsolate: false);
+  final verifier = Bip340EventVerifier();
   final reqs = RelayReqs(relayManager: relayManager, eventVerifier: verifier);
   final homeRelayList = await HomeRelayList.fetch(verifier: verifier);
   final nip65 = Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList);

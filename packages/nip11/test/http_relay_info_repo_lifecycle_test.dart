@@ -7,7 +7,6 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 import 'package:test/test.dart';
 
@@ -78,7 +77,7 @@ void main() {
           await server.close();
         });
         final result = HttpRelayInfoRepo(
-          NdkHttp(client),
+          client,
           timeout: const Duration(milliseconds: 300),
         ).getRelayInfo('wss://127.0.0.1:${server.port}');
         await connected.future.timeout(const Duration(seconds: 2));
@@ -107,7 +106,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await HttpRelayInfoRepo(
-      NdkHttp(client),
+      client,
     ).getRelayInfo('wss://127.0.0.1:${server.port}');
     expect(info?.name, 'Test relay ⚡');
     expect(info?.supportsNip('11'), isTrue);
@@ -126,7 +125,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await HttpRelayInfoRepo(
-      NdkHttp(client),
+      client,
     ).getRelayInfo('ws://127.0.0.1:${server.port}');
     expect(info?.name, 'Local relay');
   });
@@ -143,7 +142,7 @@ void main() {
       await server.close(force: true);
     });
     final info = await HttpRelayInfoRepo(
-      NdkHttp(client),
+      client,
     ).getRelayInfo('wss://127.0.0.1:${server.port}');
     expect(info, isNull);
   });

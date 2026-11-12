@@ -1,7 +1,7 @@
-import 'package:ndk/ndk.dart'
-    show Accounts, Bip340, Bip340EventSignerFactory, Nip01Event;
-import 'package:ndk/entities.dart' show RelayBroadcastResponse;
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -9,7 +9,10 @@ void main() {
   late List<Nip01Event> relayEvents;
   late List<({List<String> authors, int kind, Duration timeout})> queries;
   late List<Nip01Event> published;
-  late BlossomUserServerList<List<RelayBroadcastResponse>> serverList;
+  late BlossomUserServerList<
+    List<({String relayUrl, bool broadcastSuccessful})>
+  >
+  serverList;
 
   setUp(() {
     accounts = Accounts(const Bip340EventSignerFactory());
@@ -23,12 +26,7 @@ void main() {
       },
       publish: (event) async {
         published.add(event);
-        return [
-          RelayBroadcastResponse(
-            relayUrl: 'wss://relay.example',
-            broadcastSuccessful: true,
-          ),
-        ];
+        return [(relayUrl: 'wss://relay.example', broadcastSuccessful: true)];
       },
       accounts: accounts,
     );

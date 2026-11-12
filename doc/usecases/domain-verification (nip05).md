@@ -9,13 +9,12 @@ icon: verified
 ```yaml
 dependencies:
   ndk_nip05: ^0.1.0
-  ndk_http: ^0.1.0
   http: ^1.6.0
 ```
 
 ## Example
 
-:::code source="../../packages/nip05/example/ndk_nip05_example.dart" language="dart" range="5-35" title="" :::
+:::code source="../../packages/nip05/example/ndk_nip05_example.dart" language="dart" range="4-34" title="" :::
 
 To check an address against a pubkey you already have:
 

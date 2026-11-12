@@ -7,7 +7,6 @@ import 'package:http/testing.dart';
 import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
 import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:test/test.dart';
 
 final _blob = utf8.encode('the real blob');
@@ -23,31 +22,29 @@ BlossomRepositoryImpl _repo(
   bool honourRanges = true,
   List<String>? requests,
 }) => BlossomRepositoryImpl(
-  client: NdkHttp(
-    MockClient((request) async {
-      final host = request.url.host;
-      final range = request.headers['range'];
-      requests?.add('${request.method} $host ${range ?? ''}'.trim());
+  client: MockClient((request) async {
+    final host = request.url.host;
+    final range = request.headers['range'];
+    requests?.add('${request.method} $host ${range ?? ''}'.trim());
 
-      final body = bodies[host];
-      if (body == null) return http.Response('', 404);
-      final headers = {
-        if (ranges.contains(host)) 'accept-ranges': 'bytes',
-        'content-length': '${body.length}',
-      };
-      if (request.method == 'HEAD') {
-        return http.Response.bytes([], 200, headers: headers);
-      }
+    final body = bodies[host];
+    if (body == null) return http.Response('', 404);
+    final headers = {
+      if (ranges.contains(host)) 'accept-ranges': 'bytes',
+      'content-length': '${body.length}',
+    };
+    if (request.method == 'HEAD') {
+      return http.Response.bytes([], 200, headers: headers);
+    }
 
-      final asked = RegExp(r'bytes=(\d+)-(\d+)').firstMatch(range ?? '');
-      if (asked != null && honourRanges) {
-        final start = int.parse(asked.group(1)!);
-        final end = int.parse(asked.group(2)!);
-        return http.Response.bytes(body.sublist(start, end + 1), 206);
-      }
-      return http.Response.bytes(body, 200, headers: headers);
-    }),
-  ),
+    final asked = RegExp(r'bytes=(\d+)-(\d+)').firstMatch(range ?? '');
+    if (asked != null && honourRanges) {
+      final start = int.parse(asked.group(1)!);
+      final end = int.parse(asked.group(2)!);
+      return http.Response.bytes(body.sublist(start, end + 1), 206);
+    }
+    return http.Response.bytes(body, 200, headers: headers);
+  }),
   fileIO: createFileIO(),
 );
 

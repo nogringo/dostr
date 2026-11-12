@@ -17,16 +17,12 @@ longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
 `shared/decode_nostr_msg/decode_nostr_msg.dart` and
 `shared/nips/nip01/client_msg.dart`.
 
-`IsolateManager` is in [`ndk_isolates`](https://pub.dev/packages/ndk_isolates):
-`package:ndk/shared/isolates/isolate_manager.dart` is now
-`package:ndk_isolates/ndk_isolates.dart`, which exports only `IsolateManager`
-and `StreamComputeTask`. The pool no longer logs when it starts. When it fails
-to start, the error still reaches every task that waits for it.
+`IsolateManager` and its pool are gone: relay messages are decoded on the
+main isolate, and `Isolate.run` replaces `runInComputeIsolate` for your own
+work.
 
-The logger is in [`ndk_logger`](https://pub.dev/packages/ndk_logger):
 `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`
-are now `package:ndk_logger/ndk_logger.dart`, which
-`package:ndk_core/ndk_core.dart` exports. `LogColor` is internal to it.
+are now `package:ndk_core/ndk_core.dart`. `LogColor` is internal.
 
 `Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in
 [`ndk_signer`](https://pub.dev/packages/ndk_signer):
@@ -85,10 +81,9 @@ of `package:ndk/shared/helpers/list_casting.dart` is gone.
 
 `ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
 and `RelayInfoRepo` are in [`ndk_nip11`](https://pub.dev/packages/ndk_nip11),
-and `RelayInfoHttpRepoImpl(httpDS: http)` is its `HttpRelayInfoRepo(http)`.
-`HttpRequestDS` is in [`ndk_http`](https://pub.dev/packages/ndk_http):
-`package:ndk/data_layer/data_sources/http_request.dart` is now
-`package:ndk_http/ndk_http.dart`. `ndk.connectivity.getRelayInfo` fetches and
+and `RelayInfoHttpRepoImpl(httpDS: http)` is its `HttpRelayInfoRepo(client)`,
+which takes an `http.Client`. `HttpRequestDS` is gone: the packages that make
+HTTP calls take an `http.Client`. `ndk.connectivity.getRelayInfo` fetches and
 caches the documents, and the deprecated `RelayInfo.get` is gone.
 
 `configureDefaultUserAgent`, which sets the User-Agent of the websockets of the

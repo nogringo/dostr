@@ -111,16 +111,6 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 `ndk_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers.
 
-### Shared
-
-#### [🔗 Isolates](./packages/isolates/)
-
-`ndk_isolates`: the isolate pool that NDK packages share for encoding and compute work, in pure Dart.
-
-#### [🔗 HTTP](./packages/http/)
-
-`ndk_http`: the HTTP data source that NDK packages share, with typed errors for non-2xx responses and streamed uploads and downloads.
-
 ### Other
 
 #### [🔗 Cashu protocol](./packages/cashu_protocol/)

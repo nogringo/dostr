@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
@@ -23,9 +22,7 @@ void main() {
     subscribe: relays.subscribe,
     lnurl: Lnurl(
       transport: LnurlTransportHttpImpl(
-        NdkHttp(
-          client ?? MockClient((_) async => http.Response('not found', 404)),
-        ),
+        client ?? MockClient((_) async => http.Response('not found', 404)),
       ),
     ),
   );

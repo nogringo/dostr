@@ -24,14 +24,12 @@ Paying goes through a wallet: `Nwc.zap(...)` from [`ndk_nwc`](https://pub.dev/pa
 dependencies:
   ndk_zaps: ^0.1.0
   ndk_bip340: ^0.1.0
-  ndk_http: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
 import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 
 final zaps = Zaps(
@@ -40,7 +38,7 @@ final zaps = Zaps(
     final sub = myRelays.subscribe(filter);
     return (events: sub.events, close: sub.close);
   },
-  lnurl: Lnurl(transport: LnurlTransportHttpImpl(NdkHttp(http.Client()))),
+  lnurl: Lnurl(transport: LnurlTransportHttpImpl(http.Client())),
 );
 
 final zapRequest = await zaps.createZapRequest(

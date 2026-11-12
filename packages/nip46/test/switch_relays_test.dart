@@ -38,7 +38,7 @@ void main() {
       ),
       relayReqs: RelayReqs(
         relayManager: relayManager,
-        eventVerifier: Bip340EventVerifier(useIsolate: false),
+        eventVerifier: Bip340EventVerifier(),
       ),
       relayPublishes: RelayPublishes(relayManager: relayManager),
       eventSignerFactory: const Bip340EventSignerFactory(),

@@ -4,7 +4,7 @@
 ///
 /// ```dart
 /// final token = CashuTokenEncoder.decodedToken(encoded);
-/// final mint = CashuRepoImpl(client: NdkHttp(http.Client()));
+/// final mint = CashuRepoImpl(client: http.Client());
 /// final states = await mint.checkTokenState(
 ///   mintUrl: token!.mintUrl,
 ///   proofPubkeys: token.proofs.map((proof) => proof.Y).toList(),

@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/blossom_for_ndk.dart';
+import '../../mocks/blossom_for_accounts.dart';
 
 const int handlerPortA = 30060;
 const int handlerPortB = 30061;
@@ -21,25 +23,17 @@ void main() {
   late bool Function(String url) answer;
 
   Blossom clientWith({required bool handler}) {
-    final ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: NdkEngine.JIT,
-        bootstrapRelays: [],
-        authHandler: handler
-            ? (url, pubkey) async {
-                asked.add((url, pubkey));
-                return answer(url);
-              }
-            : null,
-      ),
+    final accounts = Accounts(const Bip340EventSignerFactory());
+    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    return blossomFor(
+      accounts,
+      authHandler: handler
+          ? (url, pubkey) async {
+              asked.add((url, pubkey));
+              return answer(url);
+            }
+          : null,
     );
-    ndk.accounts.loginPrivateKey(
-      pubkey: key.publicKey,
-      privkey: key.privateKey!,
-    );
-    return blossomFor(ndk);
   }
 
   Uint8List bytes(String content) => Uint8List.fromList(utf8.encode(content));

@@ -1,4 +1,7 @@
-import 'package:ndk_http/ndk_http.dart';
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
 
 import '../../config/nip_05_defaults.dart';
 import '../../domain_layer/entities/nip_05.dart';
@@ -6,14 +9,14 @@ import '../../domain_layer/repositories/nip_05_repo.dart';
 
 /// implementation of the [Nip05Repository] interface with http
 class Nip05HttpRepositoryImpl implements Nip05Repository {
-  final NdkHttp httpDS;
+  final http.Client client;
 
   /// how long to wait for a nostr.json response
   final Duration timeout;
 
   /// creates a new [Nip05HttpRepositoryImpl] instance
   Nip05HttpRepositoryImpl({
-    required this.httpDS,
+    required this.client,
     this.timeout = NIP_05_REQUEST_TIMEOUT,
   });
 
@@ -24,18 +27,9 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
       return null;
     }
 
-    final Map<String, dynamic> json;
-    try {
-      json = await httpDS.jsonRequest(
-        url: identifier.url,
-        followRedirects: false,
-        timeout: timeout,
-      );
-    } on HttpRequestException catch (e) {
-      if (e.statusCode == 404) {
-        return null;
-      }
-      rethrow;
+    final json = await _getJson(identifier.url);
+    if (json == null) {
+      return null;
     }
 
     Map names = json["names"];
@@ -59,6 +53,39 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
       networkFetchTime: DateTime.now().millisecondsSinceEpoch ~/ 1000,
       relays: pRelays,
     );
+  }
+
+  /// null on a 404. NIP-05 forbids redirects, so a 3xx throws like any other
+  /// error status
+  Future<Map<String, dynamic>?> _getJson(Uri url) async {
+    final abort = Completer<void>();
+    final timer = Timer(timeout, abort.complete);
+    final request =
+        http.AbortableRequest('GET', url, abortTrigger: abort.future)
+          ..followRedirects = false
+          ..headers['Accept'] = 'application/json';
+    final http.Response response;
+    try {
+      response = await http.Response.fromStream(await client.send(request));
+    } on http.RequestAbortedException {
+      throw TimeoutException('$url', timeout);
+    } finally {
+      timer.cancel();
+    }
+    if (response.statusCode == 404) {
+      return null;
+    }
+    if (response.statusCode < 200 || response.statusCode >= 300) {
+      throw http.ClientException(
+        'GET $url returned ${response.statusCode}',
+        url,
+      );
+    }
+    final json = jsonDecode(utf8.decode(response.bodyBytes));
+    if (json is! Map<String, dynamic>) {
+      throw FormatException('$url did not return a JSON object');
+    }
+    return json;
   }
 }
 

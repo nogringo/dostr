@@ -2,7 +2,6 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 
 import '../../../data_layer/io/file_io_platform.dart';
 import '../../../data_layer/repositories/blossom/blossom_impl.dart';
@@ -108,10 +107,7 @@ class Blossom {
        _getUserServerList = getUserServerList,
        _blossomImpl =
            blossomRepository ??
-           BlossomRepositoryImpl(
-             client: NdkHttp(http.Client()),
-             fileIO: createFileIO(),
-           ),
+           BlossomRepositoryImpl(client: http.Client(), fileIO: createFileIO()),
        _eventSignerFactory = eventSignerFactory,
        _authHandler = authHandler;
 

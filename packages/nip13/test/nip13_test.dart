@@ -1,4 +1,3 @@
-import 'package:ndk_isolates/ndk_isolates.dart';
 import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_nip13/ndk_nip13.dart';
 import 'package:test/test.dart';
@@ -15,8 +14,6 @@ Nip01Event _event({List<List<String>> tags = const []}) => Nip01Event(
 );
 
 void main() {
-  tearDownAll(() => IsolateManager.instance.dispose());
-
   group('countLeadingZeroBits', () {
     test('counts single hex digits', () {
       const expected = {

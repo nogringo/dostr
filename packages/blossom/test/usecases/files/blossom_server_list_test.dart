@@ -2,10 +2,11 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
 import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
 import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:test/test.dart';
 
 final _sha256 = 'ab' * 32;
@@ -15,39 +16,34 @@ Matcher _noServerList(String? pubkey) => throwsA(
 );
 
 void main() {
-  late Ndk ndk;
+  late Accounts accounts;
   late List<http.BaseRequest> requests;
 
   setUp(() {
-    ndk = Ndk.emptyBootstrapRelaysConfig();
+    accounts = Accounts(const Bip340EventSignerFactory());
     requests = [];
   });
   tearDown(() {
     expect(requests, isEmpty, reason: 'nothing may be sent');
-    return ndk.destroy();
+    return accounts.dispose();
   });
 
   Blossom blossomWith(List<String>? list) => Blossom(
-    accounts: ndk.accounts,
-    eventSignerFactory: ndk.config.eventSignerFactory,
+    accounts: accounts,
+    eventSignerFactory: const Bip340EventSignerFactory(),
     getUserServerList: (_) async => list,
     blossomRepository: BlossomRepositoryImpl(
-      client: NdkHttp(
-        MockClient((request) async {
-          requests.add(request);
-          return http.Response('', 500);
-        }),
-      ),
+      client: MockClient((request) async {
+        requests.add(request);
+        return http.Response('', 500);
+      }),
       fileIO: createFileIO(),
     ),
   );
 
   String login() {
     final key = Bip340.generatePrivateKey();
-    ndk.accounts.loginPrivateKey(
-      pubkey: key.publicKey,
-      privkey: key.privateKey!,
-    );
+    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
     return key.publicKey;
   }
 

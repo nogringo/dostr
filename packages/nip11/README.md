@@ -18,22 +18,20 @@ print('search? ${info?.supportsNip('50') ?? false}');
 ```yaml
 dependencies:
   ndk_nip11: ^0.1.0
-  ndk_http: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip11/ndk_nip11.dart';
 
-final repo = HttpRelayInfoRepo(NdkHttp(http.Client()));
+final repo = HttpRelayInfoRepo(http.Client());
 
 final info = await repo.getRelayInfo('wss://relay.example.com');
 print(info?.limitation?.maxSubscriptions);
 ```
 
-`getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay answers without one: an error status, a body that is not a JSON object, or one past `maxBytes` (1 MiB by default). It throws when the relay could not be reached, since asking again later may work: a timeout, a network failure, a 408, a 429 or a 5xx. A url that is not ws, wss, http or https throws an `ArgumentError`.
+`getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay answers without one: an error status, a body that is not a JSON object, or one past `maxBytes` (1 MiB by default). It throws when the relay could not be reached, since asking again later may work: a timeout, a network failure, or a 408, a 429 or a 5xx, which throws a `RelayInfoStatusException` that carries the status. A url that is not ws, wss, http or https throws an `ArgumentError`.
 
 To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document. Once an answer is older than `maxAge`, a call still gets it right away while the relay is fetched again in the background, so a call waits for the network only while its relay never answered. Without `maxAge`, an answer stays until it is evicted. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
 

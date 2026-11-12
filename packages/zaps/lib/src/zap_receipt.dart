@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ndk_logger/ndk_logger.dart';
+import 'package:ndk_core/ndk_core.dart' show Logger;
 import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'lnurl.dart';

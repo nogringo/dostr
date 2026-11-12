@@ -107,7 +107,7 @@ void main() {
   });
 
   group('fetch', () {
-    final verifier = Bip340EventVerifier(useIsolate: false);
+    final verifier = Bip340EventVerifier();
     final author = Bip340.generatePrivateKey();
     final other = Bip340.generatePrivateKey();
 

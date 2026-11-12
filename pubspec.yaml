@@ -16,7 +16,6 @@ workspace:
   - packages/accounts
   - packages/zaps
   - packages/nip11
-  - packages/isolates
   - packages/nip19
   - packages/bip340
   - packages/nip44
@@ -25,7 +24,6 @@ workspace:
   - packages/rust_verifier
   - packages/event_verifier_test_suite
   - packages/mock_relay
-  - packages/flutter
   - packages/cashu_protocol
   - packages/blossom
   - packages/nip59
@@ -37,7 +35,6 @@ workspace:
   - packages/nip05
   - packages/fetchers
   - packages/home_relays
-  - packages/http
   - packages/url_set
 
 melos:

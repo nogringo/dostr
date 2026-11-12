@@ -7,7 +7,7 @@ import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
 import '../domain_layer/entities/relay_stats.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import 'logger/logger.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
 /// ndk_core: everyone else sees a [RelayConnectivity].

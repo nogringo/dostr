@@ -12,14 +12,14 @@ import 'entities/cashu_token_state_response.dart';
 import 'cashu_repo.dart';
 import 'cashu_keypair.dart';
 import 'cashu_tools.dart';
-import 'package:ndk_http/ndk_http.dart';
+import 'package:http/http.dart' as http;
 
 const _headers = {'Content-Type': 'application/json'};
 
 class CashuRepoImpl implements CashuRepo {
   static const Duration networkTimeout = Duration(seconds: 10);
 
-  final NdkHttp client;
+  final http.Client client;
 
   CashuRepoImpl({required this.client});
   @override
@@ -36,7 +36,7 @@ class CashuRepoImpl implements CashuRepo {
     };
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
+        .post(Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -73,7 +73,7 @@ class CashuRepoImpl implements CashuRepo {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'keysets');
 
     final response = await client
-        .get(url: Uri.parse(url), headers: _headers)
+        .get(Uri.parse(url), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -117,7 +117,7 @@ class CashuRepoImpl implements CashuRepo {
     }
 
     final response = await client
-        .get(url: Uri.parse(url), headers: _headers)
+        .get(Uri.parse(url), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -167,7 +167,7 @@ class CashuRepoImpl implements CashuRepo {
     };
 
     final response = await client.post(
-      url: Uri.parse(url),
+      Uri.parse(url),
       body: jsonEncode(body),
       headers: _headers,
     );
@@ -202,7 +202,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'mint/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: _headers);
+    final response = await client.get(Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -229,7 +229,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'mint/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: _headers);
+    final response = await client.get(Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -282,7 +282,7 @@ class CashuRepoImpl implements CashuRepo {
     };
 
     final response = await client.post(
-      url: Uri.parse(url),
+      Uri.parse(url),
       body: jsonEncode(body),
       headers: _headers,
     );
@@ -324,7 +324,7 @@ class CashuRepoImpl implements CashuRepo {
     final body = {'request': request, 'unit': unit};
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
+        .post(Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -356,7 +356,7 @@ class CashuRepoImpl implements CashuRepo {
       path: 'melt/quote/$method/$quoteID',
     );
 
-    final response = await client.get(url: Uri.parse(url), headers: _headers);
+    final response = await client.get(Uri.parse(url), headers: _headers);
 
     if (response.statusCode != 200) {
       throw Exception(
@@ -388,7 +388,7 @@ class CashuRepoImpl implements CashuRepo {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'melt/$method');
 
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
+        .post(Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -416,7 +416,7 @@ class CashuRepoImpl implements CashuRepo {
   Future<CashuMintInfo> getMintInfo({required String mintUrl}) {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'info');
 
-    return client.get(url: Uri.parse(url), headers: _headers).then((response) {
+    return client.get(Uri.parse(url), headers: _headers).then((response) {
       if (response.statusCode != 200) {
         throw Exception(
           'Error fetching mint info: ${response.statusCode}, ${response.body}',
@@ -439,7 +439,7 @@ class CashuRepoImpl implements CashuRepo {
 
     final body = {'Ys': proofPubkeys};
     final response = await client
-        .post(url: Uri.parse(url), body: jsonEncode(body), headers: _headers)
+        .post(Uri.parse(url), body: jsonEncode(body), headers: _headers)
         .timeout(
           networkTimeout,
           onTimeout: () => throw Exception(
@@ -478,7 +478,7 @@ class CashuRepoImpl implements CashuRepo {
     final body = {'outputs': outputs.map((e) => e.toJson()).toList()};
 
     final response = await client.post(
-      url: Uri.parse(url),
+      Uri.parse(url),
       body: jsonEncode(body),
       headers: _headers,
     );

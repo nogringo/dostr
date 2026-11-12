@@ -1,7 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:ndk_bip340/ndk_bip340.dart';
 import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_zaps/ndk_zaps.dart';
 
 /// `dart run example/ndk_zaps_example.dart wss://relay.example.com <hex pubkey> [name@domain.com]`
@@ -41,7 +40,7 @@ Future<void> main(List<String> args) async {
         close: req.close,
       );
     },
-    lnurl: Lnurl(transport: LnurlTransportHttpImpl(NdkHttp(http.Client()))),
+    lnurl: Lnurl(transport: LnurlTransportHttpImpl(http.Client())),
   );
 
   await for (final receipt in zaps.fetchZappedReceipts(pubKey: recipient)) {

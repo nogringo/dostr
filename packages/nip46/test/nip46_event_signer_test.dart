@@ -23,7 +23,7 @@ void main() {
     );
     relayReqs = RelayReqs(
       relayManager: relayManager,
-      eventVerifier: Bip340EventVerifier(useIsolate: false),
+      eventVerifier: Bip340EventVerifier(),
     );
     relayPublishes = RelayPublishes(relayManager: relayManager);
   });
@@ -96,10 +96,7 @@ void main() {
       expect(signedEvent.content, equals('mutated by remote signer'));
       expect(signedEvent.createdAt, equals(event.createdAt + 11));
       expect(signedEvent.hasValidId, isTrue);
-      expect(
-        await Bip340EventVerifier(useIsolate: false).verify(signedEvent),
-        isTrue,
-      );
+      expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
     });
 
     test('getPublicKey should throw when not cached', () {

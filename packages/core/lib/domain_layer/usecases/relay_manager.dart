@@ -3,7 +3,7 @@ import 'dart:collection';
 
 import '../../config/relay_defaults.dart';
 import '../../config/request_defaults.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import '../../src/logger/logger.dart';
 import '../../src/nostr_message_raw.dart';
 import '../../src/relay_auth.dart';
 import '../../src/relay_broadcasts.dart';

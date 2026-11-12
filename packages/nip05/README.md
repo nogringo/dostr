@@ -18,18 +18,16 @@ print('valid? ${result.valid}, relays: ${result.relays}');
 ```yaml
 dependencies:
   ndk_nip05: ^0.1.0
-  ndk_http: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_http/ndk_http.dart';
 import 'package:ndk_nip05/ndk_nip05.dart';
 
 final nip05 = Nip05Usecase(
   cache: myCache,
-  nip05Repository: Nip05HttpRepositoryImpl(httpDS: NdkHttp(http.Client())),
+  nip05Repository: Nip05HttpRepositoryImpl(client: http.Client()),
 );
 
 switch (await nip05.resolve('bob@example.com')) {

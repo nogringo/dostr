@@ -2,7 +2,6 @@
 /// EVENT on the relays you pick.
 library;
 
-export 'package:ndk_logger/ndk_logger.dart';
 export 'package:ndk_nip01/ndk_nip01.dart';
 export 'package:ndk_signer/ndk_signer.dart';
 export 'package:ndk_url_set/ndk_url_set.dart'
@@ -24,5 +23,12 @@ export 'domain_layer/entities/subscription_limit.dart';
 export 'domain_layer/entities/timeout_pausable.dart';
 export 'domain_layer/repositories/nostr_transport.dart';
 export 'domain_layer/usecases/relay_manager.dart';
+export 'src/logger/console_output.dart';
+export 'src/logger/log_event.dart';
+export 'src/logger/log_level.dart';
+export 'src/logger/log_output.dart';
+export 'src/logger/logger.dart';
+export 'src/logger/logger_defaults.dart';
+export 'src/logger/ndk_logger.dart';
 export 'src/user_agent.dart';
 export 'src/version.dart';

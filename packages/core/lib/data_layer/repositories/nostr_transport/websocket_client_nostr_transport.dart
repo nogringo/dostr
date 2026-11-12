@@ -3,7 +3,7 @@ import 'dart:async';
 import '../../../src/web_socket_client/web_socket_client.dart';
 
 import '../../../domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_logger/ndk_logger.dart';
+import '../../../src/logger/logger.dart';
 import '../../data_sources/websocket_client.dart';
 
 /// A [NostrTransport] over the vendored WebSocket client, which must be

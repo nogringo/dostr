@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/blossom_for_ndk.dart';
+import '../../mocks/blossom_for_accounts.dart';
 
 const int policyPort = 30040;
 
@@ -41,18 +43,9 @@ void main() {
     loggedIn = _signable(key);
     other = _signable(Bip340.generatePrivateKey());
 
-    final ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: NdkEngine.JIT,
-      ),
-    );
-    ndk.accounts.loginPrivateKey(
-      pubkey: key.publicKey,
-      privkey: key.privateKey!,
-    );
-    client = blossomFor(ndk);
+    final accounts = Accounts(const Bip340EventSignerFactory());
+    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    client = blossomFor(accounts);
   });
 
   tearDown(() async => server.stop());
@@ -130,12 +123,10 @@ void main() {
     });
 
     test('the authorization lasts as long as the constructor says', () async {
-      final ndk = Ndk(
-        NdkConfig(eventVerifier: MockEventVerifier(), cache: MemCacheManager()),
-      );
+      final accounts = Accounts(const Bip340EventSignerFactory());
       final shortLived = Blossom(
-        accounts: ndk.accounts,
-        eventSignerFactory: ndk.config.eventSignerFactory,
+        accounts: accounts,
+        eventSignerFactory: const Bip340EventSignerFactory(),
         getUserServerList: (_) async => null,
         authExpiration: const Duration(seconds: 42),
       );
@@ -252,18 +243,9 @@ void main() {
 
       final key = Bip340.generatePrivateKey();
       rangedOther = _signable(Bip340.generatePrivateKey());
-      final ndk = Ndk(
-        NdkConfig(
-          eventVerifier: MockEventVerifier(),
-          cache: MemCacheManager(),
-          engine: NdkEngine.JIT,
-        ),
-      );
-      ndk.accounts.loginPrivateKey(
-        pubkey: key.publicKey,
-        privkey: key.privateKey!,
-      );
-      rangedClient = blossomFor(ndk);
+      final accounts = Accounts(const Bip340EventSignerFactory());
+      accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+      rangedClient = blossomFor(accounts);
     });
 
     tearDown(() async => ranged.stop());

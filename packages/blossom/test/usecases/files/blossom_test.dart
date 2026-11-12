@@ -6,17 +6,17 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart' as crypto;
 import 'package:http/http.dart' as http;
 
-import 'package:ndk_http/ndk_http.dart';
-
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
 import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
 
 import 'package:test/test.dart';
 
 import '../../mocks/mock_blossom_server.dart';
-import '../../mocks/mock_event_verifier.dart';
-import '../../mocks/blossom_for_ndk.dart';
+import '../../mocks/blossom_for_accounts.dart';
 
 const int primaryServerPort = 30000;
 const int secondaryServerPort = 30001;
@@ -36,20 +36,11 @@ void main() {
 
     KeyPair key1 = Bip340.generatePrivateKey();
 
-    final ndk = Ndk(
-      NdkConfig(
-        eventVerifier: MockEventVerifier(),
-        cache: MemCacheManager(),
-        engine: NdkEngine.JIT,
-      ),
-    );
-    ndk.accounts.loginPrivateKey(
-      pubkey: key1.publicKey,
-      privkey: key1.privateKey!,
-    );
+    final accounts = Accounts(const Bip340EventSignerFactory());
+    accounts.loginPrivateKey(pubkey: key1.publicKey, privkey: key1.privateKey!);
 
-    loggedAccount = ndk.accounts.getLoggedAccount()!;
-    client = blossomFor(ndk);
+    loggedAccount = accounts.getLoggedAccount()!;
+    client = blossomFor(accounts);
   });
 
   tearDown(() async {
@@ -590,7 +581,7 @@ void main() {
 
   group("stream blobs", () {
     final BlossomRepository blossomRepo = BlossomRepositoryImpl(
-      client: NdkHttp(http.Client()),
+      client: http.Client(),
       fileIO: createFileIO(),
     );
     test(
@@ -983,17 +974,17 @@ void main() {
     });
   });
 
-  test('Get blobs with NDK', () async {
-    final ndk = Ndk.defaultConfig();
+  test('Get blobs with a logged account', () async {
+    final accounts = Accounts(const Bip340EventSignerFactory());
 
     final keyPair = Bip340.generatePrivateKey();
-    ndk.accounts.loginPrivateKey(
+    accounts.loginPrivateKey(
       pubkey: keyPair.publicKey,
       privkey: keyPair.privateKey!,
     );
 
-    await blossomFor(ndk).listBlobs(
-      pubkey: ndk.accounts.getPublicKey()!,
+    await blossomFor(accounts).listBlobs(
+      pubkey: accounts.getPublicKey()!,
       serverUrls: ["http://localhost:${server.port}"],
     );
   });
@@ -1388,18 +1379,13 @@ void main() {
     test(
       'uploadBlob should work without logged in account using temporary signer',
       () async {
-        final ndkNoLogin = Ndk(
-          NdkConfig(
-            eventVerifier: MockEventVerifier(),
-            cache: MemCacheManager(),
-          ),
-        );
+        final accountsNoLogin = Accounts(const Bip340EventSignerFactory());
 
         final testData = Uint8List.fromList(
           utf8.encode('Temporary signer test'),
         );
 
-        final uploadResponse = await blossomFor(ndkNoLogin).uploadBlob(
+        final uploadResponse = await blossomFor(accountsNoLogin).uploadBlob(
           data: testData,
           serverUrls: ['http://localhost:${server.port}'],
         );
