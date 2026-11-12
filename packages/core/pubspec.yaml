@@ -18,7 +18,6 @@ dependencies:
   dostr_signer: ^0.1.0
   dostr_url_set: ^0.1.0
   rxdart: ^0.28.0
-  web: ^1.1.1
   web_socket_channel: ^3.0.3
 
 dev_dependencies:

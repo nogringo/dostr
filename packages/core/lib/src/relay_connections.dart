@@ -20,7 +20,7 @@ import 'decode_nostr_msg.dart';
 import 'nostr_message_raw.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
-import 'web_socket_client/web_socket_client.dart';
+import 'backoff.dart';
 
 /// What the work riding on the connections of [RelayConnections] has to do
 /// when a socket comes back or goes away.
@@ -63,7 +63,7 @@ class MessageTooLong implements Exception {
 /// A connection whose socket dropped, while it is being brought back.
 class _Revival {
   final RelayConnection connectivity;
-  final Backoff backoff;
+  final BinaryExponentialBackoff backoff;
   final Stopwatch since = Stopwatch()..start();
 
   /// how long the socket it brought back has lived

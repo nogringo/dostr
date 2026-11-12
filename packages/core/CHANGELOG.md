@@ -209,6 +209,10 @@ are gone: they reported a socket open before its handshake, which skipped the
 connect timeout and kept `closeIdleConnections` from closing anything. Use
 `WebSocketClientNostrTransportFactory`.
 
+`WebsocketDSClient` is gone too, and `WebSocketClientNostrTransport` takes a
+`WebSocketChannel` from `web_socket_channel`: the transport no longer runs on a
+copy of `web_socket_client`.
+
 `reconnectClosedConnections` reconnects every connection at once instead of
 one after the other. `authenticateConnection` answers false for a connection
 that is not open.

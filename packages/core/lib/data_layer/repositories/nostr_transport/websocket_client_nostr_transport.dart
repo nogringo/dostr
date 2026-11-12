@@ -1,113 +1,84 @@
 import 'dart:async';
 
-import '../../../src/web_socket_client/web_socket_client.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../domain_layer/repositories/nostr_transport.dart';
-import '../../../src/logger/logger.dart';
-import '../../data_sources/websocket_client.dart';
 
-/// A [NostrTransport] over the vendored WebSocket client, which must be
-/// created with `reconnect: false`.
+/// A [NostrTransport] over one [WebSocketChannel].
 class WebSocketClientNostrTransport implements NostrTransport {
-  /// The underlying WebSocket data source.
-  final WebsocketDSClient _websocketDS;
-  late final StreamSubscription<ConnectionState> _stateStreamSubscription;
-  final Completer<void> _ready = Completer<void>();
-
-  /// Creates a new WebSocketClientNostrTransport instance.
-  ///
-  /// [_websocketDS] is the WebSocket data source to be used for communication.
-  WebSocketClientNostrTransport(this._websocketDS) {
+  /// [abortHandshake] stops a connection attempt that has not opened yet.
+  WebSocketClientNostrTransport(
+    this._channel, {
+    void Function()? abortHandshake,
+  }) : _abortHandshake = abortHandshake {
     // a socket that fails before anyone waits for it must not raise
     _ready.future.ignore();
-    _stateStreamSubscription = _websocketDS.ws.connection.listen((state) {
-      Logger.log.d(
-        () => "${_websocketDS.url} connection state changed to $state",
-      );
-      switch (state) {
-        case Connected() || Reconnected():
-          if (!_ready.isCompleted) _ready.complete();
-        case Disconnected():
-          _failReady(
-            state.error ??
-                StateError("closed with ${state.code} ${state.reason}"),
-          );
-        case Connecting() || Reconnecting() || Disconnecting():
-          break;
-      }
-    });
+    _channel.ready.then((_) {
+      if (_ended) return;
+      _open = true;
+      _ready.complete();
+    }, onError: (Object error) => _end(_unwrap(error)));
+    _source = _channel.stream.listen(
+      _messages.add,
+      onError: (Object error) => _end(_unwrap(error)),
+      onDone: () =>
+          _end(StateError("closed with ${closeCode()} ${closeReason()}")),
+    );
+  }
+
+  final WebSocketChannel _channel;
+  final void Function()? _abortHandshake;
+  final _ready = Completer<void>();
+  final _messages = StreamController<dynamic>.broadcast();
+  late final StreamSubscription<dynamic> _source;
+  bool _open = false;
+  bool _ended = false;
+
+  static Object _unwrap(Object error) =>
+      error is WebSocketChannelException ? error.inner ?? error : error;
+
+  void _end(Object reason) {
+    if (_ended) return;
+    _ended = true;
+    _open = false;
+    if (!_ready.isCompleted) _ready.completeError(reason);
+    unawaited(_source.cancel());
+    _messages.close();
   }
 
   @override
   Future<void> get ready => _ready.future;
 
-  void _failReady(Object error) {
-    if (!_ready.isCompleted) _ready.completeError(error);
-  }
+  @override
+  bool isOpen() => _open;
 
-  /// Closes the WebSocket connection.
-  ///
-  /// Returns a Future that completes when the connection has been closed.
+  @override
+  bool isConnecting() => !_open && !_ended;
+
   @override
   Future<void> close() async {
-    _failReady(StateError("closed before it opened"));
-    await _stateStreamSubscription.cancel();
-    return _websocketDS.close();
+    if (!_open) _abortHandshake?.call();
+    _end(StateError("closed before it opened"));
+    // completes only once a socket received the close, which an aborted
+    // handshake never opens
+    _channel.sink.close().ignore();
   }
 
-  /// Listens for data on the WebSocket connection.
-  ///
-  /// [onData] is called whenever data is received.
-  /// [onError] is called if an error occurs (optional).
-  /// [onDone] is called when the stream is closed (optional).
-  ///
-  /// Returns a StreamSubscription that can be used to control the subscription.
   @override
   StreamSubscription listen(
     void Function(dynamic p1) onData, {
     Function? onError,
     void Function()? onDone,
-  }) {
-    return _websocketDS.listen(onData, onError: onError, onDone: onDone);
-  }
+  }) => _messages.stream.listen(onData, onError: onError, onDone: onDone);
 
-  /// Sends data through the WebSocket connection.
-  ///
-  /// [data] is the data to be sent.
   @override
   void send(data) {
-    _websocketDS.send(data);
+    if (_open) _channel.sink.add(data);
   }
 
-  /// Checks if the WebSocket connection is currently open.
-  ///
-  /// Returns true if the connection is open, false otherwise.
   @override
-  bool isOpen() {
-    return _websocketDS.isOpen();
-  }
+  int? closeCode() => _channel.closeCode;
 
-  /// Checks if the WebSocket connection is currently open.
-  ///
-  /// Returns true if the connection is open, false otherwise.
   @override
-  bool isConnecting() {
-    return _websocketDS.isConnecting();
-  }
-
-  /// Gets the close code of the WebSocket connection.
-  ///
-  /// Returns the close code if the connection has been closed, null otherwise.
-  @override
-  int? closeCode() {
-    return _websocketDS.closeCode();
-  }
-
-  /// Gets the close reason of the WebSocket connection.
-  ///
-  /// Returns the close reason if the connection has been closed, null otherwise.
-  @override
-  String? closeReason() {
-    return _websocketDS.closeReason();
-  }
+  String? closeReason() => _channel.closeReason;
 }
