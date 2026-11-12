@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
@@ -20,7 +20,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final loggedPubkey = ndk.accounts.getPublicKey();
+    final loggedPubkey = accounts.getPublicKey();
     final isLoggedIn = loggedPubkey != null;
 
     return Scaffold(
@@ -51,40 +51,6 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                 ),
               ),
             if (!isLoggedIn) const SizedBox(height: 24),
-
-            _buildSection(
-              title: 'NAppUpdateBanner / NAppUpdateTile',
-              description:
-                  'Trusted NIP-82 update notice and Android install handoff. '
-                  'Configured for sample app releases published on Zapstore.',
-              child: Card(
-                child: Column(
-                  children: [
-                    NAppUpdateBanner(controller: appUpdater),
-                    NAppUpdateTile(controller: appUpdater),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Row(
-                        children: [
-                          const Text('Installed version: '),
-                          NAppVersion(
-                            controller: appUpdater,
-                            fallbackVersion: packageVersion,
-                          ),
-                        ],
-                      ),
-                    ),
-                    NAppUpdateBuilder(
-                      controller: appUpdater,
-                      builder: (context, state) => Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                        child: Text('Custom UI state: ${state.status.name}'),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
 
             // NName Widget Section
             _buildSection(
@@ -251,8 +217,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                           enableNip07Login: false,
                           enableSignerAppLogin: false,
                           clientMetadata: _clientMetadata,
-                          nostrConnect:
-                              ndkFlutter.ndk.bunkers.createNostrConnect(
+                          nostrConnect: ndkFlutter.bunkers.createNostrConnect(
                             clientMetadata: _clientMetadata,
                             relays: [
                               "wss://promenade.fiatjaf.com",

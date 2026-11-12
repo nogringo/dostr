@@ -27,9 +27,6 @@ class SampleAppLocalizationsZh extends SampleAppLocalizations {
   String get tabBlossom => 'Blossom';
 
   @override
-  String get tabWallets => '钱包';
-
-  @override
   String get tabWidgets => '组件';
 
   @override

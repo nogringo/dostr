@@ -19,7 +19,7 @@ class _AccountsPageState extends State<AccountsPage> {
     await showNLoginPopup(
       context: context,
       ndkFlutter: ndkFlutter,
-      title: ndk.accounts.getPublicKey() == null
+      title: accounts.getPublicKey() == null
           ? l10n.loginDialogDefaultTitle
           : l10n.loginDialogAddAccountTitle,
       onLoggedIn: () {
@@ -32,7 +32,7 @@ class _AccountsPageState extends State<AccountsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final isLoggedIn = ndk.accounts.getPublicKey() != null;
+    final isLoggedIn = accounts.getPublicKey() != null;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),

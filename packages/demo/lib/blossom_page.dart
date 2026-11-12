@@ -1,28 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:ndk/ndk.dart';
+import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 
-class BlossomMediaPage extends StatefulWidget {
-  final Ndk ndk;
+import 'main.dart';
 
-  const BlossomMediaPage({super.key, required this.ndk});
+class BlossomMediaPage extends StatefulWidget {
+  const BlossomMediaPage({super.key});
 
   @override
   State<BlossomMediaPage> createState() => _BlossomMediaPageState();
 }
 
 class _BlossomMediaPageState extends State<BlossomMediaPage> {
+  late final _serverLists = BlossomServersFetcher(
+    reqs: relayReqs,
+    nip65Fetcher: nip65Fetcher,
+  );
   late final Blossom _blossom = Blossom(
-    accounts: widget.ndk.accounts,
-    eventSignerFactory: widget.ndk.config.eventSignerFactory,
-    authHandler: widget.ndk.config.authHandler,
-    getUserServerList: (pubkey) =>
-        widget.ndk.blossomUserServerList.getUserServerList(pubkeys: [pubkey]),
+    accounts: accounts,
+    eventSignerFactory: accounts.eventSignerFactory,
+    getUserServerList: (pubkey) async => switch (await _serverLists.fetch(
+      pubkey,
+    )) {
+      final list? => blossomServersOf(list),
+      null => null,
+    },
   );
   late final Files _files = Files(_blossom);
 

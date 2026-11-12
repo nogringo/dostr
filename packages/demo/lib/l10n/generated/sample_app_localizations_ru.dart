@@ -27,9 +27,6 @@ class SampleAppLocalizationsRu extends SampleAppLocalizations {
   String get tabBlossom => 'Blossom';
 
   @override
-  String get tabWallets => 'Кошельки';
-
-  @override
   String get tabWidgets => 'Виджеты';
 
   @override

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 
 import 'main.dart';
@@ -283,7 +284,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final loggedInAccount = ndk.accounts.getLoggedAccount();
+    final loggedInAccount = accounts.getLoggedAccount();
     final signer = loggedInAccount?.signer;
 
     if (signer == null) {

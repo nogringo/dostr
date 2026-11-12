@@ -40,129 +40,64 @@ dependencies:
   path_provider: ^2.1.5
   flutter_secure_storage: ^10.0.0
 
-  ndk: 0.7.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_flutter: ^0.0.2-dev.2
-  ndk_rust_verifier: ^0.6.0
-  ndk_post_quantum: ^0.1.0
-  ndk_drift: ^0.0.2-dev.0+1
-  ndk_http: ^0.1.0
-  ndk_cashu: ^0.1.0
-  ndk_nwc: ^0.1.0
-  ndk_wallets: ^0.1.0
+  ndk_accounts: ^0.1.0
+  ndk_bip340: ^0.1.0
   ndk_blossom: ^0.1.0
-  ndk_nip17: ^0.1.0
+  ndk_core: ^0.11.0-dev.2
+  ndk_fetchers: ^0.1.0
+  ndk_flutter: ^0.10.3-dev.2
+  ndk_nip01: ^0.1.0
+  ndk_nip19: ^0.1.0
+  ndk_nip46: ^0.1.0
+  ndk_nip49: ^0.1.0
+  ndk_nip77: ^0.1.0
+  ndk_rust_verifier: ^0.6.0
+  ndk_signer: ^0.1.0
 
   cupertino_icons: ^1.0.8
   go_router: ^14.6.2
-  flutter_riverpod: ^2.6.1
-  provider: ^6.0.0 # Added provider package
-#  android_intent_plus: ^5.3.0
-  app_links: ^7.2.1
-  url_launcher: 6.3.1
-  win32_registry: ^3.0.3
-  http: ^1.2.0
-  qr_flutter: ^4.1.0
-  mobile_scanner: ^7.2.1
-  flutter_webrtc_zxing: ^0.2.1
-  flutter_webrtc: ^1.6.2+hotfix.1
-  image: ^4.8.0
-  convert: ^3.1.2
-  crypto: ^3.0.7
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
 
 dependency_overrides:
-  ndk:
-    path: ../ndk
-  ndk_core:
-    path: ../core
-  ndk_nip01:
-    path: ../nip01
-  ndk_signer:
-    path: ../signer
-  ndk_isolates:
-    path: ../isolates
-  ndk_logger:
-    path: ../logger
-  ndk_http:
-    path: ../http
-  ndk_nip19:
-    path: ../nip19
+  ndk_accounts:
+    path: ../accounts
   ndk_bip340:
     path: ../bip340
+  ndk_blossom:
+    path: ../blossom
+  ndk_core:
+    path: ../core
+  ndk_fetchers:
+    path: ../fetchers
+  ndk_flutter:
+    path: ../flutter
+  ndk_home_relays:
+    path: ../home_relays
+  ndk_nip01:
+    path: ../nip01
+  ndk_nip07:
+    path: ../nip07
+  ndk_nip19:
+    path: ../nip19
   ndk_nip44:
     path: ../nip44
+  ndk_nip46:
+    path: ../nip46
   ndk_nip49:
     path: ../nip49
+  ndk_nip55:
+    path: ../nip55
   ndk_nip77:
     path: ../nip77
   ndk_rust_verifier:
     path: ../rust_verifier
-  ndk_post_quantum:
-    path: ../post_quantum
+  ndk_signer:
+    path: ../signer
   ndk_url_set:
     path: ../url_set
-  ndk_fetchers:
-    path: ../fetchers
-  ndk_home_relays:
-    path: ../home_relays
-  ndk_nip13:
-    path: ../nip13
-  ndk_nip85:
-    path: ../nip85
-  ndk_flutter:
-    path: ../flutter
-  ndk_drift:
-    path: ../drift
-  ndk_cashu:
-    path: ../cashu
-  ndk_cashu_protocol:
-    path: ../cashu_protocol
-  ndk_nwc:
-    path: ../nwc
-  ndk_wallets:
-    path: ../wallets
-  ndk_blossom:
-    path: ../blossom
-  ndk_nip17:
-    path: ../nip17
-  ndk_nip59:
-    path: ../nip59
-  ndk_nip07:
-    path: ../nip07
-  ndk_nip46:
-    path: ../nip46
-  ndk_nip55:
-    path: ../nip55
-  ndk_nip82:
-    path: ../nip82
-  ndk_broadcast_queue:
-    path: ../broadcast_queue
-  ndk_nip05:
-    path: ../nip05
-  ndk_accounts:
-    path: ../accounts
-  ndk_follows:
-    path: ../follows
-  ndk_metadata:
-    path: ../metadata
-  ndk_lists:
-    path: ../lists
-  ndk_zaps:
-    path: ../zaps
-  ndk_cache:
-    path: ../cache
-  ndk_nip11:
-    path: ../nip11
-  ndk_requests:
-    path: ../requests
-  ndk_broadcast:
-    path: ../broadcast
-  ndk_user_relay_lists:
-    path: ../user_relay_lists
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

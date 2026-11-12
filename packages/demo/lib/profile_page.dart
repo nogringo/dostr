@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_demo/login_popup.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
@@ -131,7 +130,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 16),
           FutureBuilder<Metadata?>(
-            future: widget.ndkFlutter.ndk.metadata.loadMetadata(profilePubkey),
+            future: widget.ndkFlutter.loadMetadata(profilePubkey),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

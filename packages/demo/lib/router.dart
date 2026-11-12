@@ -4,16 +4,12 @@ import 'package:ndk_demo/l10n/app_localizations_context.dart';
 
 import 'accounts_page.dart';
 import 'blossom_page.dart';
-import 'follows_page.dart';
 import 'home_page.dart';
 import 'main.dart';
-import 'dm_page.dart';
 import 'nip49_page.dart';
 import 'nip77_page.dart';
 import 'profile_page.dart';
-import 'quantum_secure_page.dart';
 import 'relays_page.dart';
-import 'wallets.dart';
 import 'widgets_demo_page.dart';
 
 final appRouter = GoRouter(
@@ -34,7 +30,7 @@ final appRouter = GoRouter(
         appBar: AppBar(title: Text(context.l10n.tabProfile)),
         body: ProfilePage(
           ndkFlutter: ndkFlutter,
-          getLoggedPubkey: () => ndk.accounts.getPublicKey(),
+          getLoggedPubkey: () => accounts.getPublicKey(),
           initialPubkey:
               state.extra as String? ?? state.uri.queryParameters['pubkey'],
         ),
@@ -49,34 +45,11 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/blossom',
-      builder: (context, state) => BlossomMediaPage(ndk: ndk),
-    ),
-    GoRoute(
-      path: '/wallets',
-      builder: (context, state) =>
-          WalletsPage(initialUrl: state.extra as String?),
+      builder: (context, state) => const BlossomMediaPage(),
     ),
     GoRoute(
       path: '/widgets',
       builder: (context, state) => const WidgetsDemoPage(),
-    ),
-    GoRoute(path: '/dm', builder: (context, state) => const DmInboxPage()),
-    GoRoute(
-      path: '/dm/conversation/:pubkey',
-      builder: (context, state) =>
-          DmConversationPage(peerPubKey: state.pathParameters['pubkey']!),
-    ),
-    GoRoute(
-      path: '/dm/compose',
-      builder: (context, state) => DmComposePage(
-        initialRecipientPubKey:
-            state.extra as String? ?? state.uri.queryParameters['recipient'],
-      ),
-    ),
-    GoRoute(path: '/follows', builder: (context, state) => const FollowsPage()),
-    GoRoute(
-      path: '/quantum',
-      builder: (context, state) => const QuantumSecurePage(),
     ),
     GoRoute(path: '/nip49', builder: (context, state) => const Nip49Page()),
     GoRoute(path: '/nip77', builder: (context, state) => const Nip77Page()),

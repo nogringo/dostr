@@ -2,7 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:ndk_nip77/ndk_nip77.dart';
 
 import 'main.dart';
 
@@ -16,7 +18,7 @@ class Nip77Page extends StatefulWidget {
 class _Nip77PageState extends State<Nip77Page> {
   final _relayController = TextEditingController(text: 'wss://relay.ditto.pub');
   final _authorController = TextEditingController(
-    text: ndk.accounts.getPublicKey() ?? '',
+    text: accounts.getPublicKey() ?? '',
   );
   final _kindsController = TextEditingController();
 
@@ -38,7 +40,7 @@ class _Nip77PageState extends State<Nip77Page> {
   void dispose() {
     _stopListening();
     final response = _response;
-    if (response != null) ndk.nip77.close(response.subscriptionId);
+    if (response != null) nip77.close(response.subscriptionId);
     _relayController.dispose();
     _authorController.dispose();
     _kindsController.dispose();
@@ -96,7 +98,7 @@ class _Nip77PageState extends State<Nip77Page> {
     });
 
     try {
-      final response = ndk.nip77.reconcile(relayUrl: relayUrl, filter: filter);
+      final response = nip77.reconcile(relayUrl: relayUrl, filter: filter);
       setState(() => _response = response);
       _subscriptions.addAll([
         response.needStream.listen((_) => setState(() => _liveNeed++)),
@@ -137,11 +139,19 @@ class _Nip77PageState extends State<Nip77Page> {
     try {
       var fetched = 0;
       for (final ids in _chunks(needIds, 250)) {
-        final events = await ndk.requests
-            .query(filter: Filter(ids: ids), explicitRelays: [relayUrl]).future;
+        final events = await relayReqs
+            .req(
+              relays: {
+                relayUrl: [Filter(ids: ids)],
+              },
+            )
+            .events
+            .map((received) => received.event)
+            .toList();
+        localEvents.addAll(events);
         fetched += events.length;
       }
-      status = 'Fetched $fetched of ${needIds.length} events into the cache';
+      status = 'Fetched $fetched of ${needIds.length} events into memory';
     } catch (e) {
       status = 'Fetch failed: $e';
     }
@@ -163,23 +173,18 @@ class _Nip77PageState extends State<Nip77Page> {
 
     String status;
     try {
-      final events = await ndk.config.cache.loadEvents(ids: haveIds);
+      final events = localEvents.eventsWithIds(haveIds);
       var accepted = 0;
       for (final batch in _chunks(events, 50)) {
         final responses = await Future.wait(
           batch.map(
-            (event) => ndk.broadcast
-                .broadcast(
-                  nostrEvent: event,
-                  specificRelays: [relayUrl],
-                  saveToCache: false,
-                  retryDelivery: false,
-                )
-                .broadcastDoneFuture,
+            (event) => relayPublishes.publish(event, relays: [relayUrl]).done,
           ),
         );
         accepted += responses
-            .where((relays) => relays.any((r) => r.broadcastSuccessful))
+            .where(
+              (outcomes) => outcomes.values.any((r) => r.broadcastSuccessful),
+            )
             .length;
       }
       status = 'The relay accepted $accepted of ${events.length} events';
@@ -205,9 +210,9 @@ class _Nip77PageState extends State<Nip77Page> {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Negentropy compares the events in your cache with the ones on a '
-            'relay and lists what each side is missing, without downloading '
-            'anything.',
+            'Negentropy compares the events this session fetched with the '
+            'ones on a relay and lists what each side is missing, without '
+            'downloading anything.',
             style: theme.textTheme.bodyMedium,
           ),
           const SizedBox(height: 16),
@@ -261,7 +266,7 @@ class _Nip77PageState extends State<Nip77Page> {
               icon: Icons.download,
               count: result?.needIds.length ?? _liveNeed,
               title: 'missing locally',
-              subtitle: 'On the relay, not in the cache',
+              subtitle: 'On the relay, not in memory',
               actionLabel: 'Fetch',
               busy: _fetching,
               onAction: result != null && result.needIds.isNotEmpty && !_busy
@@ -273,7 +278,7 @@ class _Nip77PageState extends State<Nip77Page> {
               icon: Icons.upload,
               count: result?.haveIds.length ?? _liveHave,
               title: 'missing on the relay',
-              subtitle: 'In the cache, not on the relay',
+              subtitle: 'In memory, not on the relay',
               actionLabel: 'Push',
               busy: _pushing,
               onAction: result != null && result.haveIds.isNotEmpty && !_busy

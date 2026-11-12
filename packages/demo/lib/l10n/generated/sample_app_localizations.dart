@@ -149,12 +149,6 @@ abstract class SampleAppLocalizations {
   /// **'Blossom'**
   String get tabBlossom;
 
-  /// No description provided for @tabWallets.
-  ///
-  /// In en, this message translates to:
-  /// **'Wallets'**
-  String get tabWallets;
-
   /// No description provided for @tabWidgets.
   ///
   /// In en, this message translates to:

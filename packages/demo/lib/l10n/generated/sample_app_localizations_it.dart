@@ -27,9 +27,6 @@ class SampleAppLocalizationsIt extends SampleAppLocalizations {
   String get tabBlossom => 'Blossom';
 
   @override
-  String get tabWallets => 'Wallet';
-
-  @override
   String get tabWidgets => 'Widget';
 
   @override

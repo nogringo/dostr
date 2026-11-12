@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ndk/entities.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 
 import 'main.dart';
@@ -15,14 +15,15 @@ class RelaysPage extends StatefulWidget {
 
 class _RelaysPageState extends State<RelaysPage>
     with AutomaticKeepAliveClientMixin {
-  UserRelayList? relays;
+  /// each relay of the logged account's NIP-65 list, and how it uses it
+  Map<String, ({bool isRead, bool isWrite})>? relays;
   bool _isLoadingRelayList = true;
   StreamSubscription<dynamic>? _relayConnectivitySub;
 
   Widget _buildRelayCard(
     BuildContext context, {
     required String url,
-    required ReadWriteMarker marker,
+    required ({bool isRead, bool isWrite}) marker,
     required Color stateColor,
     required String stateLabel,
   }) {
@@ -124,8 +125,8 @@ class _RelaysPageState extends State<RelaysPage>
     );
   }
 
-  Future<void> _loadRelayList({bool forceRefresh = false}) async {
-    final pubkey = ndk.accounts.getPublicKey();
+  Future<void> _loadRelayList() async {
+    final pubkey = accounts.getPublicKey();
     if (pubkey == null) {
       if (!mounted) return;
       setState(() {
@@ -135,16 +136,12 @@ class _RelaysPageState extends State<RelaysPage>
       return;
     }
 
-    final list = await ndk.userRelayLists.getSingleUserRelayList(
-      pubkey,
-      forceRefresh: forceRefresh,
-    );
+    final event = await nip65Fetcher.fetch(pubkey);
+    final list = event == null ? null : _relaysOf(event);
 
     if (list != null) {
-      for (final url in list.relays.keys) {
-        await ndk.relays.connectRelay(
-          dirtyUrl: url,
-        );
+      for (final url in list.keys) {
+        await relayManager.connectRelay(dirtyUrl: url);
       }
     }
 
@@ -159,7 +156,7 @@ class _RelaysPageState extends State<RelaysPage>
   void initState() {
     super.initState();
     _loadRelayList();
-    _relayConnectivitySub = ndk.connectivity.relayConnectivityChanges.listen((
+    _relayConnectivitySub = relayManager.relayConnectivityChanges.listen((
       data,
     ) {
       setState(() {
@@ -190,7 +187,7 @@ class _RelaysPageState extends State<RelaysPage>
       );
     }
 
-    if (ndk.accounts.getPublicKey() == null) {
+    if (accounts.getPublicKey() == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20),
@@ -208,7 +205,7 @@ class _RelaysPageState extends State<RelaysPage>
               setState(() {
                 _isLoadingRelayList = true;
               });
-              await _loadRelayList(forceRefresh: true);
+              await _loadRelayList();
             },
             icon: const Icon(Icons.cloud_download_outlined),
             label: Text(l10n.relaysFetchButton),
@@ -217,7 +214,7 @@ class _RelaysPageState extends State<RelaysPage>
       );
     }
 
-    final entries = relays!.relays.entries.toList();
+    final entries = relays!.entries.toList();
 
     return ListView.builder(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -244,7 +241,7 @@ class _RelaysPageState extends State<RelaysPage>
         }
 
         final entry = entries[index - 1];
-        final connectivity = ndk.relays.getRelayConnectivity(entry.key);
+        final connectivity = relayManager.getRelayConnectivity(entry.key);
         final stateColor = connectivity != null
             ? connectivity.relay.connecting
                 ? Colors.orange
@@ -271,3 +268,13 @@ class _RelaysPageState extends State<RelaysPage>
     );
   }
 }
+
+/// NIP-65: a relay with no marker is both read and write
+Map<String, ({bool isRead, bool isWrite})> _relaysOf(Nip01Event relayList) => {
+      for (final tag in relayList.tags)
+        if (tag.length > 1 && tag[0] == 'r')
+          tag[1]: (
+            isRead: tag.length < 3 || tag[2] == 'read',
+            isWrite: tag.length < 3 || tag[2] == 'write',
+          ),
+    };

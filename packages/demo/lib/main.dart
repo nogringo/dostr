@@ -1,91 +1,71 @@
-import 'dart:async';
-
-import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:ndk/ndk.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_core/ndk_core.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_demo/router.dart';
-import 'package:ndk_drift/ndk_drift.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
 import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:ndk_nip77/ndk_nip77.dart';
+import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
 
-import 'dm_live_state.dart';
 import 'l10n/generated/sample_app_localizations.dart';
-import 'protocol_registration.dart';
+import 'local_events.dart';
 
-bool signerAppAvailable = false;
-
-late Ndk ndk;
+late RelayManager relayManager;
+late RelayReqs relayReqs;
+late RelayPublishes relayPublishes;
+late Accounts accounts;
+late Nip65Fetcher nip65Fetcher;
 late NdkFlutter ndkFlutter;
-late NAppUpdateController appUpdater;
-Future<void> Function(String url)? activeWalletProtocolHandler;
+late Nip77 nip77;
+
+/// the events this session fetched, which NIP-77 compares with a relay's
+final localEvents = LocalEvents();
+
 final localeNotifier = ValueNotifier<Locale>(const Locale('en'));
-final appLinks = AppLinks();
-DmLiveState? _dmLiveState;
-DmLiveState get dmLiveState =>
-    _dmLiveState ??= DmLiveState(ndk: ndk, dms: ndk.dms)..start();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  try {
-    await registerProtocol('ndk');
-  } catch (error) {
-    print('MyApp: Error registering protocol: $error');
-  }
+  Logger.setLogLevel(LogLevel.info);
 
-  try {
-    const signer = Nip55Signer();
-    signerAppAvailable = await signer.isAppInstalled();
-  } catch (e) {
-    // not on android or no signer app installed
-  }
-
-  final cacheManager = await DriftCacheManager.create();
+  accounts = Accounts(const NdkEventSignerFactory());
+  relayManager = RelayManager(
+    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    accounts: accounts,
+  );
+  relayReqs = RelayReqs(
+    relayManager: relayManager,
+    eventVerifier: kIsWeb ? WebEventVerifier() : RustEventVerifier(),
+  );
+  relayPublishes = RelayPublishes(relayManager: relayManager);
+  nip65Fetcher = Nip65Fetcher(reqs: relayReqs);
+  nip77 = Nip77(
+    relayManager: relayManager,
+    loadEventIds: localEvents.loadEventIds,
+    loadEvent: localEvents.loadEvent,
+  );
 
   // The default data protection keychain needs an entitlement ad-hoc signing can't grant.
   const secureStorage = FlutterSecureStorage(
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
   );
-
-  // Load the cashu seed phrase from secure storage, generating a fresh one on
-  // first run. Never hardcode this — it controls cashu funds.
-  final cashuSeedPhrase = await const CashuSeedStore(
+  ndkFlutter = NdkFlutter(
+    accounts: accounts,
+    relayReqs: relayReqs,
+    relayPublishes: relayPublishes,
+    metadataFetcher: MetadataFetcher(
+      reqs: relayReqs,
+      nip65Fetcher: nip65Fetcher,
+    ),
     storage: secureStorage,
-  ).loadOrCreate();
-
-  final eventVerifier = kIsWeb ? WebEventVerifier() : RustEventVerifier();
-  ndk = Ndk(
-    NdkConfig(
-      eventVerifier: eventVerifier,
-      cache: cacheManager,
-      walletsRepo: FlutterSecureStorageWalletsRepo(storage: secureStorage),
-      logLevel: Logger.logLevels.info,
-      cashuUserSeedphrase: CashuUserSeedphrase(seedPhrase: cashuSeedPhrase),
-    ),
   );
-  ndkFlutter = NdkFlutter(ndk: ndk, storage: secureStorage);
-  appUpdater = NAppUpdateController.self(
-    ndkFlutter: ndkFlutter,
-    app: const SoftwareAppRef(
-      publisher:
-          '30782a8323b7c98b172c5a2af7206bb8283c655be6ddce11133611a03d5f1177',
-      identifier: 'relaystr.ndk.sample',
-    ),
-    currentVersion: packageVersion,
-    externalUpdateUrl: Uri.parse('https://github.com/relaystr/ndk/'),
-    channel: 'main',
-    relays: const ['wss://relay.zapstore.dev'],
-  );
-  unawaited(appUpdater.start());
-  final _ = dmLiveState;
-
   await ndkFlutter.restoreAccountsState();
 
   GoRouter.optionURLReflectsImperativeAPIs = true;
@@ -93,47 +73,8 @@ Future<void> main() async {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  StreamSubscription<Uri>? _linkSubscription;
-
-  @override
-  void initState() {
-    super.initState();
-    _linkSubscription = appLinks.uriLinkStream.listen(
-      (uri) => onProtocolUrlReceived(uri.toString()),
-      onError: (Object error) => print('MyApp: Error receiving URL: $error'),
-    );
-  }
-
-  void onProtocolUrlReceived(String url) {
-    try {
-      final uri = Uri.parse(url);
-      if (uri.scheme == 'ndk' && uri.host == 'nwc') {
-        final handler = activeWalletProtocolHandler;
-        if (handler != null) {
-          handler(url);
-        } else {
-          appRouter.go('/wallets', extra: url);
-        }
-      }
-    } catch (e) {
-      print('MyApp: Error parsing protocol URL: $e');
-    }
-  }
-
-  @override
-  void dispose() {
-    _linkSubscription?.cancel();
-    appUpdater.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -149,7 +90,7 @@ class _MyAppState extends State<MyApp> {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        // Use ndk_flutter's locale list — it's the superset that includes the
+        // Use ndk_flutter's locale list: it's the superset that includes the
         // extra locales (fi, pt, pt_BR) translated in that package. The sample
         // app shell falls back to English for those via the delegate above.
         supportedLocales: ndk_flutter.AppLocalizations.supportedLocales,

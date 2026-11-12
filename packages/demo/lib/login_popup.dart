@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_demo/l10n/app_localizations_context.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
@@ -33,7 +33,7 @@ Future<void> showNLoginPopup({
             child: NLogin(
               ndkFlutter: ndkFlutter,
               clientMetadata: _clientMetadata,
-              nostrConnect: ndkFlutter.ndk.bunkers.createNostrConnect(
+              nostrConnect: ndkFlutter.bunkers.createNostrConnect(
                 clientMetadata: _clientMetadata,
                 relays: [
                   "wss://promenade.fiatjaf.com",
