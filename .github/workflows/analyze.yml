@@ -10,130 +10,13 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  FLUTTER_VERSION: "3.47.9"
+
 jobs:
   analyze:
-    name: Analyze ${{ matrix.package }}
+    name: Analyze the workspace and the sample app
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - package: ./packages/event_verifier_test_suite
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/mock_relay
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/core
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip01
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/signer
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/accounts
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/zaps
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip11
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip19
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/bip340
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip44
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip49
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip77
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/rust_verifier
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/web_crypto
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/url_set
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/fetchers
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/home_relays
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/cashu_protocol
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/blossom
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip59
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip85
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip13
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip07
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip46
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip55
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: flutter analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/nip05
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: dart analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/flutter
-            pub_get_directory: .
-            pub_get_command: dart pub get
-            analyze_command: flutter analyze --fatal-infos --fatal-warnings .
-          - package: ./packages/demo
-            pub_get_directory: ./packages/demo
-            pub_get_command: flutter pub get
-            analyze_command: flutter analyze --fatal-infos --fatal-warnings .
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -141,16 +24,15 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
-          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
-          cache-path: "${{ runner.tool_cache }}/flutter/:channel:-:version:-:arch:"
-          architecture: x64
 
+      # The sample app is not part of the workspace, so it resolves on its own.
       - name: Install dependencies
-        working-directory: ${{ matrix.pub_get_directory }}
-        run: ${{ matrix.pub_get_command }}
+        run: |
+          flutter pub get
+          cd packages/demo && flutter pub get
 
-      - name: Analyze package
-        working-directory: ${{ matrix.package }}
-        run: ${{ matrix.analyze_command }}
+      - name: Analyze
+        run: dart analyze --fatal-infos .

@@ -1,0 +1,64 @@
+name: deploy docs and sample app to GitHub Pages
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "!v*-*" # Exclude prerelease tags, e.g. v0.10.0-dev.1
+  workflow_dispatch:
+
+concurrency:
+  group: gh-pages-deploy
+  cancel-in-progress: false
+
+env:
+  FLUTTER_VERSION: "3.47.9"
+
+jobs:
+  deploy:
+    name: Deploy to the gh-pages branch
+    # A manual run only deploys when started on a stable release tag.
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set documentation version from release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          sed -i -E "s/^  label: .*/  label: ${RELEASE_TAG}/" doc/retype.yml
+
+      - name: Build documentation
+        id: build_docs
+        uses: retypeapp/action-build@latest
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Build sample app
+        working-directory: packages/demo
+        run: |
+          flutter pub get
+          flutter build web --release --base-href /app/
+          mkdir -p build/web/pkg
+          cp -R web/pkg/. build/web/pkg/
+          cp web/drift_worker.js build/web/drift_worker.js
+
+      - name: Add sample app under /app
+        env:
+          SITE_DIR: ${{ steps.build_docs.outputs.retype-output-path }}
+        run: cp -R packages/demo/build/web "$SITE_DIR/app"
+
+      - name: Deploy
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ${{ steps.build_docs.outputs.retype-output-path }}
+          publish_branch: gh-pages

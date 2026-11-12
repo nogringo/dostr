@@ -3,6 +3,12 @@ name: Rust event verifier benchmark
 on:
   push:
     branches: [master]
+    paths:
+      - packages/rust_verifier/lib/src/rust_event_verifier_native.dart
+      - packages/rust_verifier/lib/src/rust_lib.dart
+      - packages/rust_verifier/rust/**
+      - packages/rust_verifier/tool/benchmark_rust_event_verifier.dart
+      - .github/workflows/rust-event-verifier-benchmark.yml
   pull_request:
     paths:
       - packages/rust_verifier/lib/src/rust_event_verifier_native.dart
@@ -13,7 +19,7 @@ on:
   workflow_dispatch:
 
 env:
-  FLUTTER_VERSION: "3.47.5"
+  FLUTTER_VERSION: "3.47.9"
 
 permissions:
   contents: write
