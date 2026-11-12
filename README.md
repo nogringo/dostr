@@ -1,7 +1,6 @@
 # Dart Nostr Development Kit (NDK)
 
 [![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster)
-[![Coverage](https://img.shields.io/codecov/c/github/relaystr/ndk?color=green)](https://codecov.io/github/relaystr/ndk)
 [![Pub](https://img.shields.io/pub/v/ndk_core.svg)](https://pub.dev/packages/ndk_core)
 [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](LICENSE)
 

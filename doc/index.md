@@ -6,7 +6,7 @@ icon: home
 
 # Dart Nostr Development Kit (NDK)
 
-[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Coverage](https://img.shields.io/codecov/c/github/relaystr/ndk?color=green)](https://codecov.io/github/relaystr/ndk) [![Pub](https://img.shields.io/pub/v/ndk_core.svg)](https://pub.dev/packages/ndk_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
+[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Pub](https://img.shields.io/pub/v/ndk_core.svg)](https://pub.dev/packages/ndk_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
 
 NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients, particularly constrained ones such as mobile apps. Each package covers one part of Nostr and depends only on what it needs, so an app picks the parts it uses.
 
