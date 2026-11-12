@@ -1,5 +1,5 @@
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/src/request_state.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/request_state.dart';
 import 'package:test/test.dart';
 
 final _filters = [

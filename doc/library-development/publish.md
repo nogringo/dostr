@@ -11,9 +11,9 @@ order: 100
 Complete releases have two distinct stages, in this order:
 
 1. Prepare and merge the package release PR. Automation creates a
-   package-scoped tag such as `ndk_core-v0.11.0`, which pub.dev uses to
+   package-scoped tag such as `dostr_core-v0.11.0`, which pub.dev uses to
    authenticate the publication workflow, and then publishes the package.
-2. After `ndk_core` publication succeeds, automation also creates the plain
+2. After `dostr_core` publication succeeds, automation also creates the plain
    release tag, such as `v0.11.0`, and dispatches the tag-based release and
    documentation workflows. For other packages, the package-scoped tag is the
    release tag.
@@ -33,16 +33,16 @@ select **Run workflow**, and choose one release mode:
 The `exact_package` and `exact_version` inputs are used only with `exact` mode.
 For the other modes, leave them at their defaults.
 
-### Release ndk_core 0.11.0 as a stable version
+### Release dostr_core 0.11.0 as a stable version
 
 Run the workflow with:
 
 - `release_mode`: `exact`
-- `exact_package`: `ndk_core`
+- `exact_package`: `dostr_core`
 - `exact_version`: `0.11.0`
 
 The workflow opens a versioned PR named
-`chore(release): publish ndk_core 0.11.0`. Development versions instead use
+`chore(release): publish dostr_core 0.11.0`. Development versions instead use
 `chore(prerelease)`. The title lists every publishable package whose version
 changed. Replace the generated `Stable release.` changelog stub with the actual
 release notes, then review the generated dependent-package constraint updates
@@ -67,7 +67,7 @@ the release commit and dispatches the release and documentation workflows from
 that tag. The release workflow creates the GitHub release with the matching
 section of `packages/core/CHANGELOG.md`.
 
-The release preparation keeps `doc/retype.yml` aligned with the `ndk_core`
+The release preparation keeps `doc/retype.yml` aligned with the `dostr_core`
 version. The tag-triggered docs deployment also derives the displayed version
 from the tag so the published site cannot retain a stale version label.
 

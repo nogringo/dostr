@@ -1,4 +1,4 @@
-import 'package:ndk_core/shared/nips/nip01/helpers.dart';
+import 'package:dostr_core/shared/nips/nip01/helpers.dart';
 
 import 'nip46_client_metadata.dart';
 

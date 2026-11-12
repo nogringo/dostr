@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
 import 'package:test/test.dart';
 
 void main() async {

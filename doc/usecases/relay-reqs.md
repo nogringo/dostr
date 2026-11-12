@@ -5,19 +5,19 @@ label: Relay REQs
 
 # Relay REQs
 
-A NIP-01 REQ on relays you pick, from [`ndk_core`](https://pub.dev/packages/ndk_core): no cache, no outbox routing, no merging of identical requests, no pagination. To ask the relays where an account publishes, see [Fetchers](fetchers.md).
+A NIP-01 REQ on relays you pick, from [`dostr_core`](https://pub.dev/packages/dostr_core): no cache, no outbox routing, no merging of identical requests, no pagination. To ask the relays where an account publishes, see [Fetchers](fetchers.md).
 
 ## Setup
 
 ```yaml
 dependencies:
-  ndk_core: ^0.11.0-dev.2
-  ndk_bip340: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_bip340: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
 
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),

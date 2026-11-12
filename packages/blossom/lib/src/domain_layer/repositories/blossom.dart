@@ -5,7 +5,7 @@ import '../entities/blossom_blobs.dart';
 import '../entities/blossom_hash_mismatch_exception.dart';
 import '../entities/blossom_request_exception.dart';
 import '../entities/file_hash_progress.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// The authorization the mirrors of the blob a server answered with, whose
 /// hash is [sha256], go out with.

@@ -2,11 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:ndk_core/ndk_core.dart' show packageVersion;
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
-import 'package:ndk_demo/login_popup.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:dostr_core/dostr_core.dart' show packageVersion;
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_demo/login_popup.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 
 import 'main.dart';
 

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_nip49/ndk_nip49.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_nip49/dostr_nip49.dart';
 
 class Nip49Page extends StatefulWidget {
   const Nip49Page({super.key});

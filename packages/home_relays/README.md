@@ -1,4 +1,4 @@
-# ndk_home_relays
+# dostr_home_relays
 
 The home relays of a Nostr pubkey, as the
 [Computed Home Relays NIP](https://openspecs.uid.ovh/spec/npub1kg4sdvz3l4fr99n2jdz2vdxe2mpacva87hkdetv76ywacsfq5leqquw5te/nip-computed-home-relays)
@@ -17,14 +17,14 @@ you fetched, and computes.
 
 ```yaml
 dependencies:
-  ndk_home_relays: ^0.1.0
+  dostr_home_relays: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_home_relays/ndk_home_relays.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 final list = await HomeRelayList.fetch(verifier: Bip340EventVerifier());
 final homeRelays = list.homeRelaysOf(pubKey);
@@ -50,7 +50,7 @@ The NIP asks two things of a client, for every `home-relays` list it uses:
 - Publish the user's latest `kind:10002` on their home relays too.
 - To find the `kind:10002` of a pubkey with no other hint, ask its home relays.
 
-[`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers) does the lookup: give
+[`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) does the lookup: give
 `Nip65Fetcher` a `homeRelayList` and it also asks the home relays of each
 pubkey. Its `HomeRelayListFetcher` fetches the `home-relays` lists accounts
 publish on relays.

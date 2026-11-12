@@ -1,10 +1,10 @@
 export 'main/config.dart';
 export 'main/ndk_flutter.dart';
 export 'models/metadata.dart';
-export 'package:ndk_nip55/ndk_nip55.dart';
+export 'package:dostr_nip55/dostr_nip55.dart';
 export 'widgets/widgets.dart';
 export 'verifiers/ndk_event_verifier.dart';
-export 'package:ndk_web_crypto/ndk_web_crypto.dart';
+export 'package:dostr_web_crypto/dostr_web_crypto.dart';
 export 'signers/ndk_event_signer.dart';
 export 'signers/nip07_event_signer.dart';
 export 'utils/nostr_kinds.dart';

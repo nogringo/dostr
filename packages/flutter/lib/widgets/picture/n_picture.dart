@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 
 import '../../utils/nip_avatar.dart';
 

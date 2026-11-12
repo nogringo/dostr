@@ -24,10 +24,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.math.roundToInt
 
 
-/// ndk_flutter native plugin.
+/// dostr_flutter native plugin.
 ///
 /// Hosts the NIP-82 in-app update installer. The NIP-55 signer bridge lives
-/// in the ndk_nip55 package.
+/// in the dostr_nip55 package.
 class DartNdkPlugin : FlutterPlugin {
     private lateinit var _updatesChannel : MethodChannel
     private lateinit var _context : Context

@@ -4,7 +4,7 @@ icon: rss
 
 # Connectivity
 
-The `RelayManager` of [`ndk_core`](https://pub.dev/packages/ndk_core) opens, keeps and closes the relay connections. These are the knobs and signals it gives an app.
+The `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core) opens, keeps and closes the relay connections. These are the knobs and signals it gives an app.
 
 ## Connection changes
 
@@ -52,11 +52,11 @@ final relays = RelayManager(
 - `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries. No answer gives 20.
 - `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
-Both are in the NIP-11 document of the relay, which [`ndk_nip11`](https://pub.dev/packages/ndk_nip11) fetches. `CachedRelayInfoRepo` fetches it once per relay and refreshes it in the background:
+Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches. `CachedRelayInfoRepo` fetches it once per relay and refreshes it in the background:
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_nip11/ndk_nip11.dart';
+import 'package:dostr_nip11/dostr_nip11.dart';
 
 final relayInfo = CachedRelayInfoRepo(
   HttpRelayInfoRepo(http.Client()),

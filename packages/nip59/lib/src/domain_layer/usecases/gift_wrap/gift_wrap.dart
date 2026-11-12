@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../entities/gift_wrap_unwrap_result.dart';
 import '../../repositories/gift_wrap_cache.dart';

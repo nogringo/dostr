@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 import 'ndk_event_verifier_stub.dart'
     if (dart.library.io) 'ndk_event_verifier_native.dart'
@@ -7,9 +7,9 @@ import 'ndk_event_verifier_stub.dart'
 /// A platform-aware event verifier that automatically selects the best
 /// implementation for the current platform.
 ///
-/// - On **web**: uses `WebEventVerifier` from `ndk_web_crypto`, which calls
+/// - On **web**: uses `WebEventVerifier` from `dostr_web_crypto`, which calls
 ///   @noble/curves through JS interop for fast signature verification.
-/// - On **native platforms** (Android, iOS, desktop): uses `RustEventVerifier` from `ndk_rust_verifier`.
+/// - On **native platforms** (Android, iOS, desktop): uses `RustEventVerifier` from `dostr_rust_verifier`.
 ///
 /// This removes the need for conditional imports or platform checks in
 /// application code.

@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip55/ndk_nip55.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip55/dostr_nip55.dart';
 
 class _FakeNip55Signer extends Nip55Signer {
   _FakeNip55Signer(this.response);

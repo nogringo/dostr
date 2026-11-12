@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
 
 import 'main.dart';
 

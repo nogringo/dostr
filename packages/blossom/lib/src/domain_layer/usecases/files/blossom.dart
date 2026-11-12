@@ -11,9 +11,9 @@ import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_hash_mismatch_exception.dart';
 import '../../entities/blossom_request_exception.dart';
 import '../../entities/blossom_strategies.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../../repositories/blossom.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'blossom_exceptions.dart';
 
 /// The servers in [pubkey]'s Blossom server list (kind 10063, BUD-03), or

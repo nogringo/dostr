@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/src/replaceable_lookup.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/src/replaceable_lookup.dart';
 import 'package:test/test.dart';
 
 void main() {

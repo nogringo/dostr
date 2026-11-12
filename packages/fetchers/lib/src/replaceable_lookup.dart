@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'replaceable_events.dart';

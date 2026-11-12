@@ -4,17 +4,17 @@ icon: sync
 
 # Negentropy (NIP-77)
 
-[`ndk_nip77`](https://pub.dev/packages/ndk_nip77) runs [NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy sync: it finds which events a relay has that you don't, and the other way around, without downloading either set. It runs on the connections of an `ndk_core` `RelayManager`, NIP-42 authentication included.
+[`dostr_nip77`](https://pub.dev/packages/dostr_nip77) runs [NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy sync: it finds which events a relay has that you don't, and the other way around, without downloading either set. It runs on the connections of an `dostr_core` `RelayManager`, NIP-42 authentication included.
 
 ```yaml
 dependencies:
-  ndk_core: ^0.11.0-dev.2
-  ndk_nip77: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_nip77: ^0.1.0
 ```
 
 ## Basic reconciliation
 
-:::code source="../../packages/nip77/example/ndk_nip77_example.dart" language="dart" range="5-21" title="" :::
+:::code source="../../packages/nip77/example/dostr_nip77_example.dart" language="dart" range="5-21" title="" :::
 
 `Nip77` compares the relay's events with your local ones. `loadEventIds` returns the id and creation time of the local events matching a filter, and `loadEvent` reads one local event, for the ids you pass to `reconcile` as `localIds`.
 

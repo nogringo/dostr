@@ -35,7 +35,7 @@ and `ignoreRelays`, which only `JIT` reads. `JIT` keeps hidden state on connecti
 (`jitEngineData`). `NetworkEngine` is not an extension point either: `NdkConfig` only
 takes the enum, so a custom engine means editing `init.dart`.
 
-The fetchers in `ndk_fetchers` already pick relays per kind on `ndk_core` alone,
+The fetchers in `dostr_fetchers` already pick relays per kind on `dostr_core` alone,
 and fetch NIP-65 lists from the network as they arrive. They have no persistent cache,
 and `fetch` returns null both when no relay answered and when none holds the list.
 
@@ -53,7 +53,7 @@ store their destinations this way. The package depends on `ndk`, but only for
 
 `ndk` stays the package apps depend on, as the reduce-packages ADR set
 out. Its use cases describe where they read and send with a `UrlSet`, resolved through
-the fetchers package, the same way `ndk_core`, `ndk_bip340`, `ndk_nip44` and `ndk_nip77`
+the fetchers package, the same way `dostr_core`, `dostr_bip340`, `dostr_nip44` and `dostr_nip77`
 moved out of `ndk` while `package:ndk/ndk.dart` kept its exports.
 
 ```dart
@@ -67,18 +67,18 @@ UrlSet.union([UrlSet.outbox(alice), UrlSet.inbox(bob)]);
 UrlSet.dm(bob);
 ```
 
-1. **Destinations.** `UrlSet` and `resolveUrlSet` move into `ndk_url_set`, a new package
+1. **Destinations.** `UrlSet` and `resolveUrlSet` move into `dostr_url_set`, a new package
    of the monorepo that depends on nothing, with the same `toMap` format so stored
    queues still load. It stays apart from the fetchers: the format it stores on devices
    must change rarely, and the queue shims need it without the network code.
    `url_set_for_ndk` re-exports it and keeps `ndkUrlListFn` until it is deprecated. The
-   fetchers implement `UrlListFn` on `ndk_core` and tell `notFound` from `unavailable`.
+   fetchers implement `UrlListFn` on `dostr_core` and tell `notFound` from `unavailable`.
 2. **Cache.** The fetchers read and write `ndk`'s `CacheManager` through a hook, and keep
    a `UrlListCheckStore`, so a cold start does not refetch every list and a list known to
    be absent is not asked again before `maxAge`.
 3. **Requests.** `Requests` takes a `UrlSet`, and the relays given explicitly today are a
    `UrlSet.explicit`. Each use case builds the set for its kind. A request asks a relay
-   as soon as the list naming it arrives, so `ndk_url_set` also gets a resolver that
+   as soon as the list naming it arrives, so `dostr_url_set` also gets a resolver that
    streams the URLs, next to `resolveUrlSet`, which waits for every list. With no set, a
    request goes to the bootstrap relays.
 4. **Broadcasts.** `BroadcastSender` takes a `UrlSet` too. Without one, a pure function
@@ -101,7 +101,7 @@ UrlSet.dm(bob);
 
 Each step ships on its own:
 
-1. `ndk_url_set`, re-exported by `url_set_for_ndk` so the queue shims keep working
+1. `dostr_url_set`, re-exported by `url_set_for_ndk` so the queue shims keep working
 2. the `UrlListFn` of the fetchers, with the cache hook and the check store
 3. `BroadcastSender` on a `UrlSet`, with the set built from the event when none is
    given, and the unavailable parts skipped
@@ -132,7 +132,7 @@ Contra:
   unless they stay as a shorthand for `UrlSet.explicit`.
 - A use case not yet ported would send to the bootstrap relays only once the engines are
   gone, which is why removal comes last.
-- `ndk` depends on two more packages, `ndk_url_set` and `ndk_fetchers`.
+- `ndk` depends on two more packages, `dostr_url_set` and `dostr_fetchers`.
 
 ## Open questions
 

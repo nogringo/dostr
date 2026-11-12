@@ -1,4 +1,4 @@
-/// What kept ndk_core from opening a connection to a relay, or from getting a
+/// What kept dostr_core from opening a connection to a relay, or from getting a
 /// REQ or an EVENT to it. A refusal of the relay itself is not one: it comes as
 /// the message of its CLOSED or OK.
 enum RelayFailureKind {
@@ -45,7 +45,7 @@ enum RelayFailureKind {
   vetoed,
 }
 
-/// Why ndk_core gave up on a relay, see [RelayFailureKind].
+/// Why dostr_core gave up on a relay, see [RelayFailureKind].
 class RelayFailure {
   final RelayFailureKind kind;
 

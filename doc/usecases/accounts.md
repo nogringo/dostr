@@ -4,17 +4,17 @@ icon: person
 
 # Accounts
 
-[`ndk_accounts`](https://pub.dev/packages/ndk_accounts) keeps the accounts an app logs in with: a private key, a public key (read-only) or an external signer such as a NIP-46 bunker or a NIP-07 browser extension. It switches between them and signs as the logged one.
+[`dostr_accounts`](https://pub.dev/packages/dostr_accounts) keeps the accounts an app logs in with: a private key, a public key (read-only) or an external signer such as a NIP-46 bunker or a NIP-07 browser extension. It switches between them and signs as the logged one.
 
 ```yaml
 dependencies:
-  ndk_accounts: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_accounts: ^0.1.0
+  dostr_bip340: ^0.1.0
 ```
 
 ## Example
 
-:::code source="../../packages/accounts/example/ndk_accounts_example.dart" language="dart" range="5-33" title="" :::
+:::code source="../../packages/accounts/example/dostr_accounts_example.dart" language="dart" range="5-33" title="" :::
 
 The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`.
 
@@ -22,7 +22,7 @@ You can log in several accounts and move between them with `switchAccount(pubkey
 
 ## Relay authentication
 
-`Accounts` implements `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer). Give it to the `RelayManager` of [`ndk_core`](https://pub.dev/packages/ndk_core), with an `AuthHandler`, and relays that ask for NIP-42 authentication get the logged account where the handler agrees:
+`Accounts` implements `AuthAccounts` from [`dostr_signer`](https://pub.dev/packages/dostr_signer). Give it to the `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core), with an `AuthHandler`, and relays that ask for NIP-42 authentication get the logged account where the handler agrees:
 
 ```dart
 final relayManager = RelayManager(
@@ -54,9 +54,9 @@ accounts.accountsStream.listen((accounts) {
 
 ## Browser extension (NIP-07)
 
-[`ndk_nip07`](https://pub.dev/packages/ndk_nip07) signs with the user's browser extension through `window.nostr`. It only signs on the web: elsewhere `canSign()` returns `false`.
+[`dostr_nip07`](https://pub.dev/packages/dostr_nip07) signs with the user's browser extension through `window.nostr`. It only signs on the web: elsewhere `canSign()` returns `false`.
 
-:::code source="../../packages/nip07/example/ndk_nip07_example.dart" language="dart" range="3-12" title="" :::
+:::code source="../../packages/nip07/example/dostr_nip07_example.dart" language="dart" range="3-12" title="" :::
 
 Then log it in:
 
@@ -68,15 +68,15 @@ accounts.loginExternalSigner(signer: signer);
 
 ## Remote signer (NIP-46)
 
-[`ndk_nip46`](https://pub.dev/packages/ndk_nip46) talks to a bunker over relays, through `ndk_core`:
+[`dostr_nip46`](https://pub.dev/packages/dostr_nip46) talks to a bunker over relays, through `dostr_core`:
 
 ```yaml
 dependencies:
-  ndk_nip46: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
+  dostr_nip46: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
 ```
 
-:::code source="../../packages/nip46/example/ndk_nip46_example.dart" language="dart" range="7-23" title="bunker url" :::
+:::code source="../../packages/nip46/example/dostr_nip46_example.dart" language="dart" range="7-23" title="bunker url" :::
 
 ```dart log in
 final signer = bunkers.createSigner(connection!);

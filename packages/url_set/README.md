@@ -1,4 +1,4 @@
-# ndk_url_set
+# dostr_url_set
 
 Relay and Blossom server sets for Nostr, described rather than listed.
 
@@ -16,7 +16,7 @@ relay urls, with `cleanRelayUrl` and `cleanRelayUrls`.
 
 ```yaml
 dependencies:
-  ndk_url_set: ^0.1.0
+  dostr_url_set: ^0.1.0
 ```
 
 ## Sets
@@ -49,7 +49,7 @@ servers, and a blob upload queue none for DM relays.
 `resolveUrlSet` takes a `UrlListFn`, which looks up one list of one account:
 
 ```dart
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 
 Future<UrlListLookup> lookup(
   String pubkey,

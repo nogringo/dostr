@@ -6,13 +6,13 @@ icon: agent
 
 # Trusted Assertions (NIP-85)
 
-[`ndk_nip85`](https://pub.dev/packages/ndk_nip85) reads [NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions: metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`). Use it when a metric would cost the device too much bandwidth or compute to work out itself.
+[`dostr_nip85`](https://pub.dev/packages/dostr_nip85) reads [NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions: metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`). Use it when a metric would cost the device too much bandwidth or compute to work out itself.
 
 ```yaml
 dependencies:
-  ndk_nip85: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_bip340: ^0.1.0
+  dostr_nip85: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_bip340: ^0.1.0
 ```
 
 ## Setup
@@ -20,9 +20,9 @@ dependencies:
 `TrustedAssertions` asks you how to query and subscribe to a relay. Here both run on [RelayReqs](/usecases/relay-reqs.md):
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip85/dostr_nip85.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),

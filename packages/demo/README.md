@@ -2,11 +2,11 @@
 
 Example flutter app using NDK
 
-Built on [ndk_core](https://pub.dev/packages/ndk_core), [ndk_flutter](https://pub.dev/packages/ndk_flutter) and the NIP packages of NDK.
+Built on [dostr_core](https://pub.dev/packages/dostr_core), [dostr_flutter](https://pub.dev/packages/dostr_flutter) and the NIP packages of NDK.
 
 ## Getting Started
 
-0. install the Rust toolchain, which [ndk_rust_verifier](https://pub.dev/packages/ndk_rust_verifier) needs on native platforms
+0. install the Rust toolchain, which [dostr_rust_verifier](https://pub.dev/packages/dostr_rust_verifier) needs on native platforms
 
 1. clone repository
    `git clone https://github.com/relaystr/ndk.git`

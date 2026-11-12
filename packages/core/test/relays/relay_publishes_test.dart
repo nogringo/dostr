@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_mock_relay/ndk_mock_relay.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

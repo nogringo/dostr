@@ -1,4 +1,4 @@
-name: ndk_signer
+name: dostr_signer
 description: The EventSigner interface of NDK (Nostr Development Kit) that signers implement, and the accounts and AuthPolicy that decide when one is revealed to a relay (NIP-42) or Blossom.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -15,7 +15,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk_nip01: ^0.1.0
+  dostr_nip01: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0

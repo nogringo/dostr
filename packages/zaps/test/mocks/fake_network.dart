@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_zaps/ndk_zaps.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_zaps/dostr_zaps.dart';
 
 /// Relays answering every query with all the events they hold, and keeping
 /// subscriptions open until they are closed.

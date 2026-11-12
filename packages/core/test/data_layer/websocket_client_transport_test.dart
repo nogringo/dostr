@@ -4,7 +4,7 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 import 'package:test/test.dart';
 
 void main() {

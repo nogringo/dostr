@@ -3,8 +3,8 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip77/ndk_nip77.dart'
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip77/dostr_nip77.dart'
     show NegentropyEncoder, NegentropyItem;
 
 /// A NIP-01, NIP-42 and NIP-77 relay on a local port. Signatures are not

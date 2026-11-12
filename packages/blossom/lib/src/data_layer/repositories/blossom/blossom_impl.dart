@@ -13,7 +13,7 @@ import '../../../domain_layer/entities/blossom_hash_mismatch_exception.dart';
 import '../../../domain_layer/entities/blossom_request_exception.dart';
 import '../../../domain_layer/entities/blossom_strategies.dart';
 import '../../../domain_layer/entities/file_hash_progress.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../../../domain_layer/repositories/blossom.dart';
 import '../../http/blossom_http.dart';
 import '../../io/file_io.dart';

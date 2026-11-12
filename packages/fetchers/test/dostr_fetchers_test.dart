@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
-import 'package:ndk_fetchers/src/replaceable_asks.dart'
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_fetchers/src/replaceable_asks.dart'
     show maxAuthorsPerFilter, maxFiltersPerReq;
-import 'package:ndk_home_relays/ndk_home_relays.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:test/test.dart';
 
 const alice =

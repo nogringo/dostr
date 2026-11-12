@@ -7,7 +7,7 @@ License: MIT, Copyright (c) 2024 Felix Angelov (see LICENSE).
 This directory contains NDK's internal copy of the upstream client. The original
 library layout is preserved: web_socket_client.dart exports src/web_socket.dart,
 connection types, backoff strategies, and platform-specific connectors/adapters.
-It is not exported from package:ndk_core/ndk_core.dart and is not a separate pub
+It is not exported from package:dostr_core/dostr_core.dart and is not a separate pub
 package.
 
 The wrapper, connection state equality, backoff algorithms, protocols, headers,

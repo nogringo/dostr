@@ -1,5 +1,5 @@
-import 'package:ndk_url_set/ndk_url_set.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 final _hexPubkeyRegex = RegExp(r'^[0-9a-fA-F]{64}$');
 

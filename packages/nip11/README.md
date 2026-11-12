@@ -1,6 +1,6 @@
-# ndk_nip11
+# dostr_nip11
 
-[NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) relay information for [NDK](https://pub.dev/packages/ndk): fetch the document a relay serves about itself (name, software, supported NIPs, limitations, fees). It depends on neither `ndk` nor `ndk_core`.
+[NIP-11](https://github.com/nostr-protocol/nips/blob/master/11.md) relay information for [NDK](https://pub.dev/packages/ndk): fetch the document a relay serves about itself (name, software, supported NIPs, limitations, fees). It depends on neither `ndk` nor `dostr_core`.
 
 ## With NDK
 
@@ -17,13 +17,13 @@ print('search? ${info?.supportsNip('50') ?? false}');
 
 ```yaml
 dependencies:
-  ndk_nip11: ^0.1.0
+  dostr_nip11: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_nip11/ndk_nip11.dart';
+import 'package:dostr_nip11/dostr_nip11.dart';
 
 final repo = HttpRelayInfoRepo(http.Client());
 
@@ -72,4 +72,4 @@ More in [example/](example/) and the [connectivity docs](https://dart-nostr.com/
 
 ## Coming from `ndk`
 
-`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee` and `RelayInfoRepo` keep their names, and `package:ndk/ndk.dart` now exports them all. `RelayInfoHttpRepoImpl(httpDS: http)` is now `HttpRelayInfoRepo(http)`. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:ndk_nip11/ndk_nip11.dart`. `Connectivity` stays in `ndk`, and its cache is now `CachedRelayInfoRepo`.
+`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee` and `RelayInfoRepo` keep their names, and `package:ndk/ndk.dart` now exports them all. `RelayInfoHttpRepoImpl(httpDS: http)` is now `HttpRelayInfoRepo(http)`. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:dostr_nip11/dostr_nip11.dart`. `Connectivity` stays in `ndk`, and its cache is now `CachedRelayInfoRepo`.

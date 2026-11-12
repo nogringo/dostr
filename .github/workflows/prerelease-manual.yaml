@@ -15,35 +15,35 @@ on:
       exact_package:
         description: "Package to version (used only when release mode is exact)"
         required: true
-        default: ndk_core
+        default: dostr_core
         type: choice
         options:
-          - ndk_flutter
-          - ndk_core
-          - ndk_nip01
-          - ndk_signer
-          - ndk_nip19
-          - ndk_bip340
-          - ndk_nip44
-          - ndk_nip49
-          - ndk_nip77
-          - ndk_rust_verifier
-          - ndk_web_crypto
-          - ndk_url_set
-          - ndk_fetchers
-          - ndk_home_relays
-          - ndk_cashu_protocol
-          - ndk_blossom
-          - ndk_nip59
-          - ndk_nip85
-          - ndk_nip13
-          - ndk_nip07
-          - ndk_nip46
-          - ndk_nip55
-          - ndk_nip05
-          - ndk_accounts
-          - ndk_zaps
-          - ndk_nip11
+          - dostr_flutter
+          - dostr_core
+          - dostr_nip01
+          - dostr_signer
+          - dostr_nip19
+          - dostr_bip340
+          - dostr_nip44
+          - dostr_nip49
+          - dostr_nip77
+          - dostr_rust_verifier
+          - dostr_web_crypto
+          - dostr_url_set
+          - dostr_fetchers
+          - dostr_home_relays
+          - dostr_cashu_protocol
+          - dostr_blossom
+          - dostr_nip59
+          - dostr_nip85
+          - dostr_nip13
+          - dostr_nip07
+          - dostr_nip46
+          - dostr_nip55
+          - dostr_nip05
+          - dostr_accounts
+          - dostr_zaps
+          - dostr_nip11
       exact_version:
         description: "Version such as 0.9.2 (required only when release mode is exact)"
         required: false

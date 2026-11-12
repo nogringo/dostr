@@ -1,12 +1,12 @@
 # NIP-42 Authentication
 
-The `RelayManager` of [`ndk_core`](https://pub.dev/packages/ndk_core) handles NIP-42 relay authentication: when a relay requires it, it signs and sends the AUTH event, then retries the original request.
+The `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core) handles NIP-42 relay authentication: when a relay requires it, it signs and sends the AUTH event, then retries the original request.
 
 A connection carries at most one identity, chosen when it is opened and immutable for its whole lifetime, so a request that authenticates moves to its own connection.
 
 ## Which identity
 
-Each REQ and EVENT says which identity it may be attributed to with an `AuthPolicy`, from `ndk_signer`:
+Each REQ and EVENT says which identity it may be attributed to with an `AuthPolicy`, from `dostr_signer`:
 
 - `AuthPolicy.never()` stays on the anonymous connection and never sends AUTH. A relay that refuses the request without an identity does not serve it.
 - `AuthPolicy.allow(account)` starts anonymous and moves to a connection bound to `account` only once a relay refused the request without an identity.
@@ -21,7 +21,7 @@ final req = reqs.req(
 
 [Relay REQs](/usecases/relay-reqs.md), [Relay publishes](/usecases/relay-publishes.md) and [Negentropy](/usecases/negentropy.md) all take `auth`.
 
-Without `auth`, a request authenticates as the account the `RelayManager` gets from its `accounts`, an `AuthAccounts` such as `Accounts` from [`ndk_accounts`](/usecases/accounts.md), and only where the `AuthHandler` agrees.
+Without `auth`, a request authenticates as the account the `RelayManager` gets from its `accounts`, an `AuthAccounts` such as `Accounts` from [`dostr_accounts`](/usecases/accounts.md), and only where the `AuthHandler` agrees.
 
 ## AuthHandler
 

@@ -1,8 +1,8 @@
-import 'package:ndk_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport.dart';
+import 'package:dostr_core/data_layer/repositories/nostr_transport/websocket_client_nostr_transport.dart';
 import '../../../src/web_socket_client/web_socket_client.dart';
 
 import '../../../domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import '../../data_sources/websocket_client.dart';
 
 class WebSocketClientNostrTransportFactory implements NostrTransportFactory {

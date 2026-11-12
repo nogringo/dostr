@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 
 const _warmupIterations = 1000;
 const _sampleIterations = 5000;

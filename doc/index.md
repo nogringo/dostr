@@ -6,7 +6,7 @@ icon: home
 
 # Dart Nostr Development Kit (NDK)
 
-[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Pub](https://img.shields.io/pub/v/ndk_core.svg)](https://pub.dev/packages/ndk_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
+[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
 
 NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients, particularly constrained ones such as mobile apps. Each package covers one part of Nostr and depends only on what it needs, so an app picks the parts it uses.
 
@@ -22,7 +22,7 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 ## Features
 
-### Relays (`ndk_core`)
+### Relays (`dostr_core`)
 
 - **REQ and EVENT on the relays you pick**, with verified events and an outcome per relay
 - **Reconnects** with backoff, replaying the requests a connection carried
@@ -30,7 +30,7 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 - **Relay limits** from NIP-11: REQs queued past `max_subscriptions`, messages past `max_message_length` not sent
 - **NIP-42 authentication**, with the identity each request may reveal chosen per request
 
-### Outbox model (`ndk_fetchers`, `ndk_url_set`, `ndk_home_relays`)
+### Outbox model (`dostr_fetchers`, `dostr_url_set`, `dostr_home_relays`)
 
 - **Account lists read where NIP-65 puts them**: relay lists, metadata, DM relays, Blossom servers
 - **Batched lookups**, one REQ per relay for many pubkeys
@@ -40,8 +40,8 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 ### Signers and accounts
 
-- **Signers**: local BIP-340 (`ndk_bip340`), NIP-46 bunkers (`ndk_nip46`), NIP-07 browser extensions (`ndk_nip07`), NIP-55 Android signer apps (`ndk_nip55`)
-- **Accounts** (`ndk_accounts`): log in, switch between accounts and sign as the current one
+- **Signers**: local BIP-340 (`dostr_bip340`), NIP-46 bunkers (`dostr_nip46`), NIP-07 browser extensions (`dostr_nip07`), NIP-55 Android signer apps (`dostr_nip55`)
+- **Accounts** (`dostr_accounts`): log in, switch between accounts and sign as the current one
 - **Pending requests** of external signers, to show and cancel them
 
 ### NIPs
@@ -53,9 +53,9 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 ### Verification
 
-- **Pure Dart** BIP-340 verification in an isolate (`ndk_bip340`)
-- **Native Rust** verification through FFI (`ndk_rust_verifier`), much faster on mobile and desktop
-- **Web** signing and verification with @noble/curves through JS interop (`ndk_web_crypto`), much faster in the browser
+- **Pure Dart** BIP-340 verification in an isolate (`dostr_bip340`)
+- **Native Rust** verification through FFI (`dostr_rust_verifier`), much faster on mobile and desktop
+- **Web** signing and verification with @noble/curves through JS interop (`dostr_web_crypto`), much faster in the browser
 
 ## Not included
 

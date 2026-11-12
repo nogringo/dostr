@@ -5,13 +5,13 @@ label: Relay publishes
 
 # Relay publishes
 
-Publishes a signed event to relays you pick (NIP-01 EVENT), from [`ndk_core`](https://pub.dev/packages/ndk_core): no signing, no cache, no outbox routing, no retry. To publish where the outbox model says, resolve the relays with a [UrlSet](relay-sets.md) first.
+Publishes a signed event to relays you pick (NIP-01 EVENT), from [`dostr_core`](https://pub.dev/packages/dostr_core): no signing, no cache, no outbox routing, no retry. To publish where the outbox model says, resolve the relays with a [UrlSet](relay-sets.md) first.
 
 ## Usage
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
 
 final publishes = RelayPublishes(relayManager: relays);
 

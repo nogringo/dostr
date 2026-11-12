@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 
 /// Where nmail.li serves its `home-relays` list.
 const String defaultHomeRelayListUrl = 'https://home-relays.nmail.li/list.json';

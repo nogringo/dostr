@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart';
 
 /// Nostr event kinds mapping to translation keys
 class NostrKinds {

@@ -2,11 +2,11 @@ import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
-import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
+import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
 import 'package:test/test.dart';
 
 final _sha256 = 'ab' * 32;

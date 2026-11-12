@@ -1,4 +1,4 @@
-# ndk_cashu_protocol
+# dostr_cashu_protocol
 
 The [Cashu](https://cashu.space) ecash protocol in pure Dart, without Nostr:
 blind signatures, v4 tokens, deterministic secrets and the mint API. It holds
@@ -15,7 +15,7 @@ package and re-exports it.
 
 ```yaml
 dependencies:
-  ndk_cashu_protocol: ^0.1.0
+  dostr_cashu_protocol: ^0.1.0
 ```
 
 ## Usage
@@ -24,7 +24,7 @@ Decode a token and ask its mint which proofs are still unspent:
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 
 final token = CashuTokenEncoder.decodedToken(encoded)!;
 final mint = CashuRepoImpl(client: http.Client());

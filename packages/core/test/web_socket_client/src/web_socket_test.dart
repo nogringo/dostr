@@ -4,7 +4,7 @@ import 'dart:io' as io;
 import 'package:test/test.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
+import 'package:dostr_core/src/web_socket_client/web_socket_client.dart';
 
 class _FakeBackoff implements Backoff {
   _FakeBackoff(this.duration);

@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
 
 class MemoryNip05Cache implements Nip05Cache {
   final Map<String, Nip05> _nip05s = {};
@@ -12,7 +12,7 @@ class MemoryNip05Cache implements Nip05Cache {
   Future<Nip05?> loadNip05(String identifier) async => _nip05s[identifier];
 }
 
-/// `dart run example/ndk_nip05_example.dart bob@example.com`
+/// `dart run example/dostr_nip05_example.dart bob@example.com`
 Future<void> main(List<String> args) async {
   final client = http.Client();
   final nip05 = Nip05Usecase(

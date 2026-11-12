@@ -1,4 +1,4 @@
-# ndk_signer
+# dostr_signer
 
 The `EventSigner` interface that NDK signers implement, whether they hold the
 key (`Bip340EventSigner`), ask a remote bunker (NIP-46), a browser extension
@@ -12,21 +12,21 @@ is revealed: to a relay that asks for NIP-42 authentication, or to a Blossom
 server.
 
 Pure Dart, interfaces only. A signer such as
-[`ndk_bip340`](https://pub.dev/packages/ndk_bip340) or
+[`dostr_bip340`](https://pub.dev/packages/dostr_bip340) or
 [`ndk_post_quantum`](https://pub.dev/packages/ndk_post_quantum) only needs this package and
-[`ndk_nip01`](https://pub.dev/packages/ndk_nip01), not `ndk_core`. So does a
+[`dostr_nip01`](https://pub.dev/packages/dostr_nip01), not `dostr_core`. So does a
 package that authenticates on behalf of NDK accounts, such as
-[`ndk_blossom`](https://pub.dev/packages/ndk_blossom).
+[`dostr_blossom`](https://pub.dev/packages/dostr_blossom).
 
 [NDK](https://pub.dev/packages/ndk) and
-[`ndk_core`](https://pub.dev/packages/ndk_core) depend on it and export it, so
+[`dostr_core`](https://pub.dev/packages/dostr_core) depend on it and export it, so
 apps that already use one of them don't need to add it.
 
 ## Install
 
 ```yaml
 dependencies:
-  ndk_signer: ^0.1.0
+  dostr_signer: ^0.1.0
 ```
 
 ## Usage
@@ -34,8 +34,8 @@ dependencies:
 Code that signs takes any `EventSigner`:
 
 ```dart
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 Future<Nip01Event?> signNote(EventSigner signer, String text) async {
   try {
@@ -67,7 +67,7 @@ To plug a signer into NDK, implement `EventSigner`, and
 
 - `Account`: a pubkey and the `EventSigner` that signs for it.
 - `AuthAccounts`: where the logged-in account comes from, implemented by
-  `Accounts` from [`ndk_accounts`](https://pub.dev/packages/ndk_accounts).
+  `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 - `AuthPolicy`: what one operation may reveal. `never()` stays anonymous,
   `allow(account)` authenticates when asked, `require(account)` authenticates
   upfront and fails if it cannot.
@@ -90,11 +90,11 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 ## Coming from `ndk`
 
 `EventSigner`, `LocalEventSignerFactory` and `PendingSignerRequest` used to be
-in `ndk_core`, and the two exceptions and `ConcurrencyLimiterMixin` in `ndk`. What changed is in the
-[`ndk_core` changelog](https://pub.dev/packages/ndk_core/changelog).
+in `dostr_core`, and the two exceptions and `ConcurrencyLimiterMixin` in `ndk`. What changed is in the
+[`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 
-`package:ndk_core/domain_layer/entities/account.dart`, `auth_policy.dart`,
-`auth_handler.dart` and `package:ndk_core/domain_layer/repositories/auth_accounts.dart`
-are now `package:ndk_signer/ndk_signer.dart`. `package:ndk/ndk.dart` and
-`package:ndk_core/ndk_core.dart` still export it. `TimeoutPausable` stays in
-`ndk_core`, in `package:ndk_core/domain_layer/entities/timeout_pausable.dart`.
+`package:dostr_core/domain_layer/entities/account.dart`, `auth_policy.dart`,
+`auth_handler.dart` and `package:dostr_core/domain_layer/repositories/auth_accounts.dart`
+are now `package:dostr_signer/dostr_signer.dart`. `package:ndk/ndk.dart` and
+`package:dostr_core/dostr_core.dart` still export it. `TimeoutPausable` stays in
+`dostr_core`, in `package:dostr_core/domain_layer/entities/timeout_pausable.dart`.

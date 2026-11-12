@@ -1,4 +1,4 @@
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 /// Authenticates as [signer] only when a server asks for it.
 AuthPolicy whenAsked(EventSigner signer) => AuthPolicy.allow(

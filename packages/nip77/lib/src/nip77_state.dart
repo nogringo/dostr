@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_core/dostr_core.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'negentropy.dart';

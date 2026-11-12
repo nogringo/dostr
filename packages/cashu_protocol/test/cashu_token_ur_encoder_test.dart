@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 import 'package:test/test.dart';
-import 'package:ndk_cashu_protocol/src/ur/ur.dart';
+import 'package:dostr_cashu_protocol/src/ur/ur.dart';
 
 void main() {
   group('CashuTokenUrEncoder - Single Part', () {

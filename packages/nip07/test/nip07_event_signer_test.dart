@@ -3,10 +3,10 @@ library;
 
 import 'dart:js_interop';
 
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip07/ndk_nip07.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip07/dostr_nip07.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 @JS()

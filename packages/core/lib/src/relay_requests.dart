@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';
@@ -33,7 +33,7 @@ class _Waiting {
 
 /// The REQs in flight on a `RelayManager`: sending them, following what each
 /// relay answers, replaying them on a new socket and moving them to a bound
-/// connection when a relay asks for authentication. Internal to ndk_core.
+/// connection when a relay asks for authentication. Internal to dostr_core.
 ///
 /// A connection carries at most as many REQs as its relay accepts, the
 /// others wait in its queue for a slot.

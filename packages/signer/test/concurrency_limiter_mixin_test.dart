@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 class _Limiter with ConcurrencyLimiterMixin {

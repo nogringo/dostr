@@ -2,14 +2,14 @@
 
 ## Signers
 
-Every signer implements `EventSigner` from `ndk_signer`.
+Every signer implements `EventSigner` from `dostr_signer`.
 
 | Signer | Package |
 |--------|---------|
-| `Bip340EventSigner(privateKey:, publicKey:)` | `ndk_bip340` |
-| `Nip46EventSigner` (bunker) | `ndk_nip46` |
-| `Nip07EventSigner` (browser extension) | `ndk_nip07` |
-| `Nip55EventSigner` (Android signer app, Flutter) | `ndk_nip55` |
+| `Bip340EventSigner(privateKey:, publicKey:)` | `dostr_bip340` |
+| `Nip46EventSigner` (bunker) | `dostr_nip46` |
+| `Nip07EventSigner` (browser extension) | `dostr_nip07` |
+| `Nip55EventSigner` (Android signer app, Flutter) | `dostr_nip55` |
 
 ```dart
 final signer = Bip340EventSignerFactory().createWithNewKeyPair();
@@ -20,11 +20,11 @@ final signed = await signer.sign(
 
 External signers expose `pendingRequests`, `pendingRequestsStream` and `cancelRequest(id)`, and throw `SignerRequestRejectedException` or `SignerRequestCancelledException`.
 
-## Accounts (`ndk_accounts`)
+## Accounts (`dostr_accounts`)
 
 ```dart
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
 
 final accounts = Accounts(const Bip340EventSignerFactory());
 

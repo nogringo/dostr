@@ -1,5 +1,5 @@
 import 'package:flutter/widgets.dart';
-import 'package:ndk_nip55/ndk_nip55.dart';
+import 'package:dostr_nip55/dostr_nip55.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

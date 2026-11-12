@@ -1,6 +1,6 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// The deprecated members of [Nip01Event], kept out of `ndk_nip01`.
+/// The deprecated members of [Nip01Event], kept out of `dostr_nip01`.
 extension Nip01EventDeprecated on Nip01Event {
   @Deprecated('Use getFirstTag("e")')
   String? getEId() => getFirstTag('e');

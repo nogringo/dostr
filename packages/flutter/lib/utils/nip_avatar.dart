@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_flutter/models/metadata.dart';
+import 'package:dostr_flutter/models/metadata.dart';
 
 class AvatarColor {
   final Color background;

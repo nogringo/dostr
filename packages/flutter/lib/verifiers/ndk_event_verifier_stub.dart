@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// Stub implementation used when neither `dart:io` nor web interop is available.
 EventVerifier createNdkEventVerifier() {

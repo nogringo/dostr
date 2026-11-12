@@ -1,4 +1,4 @@
-import 'package:ndk_nip49/ndk_nip49.dart';
+import 'package:dostr_nip49/dostr_nip49.dart';
 
 Future<void> main() async {
   const privateKey =

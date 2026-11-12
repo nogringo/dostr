@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
 
 void main() {
   group('Nip01Event NIP-19 references', () {

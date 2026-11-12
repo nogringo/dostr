@@ -51,9 +51,9 @@ Feel free to reach out to us via the following channels:
 
 ## Project Structure
 
-Each feature lives in its own package under `packages/`, named `ndk_<feature>`: `ndk_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `ndk_fetchers` for the lists of accounts, `ndk_nip59` for gift wraps, and so on. A package depends on what it needs, see the [package graph](package-graph.md). New code goes into the package it belongs to, or into a new one.
+Each feature lives in its own package under `packages/`, named `dostr_<feature>`: `dostr_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `dostr_fetchers` for the lists of accounts, `dostr_nip59` for gift wraps, and so on. A package depends on what it needs, see the [package graph](package-graph.md). New code goes into the package it belongs to, or into a new one.
 
-Tests follow the code: a package tests itself, with [`ndk_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay.
+Tests follow the code: a package tests itself, with [`dostr_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay.
 
 Inside a package, the code follows a layered architecture.
 

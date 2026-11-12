@@ -2,13 +2,13 @@ import 'dart:async';
 
 import '../../../config/broadcast_defaults.dart';
 import '../../../config/relay_defaults.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import '../../../src/broadcast_state.dart';
 import '../../../src/relay_broadcasts.dart';
 import '../../../src/relay_manager_parts.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../../entities/broadcast_state.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../relay_manager.dart';
 
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).

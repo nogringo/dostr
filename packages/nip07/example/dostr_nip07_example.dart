@@ -1,4 +1,4 @@
-import 'package:ndk_nip07/ndk_nip07.dart';
+import 'package:dostr_nip07/dostr_nip07.dart';
 
 Future<void> main() async {
   final signer = Nip07EventSigner();

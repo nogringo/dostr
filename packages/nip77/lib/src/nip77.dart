@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_core/dostr_core.dart';
 
 import 'negentropy.dart' as neg;
 import 'nip77_state.dart';

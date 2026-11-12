@@ -1,7 +1,7 @@
 // ignore_for_file: deprecated_member_use
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 /// A wrapper signer that adds a delay to simulate slow signing
 /// (like NIP-46, NIP-55, etc.) where user interaction is required.

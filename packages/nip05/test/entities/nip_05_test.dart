@@ -1,4 +1,4 @@
-import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
 import 'package:test/test.dart';
 
 void main() {

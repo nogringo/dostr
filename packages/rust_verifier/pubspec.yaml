@@ -1,4 +1,4 @@
-name: ndk_rust_verifier
+name: dostr_rust_verifier
 description: Fast BIP-340 event verifier for NDK (Nostr Development Kit), in native Rust called through FFI.
 version: 0.6.0
 homepage: https://github.com/relaystr/ndk
@@ -16,13 +16,13 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk_nip01: ^0.1.0
+  dostr_nip01: ^0.1.0
   hooks: ">=1.0.0 <3.0.0"
   native_toolchain_rust: ^1.0.7
   ffi: ^2.2.0
 
 dev_dependencies:
-  ndk_event_verifier_test_suite: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_event_verifier_test_suite: ^0.1.0
+  dostr_bip340: ^0.1.0
   lints: ^6.1.0
   test: any

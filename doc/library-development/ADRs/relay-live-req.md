@@ -70,7 +70,7 @@ The live REQ only ever carries filters the relay accepted alone on that socket,
 
 ### Moving into the live REQ
 
-`RelayListeners`, new in ndk_core next to `RelayRequests`, keeps the live REQ of
+`RelayListeners`, new in dostr_core next to `RelayRequests`, keeps the live REQ of
 each `RelayConnectionKey`:
 
 - Moving a listener rewrites the live REQ: a new live REQ, under a new id,
@@ -207,7 +207,7 @@ moved. nip46 uses it.
 
 ### Client-side matching
 
-`Filter.matches(Nip01Event)` joins ndk_nip01, with the NIP-01 semantics:
+`Filter.matches(Nip01Event)` joins dostr_nip01, with the NIP-01 semantics:
 
 - `ids`, `authors` and `kinds` contain the event's field
 - `since` and `until` bound `created_at`, both inclusive
@@ -230,7 +230,7 @@ In `relay_defaults.dart`:
 - `CATCH_UP_MARGIN`: 10 minutes, for the clock skew of the authors
 - `GIFT_WRAP_CATCH_UP_MARGIN`: 2 days, from NIP-59
 
-`max_message_length` reaches ndk_core the way the subscription limit does: a
+`max_message_length` reaches dostr_core the way the subscription limit does: a
 `MessageLengthLimit` provider on `RelayManager`. `ndk` answers it from
 `NdkConfig` first, then from the NIP-11 document that `Connectivity.getRelayInfo`
 caches.

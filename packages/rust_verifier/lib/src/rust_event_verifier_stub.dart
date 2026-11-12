@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// Stub implementation of [RustEventVerifier] for platforms that don't support FFI (e.g., web).
 ///

@@ -2,15 +2,15 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../../src/relay_manager_parts.dart';
 import '../../../src/relay_requests.dart';
 import '../../../src/request_state.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../relay_manager.dart';
 import '../requests/verified_event_cache.dart';
 import '../requests/verify_event_stream.dart';

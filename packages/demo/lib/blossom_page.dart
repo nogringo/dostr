@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:ndk_blossom/ndk_blossom.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
 
 import 'main.dart';
 

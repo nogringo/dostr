@@ -25,7 +25,7 @@ jobs:
           ' packages/core/CHANGELOG.md > release-notes.md
 
           if [[ ! -s release-notes.md ]]; then
-            echo "No ndk_core changelog section found for ${version}." >&2
+            echo "No dostr_core changelog section found for ${version}." >&2
             exit 1
           fi
 

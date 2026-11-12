@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 import '../../../config/nip85_defaults.dart';
 import '../../entities/nip_85.dart';

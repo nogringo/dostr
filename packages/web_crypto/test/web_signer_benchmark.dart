@@ -1,9 +1,9 @@
 @TestOn('browser')
 library;
 
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_web_crypto/ndk_web_crypto.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:test/test.dart';
 
 void _report(String label, int count, int ms) {

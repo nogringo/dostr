@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_nip77/ndk_nip77.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_nip77/dostr_nip77.dart';
 
 import 'main.dart';
 

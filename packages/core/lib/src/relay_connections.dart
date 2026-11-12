@@ -5,14 +5,14 @@ import 'dart:math';
 import 'package:rxdart/rxdart.dart';
 
 import '../config/relay_defaults.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
 import '../domain_layer/entities/message_length_limit.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/subscription_limit.dart';
 import '../domain_layer/repositories/nostr_transport.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'logger/logger.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 import 'client_msg.dart';
@@ -79,7 +79,7 @@ class _Revival {
 }
 
 /// The connections of a `RelayManager`: opening, reconnecting and closing them,
-/// writing to them and reading from them. Internal to ndk_core.
+/// writing to them and reading from them. Internal to dostr_core.
 ///
 /// It is the only thing that reconnects: a transport is a single socket.
 class RelayConnections {

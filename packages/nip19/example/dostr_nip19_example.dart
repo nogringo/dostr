@@ -1,4 +1,4 @@
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
 
 void main() {
   final npub = Nip19.encodePubKey(

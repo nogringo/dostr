@@ -1,7 +1,7 @@
 /// Auto-platform Nostr event signer that uses the best implementation
 /// for the current platform.
 ///
-/// On web: uses [WebEventSigner] from `ndk_web_crypto` (fast JS crypto via @noble/curves)
+/// On web: uses [WebEventSigner] from `dostr_web_crypto` (fast JS crypto via @noble/curves)
 /// On native (mobile/desktop): uses [Bip340EventSigner] (pure Dart)
 ///
 /// Give [NdkEventSignerFactory] to `Accounts` so the accounts it logs in sign

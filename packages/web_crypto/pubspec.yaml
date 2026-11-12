@@ -1,4 +1,4 @@
-name: ndk_web_crypto
+name: dostr_web_crypto
 description: Fast BIP-340 event signer and event verifier for NDK (Nostr Development Kit) on the web, with @noble/curves through JS interop.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -19,13 +19,13 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk_nip01: ^0.1.0
-  ndk_signer: ^0.1.0
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
   rxdart: ^0.28.0
   web: ">=1.0.0 <2.0.0"
 
 dev_dependencies:
-  ndk_bip340: ^0.1.0
-  ndk_event_verifier_test_suite: ^0.1.0
+  dostr_bip340: ^0.1.0
+  dostr_event_verifier_test_suite: ^0.1.0
   lints: ^6.1.0
   test: any

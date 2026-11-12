@@ -2,7 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:ndk_nip77/ndk_nip77.dart';
+import 'package:dostr_nip77/dostr_nip77.dart';
 import 'package:test/test.dart';
 
 Uint8List _id(int i) => Uint8List.fromList(sha256.convert([i]).bytes);

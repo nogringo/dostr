@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_core/dostr_core.dart';
 import 'package:rxdart/rxdart.dart';
 
 const Duration defaultBatchWindow = Duration(milliseconds: 50);

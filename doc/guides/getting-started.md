@@ -8,10 +8,10 @@ order: 100
 
 NDK is a set of Dart packages, each covering one part of Nostr, so an app only depends on what it uses:
 
-- [`ndk_core`](https://pub.dev/packages/ndk_core): relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
-- [`ndk_bip340`](https://pub.dev/packages/ndk_bip340): a signer that holds a private key, and a signature verifier.
-- [`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers): the metadata and relay lists of accounts, read where NIP-65 puts them.
-- [`ndk_url_set`](https://pub.dev/packages/ndk_url_set): relay sets described rather than listed, resolved when needed.
+- [`dostr_core`](https://pub.dev/packages/dostr_core): relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
+- [`dostr_bip340`](https://pub.dev/packages/dostr_bip340): a signer that holds a private key, and a signature verifier.
+- [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers): the metadata and relay lists of accounts, read where NIP-65 puts them.
+- [`dostr_url_set`](https://pub.dev/packages/dostr_url_set): relay sets described rather than listed, resolved when needed.
 - One package per NIP for the rest, listed in the [README](https://github.com/relaystr/ndk#readme).
 
 They are pure Dart unless their README says otherwise, so the same code runs in a Flutter app, a server or a CLI.
@@ -19,14 +19,14 @@ They are pure Dart unless their README says otherwise, so the same code runs in 
 ## Install
 
 ```bash
-dart pub add ndk_core ndk_bip340
+dart pub add dostr_core dostr_bip340
 ```
 
 ## Query relays
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
 
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -78,4 +78,4 @@ The examples above talk to relays you name. To read an account's events from the
 
 ## Faster verification
 
-`Bip340EventVerifier` checks signatures in pure Dart, on the calling isolate. On native platforms `RustEventVerifier` from [`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) is much faster. It needs the Rust toolchain, see its README. On the web, `WebEventVerifier` from [`ndk_web_crypto`](https://pub.dev/packages/ndk_web_crypto) is much faster.
+`Bip340EventVerifier` checks signatures in pure Dart, on the calling isolate. On native platforms `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) is much faster. It needs the Rust toolchain, see its README. On the web, `WebEventVerifier` from [`dostr_web_crypto`](https://pub.dev/packages/dostr_web_crypto) is much faster.

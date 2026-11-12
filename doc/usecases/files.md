@@ -4,11 +4,11 @@ icon: file-zip
 
 # Files
 
-`Files`, from [`ndk_blossom`](https://pub.dev/packages/ndk_blossom), uploads, downloads and deletes files with a simpler API than [Blossom](/usecases/blossom.md): it takes any url, and goes through Blossom only when the url names a blob.
+`Files`, from [`dostr_blossom`](https://pub.dev/packages/dostr_blossom), uploads, downloads and deletes files with a simpler API than [Blossom](/usecases/blossom.md): it takes any url, and goes through Blossom only when the url names a blob.
 
 ```yaml
 dependencies:
-  ndk_blossom: ^0.1.0
+  dostr_blossom: ^0.1.0
 ```
 
 ## Example

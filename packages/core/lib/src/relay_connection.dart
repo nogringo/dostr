@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../domain_layer/entities/relay.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_connectivity.dart';
@@ -10,7 +10,7 @@ import '../domain_layer/repositories/nostr_transport.dart';
 import 'logger/logger.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
-/// ndk_core: everyone else sees a [RelayConnectivity].
+/// dostr_core: everyone else sees a [RelayConnectivity].
 class RelayConnection implements RelayConnectivity {
   @override
   final RelayConnectionKey key;

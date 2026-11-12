@@ -10,8 +10,8 @@ order: 0
 A `RelayManager` holds the relay connections, and every `RelayReqs`, `RelayPublishes` and fetcher built on it shares them. Create it once and pass it down, or provide it with [riverpod](https://pub.dev/packages/riverpod), get_it or a singleton:
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
 import 'package:riverpod/riverpod.dart';
 
 final relayManagerProvider = Provider<RelayManager>((ref) {

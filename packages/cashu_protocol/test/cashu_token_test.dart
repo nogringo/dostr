@@ -1,4 +1,4 @@
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 import 'package:test/test.dart';
 
 // NUT-00 TokenV4 example

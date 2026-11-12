@@ -9,11 +9,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ndk_bip340:
+  dostr_bip340:
     path: ../../../bip340
-  ndk_nip01:
+  dostr_nip01:
     path: ../../../nip01
-  ndk_flutter:
+  dostr_flutter:
     path: ../../../flutter
 
 dev_dependencies:

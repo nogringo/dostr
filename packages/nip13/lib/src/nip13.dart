@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 import 'run_in_isolate_stub.dart'
     if (dart.library.isolate) 'run_in_isolate_io.dart';

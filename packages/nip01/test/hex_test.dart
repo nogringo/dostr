@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/hex.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:test/test.dart';
 
 void main() {

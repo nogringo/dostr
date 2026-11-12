@@ -1,8 +1,8 @@
-# ndk_nip46
+# dostr_nip46
 
 [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) remote signing for Nostr: connect to a bunker with a `bunker://` URL, or let it connect to you with a `nostrconnect://` URL, then sign events and encrypt or decrypt NIP-04 and NIP-44 messages through it.
 
-It implements the `EventSigner` of [`ndk_signer`](https://pub.dev/packages/ndk_signer), so NDK accounts can use it. It runs on [`ndk_core`](https://pub.dev/packages/ndk_core) and does not depend on `ndk`.
+It implements the `EventSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so NDK accounts can use it. It runs on [`dostr_core`](https://pub.dev/packages/dostr_core) and does not depend on `ndk`.
 
 ## With NDK
 
@@ -22,15 +22,15 @@ await ndk.accounts.loginWithBunkerUrl(
 
 ```yaml
 dependencies:
-  ndk_nip46: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_bip340: ^0.1.0
+  dostr_nip46: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_bip340: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -57,4 +57,4 @@ The remote signer may ask the user to approve each request. While it waits, the 
 
 ## Coming from `ndk`
 
-The classes keep their names, and `package:ndk/ndk.dart` still exports them, now along with `Nip46EventSigner` and `BunkerRequest`. `NostrConnect` no longer generates its own keys: build it with `bunkers.createNostrConnect(relays: ..., clientMetadata: ...)` instead of `NostrConnect(relays: ..., clientMetadata: ...)`. It has `privateKey` and `publicKey` instead of `keyPair`. The deep imports changed package: `package:ndk/data_layer/repositories/signers/nip46_event_signer.dart`, `package:ndk/domain_layer/usecases/bunkers/...` and `package:ndk/domain_layer/entities/nip46_client_metadata.dart` are now `package:ndk_nip46/ndk_nip46.dart`.
+The classes keep their names, and `package:ndk/ndk.dart` still exports them, now along with `Nip46EventSigner` and `BunkerRequest`. `NostrConnect` no longer generates its own keys: build it with `bunkers.createNostrConnect(relays: ..., clientMetadata: ...)` instead of `NostrConnect(relays: ..., clientMetadata: ...)`. It has `privateKey` and `publicKey` instead of `keyPair`. The deep imports changed package: `package:ndk/data_layer/repositories/signers/nip46_event_signer.dart`, `package:ndk/domain_layer/usecases/bunkers/...` and `package:ndk/domain_layer/entities/nip46_client_metadata.dart` are now `package:dostr_nip46/dostr_nip46.dart`.

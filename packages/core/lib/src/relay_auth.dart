@@ -1,14 +1,14 @@
 import 'dart:async';
 
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import 'logger/logger.dart';
 import 'auth_session.dart';
 
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and
-/// the session on its current socket. Internal to ndk_core.
+/// the session on its current socket. Internal to dostr_core.
 class RelayAuth {
   /// signer for nip-42 AUTH challenges from relays
   final AuthAccounts? _accounts;

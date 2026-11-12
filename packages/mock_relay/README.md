@@ -1,14 +1,14 @@
-# ndk_mock_relay
+# dostr_mock_relay
 
 A [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md), [NIP-42](https://github.com/nostr-protocol/nips/blob/master/42.md) and [NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) relay on a local port, with a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) remote signer behind it, for the tests of the NDK packages. It is not published.
 
 ```yaml
 dev_dependencies:
-  ndk_mock_relay: ^0.1.0
+  dostr_mock_relay: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_mock_relay/ndk_mock_relay.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 
 final relay = MockRelay(requireAuthForRequests: true);
 await relay.start(events: [note]);

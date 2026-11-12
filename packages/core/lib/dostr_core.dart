@@ -2,9 +2,9 @@
 /// EVENT on the relays you pick.
 library;
 
-export 'package:ndk_nip01/ndk_nip01.dart';
-export 'package:ndk_signer/ndk_signer.dart';
-export 'package:ndk_url_set/ndk_url_set.dart'
+export 'package:dostr_nip01/dostr_nip01.dart';
+export 'package:dostr_signer/dostr_signer.dart';
+export 'package:dostr_url_set/dostr_url_set.dart'
     show cleanRelayUrl, cleanRelayUrls;
 export 'data_layer/models/nip_01_event_model.dart';
 export 'data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';

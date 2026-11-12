@@ -1,5 +1,5 @@
 import 'package:http/http.dart' as http;
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 
 /// The amount of a `cashuB` token that its mint still holds as unspent.
 Future<int> unspentAmount(String encoded) async {

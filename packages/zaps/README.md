@@ -1,4 +1,4 @@
-# ndk_zaps
+# dostr_zaps
 
 The zaps of [NDK](https://pub.dev/packages/ndk) ([NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md)): create zap requests, fetch the invoice to pay from a lightning address ([LUD-06](https://github.com/lnurl/luds/blob/luds/06.md), [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md)), and read zap receipts. It does not depend on `ndk`.
 
@@ -22,15 +22,15 @@ Paying goes through a wallet: `Nwc.zap(...)` from [`ndk_nwc`](https://pub.dev/pa
 
 ```yaml
 dependencies:
-  ndk_zaps: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_zaps: ^0.1.0
+  dostr_bip340: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_zaps/ndk_zaps.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_zaps/dostr_zaps.dart';
 
 final zaps = Zaps(
   query: (filter, {required timeout}) => myRelays.query(filter, timeout),
@@ -64,4 +64,4 @@ More in [example/](example/) and the [zaps docs](https://dart-nostr.com/usecases
 
 ## Coming from `ndk`
 
-`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:ndk_zaps/ndk_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.
+`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:dostr_zaps/dostr_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.

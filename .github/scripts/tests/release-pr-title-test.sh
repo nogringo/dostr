@@ -34,26 +34,26 @@ assert_title() {
 }
 
 write_package ndk ndk 0.10.0-dev.3
-write_package ndk_flutter ndk_flutter 0.10.0-dev.3
-write_package drift ndk_drift 0.1.1-dev.15
+write_package flutter dostr_flutter 0.10.0-dev.3
+write_package drift dostr_drift 0.1.1-dev.15
 write_package private private_package 1.0.0
 printf "publish_to: 'none'\n" >> packages/private/pubspec.yaml
 commit baseline
 base_sha=$(git rev-parse HEAD)
 
-# PR #825: only ndk_flutter is released; ndk remains unchanged.
-write_package ndk_flutter ndk_flutter 0.10.0-dev.4
+# PR #825: only dostr_flutter is released; ndk remains unchanged.
+write_package flutter dostr_flutter 0.10.0-dev.4
 commit flutter-release
-assert_title 'chore(prerelease): publish ndk_flutter 0.10.0-dev.4' HEAD prerelease
+assert_title 'chore(prerelease): publish dostr_flutter 0.10.0-dev.4' HEAD prerelease
 
 # Ignore dependency-only changes and private package bumps. Use the package
 # name from pubspec, not the directory name, and preserve distinct versions.
-write_package drift ndk_drift 0.1.1-dev.16
-printf 'dependencies:\n  ndk_flutter: ^0.10.0-dev.4\n' >> packages/ndk/pubspec.yaml
+write_package drift dostr_drift 0.1.1-dev.16
+printf 'dependencies:\n  dostr_flutter: ^0.10.0-dev.4\n' >> packages/ndk/pubspec.yaml
 write_package private private_package 1.0.1
 printf 'publish_to: "none" # internal only\n' >> packages/private/pubspec.yaml
 commit other-changes
-assert_title 'chore(prerelease): publish ndk_drift 0.1.1-dev.16, ndk_flutter 0.10.0-dev.4' HEAD prerelease "$base_sha"
+assert_title 'chore(prerelease): publish dostr_drift 0.1.1-dev.16, dostr_flutter 0.10.0-dev.4' HEAD prerelease "$base_sha"
 
 # Stable/exact and graduated releases use the same committed-version source.
 write_package ndk ndk '"0.10.0"'

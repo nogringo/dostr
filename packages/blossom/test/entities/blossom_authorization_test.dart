@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:ndk_blossom/ndk_blossom.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 Nip01Event _authEvent(String content) => Nip01Event(

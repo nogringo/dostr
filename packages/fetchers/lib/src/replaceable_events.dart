@@ -1,4 +1,4 @@
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_core/dostr_core.dart';
 
 /// Relays that index users' `kind:0` and `kind:10002` events, the same as
 /// ndk's bootstrap relays.

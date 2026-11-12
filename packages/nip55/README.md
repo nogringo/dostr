@@ -1,22 +1,22 @@
-# ndk_nip55
+# dostr_nip55
 
 [NIP-55](https://github.com/nostr-protocol/nips/blob/master/55.md) signing for Nostr on Android: log in with a signer app installed on the device, then sign events and encrypt or decrypt NIP-04 and NIP-44 messages through it.
 
-It implements the `EventSigner` of [`ndk_signer`](https://pub.dev/packages/ndk_signer), so NDK accounts can use it. It is a Flutter plugin for Android and does not depend on `ndk` or `ndk_flutter`.
+It implements the `EventSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so NDK accounts can use it. It is a Flutter plugin for Android and does not depend on `ndk` or `dostr_flutter`.
 
 ## With NDK Flutter
 
-`ndk_flutter` depends on this package and exports it. Its `NLogin` widget offers the signer app login, and `NdkFlutter` saves and restores these accounts.
+`dostr_flutter` depends on this package and exports it. Its `NLogin` widget offers the signer app login, and `NdkFlutter` saves and restores these accounts.
 
 ## Standalone
 
 ```yaml
 dependencies:
-  ndk_nip55: ^0.1.0
+  dostr_nip55: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_nip55/ndk_nip55.dart';
+import 'package:dostr_nip55/dostr_nip55.dart';
 
 const nip55Signer = Nip55Signer();
 if (await nip55Signer.isAppInstalled()) {
@@ -37,6 +37,6 @@ The signer app may ask the user to approve each request. While it waits, the req
 
 On other platforms than Android, the plugin is not registered and every call throws a `MissingPluginException`.
 
-## Coming from `ndk_flutter`
+## Coming from `dostr_flutter`
 
-The classes keep their names, and `package:ndk_flutter/ndk_flutter.dart` still exports them. The deep imports `package:ndk_flutter/data_layer/data_sources/nip55_signer.dart` and `package:ndk_flutter/data_layer/repositories/signers/nip55_event_signer.dart` are now `package:ndk_nip55/ndk_nip55.dart`. The method channel is now `ndk_nip55` instead of `ndk`.
+The classes keep their names, and `package:dostr_flutter/dostr_flutter.dart` still exports them. The deep imports `package:dostr_flutter/data_layer/data_sources/nip55_signer.dart` and `package:dostr_flutter/data_layer/repositories/signers/nip55_event_signer.dart` are now `package:dostr_nip55/dostr_nip55.dart`. The method channel is now `dostr_nip55` instead of `ndk`.

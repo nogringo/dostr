@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/shared/helpers/bounded_lru_set.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/shared/helpers/bounded_lru_set.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'bunker_connection.dart';

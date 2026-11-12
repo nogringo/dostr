@@ -1,5 +1,5 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip59/ndk_nip59.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip59/dostr_nip59.dart';
 
 class MemoryGiftWrapCache implements GiftWrapCache {
   final Map<String, String> plaintexts = {};

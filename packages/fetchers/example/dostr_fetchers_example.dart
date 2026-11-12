@@ -1,7 +1,7 @@
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
-import 'package:ndk_home_relays/ndk_home_relays.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 Future<void> main() async {
   final relayManager = RelayManager(

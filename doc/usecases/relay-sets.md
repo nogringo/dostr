@@ -5,13 +5,13 @@ label: Relay sets
 
 # Relay sets
 
-[`ndk_url_set`](https://pub.dev/packages/ndk_url_set) describes where something goes before anything is looked up: "my write relays", "the DM relays of these recipients", "my Blossom servers, or these defaults if I have none". A `UrlSet` stores that intent as a small tree that serializes to JSON, so it can sit in a queue record and be resolved later, when the network is back.
+[`dostr_url_set`](https://pub.dev/packages/dostr_url_set) describes where something goes before anything is looked up: "my write relays", "the DM relays of these recipients", "my Blossom servers, or these defaults if I have none". A `UrlSet` stores that intent as a small tree that serializes to JSON, so it can sit in a queue record and be resolved later, when the network is back.
 
 It is pure Dart and reads no list itself: [Fetchers](fetchers.md) give it the lookups.
 
 ```yaml
 dependencies:
-  ndk_url_set: ^0.1.0
+  dostr_url_set: ^0.1.0
 ```
 
 ## Sets
@@ -41,7 +41,7 @@ Relays and Blossom servers share one type. A consumer checks `set.kinds` and rej
 
 ## Resolving
 
-`resolveUrlSet` waits for every list the set names. With the fetchers of [`ndk_fetchers`](fetchers.md):
+`resolveUrlSet` waits for every list the set names. With the fetchers of [`dostr_fetchers`](fetchers.md):
 
 ```dart
 final lists = fetcherUrlListFn(
@@ -77,7 +77,7 @@ await for (final snapshot in watchUrlSet(UrlSet.dm(pubkey), watch)) {
 }
 ```
 
-A later snapshot may drop URLs: a newer version of a list replaces the one before. `EventFetcher` of [`ndk_fetchers`](fetchers.md#fetching-any-filter) does this for a filter.
+A later snapshot may drop URLs: a newer version of a list replaces the one before. `EventFetcher` of [`dostr_fetchers`](fetchers.md#fetching-any-filter) does this for a filter.
 
 ## Storage
 

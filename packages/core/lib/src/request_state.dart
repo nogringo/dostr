@@ -2,9 +2,9 @@ import 'dart:async';
 
 import 'package:rxdart/rxdart.dart';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
 import '../domain_layer/entities/relay_req_event.dart';

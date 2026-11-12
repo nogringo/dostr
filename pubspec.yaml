@@ -1,4 +1,4 @@
-name: ndk_workspace
+name: dostr_workspace
 publish_to: none
 description: Workspace configuration for the NDK melos monorepo.
 
@@ -44,7 +44,7 @@ melos:
     version:
       hooks:
         preCommit: |
-          melos exec --fail-fast --scope="ndk_core" -- "dart run tool/update_version.dart"
+          melos exec --fail-fast --scope="dostr_core" -- "dart run tool/update_version.dart"
           git add packages/core/lib/src/version.dart
 
   scripts:

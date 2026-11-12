@@ -1,8 +1,8 @@
 @TestOn('vm')
 library;
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip07/ndk_nip07.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip07/dostr_nip07.dart';
 import 'package:test/test.dart';
 
 void main() {

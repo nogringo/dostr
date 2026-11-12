@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:test/test.dart';
 import 'package:bech32/bech32.dart' hide InvalidPadding;
 import 'package:convert/convert.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
 
 void main() {
   group('Nip19Utils', () {

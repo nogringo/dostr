@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip01/hex.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:web/web.dart' as web;
 
 import 'js_interop.dart';

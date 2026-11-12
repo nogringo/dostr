@@ -1,5 +1,5 @@
 [package]
-name = "ndk_rust_verifier"
+name = "dostr_rust_verifier"
 version = "0.1.0"
 edition = "2021"
 

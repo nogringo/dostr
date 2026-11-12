@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import 'package:bech32/bech32.dart';
 import 'package:convert/convert.dart';
-import 'package:ndk_nip49/ndk_nip49.dart';
-import 'package:ndk_nip49/src/convert_bits.dart';
-import 'package:ndk_nip49/src/scrypt.dart';
+import 'package:dostr_nip49/dostr_nip49.dart';
+import 'package:dostr_nip49/src/convert_bits.dart';
+import 'package:dostr_nip49/src/scrypt.dart';
 import 'package:test/test.dart';
 
 void main() {

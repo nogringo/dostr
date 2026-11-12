@@ -1,4 +1,4 @@
-name: ndk_event_verifier_test_suite
+name: dostr_event_verifier_test_suite
 description: Shared test suite for NDK EventVerifier implementations.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -10,8 +10,8 @@ environment:
 resolution: workspace
 
 dependencies:
-  ndk_nip01: ^0.1.0
-  ndk_signer: ^0.1.0
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
   test: any
 
 dev_dependencies:

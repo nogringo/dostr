@@ -4,17 +4,17 @@ icon: verified
 
 # Domain verification (NIP-05)
 
-[`ndk_nip05`](https://pub.dev/packages/ndk_nip05) resolves a `name@domain` address to a pubkey and its relays through `/.well-known/nostr.json`, and checks that an address belongs to a pubkey ([NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md)).
+[`dostr_nip05`](https://pub.dev/packages/dostr_nip05) resolves a `name@domain` address to a pubkey and its relays through `/.well-known/nostr.json`, and checks that an address belongs to a pubkey ([NIP-05](https://github.com/nostr-protocol/nips/blob/master/05.md)).
 
 ```yaml
 dependencies:
-  ndk_nip05: ^0.1.0
+  dostr_nip05: ^0.1.0
   http: ^1.6.0
 ```
 
 ## Example
 
-:::code source="../../packages/nip05/example/ndk_nip05_example.dart" language="dart" range="4-34" title="" :::
+:::code source="../../packages/nip05/example/dostr_nip05_example.dart" language="dart" range="4-34" title="" :::
 
 To check an address against a pubkey you already have:
 

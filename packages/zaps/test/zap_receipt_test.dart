@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_zaps/ndk_zaps.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:test/test.dart';
 
 Nip01Event receipt({

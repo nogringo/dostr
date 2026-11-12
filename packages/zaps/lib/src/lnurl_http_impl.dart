@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:ndk_core/ndk_core.dart' show Logger;
+import 'package:dostr_core/dostr_core.dart' show Logger;
 
 import 'lnurl_response.dart';
 import 'lnurl_transport.dart';

@@ -11,7 +11,7 @@ import '../../src/relay_connection.dart';
 import '../../src/relay_connections.dart';
 import '../../src/relay_manager_parts.dart';
 import '../../src/relay_requests.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../entities/message_length_limit.dart';
 import '../entities/timeout_pausable.dart';
 import '../entities/relay_connection_key.dart';

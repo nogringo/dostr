@@ -1,5 +1,5 @@
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip77/ndk_nip77.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip77/dostr_nip77.dart';
 
 Future<void> main() async {
   final relays = RelayManager(

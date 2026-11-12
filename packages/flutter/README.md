@@ -10,7 +10,7 @@ This package helps you to easily produce Nostr apps by providing generics Widget
 ### Add dependencies
 
 ```bash
-flutter pub add ndk_core ndk_accounts ndk_flutter
+flutter pub add dostr_core dostr_accounts dostr_flutter
 ```
 
 ### Add internationalization
@@ -18,11 +18,11 @@ flutter pub add ndk_core ndk_accounts ndk_flutter
 Follow the [Official documentation](https://docs.flutter.dev/ui/accessibility-and-internationalization/internationalization)
 
 ```dart
-import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
+import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
 
 MaterialApp(
     localizationsDelegates: [
-        ndk_flutter.AppLocalizations.delegate, // add this line
+        dostr_flutter.AppLocalizations.delegate, // add this line
     ],
 );
 ```
@@ -30,9 +30,9 @@ MaterialApp(
 ## Usage
 
 ```dart
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -63,7 +63,7 @@ NSwitchAccount(ndkFlutter: ndkFlutter);
 
 By default, the logged-in user is used for user widgets; you can override it by passing a `pubkey` parameter.
 
-The widgets read profiles through `ndkFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
+The widgets read profiles through `ndkFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
 
 ## TODO
 

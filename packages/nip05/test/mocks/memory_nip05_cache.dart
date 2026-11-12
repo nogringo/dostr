@@ -1,4 +1,4 @@
-import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
 
 class MemoryNip05Cache implements Nip05Cache {
   final Map<String, Nip05> nip05s = {};

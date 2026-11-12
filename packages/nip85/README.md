@@ -1,4 +1,4 @@
-# ndk_nip85
+# dostr_nip85
 
 [NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions for [NDK](https://pub.dev/packages/ndk): metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`), so the device does not have to.
 
@@ -9,14 +9,14 @@ It does not depend on `ndk`. It asks you how to query and subscribe to a relay. 
 ```yaml
 dependencies:
   ndk: ^0.11.0-dev.2
-  ndk_nip85: ^0.1.0
+  dostr_nip85: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
 import 'package:ndk/ndk.dart';
-import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:dostr_nip85/dostr_nip85.dart';
 
 final ndk = Ndk.defaultConfig();
 final ta = TrustedAssertions(

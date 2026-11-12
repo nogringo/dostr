@@ -1,5 +1,5 @@
 import 'package:test/test.dart';
-import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
+import 'package:dostr_core/src/web_socket_client/web_socket_client.dart';
 
 void main() {
   group('LinearBackoff', () {

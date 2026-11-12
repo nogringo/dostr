@@ -1,4 +1,4 @@
-name: ndk_zaps
+name: dostr_zaps
 description: The zaps of NDK (Nostr Development Kit), to create NIP-57 zap requests, fetch LNURL-pay invoices and read zap receipts, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -25,11 +25,11 @@ platforms:
 
 dependencies:
   http: ^1.6.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_nip01: ^0.1.0
-  ndk_signer: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0
-  ndk_bip340: ^0.1.0
+  dostr_bip340: ^0.1.0
   test: any

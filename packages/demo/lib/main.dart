@@ -4,15 +4,15 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
-import 'package:ndk_demo/router.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart' as ndk_flutter;
-import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_nip77/ndk_nip77.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_demo/router.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
+import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_nip77/dostr_nip77.dart';
+import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 
 import 'l10n/generated/sample_app_localizations.dart';
 import 'local_events.dart';
@@ -85,15 +85,15 @@ class MyApp extends StatelessWidget {
         locale: locale,
         localizationsDelegates: const [
           SampleAppLocalizations.delegate,
-          ndk_flutter.AppLocalizations.delegate,
+          dostr_flutter.AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
-        // Use ndk_flutter's locale list: it's the superset that includes the
+        // Use dostr_flutter's locale list: it's the superset that includes the
         // extra locales (fi, pt, pt_BR) translated in that package. The sample
         // app shell falls back to English for those via the delegate above.
-        supportedLocales: ndk_flutter.AppLocalizations.supportedLocales,
+        supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
         routerConfig: appRouter,
         builder: (context, child) => Stack(
           children: [

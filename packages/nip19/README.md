@@ -1,4 +1,4 @@
-# ndk_nip19
+# dostr_nip19
 
 [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) bech32
 encoding and decoding for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent`
@@ -11,13 +11,13 @@ already use `ndk` don't need to add it.
 
 ```yaml
 dependencies:
-  ndk_nip19: ^0.1.0
+  dostr_nip19: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
 
 final npub = Nip19.encodePubKey(
   '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
@@ -33,7 +33,7 @@ print(reference.eventId);
 ```
 
 `nevent` and `naddr` encode a `Nip01Event` of
-[`ndk_nip01`](https://pub.dev/packages/ndk_nip01) with its id, author and kind,
+[`dostr_nip01`](https://pub.dev/packages/dostr_nip01) with its id, author and kind,
 and relay hints. `naddr` returns null when the kind is not addressable or
 replaceable, or when the event has no `d` tag:
 
@@ -45,7 +45,7 @@ final naddr = event.naddr();
 ## Coming from `ndk`
 
 `package:ndk/shared/nips/nip19/nip19.dart` and the `Naddr`, `Nevent` and
-`Nprofile` entities are now all in `package:ndk_nip19/ndk_nip19.dart`, and so
+`Nprofile` entities are now all in `package:dostr_nip19/dostr_nip19.dart`, and so
 are the `nevent` and `naddr` methods on `Nip01Event`
 (`package:ndk/shared/nips/nip19/nip19_event_references.dart`).
 `package:ndk/ndk.dart` still exports them all.

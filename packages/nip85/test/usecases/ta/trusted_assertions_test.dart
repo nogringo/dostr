@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip85/dostr_nip85.dart';
 import 'package:test/test.dart';
 
-import 'package:ndk_mock_relay/ndk_mock_relay.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import '../../mocks/trusted_assertions_for_reqs.dart';
 
 void main() {

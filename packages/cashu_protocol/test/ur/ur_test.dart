@@ -2,18 +2,18 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:test/test.dart';
-import 'package:ndk_cashu_protocol/src/ur/bytewords.dart' as bytewords;
-import 'package:ndk_cashu_protocol/src/ur/cbor_lite.dart';
-import 'package:ndk_cashu_protocol/src/ur/xoshiro256.dart';
-import 'package:ndk_cashu_protocol/src/ur/fountain_encoder.dart';
-import 'package:ndk_cashu_protocol/src/ur/fountain_decoder.dart';
-import 'package:ndk_cashu_protocol/src/ur/fountain_utils.dart';
-import 'package:ndk_cashu_protocol/src/ur/ur_encoder.dart';
-import 'package:ndk_cashu_protocol/src/ur/ur_decoder.dart';
-import 'package:ndk_cashu_protocol/src/ur/ur.dart';
-import 'package:ndk_cashu_protocol/src/ur/random_sampler.dart'
+import 'package:dostr_cashu_protocol/src/ur/bytewords.dart' as bytewords;
+import 'package:dostr_cashu_protocol/src/ur/cbor_lite.dart';
+import 'package:dostr_cashu_protocol/src/ur/xoshiro256.dart';
+import 'package:dostr_cashu_protocol/src/ur/fountain_encoder.dart';
+import 'package:dostr_cashu_protocol/src/ur/fountain_decoder.dart';
+import 'package:dostr_cashu_protocol/src/ur/fountain_utils.dart';
+import 'package:dostr_cashu_protocol/src/ur/ur_encoder.dart';
+import 'package:dostr_cashu_protocol/src/ur/ur_decoder.dart';
+import 'package:dostr_cashu_protocol/src/ur/ur.dart';
+import 'package:dostr_cashu_protocol/src/ur/random_sampler.dart'
     show RandomSampler;
-import 'package:ndk_cashu_protocol/src/ur/utils.dart';
+import 'package:dostr_cashu_protocol/src/ur/utils.dart';
 
 import 'test_utils.dart';
 

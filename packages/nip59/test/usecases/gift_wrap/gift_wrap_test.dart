@@ -1,7 +1,7 @@
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip59/ndk_nip59.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip59/dostr_nip59.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 import '../../mocks/memory_gift_wrap_cache.dart';

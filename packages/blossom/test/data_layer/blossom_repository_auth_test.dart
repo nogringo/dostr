@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:http/http.dart' as http;
-import 'package:ndk_blossom/ndk_blossom.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:ndk_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
 import 'package:test/test.dart';
 
 import '../mocks/mock_blossom_server.dart';

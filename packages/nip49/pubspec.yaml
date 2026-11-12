@@ -1,4 +1,4 @@
-name: ndk_nip49
+name: dostr_nip49
 description: NIP-49 private key encryption for Nostr, to encrypt a key into an ncryptsec string with a password and decrypt it back.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk

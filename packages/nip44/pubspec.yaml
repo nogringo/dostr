@@ -1,4 +1,4 @@
-name: ndk_nip44
+name: dostr_nip44
 description: Pure Dart NIP-44 encryption for Nostr, with the deprecated NIP-04 encryption next to it.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk

@@ -1,7 +1,7 @@
 import 'dart:convert';
 
 import 'package:test/test.dart';
-import 'package:ndk_nip11/ndk_nip11.dart';
+import 'package:dostr_nip11/dostr_nip11.dart';
 
 void main() {
   group('RelayInfo', () {

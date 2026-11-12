@@ -1,4 +1,4 @@
-import 'package:ndk_home_relays/ndk_home_relays.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 import 'outbox_fetcher.dart';
 

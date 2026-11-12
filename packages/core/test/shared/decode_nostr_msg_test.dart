@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:ndk_core/src/nostr_message_raw.dart';
-import 'package:ndk_core/src/decode_nostr_msg.dart';
+import 'package:dostr_core/src/nostr_message_raw.dart';
+import 'package:dostr_core/src/decode_nostr_msg.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

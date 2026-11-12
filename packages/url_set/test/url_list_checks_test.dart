@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:test/test.dart';
 
 void main() {

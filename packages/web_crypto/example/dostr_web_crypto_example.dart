@@ -1,8 +1,8 @@
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 
 Future<void> main() async {
-  final signer = Bip340EventSignerFactory().createWithNewKeyPair();
+  final signer = const WebEventSignerFactory().createWithNewKeyPair();
 
   final event = await signer.sign(
     Nip01Event(
@@ -13,7 +13,7 @@ Future<void> main() async {
     ),
   );
 
-  final valid = await Bip340EventVerifier().verify(event);
+  final valid = await WebEventVerifier().verify(event);
   print('${event.id} signed, valid: $valid');
 
   await signer.dispose();

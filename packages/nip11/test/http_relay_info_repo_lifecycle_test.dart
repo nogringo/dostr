@@ -7,7 +7,7 @@ import 'dart:io';
 
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
-import 'package:ndk_nip11/ndk_nip11.dart';
+import 'package:dostr_nip11/dostr_nip11.dart';
 import 'package:test/test.dart';
 
 /// Keep production HTTPS mapping while routing test requests to local HTTP.

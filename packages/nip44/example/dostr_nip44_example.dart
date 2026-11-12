@@ -1,4 +1,4 @@
-import 'package:ndk_nip44/ndk_nip44.dart';
+import 'package:dostr_nip44/dostr_nip44.dart';
 
 Future<void> main() async {
   const alicePrivateKey =

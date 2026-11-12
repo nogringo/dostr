@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 class NSwitchAccount extends StatefulWidget {
   final NdkFlutter ndkFlutter;

@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 import 'package:pointycastle/export.dart' show HMac, KeyParameter, SHA256Digest;
 import 'package:test/test.dart';
 

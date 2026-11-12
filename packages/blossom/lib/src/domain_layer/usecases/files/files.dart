@@ -1,4 +1,4 @@
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_strategies.dart';

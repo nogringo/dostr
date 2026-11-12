@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'nip55_signer.dart';

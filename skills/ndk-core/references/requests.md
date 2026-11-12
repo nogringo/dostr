@@ -33,7 +33,7 @@ final outcomes = await publishes
 
 The event must be signed. No retry, no cache.
 
-## Outbox model (`ndk_fetchers` + `ndk_url_set`)
+## Outbox model (`dostr_fetchers` + `dostr_url_set`)
 
 ```dart
 final nip65 = Nip65Fetcher(reqs: reqs);

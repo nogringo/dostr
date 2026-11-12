@@ -6,12 +6,12 @@ label: Outbox model
 
 # Outbox model (gossip)
 
-The [outbox model](/concepts/gossip.md) reads an account's events from the relays it writes to, and publishes an event where its readers look: the author's write relays and the read relays of the pubkeys it tags. Both come from NIP-65 relay lists (kind 10002), which [`ndk_fetchers`](/usecases/fetchers.md) reads and [`ndk_url_set`](/usecases/relay-sets.md) turns into relays.
+The [outbox model](/concepts/gossip.md) reads an account's events from the relays it writes to, and publishes an event where its readers look: the author's write relays and the read relays of the pubkeys it tags. Both come from NIP-65 relay lists (kind 10002), which [`dostr_fetchers`](/usecases/fetchers.md) reads and [`dostr_url_set`](/usecases/relay-sets.md) turns into relays.
 
 The examples share this setup, on top of the `reqs` of [Relay REQs](/usecases/relay-reqs.md#setup):
 
 ```dart
-import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 
 final nip65 = Nip65Fetcher(reqs: reqs);
 final dmRelays = DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65);

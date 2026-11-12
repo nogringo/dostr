@@ -1,5 +1,5 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 /// Signs the kind 24242 event an operation authorises itself with.
 typedef BlossomAuthorizationSigner = Future<Nip01Event> Function();

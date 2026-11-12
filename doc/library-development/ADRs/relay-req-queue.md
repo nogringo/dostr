@@ -1,11 +1,11 @@
 # Architecture Decision Record: REQ queue per connection
 
-Title: ndk_core holds back a REQ while its connection is full
+Title: dostr_core holds back a REQ while its connection is full
 
 ## Context and Problem Statement
 
 Relays cap the subscriptions open on one websocket (NIP-11
-`limitation.max_subscriptions`, 200 by default on strfry). ndk_core sends every REQ
+`limitation.max_subscriptions`, 200 by default on strfry). dostr_core sends every REQ
 as soon as its connection is open, whatever is already open there.
 
 Past the cap, strfry answers `["NOTICE", "ERROR: too many concurrent REQs"]`, which
@@ -62,7 +62,7 @@ typedef SubscriptionLimit = FutureOr<int?> Function(String url);
 RelayManager({SubscriptionLimit? subscriptionLimit, ...})
 ```
 
-- ndk_core calls it once per connection, alongside opening its socket, and keeps
+- dostr_core calls it once per connection, alongside opening its socket, and keeps
   the answer on the `RelayConnection` for the life of that socket. A reconnection
   asks again.
 - No provider, `null`, or no answer within `SUBSCRIPTION_LIMIT_TIMEOUT` gives
@@ -71,7 +71,7 @@ RelayManager({SubscriptionLimit? subscriptionLimit, ...})
   alongside the socket opening.
 - The gate writes no REQ on a connection before its limit is known: they wait in
   its queue, so the first burst already respects the limit.
-- ndk_core does no HTTP, so `ndk` provides it and owns the precedence:
+- dostr_core does no HTTP, so `ndk` provides it and owns the precedence:
   `NdkConfig.subscriptionLimit`, of the same type, then the NIP-11
   `max_subscriptions` that `Connectivity.getRelayInfo` already caches. strfry
   publishes its limit there.

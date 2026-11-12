@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_zaps/ndk_zaps.dart';
+import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:test/test.dart';
 
 void main() {

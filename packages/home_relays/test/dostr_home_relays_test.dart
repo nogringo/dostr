@@ -2,10 +2,10 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:http/http.dart' as http;
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_home_relays/ndk_home_relays.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:test/test.dart';
 
 Nip01Event list(List<List<String>> tags) => Nip01Event(

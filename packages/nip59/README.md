@@ -1,4 +1,4 @@
-# ndk_nip59
+# dostr_nip59
 
 [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md) gift wrap for [NDK](https://pub.dev/packages/ndk): create rumors, seal them (kind `13`), wrap them with a one-time key (kind `1059`) and unwrap them back. It does not depend on `ndk`.
 
@@ -17,13 +17,13 @@ final received = await ndk.giftWrap.fromGiftWrap(giftWrap: wrap);
 
 ```yaml
 dependencies:
-  ndk_nip59: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_nip59: ^0.1.0
+  dostr_bip340: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip59/ndk_nip59.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip59/dostr_nip59.dart';
 
 final giftWrap = GiftWrap(
   signer: () => mySigner,

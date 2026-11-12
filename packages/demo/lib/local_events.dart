@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// Events kept in memory for the session, which NIP-77 compares with a
 /// relay's.

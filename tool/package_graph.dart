@@ -159,7 +159,7 @@ String _renderMarkdown(_Graph graph) {
       'An arrow from A to B means that A depends on B. The graph draws '
       '${graph.drawnCount} of the ${graph.edgeCount} dependencies and leaves '
       'out those a longer path already implies'
-      '${graph.omittedExample() ?? ''}. Names drop their `ndk_` prefix. The '
+      '${graph.omittedExample() ?? ''}. Names drop their `dostr_` prefix. The '
       'table lists every direct dependency.',
     )
     ..writeln()
@@ -189,7 +189,7 @@ const _rowGap = 84.0;
 const _margin = 16.0;
 const _labelColumn = 64.0;
 
-String _label(String package) => package.replaceFirst('ndk_', '');
+String _label(String package) => package.replaceFirst('dostr_', '');
 
 double _boxWidth(String package) =>
     _label(package).length * _charWidth + 2 * _boxPadding;

@@ -4,15 +4,15 @@ icon: file-zip
 
 # Blossom
 
-[`ndk_blossom`](https://pub.dev/packages/ndk_blossom) stores files on [Blossom](https://github.com/hzrd149/blossom) servers: upload, download, mirror, list and delete blobs, on the servers you pick or on a user's server list (kind `10063`). For a simpler API that also takes plain urls, see [Files](/usecases/files.md).
+[`dostr_blossom`](https://pub.dev/packages/dostr_blossom) stores files on [Blossom](https://github.com/hzrd149/blossom) servers: upload, download, mirror, list and delete blobs, on the servers you pick or on a user's server list (kind `10063`). For a simpler API that also takes plain urls, see [Files](/usecases/files.md).
 
 ```yaml
 dependencies:
-  ndk_blossom: ^0.1.0
-  ndk_accounts: ^0.1.0
-  ndk_bip340: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_fetchers: ^0.1.0
+  dostr_blossom: ^0.1.0
+  dostr_accounts: ^0.1.0
+  dostr_bip340: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_fetchers: ^0.1.0
 ```
 
 ## Setup
@@ -20,11 +20,11 @@ dependencies:
 `Blossom` signs as the logged account of an `AuthAccounts`, such as [Accounts](/usecases/accounts.md), and asks you how to read a user's server list. Here [fetchers](/usecases/fetchers.md) read it from the user's write relays:
 
 ```dart
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
+import 'package:dostr_core/src/web_socket_client/web_socket_client.dart';
 
 /// An object which contains information regarding the
 /// current WebSocket connection.

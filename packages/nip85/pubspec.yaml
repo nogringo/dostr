@@ -1,4 +1,4 @@
-name: ndk_nip85
+name: dostr_nip85
 description: NIP-85 trusted assertions for NDK (Nostr Development Kit), to fetch and stream the metrics trusted providers compute for users, events, addressable events and external identifiers, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -23,12 +23,12 @@ platforms:
   windows:
 
 dependencies:
-  ndk_core: ^0.11.0-dev.2
-  ndk_nip01: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_nip01: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0
-  ndk_bip340: ^0.1.0
-  ndk_mock_relay: ^0.1.0
-  ndk_nip19: ^0.1.0
+  dostr_bip340: ^0.1.0
+  dostr_mock_relay: ^0.1.0
+  dostr_nip19: ^0.1.0
   test: any

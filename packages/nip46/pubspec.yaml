@@ -1,4 +1,4 @@
-name: ndk_nip46
+name: dostr_nip46
 description: NIP-46 remote signing for NDK (Nostr Development Kit), to connect to a bunker with a bunker:// or nostrconnect:// URL and sign and encrypt through it, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -24,12 +24,12 @@ platforms:
   windows:
 
 dependencies:
-  ndk_core: ^0.11.0-dev.2
+  dostr_core: ^0.11.0-dev.2
   rxdart: ^0.28.0
 
 dev_dependencies:
   lints: ^6.1.0
-  ndk_mock_relay: ^0.1.0
-  ndk_bip340: ^0.1.0
-  ndk_nip44: ^0.1.0
+  dostr_mock_relay: ^0.1.0
+  dostr_bip340: ^0.1.0
+  dostr_nip44: ^0.1.0
   test: any

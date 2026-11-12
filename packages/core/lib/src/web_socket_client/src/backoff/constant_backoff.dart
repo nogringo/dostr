@@ -1,4 +1,4 @@
-import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
+import 'package:dostr_core/src/web_socket_client/web_socket_client.dart';
 
 /// {@template constant_backoff}
 /// A constant backoff strategy.

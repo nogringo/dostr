@@ -1,28 +1,28 @@
-# ndk_nip01
+# dostr_nip01
 
 The [NIP-01](https://github.com/nostr-protocol/nips/blob/master/01.md) Nostr
 event (`Nip01Event`), its JSON form, its id computation, the `Filter` of a
 REQ, and the `EventVerifier` interface that signature verifiers implement.
 
 Pure Dart, no relay or network code. A signature verifier such as
-[`ndk_rust_verifier`](https://pub.dev/packages/ndk_rust_verifier) only needs
-this package, not `ndk_core`.
+[`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) only needs
+this package, not `dostr_core`.
 
 [NDK](https://pub.dev/packages/ndk) and
-[`ndk_core`](https://pub.dev/packages/ndk_core) depend on it and export it, so
+[`dostr_core`](https://pub.dev/packages/dostr_core) depend on it and export it, so
 apps that already use one of them don't need to add it.
 
 ## Install
 
 ```yaml
 dependencies:
-  ndk_nip01: ^0.1.0
+  dostr_nip01: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 final event = Nip01Event(
   pubKey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
@@ -91,5 +91,5 @@ class MyVerifier implements EventVerifier {
 ## Coming from `ndk`
 
 `Nip01Event` and `EventVerifier` used to be in `ndk`. What changed, and the
-deprecated members that `ndk_core` keeps, are in the
-[`ndk_core` changelog](https://pub.dev/packages/ndk_core/changelog).
+deprecated members that `dostr_core` keeps, are in the
+[`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).

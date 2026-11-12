@@ -1,4 +1,4 @@
-name: ndk_demo
+name: dostr_demo
 description: "NDK Demo app"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -40,19 +40,19 @@ dependencies:
   path_provider: ^2.1.5
   flutter_secure_storage: ^10.0.0
 
-  ndk_accounts: ^0.1.0
-  ndk_bip340: ^0.1.0
-  ndk_blossom: ^0.1.0
-  ndk_core: ^0.11.0-dev.2
-  ndk_fetchers: ^0.1.0
-  ndk_flutter: ^0.10.3-dev.2
-  ndk_nip01: ^0.1.0
-  ndk_nip19: ^0.1.0
-  ndk_nip46: ^0.1.0
-  ndk_nip49: ^0.1.0
-  ndk_nip77: ^0.1.0
-  ndk_rust_verifier: ^0.6.0
-  ndk_signer: ^0.1.0
+  dostr_accounts: ^0.1.0
+  dostr_bip340: ^0.1.0
+  dostr_blossom: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_fetchers: ^0.1.0
+  dostr_flutter: ^0.10.3-dev.2
+  dostr_nip01: ^0.1.0
+  dostr_nip19: ^0.1.0
+  dostr_nip46: ^0.1.0
+  dostr_nip49: ^0.1.0
+  dostr_nip77: ^0.1.0
+  dostr_rust_verifier: ^0.6.0
+  dostr_signer: ^0.1.0
 
   cupertino_icons: ^1.0.8
   go_router: ^14.6.2
@@ -62,43 +62,43 @@ dev_dependencies:
     sdk: flutter
 
 dependency_overrides:
-  ndk_accounts:
+  dostr_accounts:
     path: ../accounts
-  ndk_bip340:
+  dostr_bip340:
     path: ../bip340
-  ndk_blossom:
+  dostr_blossom:
     path: ../blossom
-  ndk_core:
+  dostr_core:
     path: ../core
-  ndk_fetchers:
+  dostr_fetchers:
     path: ../fetchers
-  ndk_flutter:
+  dostr_flutter:
     path: ../flutter
-  ndk_home_relays:
+  dostr_home_relays:
     path: ../home_relays
-  ndk_nip01:
+  dostr_nip01:
     path: ../nip01
-  ndk_nip07:
+  dostr_nip07:
     path: ../nip07
-  ndk_nip19:
+  dostr_nip19:
     path: ../nip19
-  ndk_nip44:
+  dostr_nip44:
     path: ../nip44
-  ndk_nip46:
+  dostr_nip46:
     path: ../nip46
-  ndk_nip49:
+  dostr_nip49:
     path: ../nip49
-  ndk_nip55:
+  dostr_nip55:
     path: ../nip55
-  ndk_nip77:
+  dostr_nip77:
     path: ../nip77
-  ndk_rust_verifier:
+  dostr_rust_verifier:
     path: ../rust_verifier
-  ndk_signer:
+  dostr_signer:
     path: ../signer
-  ndk_url_set:
+  dostr_url_set:
     path: ../url_set
-  ndk_web_crypto:
+  dostr_web_crypto:
     path: ../web_crypto
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

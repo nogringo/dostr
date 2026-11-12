@@ -1,4 +1,4 @@
-name: ndk_nip13
+name: dostr_nip13
 description: NIP-13 proof of work for NDK (Nostr Development Kit), to mine, measure and validate the difficulty of Nostr event ids off the main isolate, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -23,7 +23,7 @@ platforms:
   windows:
 
 dependencies:
-  ndk_nip01: ^0.1.0
+  dostr_nip01: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0

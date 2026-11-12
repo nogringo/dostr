@@ -1,4 +1,4 @@
-name: ndk_accounts
+name: dostr_accounts
 description: The accounts of NDK (Nostr Development Kit), to log in with a private key, a public key, an external signer or a NIP-46 bunker, switch between them and sign as the logged one, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -23,11 +23,11 @@ platforms:
   windows:
 
 dependencies:
-  ndk_nip01: ^0.1.0
-  ndk_signer: ^0.1.0
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
   rxdart: ^0.28.0
 
 dev_dependencies:
   lints: ^6.1.0
-  ndk_bip340: ^0.1.0
+  dostr_bip340: ^0.1.0
   test: any

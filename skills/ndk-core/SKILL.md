@@ -1,6 +1,6 @@
 ---
 name: ndk-core
-description: NDK Dart packages for Nostr. ndk_core for relay connections, REQ and EVENT on chosen relays and NIP-42; ndk_fetchers and ndk_url_set for the outbox model; signers, accounts and one package per NIP.
+description: NDK Dart packages for Nostr. dostr_core for relay connections, REQ and EVENT on chosen relays and NIP-42; dostr_fetchers and dostr_url_set for the outbox model; signers, accounts and one package per NIP.
 metadata:
   author: relaystr
 ---
@@ -21,5 +21,5 @@ NDK is a set of Dart packages, not a binary: this is library development guidanc
 ## One-Line Summary
 
 ```
-RelayManager → RelayReqs / RelayPublishes → fetchers (ndk_fetchers) → UrlSet (ndk_url_set)
+RelayManager → RelayReqs / RelayPublishes → fetchers (dostr_fetchers) → UrlSet (dostr_url_set)
 ```

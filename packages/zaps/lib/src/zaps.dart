@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:ndk_core/ndk_core.dart' show Logger;
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_core/dostr_core.dart' show Logger;
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 import 'invoice_response.dart';
 import 'lnurl.dart';

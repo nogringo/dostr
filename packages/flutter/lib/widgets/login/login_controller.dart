@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_flutter/widgets/login/nostr_connect_dialog_view.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_flutter/widgets/login/nostr_connect_dialog_view.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LoginController extends ChangeNotifier {

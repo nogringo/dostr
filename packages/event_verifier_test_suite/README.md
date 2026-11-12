@@ -4,17 +4,17 @@ A shared test suite for [NDK](https://pub.dev/packages/ndk) `EventVerifier` impl
 
 ## Usage
 
-Add `ndk_event_verifier_test_suite` as a **dev dependency**:
+Add `dostr_event_verifier_test_suite` as a **dev dependency**:
 
 ```yaml
 dev_dependencies:
-  ndk_event_verifier_test_suite: ^0.1.0
+  dostr_event_verifier_test_suite: ^0.1.0
 ```
 
 Then in your test file:
 
 ```dart
-import 'package:ndk_event_verifier_test_suite/ndk_event_verifier_test_suite.dart';
+import 'package:dostr_event_verifier_test_suite/dostr_event_verifier_test_suite.dart';
 
 void main() {
   runEventVerifierTestSuite(

@@ -1,4 +1,4 @@
-import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 
 void main() async {
   final signer = Nip07EventSigner();

@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:ndk_core/domain_layer/usecases/requests/verified_event_cache.dart';
-import 'package:ndk_core/ndk_core.dart';
+import 'package:dostr_core/domain_layer/usecases/requests/verified_event_cache.dart';
+import 'package:dostr_core/dostr_core.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

@@ -1,5 +1,5 @@
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip85/ndk_nip85.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip85/dostr_nip85.dart';
 
 TrustedAssertions trustedAssertionsFor(
   RelayReqs reqs, {

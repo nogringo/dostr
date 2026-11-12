@@ -1,4 +1,4 @@
-name: ndk_nip59
+name: dostr_nip59
 description: NIP-59 gift wrap for NDK (Nostr Development Kit), to create rumors, seal and wrap them, and unwrap kind 1059 events, without depending on ndk.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk
@@ -24,10 +24,10 @@ platforms:
   windows:
 
 dependencies:
-  ndk_nip01: ^0.1.0
-  ndk_signer: ^0.1.0
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
 
 dev_dependencies:
   lints: ^6.1.0
-  ndk_bip340: ^0.1.0
+  dostr_bip340: ^0.1.0
   test: any

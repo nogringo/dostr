@@ -1,4 +1,4 @@
-name: ndk_nip01
+name: dostr_nip01
 description: The NIP-01 Nostr event for NDK (Nostr Development Kit), with its JSON form, its id computation and the EventVerifier interface that signature verifiers implement.
 version: 0.1.0
 homepage: https://github.com/relaystr/ndk

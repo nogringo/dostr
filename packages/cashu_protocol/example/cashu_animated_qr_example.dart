@@ -1,4 +1,4 @@
-import 'package:ndk_cashu_protocol/ndk_cashu_protocol.dart';
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 
 /// Example demonstrating NUT-16 Animated QR codes using UR encoding
 ///

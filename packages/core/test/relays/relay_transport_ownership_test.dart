@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_core/src/relay_manager_parts.dart';
-import 'package:ndk_core/src/request_state.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/relay_manager_parts.dart';
+import 'package:dostr_core/src/request_state.dart';
 import 'package:test/test.dart';
 
 class _Transport implements NostrTransport {

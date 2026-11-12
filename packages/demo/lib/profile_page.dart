@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
-import 'package:ndk_demo/login_popup.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_demo/login_popup.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
   final NdkFlutter ndkFlutter;

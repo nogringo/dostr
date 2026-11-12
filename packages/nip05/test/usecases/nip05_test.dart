@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_nip05/ndk_nip05.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
 import 'package:test/test.dart';
 
 import '../mocks/memory_nip05_cache.dart';

@@ -1,6 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:ndk_nip11/ndk_nip11.dart';
+import 'package:dostr_nip11/dostr_nip11.dart';
 import 'package:test/test.dart';
 
 HttpRelayInfoRepo _answering(http.Response response) =>

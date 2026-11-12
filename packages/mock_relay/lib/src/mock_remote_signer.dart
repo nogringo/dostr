@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_nip44/ndk_nip44.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_nip44/dostr_nip44.dart';
 
 import 'mock_relay.dart';
 

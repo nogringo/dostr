@@ -4,17 +4,17 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
-import 'package:ndk_flutter/main/config.dart';
-import 'package:ndk_flutter/models/accounts.dart';
-import 'package:ndk_flutter/models/metadata.dart';
-import 'package:ndk_flutter/models/nip_05_result.dart';
-import 'package:ndk_nip07/ndk_nip07.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
-import 'package:ndk_nip55/ndk_nip55.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_flutter/main/config.dart';
+import 'package:dostr_flutter/models/accounts.dart';
+import 'package:dostr_flutter/models/metadata.dart';
+import 'package:dostr_flutter/models/nip_05_result.dart';
+import 'package:dostr_nip07/dostr_nip07.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:dostr_nip55/dostr_nip55.dart';
 
 class NdkFlutter {
   final Accounts accounts;

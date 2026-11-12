@@ -2,7 +2,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'package:ndk_blossom/src/data_layer/io/file_io_native.dart';
+import 'package:dostr_blossom/src/data_layer/io/file_io_native.dart';
 import 'package:test/test.dart';
 
 void main() {

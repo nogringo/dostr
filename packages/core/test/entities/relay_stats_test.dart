@@ -1,6 +1,6 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_core/domain_layer/entities/relay_stats.dart';
-import 'package:ndk_core/src/relay_connection.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_core/domain_layer/entities/relay_stats.dart';
+import 'package:dostr_core/src/relay_connection.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

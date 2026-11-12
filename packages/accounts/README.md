@@ -1,8 +1,8 @@
-# ndk_accounts
+# dostr_accounts
 
 The accounts of [NDK](https://pub.dev/packages/ndk): log in with a private key, a public key, an external signer or a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker, switch between the logged accounts, and sign as the current one. It does not depend on `ndk`.
 
-`Accounts` implements `AuthAccounts` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), so relays (NIP-42) and Blossom servers authenticate as its accounts.
+`Accounts` implements `AuthAccounts` from [`dostr_signer`](https://pub.dev/packages/dostr_signer), so relays (NIP-42) and Blossom servers authenticate as its accounts.
 
 ## With NDK
 
@@ -19,13 +19,13 @@ ndk.broadcast.broadcast(nostrEvent: event); // signed by the logged account
 
 ```yaml
 dependencies:
-  ndk_accounts: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_accounts: ^0.1.0
+  dostr_bip340: ^0.1.0
 ```
 
 ```dart
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
 
 final accounts = Accounts(const Bip340EventSignerFactory());
 
@@ -40,7 +40,7 @@ accounts.switchAccount(pubkey: key.publicKey);
 final signed = await accounts.sign(event);
 ```
 
-The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`ndk_nip46`](https://pub.dev/packages/ndk_nip46):
+The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
 
 ```dart
 final signer = bunkers.createSigner(connection);
@@ -56,4 +56,4 @@ More in [example/](example/) and the [accounts docs](https://dart-nostr.com/usec
 
 ## Coming from `ndk`
 
-`Accounts` keeps its name and its API, and `package:ndk/ndk.dart` still exports it. The deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart` is now `package:ndk_accounts/ndk_accounts.dart`.
+`Accounts` keeps its name and its API, and `package:ndk/ndk.dart` still exports it. The deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart` is now `package:dostr_accounts/dostr_accounts.dart`.

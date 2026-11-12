@@ -43,7 +43,7 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
     private var _nextIntentRequestCode = 1
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-        _channel = MethodChannel(flutterPluginBinding.binaryMessenger, "ndk_nip55")
+        _channel = MethodChannel(flutterPluginBinding.binaryMessenger, "dostr_nip55")
         _channel.setMethodCallHandler(this)
         _context = flutterPluginBinding.applicationContext
     }

@@ -5,17 +5,17 @@ label: Gift Wrap
 
 # Gift Wrap
 
-[`ndk_nip59`](https://pub.dev/packages/ndk_nip59) implements [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md) gift wrap: create a rumor, seal it (kind `13`), wrap it with a one-time key (kind `1059`), and unwrap it back. The content is encrypted with NIP-44, and the wrap hides who sent it.
+[`dostr_nip59`](https://pub.dev/packages/dostr_nip59) implements [NIP-59](https://github.com/nostr-protocol/nips/blob/master/59.md) gift wrap: create a rumor, seal it (kind `13`), wrap it with a one-time key (kind `1059`), and unwrap it back. The content is encrypted with NIP-44, and the wrap hides who sent it.
 
 ```yaml
 dependencies:
-  ndk_nip59: ^0.1.0
-  ndk_bip340: ^0.1.0
+  dostr_nip59: ^0.1.0
+  dostr_bip340: ^0.1.0
 ```
 
 ## Example
 
-:::code source="../../packages/nip59/example/ndk_nip59_example.dart" language="dart" range="11-33" title="" :::
+:::code source="../../packages/nip59/example/dostr_nip59_example.dart" language="dart" range="11-33" title="" :::
 
 `signer` is read on each call, so it can follow whoever is logged in, for example `() => accounts.getLoggedAccount()?.signer` with [accounts](/usecases/accounts.md). Every method also takes a `customSigner`.
 

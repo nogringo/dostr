@@ -1,4 +1,4 @@
-# ndk_nip49
+# dostr_nip49
 
 [NIP-49](https://github.com/nostr-protocol/nips/blob/master/49.md) private key
 encryption for Nostr: encrypt a private key with a password into an
@@ -14,13 +14,13 @@ already use `ndk` don't need to add it.
 
 ```yaml
 dependencies:
-  ndk_nip49: ^0.1.0
+  dostr_nip49: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:ndk_nip49/ndk_nip49.dart';
+import 'package:dostr_nip49/dostr_nip49.dart';
 
 final ncryptsec = await Nip49.encrypt(
   '3501454135014541350145413501453fefb02227e449e57cf4d3a3ce05378683',
@@ -37,7 +37,7 @@ valid `ncryptsec` throws a `FormatException`.
 ## Coming from `ndk`
 
 `package:ndk/shared/nips/nip49/nip49.dart` is now
-`package:ndk_nip49/ndk_nip49.dart`. `package:ndk/ndk.dart` still exports
+`package:dostr_nip49/dostr_nip49.dart`. `package:ndk/ndk.dart` still exports
 `Nip49` and `Nip49KeySecurity`, along with `Nip49WrongPasswordException`.
 `decrypt` throws it instead of `SecretBoxAuthenticationError` from
 `cryptography`, and wraps the `bech32` decoding errors in a `FormatException`.

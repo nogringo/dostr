@@ -1,10 +1,10 @@
 import 'dart:ffi';
 
 import 'package:ffi/ffi.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_rust_verifier/ndk_rust_verifier.dart';
-import 'package:ndk_rust_verifier/src/rust_lib.dart' as rust_lib;
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
+import 'package:dostr_rust_verifier/src/rust_lib.dart' as rust_lib;
 import 'package:test/test.dart';
 
 void main() {

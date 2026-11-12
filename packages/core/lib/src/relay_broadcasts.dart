@@ -2,12 +2,12 @@ import 'dart:async';
 
 import '../config/relay_defaults.dart';
 import '../domain_layer/entities/timeout_pausable.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import '../domain_layer/entities/relay_connection_key.dart';
 import '../domain_layer/entities/relay_failure.dart';
-import 'package:ndk_url_set/ndk_url_set.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'logger/logger.dart';
 import 'broadcast_state.dart';
 import 'client_msg.dart';
@@ -17,7 +17,7 @@ import 'relay_connections.dart';
 
 /// The EVENTs in flight on a `RelayManager`: sending them, routing each OK to
 /// the broadcasts waiting on it and moving them to a bound connection when a
-/// relay asks for authentication. Internal to ndk_core.
+/// relay asks for authentication. Internal to dostr_core.
 class RelayBroadcasts {
   final RelayConnections _connections;
   final RelayAuth _auth;

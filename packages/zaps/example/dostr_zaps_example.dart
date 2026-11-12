@@ -1,9 +1,9 @@
 import 'package:http/http.dart' as http;
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_zaps/ndk_zaps.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_zaps/dostr_zaps.dart';
 
-/// `dart run example/ndk_zaps_example.dart wss://relay.example.com <hex pubkey> [name@domain.com]`
+/// `dart run example/dostr_zaps_example.dart wss://relay.example.com <hex pubkey> [name@domain.com]`
 ///
 /// Lists the zap receipts of the pubkey, then fetches a 21 sat zap invoice
 /// for the lightning address when one is given.

@@ -1,15 +1,15 @@
 # Signers
 
-A signer signs events and encrypts and decrypts messages. Every signer implements `EventSigner` from [`ndk_signer`](https://pub.dev/packages/ndk_signer), so code that signs takes any of them.
+A signer signs events and encrypts and decrypts messages. Every signer implements `EventSigner` from [`dostr_signer`](https://pub.dev/packages/dostr_signer), so code that signs takes any of them.
 
 ## Signer types
 
 | Type | Package | Description | Pending requests |
 |------|---------|-------------|------------------|
-| `Bip340EventSigner` | `ndk_bip340` | Local signer with the private key, pure Dart | No (instant) |
-| `Nip46EventSigner` | `ndk_nip46` | Remote signer through a NIP-46 bunker | Yes |
-| `Nip07EventSigner` | `ndk_nip07` | Browser extension (NIP-07) | Yes |
-| `Nip55EventSigner` | `ndk_nip55` | Android signer app (NIP-55), Flutter plugin | Yes |
+| `Bip340EventSigner` | `dostr_bip340` | Local signer with the private key, pure Dart | No (instant) |
+| `Nip46EventSigner` | `dostr_nip46` | Remote signer through a NIP-46 bunker | Yes |
+| `Nip07EventSigner` | `dostr_nip07` | Browser extension (NIP-07) | Yes |
+| `Nip55EventSigner` | `dostr_nip55` | Android signer app (NIP-55), Flutter plugin | Yes |
 
 To keep several accounts and switch between them, see [Accounts](/usecases/accounts.md).
 

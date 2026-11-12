@@ -5,21 +5,21 @@ label: Fetchers
 
 # Fetchers
 
-[`ndk_fetchers`](https://pub.dev/packages/ndk_fetchers) reads the lists an account publishes about itself from the relays where NIP-65 puts them, on top of [Relay REQs](relay-reqs.md). Each fetcher asks the account's write relays as soon as its relay list arrives, and a few indexer relays meanwhile. It hands over every newer version as it comes, and tells a list no relay holds from one no relay answered for.
+[`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) reads the lists an account publishes about itself from the relays where NIP-65 puts them, on top of [Relay REQs](relay-reqs.md). Each fetcher asks the account's write relays as soon as its relay list arrives, and a few indexer relays meanwhile. It hands over every newer version as it comes, and tells a list no relay holds from one no relay answered for.
 
 ```yaml
 dependencies:
-  ndk_core: ^0.11.0-dev.2
-  ndk_bip340: ^0.1.0
-  ndk_fetchers: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_bip340: ^0.1.0
+  dostr_fetchers: ^0.1.0
 ```
 
 ## Setup
 
 ```dart
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_core/ndk_core.dart';
-import 'package:ndk_fetchers/ndk_fetchers.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -43,7 +43,7 @@ Give every fetcher the same `Nip65Fetcher`: they then share its lookups.
 | `MetadataFetcher` | 0, metadata | |
 | `DmRelaysFetcher` | 10050, NIP-17 DM relays | `dmRelaysOf` |
 | `BlossomServersFetcher` | 10063, BUD-03 Blossom servers | `blossomServersOf` |
-| `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` of `ndk_home_relays` |
+| `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` of `dostr_home_relays` |
 
 `Nip65Fetcher` asks its `relays`, `defaultIndexerRelays` unless given. The others ask the write relays their `nip65Fetcher` finds, and their own `relays` while the relay list is on its way.
 
@@ -68,7 +68,7 @@ The pubkeys looked up within `batchWindow`, 50 ms unless given, share the REQs o
 
 ## Cache and checks
 
-Without a cache, a cold start asks the relays for every list again. Give the fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds, then stores each newer one. Add a `UrlListCheckStore` from [`ndk_url_set`](relay-sets.md#storage) and a list a relay answered for less than `maxAge` ago is read from the cache alone, an absent one included.
+Without a cache, a cold start asks the relays for every list again. Give the fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds, then stores each newer one. Add a `UrlListCheckStore` from [`dostr_url_set`](relay-sets.md#storage) and a list a relay answered for less than `maxAge` ago is read from the cache alone, an absent one included.
 
 ## Fetching any filter
 
@@ -98,10 +98,10 @@ if (!result.complete) print('partial: ${result.unavailable}');
 
 ## Home relays
 
-[`ndk_home_relays`](https://pub.dev/packages/ndk_home_relays) computes the relays every client derives for a pubkey from a `home-relays` list, as the Computed Home Relays NIP describes. Pass the list to `Nip65Fetcher` to also ask them for relay lists:
+[`dostr_home_relays`](https://pub.dev/packages/dostr_home_relays) computes the relays every client derives for a pubkey from a `home-relays` list, as the Computed Home Relays NIP describes. Pass the list to `Nip65Fetcher` to also ask them for relay lists:
 
 ```dart
-import 'package:ndk_home_relays/ndk_home_relays.dart';
+import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 final homeRelayList = await HomeRelayList.fetch(verifier: Bip340EventVerifier());
 final nip65 = Nip65Fetcher(reqs: reqs, homeRelayList: homeRelayList);

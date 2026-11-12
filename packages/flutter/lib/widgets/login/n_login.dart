@@ -1,12 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_nip19/ndk_nip19.dart';
-import 'package:ndk_nip46/ndk_nip46.dart';
-import 'package:ndk_flutter/widgets/login/login_controller.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:dostr_flutter/widgets/login/login_controller.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class NLogin extends StatefulWidget {

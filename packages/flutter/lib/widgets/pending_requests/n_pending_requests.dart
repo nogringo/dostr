@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ndk_accounts/ndk_accounts.dart';
-import 'package:ndk_flutter/ndk_flutter.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 /// State of the pending requests widget
 enum NPendingRequestsState { hidden, collapsed, expanded }

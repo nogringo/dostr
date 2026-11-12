@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
-import 'package:ndk_signer/ndk_signer.dart';
-import 'package:ndk_demo/l10n/app_localizations_context.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_demo/l10n/app_localizations_context.dart';
 
 import 'main.dart';
 

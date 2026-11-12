@@ -3,11 +3,11 @@ import 'dart:async';
 import 'package:rxdart/rxdart.dart';
 
 import '../domain_layer/entities/timeout_pausable.dart';
-import 'package:ndk_signer/ndk_signer.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import '../domain_layer/entities/broadcast_state.dart';
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// State of one broadcast. Internal to ndk_core.
+/// State of one broadcast. Internal to dostr_core.
 class BroadcastState implements TimeoutPausable {
   /// share of the relays, between 0 and 1, that must accept the event for the
   /// broadcast to be done before every relay answered

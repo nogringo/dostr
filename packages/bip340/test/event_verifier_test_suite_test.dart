@@ -1,5 +1,5 @@
-import 'package:ndk_bip340/ndk_bip340.dart';
-import 'package:ndk_event_verifier_test_suite/ndk_event_verifier_test_suite.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_event_verifier_test_suite/dostr_event_verifier_test_suite.dart';
 
 void main() {
   runEventVerifierTestSuite(

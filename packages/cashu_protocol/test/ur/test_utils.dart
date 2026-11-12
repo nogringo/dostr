@@ -1,8 +1,8 @@
 import 'dart:typed_data';
 
-import 'package:ndk_cashu_protocol/src/ur/xoshiro256.dart';
-import 'package:ndk_cashu_protocol/src/ur/cbor_lite.dart';
-import 'package:ndk_cashu_protocol/src/ur/ur.dart';
+import 'package:dostr_cashu_protocol/src/ur/xoshiro256.dart';
+import 'package:dostr_cashu_protocol/src/ur/cbor_lite.dart';
+import 'package:dostr_cashu_protocol/src/ur/ur.dart';
 
 Uint8List makeMessage(int length, {String seed = "Wolf"}) {
   var rng = Xoshiro256.fromString(seed);

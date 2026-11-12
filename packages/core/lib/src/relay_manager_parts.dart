@@ -4,7 +4,7 @@ import 'relay_broadcasts.dart';
 import 'relay_connections.dart';
 import 'relay_requests.dart';
 
-/// The pieces a [RelayManager] is made of. Internal to ndk_core.
+/// The pieces a [RelayManager] is made of. Internal to dostr_core.
 final class RelayManagerParts {
   final RelayAuth auth;
   final RelayConnections connections;

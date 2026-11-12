@@ -1,22 +1,22 @@
-# ndk_blossom
+# dostr_blossom
 
 [Blossom](https://github.com/hzrd149/blossom) file storage for [NDK](https://pub.dev/packages/ndk): upload, download, mirror and delete blobs on a user's servers (kind `10063`).
 
-It does not depend on `ndk`. It signs through [`ndk_signer`](https://pub.dev/packages/ndk_signer), which also gives it its accounts and auth policies, and asks you how to read a user's server list. NDK exposes it, wired to its accounts and server lists, as `ndk.blossom` and `ndk.files`: build it yourself, as below, only to wire it differently.
+It does not depend on `ndk`. It signs through [`dostr_signer`](https://pub.dev/packages/dostr_signer), which also gives it its accounts and auth policies, and asks you how to read a user's server list. NDK exposes it, wired to its accounts and server lists, as `ndk.blossom` and `ndk.files`: build it yourself, as below, only to wire it differently.
 
 ## Install
 
 ```yaml
 dependencies:
   ndk: ^0.11.0-dev.2
-  ndk_blossom: ^0.1.0
+  dostr_blossom: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
 import 'package:ndk/ndk.dart';
-import 'package:ndk_blossom/ndk_blossom.dart';
+import 'package:dostr_blossom/dostr_blossom.dart';
 
 final ndk = Ndk.defaultConfig();
 

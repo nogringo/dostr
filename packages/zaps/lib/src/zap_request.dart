@@ -1,4 +1,4 @@
-import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// A NIP-57 zap request: a [Nip01Event] of kind [kZapRequestKind].
 extension type ZapRequest._(Nip01Event _event) implements Nip01Event {

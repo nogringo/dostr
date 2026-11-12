@@ -1,4 +1,4 @@
-import 'package:ndk_core/src/web_socket_client/web_socket_client.dart';
+import 'package:dostr_core/src/web_socket_client/web_socket_client.dart';
 
 /// {@template binary_exponential_backoff}
 /// A binary exponential backoff strategy.

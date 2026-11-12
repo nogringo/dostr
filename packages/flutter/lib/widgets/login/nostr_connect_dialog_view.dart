@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:ndk_flutter/l10n/app_localizations.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:pretty_qr_code/pretty_qr_code.dart';
 
 class NostrConnectDialogView extends StatelessWidget {
