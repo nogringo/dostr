@@ -1,7 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_flutter/widgets/login/login_controller.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,7 +25,6 @@ class NLogin extends StatefulWidget {
   final String? nsecLabelText;
   final String getStartedUrl;
 
-  Ndk get ndk => ndkFlutter.ndk;
   bool get enableNostrConnectLogin => nostrConnect != null;
 
   const NLogin({
@@ -50,7 +52,7 @@ class NLogin extends StatefulWidget {
 class _NLoginState extends State<NLogin> {
   late LoginController controller;
 
-  Ndk get ndk => widget.ndk;
+  Accounts get _accounts => widget.ndkFlutter.accounts;
 
   @override
   void initState() {
@@ -289,10 +291,10 @@ class _NLoginState extends State<NLogin> {
       return;
     }
 
-    if (ndk.accounts.hasAccount(pubkey)) {
-      ndk.accounts.switchAccount(pubkey: pubkey);
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
     } else {
-      ndk.accounts.loginPublicKey(pubkey: pubkey);
+      _accounts.loginPublicKey(pubkey: pubkey);
     }
 
     await controller.loggedIn();
@@ -310,10 +312,10 @@ class _NLoginState extends State<NLogin> {
 
     final pubkey = Bip340.getPublicKey(privateKey);
 
-    if (ndk.accounts.hasAccount(pubkey)) {
-      ndk.accounts.switchAccount(pubkey: pubkey);
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
     } else {
-      ndk.accounts.loginPrivateKey(pubkey: pubkey, privkey: privateKey);
+      _accounts.loginPrivateKey(pubkey: pubkey, privkey: privateKey);
     }
 
     await controller.loggedIn();
@@ -341,10 +343,10 @@ class _NLoginState extends State<NLogin> {
       return;
     }
 
-    if (ndk.accounts.hasAccount(pubkey)) {
-      ndk.accounts.switchAccount(pubkey: pubkey);
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
     } else {
-      ndk.accounts.loginPublicKey(pubkey: pubkey);
+      _accounts.loginPublicKey(pubkey: pubkey);
     }
 
     await controller.loggedIn();
@@ -364,10 +366,10 @@ class _NLoginState extends State<NLogin> {
 
     final pubkey = await signer.getPublicKeyAsync();
 
-    if (ndk.accounts.hasAccount(pubkey)) {
-      ndk.accounts.switchAccount(pubkey: pubkey);
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
     } else {
-      ndk.accounts.loginExternalSigner(signer: signer);
+      _accounts.loginExternalSigner(signer: signer);
     }
 
     await controller.loggedIn();

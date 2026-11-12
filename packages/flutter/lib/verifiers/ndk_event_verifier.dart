@@ -1,4 +1,4 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 import 'ndk_event_verifier_stub.dart'
     if (dart.library.io) 'ndk_event_verifier_native.dart'
@@ -15,11 +15,9 @@ import 'ndk_event_verifier_stub.dart'
 /// application code.
 ///
 /// ```dart
-/// final ndk = Ndk(
-///   NdkConfig(
-///     eventVerifier: NdkEventVerifier(),
-///     cache: MemCacheManager(),
-///   ),
+/// final reqs = RelayReqs(
+///   relayManager: relayManager,
+///   eventVerifier: NdkEventVerifier(),
 /// );
 /// ```
 class NdkEventVerifier implements EventVerifier {

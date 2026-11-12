@@ -1,4 +1,4 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 
 /// Stub implementation for non-web platforms.
 /// WebEventVerifier is only available on web platforms.

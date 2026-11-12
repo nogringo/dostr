@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 class NSwitchAccount extends StatefulWidget {
   final NdkFlutter ndkFlutter;
@@ -10,8 +11,6 @@ class NSwitchAccount extends StatefulWidget {
   final void Function()? onAddAccount;
   final void Function(String pubkey)? beforeAccountSwitch;
   final void Function(String pubkey)? beforeAccountRemove;
-
-  Ndk get ndk => ndkFlutter.ndk;
 
   const NSwitchAccount({
     super.key,
@@ -28,7 +27,7 @@ class NSwitchAccount extends StatefulWidget {
 }
 
 class _NSwitchAccountState extends State<NSwitchAccount> {
-  Ndk get ndk => widget.ndk;
+  Accounts get _accounts => widget.ndkFlutter.accounts;
 
   Widget _getAccountTypeChip(BuildContext context, Account account) {
     String label;
@@ -65,8 +64,8 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
 
   @override
   Widget build(BuildContext context) {
-    final accounts = ndk.accounts.accounts.values.toList();
-    final loggedPubkey = ndk.accounts.getPublicKey();
+    final accounts = _accounts.accounts.values.toList();
+    final loggedPubkey = _accounts.getPublicKey();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -83,7 +82,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
               child: TextButton(
                 onPressed: () {
                   widget.beforeAccountRemove?.call(pubkey);
-                  ndk.accounts.removeAccount(pubkey: pubkey);
+                  _accounts.removeAccount(pubkey: pubkey);
                   widget.ndkFlutter.saveAccountsState();
                   setState(() {});
                   widget.onAccountRemove?.call(pubkey);
@@ -94,7 +93,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
 
             onTap = () {
               widget.beforeAccountSwitch?.call(pubkey);
-              ndk.accounts.switchAccount(pubkey: pubkey);
+              _accounts.switchAccount(pubkey: pubkey);
               widget.ndkFlutter.saveAccountsState();
               setState(() {});
               widget.onAccountSwitch?.call(pubkey);

@@ -4,8 +4,8 @@
 /// On web: uses [WebEventSigner] (fast JS crypto via @noble/curves)
 /// On native (mobile/desktop): uses [Bip340EventSigner] (pure Dart)
 ///
-/// Pair with [NdkEventSignerFactory] in [NdkConfig.eventSignerFactory] to
-/// wire it into NDK's account/signer creation flow.
+/// Give [NdkEventSignerFactory] to `Accounts` so the accounts it logs in sign
+/// with it.
 ///
 /// The conditional export below works like this:
 /// - Web compiler sees `dart.library.js_interop` → loads `event_signer_web.dart`

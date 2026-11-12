@@ -8,9 +8,9 @@ order: 90
 
 # Package graph
 
-The workspace has 29 packages and 54 direct dependencies between them, with no cycle. A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
+The workspace has 27 packages and 51 direct dependencies between them, with no cycle. A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
-An arrow from A to B means that A depends on B. The graph draws 38 of the 54 dependencies and leaves out those a longer path already implies: `ndk_mock_relay` depends on `ndk_core`, but no arrow goes from one to the other since `ndk_mock_relay` reaches it through `ndk_nip77`. Names drop their `ndk_` prefix. The table lists every direct dependency.
+An arrow from A to B means that A depends on B. The graph draws 32 of the 51 dependencies and leaves out those a longer path already implies: `ndk_mock_relay` depends on `ndk_core`, but no arrow goes from one to the other since `ndk_mock_relay` reaches it through `ndk_nip77`. Names drop their `ndk_` prefix. The table lists every direct dependency.
 
 Run `melos run graph` after changing a dependency between packages.
 
@@ -18,32 +18,30 @@ Run `melos run graph` after changing a dependency between packages.
 
 | Layer | Package | Depends on | Used by |
 | ---: | --- | --- | ---: |
-| 0 | `ndk_http` |  | 5 |
-| 0 | `ndk_isolates` |  | 4 |
+| 0 | `ndk_cashu_protocol` |  | 0 |
 | 0 | `ndk_nip01` |  | 16 |
+| 0 | `ndk_nip05` |  | 0 |
+| 0 | `ndk_nip11` |  | 0 |
 | 0 | `ndk_nip44` |  | 2 |
 | 0 | `ndk_nip49` |  | 0 |
 | 0 | `ndk_url_set` |  | 3 |
-| 1 | `ndk_cashu_protocol` | `ndk_http` | 0 |
-| 1 | `ndk_nip05` | `ndk_http` | 0 |
-| 1 | `ndk_nip11` | `ndk_http` | 0 |
-| 1 | `ndk_nip13` | `ndk_isolates`, `ndk_nip01` | 0 |
-| 1 | `ndk_nip19` | `ndk_nip01` | 2 |
+| 1 | `ndk_nip13` | `ndk_nip01` | 0 |
+| 1 | `ndk_nip19` | `ndk_nip01` | 3 |
 | 1 | `ndk_rust_verifier` | `ndk_nip01` | 1 |
-| 1 | `ndk_signer` | `ndk_nip01` | 9 |
-| 2 | `ndk_accounts` | `ndk_nip01`, `ndk_signer` | 0 |
-| 2 | `ndk_bip340` | `ndk_isolates`, `ndk_nip01`, `ndk_nip44`, `ndk_signer` | 1 |
-| 2 | `ndk_blossom` | `ndk_http`, `ndk_isolates`, `ndk_nip01`, `ndk_signer` | 0 |
-| 2 | `ndk_core` | `ndk_isolates`, `ndk_nip01`, `ndk_signer`, `ndk_url_set` | 7 |
+| 1 | `ndk_signer` | `ndk_nip01` | 10 |
+| 2 | `ndk_accounts` | `ndk_nip01`, `ndk_signer` | 1 |
+| 2 | `ndk_bip340` | `ndk_nip01`, `ndk_nip44`, `ndk_signer` | 2 |
+| 2 | `ndk_blossom` | `ndk_nip01`, `ndk_signer` | 0 |
+| 2 | `ndk_core` | `ndk_nip01`, `ndk_signer`, `ndk_url_set` | 7 |
 | 2 | `ndk_event_verifier_test_suite` | `ndk_nip01`, `ndk_signer` | 0 |
 | 2 | `ndk_home_relays` | `ndk_nip01`, `ndk_nip19`, `ndk_url_set` | 1 |
 | 2 | `ndk_nip07` | `ndk_nip01`, `ndk_signer` | 1 |
 | 2 | `ndk_nip55` | `ndk_nip01`, `ndk_nip19`, `ndk_signer` | 1 |
 | 2 | `ndk_nip59` | `ndk_nip01`, `ndk_signer` | 0 |
-| 3 | `ndk_fetchers` | `ndk_core`, `ndk_home_relays`, `ndk_url_set` | 0 |
-| 3 | `ndk_flutter` | `ndk_core`, `ndk_nip01`, `ndk_nip07`, `ndk_nip55`, `ndk_rust_verifier` | 0 |
-| 3 | `ndk_nip46` | `ndk_core` | 0 |
+| 3 | `ndk_fetchers` | `ndk_core`, `ndk_home_relays`, `ndk_url_set` | 1 |
+| 3 | `ndk_nip46` | `ndk_core` | 1 |
 | 3 | `ndk_nip77` | `ndk_core` | 1 |
 | 3 | `ndk_nip85` | `ndk_core`, `ndk_nip01` | 0 |
-| 3 | `ndk_zaps` | `ndk_core`, `ndk_http`, `ndk_nip01`, `ndk_signer` | 0 |
+| 3 | `ndk_zaps` | `ndk_core`, `ndk_nip01`, `ndk_signer` | 0 |
+| 4 | `ndk_flutter` | `ndk_accounts`, `ndk_bip340`, `ndk_core`, `ndk_fetchers`, `ndk_nip01`, `ndk_nip07`, `ndk_nip19`, `ndk_nip46`, `ndk_nip55`, `ndk_rust_verifier`, `ndk_signer` | 0 |
 | 4 | `ndk_mock_relay` | `ndk_bip340`, `ndk_core`, `ndk_nip44`, `ndk_nip77` | 0 |

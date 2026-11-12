@@ -1,4 +1,5 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_flutter/signers/nip07_event_signer.dart';
 
 void test() async {

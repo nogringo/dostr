@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
@@ -13,10 +13,10 @@ class NUserProfile extends StatelessWidget {
   final bool showNip05;
   final VoidCallback? onLogout;
 
-  Ndk get ndk => ndkFlutter.ndk;
+  Accounts get _accounts => ndkFlutter.accounts;
 
   String? get profilePubkey =>
-      metadata?.pubKey ?? pubkey ?? ndk.accounts.getPublicKey();
+      metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NUserProfile({
     super.key,
@@ -41,7 +41,7 @@ class NUserProfile extends StatelessWidget {
 
     // Otherwise, load metadata
     return FutureBuilder(
-      future: ndk.metadata.loadMetadata(profilePubkey!),
+      future: ndkFlutter.loadMetadata(profilePubkey!),
       builder: (context, snapshot) {
         return _buildProfile(context, snapshot.data);
       },
@@ -53,7 +53,7 @@ class NUserProfile extends StatelessWidget {
     String? nip05;
 
     // Check if this is the logged account
-    final isLoggedAccount = profilePubkey == ndk.accounts.getPublicKey();
+    final isLoggedAccount = profilePubkey == _accounts.getPublicKey();
 
     if (metadata != null) {
       name = metadata.getName();
@@ -96,12 +96,12 @@ class NUserProfile extends StatelessWidget {
                     children: [
                       FilledButton.icon(
                         onPressed: () async {
-                          ndk.accounts.logout();
+                          _accounts.logout();
 
-                          if (ndk.accounts.accounts.isNotEmpty) {
+                          if (_accounts.accounts.isNotEmpty) {
                             final pubkey =
-                                ndk.accounts.accounts.values.first.pubkey;
-                            ndk.accounts.switchAccount(pubkey: pubkey);
+                                _accounts.accounts.values.first.pubkey;
+                            _accounts.switchAccount(pubkey: pubkey);
                           }
 
                           await ndkFlutter.saveAccountsState();

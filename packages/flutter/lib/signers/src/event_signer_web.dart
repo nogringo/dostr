@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:js_interop';
 
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 import 'package:ndk_core/shared/nips/nip01/helpers.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:web/web.dart' as web;

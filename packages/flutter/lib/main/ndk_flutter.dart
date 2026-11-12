@@ -1,46 +1,107 @@
 import 'dart:convert';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:ndk/ndk.dart';
+import 'package:http/http.dart' as http;
+import 'package:ndk_accounts/ndk_accounts.dart';
+import 'package:ndk_core/ndk_core.dart';
+import 'package:ndk_fetchers/ndk_fetchers.dart';
 import 'package:ndk_flutter/main/config.dart';
 import 'package:ndk_flutter/models/accounts.dart';
+import 'package:ndk_flutter/models/metadata.dart';
 import 'package:ndk_flutter/models/nip_05_result.dart';
 import 'package:ndk_nip07/ndk_nip07.dart';
+import 'package:ndk_nip19/ndk_nip19.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_nip55/ndk_nip55.dart';
-import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
 
 class NdkFlutter {
-  final Ndk ndk;
+  final Accounts accounts;
+  final RelayReqs relayReqs;
+  final RelayPublishes relayPublishes;
+
+  /// reads the profiles the widgets show
+  final MetadataFetcher metadataFetcher;
+
+  /// NIP-46 connections, signed with the factory of [accounts]
+  final Bunkers bunkers;
+
   final String npubSeparator;
   final int npubPrefixLength;
   final int npubSuffixLength;
   final FlutterSecureStorage _storage;
-  final Wallets? _wallets;
-  final Cashu? _cashu;
-  final Nwc? _nwc;
 
-  /// [wallets], [cashu] and [nwc] default to those of [ndk].
+  /// [metadataFetcher] defaults to one that asks the write relays of each
+  /// pubkey, found by its own [Nip65Fetcher].
   NdkFlutter({
-    required this.ndk,
-    Wallets? wallets,
-    Cashu? cashu,
-    Nwc? nwc,
+    required this.accounts,
+    required this.relayReqs,
+    required this.relayPublishes,
+    MetadataFetcher? metadataFetcher,
     this.npubSeparator = '…',
     this.npubPrefixLength = 10,
     this.npubSuffixLength = 4,
     FlutterSecureStorage? storage,
-  }) : _storage = storage ?? const FlutterSecureStorage(),
-       _wallets = wallets,
-       _cashu = cashu,
-       _nwc = nwc;
+  }) : metadataFetcher =
+           metadataFetcher ??
+           MetadataFetcher(
+             reqs: relayReqs,
+             nip65Fetcher: Nip65Fetcher(reqs: relayReqs),
+           ),
+       bunkers = Bunkers(
+         relayReqs: relayReqs,
+         relayPublishes: relayPublishes,
+         eventSignerFactory: accounts.eventSignerFactory,
+       ),
+       _storage = storage ?? const FlutterSecureStorage();
 
-  Wallets get wallets => _wallets ?? ndk.wallets;
+  /// the newest profile of [pubkey], or null if no relay has one
+  Future<Metadata?> loadMetadata(String pubkey) async {
+    final event = await metadataFetcher.fetch(pubkey);
+    return event == null ? null : Metadata.fromEvent(event);
+  }
 
-  Cashu get cashu => _cashu ?? ndk.cashu;
+  /// logs in through a `bunker://` url
+  Future<BunkerConnection?> loginWithBunkerUrl(
+    String bunkerUrl, {
+    void Function(String url)? authCallback,
+    Nip46ClientMetadata? clientMetadata,
+  }) async {
+    final connection = await bunkers.connectWithBunkerUrl(
+      bunkerUrl,
+      authCallback: authCallback,
+      clientMetadata: clientMetadata,
+    );
+    if (connection != null) {
+      await _loginWithBunker(connection, authCallback: authCallback);
+    }
+    return connection;
+  }
 
-  Nwc get nwc => _nwc ?? ndk.nwc;
+  /// logs in once a signer answers [nostrConnect]
+  Future<BunkerConnection?> loginWithNostrConnect(
+    NostrConnect nostrConnect, {
+    void Function(String url)? authCallback,
+  }) async {
+    final connection = await bunkers.connectWithNostrConnect(
+      nostrConnect,
+      authCallback: authCallback,
+    );
+    if (connection != null) {
+      await _loginWithBunker(connection, authCallback: authCallback);
+    }
+    return connection;
+  }
+
+  Future<void> _loginWithBunker(
+    BunkerConnection connection, {
+    void Function(String url)? authCallback,
+  }) async {
+    final signer = bunkers.createSigner(connection, authCallback: authCallback);
+    await signer.getPublicKeyAsync();
+    accounts.loginExternalSigner(signer: signer);
+  }
 
   String formatNpub(String pubkey) {
     final npub = Nip19.encodePubKey(pubkey);
@@ -112,11 +173,11 @@ class NdkFlutter {
   }
 
   Future<void> saveAccountsState() async {
-    final accounts = NostrWidgetsAccounts(accounts: []);
+    final stored = NostrWidgetsAccounts(accounts: []);
 
-    for (var account in ndk.accounts.accounts.values) {
+    for (var account in accounts.accounts.values) {
       if (account.signer is Nip07EventSigner) {
-        accounts.accounts.add(
+        stored.accounts.add(
           NostrAccount(kind: AccountKinds.nip07, pubkey: account.pubkey),
         );
         continue;
@@ -126,7 +187,7 @@ class NdkFlutter {
         // `signerSeed` holds the signer app package so
         // silent signing keeps working after restart.
         final signer = account.signer as Nip55EventSigner;
-        accounts.accounts.add(
+        stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.nip55,
             pubkey: account.pubkey,
@@ -138,7 +199,7 @@ class NdkFlutter {
 
       if (account.signer is Nip46EventSigner) {
         final signer = account.signer as Nip46EventSigner;
-        accounts.accounts.add(
+        stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.bunker,
             pubkey: account.pubkey,
@@ -151,7 +212,7 @@ class NdkFlutter {
       if (account.type == AccountType.privateKey) {
         final privateKey = (account.signer as dynamic).privateKey as String?;
         if (privateKey == null) continue;
-        accounts.accounts.add(
+        stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.privkey,
             pubkey: account.pubkey,
@@ -162,16 +223,16 @@ class NdkFlutter {
       }
 
       if (account.type == AccountType.publicKey) {
-        accounts.accounts.add(
+        stored.accounts.add(
           NostrAccount(kind: AccountKinds.pubkey, pubkey: account.pubkey),
         );
         continue;
       }
     }
 
-    accounts.loggedAccount = ndk.accounts.getPublicKey();
+    stored.loggedAccount = accounts.getPublicKey();
 
-    await _storage.write(key: accountsKey, value: jsonEncode(accounts));
+    await _storage.write(key: accountsKey, value: jsonEncode(stored));
   }
 
   Future<void> restoreAccountsState() async {
@@ -179,12 +240,12 @@ class NdkFlutter {
 
     if (storedAccounts == null) return;
 
-    final accounts = NostrWidgetsAccounts.fromJson(jsonDecode(storedAccounts));
+    final stored = NostrWidgetsAccounts.fromJson(jsonDecode(storedAccounts));
 
-    for (var account in accounts.accounts) {
+    for (var account in stored.accounts) {
       if (account.kind == AccountKinds.nip07) {
         final signer = Nip07EventSigner(cachedPublicKey: account.pubkey);
-        ndk.accounts.addAccount(
+        accounts.addAccount(
           pubkey: account.pubkey,
           type: AccountType.externalSigner,
           signer: signer,
@@ -193,7 +254,7 @@ class NdkFlutter {
       }
 
       if (account.kind == AccountKinds.nip55) {
-        ndk.accounts.addAccount(
+        accounts.addAccount(
           pubkey: account.pubkey,
           type: AccountType.externalSigner,
           signer: Nip55EventSigner(
@@ -211,12 +272,12 @@ class NdkFlutter {
           connection: BunkerConnection.fromJson(
             jsonDecode(account.signerSeed!),
           ),
-          relayReqs: ndk.relayReqs,
-          relayPublishes: ndk.relayPublishes,
-          eventSignerFactory: ndk.config.eventSignerFactory,
+          relayReqs: relayReqs,
+          relayPublishes: relayPublishes,
+          eventSignerFactory: accounts.eventSignerFactory,
           cachedPublicKey: account.pubkey,
         );
-        ndk.accounts.addAccount(
+        accounts.addAccount(
           pubkey: account.pubkey,
           type: AccountType.externalSigner,
           signer: signer,
@@ -225,10 +286,10 @@ class NdkFlutter {
       }
 
       if (account.kind == AccountKinds.pubkey) {
-        ndk.accounts.addAccount(
+        accounts.addAccount(
           pubkey: account.pubkey,
           type: AccountType.publicKey,
-          signer: ndk.config.eventSignerFactory.create(
+          signer: accounts.eventSignerFactory.create(
             privateKey: null,
             publicKey: account.pubkey,
           ),
@@ -237,11 +298,13 @@ class NdkFlutter {
       }
 
       if (account.kind == AccountKinds.privkey) {
-        final pubkey = Bip340.getPublicKey(account.signerSeed!);
-        ndk.accounts.addAccount(
+        final pubkey = accounts.eventSignerFactory.derivePublicKey(
+          account.signerSeed!,
+        );
+        accounts.addAccount(
           pubkey: pubkey,
           type: AccountType.privateKey,
-          signer: ndk.config.eventSignerFactory.create(
+          signer: accounts.eventSignerFactory.create(
             privateKey: account.signerSeed!,
             publicKey: pubkey,
           ),
@@ -250,10 +313,10 @@ class NdkFlutter {
       }
     }
 
-    if (accounts.loggedAccount == null) return;
-    if (!ndk.accounts.hasAccount(accounts.loggedAccount!)) return;
+    if (stored.loggedAccount == null) return;
+    if (!accounts.hasAccount(stored.loggedAccount!)) return;
     try {
-      ndk.accounts.switchAccount(pubkey: accounts.loggedAccount!);
+      accounts.switchAccount(pubkey: stored.loggedAccount!);
     } catch (_) {
       // stored logged account could not be restored (e.g. stale/corrupted
       // state); ignore rather than crash app startup.

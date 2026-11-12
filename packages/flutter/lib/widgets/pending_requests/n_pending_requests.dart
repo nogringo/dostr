@@ -1,8 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 /// State of the pending requests widget
 enum NPendingRequestsState { hidden, collapsed, expanded }
@@ -67,13 +68,13 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   StreamSubscription<List<PendingSignerRequest>>? _requestsSubscription;
   StreamSubscription<Account?>? _authSubscription;
 
-  Ndk get _ndk => widget.ndkFlutter.ndk;
+  Accounts get _accounts => widget.ndkFlutter.accounts;
 
   @override
   void initState() {
     super.initState();
     _setupListener();
-    _authSubscription = _ndk.accounts.authStateChanges.listen((_) {
+    _authSubscription = _accounts.authStateChanges.listen((_) {
       _setupListener();
     });
   }
@@ -82,7 +83,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     _requestsSubscription?.cancel();
     _requestsSubscription = null;
 
-    final account = _ndk.accounts.getLoggedAccount();
+    final account = _accounts.getLoggedAccount();
     if (account == null) {
       setState(() {
         _pendingRequests = [];
@@ -109,7 +110,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   }
 
   String get _signerName {
-    final account = _ndk.accounts.getLoggedAccount();
+    final account = _accounts.getLoggedAccount();
     if (account == null) return 'signer';
 
     final signer = account.signer;
@@ -133,7 +134,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   }
 
   void _cancelRequest(String requestId) {
-    final account = _ndk.accounts.getLoggedAccount();
+    final account = _accounts.getLoggedAccount();
     if (account == null) return;
 
     account.signer.cancelRequest(requestId);

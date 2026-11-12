@@ -2,7 +2,8 @@
 library;
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_bip340/ndk_bip340.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
 import 'package:ndk_flutter/signers/src/event_signer_web.dart'
     show NdkEventSignerFactory;
 import 'package:ndk_flutter/signers/web_event_signer.dart';

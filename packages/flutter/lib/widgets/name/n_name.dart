@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class NName extends StatelessWidget {
@@ -10,10 +10,9 @@ class NName extends StatelessWidget {
   final int? maxLines;
   final TextOverflow? overflow;
 
-  Ndk get ndk => ndkFlutter.ndk;
+  Accounts get _accounts => ndkFlutter.accounts;
 
-  String? get _pubkey =>
-      metadata?.pubKey ?? pubkey ?? ndk.accounts.getPublicKey();
+  String? get _pubkey => metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NName({
     super.key,
@@ -52,8 +51,7 @@ class NName extends StatelessWidget {
   Future<String?> _getName() async {
     try {
       // Use provided metadata if available, otherwise load it
-      final userMetadata =
-          metadata ?? await ndk.metadata.loadMetadata(_pubkey!);
+      final userMetadata = metadata ?? await ndkFlutter.loadMetadata(_pubkey!);
       return userMetadata?.getName();
     } catch (e) {
       return null;

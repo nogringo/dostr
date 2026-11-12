@@ -9,7 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  ndk: ^0.8.4-dev.4
+  ndk_bip340:
+    path: ../../../bip340
+  ndk_nip01:
+    path: ../../../nip01
   ndk_flutter:
     path: ../../../flutter
 

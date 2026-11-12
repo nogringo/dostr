@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_accounts/ndk_accounts.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 
 class NBanner extends StatelessWidget {
@@ -7,10 +7,9 @@ class NBanner extends StatelessWidget {
   final String? pubkey;
   final Metadata? metadata;
 
-  Ndk get ndk => ndkFlutter.ndk;
+  Accounts get _accounts => ndkFlutter.accounts;
 
-  String? get _pubkey =>
-      metadata?.pubKey ?? pubkey ?? ndk.accounts.getPublicKey();
+  String? get _pubkey => metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NBanner({
     super.key,
@@ -28,7 +27,7 @@ class NBanner extends StatelessWidget {
 
     // Otherwise, load metadata
     return FutureBuilder(
-      future: ndk.metadata.loadMetadata(_pubkey!),
+      future: ndkFlutter.loadMetadata(_pubkey!),
       builder: (context, snapshot) {
         return _buildBannerContent(context, snapshot);
       },

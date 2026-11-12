@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip46/ndk_nip46.dart';
 import 'package:ndk_flutter/ndk_flutter.dart';
 import 'package:ndk_flutter/widgets/login/nostr_connect_dialog_view.dart';
 import 'package:ndk_flutter/l10n/app_localizations.dart';
@@ -8,8 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 class LoginController extends ChangeNotifier {
   NdkFlutter ndkFlutter;
   void Function()? onLoggedIn;
-
-  Ndk get ndk => ndkFlutter.ndk;
 
   final nip05FieldController = TextEditingController();
   bool _isFetchingNip05 = false;
@@ -79,9 +77,8 @@ class LoginController extends ChangeNotifier {
     isBunkerLoading = true;
 
     try {
-      final bunkerConnection = await ndk.accounts.loginWithBunkerUrl(
-        bunkerUrl: bunkerFieldController.text.trim(),
-        bunkers: ndk.bunkers,
+      final bunkerConnection = await ndkFlutter.loginWithBunkerUrl(
+        bunkerFieldController.text.trim(),
         authCallback: (challenge) => showBunkerAuthToast(challenge, context),
         clientMetadata: clientMetadata,
       );
@@ -121,7 +118,7 @@ class LoginController extends ChangeNotifier {
         nip55Signer: Nip55Signer(package: loginResult.package),
       );
 
-      ndk.accounts.loginExternalSigner(signer: externalSigner);
+      ndkFlutter.accounts.loginExternalSigner(signer: externalSigner);
 
       isWaitingForExternalSigner = false;
 
@@ -159,9 +156,8 @@ class LoginController extends ChangeNotifier {
     openNostrConnectDialog(context);
 
     try {
-      final bunkerSettings = await ndk.accounts.loginWithNostrConnect(
-        nostrConnect: nostrConnect!,
-        bunkers: ndk.bunkers,
+      final bunkerSettings = await ndkFlutter.loginWithNostrConnect(
+        nostrConnect!,
         // authCallback: (challenge) => showBunkerAuthToast(challenge),
       );
 

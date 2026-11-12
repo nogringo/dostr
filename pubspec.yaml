@@ -24,6 +24,7 @@ workspace:
   - packages/rust_verifier
   - packages/event_verifier_test_suite
   - packages/mock_relay
+  - packages/flutter
   - packages/cashu_protocol
   - packages/blossom
   - packages/nip59

@@ -1,4 +1,5 @@
-import 'package:ndk/ndk.dart';
+import 'package:ndk_nip01/ndk_nip01.dart';
+import 'package:ndk_signer/ndk_signer.dart';
 
 /// Stub implementation for non-web platforms.
 /// WebEventSigner is only available on web platforms.
