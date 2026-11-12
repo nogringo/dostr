@@ -1,7 +1,0 @@
-analyzer:
-  exclude:
-    - build/**
-include: package:lints/recommended.yaml
-linter:
-  rules:
-    unnecessary_ignore: true
