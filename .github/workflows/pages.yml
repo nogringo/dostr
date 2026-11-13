@@ -2,13 +2,15 @@ name: deploy docs and sample app to GitHub Pages
 
 on:
   push:
+    branches:
+      - master
     tags:
       - "v*"
       - "!v*-*" # Exclude prerelease tags, e.g. v0.10.0-dev.1
   workflow_dispatch:
 
 concurrency:
-  group: gh-pages-deploy
+  group: pages-deploy
   cancel-in-progress: false
 
 env:
@@ -16,16 +18,32 @@ env:
 
 jobs:
   deploy:
-    name: Deploy to the gh-pages branch
-    # A manual run only deploys when started on a stable release tag.
-    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
+    name: Deploy to GitHub Pages
+    # Deploy master updates and stable release tags only.
+    if: github.ref == 'refs/heads/master' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-'))
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v7
 
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Set documentation URL
+        env:
+          PAGES_BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          sed -i -E "s|^url: .*|url: ${PAGES_BASE_URL}|" doc/retype.yml
+
       - name: Set documentation version from release tag
+        if: startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-')
         env:
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
@@ -46,7 +64,7 @@ jobs:
         working-directory: packages/demo
         run: |
           flutter pub get
-          flutter build web --release --base-href /app/
+          flutter build web --release --base-href "${{ steps.pages.outputs.base_path }}/app/"
           mkdir -p build/web/pkg
           cp -R web/pkg/. build/web/pkg/
           cp web/drift_worker.js build/web/drift_worker.js
@@ -56,9 +74,11 @@ jobs:
           SITE_DIR: ${{ steps.build_docs.outputs.retype-output-path }}
         run: cp -R packages/demo/build/web "$SITE_DIR/app"
 
-      - name: Deploy
-        uses: peaceiris/actions-gh-pages@v4
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ${{ steps.build_docs.outputs.retype-output-path }}
-          publish_branch: gh-pages
+          path: ${{ steps.build_docs.outputs.retype-output-path }}
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
