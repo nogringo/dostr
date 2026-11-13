@@ -52,8 +52,3 @@ dev_dependencies:
 
 flutter:
   generate: true
-  plugin:
-    platforms:
-      android:
-        package: io.github.nogringo.dostr
-        pluginClass: DartNdkPlugin
