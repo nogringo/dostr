@@ -7,7 +7,7 @@ const _clientMetadata = Nip46ClientMetadata(name: 'NDK sample app');
 
 Future<void> showNLoginPopup({
   required BuildContext context,
-  required NdkFlutter ndkFlutter,
+  required DostrFlutter dostrFlutter,
   required VoidCallback onLoggedIn,
   String title = 'Log in',
 }) {
@@ -31,9 +31,9 @@ Future<void> showNLoginPopup({
           width: 420,
           child: SingleChildScrollView(
             child: NLogin(
-              ndkFlutter: ndkFlutter,
+              dostrFlutter: dostrFlutter,
               clientMetadata: _clientMetadata,
-              nostrConnect: ndkFlutter.bunkers.createNostrConnect(
+              nostrConnect: dostrFlutter.bunkers.createNostrConnect(
                 clientMetadata: _clientMetadata,
                 relays: [
                   "wss://promenade.fiatjaf.com",

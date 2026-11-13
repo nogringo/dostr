@@ -3,17 +3,17 @@ import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 
 class NBanner extends StatelessWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final String? pubkey;
   final Metadata? metadata;
 
-  Accounts get _accounts => ndkFlutter.accounts;
+  Accounts get _accounts => dostrFlutter.accounts;
 
   String? get _pubkey => metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NBanner({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.pubkey,
     this.metadata,
   });
@@ -27,7 +27,7 @@ class NBanner extends StatelessWidget {
 
     // Otherwise, load metadata
     return FutureBuilder(
-      future: ndkFlutter.loadMetadata(_pubkey!),
+      future: dostrFlutter.loadMetadata(_pubkey!),
       builder: (context, snapshot) {
         return _buildBannerContent(context, snapshot);
       },

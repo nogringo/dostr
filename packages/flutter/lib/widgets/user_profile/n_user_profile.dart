@@ -4,7 +4,7 @@ import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 
 class NUserProfile extends StatelessWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final String? pubkey;
   final Metadata? metadata;
   final bool showLogoutButton;
@@ -13,14 +13,14 @@ class NUserProfile extends StatelessWidget {
   final bool showNip05;
   final VoidCallback? onLogout;
 
-  Accounts get _accounts => ndkFlutter.accounts;
+  Accounts get _accounts => dostrFlutter.accounts;
 
   String? get profilePubkey =>
       metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NUserProfile({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.pubkey,
     this.metadata,
     this.showLogoutButton = true,
@@ -41,7 +41,7 @@ class NUserProfile extends StatelessWidget {
 
     // Otherwise, load metadata
     return FutureBuilder(
-      future: ndkFlutter.loadMetadata(profilePubkey!),
+      future: dostrFlutter.loadMetadata(profilePubkey!),
       builder: (context, snapshot) {
         return _buildProfile(context, snapshot.data);
       },
@@ -49,7 +49,7 @@ class NUserProfile extends StatelessWidget {
   }
 
   Widget _buildProfile(BuildContext context, Metadata? metadata) {
-    String name = ndkFlutter.formatNpub(profilePubkey!);
+    String name = dostrFlutter.formatNpub(profilePubkey!);
     String? nip05;
 
     // Check if this is the logged account
@@ -78,7 +78,7 @@ class NUserProfile extends StatelessWidget {
                     child: FittedBox(
                       fit: BoxFit.cover,
                       child: NBanner(
-                        ndkFlutter: ndkFlutter,
+                        dostrFlutter: dostrFlutter,
                         pubkey: profilePubkey,
                         metadata: metadata,
                       ),
@@ -104,7 +104,7 @@ class NUserProfile extends StatelessWidget {
                             _accounts.switchAccount(pubkey: pubkey);
                           }
 
-                          await ndkFlutter.saveAccountsState();
+                          await dostrFlutter.saveAccountsState();
 
                           if (onLogout != null) onLogout!();
                         },
@@ -125,7 +125,7 @@ class NUserProfile extends StatelessWidget {
                   color: Theme.of(context).colorScheme.surface,
                   padding: EdgeInsets.all(8),
                   child: NPicture(
-                    ndkFlutter: ndkFlutter,
+                    dostrFlutter: dostrFlutter,
                     metadata: metadata,
                     pubkey: profilePubkey,
                     circleAvatarRadius: 40,

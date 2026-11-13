@@ -5,19 +5,19 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 import '../../utils/nip_avatar.dart';
 
 class NPicture extends StatelessWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final String? pubkey;
   final Metadata? metadata;
   final bool useCircleAvatar;
   final double? circleAvatarRadius;
 
-  Accounts get _accounts => ndkFlutter.accounts;
+  Accounts get _accounts => dostrFlutter.accounts;
 
   String? get _pubkey => metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
 
   const NPicture({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.pubkey,
     this.metadata,
     this.useCircleAvatar = true,
@@ -42,7 +42,7 @@ class NPicture extends StatelessWidget {
 
     // Only load metadata if it's not provided
     return FutureBuilder(
-      future: ndkFlutter.loadMetadata(_pubkey!),
+      future: dostrFlutter.loadMetadata(_pubkey!),
       builder: (context, snapshot) {
         final picture = _buildPictureContent(context, snapshot);
 

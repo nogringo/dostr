@@ -77,7 +77,8 @@ class _HomePageState extends State<HomePage> {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     )
-                  : NPicture(ndkFlutter: ndkFlutter, circleAvatarRadius: 14);
+                  : NPicture(
+                      dostrFlutter: dostrFlutter, circleAvatarRadius: 14);
               return IconButton(
                 tooltip: l10n.profileTooltip,
                 onPressed: () {
@@ -87,7 +88,7 @@ class _HomePageState extends State<HomePage> {
                   }
                   showNLoginPopup(
                     context: context,
-                    ndkFlutter: ndkFlutter,
+                    dostrFlutter: dostrFlutter,
                     onLoggedIn: () {},
                   );
                 },
@@ -103,7 +104,7 @@ class _HomePageState extends State<HomePage> {
           if (loggedPubkey != null) ...[
             NUserProfile(
               key: ValueKey(loggedPubkey),
-              ndkFlutter: ndkFlutter,
+              dostrFlutter: dostrFlutter,
               onLogout: () => setState(() {}),
             ),
             const SizedBox(height: 16),
@@ -123,7 +124,7 @@ class _HomePageState extends State<HomePage> {
                     FilledButton.icon(
                       onPressed: () => showNLoginPopup(
                         context: context,
-                        ndkFlutter: ndkFlutter,
+                        dostrFlutter: dostrFlutter,
                         onLoggedIn: () {},
                       ),
                       icon: const Icon(Icons.login),

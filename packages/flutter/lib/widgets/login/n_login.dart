@@ -10,7 +10,7 @@ import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class NLogin extends StatefulWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final void Function()? onLoggedIn;
   final bool enableAccountCreation;
   final bool enableNip05Login;
@@ -29,7 +29,7 @@ class NLogin extends StatefulWidget {
 
   const NLogin({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.onLoggedIn,
     this.enableAccountCreation = true,
     this.enableNip05Login = true,
@@ -52,13 +52,13 @@ class NLogin extends StatefulWidget {
 class _NLoginState extends State<NLogin> {
   late LoginController controller;
 
-  Accounts get _accounts => widget.ndkFlutter.accounts;
+  Accounts get _accounts => widget.dostrFlutter.accounts;
 
   @override
   void initState() {
     super.initState();
     controller = LoginController(
-      ndkFlutter: widget.ndkFlutter,
+      dostrFlutter: widget.dostrFlutter,
       onLoggedIn: widget.onLoggedIn,
       clientMetadata: widget.clientMetadata,
       nostrConnect: widget.nostrConnect,
@@ -334,7 +334,7 @@ class _NLoginState extends State<NLogin> {
     }
 
     controller.isFetchingNip05 = true;
-    final nip05Result = await NdkFlutter.fetchNip05(nip05);
+    final nip05Result = await DostrFlutter.fetchNip05(nip05);
     controller.isFetchingNip05 = false;
 
     final pubkey = nip05Result.pubkey;

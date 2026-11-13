@@ -1,8 +1,8 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-import 'ndk_event_verifier_stub.dart'
-    if (dart.library.io) 'ndk_event_verifier_native.dart'
-    if (dart.library.js_interop) 'ndk_event_verifier_web.dart';
+import 'dostr_event_verifier_stub.dart'
+    if (dart.library.io) 'dostr_event_verifier_native.dart'
+    if (dart.library.js_interop) 'dostr_event_verifier_web.dart';
 
 /// A platform-aware event verifier that automatically selects the best
 /// implementation for the current platform.
@@ -17,13 +17,13 @@ import 'ndk_event_verifier_stub.dart'
 /// ```dart
 /// final reqs = RelayReqs(
 ///   relayManager: relayManager,
-///   eventVerifier: NdkEventVerifier(),
+///   eventVerifier: DostrEventVerifier(),
 /// );
 /// ```
-class NdkEventVerifier implements EventVerifier {
+class DostrEventVerifier implements EventVerifier {
   final EventVerifier _delegate;
 
-  NdkEventVerifier() : _delegate = createNdkEventVerifier();
+  DostrEventVerifier() : _delegate = createDostrEventVerifier();
 
   @override
   Future<bool> verify(Nip01Event event) => _delegate.verify(event);

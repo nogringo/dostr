@@ -30,18 +30,18 @@ final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
 
-final ndkFlutter = NdkFlutter(
-  accounts: Accounts(const NdkEventSignerFactory()),
+final dostrFlutter = DostrFlutter(
+  accounts: Accounts(const DostrEventSignerFactory()),
   relayReqs: RelayReqs(
     relayManager: relayManager,
-    eventVerifier: NdkEventVerifier(),
+    eventVerifier: DostrEventVerifier(),
   ),
   relayPublishes: RelayPublishes(relayManager: relayManager),
 );
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await ndkFlutter.restoreAccountsState();
+  await dostrFlutter.restoreAccountsState();
 
   runApp(
     MaterialApp(
@@ -50,14 +50,14 @@ Future<void> main() async {
       supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
       home: Scaffold(
         body: StreamBuilder(
-          stream: ndkFlutter.accounts.authStateChanges,
+          stream: dostrFlutter.accounts.authStateChanges,
           builder: (context, _) => ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              if (ndkFlutter.accounts.isLoggedIn)
-                NUserProfile(ndkFlutter: ndkFlutter)
+              if (dostrFlutter.accounts.isLoggedIn)
+                NUserProfile(dostrFlutter: dostrFlutter)
               else
-                NLogin(ndkFlutter: ndkFlutter),
+                NLogin(dostrFlutter: dostrFlutter),
             ],
           ),
         ),
@@ -67,9 +67,9 @@ Future<void> main() async {
 }
 ```
 
-`NdkEventSignerFactory` and `NdkEventVerifier` pick an implementation per platform. On the web they are `WebEventSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`. Elsewhere they are `Bip340EventSignerFactory` and `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier), whose build hook compiles Rust: install the [Rust toolchain](https://rustup.rs) to build for Android, iOS or desktop.
+`DostrEventSignerFactory` and `DostrEventVerifier` pick an implementation per platform. On the web they are `WebEventSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`. Elsewhere they are `Bip340EventSignerFactory` and `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier), whose build hook compiles Rust: install the [Rust toolchain](https://rustup.rs) to build for Android, iOS or desktop.
 
-`NdkFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), and a `metadataFetcher`. The widgets read profiles through `ndkFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [Fetchers](/usecases/fetchers.md). Pass your own `metadataFetcher` to share its cache with the rest of the app.
+`DostrFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), and a `metadataFetcher`. The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [Fetchers](/usecases/fetchers.md). Pass your own `metadataFetcher` to share its cache with the rest of the app.
 
 To answer NIP-42 authentication, give the same `Accounts` to the `RelayManager`, see [Relay authentication](/usecases/accounts.md#relay-authentication).
 
@@ -81,9 +81,9 @@ It ships 13 locales: `de`, `en`, `es`, `fi`, `fr`, `it`, `ja`, `pl`, `pt`, `pt_B
 
 ## Widgets
 
-Each widget takes the `NdkFlutter` as `ndkFlutter`.
+Each widget takes the `DostrFlutter` as `dostrFlutter`.
 
-- `NLogin`: the login form. A NIP-05 address or an npub logs in read-only, an nsec with the private key. It also offers the browser extension (on the web only), a `bunker://` url and the signer app (on Android only). Each method has an `enable...Login` flag, and `enablePubkeyLogin: false` hides both the NIP-05 and npub fields. Pass a `NostrConnect` from `ndkFlutter.bunkers.createNostrConnect(...)` as `nostrConnect` to also show a `nostrconnect://` QR code, and a `Nip46ClientMetadata` as `clientMetadata` to name your app to the bunker. `onLoggedIn` runs once an account is logged in.
+- `NLogin`: the login form. A NIP-05 address or an npub logs in read-only, an nsec with the private key. It also offers the browser extension (on the web only), a `bunker://` url and the signer app (on Android only). Each method has an `enable...Login` flag, and `enablePubkeyLogin: false` hides both the NIP-05 and npub fields. Pass a `NostrConnect` from `dostrFlutter.bunkers.createNostrConnect(...)` as `nostrConnect` to also show a `nostrconnect://` QR code, and a `Nip46ClientMetadata` as `clientMetadata` to name your app to the bunker. `onLoggedIn` runs once an account is logged in.
 - `NUserProfile`: the banner, picture, name and NIP-05 of a profile, with a logout button on the logged account.
 - `NPicture`, `NName` and `NBanner`: the picture, name or banner alone. Without a picture, `NPicture` shows an initial on a color derived from the pubkey.
 - `NSwitchAccount`: the accounts, with a tap to switch and a logout for the others. Give it `onAddAccount` to show an add account button.

@@ -6,7 +6,7 @@ It implements the `EventSigner` of [`dostr_signer`](https://pub.dev/packages/dos
 
 ## With `dostr_flutter`
 
-`dostr_flutter` depends on this package and exports it. Its `NLogin` widget offers the signer app login, and `NdkFlutter` saves and restores these accounts.
+`dostr_flutter` depends on this package and exports it. Its `NLogin` widget offers the signer app login, and `DostrFlutter` saves and restores these accounts.
 
 ## Standalone
 

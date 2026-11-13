@@ -29,7 +29,7 @@ final appRouter = GoRouter(
       builder: (context, state) => Scaffold(
         appBar: AppBar(title: Text(context.l10n.tabProfile)),
         body: ProfilePage(
-          ndkFlutter: ndkFlutter,
+          dostrFlutter: dostrFlutter,
           getLoggedPubkey: () => accounts.getPublicKey(),
           initialPubkey:
               state.extra as String? ?? state.uri.queryParameters['pubkey'],

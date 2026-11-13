@@ -6,9 +6,9 @@ call, and is faster than `Bip340EventVerifier`.
 
 Native platforms only (Android, iOS, Linux, macOS, Windows). On web,
 `verify` throws `UnsupportedError`: use `Bip340EventVerifier`, or
-`NdkEventVerifier` from `dostr_flutter`, which picks Web Crypto there.
+`DostrEventVerifier` from `dostr_flutter`, which picks Web Crypto there.
 
-`dostr_flutter` depends on it for `NdkEventVerifier`.
+`dostr_flutter` depends on it for `DostrEventVerifier`.
 
 ## Install
 

@@ -5,7 +5,7 @@ import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 class NSwitchAccount extends StatefulWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final void Function(String pubkey)? onAccountSwitch;
   final void Function(String pubkey)? onAccountRemove;
   final void Function()? onAddAccount;
@@ -14,7 +14,7 @@ class NSwitchAccount extends StatefulWidget {
 
   const NSwitchAccount({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.onAccountSwitch,
     this.onAccountRemove,
     this.onAddAccount,
@@ -27,7 +27,7 @@ class NSwitchAccount extends StatefulWidget {
 }
 
 class _NSwitchAccountState extends State<NSwitchAccount> {
-  Accounts get _accounts => widget.ndkFlutter.accounts;
+  Accounts get _accounts => widget.dostrFlutter.accounts;
 
   Widget _getAccountTypeChip(BuildContext context, Account account) {
     String label;
@@ -83,7 +83,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
                 onPressed: () {
                   widget.beforeAccountRemove?.call(pubkey);
                   _accounts.removeAccount(pubkey: pubkey);
-                  widget.ndkFlutter.saveAccountsState();
+                  widget.dostrFlutter.saveAccountsState();
                   setState(() {});
                   widget.onAccountRemove?.call(pubkey);
                 },
@@ -94,15 +94,18 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
             onTap = () {
               widget.beforeAccountSwitch?.call(pubkey);
               _accounts.switchAccount(pubkey: pubkey);
-              widget.ndkFlutter.saveAccountsState();
+              widget.dostrFlutter.saveAccountsState();
               setState(() {});
               widget.onAccountSwitch?.call(pubkey);
             };
           }
 
           return ListTile(
-            leading: NPicture(ndkFlutter: widget.ndkFlutter, pubkey: pubkey),
-            title: NName(ndkFlutter: widget.ndkFlutter, pubkey: pubkey),
+            leading: NPicture(
+              dostrFlutter: widget.dostrFlutter,
+              pubkey: pubkey,
+            ),
+            title: NName(dostrFlutter: widget.dostrFlutter, pubkey: pubkey),
             subtitle: subtitle,
             trailing: Row(
               mainAxisSize: MainAxisSize.min,

@@ -6,7 +6,7 @@ import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class LoginController extends ChangeNotifier {
-  NdkFlutter ndkFlutter;
+  DostrFlutter dostrFlutter;
   void Function()? onLoggedIn;
 
   final nip05FieldController = TextEditingController();
@@ -67,7 +67,7 @@ class LoginController extends ChangeNotifier {
   }
 
   LoginController({
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.onLoggedIn,
     this.clientMetadata,
     this.nostrConnect,
@@ -77,7 +77,7 @@ class LoginController extends ChangeNotifier {
     isBunkerLoading = true;
 
     try {
-      final bunkerConnection = await ndkFlutter.loginWithBunkerUrl(
+      final bunkerConnection = await dostrFlutter.loginWithBunkerUrl(
         bunkerFieldController.text.trim(),
         authCallback: (challenge) => showBunkerAuthToast(challenge, context),
         clientMetadata: clientMetadata,
@@ -118,7 +118,7 @@ class LoginController extends ChangeNotifier {
         nip55Signer: Nip55Signer(package: loginResult.package),
       );
 
-      ndkFlutter.accounts.loginExternalSigner(signer: externalSigner);
+      dostrFlutter.accounts.loginExternalSigner(signer: externalSigner);
 
       isWaitingForExternalSigner = false;
 
@@ -143,7 +143,7 @@ class LoginController extends ChangeNotifier {
   }
 
   Future<void> loggedIn() async {
-    await ndkFlutter.saveAccountsState();
+    await dostrFlutter.saveAccountsState();
 
     _clearChallengeToasts();
 
@@ -156,7 +156,7 @@ class LoginController extends ChangeNotifier {
     openNostrConnectDialog(context);
 
     try {
-      final bunkerSettings = await ndkFlutter.loginWithNostrConnect(
+      final bunkerSettings = await dostrFlutter.loginWithNostrConnect(
         nostrConnect!,
         // authCallback: (challenge) => showBunkerAuthToast(challenge),
       );

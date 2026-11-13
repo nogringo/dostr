@@ -49,8 +49,8 @@ The classes only work on the web. On other platforms they throw
 `WebEventSigner` and `WebEventVerifier` moved here from `ndk_flutter`.
 `package:ndk_flutter/ndk_flutter.dart` is now
 `package:dostr_flutter/dostr_flutter.dart`, which still exports them. The web
-`NdkEventSignerFactory` of `dostr_flutter` is now a typedef of
-`WebEventSignerFactory`.
+`NdkEventSignerFactory` of `ndk_flutter` is now `DostrEventSignerFactory`, a
+typedef of `WebEventSignerFactory`.
 
 ## Rebuilding the JS bundle
 

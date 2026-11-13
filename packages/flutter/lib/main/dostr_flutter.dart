@@ -16,7 +16,7 @@ import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
 
-class NdkFlutter {
+class DostrFlutter {
   final Accounts accounts;
   final RelayReqs relayReqs;
   final RelayPublishes relayPublishes;
@@ -34,7 +34,7 @@ class NdkFlutter {
 
   /// [metadataFetcher] defaults to one that asks the write relays of each
   /// pubkey, found by its own [Nip65Fetcher].
-  NdkFlutter({
+  DostrFlutter({
     required this.accounts,
     required this.relayReqs,
     required this.relayPublishes,

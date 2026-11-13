@@ -4,13 +4,13 @@ import 'package:dostr_demo/login_popup.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 
 class ProfilePage extends StatefulWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
   final String? Function() getLoggedPubkey;
   final String? initialPubkey;
 
   const ProfilePage({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     required this.getLoggedPubkey,
     this.initialPubkey,
   });
@@ -23,7 +23,7 @@ class _ProfilePageState extends State<ProfilePage> {
   void _openLoginPopup() {
     showNLoginPopup(
       context: context,
-      ndkFlutter: widget.ndkFlutter,
+      dostrFlutter: widget.dostrFlutter,
       onLoggedIn: () {
         if (!mounted) return;
         setState(() {});
@@ -122,7 +122,7 @@ class _ProfilePageState extends State<ProfilePage> {
         children: [
           NUserProfile(
             key: ValueKey(profilePubkey),
-            ndkFlutter: widget.ndkFlutter,
+            dostrFlutter: widget.dostrFlutter,
             pubkey: profilePubkey,
             onLogout: () {
               setState(() {});
@@ -130,7 +130,7 @@ class _ProfilePageState extends State<ProfilePage> {
           ),
           const SizedBox(height: 16),
           FutureBuilder<Metadata?>(
-            future: widget.ndkFlutter.loadMetadata(profilePubkey),
+            future: widget.dostrFlutter.loadMetadata(profilePubkey),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());

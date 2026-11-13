@@ -63,7 +63,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                         child: Row(
                           children: [
                             Text(l10n.widgetsCurrentUser),
-                            NName(ndkFlutter: ndkFlutter),
+                            NName(dostrFlutter: dostrFlutter),
                           ],
                         ),
                       ),
@@ -85,7 +85,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                             Column(
                               children: [
                                 NPicture(
-                                  ndkFlutter: ndkFlutter,
+                                  dostrFlutter: dostrFlutter,
                                   circleAvatarRadius: 30,
                                 ),
                                 const SizedBox(height: 8),
@@ -95,7 +95,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                             Column(
                               children: [
                                 NPicture(
-                                  ndkFlutter: ndkFlutter,
+                                  dostrFlutter: dostrFlutter,
                                   circleAvatarRadius: 40,
                                 ),
                                 const SizedBox(height: 8),
@@ -105,7 +105,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                             Column(
                               children: [
                                 NPicture(
-                                  ndkFlutter: ndkFlutter,
+                                  dostrFlutter: dostrFlutter,
                                   circleAvatarRadius: 50,
                                 ),
                                 const SizedBox(height: 8),
@@ -131,7 +131,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                         width: double.infinity,
                         child: FittedBox(
                           fit: BoxFit.cover,
-                          child: NBanner(ndkFlutter: ndkFlutter),
+                          child: NBanner(dostrFlutter: dostrFlutter),
                         ),
                       ),
                     )
@@ -147,7 +147,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: NUserProfile(
-                          ndkFlutter: ndkFlutter,
+                          dostrFlutter: dostrFlutter,
                           showLogoutButton: false,
                         ),
                       ),
@@ -164,7 +164,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                       child: Padding(
                         padding: const EdgeInsets.all(16.0),
                         child: NSwitchAccount(
-                          ndkFlutter: ndkFlutter,
+                          dostrFlutter: dostrFlutter,
                           onAccountSwitch: (pubkey) {
                             setState(() {});
                           },
@@ -210,14 +210,14 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                         ),
                         const Divider(),
                         NLogin(
-                          ndkFlutter: ndkFlutter,
+                          dostrFlutter: dostrFlutter,
                           onLoggedIn: () {
                             setState(() => _showLogin = false);
                           },
                           enableNip07Login: false,
                           enableSignerAppLogin: false,
                           clientMetadata: _clientMetadata,
-                          nostrConnect: ndkFlutter.bunkers.createNostrConnect(
+                          nostrConnect: dostrFlutter.bunkers.createNostrConnect(
                             clientMetadata: _clientMetadata,
                             relays: [
                               "wss://promenade.fiatjaf.com",
@@ -312,7 +312,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
   }
 
   Widget _buildColorDemo(String fakePubkey) {
-    final color = NdkFlutter.getColorFromPubkey(fakePubkey);
+    final color = DostrFlutter.getColorFromPubkey(fakePubkey);
     return Column(
       children: [
         Container(

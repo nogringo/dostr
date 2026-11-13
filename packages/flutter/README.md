@@ -38,34 +38,38 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
-final ndkFlutter = NdkFlutter(
-  accounts: Accounts(const NdkEventSignerFactory()),
+final dostrFlutter = DostrFlutter(
+  accounts: Accounts(const DostrEventSignerFactory()),
   relayReqs: RelayReqs(
     relayManager: relayManager,
-    eventVerifier: NdkEventVerifier(),
+    eventVerifier: DostrEventVerifier(),
   ),
   relayPublishes: RelayPublishes(relayManager: relayManager),
 );
 
 // reads saved accounts from secure storage and logs them in again
 // typically called before runApp
-await ndkFlutter.restoreAccountsState();
+await dostrFlutter.restoreAccountsState();
 
 // NLogin, NSwitchAccount and NUserProfile call it themselves:
 // call it only after changing accounts from your own code
-await ndkFlutter.saveAccountsState();
+await dostrFlutter.saveAccountsState();
 
-NBanner(ndkFlutter: ndkFlutter);
-NPicture(ndkFlutter: ndkFlutter);
-NName(ndkFlutter: ndkFlutter);
-NUserProfile(ndkFlutter: ndkFlutter);
-NLogin(ndkFlutter: ndkFlutter);
-NSwitchAccount(ndkFlutter: ndkFlutter);
+NBanner(dostrFlutter: dostrFlutter);
+NPicture(dostrFlutter: dostrFlutter);
+NName(dostrFlutter: dostrFlutter);
+NUserProfile(dostrFlutter: dostrFlutter);
+NLogin(dostrFlutter: dostrFlutter);
+NSwitchAccount(dostrFlutter: dostrFlutter);
 ```
 
 By default, the logged-in user is used for user widgets; you can override it by passing a `pubkey` parameter.
 
-The widgets read profiles through `ndkFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
+The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
+
+## Coming from `ndk_flutter`
+
+`package:ndk_flutter/ndk_flutter.dart` is now `package:dostr_flutter/dostr_flutter.dart`. `NdkFlutter` is now `DostrFlutter`, and the widgets take it as `dostrFlutter` instead of `ndkFlutter`. `NdkEventSigner`, `NdkEventSignerFactory` and `NdkEventVerifier` are now `DostrEventSigner`, `DostrEventSignerFactory` and `DostrEventVerifier`. Saved accounts are still read from `ndk_flutter_accounts`, so users stay logged in.
 
 ## TODO
 

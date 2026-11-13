@@ -18,12 +18,12 @@ enum NPendingRequestsState { hidden, collapsed, expanded }
 /// Stack(
 ///   children: [
 ///     YourMainContent(),
-///     NPendingRequests(ndkFlutter: ndkFlutter),
+///     NPendingRequests(dostrFlutter: dostrFlutter),
 ///   ],
 /// )
 /// ```
 class NPendingRequests extends StatefulWidget {
-  final NdkFlutter ndkFlutter;
+  final DostrFlutter dostrFlutter;
 
   /// Horizontal margin from screen edges
   final double horizontalMargin;
@@ -49,7 +49,7 @@ class NPendingRequests extends StatefulWidget {
 
   const NPendingRequests({
     super.key,
-    required this.ndkFlutter,
+    required this.dostrFlutter,
     this.horizontalMargin = 16,
     this.bottomMargin = 16,
     this.animationDuration = const Duration(milliseconds: 200),
@@ -68,7 +68,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   StreamSubscription<List<PendingSignerRequest>>? _requestsSubscription;
   StreamSubscription<Account?>? _authSubscription;
 
-  Accounts get _accounts => widget.ndkFlutter.accounts;
+  Accounts get _accounts => widget.dostrFlutter.accounts;
 
   @override
   void initState() {

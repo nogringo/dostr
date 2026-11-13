@@ -18,7 +18,7 @@ class _AccountsPageState extends State<AccountsPage> {
     final l10n = context.l10n;
     await showNLoginPopup(
       context: context,
-      ndkFlutter: ndkFlutter,
+      dostrFlutter: dostrFlutter,
       title: accounts.getPublicKey() == null
           ? l10n.loginDialogDefaultTitle
           : l10n.loginDialogAddAccountTitle,
@@ -57,7 +57,7 @@ class _AccountsPageState extends State<AccountsPage> {
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: NSwitchAccount(
-                  ndkFlutter: ndkFlutter,
+                  dostrFlutter: dostrFlutter,
                   onAccountSwitch: (pubkey) {
                     setState(() {});
                   },

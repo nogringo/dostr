@@ -22,7 +22,7 @@ late RelayReqs relayReqs;
 late RelayPublishes relayPublishes;
 late Accounts accounts;
 late Nip65Fetcher nip65Fetcher;
-late NdkFlutter ndkFlutter;
+late DostrFlutter dostrFlutter;
 late Nip77 nip77;
 
 /// the events this session fetched, which NIP-77 compares with a relay's
@@ -35,7 +35,7 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
   Logger.setLogLevel(LogLevel.info);
 
-  accounts = Accounts(const NdkEventSignerFactory());
+  accounts = Accounts(const DostrEventSignerFactory());
   relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     accounts: accounts,
@@ -56,7 +56,7 @@ Future<void> main() async {
   const secureStorage = FlutterSecureStorage(
     mOptions: MacOsOptions(usesDataProtectionKeychain: false),
   );
-  ndkFlutter = NdkFlutter(
+  dostrFlutter = DostrFlutter(
     accounts: accounts,
     relayReqs: relayReqs,
     relayPublishes: relayPublishes,
@@ -66,7 +66,7 @@ Future<void> main() async {
     ),
     storage: secureStorage,
   );
-  await ndkFlutter.restoreAccountsState();
+  await dostrFlutter.restoreAccountsState();
 
   GoRouter.optionURLReflectsImperativeAPIs = true;
 
@@ -98,7 +98,7 @@ class MyApp extends StatelessWidget {
         builder: (context, child) => Stack(
           children: [
             SafeArea(top: false, child: child ?? const SizedBox.shrink()),
-            NPendingRequests(ndkFlutter: ndkFlutter),
+            NPendingRequests(dostrFlutter: dostrFlutter),
           ],
         ),
       ),
