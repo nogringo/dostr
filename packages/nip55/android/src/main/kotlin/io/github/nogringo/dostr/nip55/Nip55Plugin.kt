@@ -1,4 +1,4 @@
-package relaystr.ndk.nip55
+package io.github.nogringo.dostr.nip55
 
 import android.app.Activity
 import android.content.ContentResolver

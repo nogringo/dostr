@@ -1,4 +1,4 @@
-package relaystr.ndk
+package io.github.nogringo.dostr
 
 import java.io.File
 import java.nio.file.Files

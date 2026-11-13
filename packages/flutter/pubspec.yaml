@@ -55,5 +55,5 @@ flutter:
   plugin:
     platforms:
       android:
-        package: relaystr.ndk
+        package: io.github.nogringo.dostr
         pluginClass: DartNdkPlugin

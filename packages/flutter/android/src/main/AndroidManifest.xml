@@ -4,7 +4,7 @@
     </queries>
     <application>
         <provider
-            android:name="relaystr.ndk.NdkUpdateFileProvider"
+            android:name="io.github.nogringo.dostr.NdkUpdateFileProvider"
             android:authorities="${applicationId}.ndk_updates"
             android:exported="false"
             android:grantUriPermissions="true">

@@ -1,4 +1,4 @@
-package relaystr.ndk
+package io.github.nogringo.dostr
 
 import android.content.Context
 import android.content.Intent

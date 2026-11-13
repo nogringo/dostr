@@ -1,4 +1,4 @@
-group = 'relaystr.ndk.nip55'
+group = 'io.github.nogringo.dostr.nip55'
 version = '1.0-SNAPSHOT'
 
 buildscript {
@@ -32,7 +32,7 @@ if (agpMajor < 9) {
 }
 
 android {
-    namespace = 'relaystr.ndk.nip55'
+    namespace = 'io.github.nogringo.dostr.nip55'
 
     compileSdk = 36
 

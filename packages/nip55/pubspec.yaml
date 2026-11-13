@@ -37,5 +37,5 @@ flutter:
   plugin:
     platforms:
       android:
-        package: relaystr.ndk.nip55
+        package: io.github.nogringo.dostr.nip55
         pluginClass: Nip55Plugin

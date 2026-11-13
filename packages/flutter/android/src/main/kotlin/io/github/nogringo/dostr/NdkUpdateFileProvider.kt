@@ -1,4 +1,4 @@
-package relaystr.ndk
+package io.github.nogringo.dostr
 
 import androidx.core.content.FileProvider
 
