@@ -1,6 +1,6 @@
 name: dostr_workspace
 publish_to: none
-description: Workspace configuration for the NDK monorepo.
+description: Workspace configuration for the Dostr monorepo.
 
 environment:
   sdk: '>=3.6.0 <4.0.0'

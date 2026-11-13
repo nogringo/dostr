@@ -1,7 +1,7 @@
 {
   "@@locale": "ru",
   "appName": "Демо Nostr Developer Kit",
-  "appBarTitle": "Демо NDK",
+  "appBarTitle": "Демо Dostr",
   "tabAccounts": "Аккаунты",
   "tabProfile": "Профиль",
   "tabRelays": "Релеи",
@@ -29,7 +29,7 @@
   "relayStateOnline": "В сети",
   "relayStateOffline": "Не в сети",
   "relayStateUnknown": "Неизвестно",
-  "widgetsPageTitle": "Демо виджетов NDK Flutter",
+  "widgetsPageTitle": "Демо виджетов Dostr Flutter",
   "widgetsLoginHint": "Войдите через вкладку Аккаунты, чтобы увидеть персонализированные виджеты.",
   "widgetsCurrentUser": "Текущий пользователь: ",
   "widgetsSizeDefault": "По умолчанию",

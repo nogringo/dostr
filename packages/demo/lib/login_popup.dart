@@ -3,7 +3,7 @@ import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_demo/l10n/app_localizations_context.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 
-const _clientMetadata = Nip46ClientMetadata(name: 'NDK sample app');
+const _clientMetadata = Nip46ClientMetadata(name: 'Dostr demo');
 
 Future<void> showNLoginPopup({
   required BuildContext context,

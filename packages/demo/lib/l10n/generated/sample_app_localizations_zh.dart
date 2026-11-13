@@ -12,7 +12,7 @@ class SampleAppLocalizationsZh extends SampleAppLocalizations {
   String get appName => 'Nostr Developer Kit 示例';
 
   @override
-  String get appBarTitle => 'NDK 示例';
+  String get appBarTitle => 'Dostr 示例';
 
   @override
   String get tabAccounts => '账户';
@@ -102,7 +102,7 @@ class SampleAppLocalizationsZh extends SampleAppLocalizations {
   String get relayStateUnknown => '未知';
 
   @override
-  String get widgetsPageTitle => 'NDK Flutter 组件示例';
+  String get widgetsPageTitle => 'Dostr Flutter 组件示例';
 
   @override
   String get widgetsLoginHint => '请从“账户”标签登录以查看个性化组件。';

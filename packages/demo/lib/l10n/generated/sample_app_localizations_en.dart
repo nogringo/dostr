@@ -12,7 +12,7 @@ class SampleAppLocalizationsEn extends SampleAppLocalizations {
   String get appName => 'Nostr Developer Kit Demo';
 
   @override
-  String get appBarTitle => 'NDK Demo';
+  String get appBarTitle => 'Dostr Demo';
 
   @override
   String get tabAccounts => 'Accounts';
@@ -109,7 +109,7 @@ class SampleAppLocalizationsEn extends SampleAppLocalizations {
   String get relayStateUnknown => 'Unknown';
 
   @override
-  String get widgetsPageTitle => 'NDK Flutter Widgets Demo';
+  String get widgetsPageTitle => 'Dostr Flutter Widgets Demo';
 
   @override
   String get widgetsLoginHint =>

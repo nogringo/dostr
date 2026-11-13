@@ -5,7 +5,7 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 
 import 'main.dart';
 
-const _clientMetadata = Nip46ClientMetadata(name: 'NDK sample app');
+const _clientMetadata = Nip46ClientMetadata(name: 'Dostr demo');
 
 class WidgetsDemoPage extends StatefulWidget {
   const WidgetsDemoPage({super.key});

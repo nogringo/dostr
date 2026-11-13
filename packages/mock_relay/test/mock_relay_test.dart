@@ -31,7 +31,7 @@ Future<MockRelay> startRelay({Iterable<Nip01Event> events = const []}) async {
   return relay;
 }
 
-/// A bare websocket client, so these tests do not depend on the NDK client.
+/// A bare websocket client, so these tests do not depend on dostr_core.
 class Client {
   Client._(this._socket) {
     _socket.listen((data) {

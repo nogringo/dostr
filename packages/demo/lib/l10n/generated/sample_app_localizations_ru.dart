@@ -12,7 +12,7 @@ class SampleAppLocalizationsRu extends SampleAppLocalizations {
   String get appName => 'Демо Nostr Developer Kit';
 
   @override
-  String get appBarTitle => 'Демо NDK';
+  String get appBarTitle => 'Демо Dostr';
 
   @override
   String get tabAccounts => 'Аккаунты';
@@ -112,7 +112,7 @@ class SampleAppLocalizationsRu extends SampleAppLocalizations {
   String get relayStateUnknown => 'Неизвестно';
 
   @override
-  String get widgetsPageTitle => 'Демо виджетов NDK Flutter';
+  String get widgetsPageTitle => 'Демо виджетов Dostr Flutter';
 
   @override
   String get widgetsLoginHint =>

@@ -122,7 +122,7 @@ abstract class SampleAppLocalizations {
   /// No description provided for @appBarTitle.
   ///
   /// In en, this message translates to:
-  /// **'NDK Demo'**
+  /// **'Dostr Demo'**
   String get appBarTitle;
 
   /// No description provided for @tabAccounts.
@@ -290,7 +290,7 @@ abstract class SampleAppLocalizations {
   /// No description provided for @widgetsPageTitle.
   ///
   /// In en, this message translates to:
-  /// **'NDK Flutter Widgets Demo'**
+  /// **'Dostr Flutter Widgets Demo'**
   String get widgetsPageTitle;
 
   /// No description provided for @widgetsLoginHint.

@@ -1,7 +1,7 @@
 {
   "@@locale": "zh",
   "appName": "Nostr Developer Kit 示例",
-  "appBarTitle": "NDK 示例",
+  "appBarTitle": "Dostr 示例",
   "tabAccounts": "账户",
   "tabProfile": "个人资料",
   "tabRelays": "中继",
@@ -29,7 +29,7 @@
   "relayStateOnline": "在线",
   "relayStateOffline": "离线",
   "relayStateUnknown": "未知",
-  "widgetsPageTitle": "NDK Flutter 组件示例",
+  "widgetsPageTitle": "Dostr Flutter 组件示例",
   "widgetsLoginHint": "请从“账户”标签登录以查看个性化组件。",
   "widgetsCurrentUser": "当前用户：",
   "widgetsSizeDefault": "默认",

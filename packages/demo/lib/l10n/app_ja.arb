@@ -1,7 +1,7 @@
 {
   "@@locale": "ja",
   "appName": "Nostr Developer Kit デモ",
-  "appBarTitle": "NDK デモ",
+  "appBarTitle": "Dostr デモ",
   "tabAccounts": "アカウント",
   "tabProfile": "プロフィール",
   "tabRelays": "リレー",
@@ -29,7 +29,7 @@
   "relayStateOnline": "オンライン",
   "relayStateOffline": "オフライン",
   "relayStateUnknown": "不明",
-  "widgetsPageTitle": "NDK Flutter Widgets デモ",
+  "widgetsPageTitle": "Dostr Flutter Widgets デモ",
   "widgetsLoginHint": "パーソナライズされたウィジェットを見るには、アカウントタブからログインしてください。",
   "widgetsCurrentUser": "現在のユーザー: ",
   "widgetsSizeDefault": "標準",

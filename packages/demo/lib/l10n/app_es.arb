@@ -1,7 +1,7 @@
 {
   "@@locale": "es",
   "appName": "Demo de Nostr Developer Kit",
-  "appBarTitle": "Demo de NDK",
+  "appBarTitle": "Demo de Dostr",
   "tabAccounts": "Cuentas",
   "tabProfile": "Perfil",
   "tabRelays": "Relés",
@@ -29,7 +29,7 @@
   "relayStateOnline": "En línea",
   "relayStateOffline": "Sin conexión",
   "relayStateUnknown": "Desconocido",
-  "widgetsPageTitle": "Demo de widgets de NDK Flutter",
+  "widgetsPageTitle": "Demo de widgets de Dostr Flutter",
   "widgetsLoginHint": "Inicia sesión desde la pestaña Cuentas para ver widgets personalizados.",
   "widgetsCurrentUser": "Usuario actual: ",
   "widgetsSizeDefault": "Predeterminado",

@@ -65,8 +65,6 @@ jobs:
         run: |
           flutter pub get
           flutter build web --release --base-href "${{ steps.pages.outputs.base_path }}/app/"
-          mkdir -p build/web/pkg
-          cp -R web/pkg/. build/web/pkg/
           cp web/drift_worker.js build/web/drift_worker.js
 
       - name: Add sample app under /app

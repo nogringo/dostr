@@ -1,7 +1,7 @@
 {
   "@@locale": "de",
   "appName": "Nostr Developer Kit Demo",
-  "appBarTitle": "NDK-Demo",
+  "appBarTitle": "Dostr-Demo",
   "tabAccounts": "Konten",
   "tabProfile": "Profil",
   "tabRelays": "Relays",
@@ -29,7 +29,7 @@
   "relayStateOnline": "Online",
   "relayStateOffline": "Offline",
   "relayStateUnknown": "Unbekannt",
-  "widgetsPageTitle": "NDK Flutter Widgets Demo",
+  "widgetsPageTitle": "Dostr Flutter Widgets Demo",
   "widgetsLoginHint": "Melde dich im Tab „Konten“ an, um personalisierte Widgets zu sehen.",
   "widgetsCurrentUser": "Aktueller Nutzer: ",
   "widgetsSizeDefault": "Standard",
