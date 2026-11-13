@@ -1,7 +1,6 @@
 import 'package:dostr_core/dostr_core.dart';
 
-/// Relays that index users' `kind:0` and `kind:10002` events, the same as
-/// ndk's bootstrap relays.
+/// Relays that index users' `kind:0` and `kind:10002` events.
 const List<String> defaultIndexerRelays = [
   'wss://purplepag.es',
   'wss://relay.primal.net',

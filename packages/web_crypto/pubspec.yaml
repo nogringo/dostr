@@ -1,12 +1,12 @@
 name: dostr_web_crypto
-description: Fast BIP-340 event signer and event verifier for NDK (Nostr Development Kit) on the web, with @noble/curves through JS interop.
+description: Fast BIP-340 signer and verifier for Nostr events on the web, with @noble/curves through JS interop.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - schnorr
   - web
 

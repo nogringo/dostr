@@ -1,7 +1,7 @@
 name: dostr_event_verifier_test_suite
-description: Shared test suite for NDK EventVerifier implementations.
+description: Shared test suite for Nostr EventVerifier implementations, so every verifier accepts and rejects the same events.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
 publish_to: 'none'
 
 environment:

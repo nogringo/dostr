@@ -8,9 +8,8 @@ Pure Dart, no relay or network code. A signature verifier such as
 [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) only needs
 this package, not `dostr_core`.
 
-[NDK](https://pub.dev/packages/ndk) and
-[`dostr_core`](https://pub.dev/packages/dostr_core) depend on it and export it, so
-apps that already use one of them don't need to add it.
+[`dostr_core`](https://pub.dev/packages/dostr_core) depends on it and exports
+it, so apps that already use `dostr_core` don't need to add it.
 
 ## Install
 
@@ -46,8 +45,8 @@ Two events with the same id are `==`, whatever their payload: check the id
 before deduplicating events that are not verified yet.
 
 `getTags` and `getFirstTag` read any tag. Only `p` and `d` have their own
-getters, `pTags` and `dTag`, because NDK reads them everywhere: `p` names the
-recipients of an event, `d` identifies an addressable event.
+getters, `pTags` and `dTag`, because the Dostr packages read them everywhere:
+`p` names the recipients of an event, `d` identifies an addressable event.
 
 `EventKindClassification` tells the kinds of NIP-01 apart: replaceable
 (10000 to 19999, and 0, 3 and 41), addressable (30000 to 39999) and ephemeral
@@ -75,7 +74,7 @@ an `EventVerifier` before trusting the event. When the JSON has no id, they
 compute it. `toJson` leaves `sig` out of an unsigned event, such as a NIP-59
 rumor.
 
-To plug a verifier into NDK, implement `EventVerifier`:
+To write a verifier, implement `EventVerifier`:
 
 ```dart
 class MyVerifier implements EventVerifier {
@@ -86,7 +85,7 @@ class MyVerifier implements EventVerifier {
 }
 ```
 
-`EventFilter` is the interface of the filters that drop events before they reach the caller, such as the `eventOutFilters` of `ndk_requests`: `filter` returns `false` to drop an event.
+`EventFilter` is the interface of the filters that drop events before they reach the caller: `filter` returns `false` to drop an event.
 
 ## Coming from `ndk`
 

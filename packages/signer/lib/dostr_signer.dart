@@ -1,5 +1,5 @@
-/// The [EventSigner] interface that NDK signers implement, and the accounts
-/// NDK may authenticate as, with the policy and consent that decide when it
+/// The [EventSigner] interface that Nostr signers implement, and the accounts
+/// Dostr may authenticate as, with the policy and consent that decide when it
 /// reveals them to a relay (NIP-42) or a Blossom server.
 library;
 

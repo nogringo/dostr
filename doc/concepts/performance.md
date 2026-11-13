@@ -1,4 +1,8 @@
-## Performance
+---
+icon: graph
+---
+
+# Performance
 
 There are two main constraints that we aim for: battery/compute and network bandwidth.
 

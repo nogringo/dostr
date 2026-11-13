@@ -1,3 +1,9 @@
+---
+icon: shield-lock
+label: NIP-42 authentication
+order: 10
+---
+
 # NIP-42 Authentication
 
 The `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core) handles NIP-42 relay authentication: when a relay requires it, it signs and sends the AUTH event, then retries the original request.

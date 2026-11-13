@@ -143,5 +143,7 @@ new: older readers reject a set that uses it.
 
 `UrlSet`, `resolveUrlSet`, the lookup types and `UrlListCheckStore` moved here
 unchanged, except for the `dTag` of `UrlListCheckStore.read` and
-`UrlListCheck`. [`url_set_for_ndk`](https://pub.dev/packages/url_set_for_ndk)
-re-exports them and keeps `ndkUrlListFn` and `defaultIndexerRelays`.
+`UrlListCheck`. `ndkUrlListFn` and `defaultIndexerRelays` are not here:
+[`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) has
+`fetcherUrlListFn`, which builds the lookup from its fetchers, and
+`defaultIndexerRelays`.

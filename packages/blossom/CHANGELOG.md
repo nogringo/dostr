@@ -1,16 +1,14 @@
 ## 0.1.0
 
- - Initial release, moved out of the `ndk` package. It does not depend on
-   `ndk`: build `Blossom` from the accounts, the signer factory, the
-   `AuthHandler` and a function that reads a user's server list, and `Files`
-   from a `Blossom`.
+ - Initial release, moved out of the `ndk` package. Build `Blossom` from the
+   accounts, the signer factory, the `AuthHandler` and a function that reads a
+   user's server list, and `Files` from a `Blossom`.
  - `BlossomUserServerList`, which reads and publishes the server list of a
-   user (kind 10063), moved here from `ndk` too, which still exposes it as
-   `ndk.blossomUserServerList`. It takes callbacks to query and publish
+   user (kind 10063), moved here from `ndk` too. It takes callbacks to query and publish
    instead of `Requests` and `Broadcast`, and any `AuthAccounts` instead of
    `Accounts`. Its query takes the authors and the kind instead of a
    `Filter`, and `publishUserServerList` completes with whatever `publish`
-   returns, so this package does not depend on `ndk_core`.
+   returns, so this package does not depend on `dostr_core`.
  - Compared with the `ndk` version: `BLOSSOM_AUTH_EXPIRATION` became
    `Blossom.defaultAuthExpiration`, and the `authExpiration` constructor
    parameter sets it. `BlobNip94.dimenssions` became `dimensions`, and

@@ -1,12 +1,12 @@
 name: dostr_bip340
-description: Pure Dart BIP-340 Schnorr signing and verification for NDK (Nostr Development Kit), with an event signer and an event verifier.
+description: Pure Dart BIP-340 Schnorr signing and verification for Nostr, with an event signer and an event verifier.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - schnorr
 
 environment:

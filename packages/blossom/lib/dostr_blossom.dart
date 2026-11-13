@@ -1,4 +1,4 @@
-/// Blossom (BUD-01 to BUD-06) file storage for NDK.
+/// Blossom (BUD-01 to BUD-06) file storage for Nostr.
 ///
 /// ```dart
 /// final files = Files(blossom);

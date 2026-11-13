@@ -1,5 +1,5 @@
 /// A NIP-01, NIP-42 and NIP-77 relay on a local port, and a NIP-46 remote
-/// signer behind it, for the tests of the NDK packages.
+/// signer behind it, for the tests of the Dostr packages.
 ///
 /// ```dart
 /// final relay = MockRelay(requireAuthForRequests: true);

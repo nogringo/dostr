@@ -1,12 +1,12 @@
 name: dostr_nip55
-description: NIP-55 Android signer for NDK (Nostr Development Kit), to log in, sign and encrypt with a signer app from a Flutter app, without depending on ndk or dostr_flutter.
+description: NIP-55 Android signer for Nostr, to log in, sign and encrypt with a signer app from a Flutter app, without depending on dostr_flutter.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - nip55
   - signer
 

@@ -38,7 +38,7 @@ For each package to release:
 2. Add a `## <version>` section at the top of its `CHANGELOG.md`.
 3. Update the constraint of each workspace package that depends on it, where the constraint no longer accepts the new version.
 
-For `dostr_core`, also set `packageVersion` in `packages/core/lib/src/version.dart`.
+For `dostr_core`, also set `packageVersion` in `packages/core/lib/src/version.dart`, and `branding.label` in `doc/retype.yml`: every push to `master` deploys the documentation with that label.
 
 Run `flutter pub get` at the root, then commit. Publish from that commit, so the tags point at the published source.
 
@@ -67,9 +67,6 @@ git tag v0.11.0
 git push origin v0.11.0
 ```
 
-That tag runs two workflows:
-
-- `release.yml` creates the GitHub release from the `## 0.11.0` section of `packages/core/CHANGELOG.md`, and marks it as a prerelease when the version has a suffix such as `-dev.1`.
-- `pages.yml` deploys the documentation, with that version as its label, and the sample app under `/app`. It skips prerelease tags.
+That tag runs `pages.yml`, which deploys the documentation with that version as its label, and the sample app under `/app`. It skips prerelease tags.
 
 Push `v<version>` only after the publication succeeded.

@@ -1,10 +1,12 @@
-# NDK Event Verifier Test Suite
+# dostr_event_verifier_test_suite
 
-A shared test suite for [NDK](https://pub.dev/packages/ndk) `EventVerifier` implementations. Every verifier runs the same cases, so they cannot drift apart on what they accept.
+A shared test suite for implementations of the `EventVerifier` of [`dostr_nip01`](https://pub.dev/packages/dostr_nip01). Every verifier runs the same cases, so they cannot drift apart on what they accept.
+
+It is not published: the verifiers of this workspace (`dostr_bip340`, `dostr_rust_verifier`, `dostr_web_crypto`) use it.
 
 ## Usage
 
-Add `dostr_event_verifier_test_suite` as a **dev dependency**:
+Add `dostr_event_verifier_test_suite` as a **dev dependency** of a workspace package:
 
 ```yaml
 dev_dependencies:

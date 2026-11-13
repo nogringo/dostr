@@ -1,3 +1,8 @@
+---
+icon: key
+order: 20
+---
+
 # Signers
 
 A signer signs events and encrypts and decrypts messages. Every signer implements `EventSigner` from [`dostr_signer`](https://pub.dev/packages/dostr_signer), so code that signs takes any of them.

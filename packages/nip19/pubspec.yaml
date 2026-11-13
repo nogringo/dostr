@@ -1,12 +1,12 @@
 name: dostr_nip19
 description: NIP-19 bech32 encoding and decoding for Nostr (npub, nsec, note, nprofile, nevent and naddr).
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - bech32
 
 environment:

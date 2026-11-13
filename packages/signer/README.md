@@ -1,26 +1,24 @@
 # dostr_signer
 
-The `EventSigner` interface that NDK signers implement, whether they hold the
+The `EventSigner` interface that Dostr signers implement, whether they hold the
 key (`Bip340EventSigner`), ask a remote bunker (NIP-46), a browser extension
 (NIP-07) or a signer app (NIP-55). It comes with `LocalEventSignerFactory`,
 the `PendingSignerRequest` that interactive signers expose while they wait for
 the user, and the `SignerRequestRejectedException` and
 `SignerRequestCancelledException` they throw.
 
-It also holds the accounts NDK may authenticate as, and what decides when one
-is revealed: to a relay that asks for NIP-42 authentication, or to a Blossom
-server.
+It also holds the accounts the Dostr packages may authenticate as, and what
+decides when one is revealed: to a relay that asks for NIP-42 authentication,
+or to a Blossom server.
 
 Pure Dart, interfaces only. A signer such as
-[`dostr_bip340`](https://pub.dev/packages/dostr_bip340) or
-[`ndk_post_quantum`](https://pub.dev/packages/ndk_post_quantum) only needs this package and
+[`dostr_bip340`](https://pub.dev/packages/dostr_bip340) needs this package and
 [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), not `dostr_core`. So does a
-package that authenticates on behalf of NDK accounts, such as
+package that authenticates on behalf of Dostr accounts, such as
 [`dostr_blossom`](https://pub.dev/packages/dostr_blossom).
 
-[NDK](https://pub.dev/packages/ndk) and
-[`dostr_core`](https://pub.dev/packages/dostr_core) depend on it and export it, so
-apps that already use one of them don't need to add it.
+[`dostr_core`](https://pub.dev/packages/dostr_core) depends on it and exports
+it, so apps that already use `dostr_core` don't need to add it.
 
 ## Install
 
@@ -60,8 +58,8 @@ An interactive signer lists what waits for the user in `pendingRequests` and
 has an empty list. `ConcurrencyLimiterMixin` caps how many requests an
 interactive signer sends at once and queues the rest.
 
-To plug a signer into NDK, implement `EventSigner`, and
-`LocalEventSignerFactory` if NDK should create it from a private key.
+To write a signer, implement `EventSigner`, and `LocalEventSignerFactory` if
+the Dostr packages should create it from a private key.
 
 ## Accounts and authentication
 
@@ -89,12 +87,13 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 
 ## Coming from `ndk`
 
-`EventSigner`, `LocalEventSignerFactory` and `PendingSignerRequest` used to be
-in `dostr_core`, and the two exceptions and `ConcurrencyLimiterMixin` in `ndk`. What changed is in the
-[`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
+`EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`, the two
+exceptions and `ConcurrencyLimiterMixin` used to be in `ndk`. What changed is
+in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 
-`package:dostr_core/domain_layer/entities/account.dart`, `auth_policy.dart`,
-`auth_handler.dart` and `package:dostr_core/domain_layer/repositories/auth_accounts.dart`
-are now `package:dostr_signer/dostr_signer.dart`. `package:ndk/ndk.dart` and
-`package:dostr_core/dostr_core.dart` still export it. `TimeoutPausable` stays in
-`dostr_core`, in `package:dostr_core/domain_layer/entities/timeout_pausable.dart`.
+`package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`,
+`auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart`
+are now `package:dostr_signer/dostr_signer.dart`, which
+`package:dostr_core/dostr_core.dart` exports too. `TimeoutPausable`, which was in
+`auth_handler.dart`, is in `dostr_core` instead, in
+`package:dostr_core/domain_layer/entities/timeout_pausable.dart`.

@@ -1,4 +1,4 @@
-/// The accounts of NDK: log in, switch between accounts and sign as the
+/// Nostr accounts: log in, switch between accounts and sign as the
 /// logged one.
 ///
 /// ```dart

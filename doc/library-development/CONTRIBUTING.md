@@ -18,9 +18,9 @@ We love your input! We want to make contributing to this project as easy and tra
 
 We use github to host code, track issues and feature requests, and accept pull requests.
 
-## We Use [Github Flow](https://docs.github.com/de/get-started/using-github/github-flow), So All Code Changes Happen Through Pull Requests
+## We Use [Github Flow](https://docs.github.com/en/get-started/using-github/github-flow), So All Code Changes Happen Through Pull Requests
 
-Pull requests are the best way to propose changes to the codebase (we use [Github Flow](https://docs.github.com/de/get-started/using-github/github-flow)). We actively welcome your pull requests:
+Pull requests are the best way to propose changes to the codebase (we use [Github Flow](https://docs.github.com/en/get-started/using-github/github-flow)). We actively welcome your pull requests:
 
 1. Fork the repo and create your branch from `master`.
 2. If you've added code, add tests a minimum of 85% coverage is required. Add tests that make sense instead of just targeting the 85%
@@ -35,19 +35,10 @@ We use GitHub issues to track public bugs. Report a bug by [opening a new issue]
 
 ## New Features and Feature Requests
 
-If you want to propose a new feature, please [open an issue](https://github.com/nogringo/dostr/issues) first to discuss it. We use user stories to describe new features. We provide a template with examples to help you get started; if you are unsure how to write a user story, read [this](https://www.mountaingoatsoftware.com/agile/user-stories).
+If you want to propose a new feature, please [open an issue](https://github.com/nogringo/dostr/issues) first to discuss it. We use user stories to describe new features. If you are unsure how to write a user story, read [this](https://www.mountaingoatsoftware.com/agile/user-stories).
 
-After we triage your issue, it will either be accepted or rejected. If accepted, you can track the progress in [this board](https://github.com/orgs/relaystr/projects/1).
+After we triage your issue, it will either be accepted or rejected.
 If you want to work on it yourself, assign it to yourself and start working on it. Preferably let us know that you are working on it (especially for larger features) to increase the chances of merging your PR.
-
-## Communication Channels
-
-Feel free to reach out to us via the following channels:
-
-- [GitHub Issues](https://github.com/nogringo/dostr/issues)
-- weekly dev calls (every Wednesday at 11:00 CEST) [link](https://call.element.io/room/#/ndk-47014?password=ywCMPkavHoMfbtwWdzknXg&roomId=%21ntFcnshzkrZDCYXOEF%3Acall.ems.host). Let us know beforehand if you want to discuss something specific so we can add it to the agenda.
-- Nostr: [fmar](https://njump.me/fmar.dev) [leo](https://njump.me/leo@camelus.app)
-- Email: leo: contact(a t)camelus.app [pgp](https://camelus.app/pgp-key.txt)
 
 ## Project Structure
 
@@ -82,7 +73,7 @@ Inside a package, the code follows a layered architecture.
   - `<package>.dart # entrypoint, exports the public api`
 - `test/`
 
-The decision for this architecture can be viewed [here](/library-development/adrs/layerd-architecture/).
+The decision for this architecture can be viewed [here](ADRs/layered-architecture.md).
 If you are unsure where to put your code, please ask us. We are happy to help you.
 
 ## Documentation Guidelines

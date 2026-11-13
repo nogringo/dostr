@@ -1,12 +1,12 @@
 name: dostr_url_set
 description: Relay and Blossom server sets for Nostr, described rather than listed so they can be stored offline and resolved later from the lists accounts publish.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - outbox
   - offline-first
 

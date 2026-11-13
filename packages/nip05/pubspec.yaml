@@ -1,12 +1,12 @@
 name: dostr_nip05
-description: NIP-05 identifiers for NDK (Nostr Development Kit), to resolve a name@domain address to a pubkey and its relays and verify it, with caching and request deduplication, without depending on ndk.
+description: NIP-05 identifiers for Nostr, to resolve a name@domain address to a pubkey and its relays and verify it, with caching and request deduplication.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - nip05
 
 environment:

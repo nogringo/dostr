@@ -1,12 +1,12 @@
 name: dostr_nip13
-description: NIP-13 proof of work for NDK (Nostr Development Kit), to mine, measure and validate the difficulty of Nostr event ids off the main isolate, without depending on ndk.
+description: NIP-13 proof of work for Nostr, to mine, measure and validate the difficulty of event ids off the main isolate.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - proof-of-work
 
 environment:

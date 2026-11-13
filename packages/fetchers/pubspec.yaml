@@ -1,12 +1,12 @@
 name: dostr_fetchers
 description: Fetches a user's kind:0 metadata, NIP-65 relay list, NIP-17 DM relay list, Blossom server list and home-relays list on top of dostr_core, and resolves a UrlSet with them.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - outbox
   - nip65
 

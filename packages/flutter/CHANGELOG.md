@@ -1,3 +1,5 @@
+Up to 0.10.3-dev.2, this package was published as [`ndk_flutter`](https://pub.dev/packages/ndk_flutter).
+
 ## 0.10.3-dev.2
 
  - **FIX**(ndk_flutter): drop saveFile params deprecated by file_picker.

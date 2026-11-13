@@ -6,7 +6,7 @@ import '../repositories/nip_05_repo.dart';
 
 /// usecase to handle Nip05 operations (verify and fetch)
 class Nip05Usecase {
-  // Keep request deduplication local to this use case/NDK instance. Different
+  // Keep request deduplication local to this use case instance. Different
   // instances may use different repositories and caches for the same NIP-05.
   final Map<String, Future<Nip05ResolveResult>> _inFlightResolves = {};
 

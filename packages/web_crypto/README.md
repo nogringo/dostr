@@ -44,10 +44,11 @@ The classes only work on the web. On other platforms they throw
 `UnsupportedError`: use `dostr_bip340`, or `RustEventVerifier` from
 `dostr_rust_verifier`.
 
-## Coming from `dostr_flutter`
+## Coming from `ndk_flutter`
 
-`WebEventSigner` and `WebEventVerifier` moved here from `dostr_flutter`, which
-still exports them from `package:dostr_flutter/dostr_flutter.dart`. The web
+`WebEventSigner` and `WebEventVerifier` moved here from `ndk_flutter`.
+`package:ndk_flutter/ndk_flutter.dart` is now
+`package:dostr_flutter/dostr_flutter.dart`, which still exports them. The web
 `NdkEventSignerFactory` of `dostr_flutter` is now a typedef of
 `WebEventSignerFactory`.
 

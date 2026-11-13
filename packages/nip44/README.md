@@ -5,10 +5,9 @@ for Nostr, in pure Dart, with the deprecated
 [NIP-04](https://github.com/nostr-protocol/nips/blob/master/04.md) encryption
 next to it for the clients and wallets that still need it.
 
-[`dostr_bip340`](https://pub.dev/packages/dostr_bip340) and
-[NDK](https://pub.dev/packages/ndk) depend on it: `Bip340EventSigner` encrypts
-and decrypts with it. Add it on its own when you encrypt with a private key you
-hold yourself.
+[`dostr_bip340`](https://pub.dev/packages/dostr_bip340) depends on it:
+`Bip340EventSigner` encrypts and decrypts with it. Add it on its own when you
+encrypt with a private key you hold yourself.
 
 ## Install
 
@@ -38,8 +37,8 @@ final plaintext = await Nip44.decryptMessage(
 Keys are hex strings. Public keys can be x-only (64 characters, as in Nostr
 events) or SEC1 encoded.
 
-## Coming from `ndk` or `dostr_core`
+## Coming from `ndk`
 
-`package:dostr_core/shared/nips/nip44/nip44.dart` and
-`package:dostr_core/shared/nips/nip04/nip04.dart` are now both in
+`package:ndk/shared/nips/nip44/nip44.dart` and
+`package:ndk/shared/nips/nip04/nip04.dart` are now both in
 `package:dostr_nip44/dostr_nip44.dart`.

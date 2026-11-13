@@ -1,4 +1,4 @@
-/// NIP-05 identifiers for NDK.
+/// NIP-05 identifiers for Nostr.
 ///
 /// ```dart
 /// final nip05 = Nip05Usecase(

@@ -14,7 +14,7 @@ Dostr is a set of Dart packages, each covering one part of Nostr, so an app only
 - [`dostr_url_set`](https://pub.dev/packages/dostr_url_set): relay sets described rather than listed, resolved when needed.
 - One package per NIP for the rest, listed in the [package overview](https://github.com/nogringo/dostr#monorepo-packages).
 
-They are pure Dart unless their README says otherwise, so the same code runs in a Flutter app, a server or a CLI.
+They are pure Dart unless their README says otherwise, so the same code runs in a Flutter app, a server or a CLI. In a Flutter app, [`dostr_flutter`](/usecases/flutter.md) adds login, profile and account widgets on top of them.
 
 ## Install
 

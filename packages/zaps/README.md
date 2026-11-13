@@ -1,22 +1,6 @@
 # dostr_zaps
 
-The zaps of [NDK](https://pub.dev/packages/ndk) ([NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md)): create zap requests, fetch the invoice to pay from a lightning address ([LUD-06](https://github.com/lnurl/luds/blob/luds/06.md), [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md)), and read zap receipts. It does not depend on `ndk`.
-
-## With NDK
-
-`ndk` depends on this package, re-exports it and exposes it as `ndk.zaps` and `ndk.lnurl`:
-
-```dart
-import 'package:ndk/ndk.dart';
-
-final invoice = await ndk.zaps.fetchInvoice(
-  lud16Link: Lnurl.getLud16LinkFromLud16('name@domain.com')!,
-  amountSats: 21,
-);
-final receipts = await ndk.zaps.fetchZappedReceipts(pubKey: pubkey).toList();
-```
-
-Paying goes through a wallet: `Nwc.zap(...)` from [`ndk_nwc`](https://pub.dev/packages/ndk_nwc) fetches the invoice, pays it and waits for the receipt.
+[NIP-57](https://github.com/nostr-protocol/nips/blob/master/57.md) zaps for Nostr: create zap requests, fetch the invoice to pay from a lightning address ([LUD-06](https://github.com/lnurl/luds/blob/luds/06.md), [LUD-16](https://github.com/lnurl/luds/blob/luds/16.md)), and read zap receipts. Paying the invoice is up to your wallet.
 
 ## Standalone
 
@@ -60,8 +44,8 @@ final receipts = await zaps.fetchZappedReceipts(pubKey: recipient).toList();
 
 `fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. `fetchZappedReceipts` and `subscribeToZapReceipts` match the receipts (kind 9735) by recipient, and by event or addressable event when given.
 
-More in [example/](example/) and the [zaps docs](https://dart-nostr.com/usecases/zaps/).
+More in [example/](example/) and the [zaps docs](https://nogringo.github.io/dostr/usecases/zaps/).
 
 ## Coming from `ndk`
 
-`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names, and `package:ndk/ndk.dart` still exports them. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:dostr_zaps/dostr_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.
+`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:dostr_zaps/dostr_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.

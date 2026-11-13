@@ -5,7 +5,7 @@ import 'nip19.dart';
 /// NIP-19 references to an event.
 extension Nip19EventReferences on Nip01Event {
   /// This event as a nevent, with its id, author and kind, and [relays] as
-  /// hints, for example the ones `CacheManager.loadEventSources` returns.
+  /// hints.
   String nevent({List<String> relays = const []}) {
     return Nip19.encodeNevent(
       eventId: id,
@@ -16,7 +16,8 @@ extension Nip19EventReferences on Nip01Event {
   }
 
   /// This event as a naddr, with [relays] as hints, or null when its kind is
-  /// not addressable or replaceable, or when it has no "d" tag.
+  /// not addressable (nor one of the legacy kinds 0, 3 and 41), or when it has
+  /// no "d" tag.
   String? naddr({List<String> relays = const []}) {
     if (!EventKindClassification.isAddressableKind(kind) &&
         !EventKindClassification.legacyReplaceableKinds.contains(kind)) {

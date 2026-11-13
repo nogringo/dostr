@@ -1,12 +1,12 @@
 name: dostr_home_relays
 description: Computed Home Relays for Nostr, the relays every client derives from a pubkey to find its NIP-65 relay list, picked from a home-relays list.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - outbox
   - nip65
 

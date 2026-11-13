@@ -1,4 +1,4 @@
-/// The core of NDK: relay connections, NIP-42 authentication, and REQ and
+/// The core of Dostr: relay connections, NIP-42 authentication, and REQ and
 /// EVENT on the relays you pick.
 library;
 

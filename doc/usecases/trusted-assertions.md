@@ -1,6 +1,5 @@
 ---
 label: Trusted Assertions (NIP-85)
-order: 50
 icon: agent
 ---
 

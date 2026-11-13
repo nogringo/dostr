@@ -1,4 +1,5 @@
 ---
+order: 75
 icon: person
 ---
 
@@ -65,6 +66,20 @@ accounts.loginExternalSigner(signer: signer);
 ```
 
 `getPublicKey()` is synchronous and throws until the public key is known. Call `getPublicKeyAsync()` once, or pass a known key as `Nip07EventSigner(cachedPublicKey: pubkey)` when restoring an account.
+
+## Android signer app (NIP-55)
+
+[`dostr_nip55`](https://pub.dev/packages/dostr_nip55) signs with a NIP-55 signer app installed on the device. It is a Flutter plugin for Android only: on other platforms every call throws a `MissingPluginException`, so check the platform first.
+
+:::code source="../../packages/nip55/example/dostr_nip55_example.dart" language="dart" range="7-19" title="" :::
+
+Then log it in:
+
+```dart
+accounts.loginExternalSigner(signer: signer);
+```
+
+`login()` opens the signer app and asks it to pre-authorize `Nip55Signer.defaultPermissions`. Requests then go straight to the app of `login.package`, which can answer them without opening; with no package, each request opens a signer app. To restore the account, store `login.pubkey` and `login.package` and build the same `Nip55EventSigner` from them: nothing reaches the signer app until the first request.
 
 ## Remote signer (NIP-46)
 

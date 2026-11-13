@@ -1,11 +1,12 @@
 # dostr_core
 
-The core of [NDK](https://pub.dev/packages/ndk): relay connections, NIP-42
-authentication, and REQ and EVENT on the relays you pick, with nothing on top.
-NDK builds its cache, outbox routing and use cases on it.
+The core of Dostr: relay connections, NIP-42 authentication, and REQ and
+EVENT on the relays you pick, with nothing on top.
+[`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) builds on it to
+read the metadata and relay lists of accounts where NIP-65 puts them.
 
-Most apps want `ndk`. Use `dostr_core` on its own when you only talk to relays
-you already know, for a bot, a relay tool or a NIP-46 client.
+Use `dostr_core` on its own when you only talk to relays you already know, for
+a bot, a relay tool or a NIP-46 client.
 
 ## Install
 

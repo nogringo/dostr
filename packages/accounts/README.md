@@ -1,19 +1,8 @@
 # dostr_accounts
 
-The accounts of [NDK](https://pub.dev/packages/ndk): log in with a private key, a public key, an external signer or a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker, switch between the logged accounts, and sign as the current one. It does not depend on `ndk`.
+Accounts for Nostr apps: log in with a private key, a public key, an external signer or a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker, switch between the logged accounts, and sign as the current one.
 
 `Accounts` implements `AuthAccounts` from [`dostr_signer`](https://pub.dev/packages/dostr_signer), so relays (NIP-42) and Blossom servers authenticate as its accounts.
-
-## With NDK
-
-`ndk` depends on this package, re-exports it and exposes it as `ndk.accounts`:
-
-```dart
-import 'package:ndk/ndk.dart';
-
-ndk.accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
-ndk.broadcast.broadcast(nostrEvent: event); // signed by the logged account
-```
 
 ## Standalone
 
@@ -48,12 +37,10 @@ await signer.getPublicKeyAsync();
 accounts.loginExternalSigner(signer: signer);
 ```
 
-With `ndk`, `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` do it for you.
-
 `accountsStream` emits the known accounts on subscription, then an unmodifiable snapshot every time one is added or removed. `authStateChanges` emits the logged account, or null, every time it changes.
 
-More in [example/](example/) and the [accounts docs](https://dart-nostr.com/usecases/accounts/).
+More in [example/](example/) and the [accounts docs](https://nogringo.github.io/dostr/usecases/accounts/).
 
 ## Coming from `ndk`
 
-`Accounts` keeps its name and its API, and `package:ndk/ndk.dart` still exports it. The deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart` is now `package:dostr_accounts/dostr_accounts.dart`.
+`Accounts` keeps its name and its API. Import it from `package:dostr_accounts/dostr_accounts.dart` instead of `package:ndk/ndk.dart` or the deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart`. `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` become a `Bunkers` connection and `loginExternalSigner`, as above.

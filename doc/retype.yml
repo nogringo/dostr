@@ -5,9 +5,15 @@ branding:
   title: Dostr
   label: v0.11.0-dev.2
 links:
+- text: GitHub
+  link: https://github.com/nogringo/dostr
 - text: pub.dev
   link: https://pub.dev/packages?q=dostr
 - text: nips
   link: https://github.com/nostr-protocol/nips/?tab=readme-ov-file#event-kinds
+edit:
+  repo: https://github.com/nogringo/dostr
+  base: /doc
+  branch: master
 footer:
-  copyright: "&copy; Copyright {{ year }}. All rights reserved."
+  copyright: "&copy; Copyright {{ year }}. [MIT License](https://github.com/nogringo/dostr/blob/master/LICENSE)."

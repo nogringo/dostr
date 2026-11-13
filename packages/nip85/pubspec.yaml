@@ -1,12 +1,12 @@
 name: dostr_nip85
-description: NIP-85 trusted assertions for NDK (Nostr Development Kit), to fetch and stream the metrics trusted providers compute for users, events, addressable events and external identifiers, without depending on ndk.
+description: NIP-85 trusted assertions for Nostr, to fetch and stream the metrics providers compute for users, events, addressable events and external identifiers.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - nip85
 
 environment:

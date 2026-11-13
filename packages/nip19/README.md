@@ -4,9 +4,6 @@
 encoding and decoding for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent`
 and `naddr`. Pure Dart, no relay or network code.
 
-[NDK](https://pub.dev/packages/ndk) depends on it and exports it, so apps that
-already use `ndk` don't need to add it.
-
 ## Install
 
 ```yaml
@@ -33,9 +30,10 @@ print(reference.eventId);
 ```
 
 `nevent` and `naddr` encode a `Nip01Event` of
-[`dostr_nip01`](https://pub.dev/packages/dostr_nip01) with its id, author and kind,
-and relay hints. `naddr` returns null when the kind is not addressable or
-replaceable, or when the event has no `d` tag:
+[`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints. `nevent`
+holds its id, author and kind, and `naddr` its `d` tag, author and kind. `naddr`
+returns null unless the kind is addressable (or `0`, `3` or `41`) and the event
+has a `d` tag:
 
 ```dart
 final nevent = event.nevent(relays: ['wss://relay.example.com']);
@@ -48,4 +46,3 @@ final naddr = event.naddr();
 `Nprofile` entities are now all in `package:dostr_nip19/dostr_nip19.dart`, and so
 are the `nevent` and `naddr` methods on `Nip01Event`
 (`package:ndk/shared/nips/nip19/nip19_event_references.dart`).
-`package:ndk/ndk.dart` still exports them all.

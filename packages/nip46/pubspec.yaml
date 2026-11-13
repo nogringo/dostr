@@ -1,12 +1,12 @@
 name: dostr_nip46
-description: NIP-46 remote signing for NDK (Nostr Development Kit), to connect to a bunker with a bunker:// or nostrconnect:// URL and sign and encrypt through it, without depending on ndk.
+description: NIP-46 remote signing for Nostr, to connect to a bunker with a bunker:// or nostrconnect:// URL and sign and encrypt through it.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - nip46
   - signer
 

@@ -8,9 +8,7 @@ authentication included, with the
 [Negentropy V1](https://github.com/hoytech/negentropy/blob/master/docs/negentropy-protocol-v1.md)
 codec under it.
 
-[NDK](https://pub.dev/packages/ndk) depends on it and exposes it as
-`ndk.nip77`, so apps that already use `ndk` don't need to add it. Add it next to
-`dostr_core` when you use the core on its own.
+Add it next to `dostr_core`.
 
 ## Install
 
@@ -49,7 +47,7 @@ as `localIds`. `needStream` and `haveStream` emit ids as rounds complete.
 
 `package:dostr_core/shared/nips/nip77/negentropy.dart` and the `Nip77`,
 `Nip77Response` and `Nip77Result` classes are now all in
-`package:dostr_nip77/dostr_nip77.dart`. `package:ndk/ndk.dart` still exports them.
-`Nip77` takes the `RelayManager` and two cache reads instead of `GlobalState`
-and a `CacheManager`, and no longer has `processNegMsg`, `processNegErr` or
-`processNegClosed`: it registers itself on the `RelayManager`.
+`package:dostr_nip77/dostr_nip77.dart`. `Nip77` takes the `RelayManager` and
+two cache reads instead of `GlobalState` and a `CacheManager`, and no longer has
+`processNegMsg`, `processNegErr` or `processNegClosed`: it registers itself on
+the `RelayManager`.

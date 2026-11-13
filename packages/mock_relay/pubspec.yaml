@@ -1,8 +1,8 @@
 name: dostr_mock_relay
-description: A NIP-01, NIP-42 and NIP-77 relay on a local port, with a NIP-46 remote signer, for the tests of the NDK packages.
+description: A NIP-01, NIP-42 and NIP-77 relay on a local port, with a NIP-46 remote signer, for the tests of the Dostr packages.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 publish_to: 'none'
 
 environment:

@@ -1,4 +1,4 @@
-/// NIP-59 gift wrap for NDK.
+/// NIP-59 gift wrap for Nostr.
 ///
 /// ```dart
 /// final giftWrap = GiftWrap(

@@ -1,35 +1,44 @@
 # dostr_nip85
 
-[NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions for [NDK](https://pub.dev/packages/ndk): metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`), so the device does not have to.
+[NIP-85](https://github.com/nostr-protocol/nips/blob/master/85.md) trusted assertions for Nostr: metrics that trusted providers compute and publish for users (kind `30382`), events (kind `30383`), addressable events (kind `30384`) and external identifiers (kind `30385`), so the device does not have to.
 
-It does not depend on `ndk`. It asks you how to query and subscribe to a relay. NDK exposes it, wired to its requests and `NdkConfig.defaultTrustedProviders`, as `ndk.ta`: build it yourself, as below, only to wire it differently.
+It asks you how to query and subscribe to a relay.
 
 ## Install
 
 ```yaml
 dependencies:
-  ndk: ^0.11.0-dev.2
   dostr_nip85: ^0.1.0
+  dostr_core: ^0.11.0-dev.2
+  dostr_bip340: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
-import 'package:ndk/ndk.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip85/dostr_nip85.dart';
 
-final ndk = Ndk.defaultConfig();
+final relayManager = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+);
+final reqs = RelayReqs(
+  relayManager: relayManager,
+  eventVerifier: Bip340EventVerifier(),
+);
+
 final ta = TrustedAssertions(
-  query: (filter, {required relay}) =>
-      ndk.requests.query(filter: filter, explicitRelays: [relay]).future,
+  query: (filter, {required relay}) => reqs
+      .req(relays: {relay: [filter]})
+      .events
+      .map((received) => received.event)
+      .toList(),
   subscribe: (filter, {required relay}) {
-    final response = ndk.requests.subscription(
-      filter: filter,
-      explicitRelays: [relay],
-    );
+    final req = reqs.req(relays: {relay: [filter]}, closeOnEose: false);
     return (
-      events: response.stream,
-      close: () => ndk.requests.closeSubscription(response.requestId),
+      events: req.events.map((received) => received.event),
+      close: req.close,
     );
   },
 );
@@ -46,4 +55,4 @@ await sub.cancel();
 
 `query` answers the `get*` methods and `subscribe` the `stream*` ones. Both are called once per relay of the providers asked. `defaultProviders` defaults to `DEFAULT_NIP85_PROVIDERS`, served by `wss://nip85.uid.ovh`, and each call can pass its own `providers` instead.
 
-More in [example/](example/) and the [trusted assertions docs](https://dart-nostr.com/usecases/trusted-assertions/).
+More in [example/](example/) and the [trusted assertions docs](https://nogringo.github.io/dostr/usecases/trusted-assertions/).

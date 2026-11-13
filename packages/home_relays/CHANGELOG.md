@@ -1,3 +1,3 @@
 ## 0.1.0
 
- - Initial release, moved out of `ndk_fetchers` with `HomeRelayList`, `defaultHomeRelayListUrl` and `defaultHomeRelayListAuthor`.
+ - Initial release, moved out of `dostr_fetchers` with `HomeRelayList`, `defaultHomeRelayListUrl` and `defaultHomeRelayListAuthor`.

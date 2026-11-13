@@ -2,32 +2,44 @@
 
 [NIP-13](https://github.com/nostr-protocol/nips/blob/master/13.md) proof of work for Nostr events: mine an event until its id has enough leading zero bits, read the difficulty of an id, and check an event against the target its `nonce` tag commits to.
 
-Mining runs in its own isolate (on the main thread on the web). It does not depend on `ndk`.
+Mining runs in its own isolate (on the main thread on the web).
 
 ## Install
 
 ```yaml
 dependencies:
   dostr_nip13: ^0.1.0
+  dostr_core: ^0.11.0-dev.2 # only to publish, as below
 ```
 
 ## Usage
 
 ```dart
+import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip13/dostr_nip13.dart';
 
-final mined = await Nip13.mineEvent(event, 20);
+final event = Nip01Event(
+  pubKey: signer.getPublicKey(),
+  kind: 1,
+  content: 'hello nostr',
+);
+final mined = await Nip13.mineEvent(event, 20, maxIterations: 10000000);
 Nip13.getDifficulty(mined.id); // >= 20
 Nip13.validateEvent(mined); // true
 
-await ndk.broadcast.broadcast(nostrEvent: mined);
+final signed = await signer.sign(mined);
+await RelayPublishes(relayManager: relays)
+    .publish(signed, relays: ['wss://relay.example.com'])
+    .done;
 ```
 
-`mineEvent` adds a `nonce` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce. Sign it after mining: `ndk.broadcast` does it with the logged-in account. It throws after `maxIterations` tries, 1,000,000 by default.
+`mineEvent` adds a `nonce` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce. Sign it after mining with an `EventSigner` (`signer`, for example a `Bip340EventSigner` of `dostr_bip340`), then publish it with `RelayPublishes` of `dostr_core`, where `relays` is the app's `RelayManager`. The id covers the pubkey, so give the event the signer's pubkey before mining.
+
+`mineEvent` throws after `maxIterations` tries, 1,000,000 by default. A difficulty `d` takes 2^d tries on average, about a million at 20, so raise it for 20 and above.
 
 ## Coming from `ndk`
 
-`ndk.proofOfWork` and the `ProofOfWork` usecase are gone. Use the static methods of `Nip13`:
+`ndk.proofOfWork` and the `ProofOfWork` usecase have no counterpart here. Use the static methods of `Nip13`:
 
 | Before | After |
 | ------ | ----- |

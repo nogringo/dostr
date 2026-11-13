@@ -1,6 +1,6 @@
 ---
 label: Library Development
-icon: repo-clone	
+icon: repo-clone
 
 ---
 

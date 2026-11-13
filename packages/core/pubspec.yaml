@@ -1,12 +1,12 @@
 name: dostr_core
-description: The core of NDK (Nostr Development Kit) - relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
+description: "The core of Dostr: Nostr relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick."
 version: 0.11.0-dev.2
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
 
 environment:
   sdk: ">=3.9.0 <4.0.0"

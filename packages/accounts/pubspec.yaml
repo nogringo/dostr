@@ -1,12 +1,12 @@
 name: dostr_accounts
-description: The accounts of NDK (Nostr Development Kit), to log in with a private key, a public key, an external signer or a NIP-46 bunker, switch between them and sign as the logged one, without depending on ndk.
+description: "Nostr accounts for Dart: log in with a private key, a public key, an external signer or a NIP-46 bunker, switch between them and sign as the logged one."
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - authentication
 
 environment:

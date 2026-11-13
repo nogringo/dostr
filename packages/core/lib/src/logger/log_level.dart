@@ -1,4 +1,4 @@
-/// Log levels for the NDK logger.
+/// Log levels for the Dostr logger.
 ///
 /// Defines the severity levels for logging messages.
 enum LogLevel {

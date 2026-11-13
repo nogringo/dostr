@@ -28,8 +28,8 @@ class Nip65Fetcher {
   /// [EventNotFound] when there was none.
   final UrlListCheckStore? checks;
 
-  /// How long a finished lookup is trusted, the same as ndk's refresh of
-  /// users' relay lists. Without [checks], its result is reused that long.
+  /// How long a finished lookup is trusted. Without [checks], its result is
+  /// reused that long.
   /// With them, each lookup reads [cache] again, so a list saved there since
   /// is seen, and the checks spare the relays across restarts too.
   final Duration maxAge;

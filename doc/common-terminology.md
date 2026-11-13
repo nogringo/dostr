@@ -7,6 +7,8 @@ icon: bookmark
 
 # Common terminology
 
+The words this documentation uses for Nostr notions, and the names they go by elsewhere.
+
 | term | explanation | similar to |
 | --- | --- | --- |
 | **publish** | send an event to relays (NIP-01 EVENT) | broadcast, post |

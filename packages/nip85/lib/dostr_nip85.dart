@@ -1,4 +1,4 @@
-/// NIP-85 trusted assertions for NDK.
+/// NIP-85 trusted assertions for Nostr.
 ///
 /// ```dart
 /// final ta = TrustedAssertions(query: query, subscribe: subscribe);

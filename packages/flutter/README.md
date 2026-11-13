@@ -21,11 +21,12 @@ Follow the [Official documentation](https://docs.flutter.dev/ui/accessibility-an
 import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
 
 MaterialApp(
-    localizationsDelegates: [
-        dostr_flutter.AppLocalizations.delegate, // add this line
-    ],
+    localizationsDelegates: dostr_flutter.AppLocalizations.localizationsDelegates,
+    supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
 );
 ```
+
+`localizationsDelegates` holds the widgets' delegate along with Flutter's Material, Cupertino and widgets delegates. If your app has its own localizations, add `dostr_flutter.AppLocalizations.delegate` to your list instead.
 
 ## Usage
 
@@ -50,7 +51,8 @@ final ndkFlutter = NdkFlutter(
 // typically called before runApp
 await ndkFlutter.restoreAccountsState();
 
-// call this every time the auth state changes
+// NLogin, NSwitchAccount and NUserProfile call it themselves:
+// call it only after changing accounts from your own code
 await ndkFlutter.saveAccountsState();
 
 NBanner(ndkFlutter: ndkFlutter);

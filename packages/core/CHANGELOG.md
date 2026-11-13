@@ -8,89 +8,86 @@
 
 These files used to live in `ndk`. A deep import keeps its path and changes
 package: `package:ndk/domain_layer/entities/relay.dart` is now
-`package:ndk_core/domain_layer/entities/relay.dart`. `package:ndk/ndk.dart`
-still exports what it did.
+`package:dostr_core/domain_layer/entities/relay.dart`.
 
 What lives under `lib/src` is internal. These files moved there and can no
 longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
-`domain_layer/usecases/nip42/auth_event.dart`,
 `shared/decode_nostr_msg/decode_nostr_msg.dart` and
-`shared/nips/nip01/client_msg.dart`.
+`shared/nips/nip01/client_msg.dart`. `domain_layer/usecases/nip42/auth_event.dart`
+is gone: `RelayManager` builds the AUTH event itself.
 
 `IsolateManager` and its pool are gone: relay messages are decoded on the
 main isolate, and `Isolate.run` replaces `runInComputeIsolate` for your own
 work.
 
 `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`
-are now `package:ndk_core/ndk_core.dart`. `LogColor` is internal.
+are now `package:dostr_core/dostr_core.dart`. `LogColor` is internal.
 
 `Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in
-[`ndk_signer`](https://pub.dev/packages/ndk_signer):
-`package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`,
-`auth_handler.dart` and
-`package:ndk_core/domain_layer/repositories/auth_accounts.dart` are now
-`package:ndk_signer/ndk_signer.dart`, which `package:ndk_core/ndk_core.dart`
-exports. `TimeoutPausable` stays here, in
-`package:ndk_core/domain_layer/entities/timeout_pausable.dart`.
+[`dostr_signer`](https://pub.dev/packages/dostr_signer):
+`package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart` and
+`auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which
+`package:dostr_core/dostr_core.dart` exports. `TimeoutPausable` moved from
+`auth_handler.dart` to
+`package:dostr_core/domain_layer/entities/timeout_pausable.dart`.
 
-`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization ndk_core
-connects with, are in [`ndk_url_set`](https://pub.dev/packages/ndk_url_set):
+`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core
+connects with, are in [`dostr_url_set`](https://pub.dev/packages/dostr_url_set):
 `package:ndk/shared/helpers/relay_helper.dart` is now
-`package:ndk_url_set/ndk_url_set.dart`, and `package:ndk_core/ndk_core.dart`
-still exports them. `relayUrlRegex` and the url normalizer behind them are
-internal to `ndk_url_set`.
+`package:dostr_url_set/dostr_url_set.dart`, and
+`package:dostr_core/dostr_core.dart` exports them. `relayUrlRegex` and the url
+normalizer behind them are internal to `dostr_url_set`.
 
 `Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
-[`ndk_bip340`](https://pub.dev/packages/ndk_bip340), and `Nip01Utils.signWithPrivateKey` is now
+[`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and `Nip01Utils.signWithPrivateKey` is now
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
-[`ndk_nip44`](https://pub.dev/packages/ndk_nip44).
+[`dostr_nip44`](https://pub.dev/packages/dostr_nip44).
 
 `Nip01Event` and `EventVerifier` are in
-[`ndk_nip01`](https://pub.dev/packages/ndk_nip01):
+[`dostr_nip01`](https://pub.dev/packages/dostr_nip01):
 `package:ndk/domain_layer/entities/nip_01_event.dart` and
 `package:ndk/domain_layer/repositories/event_verifier.dart` are now
-`package:ndk_nip01/ndk_nip01.dart`, which `package:ndk_core/ndk_core.dart`
+`package:dostr_nip01/dostr_nip01.dart`, which `package:dostr_core/dostr_core.dart`
 exports.
 `EventKindClassification` and `Filter` are there too:
 `package:ndk/shared/nips/nip01/event_kind_classification.dart` and
 `package:ndk/domain_layer/entities/filter.dart` are now
-`package:ndk_nip01/ndk_nip01.dart`.
+`package:dostr_nip01/dostr_nip01.dart`.
 
 `EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`,
 `SignerMethod`, `SignerRequestRejectedException` and
 `SignerRequestCancelledException` are in
-[`ndk_signer`](https://pub.dev/packages/ndk_signer):
+[`dostr_signer`](https://pub.dev/packages/dostr_signer):
 `package:ndk/domain_layer/repositories/event_signer.dart`,
 `package:ndk/domain_layer/entities/pending_signer_request.dart`,
 `package:ndk/domain_layer/entities/signer_request_rejected_exception.dart` and
 `package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart` are
-now `package:ndk_signer/ndk_signer.dart`, which
-`package:ndk_core/ndk_core.dart` exports.
+now `package:dostr_signer/dostr_signer.dart`, which
+`package:dostr_core/dostr_core.dart` exports.
 
-NIP-77 is in [`ndk_nip77`](https://pub.dev/packages/ndk_nip77), with
+NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with
 `NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
 `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or
 `onNegClosed`. A protocol of its own, NIP-77 included, plugs in with
 `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
 
-`Tuple` and the `Helpers` of `ndk` are gone. `ndk_core` keeps a `Helpers` of
+`Tuple` and the `Helpers` of `ndk` are gone. `dostr_core` keeps a `Helpers` of
 its own with only `getSecureRandomHex`, and `Nip01Event.secondsSinceEpoch()`
 replaces `Helpers.now`. `MutexSimple` is in
-`package:ndk_core/shared/helpers/mutex_simple.dart`. `castToListOfListOfString`
+`package:dostr_core/shared/helpers/mutex_simple.dart`. `castToListOfListOfString`
 of `package:ndk/shared/helpers/list_casting.dart` is gone.
 
-`ndk_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
-and `RelayInfoRepo` are in [`ndk_nip11`](https://pub.dev/packages/ndk_nip11),
+`dostr_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
+and `RelayInfoRepo` are in [`dostr_nip11`](https://pub.dev/packages/dostr_nip11),
 and `RelayInfoHttpRepoImpl(httpDS: http)` is its `HttpRelayInfoRepo(client)`,
 which takes an `http.Client`. `HttpRequestDS` is gone: the packages that make
-HTTP calls take an `http.Client`. `ndk.connectivity.getRelayInfo` fetches and
-caches the documents, and the deprecated `RelayInfo.get` is gone.
+HTTP calls take an `http.Client`. The deprecated `RelayInfo.get` is gone.
 
 `configureDefaultUserAgent`, which sets the User-Agent of the websockets of the
-process on `dart:io`, is in `package:ndk_core/ndk_core.dart` instead of
-`package:ndk/shared/net/user_agent.dart`. `NdkConfig.userAgent` still calls it.
+process on `dart:io`, is in `package:dostr_core/dostr_core.dart` instead of
+`package:ndk/shared/net/user_agent.dart`.
 
-`Nip13` is in [`ndk_nip13`](https://pub.dev/packages/ndk_nip13).
+`Nip13` is in [`dostr_nip13`](https://pub.dev/packages/dostr_nip13).
 `Nip01Utils.isIdValid` checks the id alone and no longer rejects an event that
 misses the proof-of-work target its `nonce` tag declares.
 `Nip01Utils.createEventCalculateId`, `Nip01Utils.calculateEventId` and
@@ -100,30 +97,26 @@ and `payloadId` recomputes it from the payload.
 #### Defaults
 
 `RelayManager` no longer takes `bootstrapRelays` and no longer has
-`seedRelaysConnected`: it opens no connection when it is built. Bootstrap
-relays belong to `ndk`, where `NdkConfig` still defaults to
-`DEFAULT_BOOTSTRAP_RELAYS` at its old path. Nothing replaces
-`ndk.relays.seedRelaysConnected`: `ndk` no longer connects to its bootstrap
-relays when it starts, a request opens them when it goes to them.
-`RequestDefaults` and `BroadcastDefaults` keep only what `ndk_core` uses. `ndk`
-has both classes at their old paths with everything else, including
+`seedRelaysConnected`: it opens no connection when it is built. `dostr_core`
+has no `DEFAULT_BOOTSTRAP_RELAYS`. Nothing replaces
+`ndk.relays.seedRelaysConnected`.
+`RequestDefaults` and `BroadcastDefaults` keep only what `dostr_core` uses:
 `DEFAULT_QUERY_TIMEOUT`, `DEFAULT_USER_AGENT` and
-`MAX_INBOX_RELAYS_TO_BROADCAST`.
+`MAX_INBOX_RELAYS_TO_BROADCAST` are gone, among others.
 
-`connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`,
-`RelayPublish.send` and `RelayPublishSend` in `ndk`, is a `Duration` instead of a
-number of seconds, and so is `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT`.
+`connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`
+and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so
+is `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT`.
 
 #### `RelayManager`
 
 `RelayManager` and `RelayConnectivity` are no longer generic.
 `EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and
 `RelayStats.touched` and `touchUseful` are gone: they only served the JIT
-engine of `ndk`, which now keeps its data on its own.
+engine of `ndk`.
 
-`GlobalState` and `RequestState` are no longer public, in `ndk_core` or in
-`ndk`: `RelayManager` keeps its own state and no longer takes a
-`globalState`. Read its connections with `RelayManager.connectivities`, block
+`GlobalState` and `RequestState` are no longer public: `RelayManager` keeps
+its own state and no longer takes a `globalState`. Read its connections with `RelayManager.connectivities`, block
 relays with `RelayManager.blockedRelays`, ask `RelayManager.isBroadcasting`
 whether an event is still being broadcast, and `RelayReqs.openIds` which REQs
 are open.
@@ -132,9 +125,9 @@ are open.
 `sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`,
 `failBroadcast`, `failRelayRequest`, `connectionForBroadcast`,
 `isStillInFlight`, `beginPendingConnection`, `endPendingConnection`,
-`sendRequestToRelay`, `sendCloseToRelay`, `sendCloseToConnection`,
-`reSubscribeInFlightSubscriptions`, `updateRelayConnectivity`, `closeRequest`
-and the deprecated `authenticateIfNeeded` are gone, and so is
+`sendCloseToRelay`, `sendCloseToConnection`,
+`reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the
+deprecated `authenticateIfNeeded` are gone, and so is
 `RequestState.registerRequest`. Send any message other than a REQ or an EVENT
 with `RelayManager.send`, which now takes the `RelayConnectionKey` of a
 connection and the message as a JSON array, such as
@@ -191,8 +184,7 @@ carries nothing `closeIdleConnections` would keep is forgotten instead, when it
 drops or before an attempt to bring it back: a relay that closes idle sockets
 used to get them reopened forever.
 `WebSocketClientNostrTransportFactory` no longer takes `reconnectMaximumStep`:
-`RelayManager` does, and `NdkConfig.webSocketReconnectMaximumStep` still sets
-it.
+`RelayManager` does.
 
 #### Idle connections
 
@@ -200,9 +192,7 @@ A connection is closed once it went without work, as `closeIdleConnections`
 counts it, and without any message sent or received, for
 `anonymousIdleTimeout` (a minute by default) or, when it is bound to an
 identity, `authenticatedIdleTimeout` (five minutes by default). Connections
-used to stay open until they were closed explicitly. Null keeps them open, and
-`NdkConfig.anonymousConnectionIdleTimeout` and
-`NdkConfig.authenticatedConnectionIdleTimeout` set both in `ndk`.
+used to stay open until they were closed explicitly. Null keeps them open.
 
 `WebSocketNostrTransportFactory`, `WebSocketNostrTransport` and `WebsocketDS`
 are gone: they reported a socket open before its handshake, which skipped the
@@ -227,8 +217,7 @@ Open REQs with `RelayReqs`. Close one with `RelayReq.close`, by its id with
 `RelayReqs.close`, or all of them with `RelayReqs.closeAll`.
 
 `RelayReq.events` gives each event as a `RelayReqEvent`, with the relay that
-sent it in `relayUrl`. It leaves the deprecated `Nip01Event.sources` empty;
-`ndk` still fills it on the events `Requests` returns.
+sent it in `relayUrl`. The deprecated `Nip01Event.sources` is gone.
 
 A subscription now reports `RelayRequestStatus.eose` on each relay that sent
 its EOSE, instead of staying `pending` until it is closed. It still runs until
@@ -240,7 +229,6 @@ used to stay `pending` until their timeout, or for good without one.
 
 #### Publishes
 
-`RelayManager.trackBroadcast` and `RelayManager.publishToRelay` are gone, and
 `BroadcastState` is no longer public. `RelayBroadcastResponse` stays at its old
 path. Publish a signed event with `RelayPublishes.publish`. To publish an event
 that still has to be signed, open it with `RelayPublishes.open`: it counts as
@@ -250,15 +238,11 @@ in flight right away. Then `start` the `RelayPublish` with the signed event,
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and
 `done` give the `RelayBroadcastResponse` of each relay, keyed by relay url.
-`NdkBroadcastResponse` stays in `ndk` at its old path, where `Broadcast` still
-returns it, and `NdkBroadcastResponse.fromState` is gone.
-`NetworkEngine.handleEventBroadcast` in `ndk` became `routeBroadcast`, which
-gets the signed event and only picks its relays.
 
 `considerDonePercent` counts the relays that accepted the event: a refusal no
 longer brings a publish closer to done.
 
-What `ndk_core` itself failed at comes as a `RelayFailure`, whose
+What `dostr_core` itself failed at comes as a `RelayFailure`, whose
 `RelayFailureKind` says what it was and whose `detail` may say more, instead
 of a sentence of its own in a message. `RelayRequestOutcome.failure` holds it
 for `notSent`, `RelayBroadcastResponse.failure` for a relay the event did not
@@ -266,8 +250,7 @@ reach, and `connectRelay` returns it. `RelayRequestOutcome.message` and
 `RelayBroadcastResponse.msg` only hold what the relay sent in its CLOSED or OK,
 and a broadcast the relay refused for want of an identity it may not reveal
 reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its
-`detail`. In `ndk`, the retry of pending deliveries reads that kind instead of
-matching text.
+`detail`.
 
 #### Filters
 
@@ -278,10 +261,8 @@ all. `Filter.matchesNothing` tells whether a filter can match any event.
 
 `RelayReq.send` leaves out the filters that match nothing, and does not send to
 a relay left with none. A REQ whose filters all match nothing ends right away,
-with no relay in its outcomes. In `ndk`, `Requests` asks neither the cache nor
-the relays for such a filter, and every cache manager reads and removes nothing
-for an empty list, where it used to ignore it. An empty tag list no longer
-means "has this tag".
+with no relay in its outcomes. An empty tag list no longer means "has this
+tag".
 
 #### Events
 
@@ -290,14 +271,12 @@ rewrote the `created_at` of an event received with 0 and made its id invalid.
 Leave `createdAt` out to get the current time.
 
 `Nip01Event.getTags`, `pTags`, `tTags` and `replyETags` return the values as
-the event holds them, where they used to trim and lowercase them. The cache
-managers of `ndk` still match tags regardless of case.
+the event holds them, where they used to trim and lowercase them.
 
 `Nip01Event.tags` is a copy of the tags the event was created with, and
 neither it nor any of its tags can be changed: build another event with
 `copyWith`. Changing the list an event was created from used to change its
-tags without changing its id. `Metadata.tags` stays a list of its own, which
-can be changed.
+tags without changing its id.
 
 `copyWith` gives a copy whose `pubKey`, `createdAt`, `kind`, `tags` or
 `content` changed the id of its new payload, and drops a `sig` that no longer
@@ -306,7 +285,7 @@ another one, such as the id a remote signer chose.
 
 `Nip01Event.validSig` is gone, from `copyWith` and the constructors too. A
 request only hands out events whose id and signature it checked, and nothing
-read the flag. The cache managers no longer store it.
+read the flag.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
 
@@ -327,8 +306,8 @@ where `fromJson` throws. `toJson` no longer writes `"sig": null` for an
 unsigned event.
 
 The other deprecated members are in `domain_layer/entities/nip_01_utils.dart`,
-which `package:ndk_core/ndk_core.dart` exports: the event ones are extension
-members of `Nip01Event`. `ndk_nip01` has none of them.
+which `package:dostr_core/dostr_core.dart` exports: the event ones are extension
+members of `Nip01Event`. `dostr_nip01` has none of them.
 
 | Deprecated | Use |
 | --- | --- |

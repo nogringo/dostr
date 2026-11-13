@@ -1,12 +1,12 @@
 name: dostr_blossom
-description: Blossom file storage for NDK (Nostr Development Kit), to upload, download, mirror and delete blobs on a user's Blossom servers.
+description: Blossom file storage for Nostr, to upload, download, mirror and delete blobs on a user's Blossom servers.
 version: 0.1.0
-homepage: https://github.com/relaystr/ndk
-repository: https://github.com/relaystr/ndk
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
 
 topics:
   - nostr
-  - ndk
+  - dostr
   - blossom
   - files
 

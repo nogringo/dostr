@@ -41,3 +41,7 @@ pubspec_overrides.yaml
 # Node.js build tools
 **/node_modules/
 **/package-lock.json
+
+# Retype build output
+doc/.retype/
+doc/retype.manifest

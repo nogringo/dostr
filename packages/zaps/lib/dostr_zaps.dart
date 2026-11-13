@@ -1,4 +1,4 @@
-/// The zaps of NDK (NIP-57): zap requests, LNURL-pay invoices and zap
+/// Nostr zaps (NIP-57): zap requests, LNURL-pay invoices and zap
 /// receipts.
 ///
 /// ```dart

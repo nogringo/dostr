@@ -5,10 +5,6 @@ blind signatures, v4 tokens, deterministic secrets and the mint API. It holds
 no state: the proofs, keysets and derivation counters are the caller's to
 store.
 
-For a full wallet (storage, pending quotes, restore, NIP-60 events), use
-[`ndk_cashu`](https://pub.dev/packages/ndk_cashu), which is built on this
-package and re-exports it.
-
 > Experimental, do not use in production.
 
 ## Install
@@ -138,8 +134,7 @@ uniformly random secp256k1 scalar.
 
 ## Coming from `ndk_cashu`
 
-These types used to live in `ndk_cashu`, which still exports them, so
-`package:ndk_cashu/ndk_cashu.dart` keeps working. Besides the import:
+These types used to live in `ndk_cashu`. Besides the import:
 
 - `CashuBdhke.createBlindedMsgForAmounts` takes a `nextCounter` callback
   instead of `cacheManager` and `mintUrl`, and throws when it cannot derive an
@@ -148,8 +143,7 @@ These types used to live in `ndk_cashu`, which still exports them, so
   the mint returns them, and takes each amount from the signature. It accepts
   fewer signatures than outputs, for NUT-08 change.
 - `CashuRepoImpl.swap` no longer sorts the outputs: sort them before.
-- `kQuoteKeyDerivationCounterSlot` stays in `ndk_cashu`, as it names a storage
-  slot.
-- `CashuConfig` stays in `ndk_cashu`. Here, its protocol constants are
+- `kQuoteKeyDerivationCounterSlot` is not here, as it names a storage slot.
+- `CashuConfig` is not here. Its protocol constants are
   `CashuTools.apiVersion`, `CashuTools.hashToCurveDomainSeparator` and
   `CashuRepoImpl.networkTimeout`.

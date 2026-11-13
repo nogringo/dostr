@@ -2,6 +2,7 @@
 label: Home
 order: 101
 icon: home
+description: Dart packages for building Nostr applications, one package per part of Nostr.
 ---
 
 # Dostr
@@ -12,7 +13,7 @@ Dostr is a set of Dart packages for building Nostr applications. Each package co
 
 ## Start here
 
-➡️ [Getting started](https://nogringo.github.io/dostr/guides/getting-started/)
+➡️ [Getting started](/guides/getting-started.md)
 
 [Changelog](https://github.com/nogringo/dostr/blob/master/CHANGELOG.md)
 
@@ -42,10 +43,15 @@ Dostr is a set of Dart packages for building Nostr applications. Each package co
 - **Accounts** (`dostr_accounts`): log in, switch between accounts and sign as the current one
 - **Pending requests** of external signers, to show and cancel them
 
+### Flutter (`dostr_flutter`)
+
+- **Widgets** for login, profiles, account switching and pending signer requests, in 13 languages
+- **Accounts kept across restarts** in secure storage
+
 ### NIPs
 
-- **Gift wrap** (NIP-59), **encryption** (NIP-44, NIP-04), **private key encryption** (NIP-49), **bech32 entities** (NIP-19)
-- **Zaps** (NIP-57), **domain verification** (NIP-05), **proof of work** (NIP-13)
+- [**Gift wrap**](/usecases/gift-wrap.md) (NIP-59), [**encryption**](/usecases/encryption.md) (NIP-44, NIP-04), [**private key encryption**](/usecases/private-key-encryption.md) (NIP-49), [**bech32 entities**](/usecases/bech32.md) (NIP-19)
+- [**Zaps**](/usecases/zaps.md) (NIP-57), [**domain verification**](/usecases/domain-verification.md) (NIP-05), [**proof of work**](/usecases/proof-of-work.md) (NIP-13)
 - **Negentropy sync** (NIP-77), **trusted assertions** (NIP-85)
 - **Blossom** file storage
 

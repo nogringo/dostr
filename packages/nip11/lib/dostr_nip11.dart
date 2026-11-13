@@ -1,4 +1,4 @@
-/// NIP-11 relay information for NDK.
+/// NIP-11 relay information for Nostr.
 ///
 /// ```dart
 /// final repo = HttpRelayInfoRepo(http.Client());
