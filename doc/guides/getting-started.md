@@ -4,15 +4,15 @@ icon: rocket
 order: 100
 ---
 
-# Getting started with NDK
+# Getting started with Dostr
 
-NDK is a set of Dart packages, each covering one part of Nostr, so an app only depends on what it uses:
+Dostr is a set of Dart packages, each covering one part of Nostr, so an app only depends on what it uses:
 
 - [`dostr_core`](https://pub.dev/packages/dostr_core): relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
 - [`dostr_bip340`](https://pub.dev/packages/dostr_bip340): a signer that holds a private key, and a signature verifier.
 - [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers): the metadata and relay lists of accounts, read where NIP-65 puts them.
 - [`dostr_url_set`](https://pub.dev/packages/dostr_url_set): relay sets described rather than listed, resolved when needed.
-- One package per NIP for the rest, listed in the [README](https://github.com/relaystr/ndk#readme).
+- One package per NIP for the rest, listed in the [package overview](https://github.com/nogringo/dostr#monorepo-packages).
 
 They are pure Dart unless their README says otherwise, so the same code runs in a Flutter app, a server or a CLI.
 

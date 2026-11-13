@@ -4,19 +4,17 @@ order: 101
 icon: home
 ---
 
-# Dart Nostr Development Kit (NDK)
+# Dostr
 
-[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster) [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core) [![License](https://img.shields.io/github/license/relaystr/ndk.svg)](https://github.com/relaystr/ndk/blob/master/LICENSE)
+[![Build Status](https://github.com/nogringo/dostr/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/nogringo/dostr/actions?query=workflow%3A"tests"+branch%3Amaster) [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core) [![License](https://img.shields.io/github/license/nogringo/dostr.svg)](https://github.com/nogringo/dostr/blob/master/LICENSE)
 
-NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients, particularly constrained ones such as mobile apps. Each package covers one part of Nostr and depends only on what it needs, so an app picks the parts it uses.
+Dostr is a set of Dart packages for building Nostr applications. Each package covers one part of Nostr and depends only on what it needs, so an application can pick the parts it uses.
 
-## Apps using NDK
+## Start here
 
-[yana](https://github.com/frnandu/yana), [camelus](https://github.com/leo-lox/camelus), [zap.stream](https://github.com/nostrlabs-io/zap-stream-flutter), [zapstore](https://github.com/zapstore/zapstore), [freeflow](https://github.com/nostrlabs-io/freeflow), [hostr](https://github.com/sudonym-btc/hostr), [bitblik](https://github.com/bit-blik/bitblik), [donow](https://github.com/nogringo/donow), [submarine](https://github.com/nogringo/submarine), [nostr-mail-client](https://github.com/nogringo/nostr-mail-client)
+➡️ [Getting started](https://nogringo.github.io/dostr/guides/getting-started/)
 
-# ➡️ [Getting Started 🔗](https://dart-nostr.com/guides/getting-started/)
-
-# [Changelog 🔗](https://github.com/relaystr/ndk/blob/master/CHANGELOG.md)
+[Changelog](https://github.com/nogringo/dostr/blob/master/CHANGELOG.md)
 
 ---
 

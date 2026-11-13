@@ -4,7 +4,7 @@ icon: repo-forked
 order: 100
 ---
 
-# Contributing to NDK
+# Contributing to Dostr
 
 We love your input! We want to make contributing to this project as easy and transparent as possible, whether it's:
 
@@ -29,13 +29,13 @@ Pull requests are the best way to propose changes to the codebase (we use [Githu
 5. Make sure your code lints.
 6. Submit that pull request!
 
-## Report bugs using Github's [issues](https://github.com/relaystr/ndk/issues)
+## Report bugs using Github's [issues](https://github.com/nogringo/dostr/issues)
 
-We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/relaystr/ndk/issues); it's that easy!
+We use GitHub issues to track public bugs. Report a bug by [opening a new issue](https://github.com/nogringo/dostr/issues); it's that easy!
 
 ## New Features and Feature Requests
 
-If you want to propose a new feature, please [open an issue](https://github.com/relaystr/ndk/issues) first to discuss it. We use user stories to describe new features. We provide a template with examples to help you get started; if you are unsure how to write a user story, read [this](https://www.mountaingoatsoftware.com/agile/user-stories).
+If you want to propose a new feature, please [open an issue](https://github.com/nogringo/dostr/issues) first to discuss it. We use user stories to describe new features. We provide a template with examples to help you get started; if you are unsure how to write a user story, read [this](https://www.mountaingoatsoftware.com/agile/user-stories).
 
 After we triage your issue, it will either be accepted or rejected. If accepted, you can track the progress in [this board](https://github.com/orgs/relaystr/projects/1).
 If you want to work on it yourself, assign it to yourself and start working on it. Preferably let us know that you are working on it (especially for larger features) to increase the chances of merging your PR.
@@ -44,7 +44,7 @@ If you want to work on it yourself, assign it to yourself and start working on i
 
 Feel free to reach out to us via the following channels:
 
-- [GitHub Issues](https://github.com/relaystr/ndk/issues)
+- [GitHub Issues](https://github.com/nogringo/dostr/issues)
 - weekly dev calls (every Wednesday at 11:00 CEST) [link](https://call.element.io/room/#/ndk-47014?password=ywCMPkavHoMfbtwWdzknXg&roomId=%21ntFcnshzkrZDCYXOEF%3Acall.ems.host). Let us know beforehand if you want to discuss something specific so we can add it to the agenda.
 - Nostr: [fmar](https://njump.me/fmar.dev) [leo](https://njump.me/leo@camelus.app)
 - Email: leo: contact(a t)camelus.app [pgp](https://camelus.app/pgp-key.txt)
@@ -53,7 +53,7 @@ Feel free to reach out to us via the following channels:
 
 Each feature lives in its own package under `packages/`, named `dostr_<feature>`: `dostr_core` for relay connections, NIP-42 and REQ and EVENT on chosen relays, `dostr_fetchers` for the lists of accounts, `dostr_nip59` for gift wraps, and so on. A package depends on what it needs, see the [package graph](package-graph.md). New code goes into the package it belongs to, or into a new one.
 
-Tests follow the code: a package tests itself, with [`dostr_mock_relay`](https://github.com/relaystr/ndk/tree/master/packages/mock_relay) when it needs a relay.
+Tests follow the code: a package tests itself, with [`dostr_mock_relay`](https://github.com/nogringo/dostr/tree/master/packages/mock_relay) when it needs a relay.
 
 Inside a package, the code follows a layered architecture.
 
@@ -88,7 +88,7 @@ If you are unsure where to put your code, please ask us. We are happy to help yo
 ## Documentation Guidelines
 
 Every public-facing API should be documented. <br>
-Types of documentation we use are inline docs and retype deployed on [dart-nostr.com](https://dart-nostr.com/).
+Types of documentation we use are inline docs and Retype, deployed on [GitHub Pages](https://nogringo.github.io/dostr/).
 When you add a new use case or edit a feature, make sure to create/edit a corresponding markdown file in `/doc`.
 Generally we use examples in our docs if you do, please add them to the `example/` folder of the package as a test so we can ensure everything continues to work.
 

@@ -1,14 +1,14 @@
-# Dart Nostr Development Kit (NDK)
+# Dostr
 
-[![Build Status](https://github.com/relaystr/ndk/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/relaystr/ndk/actions?query=workflow%3A"tests"+branch%3Amaster)
+[![Build Status](https://github.com/nogringo/dostr/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/nogringo/dostr/actions?query=workflow%3A"tests"+branch%3Amaster)
 [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core)
-[![License](https://img.shields.io/github/license/relaystr/ndk.svg)](LICENSE)
+[![License](https://img.shields.io/github/license/nogringo/dostr.svg)](LICENSE)
 
-NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients, particularly constrained ones such as mobile apps. Each package covers one part of Nostr and depends only on what it needs, so an app picks the parts it uses.
+Dostr is a set of Dart packages for building Nostr applications. Each package covers one part of Nostr and depends only on what it needs, so an application can pick the parts it uses.
 
-# Get started here ➡️ [Documentation](https://dart-nostr.com/)
+# Get started here ➡️ [Documentation](https://nogringo.github.io/dostr/)
 
-## [🔗 Contributing](https://dart-nostr.com/library-development/contributing/)
+## [🔗 Contributing](https://nogringo.github.io/dostr/library-development/contributing/)
 
 ## Monorepo Packages
 
@@ -120,10 +120,10 @@ NDK (Nostr Development Kit) is a set of Dart packages for building Nostr clients
 
 `dostr_cashu_protocol`: the Cashu protocol (blind signatures, v4 tokens, NUT-13 secrets and the mint API), without Nostr, in pure Dart.
 
-#### [🔗 Ndk Flutter](./packages/flutter/)
+#### [🔗 Dostr Flutter](./packages/flutter/)
 
 Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `dostr_nip07` and the NIP-55 signer of `dostr_nip55`.
 
-#### [🔗 sample app](./packages/demo/)
+#### [🔗 Dostr demo app](./packages/demo/)
 
-example app using the NDK.
+An example Flutter app built with Dostr packages.

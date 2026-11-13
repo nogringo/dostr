@@ -1,15 +1,15 @@
-# example
+# Dostr demo app
 
-Example flutter app using NDK
+Example Flutter app built with Dostr packages.
 
-Built on [dostr_core](https://pub.dev/packages/dostr_core), [dostr_flutter](https://pub.dev/packages/dostr_flutter) and the NIP packages of NDK.
+Built on [dostr_core](https://pub.dev/packages/dostr_core), [dostr_flutter](https://pub.dev/packages/dostr_flutter) and the Dostr NIP packages.
 
 ## Getting Started
 
 0. install the Rust toolchain, which [dostr_rust_verifier](https://pub.dev/packages/dostr_rust_verifier) needs on native platforms
 
 1. clone repository
-   `git clone https://github.com/relaystr/ndk.git`
+   `git clone https://github.com/nogringo/dostr.git`
 
 2. change dir into sample app `cd ./packages/demo`
 

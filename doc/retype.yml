@@ -1,12 +1,12 @@
 input: .
 output: .retype
-url: dart-nostr.com
+url: https://nogringo.github.io/dostr
 branding:
-  title: NDK
+  title: Dostr
   label: v0.11.0-dev.2
 links:
 - text: pub.dev
-  link: https://pub.dev/packages?q=topic%3Andk
+  link: https://pub.dev/packages?q=dostr
 - text: nips
   link: https://github.com/nostr-protocol/nips/?tab=readme-ov-file#event-kinds
 footer:
