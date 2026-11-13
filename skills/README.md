@@ -4,22 +4,22 @@ Agent skills for Claude Code. Each skill is a self-contained directory with a `S
 
 ## Available Skills
 
-### [ndk-core](ndk-core/SKILL.md)
+### [dostr-core](dostr-core/SKILL.md)
 
-> NDK Dart packages: relay connections, REQ and EVENT on chosen relays, the outbox model, signers, accounts and one package per NIP.
+> Dostr Dart packages: relay connections, REQ and EVENT on chosen relays, the outbox model, signers, accounts and one package per NIP.
 
-#### 🚀 Install ndk-core
+#### 🚀 Install dostr-core
 
 ```bash
-npx skills add relaystr/ndk-core
+npx skills add nogringo/dostr --skill dostr-core
 ```
 
 | Reference | Description |
 | --------- | ----------- |
-| [Setup](ndk-core/references/setup.md) | `pub add`, `RelayManager` and its options, lifecycle |
-| [Requests](ndk-core/references/requests.md) | `RelayReqs`, `RelayPublishes`, fetchers and `UrlSet` |
-| [Accounts](ndk-core/references/accounts.md) | Signers, pending requests, `Accounts` |
-| [Usecases](ndk-core/references/usecases.md) | Which package for which NIP |
+| [Setup](dostr-core/references/setup.md) | `pub add`, `RelayManager` and its options, lifecycle |
+| [Requests](dostr-core/references/requests.md) | `RelayReqs`, `RelayPublishes`, fetchers and `UrlSet` |
+| [Accounts](dostr-core/references/accounts.md) | Signers, pending requests, `Accounts` |
+| [Usecases](dostr-core/references/usecases.md) | Which package for which NIP |
 
 ---
 
