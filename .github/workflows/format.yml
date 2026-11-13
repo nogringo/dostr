@@ -12,7 +12,7 @@ concurrency:
 
 # Pinned so CI formatting matches local dev: a new Dart stable can change formatter output.
 env:
-  FLUTTER_VERSION: "3.47.9"
+  FLUTTER_VERSION: "3.50.0"
 
 jobs:
   dart-format:
