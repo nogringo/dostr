@@ -94,11 +94,11 @@ void main() {
       Logger.setLogLevel(LogLevel.warning);
     });
 
-    test('Custom NdkLogger instance works independently', () {
+    test('Custom DostrLogger instance works independently', () {
       final testOutputs = <LogEvent>[];
       final testOutput = _TestLogOutput(testOutputs);
 
-      final customLogger = NdkLogger(
+      final customLogger = DostrLogger(
         level: LogLevel.info,
         outputs: [testOutput],
       );
@@ -116,7 +116,7 @@ void main() {
       final testOutput1 = _TestLogOutput(testOutputs1);
       final testOutput2 = _TestLogOutput(testOutputs2);
 
-      final customLogger = NdkLogger(
+      final customLogger = DostrLogger(
         level: LogLevel.all,
         outputs: [testOutput1, testOutput2],
       );
@@ -156,12 +156,12 @@ void main() {
       expect(testOutputs3.length, 1); // Should still be 1
     });
 
-    test('NdkLogger constructor outputs parameter works', () {
+    test('DostrLogger constructor outputs parameter works', () {
       final testOutputs = <LogEvent>[];
       final testOutput = _TestLogOutput(testOutputs);
 
       // Create logger with outputs in constructor
-      final logger = NdkLogger(level: LogLevel.info, outputs: [testOutput]);
+      final logger = DostrLogger(level: LogLevel.info, outputs: [testOutput]);
 
       // Log a message
       logger.i(() => 'Test message');
@@ -172,7 +172,7 @@ void main() {
       expect(testOutputs.first.level, LogLevel.info);
 
       // Test with null outputs (should default to empty list)
-      final loggerWithoutOutputs = NdkLogger(level: LogLevel.debug);
+      final loggerWithoutOutputs = DostrLogger(level: LogLevel.debug);
 
       // Should not throw when logging without outputs
       expect(
@@ -185,7 +185,7 @@ void main() {
       var evaluated = false;
       final testOutputs = <LogEvent>[];
       final testOutput = _TestLogOutput(testOutputs);
-      final logger = NdkLogger(level: LogLevel.info, outputs: [testOutput]);
+      final logger = DostrLogger(level: LogLevel.info, outputs: [testOutput]);
 
       logger.d(() {
         evaluated = true;

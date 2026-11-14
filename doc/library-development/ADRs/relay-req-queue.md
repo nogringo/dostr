@@ -96,9 +96,9 @@ queue of that connection.
   by its share does not hold back the queries queued after it.
 - Slots are counted in `RelayConnections`, which already counts `openRequestIds`.
   It tells `RelayRequests` through a new `ConnectionListener.admitQueuedOn(connection)`.
-- The queue lives in `RelayRequests`, which knows whether a queued request still
-  matters. Draining skips a request no longer in flight or already ended on that
-  connection.
+- The queue is a `ReqQueue` owned by `RelayRequests`, which shares its in-flight
+  requests with it so it knows whether a queued request still matters. Draining
+  skips a request no longer in flight or already ended on that connection.
 - A queued request is tracked in `RequestState.requests` like a sent one, on an
   open connection, so `_checkNetworkClose` keeps waiting for it. It forgets what
   the relay answered before as soon as it is queued (`forgetAnswers`): a CLOSED

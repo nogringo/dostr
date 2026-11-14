@@ -6,30 +6,30 @@
 
 #### Imports and what moved
 
-These files used to live in `ndk`. A deep import keeps its path and changes
-package: `package:ndk/domain_layer/entities/relay.dart` is now
-`package:dostr_core/domain_layer/entities/relay.dart`.
-
-What lives under `lib/src` is internal. These files moved there and can no
-longer be imported: `domain_layer/entities/nostr_message_raw.dart`,
-`shared/decode_nostr_msg/decode_nostr_msg.dart` and
-`shared/nips/nip01/client_msg.dart`. `domain_layer/usecases/nip42/auth_event.dart`
-is gone: `RelayManager` builds the AUTH event itself.
+These files used to live in `ndk`. Every file of `dostr_core` is under
+`lib/src` and can no longer be imported on its own: a deep import such as
+`package:ndk/domain_layer/entities/relay.dart` or
+`package:ndk/config/request_defaults.dart` is now
+`package:dostr_core/dostr_core.dart`. What it does not export is internal:
+`NostrMessageRaw`, `decodeNostrMsg`, `ClientMsg`, `VerifyEventStream`,
+`verifyEvent` and `VerifiedEventMemCache`.
+`domain_layer/usecases/nip42/auth_event.dart` is gone: `RelayManager` builds
+the AUTH event itself.
 
 `IsolateManager` and its pool are gone: relay messages are decoded on the
 main isolate, and `Isolate.run` replaces `runInComputeIsolate` for your own
 work.
 
 `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`
-are now `package:dostr_core/dostr_core.dart`. `LogColor` is internal.
+are now `package:dostr_core/dostr_core.dart`. `NdkLogger` became `DostrLogger`,
+and `LogColor` is internal.
 
 `Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in
 [`dostr_signer`](https://pub.dev/packages/dostr_signer):
 `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart` and
 `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which
 `package:dostr_core/dostr_core.dart` exports. `TimeoutPausable` moved from
-`auth_handler.dart` to
-`package:dostr_core/domain_layer/entities/timeout_pausable.dart`.
+`auth_handler.dart` to `package:dostr_core/dostr_core.dart`.
 
 `cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core
 connects with, are in [`dostr_url_set`](https://pub.dev/packages/dostr_url_set):
@@ -71,11 +71,10 @@ NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with
 `onNegClosed`. A protocol of its own, NIP-77 included, plugs in with
 `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
 
-`Tuple` and the `Helpers` of `ndk` are gone. `dostr_core` keeps a `Helpers` of
-its own with only `getSecureRandomHex`, and `Nip01Event.secondsSinceEpoch()`
-replaces `Helpers.now`. `MutexSimple` is in
-`package:dostr_core/shared/helpers/mutex_simple.dart`. `castToListOfListOfString`
-of `package:ndk/shared/helpers/list_casting.dart` is gone.
+`Tuple`, `Helpers` and `MutexSimple` are gone, and
+`Nip01Event.secondsSinceEpoch()` replaces `Helpers.now`.
+`castToListOfListOfString` of `package:ndk/shared/helpers/list_casting.dart` is
+gone.
 
 `dostr_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
 and `RelayInfoRepo` are in [`dostr_nip11`](https://pub.dev/packages/dostr_nip11),
@@ -108,7 +107,7 @@ has no `DEFAULT_BOOTSTRAP_RELAYS`. Nothing replaces
 and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so
 is `defaultWebSocketConnectTimeout`.
 
-The constants of `package:dostr_core/config/` are in lowerCamelCase:
+The default constants are in lowerCamelCase:
 `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`,
 `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is
 `RequestDefaults.defaultAuthCallbackTimeout` and `BroadcastDefaults.TIMEOUT` is
@@ -236,8 +235,8 @@ used to stay `pending` until their timeout, or for good without one.
 
 #### Publishes
 
-`BroadcastState` is no longer public. `RelayBroadcastResponse` stays at its old
-path. Publish a signed event with `RelayPublishes.publish`. To publish an event
+`BroadcastState` is no longer public, and `RelayBroadcastResponse` is in
+`package:dostr_core/dostr_core.dart`. Publish a signed event with `RelayPublishes.publish`. To publish an event
 that still has to be signed, open it with `RelayPublishes.open`: it counts as
 in flight right away. Then `start` the `RelayPublish` with the signed event,
 `send` it to each relay with an optional `veto` and `connectTimeout`, and
@@ -301,8 +300,8 @@ mocked. Build the events a test needs with its constructor or `fromJson`.
 
 `Nip01EventModel` is now a deprecated alias of `Nip01Event`, which has its
 `fromJson`, `toJson` and `toJsonString`. `Nip01EventModel.fromEntity(event)`
-is gone: use `event` itself. `toBase64()` is an extension member, in
-`data_layer/models/nip_01_event_model.dart`.
+is gone: use `event` itself. `toBase64()` is an extension member, which
+`package:dostr_core/dostr_core.dart` exports.
 
 `fromJson` is strict. It used to read a missing `pubkey` or `content` as `''`
 and missing `tags` as none, to skip a tag that is not a list and to turn tag
@@ -312,9 +311,8 @@ which it read as `''`, is now computed. `Nip01Event.tryFromJson` returns null
 where `fromJson` throws. `toJson` no longer writes `"sig": null` for an
 unsigned event.
 
-The other deprecated members are in `domain_layer/entities/nip_01_utils.dart`,
-which `package:dostr_core/dostr_core.dart` exports: the event ones are extension
-members of `Nip01Event`. `dostr_nip01` has none of them.
+The other deprecated members are in `package:dostr_core/dostr_core.dart`: the
+event ones are extension members of `Nip01Event`. `dostr_nip01` has none of them.
 
 | Deprecated | Use |
 | --- | --- |

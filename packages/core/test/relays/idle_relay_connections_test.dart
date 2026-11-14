@@ -1,17 +1,17 @@
 import 'dart:async';
 
 import 'package:test/test.dart';
-import 'package:dostr_core/domain_layer/entities/broadcast_state.dart';
-import 'package:dostr_core/src/broadcast_state.dart';
+import 'package:dostr_core/src/domain_layer/entities/relay_broadcast_response.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/broadcast_state.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:dostr_core/src/relay_manager_parts.dart';
-import 'package:dostr_core/domain_layer/entities/relay_connection_key.dart';
-import 'package:dostr_core/domain_layer/entities/relay_protocol_handler.dart';
-import 'package:dostr_core/src/relay_connection.dart';
-import 'package:dostr_core/src/request_state.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
+import 'package:dostr_core/src/domain_layer/entities/relay_connection_key.dart';
+import 'package:dostr_core/src/domain_layer/entities/relay_protocol_handler.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_connection.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_core/domain_layer/repositories/nostr_transport.dart';
-import 'package:dostr_core/domain_layer/usecases/relay_manager.dart';
+import 'package:dostr_core/src/domain_layer/repositories/nostr_transport.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager.dart';
 
 class _NeedsConnection extends RelayProtocolHandler {
   final RelayConnectionKey key;

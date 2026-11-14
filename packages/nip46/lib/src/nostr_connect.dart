@@ -1,4 +1,4 @@
-import 'package:dostr_core/shared/nips/nip01/helpers.dart';
+import 'random_hex.dart';
 
 import 'nip46_client_metadata.dart';
 
@@ -10,7 +10,7 @@ class NostrConnect {
   final String privateKey;
   final String publicKey;
 
-  final secret = Helpers.getSecureRandomHex(16);
+  final secret = secureRandomHex(16);
 
   String get nostrConnectURL {
     final params = <String>[];

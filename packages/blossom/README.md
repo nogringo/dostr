@@ -132,7 +132,7 @@ final json = await files.download(
 );
 
 final results = await files.upload(
-  file: NdkFile(data: bytes, mimeType: 'image/png'),
+  file: BlossomFile(data: bytes, mimeType: 'image/png'),
 );
 ```
 
@@ -142,7 +142,7 @@ A url naming a sha256, with or without a file extension (`https://cdn.example.co
 
 `checkUrl` answers the url itself when its server has the blob, extension included, and otherwise the url of a server that has it.
 
-`upload` takes the same `strategy` as `Blossom.uploadBlob`. An `NdkFile` that already knows its `sha256` is not hashed again. `uploadFromFile` and `downloadToFile` stream from and to disk, so a large file is never held whole in memory.
+`upload` takes the same `strategy` as `Blossom.uploadBlob`. A `BlossomFile` that already knows its `sha256` is not hashed again. `uploadFromFile` and `downloadToFile` stream from and to disk, so a large file is never held whole in memory.
 
 Every method takes the same `auth` parameter as `Blossom`, see [Server authentication](#server-authentication-bud-01). It is ignored for a plain url, which is fetched directly.
 

@@ -174,5 +174,4 @@ in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart`
 are now `package:dostr_signer/dostr_signer.dart`, which
 `package:dostr_core/dostr_core.dart` exports too. `TimeoutPausable`, which was in
-`auth_handler.dart`, is in `dostr_core` instead, in
-`package:dostr_core/domain_layer/entities/timeout_pausable.dart`.
+`auth_handler.dart`, is in `package:dostr_core/dostr_core.dart` instead.

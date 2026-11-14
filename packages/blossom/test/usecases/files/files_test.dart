@@ -52,7 +52,7 @@ void main() {
 
       // Upload
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       expect(uploadResponse.first.success, true);
@@ -73,7 +73,7 @@ void main() {
 
       // Upload
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       expect(uploadResponse.first.success, true);
@@ -97,7 +97,7 @@ void main() {
 
     test('download goes through blossom for a url with an extension', () async {
       final uploaded = await client.upload(
-        file: NdkFile(data: Uint8List.fromList(utf8.encode('with extension'))),
+        file: BlossomFile(data: Uint8List.fromList(utf8.encode('with extension'))),
         serverUrls: ['http://localhost:3011'],
       );
       final sha256 = uploaded.single.descriptor!.sha256;
@@ -129,7 +129,7 @@ void main() {
     test('upload trusts the hash a file gives', () async {
       final given = 'b' * 64;
       await client.upload(
-        file: NdkFile(
+        file: BlossomFile(
           data: Uint8List.fromList(utf8.encode('given hash')),
           sha256: given,
         ),
@@ -141,7 +141,7 @@ void main() {
 
     test('upload follows the strategy it is given', () async {
       final results = await client.upload(
-        file: NdkFile(data: Uint8List.fromList(utf8.encode('strategy'))),
+        file: BlossomFile(data: Uint8List.fromList(utf8.encode('strategy'))),
         serverUrls: ['http://localhost:3010', 'http://localhost:3011'],
         strategy: UploadStrategy.allSimultaneous,
       );
@@ -165,7 +165,7 @@ void main() {
 
       // Upload
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       expect(uploadResponse.first.success, true);
@@ -236,7 +236,7 @@ void main() {
       final testData = Uint8List.fromList(utf8.encode(testContent));
 
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       expect(uploadResponse.first.success, true);
@@ -300,7 +300,7 @@ void main() {
       final testData = Uint8List.fromList(utf8.encode(testContent));
 
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       final sha256 = uploadResponse.first.descriptor!.sha256;
@@ -362,7 +362,7 @@ void main() {
       final testData = Uint8List.fromList(utf8.encode(testContent));
 
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       final sha256 = uploadResponse.first.descriptor!.sha256;
@@ -386,7 +386,7 @@ void main() {
       final testData = Uint8List.fromList(utf8.encode(testContent));
 
       final uploadResponse = await client.upload(
-        file: NdkFile(data: testData, mimeType: 'text/plain'),
+        file: BlossomFile(data: testData, mimeType: 'text/plain'),
         serverUrls: ['http://localhost:3010'],
       );
       final sha256 = uploadResponse.first.descriptor!.sha256;

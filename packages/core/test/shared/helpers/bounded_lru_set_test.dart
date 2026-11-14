@@ -1,4 +1,4 @@
-import 'package:dostr_core/shared/helpers/bounded_lru_set.dart';
+import 'package:dostr_core/src/shared/helpers/bounded_lru_set.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -12,8 +12,8 @@
  - Compared with the `ndk` version: `BLOSSOM_AUTH_EXPIRATION` became
    `Blossom.defaultAuthExpiration`, and the `authExpiration` constructor
    parameter sets it. `BlobNip94.dimenssions` became `dimensions`, and
-   `NdkFile.size` is gone. A read that no server served throws a
-   `BlossomRequestException`. `BlossomRepository` takes
+   `NdkFile` became `BlossomFile`, without its `size`. A read that no
+   server served throws a `BlossomRequestException`. `BlossomRepository` takes
    `serverMediaOptimisation` like the usecases, and `BlossomRepositoryImpl`,
    `FileIO` and `createFileIO` are no longer exported.
  - `Files` reads a blossom url from its own server first, so the url alone is

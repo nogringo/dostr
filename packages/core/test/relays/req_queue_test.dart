@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dostr_core/config/relay_defaults.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:test/test.dart';
 

@@ -1,5 +1,5 @@
 import 'package:dostr_core/dostr_core.dart';
-import 'package:dostr_core/shared/nips/nip01/helpers.dart';
+import 'random_hex.dart';
 
 class BunkerRequest {
   static const int kKind = 24133;
@@ -9,7 +9,7 @@ class BunkerRequest {
   final List<String> params;
 
   BunkerRequest({required this.method, String? id, List<String>? params})
-    : id = id ?? Helpers.getSecureRandomHex(8),
+    : id = id ?? secureRandomHex(8),
       params = params ?? [];
 
   Map<String, dynamic> toJson() {

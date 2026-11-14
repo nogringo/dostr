@@ -186,7 +186,7 @@ void main() {
           pubKey: pubkey,
           kind: 1,
           tags: [
-            ['client', 'ndk'],
+            ['client', 'dostr'],
             ['t', 'nostr'],
           ],
           content: 'test content',

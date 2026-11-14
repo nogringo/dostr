@@ -14,7 +14,7 @@ export 'src/domain_layer/entities/blossom_hash_mismatch_exception.dart';
 export 'src/domain_layer/entities/blossom_request_exception.dart';
 export 'src/domain_layer/entities/blossom_strategies.dart';
 export 'src/domain_layer/entities/file_hash_progress.dart';
-export 'src/domain_layer/entities/ndk_file.dart';
+export 'src/domain_layer/entities/blossom_file.dart';
 export 'src/domain_layer/repositories/blossom.dart';
 export 'src/domain_layer/usecases/files/blossom.dart';
 export 'src/domain_layer/usecases/files/blossom_exceptions.dart';

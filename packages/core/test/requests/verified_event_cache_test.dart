@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dostr_core/domain_layer/usecases/requests/verified_event_cache.dart';
+import 'package:dostr_core/src/domain_layer/usecases/requests/verified_event_cache.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:test/test.dart';
 

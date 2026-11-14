@@ -1,4 +1,4 @@
-import 'package:dostr_core/src/backoff.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/backoff.dart';
 import 'package:test/test.dart';
 
 void main() {

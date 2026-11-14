@@ -45,7 +45,7 @@ void main() {
 
   test('upload carries the identity the policy names', () async {
     await files.upload(
-      file: NdkFile(
+      file: BlossomFile(
         data: Uint8List.fromList(utf8.encode('through the facade')),
         mimeType: 'text/plain',
       ),
@@ -59,7 +59,7 @@ void main() {
 
   test('download authorises only once the server asks', () async {
     final uploaded = await files.upload(
-      file: NdkFile(
+      file: BlossomFile(
         data: Uint8List.fromList(utf8.encode('facade blob')),
         mimeType: 'text/plain',
       ),

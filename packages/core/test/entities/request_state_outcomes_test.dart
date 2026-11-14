@@ -1,5 +1,5 @@
 import 'package:dostr_core/dostr_core.dart';
-import 'package:dostr_core/src/request_state.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
 import 'package:test/test.dart';
 
 /// What no relay can be made to do on demand: a connection that goes away, and

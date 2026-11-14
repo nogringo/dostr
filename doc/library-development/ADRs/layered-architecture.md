@@ -4,9 +4,9 @@ Title: Layered Architecture - folder structure
 
 ## status
 
-In progress
+Accepted
 
-Updated on 26-06-2024
+Updated on 26-06-2024, amended on 14-11-2026 for the Dostr packages
 
 ## contributors
 
@@ -15,6 +15,25 @@ Updated on 26-06-2024
 - Reviewer(s): frnandu
 
 - final decision made by: frnandu, leo-lox
+
+## In the Dostr packages
+
+The proposal below was written for the monolithic `ndk` package. Each Dostr
+package applies it this way:
+
+- `lib/<package>.dart` is the only library meant to be imported. It exports
+  what the package offers and plays the role of `presentation_layer/`.
+- Every other file is under `lib/src/`, which other packages do not import
+  (the `implementation_imports` lint).
+- A package with several layers keeps the folders of the proposal inside
+  `lib/src/` (`config/`, `data_layer/`, `domain_layer/`, `shared/`), as
+  `dostr_core`, `dostr_blossom` and `dostr_nip59` do. A small package keeps its
+  files flat in `lib/src/`.
+- The internals of a use case sit in a folder named after it:
+  `dostr_core/lib/src/domain_layer/usecases/relay_manager/` holds
+  `RelayManager` and the parts it is made of.
+- A package that needs a small helper another package keeps internal has its
+  own copy rather than reaching into that package's `lib/src/`.
 
 ## Context and Problem Statement
 
