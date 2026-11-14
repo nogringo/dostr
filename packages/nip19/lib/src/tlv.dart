@@ -1,7 +1,9 @@
 /// The values of TLV (type-length-value) entries, by type, in order.
 typedef TlvValues = Map<int, List<List<int>>>;
 
-/// The bytes of a TLV entry. [value] holds at most 255 bytes.
+const maxTlvValueLength = 255;
+
+/// The bytes of a TLV entry. [value] holds at most [maxTlvValueLength] bytes.
 List<int> tlvEntry(int type, List<int> value) => [type, value.length, ...value];
 
 /// The TLV entries of [bytes]. Throws a [FormatException] when the last one is

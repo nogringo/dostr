@@ -31,6 +31,9 @@ final nevent = Nevent(
 print(Nevent.decode(nevent).relays);
 ```
 
+`Note` is a common class name. If it clashes with one of your app, import the
+package with a prefix: `import 'package:dostr_nip19/dostr_nip19.dart' as nip19;`.
+
 `Nip19Entity.decode` takes any of them. `Nip19Entity` is sealed, so a `switch`
 over it is exhaustive:
 
@@ -55,18 +58,19 @@ has a `uri` getter, its string with the `nostr:` prefix. Each class has a
 
 `Naddr.coordinate` is the `<kind>:<pubkey>:<identifier>` of an `a` tag.
 
-`nevent` and `naddr` encode a `Nip01Event` of
+`nevent` and `naddr` give the `Nevent` and the `Naddr` of a `Nip01Event` of
 [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints:
 
 ```dart
-final nevent = event.nevent(relays: ['wss://relay.example.com']);
-final naddr = event.naddr();
+final link = event.nevent(relays: ['wss://relay.example.com']).uri;
+final coordinate = event.naddr()?.coordinate;
 ```
 
 `nevent` holds the id, author and kind of the event. `naddr` holds its kind,
 author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3
 and 10000 to 19999). It returns null for any other kind, and for an
-addressable event without a `d` tag.
+addressable event without a `d` tag or with one longer than 255 bytes, which
+an naddr cannot hold.
 
 Entities are values: two with the same fields are equal, and their `relays`
 cannot be modified. `Nsec.toString` leaves the private key out.
@@ -89,7 +93,8 @@ valid UTF-8 and an `nevent` author or kind of the wrong length.
 
 `package:ndk/shared/nips/nip19/nip19.dart` is now
 `package:dostr_nip19/dostr_nip19.dart`, and so are the `nevent` and `naddr`
-methods on `Nip01Event`. The static `Nip19` class is gone:
+methods on `Nip01Event`, which now return an entity rather than a string. The
+static `Nip19` class is gone:
 
 | `ndk` | `dostr_nip19` |
 | --- | --- |
@@ -109,3 +114,5 @@ methods on `Nip01Event`. The static `Nip19` class is gone:
 | `Nip19.isPrivateKey(s)` | `Nsec.tryDecode(s) != null` |
 | `Nip19.isNoteId(s)` | `Note.tryDecode(s) != null` |
 | `Hrps.kPublicKey` | `Npub.prefix` |
+| `event.nevent(relays: relays)` | `event.nevent(relays: relays).encode()` |
+| `event.naddr(relays: relays)` | `event.naddr(relays: relays)?.encode()` |

@@ -410,8 +410,11 @@ String _checkKey(String value, String name) {
 
 String _checkTlvValue(String value, String name) {
   final length = utf8.encode(value).length;
-  if (length > 255) {
-    throw ArgumentError('is $length bytes long, more than 255', name);
+  if (length > maxTlvValueLength) {
+    throw ArgumentError(
+      'is $length bytes long, more than $maxTlvValueLength',
+      name,
+    );
   }
   return value;
 }
