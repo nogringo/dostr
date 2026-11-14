@@ -246,17 +246,17 @@ void main() {
     final relay = await startRelay(answerRequests: false);
     final reqs = open((_) => Completer<int?>().future);
 
-    for (var i = 0; i < DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION + 1; i++) {
+    for (var i = 0; i < defaultMaxSubscriptionsPerConnection + 1; i++) {
       reqs.req(relays: {relay.url: notes});
     }
     await eventually(() => relay.openClients.isNotEmpty);
     expect(reqIds(relay), isEmpty);
 
     await eventually(
-      () => reqIds(relay).length == DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION,
+      () => reqIds(relay).length == defaultMaxSubscriptionsPerConnection,
     );
     await settle();
-    expect(reqIds(relay), hasLength(DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION));
+    expect(reqIds(relay), hasLength(defaultMaxSubscriptionsPerConnection));
   });
 
   for (final answer in [null, 0, -3]) {
@@ -264,17 +264,14 @@ void main() {
       final relay = await startRelay(answerRequests: false);
       final reqs = open((_) => answer);
 
-      for (var i = 0; i < DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION + 1; i++) {
+      for (var i = 0; i < defaultMaxSubscriptionsPerConnection + 1; i++) {
         reqs.req(relays: {relay.url: notes});
       }
       await eventually(
-        () => reqIds(relay).length == DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION,
+        () => reqIds(relay).length == defaultMaxSubscriptionsPerConnection,
       );
       await settle();
-      expect(
-        reqIds(relay),
-        hasLength(DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION),
-      );
+      expect(reqIds(relay), hasLength(defaultMaxSubscriptionsPerConnection));
     });
   }
 

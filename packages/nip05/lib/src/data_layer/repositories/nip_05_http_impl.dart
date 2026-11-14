@@ -17,7 +17,7 @@ class Nip05HttpRepositoryImpl implements Nip05Repository {
   /// creates a new [Nip05HttpRepositoryImpl] instance
   Nip05HttpRepositoryImpl({
     required this.client,
-    this.timeout = NIP_05_REQUEST_TIMEOUT,
+    this.timeout = nip05RequestTimeout,
   });
 
   @override

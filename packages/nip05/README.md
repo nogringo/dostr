@@ -41,7 +41,7 @@ final result = await nip05.check(
 print('valid? ${result.valid}, relays: ${result.relays}');
 ```
 
-`cache` is a `Nip05Cache`, keyed by the canonical identifier (`Nip05.canonicalIdentifier`): implement it on your storage to keep results across restarts. A found identifier is kept for `NIP_05_VALID_DURATION` (24 hours), a missing one for `NIP_05_NOT_FOUND_DURATION` (1 hour). A request gives up after `NIP_05_REQUEST_TIMEOUT` (5 seconds). Concurrent calls for the same identifier share one request.
+`cache` is a `Nip05Cache`, keyed by the canonical identifier (`Nip05.canonicalIdentifier`): implement it on your storage to keep results across restarts. A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour). A request gives up after `nip05RequestTimeout` (5 seconds). Concurrent calls for the same identifier share one request.
 
 More in [example/](example/).
 

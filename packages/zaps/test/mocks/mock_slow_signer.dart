@@ -1,5 +1,3 @@
-// ignore_for_file: deprecated_member_use
-
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
@@ -37,16 +35,12 @@ class MockSlowSigner implements EventSigner {
   bool canSign() => _innerSigner.canSign();
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
-    await Future.delayed(_delay);
-    return _innerSigner.decrypt(msg, destPubKey);
-  }
+  Future<String?> decrypt(String msg, String destPubKey) =>
+      throw UnimplementedError();
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
-    await Future.delayed(_delay);
-    return _innerSigner.encrypt(msg, destPubKey);
-  }
+  Future<String?> encrypt(String msg, String destPubKey) =>
+      throw UnimplementedError();
 
   @override
   Future<String?> encryptNip44({

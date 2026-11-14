@@ -106,7 +106,7 @@ class RelayBroadcasts {
     BroadcastState state,
     String url,
     Nip01Event event, {
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
     Future<String?> Function()? veto,
   }) async {
     _registerRelayBroadcast(
@@ -173,7 +173,7 @@ class RelayBroadcasts {
   _connectionForBroadcast(
     String url,
     AuthPolicy? auth, {
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) async {
     if (auth is AuthPolicyRequire) {

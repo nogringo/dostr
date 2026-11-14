@@ -53,7 +53,7 @@ final sub = ta.streamUserMetrics(pubkey).listen((m) => print(m.rank));
 await sub.cancel();
 ```
 
-`query` answers the `get*` methods and `subscribe` the `stream*` ones. Both are called once per relay of the providers asked. `defaultProviders` defaults to `DEFAULT_NIP85_PROVIDERS`, served by `wss://nip85.uid.ovh`, and each call can pass its own `providers` instead.
+`query` answers the `get*` methods and `subscribe` the `stream*` ones. Both are called once per relay of the providers asked. `defaultProviders` defaults to `defaultNip85Providers`, served by `wss://nip85.uid.ovh`, and each call can pass its own `providers` instead.
 
 More in [example/](example/).
 

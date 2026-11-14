@@ -66,7 +66,7 @@ class RelayManager {
   /// starts at 500 milliseconds and doubles each time, for an hour. The
   /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
   /// requests are replayed once it is back. A socket that drops again within
-  /// [RECONNECT_STABLE_AFTER] of coming back is not retried right away: it
+  /// [reconnectStableAfter] of coming back is not retried right away: it
   /// goes on with that wait. A connection that carries nothing
   /// [closeIdleConnections] would keep, when it drops or before an attempt, is
   /// forgotten instead.
@@ -79,8 +79,8 @@ class RelayManager {
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
   /// a slot, and subscriptions leave a quarter of them to queries. No answer
-  /// within [SUBSCRIPTION_LIMIT_TIMEOUT], or none at all, gives
-  /// [DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION].
+  /// within [subscriptionLimitTimeout], or none at all, gives
+  /// [defaultMaxSubscriptionsPerConnection].
   ///
   /// A message longer than [messageLengthLimit] says its relay reads, also
   /// asked each time a socket opens, is not sent: a REQ ends there as notSent,
@@ -94,13 +94,11 @@ class RelayManager {
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
     bool allowReconnect = true,
-    int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
-    Duration? anonymousIdleTimeout = DEFAULT_ANONYMOUS_IDLE_TIMEOUT,
-    Duration? authenticatedIdleTimeout = DEFAULT_AUTHENTICATED_IDLE_TIMEOUT,
-    Duration authCallbackTimeout =
-        RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT,
-    Duration authChallengeTimeout =
-        RequestDefaults.DEFAULT_AUTH_CHALLENGE_TIMEOUT,
+    int reconnectMaximumStep = defaultReconnectMaximumStep,
+    Duration? anonymousIdleTimeout = defaultAnonymousIdleTimeout,
+    Duration? authenticatedIdleTimeout = defaultAuthenticatedIdleTimeout,
+    Duration authCallbackTimeout = RequestDefaults.defaultAuthCallbackTimeout,
+    Duration authChallengeTimeout = RequestDefaults.defaultAuthChallengeTimeout,
     AuthHandler? authHandler,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
@@ -191,7 +189,7 @@ class RelayManager {
   /// identity is opened with [openConnectionAs].
   Future<({bool connected, RelayFailure? failure})> connectRelay({
     required String dirtyUrl,
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) => _connections.connectRelay(
     dirtyUrl: dirtyUrl,
     connectTimeout: connectTimeout,
@@ -255,7 +253,7 @@ class RelayManager {
   Future<RelayConnectivity?> openConnectionAs(
     String url,
     Account account, {
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) => _connections.openConnectionAs(
     url,

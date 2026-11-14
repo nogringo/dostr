@@ -73,7 +73,7 @@ class _Revival {
 
   _Revival(this.connectivity, int maximumStep)
     : backoff = BinaryExponentialBackoff(
-        initial: RECONNECT_INITIAL_DELAY,
+        initial: reconnectInitialDelay,
         maximumStep: maximumStep,
       );
 }
@@ -147,7 +147,7 @@ class RelayConnections {
     Duration? anonymousIdleTimeout,
     Duration? authenticatedIdleTimeout,
     this.allowReconnect = true,
-    int reconnectMaximumStep = DEFAULT_RECONNECT_MAXIMUM_STEP,
+    int reconnectMaximumStep = defaultReconnectMaximumStep,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
     FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
@@ -236,7 +236,7 @@ class RelayConnections {
   Future<({bool connected, RelayFailure? failure})> connectRelay({
     required String dirtyUrl,
     String? authPubkey,
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
     String? url = cleanRelayUrl(dirtyUrl);
     if (url == null) {
@@ -313,7 +313,7 @@ class RelayConnections {
       _askLimits(relayConnectivity);
       final elapsed = Stopwatch()..start();
       final backoff = BinaryExponentialBackoff(
-        initial: RECONNECT_INITIAL_DELAY,
+        initial: reconnectInitialDelay,
         maximumStep: _reconnectMaximumStep,
       );
       while (true) {
@@ -393,7 +393,7 @@ class RelayConnections {
 
   /// Asks the [SubscriptionLimit] and the [MessageLengthLimit] for the socket
   /// [connectivity] is about to open. Its REQs wait in their queue until both
-  /// answer, or until [SUBSCRIPTION_LIMIT_TIMEOUT] gives them the defaults.
+  /// answer, or until [subscriptionLimitTimeout] gives them the defaults.
   void _askLimits(RelayConnection connectivity) {
     final generation = ++connectivity.limitsGeneration;
     connectivity.subscriptionLimit = null;
@@ -432,9 +432,7 @@ class RelayConnections {
       return null;
     }
     if (answer is! Future<int?>) return answer;
-    return answer.timeout(SUBSCRIPTION_LIMIT_TIMEOUT).catchError((
-      Object error,
-    ) {
+    return answer.timeout(subscriptionLimitTimeout).catchError((Object error) {
       warn(error);
       return null;
     });
@@ -450,7 +448,7 @@ class RelayConnections {
     connectivity.subscriptionLimit =
         subscriptionLimit != null && subscriptionLimit > 0
         ? subscriptionLimit
-        : DEFAULT_MAX_SUBSCRIPTIONS_PER_CONNECTION;
+        : defaultMaxSubscriptionsPerConnection;
     connectivity.messageLengthLimit =
         messageLengthLimit != null && messageLengthLimit > 0
         ? messageLengthLimit
@@ -502,8 +500,7 @@ class RelayConnections {
     RelayConnection? relayConnectivity = relays[key];
     final transport = relayConnectivity?.relayTransport;
     if (transport != null &&
-        await _whyNotOpen(transport, DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT) ==
-            null &&
+        await _whyNotOpen(transport, defaultWebSocketConnectTimeout) == null &&
         identical(relayConnectivity!.relayTransport, transport)) {
       notifyChanged();
       return true;
@@ -514,7 +511,7 @@ class RelayConnections {
       if (!force &&
           (relayConnectivity != null &&
               !relayConnectivity.relay.wasLastConnectTryLongerThanSeconds(
-                FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS,
+                failRelayConnectTryAfterSeconds,
               ))) {
         // don't try too often
         notifyChanged();
@@ -557,7 +554,7 @@ class RelayConnections {
   Future<RelayConnection?> openConnectionAs(
     String url,
     Account account, {
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) async {
     if (!account.signer.canSign()) {
@@ -675,7 +672,7 @@ class RelayConnections {
       listener.endAuthRetriesOn(key);
       return true;
     }
-    if (!allowReconnect || revival.since.elapsed >= RECONNECT_GIVE_UP_AFTER) {
+    if (!allowReconnect || revival.since.elapsed >= reconnectGiveUpAfter) {
       _revivals.remove(key);
       listener.endAuthRetriesOn(key);
       listener.endRequestsOn(key);
@@ -691,7 +688,7 @@ class RelayConnections {
   }
 
   /// Takes up again the revival that brought [connectivity] back, when its
-  /// socket dropped before [RECONNECT_STABLE_AFTER]: the next attempt waits
+  /// socket dropped before [reconnectStableAfter]: the next attempt waits
   /// the next step of its backoff, so a relay that drops every socket it gets
   /// is not reconnected in a loop. Says whether it did.
   bool _resumeRevival(RelayConnection connectivity) {
@@ -699,7 +696,7 @@ class RelayConnections {
     final revival = _revived.remove(key);
     if (revival == null ||
         !identical(revival.connectivity, connectivity) ||
-        revival.up.elapsed >= RECONNECT_STABLE_AFTER) {
+        revival.up.elapsed >= reconnectStableAfter) {
       return false;
     }
     _revivals[key] = revival;

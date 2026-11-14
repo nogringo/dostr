@@ -33,7 +33,7 @@ class TrustedAssertions {
   TrustedAssertions({
     required Nip85Query query,
     required Nip85Subscribe subscribe,
-    List<Nip85TrustedProvider> defaultProviders = DEFAULT_NIP85_PROVIDERS,
+    List<Nip85TrustedProvider> defaultProviders = defaultNip85Providers,
   }) : _query = query,
        _subscribe = subscribe,
        _defaultProviders = defaultProviders;

@@ -31,8 +31,8 @@ class RelayPublishes {
     Nip01Event event, {
     required Iterable<String> relays,
     AuthPolicy? auth,
-    Duration timeout = BroadcastDefaults.TIMEOUT,
-    double considerDonePercent = BroadcastDefaults.CONSIDER_DONE_PERCENT,
+    Duration timeout = BroadcastDefaults.timeout,
+    double considerDonePercent = BroadcastDefaults.considerDonePercent,
   }) {
     if (event.sig == null) {
       throw ArgumentError.value(event.id, 'event', 'must be signed');
@@ -56,8 +56,8 @@ class RelayPublishes {
   RelayPublish open(
     Nip01Event event, {
     AuthPolicy? auth,
-    Duration timeout = BroadcastDefaults.TIMEOUT,
-    double considerDonePercent = BroadcastDefaults.CONSIDER_DONE_PERCENT,
+    Duration timeout = BroadcastDefaults.timeout,
+    double considerDonePercent = BroadcastDefaults.considerDonePercent,
   }) => RelayPublish._(
     event,
     BroadcastState(
@@ -134,7 +134,7 @@ class RelayPublish {
   /// relay with that reason.
   bool send(
     String relayUrl, {
-    Duration connectTimeout = DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
     Future<String?> Function()? veto,
   }) {
     final signed = _signed;

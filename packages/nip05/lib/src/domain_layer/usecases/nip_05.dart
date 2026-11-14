@@ -50,7 +50,7 @@ class Nip05Usecase {
   /// [nip05] the nip05 identifier (e.g. "username@example.com")
   /// returns a [Nip05ResolveResult] — one of [Nip05Found], [Nip05NotFound],
   /// or [Nip05ResolveError]. Throws if [nip05] is empty.
-  /// A [Nip05NotFound] is remembered for [NIP_05_NOT_FOUND_DURATION].
+  /// A [Nip05NotFound] is remembered for [nip05NotFoundDuration].
   Future<Nip05ResolveResult> resolve(String nip05) async {
     if (nip05.isEmpty) {
       throw Exception("nip05 empty");
@@ -67,13 +67,13 @@ class Nip05Usecase {
       int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       int age = now - (databaseResult.networkFetchTime ?? 0);
       if (databaseResult.pubKey == null &&
-          age < NIP_05_NOT_FOUND_DURATION.inSeconds) {
+          age < nip05NotFoundDuration.inSeconds) {
         return const Nip05NotFound();
       }
       // before #936, check() also cached failed verifications
       if (databaseResult.pubKey != null &&
           databaseResult.valid &&
-          age < NIP_05_VALID_DURATION.inSeconds) {
+          age < nip05ValidDuration.inSeconds) {
         return Nip05Found(databaseResult);
       }
     }

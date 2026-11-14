@@ -1,10 +1,8 @@
-// ignore_for_file: non_constant_identifier_names, constant_identifier_names
-
 /// marks the duration in seconds for which a NIP05 is considered valid
-final NIP_05_VALID_DURATION = Duration(hours: 24);
+const nip05ValidDuration = Duration(hours: 24);
 
 /// how long resolve() remembers an identifier that does not exist
-const NIP_05_NOT_FOUND_DURATION = Duration(hours: 1);
+const nip05NotFoundDuration = Duration(hours: 1);
 
 /// how long to wait for a nostr.json response before giving up
-const NIP_05_REQUEST_TIMEOUT = Duration(seconds: 5);
+const nip05RequestTimeout = Duration(seconds: 5);

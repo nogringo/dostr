@@ -3,7 +3,7 @@ import 'package:dostr_nip85/dostr_nip85.dart';
 
 TrustedAssertions trustedAssertionsFor(
   RelayReqs reqs, {
-  List<Nip85TrustedProvider> defaultProviders = DEFAULT_NIP85_PROVIDERS,
+  List<Nip85TrustedProvider> defaultProviders = defaultNip85Providers,
 }) => TrustedAssertions(
   query: (filter, {required relay}) => reqs
       .req(

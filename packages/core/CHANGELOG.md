@@ -106,7 +106,14 @@ has no `DEFAULT_BOOTSTRAP_RELAYS`. Nothing replaces
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`
 and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so
-is `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT`.
+is `defaultWebSocketConnectTimeout`.
+
+The constants of `package:dostr_core/config/` are in lowerCamelCase:
+`DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`,
+`RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is
+`RequestDefaults.defaultAuthCallbackTimeout` and `BroadcastDefaults.TIMEOUT` is
+`BroadcastDefaults.timeout`. `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read,
+is gone.
 
 #### `RelayManager`
 

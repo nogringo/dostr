@@ -209,9 +209,7 @@ void main() {
         final nip05Repos = Nip05HttpRepositoryImpl(client: client);
         final recentTimestamp =
             (DateTime.now()
-                .subtract(
-                  Duration(seconds: NIP_05_VALID_DURATION.inSeconds - 60),
-                )
+                .subtract(Duration(seconds: nip05ValidDuration.inSeconds - 60))
                 .millisecondsSinceEpoch ~/
             1000);
 
@@ -252,9 +250,7 @@ void main() {
 
         final oldTimestamp =
             (DateTime.now()
-                .subtract(
-                  Duration(seconds: NIP_05_VALID_DURATION.inSeconds + 200),
-                )
+                .subtract(Duration(seconds: nip05ValidDuration.inSeconds + 200))
                 .millisecondsSinceEpoch ~/
             1000);
         final oldNip05 = Nip05(
@@ -287,7 +283,7 @@ void main() {
       // Create a Nip05 object with an updatedAt timestamp exactly equal to the duration
       final exactTimestamp =
           (DateTime.now()
-              .subtract(Duration(seconds: NIP_05_VALID_DURATION.inSeconds))
+              .subtract(Duration(seconds: nip05ValidDuration.inSeconds))
               .millisecondsSinceEpoch ~/
           1000);
       final oldNip05 = Nip05(
@@ -674,7 +670,7 @@ void main() {
 
       final expiredTimestamp =
           DateTime.now()
-              .subtract(NIP_05_NOT_FOUND_DURATION)
+              .subtract(nip05NotFoundDuration)
               .millisecondsSinceEpoch ~/
           1000;
       await cache.saveNip05(
@@ -821,9 +817,7 @@ void main() {
       // Save an expired nip05 in cache
       final expiredTimestamp =
           (DateTime.now()
-              .subtract(
-                Duration(seconds: NIP_05_VALID_DURATION.inSeconds + 100),
-              )
+              .subtract(Duration(seconds: nip05ValidDuration.inSeconds + 100))
               .millisecondsSinceEpoch ~/
           1000);
       final expiredNip05 = Nip05(
