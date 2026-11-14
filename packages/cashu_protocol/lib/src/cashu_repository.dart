@@ -18,9 +18,9 @@ abstract class CashuRepository {
     required List<CashuBlindedMessage> outputs,
   });
 
-  Future<List<CahsuKeysetResponse>> getKeysets({required String mintUrl});
+  Future<List<CashuKeysetResponse>> getKeysets({required String mintUrl});
 
-  Future<List<CahsuKeysResponse>> getKeys({
+  Future<List<CashuKeysResponse>> getKeys({
     required String mintUrl,
     String? keysetId,
   });

@@ -88,7 +88,7 @@ class CashuBdhke {
   static List<CashuProof> unblindSignatures({
     required List<CashuBlindedSignature> mintSignatures,
     required List<CashuBlindedMessageItem> blindedMessages,
-    required CahsuKeyset mintPublicKeys,
+    required CashuKeyset mintPublicKeys,
   }) {
     if (mintSignatures.length > blindedMessages.length) {
       throw Exception(

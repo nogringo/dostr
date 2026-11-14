@@ -45,7 +45,7 @@ final keys = await mint.getKeys(
   mintUrl: token.mintUrl,
   keysetId: keysetInfo.id,
 );
-final keyset = CahsuKeyset.fromResponses(
+final keyset = CashuKeyset.fromResponses(
   keysetResponse: keysetInfo,
   keysResponse: keys.first,
 );
@@ -114,7 +114,7 @@ code goes in as its `cashuB` string.
 
 - NUT-00: blind signatures (`CashuBdhke`, `CashuTools.hashToCurve`) and v4
   `cashuB` tokens (`CashuTokenEncoder`). V3 `cashuA` tokens are not supported.
-- NUT-01, NUT-02: keys and keysets (`CahsuKeyset`).
+- NUT-01, NUT-02: keys and keysets (`CashuKeyset`).
 - NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepository`, whose
   `HttpCashuRepository` talks to the mint over an `http.Client`.
 - NUT-06: mint info (`CashuMintInfo`).

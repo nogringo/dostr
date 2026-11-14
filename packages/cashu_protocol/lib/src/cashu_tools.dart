@@ -182,8 +182,8 @@ class CashuTools {
   /// Filters keysets by unit and returns the active keyset.
   /// Throws an exception if no keysets are found with the specified unit
   /// or if no active keyset is found.
-  static CahsuKeyset filterKeysetsByUnitActive({
-    required List<CahsuKeyset> keysets,
+  static CashuKeyset filterKeysetsByUnitActive({
+    required List<CashuKeyset> keysets,
     required String unit,
   }) {
     final keysetsFiltered = keysets
@@ -202,8 +202,8 @@ class CashuTools {
   }
 
   /// filters keysets by unit
-  static List<CahsuKeyset> filterKeysetsByUnit({
-    required List<CahsuKeyset> keysets,
+  static List<CashuKeyset> filterKeysetsByUnit({
+    required List<CashuKeyset> keysets,
     required String unit,
   }) {
     return keysets.where((keyset) => keyset.unit == unit).toList();
@@ -231,7 +231,7 @@ class CashuTools {
   static List<CashuProof> filterProofsByUnit({
     required List<CashuProof> proofs,
     required String unit,
-    required List<CahsuKeyset> keysets,
+    required List<CashuKeyset> keysets,
   }) {
     return proofs.where((proof) {
       final keyset = keysets.firstWhere(

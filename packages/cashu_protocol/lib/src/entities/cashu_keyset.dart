@@ -1,13 +1,13 @@
-class CahsuKeyset {
+class CashuKeyset {
   final String id;
   final String mintUrl;
   final String unit;
   final bool active;
   final int inputFeePPK;
-  final Set<CahsuMintKeyPair> mintKeyPairs;
+  final Set<CashuMintKeyPair> mintKeyPairs;
   int? fetchedAt;
 
-  CahsuKeyset({
+  CashuKeyset({
     required this.id,
     required this.mintUrl,
     required this.unit,
@@ -19,9 +19,9 @@ class CahsuKeyset {
     fetchedAt ??= DateTime.now().millisecondsSinceEpoch ~/ 1000;
   }
 
-  factory CahsuKeyset.fromResponses({
-    required CahsuKeysetResponse keysetResponse,
-    required CahsuKeysResponse keysResponse,
+  factory CashuKeyset.fromResponses({
+    required CashuKeysetResponse keysetResponse,
+    required CashuKeysResponse keysResponse,
   }) {
     if (keysetResponse.id != keysResponse.id ||
         keysetResponse.mintUrl != keysResponse.mintUrl ||
@@ -29,7 +29,7 @@ class CahsuKeyset {
       throw ArgumentError('Keyset and keys responses do not match');
     }
 
-    return CahsuKeyset(
+    return CashuKeyset(
       id: keysetResponse.id,
       mintUrl: keysetResponse.mintUrl,
       unit: keysetResponse.unit,
@@ -39,8 +39,8 @@ class CahsuKeyset {
     );
   }
 
-  factory CahsuKeyset.fromJson(Map<String, dynamic> json) {
-    return CahsuKeyset(
+  factory CashuKeyset.fromJson(Map<String, dynamic> json) {
+    return CashuKeyset(
       id: json['id'] as String,
       mintUrl: json['mintUrl'] as String,
       unit: json['unit'] as String,
@@ -48,7 +48,7 @@ class CahsuKeyset {
       inputFeePPK: json['inputFeePPK'] as int,
       mintKeyPairs: (json['mintKeyPairs'] as List<dynamic>)
           .map(
-            (e) => CahsuMintKeyPair(
+            (e) => CashuMintKeyPair(
               amount: e['amount'] as int,
               pubkey: e['pubkey'] as String,
             ),
@@ -72,21 +72,21 @@ class CahsuKeyset {
   }
 }
 
-class CahsuMintKeyPair {
+class CashuMintKeyPair {
   final int amount;
   final String pubkey;
 
-  CahsuMintKeyPair({required this.amount, required this.pubkey});
+  CashuMintKeyPair({required this.amount, required this.pubkey});
 }
 
-class CahsuKeysetResponse {
+class CashuKeysetResponse {
   final String id;
   final String mintUrl;
   final String unit;
   final bool active;
   final int inputFeePPK;
 
-  CahsuKeysetResponse({
+  CashuKeysetResponse({
     required this.id,
     required this.mintUrl,
     required this.unit,
@@ -94,11 +94,11 @@ class CahsuKeysetResponse {
     required this.inputFeePPK,
   });
 
-  factory CahsuKeysetResponse.fromServerMap({
+  factory CashuKeysetResponse.fromServerMap({
     required Map<String, dynamic> map,
     required String mintUrl,
   }) {
-    return CahsuKeysetResponse(
+    return CashuKeysetResponse(
       id: map['id'] as String,
       mintUrl: mintUrl,
       unit: map['unit'] as String,
@@ -108,24 +108,24 @@ class CahsuKeysetResponse {
   }
 }
 
-class CahsuKeysResponse {
+class CashuKeysResponse {
   final String id;
   final String mintUrl;
   final String unit;
-  final Set<CahsuMintKeyPair> mintKeyPairs;
+  final Set<CashuMintKeyPair> mintKeyPairs;
 
-  CahsuKeysResponse({
+  CashuKeysResponse({
     required this.id,
     required this.mintUrl,
     required this.unit,
     required this.mintKeyPairs,
   });
 
-  factory CahsuKeysResponse.fromServerMap({
+  factory CashuKeysResponse.fromServerMap({
     required Map<String, dynamic> map,
     required String mintUrl,
   }) {
-    final mintKeyPairs = <CahsuMintKeyPair>{};
+    final mintKeyPairs = <CashuMintKeyPair>{};
     final keys = map['keys'] as Map<String, dynamic>;
 
     for (final entry in keys.entries) {
@@ -134,11 +134,11 @@ class CahsuKeysResponse {
       /// => skipped
       final amount = int.tryParse(entry.key);
       if (amount != null) {
-        mintKeyPairs.add(CahsuMintKeyPair(amount: amount, pubkey: entry.value));
+        mintKeyPairs.add(CashuMintKeyPair(amount: amount, pubkey: entry.value));
       }
     }
 
-    return CahsuKeysResponse(
+    return CashuKeysResponse(
       id: map['id'] as String,
       mintUrl: mintUrl,
       unit: map['unit'] as String,

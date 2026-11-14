@@ -17,6 +17,9 @@
    amounts the mint imprinted.
  - `CashuRepo` is now `CashuRepository`, and `CashuRepoImpl` is now
    `HttpCashuRepository`.
+ - `CahsuKeyset`, `CahsuMintKeyPair`, `CahsuKeysetResponse` and
+   `CahsuKeysResponse` are now spelled `CashuKeyset`, `CashuMintKeyPair`,
+   `CashuKeysetResponse` and `CashuKeysResponse`.
  - `HttpCashuRepository.swap` sends the outputs in the order it gets them
    instead of sorting the caller's list in place.
  - `CashuTokenUrEncoder` (NUT-16 animated QR codes) moved here from the `ur`

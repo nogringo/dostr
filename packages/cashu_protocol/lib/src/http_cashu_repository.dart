@@ -68,7 +68,7 @@ class HttpCashuRepository implements CashuRepository {
   }
 
   @override
-  Future<List<CahsuKeysetResponse>> getKeysets({
+  Future<List<CashuKeysetResponse>> getKeysets({
     required String mintUrl,
   }) async {
     final url = CashuTools.composeUrl(mintUrl: mintUrl, path: 'keysets');
@@ -95,7 +95,7 @@ class HttpCashuRepository implements CashuRepository {
     final List<dynamic> keysetsUnparsed = responseBody['keysets'];
     return keysetsUnparsed
         .map(
-          (e) => CahsuKeysetResponse.fromServerMap(
+          (e) => CashuKeysetResponse.fromServerMap(
             map: e as Map<String, dynamic>,
             mintUrl: mintUrl,
           ),
@@ -104,7 +104,7 @@ class HttpCashuRepository implements CashuRepository {
   }
 
   @override
-  Future<List<CahsuKeysResponse>> getKeys({
+  Future<List<CashuKeysResponse>> getKeys({
     required String mintUrl,
     String? keysetId,
   }) async {
@@ -137,7 +137,7 @@ class HttpCashuRepository implements CashuRepository {
     final List<dynamic> keysUnparsed = responseBody['keysets'];
     return keysUnparsed
         .map(
-          (e) => CahsuKeysResponse.fromServerMap(
+          (e) => CashuKeysResponse.fromServerMap(
             map: e as Map<String, dynamic>,
             mintUrl: mintUrl,
           ),

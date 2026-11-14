@@ -8,7 +8,7 @@ import 'package:http/testing.dart';
 class FakeMint {
   static BigInt key(int amount) => BigInt.from(amount + 1000);
 
-  final keyset = CahsuKeyset(
+  final keyset = CashuKeyset(
     id: '00c726786980c4d9',
     mintUrl: 'https://mint.example',
     unit: 'sat',
@@ -16,7 +16,7 @@ class FakeMint {
     inputFeePPK: 0,
     mintKeyPairs: {
       for (final amount in [1, 2, 4, 8, 128])
-        CahsuMintKeyPair(
+        CashuMintKeyPair(
           amount: amount,
           pubkey: CashuTools.ecPointToHex((CashuTools.getG() * key(amount))!),
         ),
