@@ -1,7 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:flutter/services.dart';
 import 'package:dostr_flutter/l10n/app_localizations.dart';
-import 'package:pretty_qr_code/pretty_qr_code.dart';
+import 'package:qr/qr.dart';
 
 class NostrConnectDialogView extends StatelessWidget {
   final String nostrConnectURL;
@@ -19,13 +19,7 @@ class NostrConnectDialogView extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 300, maxHeight: 300),
           child: AspectRatio(
             aspectRatio: 1,
-            child: PrettyQrView.data(
-              data: nostrConnectURL,
-              decoration: const PrettyQrDecoration(
-                quietZone: PrettyQrQuietZone.standard,
-                shape: PrettyQrSmoothSymbol(roundFactor: 0),
-              ),
-            ),
+            child: _QrCodeView(data: nostrConnectURL),
           ),
         ),
         actions: [
@@ -39,4 +33,55 @@ class NostrConnectDialogView extends StatelessWidget {
       ),
     );
   }
+}
+
+class _QrCodeView extends StatelessWidget {
+  final String data;
+
+  const _QrCodeView({required this.data});
+
+  @override
+  Widget build(BuildContext context) {
+    final image = QrImage(
+      QrCode(
+        payload: QrPayload.fromString(data),
+        errorCorrectLevel: QrErrorCorrectLevel.low,
+      ),
+    );
+    return CustomPaint(size: Size.infinite, painter: _QrCodePainter(image));
+  }
+}
+
+class _QrCodePainter extends CustomPainter {
+  // ISO/IEC 18004 requires a quiet zone of at least 4 modules.
+  static const _quietZone = 4;
+
+  final QrImage image;
+
+  _QrCodePainter(this.image);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final count = image.moduleCount;
+    final module = size.shortestSide / (count + 2 * _quietZone);
+    final path = Path();
+    for (var row = 0; row < count; row++) {
+      for (var col = 0; col < count; col++) {
+        if (image.isDark(row, col)) {
+          path.addRect(
+            Rect.fromLTWH(
+              (col + _quietZone) * module,
+              (row + _quietZone) * module,
+              module,
+              module,
+            ),
+          );
+        }
+      }
+    }
+    canvas.drawPath(path, Paint()..color = Colors.black);
+  }
+
+  @override
+  bool shouldRepaint(_QrCodePainter oldDelegate) => oldDelegate.image != image;
 }

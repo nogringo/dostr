@@ -43,7 +43,7 @@ dependencies:
   dostr_rust_verifier: ^0.6.0
   dostr_signer: ^0.1.0
   dostr_web_crypto: ^0.1.0
-  pretty_qr_code: ">=3.6.0 <4.0.0"
+  qr: ^4.0.1
   url_launcher: ">=6.0.0 <7.0.0"
 
 dev_dependencies:
