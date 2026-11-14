@@ -172,6 +172,19 @@ void main() {
         ),
       );
     });
+
+    test('does not quote a hex private key in its error', () {
+      expect(
+        () => Nsec.decode(' $privateKey'),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.toString(),
+            'toString',
+            isNot(contains(privateKey.substring(0, 8))),
+          ),
+        ),
+      );
+    });
   });
 
   group('typed decoding', () {

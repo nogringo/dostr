@@ -4,13 +4,18 @@ import 'package:bech32/bech32.dart';
 /// [FormatException] when it is not one.
 (String, List<int>) decodeBech32(String input) {
   final Bech32 result;
-  // No message quotes the input: it may be an nsec.
+  // No message quotes the input, nor the bech32 exception, which does: the
+  // input may be a private key.
   try {
     result = const Bech32Codec().decode(input, input.length);
-  } on MixedCase {
-    throw const FormatException('Not bech32: mixed case');
   } on Exception catch (e) {
-    throw FormatException('Not bech32: $e');
+    throw FormatException(switch (e) {
+      MixedCase() => 'Not bech32: mixed case',
+      InvalidChecksum() => 'Not bech32: invalid checksum',
+      OutOfBoundChars() ||
+      OutOfRangeHrpCharacters() => 'Not bech32: invalid character',
+      _ => 'Not bech32',
+    });
   }
   return (result.hrp, _convertBits(result.data, 5, 8, pad: false));
 }
