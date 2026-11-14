@@ -1,6 +1,6 @@
 # Dostr
 
-[![Build Status](https://github.com/nogringo/dostr/actions/workflows/tests.yaml/badge.svg?branch=master)](https://github.com/nogringo/dostr/actions?query=workflow%3A"tests"+branch%3Amaster)
+[![Build Status](https://github.com/nogringo/dostr/actions/workflows/tests.yml/badge.svg?branch=master)](https://github.com/nogringo/dostr/actions?query=workflow%3A"tests"+branch%3Amaster)
 [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core)
 [![License](https://img.shields.io/github/license/nogringo/dostr.svg)](LICENSE)
 
@@ -11,8 +11,6 @@ Dostr is a set of Dart packages for building Nostr applications. Each package co
 Each package documents itself in its README, listed below. [doc/](doc/) covers what spans several packages: the [outbox model](doc/outbox-model.md), [tips](doc/tips.md) and [performance](doc/performance.md).
 
 Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
-
-## [🔗 Contributing](doc/library-development/CONTRIBUTING.md)
 
 ## Monorepo Packages
 

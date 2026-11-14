@@ -72,11 +72,11 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
         pubKey: pubkey,
         kind: 1,
         tags: [
-          ['client', 'ndk-sample-app'],
+          ['client', 'dostr-demo'],
           ['test', 'parallel-signing'],
         ],
         content:
-            'Parallel signer test #${index + 1}/50 from sample app - $startedAt',
+            'Parallel signer test #${index + 1}/50 from the demo - $startedAt',
         createdAt: createdAt,
       );
 
@@ -132,10 +132,10 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
       pubKey: pubkey,
       kind: 1,
       tags: [
-        ['client', 'ndk-sample-app'],
+        ['client', 'dostr-demo'],
         ['test', 'duplicate-parallel-signing'],
       ],
-      content: 'Duplicate signer test from sample app - $startedAt',
+      content: 'Duplicate signer test from the demo - $startedAt',
       createdAt: startedAt.millisecondsSinceEpoch ~/ 1000,
     );
     final stopwatch = Stopwatch()..start();
@@ -219,7 +219,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     Future<bool> encryptOne(int index) async {
       await signer.encryptNip44(
         plaintext:
-            'Parallel NIP-44 encryption test #${index + 1}/50 from sample app - $startedAt',
+            'Parallel NIP-44 encryption test #${index + 1}/50 from the demo - $startedAt',
         recipientPubKey: pubkey,
       );
       return true;

@@ -14,7 +14,7 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip77/dostr_nip77.dart';
 import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 
-import 'l10n/generated/sample_app_localizations.dart';
+import 'l10n/generated/demo_localizations.dart';
 import 'local_events.dart';
 
 late RelayManager relayManager;
@@ -84,15 +84,15 @@ class MyApp extends StatelessWidget {
         onGenerateTitle: (context) => context.l10n.appName,
         locale: locale,
         localizationsDelegates: const [
-          SampleAppLocalizations.delegate,
+          DemoLocalizations.delegate,
           dostr_flutter.AppLocalizations.delegate,
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
         // Use dostr_flutter's locale list: it's the superset that includes the
-        // extra locales (fi, pt, pt_BR) translated in that package. The sample
-        // app shell falls back to English for those via the delegate above.
+        // extra locales (fi, pt, pt_BR) translated in that package. The demo
+        // shell falls back to English for those via the delegate above.
         supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
         routerConfig: appRouter,
         builder: (context, child) => Stack(

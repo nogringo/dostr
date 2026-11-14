@@ -11,7 +11,7 @@ Built on [dostr_core](https://pub.dev/packages/dostr_core), [dostr_flutter](http
 1. clone repository
    `git clone https://github.com/nogringo/dostr.git`
 
-2. change dir into sample app `cd ./packages/demo`
+2. change dir into the demo `cd ./packages/demo`
 
 3. download packages `flutter pub get`
 
@@ -20,4 +20,4 @@ Built on [dostr_core](https://pub.dev/packages/dostr_core), [dostr_flutter](http
 ## NIP-55 signer
 
 A NIP-55 compatible external Nostr signer is optional for running this
-application. The sample app is not tied to any specific signer app.
+application. The demo is not tied to any specific signer app.

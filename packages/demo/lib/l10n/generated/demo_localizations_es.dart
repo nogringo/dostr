@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-import 'sample_app_localizations.dart';
+import 'demo_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for Spanish Castilian (`es`).
-class SampleAppLocalizationsEs extends SampleAppLocalizations {
-  SampleAppLocalizationsEs([String locale = 'es']) : super(locale);
+class DemoLocalizationsEs extends DemoLocalizations {
+  DemoLocalizationsEs([String locale = 'es']) : super(locale);
 
   @override
   String get appName => 'Demo de Nostr Developer Kit';

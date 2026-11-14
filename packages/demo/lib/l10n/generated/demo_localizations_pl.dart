@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-import 'sample_app_localizations.dart';
+import 'demo_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for Polish (`pl`).
-class SampleAppLocalizationsPl extends SampleAppLocalizations {
-  SampleAppLocalizationsPl([String locale = 'pl']) : super(locale);
+class DemoLocalizationsPl extends DemoLocalizations {
+  DemoLocalizationsPl([String locale = 'pl']) : super(locale);
 
   @override
   String get appName => 'Demo Nostr Developer Kit';

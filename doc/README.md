@@ -12,8 +12,5 @@ Dostr does not ship ready to use feeds: you build them from the packages.
 
 ## Library development
 
-- [Setup and architecture](library-development/README.md)
-- [Contributing](library-development/CONTRIBUTING.md)
-- [Publishing](library-development/publish.md)
 - [Package graph](library-development/package-graph.md)
 - [Architecture decision records](library-development/ADRs/README.md)

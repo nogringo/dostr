@@ -1,4 +1,4 @@
-name: deploy sample app to GitHub Pages
+name: deploy demo to GitHub Pages
 
 on:
   push:
@@ -38,12 +38,11 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build sample app
+      - name: Build demo
         working-directory: packages/demo
         run: |
           flutter pub get
           flutter build web --release --base-href "${{ steps.pages.outputs.base_path }}/"
-          cp web/drift_worker.js build/web/drift_worker.js
 
       - name: Upload GitHub Pages artifact
         uses: actions/upload-pages-artifact@v4

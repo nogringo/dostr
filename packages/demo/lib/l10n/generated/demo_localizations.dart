@@ -5,31 +5,31 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/intl.dart' as intl;
 
-import 'sample_app_localizations_de.dart';
-import 'sample_app_localizations_en.dart';
-import 'sample_app_localizations_es.dart';
-import 'sample_app_localizations_fr.dart';
-import 'sample_app_localizations_it.dart';
-import 'sample_app_localizations_ja.dart';
-import 'sample_app_localizations_pl.dart';
-import 'sample_app_localizations_ru.dart';
-import 'sample_app_localizations_zh.dart';
+import 'demo_localizations_de.dart';
+import 'demo_localizations_en.dart';
+import 'demo_localizations_es.dart';
+import 'demo_localizations_fr.dart';
+import 'demo_localizations_it.dart';
+import 'demo_localizations_ja.dart';
+import 'demo_localizations_pl.dart';
+import 'demo_localizations_ru.dart';
+import 'demo_localizations_zh.dart';
 
 // ignore_for_file: type=lint
 
-/// Callers can lookup localized strings with an instance of SampleAppLocalizations
-/// returned by `SampleAppLocalizations.of(context)`.
+/// Callers can lookup localized strings with an instance of DemoLocalizations
+/// returned by `DemoLocalizations.of(context)`.
 ///
-/// Applications need to include `SampleAppLocalizations.delegate()` in their app's
+/// Applications need to include `DemoLocalizations.delegate()` in their app's
 /// `localizationDelegates` list, and the locales they support in the app's
 /// `supportedLocales` list. For example:
 ///
 /// ```dart
-/// import 'generated/sample_app_localizations.dart';
+/// import 'generated/demo_localizations.dart';
 ///
 /// return MaterialApp(
-///   localizationsDelegates: SampleAppLocalizations.localizationsDelegates,
-///   supportedLocales: SampleAppLocalizations.supportedLocales,
+///   localizationsDelegates: DemoLocalizations.localizationsDelegates,
+///   supportedLocales: DemoLocalizations.supportedLocales,
 ///   home: MyApplicationHome(),
 /// );
 /// ```
@@ -66,21 +66,20 @@ import 'sample_app_localizations_zh.dart';
 /// Select and expand the newly-created Localizations item then, for each
 /// locale your application supports, add a new item and select the locale
 /// you wish to add from the pop-up menu in the Value field. This list should
-/// be consistent with the languages listed in the SampleAppLocalizations.supportedLocales
+/// be consistent with the languages listed in the DemoLocalizations.supportedLocales
 /// property.
-abstract class SampleAppLocalizations {
-  SampleAppLocalizations(String locale)
+abstract class DemoLocalizations {
+  DemoLocalizations(String locale)
       : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
-  static SampleAppLocalizations? of(BuildContext context) {
-    return Localizations.of<SampleAppLocalizations>(
-        context, SampleAppLocalizations);
+  static DemoLocalizations? of(BuildContext context) {
+    return Localizations.of<DemoLocalizations>(context, DemoLocalizations);
   }
 
-  static const LocalizationsDelegate<SampleAppLocalizations> delegate =
-      _SampleAppLocalizationsDelegate();
+  static const LocalizationsDelegate<DemoLocalizations> delegate =
+      _DemoLocalizationsDelegate();
 
   /// A list of this localizations delegate along with the default localizations
   /// delegates.
@@ -792,14 +791,14 @@ abstract class SampleAppLocalizations {
   String get cancel;
 }
 
-class _SampleAppLocalizationsDelegate
-    extends LocalizationsDelegate<SampleAppLocalizations> {
-  const _SampleAppLocalizationsDelegate();
+class _DemoLocalizationsDelegate
+    extends LocalizationsDelegate<DemoLocalizations> {
+  const _DemoLocalizationsDelegate();
 
   @override
-  Future<SampleAppLocalizations> load(Locale locale) {
-    return SynchronousFuture<SampleAppLocalizations>(
-        lookupSampleAppLocalizations(locale));
+  Future<DemoLocalizations> load(Locale locale) {
+    return SynchronousFuture<DemoLocalizations>(
+        lookupDemoLocalizations(locale));
   }
 
   @override
@@ -816,34 +815,34 @@ class _SampleAppLocalizationsDelegate
       ].contains(locale.languageCode);
 
   @override
-  bool shouldReload(_SampleAppLocalizationsDelegate old) => false;
+  bool shouldReload(_DemoLocalizationsDelegate old) => false;
 }
 
-SampleAppLocalizations lookupSampleAppLocalizations(Locale locale) {
+DemoLocalizations lookupDemoLocalizations(Locale locale) {
   // Lookup logic when only language code is specified.
   switch (locale.languageCode) {
     case 'de':
-      return SampleAppLocalizationsDe();
+      return DemoLocalizationsDe();
     case 'en':
-      return SampleAppLocalizationsEn();
+      return DemoLocalizationsEn();
     case 'es':
-      return SampleAppLocalizationsEs();
+      return DemoLocalizationsEs();
     case 'fr':
-      return SampleAppLocalizationsFr();
+      return DemoLocalizationsFr();
     case 'it':
-      return SampleAppLocalizationsIt();
+      return DemoLocalizationsIt();
     case 'ja':
-      return SampleAppLocalizationsJa();
+      return DemoLocalizationsJa();
     case 'pl':
-      return SampleAppLocalizationsPl();
+      return DemoLocalizationsPl();
     case 'ru':
-      return SampleAppLocalizationsRu();
+      return DemoLocalizationsRu();
     case 'zh':
-      return SampleAppLocalizationsZh();
+      return DemoLocalizationsZh();
   }
 
   throw FlutterError(
-      'SampleAppLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+      'DemoLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
       'an issue with the localizations generation tool. Please file an issue '
       'on GitHub with a reproducible sample app and the gen-l10n configuration '
       'that was used.');

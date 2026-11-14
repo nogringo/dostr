@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-import 'sample_app_localizations.dart';
+import 'demo_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for Chinese (`zh`).
-class SampleAppLocalizationsZh extends SampleAppLocalizations {
-  SampleAppLocalizationsZh([String locale = 'zh']) : super(locale);
+class DemoLocalizationsZh extends DemoLocalizations {
+  DemoLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
   String get appName => 'Nostr Developer Kit 示例';

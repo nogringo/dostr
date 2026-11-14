@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-import 'sample_app_localizations.dart';
+import 'demo_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for German (`de`).
-class SampleAppLocalizationsDe extends SampleAppLocalizations {
-  SampleAppLocalizationsDe([String locale = 'de']) : super(locale);
+class DemoLocalizationsDe extends DemoLocalizations {
+  DemoLocalizationsDe([String locale = 'de']) : super(locale);
 
   @override
   String get appName => 'Nostr Developer Kit Demo';

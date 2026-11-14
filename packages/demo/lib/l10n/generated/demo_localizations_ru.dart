@@ -1,12 +1,12 @@
 // ignore: unused_import
 import 'package:intl/intl.dart' as intl;
-import 'sample_app_localizations.dart';
+import 'demo_localizations.dart';
 
 // ignore_for_file: type=lint
 
 /// The translations for Russian (`ru`).
-class SampleAppLocalizationsRu extends SampleAppLocalizations {
-  SampleAppLocalizationsRu([String locale = 'ru']) : super(locale);
+class DemoLocalizationsRu extends DemoLocalizations {
+  DemoLocalizationsRu([String locale = 'ru']) : super(locale);
 
   @override
   String get appName => 'Демо Nostr Developer Kit';
