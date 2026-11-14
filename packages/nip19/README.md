@@ -49,8 +49,11 @@ switch (Nip19Entity.decode(input)) {
 
 The decoders accept the `nostr:` prefix of
 [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before
-an `nsec`, which NIP-21 forbids. Each class has a `prefix` constant, such as
-`Npub.prefix`.
+an `nsec`, which NIP-21 forbids. For the same reason, every class but `Nsec`
+has a `uri` getter, its string with the `nostr:` prefix. Each class has a
+`prefix` constant, such as `Npub.prefix`.
+
+`Naddr.coordinate` is the `<kind>:<pubkey>:<identifier>` of an `a` tag.
 
 `nevent` and `naddr` encode a `Nip01Event` of
 [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints:

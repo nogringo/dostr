@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:convert/convert.dart';
 import 'package:dostr_nip01/hex.dart';
 
 import 'bech32_codec.dart';
+import 'hex.dart';
 import 'tlv.dart';
 
 const _special = 0;
@@ -51,7 +51,10 @@ final class Npub extends Nip19Entity {
   static Npub? tryDecode(String input) => _tryDecode(() => Npub.decode(input));
 
   @override
-  String encode() => encodeBech32(prefix, hex.decode(pubkey));
+  String encode() => encodeBech32(prefix, hexToBytes(pubkey));
+
+  /// This npub as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) => other is Npub && other.pubkey == pubkey;
@@ -82,7 +85,7 @@ final class Nsec extends Nip19Entity {
   static Nsec? tryDecode(String input) => _tryDecode(() => Nsec.decode(input));
 
   @override
-  String encode() => encodeBech32(prefix, hex.decode(privateKey));
+  String encode() => encodeBech32(prefix, hexToBytes(privateKey));
 
   @override
   bool operator ==(Object other) =>
@@ -115,7 +118,10 @@ final class Note extends Nip19Entity {
   static Note? tryDecode(String input) => _tryDecode(() => Note.decode(input));
 
   @override
-  String encode() => encodeBech32(prefix, hex.decode(eventId));
+  String encode() => encodeBech32(prefix, hexToBytes(eventId));
+
+  /// This note as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) => other is Note && other.eventId == eventId;
@@ -157,16 +163,19 @@ final class Nprofile extends Nip19Entity {
     final pubkey = _fixed(tlv, _special, 32);
     if (pubkey == null) throw const FormatException('nprofile has no pubkey');
     return Nprofile(
-      pubkey: hex.encode(pubkey),
+      pubkey: bytesToHex(pubkey),
       relays: _texts(tlv, _relay).toList(),
     );
   }
 
   @override
   String encode() => encodeBech32(prefix, [
-    ...tlvEntry(_special, hex.decode(pubkey)),
+    ...tlvEntry(_special, hexToBytes(pubkey)),
     ..._relayEntries(relays),
   ]);
+
+  /// This nprofile as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) =>
@@ -226,20 +235,23 @@ final class Nevent extends Nip19Entity {
     final author = _fixed(tlv, _author, 32);
     final kind = _fixed(tlv, _kind, 4);
     return Nevent(
-      eventId: hex.encode(eventId),
+      eventId: bytesToHex(eventId),
       relays: _texts(tlv, _relay).toList(),
-      author: author == null ? null : hex.encode(author),
+      author: author == null ? null : bytesToHex(author),
       kind: kind == null ? null : _readUint32(kind),
     );
   }
 
   @override
   String encode() => encodeBech32(prefix, [
-    ...tlvEntry(_special, hex.decode(eventId)),
+    ...tlvEntry(_special, hexToBytes(eventId)),
     ..._relayEntries(relays),
-    if (author case final author?) ...tlvEntry(_author, hex.decode(author)),
+    if (author case final author?) ...tlvEntry(_author, hexToBytes(author)),
     if (kind case final kind?) ...tlvEntry(_kind, _uint32(kind)),
   ]);
+
+  /// This nevent as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) =>
@@ -309,19 +321,26 @@ final class Naddr extends Nip19Entity {
     if (kind == null) throw const FormatException('naddr has no kind');
     return Naddr(
       identifier: identifier,
-      pubkey: hex.encode(pubkey),
+      pubkey: bytesToHex(pubkey),
       kind: _readUint32(kind),
       relays: _texts(tlv, _relay).toList(),
     );
   }
 
+  /// The coordinate of the event in an `a` tag (NIP-01):
+  /// `<kind>:<pubkey>:<identifier>`.
+  String get coordinate => '$kind:$pubkey:$identifier';
+
   @override
   String encode() => encodeBech32(prefix, [
     ...tlvEntry(_special, utf8.encode(identifier)),
     ..._relayEntries(relays),
-    ...tlvEntry(_author, hex.decode(pubkey)),
+    ...tlvEntry(_author, hexToBytes(pubkey)),
     ...tlvEntry(_kind, _uint32(kind)),
   ]);
+
+  /// This naddr as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) =>
@@ -378,7 +397,7 @@ String _key(String prefix, List<int> bytes) {
   if (bytes.length != 32) {
     throw FormatException('$prefix holds ${bytes.length} bytes instead of 32');
   }
-  return hex.encode(bytes);
+  return bytesToHex(bytes);
 }
 
 String _checkKey(String value, String name) {

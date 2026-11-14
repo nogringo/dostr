@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:convert/convert.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip19/src/bech32_codec.dart';
+import 'package:dostr_nip19/src/hex.dart';
 import 'package:dostr_nip19/src/tlv.dart';
 import 'package:test/test.dart';
 
@@ -129,12 +129,12 @@ void main() {
       ),
       (
         'an nevent without an event id',
-        encodeBech32('nevent', tlvEntry(2, hex.decode(author))),
+        encodeBech32('nevent', tlvEntry(2, hexToBytes(author))),
       ),
       (
         'an naddr without an identifier',
         encodeBech32('naddr', [
-          ...tlvEntry(2, hex.decode(pubkey)),
+          ...tlvEntry(2, hexToBytes(pubkey)),
           ...tlvEntry(3, kindBytes(30023)),
         ]),
       ),
@@ -149,7 +149,7 @@ void main() {
         'an naddr without a kind',
         encodeBech32('naddr', [
           ...tlvEntry(0, utf8.encode('test')),
-          ...tlvEntry(2, hex.decode(pubkey)),
+          ...tlvEntry(2, hexToBytes(pubkey)),
         ]),
       ),
     ];
@@ -200,7 +200,7 @@ void main() {
 
     test('ignores unknown TLV entries and relays that are not UTF-8', () {
       final input = encodeBech32('nprofile', [
-        ...tlvEntry(0, hex.decode(pubkey)),
+        ...tlvEntry(0, hexToBytes(pubkey)),
         ...tlvEntry(1, [0xff, 0xfe]),
         ...tlvEntry(1, utf8.encode('wss://r.x.com')),
         ...tlvEntry(9, [1, 2, 3]),
@@ -214,7 +214,7 @@ void main() {
 
     test('ignores an author or a kind of the wrong length', () {
       final input = encodeBech32('nevent', [
-        ...tlvEntry(0, hex.decode(eventId)),
+        ...tlvEntry(0, hexToBytes(eventId)),
         ...tlvEntry(2, [1, 2, 3]),
         ...tlvEntry(3, [1]),
       ]);
@@ -304,6 +304,32 @@ void main() {
             isNot(contains(shortKey)),
           ),
         ),
+      );
+    });
+  });
+
+  group('uri', () {
+    test('is nostr: followed by the bech32 string', () {
+      expect(Npub(pubkey).uri, 'nostr:$npub');
+      expect(Note(eventId).uri, 'nostr:${Note(eventId).encode()}');
+      expect(Nprofile.decode(nprofile).uri, 'nostr:$nprofile');
+      expect(Nevent.decode(nevent).uri, 'nostr:$nevent');
+      expect(Naddr.decode(naddr).uri, 'nostr:$naddr');
+    });
+  });
+
+  group('Naddr.coordinate', () {
+    test('is the kind, the pubkey and the identifier', () {
+      expect(
+        Naddr(identifier: 'test', pubkey: pubkey, kind: 30023).coordinate,
+        '30023:$pubkey:test',
+      );
+    });
+
+    test('ends with a colon for a replaceable event', () {
+      expect(
+        Naddr(identifier: '', pubkey: pubkey, kind: 10002).coordinate,
+        '10002:$pubkey:',
       );
     });
   });
