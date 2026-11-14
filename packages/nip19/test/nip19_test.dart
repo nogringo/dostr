@@ -272,6 +272,34 @@ void main() {
       expect(Nprofile.decode(profile.encode()).relays, [relay]);
     });
 
+    test('reject relays that make the string longer than 5000 characters', () {
+      List<String> relays(int lastLength) => [
+        for (var i = 0; i < 11; i++) 'wss://${'a' * 249}',
+        'wss://${'a' * lastLength}',
+      ];
+      final longest = Nprofile(pubkey: pubkey, relays: relays(246));
+
+      expect(longest.encode().length, 4999);
+      expect(Nprofile.decode(longest.encode()), longest);
+      expect(
+        () => Nprofile(pubkey: pubkey, relays: relays(247)),
+        throwsArgumentError,
+      );
+    });
+
+    test('reject too many relays for an nevent or an naddr', () {
+      final relays = List.filled(13, 'wss://${'a' * 249}');
+
+      expect(
+        () => Nevent(eventId: eventId, relays: relays),
+        throwsArgumentError,
+      );
+      expect(
+        () => Naddr(identifier: '', pubkey: pubkey, kind: 0, relays: relays),
+        throwsArgumentError,
+      );
+    });
+
     test('reject an identifier longer than 255 bytes', () {
       expect(
         () => Naddr(identifier: 'a' * 256, pubkey: pubkey, kind: 30023),
@@ -322,6 +350,24 @@ void main() {
       expect(Nprofile.decode(nprofile).uri, 'nostr:$nprofile');
       expect(Nevent.decode(nevent).uri, 'nostr:$nevent');
       expect(Naddr.decode(naddr).uri, 'nostr:$naddr');
+    });
+
+    test('is on every Nip21Entity, which is every entity but Nsec', () {
+      String? uriOf(Nip19Entity entity) => switch (entity) {
+        Nip21Entity(:final uri) => uri,
+        Nsec() => null,
+      };
+
+      for (final input in [
+        npub,
+        Note(eventId).encode(),
+        nprofile,
+        nevent,
+        naddr,
+      ]) {
+        expect(uriOf(Nip19Entity.decode(input)), 'nostr:$input');
+      }
+      expect(uriOf(Nsec(privateKey)), isNull);
     });
   });
 

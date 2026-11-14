@@ -37,13 +37,14 @@ sealed class Nip19Entity {
 
 // Sealed, not a mixin, which would make a switch over Nip19Entity
 // non-exhaustive.
-sealed class _Nip21Entity extends Nip19Entity {
+/// An entity that a NIP-21 `nostr:` URI can hold: any but an [Nsec].
+sealed class Nip21Entity extends Nip19Entity {
   /// This entity as a NIP-21 URI: `nostr:` followed by [encode].
   String get uri => '$_uriScheme${encode()}';
 }
 
 /// An npub: a public key.
-final class Npub extends _Nip21Entity {
+final class Npub extends Nip21Entity {
   /// The prefix of an npub.
   static const prefix = 'npub';
 
@@ -107,7 +108,7 @@ final class Nsec extends Nip19Entity {
 }
 
 /// A note: an event id.
-final class Note extends _Nip21Entity {
+final class Note extends Nip21Entity {
   /// The prefix of a note.
   static const prefix = 'note';
 
@@ -138,7 +139,7 @@ final class Note extends _Nip21Entity {
 }
 
 /// An nprofile: a public key, with relays where to find the profile.
-final class Nprofile extends _Nip21Entity {
+final class Nprofile extends Nip21Entity {
   /// The prefix of an nprofile.
   static const prefix = 'nprofile';
 
@@ -148,11 +149,14 @@ final class Nprofile extends _Nip21Entity {
   /// Relays where the profile may be found.
   final List<String> relays;
 
-  /// Throws an [ArgumentError] when [pubkey] is not 32 bytes of hex, or when a
-  /// relay url is longer than 255 bytes.
+  /// Throws an [ArgumentError] when [pubkey] is not 32 bytes of hex, when a
+  /// relay url is longer than 255 bytes, or when [relays] would make the
+  /// nprofile longer than 5000 characters.
   Nprofile({required String pubkey, List<String> relays = const []})
     : pubkey = _checkKey(pubkey, 'pubkey'),
-      relays = _checkRelays(relays);
+      relays = _checkRelays(relays) {
+    _checkLength(prefix, _payload());
+  }
 
   /// Decodes an nprofile, with or without the `nostr:` prefix. Throws a
   /// [FormatException] when [input] is not one.
@@ -172,11 +176,13 @@ final class Nprofile extends _Nip21Entity {
     );
   }
 
-  @override
-  String encode() => encodeBech32(prefix, [
+  List<int> _payload() => [
     ...tlvEntry(_special, hexToBytes(pubkey)),
     ..._relayEntries(relays),
-  ]);
+  ];
+
+  @override
+  String encode() => encodeBech32(prefix, _payload());
 
   @override
   bool operator ==(Object other) =>
@@ -193,7 +199,7 @@ final class Nprofile extends _Nip21Entity {
 
 /// An nevent: an event id, with relays where to find the event and, when
 /// known, its author and kind.
-final class Nevent extends _Nip21Entity {
+final class Nevent extends Nip21Entity {
   /// The prefix of an nevent.
   static const prefix = 'nevent';
 
@@ -210,8 +216,9 @@ final class Nevent extends _Nip21Entity {
   final int? kind;
 
   /// Throws an [ArgumentError] when [eventId] or [author] is not 32 bytes of
-  /// hex, when a relay url is longer than 255 bytes, or when [kind] does not
-  /// fit 32 bits.
+  /// hex, when a relay url is longer than 255 bytes, when [relays] would make
+  /// the nevent longer than 5000 characters, or when [kind] does not fit 32
+  /// bits.
   Nevent({
     required String eventId,
     List<String> relays = const [],
@@ -220,7 +227,9 @@ final class Nevent extends _Nip21Entity {
   }) : eventId = _checkKey(eventId, 'eventId'),
        relays = _checkRelays(relays),
        author = author == null ? null : _checkKey(author, 'author'),
-       kind = kind == null ? null : _checkKind(kind);
+       kind = kind == null ? null : _checkKind(kind) {
+    _checkLength(prefix, _payload());
+  }
 
   /// Decodes an nevent, with or without the `nostr:` prefix. Throws a
   /// [FormatException] when [input] is not one.
@@ -243,13 +252,15 @@ final class Nevent extends _Nip21Entity {
     );
   }
 
-  @override
-  String encode() => encodeBech32(prefix, [
+  List<int> _payload() => [
     ...tlvEntry(_special, hexToBytes(eventId)),
     ..._relayEntries(relays),
     if (author case final author?) ...tlvEntry(_author, hexToBytes(author)),
     if (kind case final kind?) ...tlvEntry(_kind, _uint32(kind)),
-  ]);
+  ];
+
+  @override
+  String encode() => encodeBech32(prefix, _payload());
 
   @override
   bool operator ==(Object other) =>
@@ -271,7 +282,7 @@ final class Nevent extends _Nip21Entity {
 
 /// An naddr: the coordinate of an addressable or replaceable event, with
 /// relays where to find it.
-final class Naddr extends _Nip21Entity {
+final class Naddr extends Nip21Entity {
   /// The prefix of an naddr.
   static const prefix = 'naddr';
 
@@ -288,8 +299,9 @@ final class Naddr extends _Nip21Entity {
   final List<String> relays;
 
   /// Throws an [ArgumentError] when [pubkey] is not 32 bytes of hex, when
-  /// [identifier] or a relay url is longer than 255 bytes, or when [kind] does
-  /// not fit 32 bits.
+  /// [identifier] or a relay url is longer than 255 bytes, when [relays] would
+  /// make the naddr longer than 5000 characters, or when [kind] does not fit
+  /// 32 bits.
   Naddr({
     required String identifier,
     required String pubkey,
@@ -298,7 +310,9 @@ final class Naddr extends _Nip21Entity {
   }) : identifier = _checkTlvValue(identifier, 'identifier'),
        pubkey = _checkKey(pubkey, 'pubkey'),
        kind = _checkKind(kind),
-       relays = _checkRelays(relays);
+       relays = _checkRelays(relays) {
+    _checkLength(prefix, _payload());
+  }
 
   /// Decodes an naddr, with or without the `nostr:` prefix. Throws a
   /// [FormatException] when [input] is not one.
@@ -329,13 +343,15 @@ final class Naddr extends _Nip21Entity {
   /// `<kind>:<pubkey>:<identifier>`.
   String get coordinate => '$kind:$pubkey:$identifier';
 
-  @override
-  String encode() => encodeBech32(prefix, [
+  List<int> _payload() => [
     ...tlvEntry(_special, utf8.encode(identifier)),
     ..._relayEntries(relays),
     ...tlvEntry(_author, hexToBytes(pubkey)),
     ...tlvEntry(_kind, _uint32(kind)),
-  ]);
+  ];
+
+  @override
+  String encode() => encodeBech32(prefix, _payload());
 
   @override
   bool operator ==(Object other) =>
@@ -416,6 +432,18 @@ String _checkTlvValue(String value, String name) {
 
 List<String> _checkRelays(List<String> relays) =>
     List.unmodifiable(relays.map((relay) => _checkTlvValue(relay, 'relays')));
+
+// Only the relays can grow an entity past the limit: an naddr identifier and
+// the other fields add at most 297 bytes.
+void _checkLength(String prefix, List<int> payload) {
+  final length = bech32Length(prefix, payload.length);
+  if (length > maxBech32Length) {
+    throw ArgumentError(
+      'make the $prefix $length characters long, more than $maxBech32Length',
+      'relays',
+    );
+  }
+}
 
 int _checkKind(int kind) =>
     RangeError.checkValueInInterval(kind, 0, 0xffffffff, 'kind');

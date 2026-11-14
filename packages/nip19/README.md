@@ -53,8 +53,9 @@ switch (Nip19Entity.decode(input)) {
 The decoders accept the `nostr:` prefix of
 [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before
 an `nsec`, which NIP-21 forbids. For the same reason, every class but `Nsec`
-has a `uri` getter, its string with the `nostr:` prefix. Each class has a
-`prefix` constant, such as `Npub.prefix`.
+extends `Nip21Entity`, whose `uri` getter is its string with the `nostr:`
+prefix, so `if (entity case Nip21Entity(:final uri))` reads it from any decoded
+entity that has one. Each class has a `prefix` constant, such as `Npub.prefix`.
 
 `Naddr.coordinate` is the `<kind>:<pubkey>:<identifier>` of an `a` tag.
 
@@ -84,8 +85,10 @@ cannot be modified. `Nsec.toString` leaves the private key out.
 - `tryDecode` returns null where `decode` throws.
 - The constructors throw an `ArgumentError` when a key or id is not 32 bytes of
   hex, when a relay url or an `naddr` identifier is longer than 255 bytes
-  (`Nip19Entity.maxTlvValueLength`), or when a kind does not fit 32 bits. They
-  accept uppercase hex and keep it lowercase.
+  (`Nip19Entity.maxTlvValueLength`), when the relays would make the string
+  longer than 5000 characters, or when a kind does not fit 32 bits. So `encode`
+  never makes a string that `decode` refuses. They accept uppercase hex and
+  keep it lowercase.
 
 Unknown TLV entries are ignored, as NIP-19 asks, and so are relays that are not
 valid UTF-8 and an `nevent` author or kind of the wrong length.

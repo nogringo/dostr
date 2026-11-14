@@ -4,15 +4,27 @@ const _charset = 'qpzry9x8gf2tvdw0s3jn54khce6mua7l';
 const _separator = '1';
 const _checksumLength = 6;
 const _generator = [0x3b6a57b2, 0x26508e6d, 0x1ea119fa, 0x3d4233dd, 0x2a1462b3];
-const _maxLength = 5000;
+
+/// The most characters NIP-19 allows in a bech32 string.
+const maxBech32Length = 5000;
+
+/// The length of the string [encodeBech32] makes of [byteCount] bytes and
+/// [prefix].
+int bech32Length(String prefix, int byteCount) =>
+    prefix.length +
+    _separator.length +
+    (byteCount * 8 + 4) ~/ 5 +
+    _checksumLength;
 
 /// The prefix and the bytes of the bech32 string [input]. Throws a
 /// [FormatException] when it is not one, or when it is longer than the 5000
 /// characters NIP-19 allows.
 (String, List<int>) decodeBech32(String input) {
   // No message quotes the input: it may be a private key.
-  if (input.length > _maxLength) {
-    throw const FormatException('Not bech32: more than $_maxLength characters');
+  if (input.length > maxBech32Length) {
+    throw const FormatException(
+      'Not bech32: more than $maxBech32Length characters',
+    );
   }
   final lowercase = input.toLowerCase();
   if (lowercase != input && input.toUpperCase() != input) {
