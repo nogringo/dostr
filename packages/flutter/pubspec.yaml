@@ -1,6 +1,6 @@
 name: dostr_flutter
 description: "Flutter widgets for Nostr apps: login, profiles, account switching and pending signer requests, with accounts kept across restarts."
-version: 0.10.3-dev.2
+version: 0.1.0
 repository: https://github.com/nogringo/dostr
 topics:
   - dostr
@@ -33,14 +33,14 @@ dependencies:
   material_ui: ^1.11.0
   dostr_accounts: ^0.1.0
   dostr_bip340: ^0.1.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_fetchers: ^0.1.0
   dostr_nip01: ^0.1.0
   dostr_nip07: ^0.1.0
   dostr_nip19: ^0.1.0
   dostr_nip46: ^0.1.0
   dostr_nip55: ^0.1.0
-  dostr_rust_verifier: ^0.6.0
+  dostr_rust_verifier: ^0.1.0
   dostr_signer: ^0.1.0
   dostr_web_crypto: ^0.1.0
   qr: ^4.0.1

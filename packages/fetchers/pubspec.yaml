@@ -16,7 +16,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_home_relays: ^0.1.0
   dostr_url_set: ^0.1.0
   rxdart: ^0.28.0

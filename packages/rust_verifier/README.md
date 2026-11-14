@@ -14,8 +14,8 @@ Native platforms only (Android, iOS, Linux, macOS, Windows). On web,
 
 ```yaml
 dependencies:
-  dostr_rust_verifier: ^0.6.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_rust_verifier: ^0.1.0
+  dostr_core: ^0.1.0
 ```
 
 The build hook compiles the crate in `rust/`, so the
@@ -44,5 +44,5 @@ Import `RustEventVerifier` from
 `package:ndk/ndk.dart`.
 
 `ndk_rust_verifier`, up to 0.5.0, was built with flutter_rust_bridge and needed
-Flutter. From 0.6.0 a native assets hook builds the crate, and the package is
-pure Dart.
+Flutter. `dostr_rust_verifier` builds the crate with a native assets hook, and
+is pure Dart.

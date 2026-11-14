@@ -11,7 +11,7 @@ dependencies:
   dostr_blossom: ^0.1.0
   dostr_accounts: ^0.1.0
   dostr_bip340: ^0.1.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_fetchers: ^0.1.0
 ```
 

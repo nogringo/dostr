@@ -14,7 +14,7 @@ Add it next to `dostr_core`.
 
 ```yaml
 dependencies:
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_nip77: ^0.1.0
 ```
 

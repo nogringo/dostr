@@ -16,7 +16,7 @@ publish_to: "none" # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 0.10.2
+version: 0.1.0
 
 environment:
   sdk: ">=3.2.1 <4.0.0"
@@ -44,15 +44,15 @@ dependencies:
   dostr_accounts: ^0.1.0
   dostr_bip340: ^0.1.0
   dostr_blossom: ^0.1.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_fetchers: ^0.1.0
-  dostr_flutter: ^0.10.3-dev.2
+  dostr_flutter: ^0.1.0
   dostr_nip01: ^0.1.0
   dostr_nip19: ^0.1.0
   dostr_nip46: ^0.1.0
   dostr_nip49: ^0.1.0
   dostr_nip77: ^0.1.0
-  dostr_rust_verifier: ^0.6.0
+  dostr_rust_verifier: ^0.1.0
   dostr_signer: ^0.1.0
 
   cupertino_icons: ^1.0.8

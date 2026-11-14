@@ -16,7 +16,7 @@ resolution: workspace
 
 dependencies:
   crypto: ^3.0.7
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   rxdart: ^0.28.0
 
 dev_dependencies:

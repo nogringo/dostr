@@ -23,7 +23,7 @@ platforms:
   windows:
 
 dependencies:
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_nip01: ^0.1.0
 
 dev_dependencies:

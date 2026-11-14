@@ -9,7 +9,7 @@ It asks you how to query and subscribe to a relay.
 ```yaml
 dependencies:
   dostr_nip85: ^0.1.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_bip340: ^0.1.0
 ```
 

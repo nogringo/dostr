@@ -1,6 +1,6 @@
 name: dostr_rust_verifier
 description: Fast BIP-340 verifier for Nostr events, in native Rust called through FFI, for mobile and desktop apps.
-version: 0.6.0
+version: 0.1.0
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
 

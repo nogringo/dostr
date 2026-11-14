@@ -9,7 +9,7 @@ It implements the `EventSigner` of [`dostr_signer`](https://pub.dev/packages/dos
 ```yaml
 dependencies:
   dostr_nip46: ^0.1.0
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_bip340: ^0.1.0
 ```
 

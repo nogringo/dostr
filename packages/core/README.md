@@ -12,7 +12,7 @@ a bot, a relay tool or a NIP-46 client.
 
 ```yaml
 dependencies:
-  dostr_core: ^0.11.0-dev.2
+  dostr_core: ^0.1.0
   dostr_bip340: ^0.1.0
 ```
 

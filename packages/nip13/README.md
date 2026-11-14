@@ -9,7 +9,7 @@ Mining runs in its own isolate (on the main thread on the web).
 ```yaml
 dependencies:
   dostr_nip13: ^0.1.0
-  dostr_core: ^0.11.0-dev.2 # only to publish, as below
+  dostr_core: ^0.1.0 # only to publish, as below
 ```
 
 ## Usage

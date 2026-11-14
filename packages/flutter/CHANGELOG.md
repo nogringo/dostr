@@ -1,3 +1,8 @@
+## 0.1.0
+
+ - Initial release, renamed from `ndk_flutter`. The README lists what changed
+   under "Coming from `ndk_flutter`".
+
 Up to 0.10.3-dev.2, this package was published as [`ndk_flutter`](https://pub.dev/packages/ndk_flutter).
 
 ## 0.10.3-dev.2
