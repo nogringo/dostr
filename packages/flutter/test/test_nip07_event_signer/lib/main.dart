@@ -1,6 +1,6 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:dostr_flutter/signers/nip07_event_signer.dart';
 
 void test() async {
   final nip07Signer = Nip07EventSigner();

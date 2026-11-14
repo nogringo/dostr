@@ -1,16 +1,17 @@
 import 'dart:async';
 
-import '../../../config/relay_defaults.dart';
-import '../../entities/timeout_pausable.dart';
-import 'package:dostr_signer/dostr_signer.dart';
-import '../../entities/relay_broadcast_response.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
+
+import '../../../config/relay_defaults.dart';
+import '../../../shared/logger/logger.dart';
+import '../../../shared/nips/nip01/client_msg.dart';
+import '../../entities/relay_broadcast_response.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
-import '../../../shared/logger/logger.dart';
+import '../../entities/timeout_pausable.dart';
 import 'broadcast_state.dart';
-import '../../../shared/nips/nip01/client_msg.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';

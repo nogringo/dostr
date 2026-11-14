@@ -1,20 +1,20 @@
-import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:go_router/go_router.dart';
-import 'package:media_kit/media_kit.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_core/dostr_core.dart';
-import 'package:dostr_demo/l10n/app_localizations_context.dart';
-import 'package:dostr_demo/router.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
-import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
 import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
 import 'package:dostr_nip77/dostr_nip77.dart';
 import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:media_kit/media_kit.dart';
 
+import 'l10n/app_localizations_context.dart';
 import 'l10n/generated/demo_localizations.dart';
 import 'local_events.dart';
+import 'router.dart';
 
 late RelayManager relayManager;
 late RelayReqs relayReqs;

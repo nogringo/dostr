@@ -167,7 +167,7 @@ class DemoLocalizationsFr extends DemoLocalizations {
 
   @override
   String get widgetsSectionGetColorDescription =>
-      'Méthode statique qui génère des couleurs déterministes à partir de pubkeys.';
+      'Fonction qui génère des couleurs déterministes à partir de pubkeys.';
 
   @override
   String get blossomPageTitle => 'Opérations médias et fichiers Blossom';

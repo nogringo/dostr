@@ -2,9 +2,9 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'cbor_lite.dart';
+import 'constants.dart';
 import 'fountain_utils.dart';
 import 'utils.dart';
-import 'constants.dart';
 
 class InvalidHeader implements Exception {
   String message;

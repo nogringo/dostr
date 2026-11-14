@@ -1,25 +1,26 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dostr_signer/dostr_signer.dart';
+
 import '../../../config/relay_defaults.dart';
 import '../../../config/request_defaults.dart';
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
+import '../../entities/message_length_limit.dart';
+import '../../entities/relay_connection_key.dart';
+import '../../entities/relay_connectivity.dart';
+import '../../entities/relay_failure.dart';
+import '../../entities/relay_protocol_handler.dart';
+import '../../entities/subscription_limit.dart';
+import '../../entities/timeout_pausable.dart';
+import '../../repositories/nostr_transport.dart';
 import 'relay_auth.dart';
 import 'relay_broadcasts.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'relay_manager_parts.dart';
 import 'relay_requests.dart';
-import 'package:dostr_signer/dostr_signer.dart';
-import '../../entities/message_length_limit.dart';
-import '../../entities/timeout_pausable.dart';
-import '../../entities/relay_connection_key.dart';
-import '../../entities/relay_connectivity.dart';
-import '../../entities/relay_failure.dart';
-import '../../entities/relay_protocol_handler.dart';
-import '../../entities/subscription_limit.dart';
-import '../../repositories/nostr_transport.dart';
 
 export '../relay_reqs/relay_publish.dart' show RelayPublish, RelayPublishes;
 export '../relay_reqs/relay_reqs.dart' show RelayReq, RelayReqs;
@@ -97,8 +98,8 @@ class RelayManager {
     int reconnectMaximumStep = defaultReconnectMaximumStep,
     Duration? anonymousIdleTimeout = defaultAnonymousIdleTimeout,
     Duration? authenticatedIdleTimeout = defaultAuthenticatedIdleTimeout,
-    Duration authCallbackTimeout = RequestDefaults.defaultAuthCallbackTimeout,
-    Duration authChallengeTimeout = RequestDefaults.defaultAuthChallengeTimeout,
+    Duration authCallbackTimeout = defaultAuthCallbackTimeout,
+    Duration authChallengeTimeout = defaultAuthChallengeTimeout,
     AuthHandler? authHandler,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,

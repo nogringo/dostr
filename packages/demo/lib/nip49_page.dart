@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip49/dostr_nip49.dart';
+import 'package:material_ui/material_ui.dart';
 
 class Nip49Page extends StatefulWidget {
   const Nip49Page({super.key});

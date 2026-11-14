@@ -16,7 +16,7 @@ import 'file_io.dart';
 /// For web, "filePath" is interpreted as:
 /// - "picker" or null: Prompt user to pick a file
 /// - Valid File object reference: Use that file directly
-class FileIOWeb implements FileIO {
+class WebFileIO implements FileIO {
   // Cache for file handles to avoid reprompting user
   final Map<String, File> _fileCache = {};
 

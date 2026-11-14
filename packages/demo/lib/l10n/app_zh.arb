@@ -44,7 +44,7 @@
   "widgetsSectionNUserProfileDescription": "完整的用户资料组件，包含横幅、头像、名称和 NIP-05。",
   "widgetsSectionNSwitchAccountDescription": "带账户切换和登出的账户管理组件。",
   "widgetsSectionNLoginDescription": "支持多种认证方式的登录组件（NIP-05、npub、nsec、bunker 等）。",
-  "widgetsSectionGetColorDescription": "根据 pubkey 生成确定性颜色的静态方法。",
+  "widgetsSectionGetColorDescription": "根据 pubkey 生成确定性颜色的函数。",
   "blossomPageTitle": "Blossom 媒体与文件操作",
   "blossomImageDemoTitle": "图片示例（getBlob）",
   "blossomVideoDemoTitle": "视频示例（checkBlob）",

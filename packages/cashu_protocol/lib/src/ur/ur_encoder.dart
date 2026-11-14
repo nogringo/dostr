@@ -1,6 +1,6 @@
-import 'ur.dart';
-import 'fountain_encoder.dart';
 import 'bytewords.dart' as bytewords;
+import 'fountain_encoder.dart';
+import 'ur.dart';
 
 class UREncoder {
   final UR ur;

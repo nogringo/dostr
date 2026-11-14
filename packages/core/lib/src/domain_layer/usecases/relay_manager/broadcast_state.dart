@@ -1,11 +1,11 @@
 import 'dart:async';
 
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../entities/timeout_pausable.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import '../../entities/relay_broadcast_response.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
+import '../../entities/timeout_pausable.dart';
 
 /// State of one broadcast. Internal to dostr_core.
 class BroadcastState implements TimeoutPausable {

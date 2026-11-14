@@ -44,7 +44,7 @@
   "widgetsSectionNUserProfileDescription": "バナー、画像、名前、NIP-05 を含む完全なユーザープロフィールです。",
   "widgetsSectionNSwitchAccountDescription": "アカウント切り替えとログアウトを備えたアカウント管理ウィジェットです。",
   "widgetsSectionNLoginDescription": "複数の認証方法 (NIP-05、npub、nsec、bunker など) に対応したログインウィジェットです。",
-  "widgetsSectionGetColorDescription": "pubkey から決定的な色を生成する静的メソッドです。",
+  "widgetsSectionGetColorDescription": "pubkey から決定的な色を生成する関数です。",
   "blossomPageTitle": "Blossom メディアとファイル操作",
   "blossomImageDemoTitle": "画像デモ (getBlob)",
   "blossomVideoDemoTitle": "動画デモ (checkBlob)",

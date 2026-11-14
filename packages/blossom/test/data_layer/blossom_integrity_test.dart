@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 final _blob = utf8.encode('the real blob');
@@ -16,12 +16,12 @@ final _forged = utf8.encode('something else');
 /// Serves the body [bodies] gives each host, whatever blob is asked for. The
 /// hosts in [ranges] advertise range requests, and honour them unless
 /// [honourRanges] is false.
-BlossomRepositoryImpl _repo(
+HttpBlossomRepository _repo(
   Map<String, List<int>> bodies, {
   Set<String> ranges = const {},
   bool honourRanges = true,
   List<String>? requests,
-}) => BlossomRepositoryImpl(
+}) => HttpBlossomRepository(
   client: MockClient((request) async {
     final host = request.url.host;
     final range = request.headers['range'];
@@ -98,7 +98,7 @@ void main() {
 
   for (final chunked in [false, true]) {
     final path = chunked ? 'ranged' : 'whole';
-    BlossomRepositoryImpl repoServing(List<int> body) =>
+    HttpBlossomRepository repoServing(List<int> body) =>
         _repo({'a.example': body}, ranges: {if (chunked) 'a.example'});
 
     test('a $path stream of the blob ends cleanly', () async {

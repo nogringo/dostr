@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'dart:ffi';
 
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:ffi/ffi.dart';
 
-import 'package:dostr_nip01/hex.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'rust_lib.dart' as rust_lib;
 
 /// An implementation of [EventVerifier] that uses native Rust for event verification.

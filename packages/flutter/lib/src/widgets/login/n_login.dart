@@ -1,0 +1,370 @@
+import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
+import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:flutter/foundation.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../../../dostr_flutter.dart';
+import '../../../l10n/app_localizations.dart';
+import 'login_controller.dart';
+
+class NLogin extends StatefulWidget {
+  final DostrFlutter dostrFlutter;
+  final void Function()? onLoggedIn;
+  final bool enableAccountCreation;
+  final bool enableNip05Login;
+  final bool enableNpubLogin;
+  final bool enableNsecLogin;
+  final bool enableNip07Login;
+  final bool enableBunkerLogin;
+  final bool enableSignerAppLogin;
+  final bool enablePubkeyLogin;
+  final Nip46ClientMetadata? clientMetadata;
+  final NostrConnect? nostrConnect;
+  final String? nsecLabelText;
+  final String getStartedUrl;
+
+  bool get enableNostrConnectLogin => nostrConnect != null;
+
+  const NLogin({
+    super.key,
+    required this.dostrFlutter,
+    this.onLoggedIn,
+    this.enableAccountCreation = true,
+    this.enableNip05Login = true,
+    this.enableNpubLogin = true,
+    this.enableNsecLogin = true,
+    this.enableNip07Login = true,
+    this.enableBunkerLogin = true,
+    this.enableSignerAppLogin = true,
+    this.enablePubkeyLogin = true,
+    this.clientMetadata,
+    this.nostrConnect,
+    this.nsecLabelText,
+    this.getStartedUrl = 'https://nstart.me/',
+  });
+
+  @override
+  State<NLogin> createState() => _NLoginState();
+}
+
+class _NLoginState extends State<NLogin> {
+  late LoginController controller;
+
+  Accounts get _accounts => widget.dostrFlutter.accounts;
+
+  @override
+  void initState() {
+    super.initState();
+    controller = LoginController(
+      dostrFlutter: widget.dostrFlutter,
+      onLoggedIn: widget.onLoggedIn,
+      clientMetadata: widget.clientMetadata,
+      nostrConnect: widget.nostrConnect,
+    );
+    controller.addListener(_updateUI);
+  }
+
+  @override
+  void dispose() {
+    controller.removeListener(_updateUI);
+    controller.dispose();
+    super.dispose();
+  }
+
+  void _updateUI() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const double bottomPadding = 16;
+
+    final createAccountView = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.newToNostr,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          SizedBox(height: 8),
+          FilledButton(
+            onPressed: () async {
+              await launchUrl(Uri.parse(widget.getStartedUrl));
+            },
+            child: Text(AppLocalizations.of(context)!.getStarted),
+          ),
+        ],
+      ),
+    );
+
+    final nip05View = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.nostrAddress,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          TextField(
+            controller: controller.nip05FieldController,
+            decoration: InputDecoration(
+              hintText: AppLocalizations.of(context)!.nostrAddressHint,
+              suffixIcon: !controller.isFetchingNip05
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: IconButton(
+                        onPressed: () => loginWithNip05(
+                          controller.nip05FieldController.text,
+                        ),
+                        icon: Icon(Icons.arrow_forward),
+                      ),
+                    )
+                  : Padding(
+                      padding: EdgeInsets.all(12),
+                      child: SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(),
+                      ),
+                    ),
+              errorText: [
+                null,
+                AppLocalizations.of(context)!.invalidAddress,
+                AppLocalizations.of(context)!.unableToConnect,
+              ][controller.nip05LoginError],
+            ),
+            onChanged: nip05Change,
+            onSubmitted: loginWithNip05,
+          ),
+        ],
+      ),
+    );
+
+    final npubView = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.publicKey,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          TextField(
+            decoration: InputDecoration(
+              hintText: AppLocalizations.of(context)!.publicKeyHint,
+            ),
+            onChanged: loginWithNpub,
+          ),
+        ],
+      ),
+    );
+
+    final nsecView = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            widget.nsecLabelText ?? AppLocalizations.of(context)!.privateKey,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          TextField(
+            decoration: InputDecoration(
+              hintText: AppLocalizations.of(context)!.privateKeyHint,
+            ),
+            onChanged: loginWithNsec,
+          ),
+        ],
+      ),
+    );
+
+    final nip07View = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.browserExtension,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          SizedBox(height: 8),
+          FilledButton.icon(
+            onPressed: loginWithNip07,
+            label: Text(
+              Nip07EventSigner().canSign()
+                  ? AppLocalizations.of(context)!.connect
+                  : AppLocalizations.of(context)!.install,
+            ),
+            icon: Icon(Icons.extension_outlined),
+          ),
+        ],
+      ),
+    );
+
+    final bunkerView = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            AppLocalizations.of(context)!.bunker,
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+          if (widget.enableBunkerLogin)
+            TextField(
+              controller: controller.bunkerFieldController,
+              decoration: InputDecoration(hintText: "bunker://"),
+              onChanged: (_) => setState(() {}),
+            ),
+          if (widget.enableBunkerLogin)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: FilledButton(
+                onPressed:
+                    controller.isValidBunkerUrl && !controller.isBunkerLoading
+                    ? () => controller.loginWithBunkerUrl(context)
+                    : null,
+                child: Text(
+                  controller.isBunkerLoading
+                      ? "Loading..."
+                      : "Login with bunker",
+                ),
+              ),
+            ),
+          if (widget.enableNostrConnectLogin)
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: TextButton.icon(
+                onPressed: () => controller.showNostrConnectQrcode(context),
+                label: Text(
+                  AppLocalizations.of(context)!.showNostrConnectQrcode,
+                ),
+                icon: Icon(Icons.qr_code_2),
+              ),
+            ),
+        ],
+      ),
+    );
+
+    final signerAppView = Padding(
+      padding: EdgeInsetsGeometry.only(bottom: bottomPadding),
+      child: FilledButton(
+        onPressed: controller.isWaitingForExternalSigner
+            ? null
+            : controller.loginWithExternalSigner,
+        child: Text(AppLocalizations.of(context)!.loginWithSignerApp),
+      ),
+    );
+
+    final isAndroid =
+        !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (widget.enablePubkeyLogin && widget.enableNip05Login) nip05View,
+        if (widget.enablePubkeyLogin && widget.enableNpubLogin) npubView,
+        if (widget.enableNsecLogin) nsecView,
+        if (widget.enableNip07Login && kIsWeb) nip07View,
+        if (widget.enableBunkerLogin || widget.enableNostrConnectLogin)
+          bunkerView,
+        if (widget.enableSignerAppLogin && isAndroid) signerAppView,
+        if (widget.enableAccountCreation) createAccountView,
+      ],
+    );
+  }
+
+  Future<void> loginWithNpub(String npub) async {
+    final pubkey = Npub.tryDecode(npub)?.pubkey;
+    if (pubkey == null) return;
+
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
+    } else {
+      _accounts.loginPublicKey(pubkey: pubkey);
+    }
+
+    await controller.loggedIn();
+  }
+
+  Future<void> loginWithNsec(String nsec) async {
+    final privateKey = Nsec.tryDecode(nsec)?.privateKey;
+    if (privateKey == null) return;
+
+    final pubkey = Bip340.getPublicKey(privateKey);
+
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
+    } else {
+      _accounts.loginPrivateKey(pubkey: pubkey, privkey: privateKey);
+    }
+
+    await controller.loggedIn();
+  }
+
+  void nip05Change(String _) {
+    controller.nip05LoginError = 0;
+  }
+
+  Future<void> loginWithNip05(String nip05) async {
+    if (!RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    ).hasMatch(nip05)) {
+      controller.nip05LoginError = 1;
+      return;
+    }
+
+    controller.isFetchingNip05 = true;
+    final result = await widget.dostrFlutter.nip05Resolver.resolve(nip05);
+    controller.isFetchingNip05 = false;
+
+    final pubkey = switch (result) {
+      Nip05Found(:final data) => data.pubKey,
+      _ => null,
+    };
+    if (pubkey == null) {
+      controller.nip05LoginError = 2;
+      return;
+    }
+
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
+    } else {
+      _accounts.loginPublicKey(pubkey: pubkey);
+    }
+
+    await controller.loggedIn();
+  }
+
+  Future<void> loginWithNip07() async {
+    final signer = Nip07EventSigner();
+
+    if (!signer.canSign()) {
+      await launchUrl(
+        Uri.parse(
+          'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp',
+        ),
+      );
+      return;
+    }
+
+    final pubkey = await signer.getPublicKeyAsync();
+
+    if (_accounts.hasAccount(pubkey)) {
+      _accounts.switchAccount(pubkey: pubkey);
+    } else {
+      _accounts.loginExternalSigner(signer: signer);
+    }
+
+    await controller.loggedIn();
+  }
+}

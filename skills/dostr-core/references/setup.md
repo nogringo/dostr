@@ -40,7 +40,7 @@ Keep one `RelayManager` per app: it owns the connections.
 | `messageLengthLimit` | null | `(url) => int?`, max bytes per message, e.g. NIP-11 `max_message_length` |
 | `onMessageLengthLearned` | null | Called when a relay closes with 1009; store it and answer `messageLengthLimit` after a restart |
 
-NIP-11 documents come from `dostr_nip11` (`HttpRelayInfoRepo`, `CachedRelayInfoRepo`).
+NIP-11 documents come from `dostr_nip11` (`HttpRelayInfoRepository`, `CachedRelayInfoRepository`).
 
 ## Lifecycle
 

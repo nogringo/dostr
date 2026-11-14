@@ -5,8 +5,8 @@ import 'file_io.dart';
 
 /// Stub implementation that should never be used
 /// The conditional exports should ensure the correct platform implementation is used
-class FileIONative implements FileIO {
-  FileIONative() {
+class NativeFileIO implements FileIO {
+  NativeFileIO() {
     throw UnsupportedError('Cannot create FileIO without dart:html or dart:io');
   }
 
@@ -47,8 +47,8 @@ class FileIONative implements FileIO {
 }
 
 /// Stub implementation for web that should never be used
-class FileIOWeb implements FileIO {
-  FileIOWeb() {
+class WebFileIO implements FileIO {
+  WebFileIO() {
     throw UnsupportedError('Cannot create FileIO without dart:html or dart:io');
   }
 

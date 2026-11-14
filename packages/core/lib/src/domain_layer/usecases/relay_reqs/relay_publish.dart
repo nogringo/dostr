@@ -1,15 +1,16 @@
 import 'dart:async';
 
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
+
 import '../../../config/broadcast_defaults.dart';
 import '../../../config/relay_defaults.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
+import '../../entities/relay_broadcast_response.dart';
 import '../relay_manager/broadcast_state.dart';
 import '../relay_manager/relay_broadcasts.dart';
-import '../relay_manager/relay_manager_parts.dart';
-import 'package:dostr_signer/dostr_signer.dart';
-import '../../entities/relay_broadcast_response.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
 import '../relay_manager/relay_manager.dart';
+import '../relay_manager/relay_manager_parts.dart';
 
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).
 ///
@@ -31,8 +32,8 @@ class RelayPublishes {
     Nip01Event event, {
     required Iterable<String> relays,
     AuthPolicy? auth,
-    Duration timeout = BroadcastDefaults.timeout,
-    double considerDonePercent = BroadcastDefaults.considerDonePercent,
+    Duration timeout = defaultBroadcastTimeout,
+    double considerDonePercent = defaultConsiderDonePercent,
   }) {
     if (event.sig == null) {
       throw ArgumentError.value(event.id, 'event', 'must be signed');
@@ -56,8 +57,8 @@ class RelayPublishes {
   RelayPublish open(
     Nip01Event event, {
     AuthPolicy? auth,
-    Duration timeout = BroadcastDefaults.timeout,
-    double considerDonePercent = BroadcastDefaults.considerDonePercent,
+    Duration timeout = defaultBroadcastTimeout,
+    double considerDonePercent = defaultConsiderDonePercent,
   }) => RelayPublish._(
     event,
     BroadcastState(

@@ -3,7 +3,11 @@
 - `lib/<package>.dart` is the only library meant to be imported. It exports what
   the package offers.
 - Every other file is under `lib/src/`, which other packages do not import (the
-  `implementation_imports` lint).
+  `implementation_imports` lint). The one exception is
+  `dostr_flutter/lib/l10n/app_localizations.dart`: exported from the barrel, its
+  generated `AppLocalizations` would clash with the app's own.
+- Inside a package, imports are relative (`prefer_relative_imports`) and sorted
+  (`directives_ordering`).
 - A package with several layers splits `lib/src/` into the folders below, as
   `dostr_core`, `dostr_blossom` and `dostr_nip59` do. A small package keeps its
   files flat in `lib/src/`.
@@ -15,7 +19,8 @@
 
 ## Layers
 
-- `config/`: defaults and constants.
+- `config/`: defaults and constants, as top-level `default...` constants rather
+  than static members of a class.
 - `shared/`: pure helpers on the entities, with no external dependency, by NIP
   where it applies (`shared/nips/nip01/`).
 - `data_layer/`: what talks to the outside world. `repositories/` implements the
@@ -26,3 +31,14 @@
 
 A use case only knows contracts, so a websocket or HTTP client is swapped by
 passing another implementation.
+
+## Names
+
+- A contract is named after what it gives, with `Repository` spelled out:
+  `Nip05Repository`, `RelayInfoRepository`. A transport keeps its own noun:
+  `NostrTransport`, `LnurlTransport`.
+- An implementation is prefixed with what it uses or adds, never suffixed
+  with `Impl`: `HttpNip05Repository`, `CachedRelayInfoRepository`,
+  `WebSocketClientNostrTransport`.
+- A use case is named after what it does, never `...Usecase`: `RelayManager`,
+  `Nip05Resolver`, `GiftWrap`.

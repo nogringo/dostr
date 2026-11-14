@@ -186,9 +186,9 @@
   "@widgetsSectionNLoginDescription": {
     "description": "Description of the NLogin widget section. NIP-05, npub, nsec and bunker are Nostr terms, keep them as is."
   },
-  "widgetsSectionGetColorDescription": "Static method that generates deterministic colors from pubkeys.",
+  "widgetsSectionGetColorDescription": "Function that generates deterministic colors from pubkeys.",
   "@widgetsSectionGetColorDescription": {
-    "description": "Description of the getColor section. getColor is a method name, keep it as is."
+    "description": "Description of the colorFromPubkey section."
   },
   "blossomPageTitle": "Blossom Media & File Operations",
   "@blossomPageTitle": {

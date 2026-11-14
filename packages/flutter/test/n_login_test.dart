@@ -5,10 +5,9 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:flutter/foundation.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'helpers.dart';
 
@@ -242,11 +241,9 @@ void main() {
       String nip05,
       http.Response response,
     ) async {
+      dostr.nip05Response = response;
       await tester.enterText(field('name@example.com'), nip05);
-      await http.runWithClient(
-        () => tester.tap(find.byIcon(Icons.arrow_forward)),
-        () => MockClient((_) async => response),
-      );
+      await tester.tap(find.byIcon(Icons.arrow_forward));
       await tester.pump();
       await tester.pump();
     }

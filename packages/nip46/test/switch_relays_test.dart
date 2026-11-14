@@ -1,9 +1,8 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:test/test.dart';
-
-import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 
 void main() {
   late MockRelay relayA;

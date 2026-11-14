@@ -5,8 +5,8 @@ import 'dart:typed_data';
 import 'package:bip340/bip340.dart' as bip340;
 import 'package:pointycastle/export.dart';
 
-import 'entities/cashu_keyset.dart';
 import 'entities/cashu_blinded_message.dart';
+import 'entities/cashu_keyset.dart';
 import 'entities/cashu_proof.dart';
 
 class CashuTools {

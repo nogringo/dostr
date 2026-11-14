@@ -7,8 +7,8 @@ import 'package:dostr_blossom/dostr_blossom.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/blossom_for_accounts.dart';
+import '../../mocks/mock_blossom_server.dart';
 
 const int policyPort = 30040;
 

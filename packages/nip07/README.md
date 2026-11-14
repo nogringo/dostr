@@ -35,4 +35,4 @@ At most `maxConcurrentRequests` requests (100 by default) go to the extension at
 
 ## Coming from `ndk_flutter` or `nip07_event_signer`
 
-`Nip07EventSigner` is the same class. `package:ndk_flutter/ndk_flutter.dart` and `package:ndk_flutter/signers/nip07_event_signer.dart` are now `package:dostr_flutter/dostr_flutter.dart` and `package:dostr_flutter/signers/nip07_event_signer.dart`, which still export it. Without Flutter, `package:nip07_event_signer/nip07_event_signer.dart` is now `package:dostr_nip07/dostr_nip07.dart`.
+`Nip07EventSigner` is the same class. `package:ndk_flutter/ndk_flutter.dart` and `package:ndk_flutter/signers/nip07_event_signer.dart` are now `package:dostr_flutter/dostr_flutter.dart`, which still exports it. Without Flutter, `package:nip07_event_signer/nip07_event_signer.dart` is now `package:dostr_nip07/dostr_nip07.dart`.

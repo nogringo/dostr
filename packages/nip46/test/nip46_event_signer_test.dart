@@ -1,9 +1,8 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:test/test.dart';
-
-import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 
 const _clientPrivateKey =
     '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc';

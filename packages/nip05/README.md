@@ -14,9 +14,8 @@ dependencies:
 import 'package:http/http.dart' as http;
 import 'package:dostr_nip05/dostr_nip05.dart';
 
-final nip05 = Nip05Usecase(
-  cache: myCache,
-  nip05Repository: Nip05HttpRepositoryImpl(client: http.Client()),
+final nip05 = Nip05Resolver(
+  nip05Repository: HttpNip05Repository(client: http.Client()),
 );
 
 switch (await nip05.resolve('bob@example.com')) {
@@ -41,10 +40,10 @@ final result = await nip05.check(
 print('valid? ${result.valid}, relays: ${result.relays}');
 ```
 
-`cache` is a `Nip05Cache`, keyed by the canonical identifier (`Nip05.canonicalIdentifier`): implement it on your storage to keep results across restarts. A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour). A request gives up after `nip05RequestTimeout` (5 seconds). Concurrent calls for the same identifier share one request.
+Without a `cache`, the resolver keeps what it resolved in memory. To keep it across restarts, pass a `Nip05Cache` on your storage, keyed by the canonical identifier (`Nip05.canonicalIdentifier`). A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour). A request gives up after `nip05RequestTimeout` (5 seconds). Concurrent calls for the same identifier share one request.
 
 More in [example/](example/).
 
 ## Coming from `ndk`
 
-The classes keep their names. The deep imports under `package:ndk/` (`config/nip_05_defaults.dart`, `data_layer/repositories/nip_05_http_impl.dart`, `domain_layer/entities/nip_05.dart`, `domain_layer/entities/nip_05_resolve_result.dart`, `domain_layer/repositories/nip_05_repo.dart` and `domain_layer/usecases/nip05/nip_05.dart`) are now `package:dostr_nip05/dostr_nip05.dart`. `Nip05Usecase` takes `cache` instead of `database`, and `Nip05Model` is gone.
+`Nip05Usecase` is now `Nip05Resolver` and `Nip05HttpRepositoryImpl` is now `HttpNip05Repository`. The other classes keep their names. The deep imports under `package:ndk/` (`config/nip_05_defaults.dart`, `data_layer/repositories/nip_05_http_impl.dart`, `domain_layer/entities/nip_05.dart`, `domain_layer/entities/nip_05_resolve_result.dart`, `domain_layer/repositories/nip_05_repo.dart` and `domain_layer/usecases/nip05/nip_05.dart`) are now `package:dostr_nip05/dostr_nip05.dart`. `Nip05Resolver` takes `cache` instead of `database`, and `Nip05Model` is gone.

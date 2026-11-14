@@ -1,0 +1,131 @@
+import '../../config/nip_05_defaults.dart';
+import '../entities/nip_05.dart';
+import '../entities/nip_05_resolve_result.dart';
+import '../repositories/nip_05_cache.dart';
+import '../repositories/nip_05_repository.dart';
+
+/// Resolves and verifies NIP-05 identifiers.
+class Nip05Resolver {
+  // Keep request deduplication local to this use case instance. Different
+  // instances may use different repositories and caches for the same NIP-05.
+  final Map<String, Future<Nip05ResolveResult>> _inFlightResolves = {};
+
+  final Nip05Cache _cache;
+  final Nip05Repository _nip05Repository;
+
+  /// [cache] keeps the resolved identifiers, in memory for the life of this
+  /// resolver when null. [nip05Repository] fetches them from the network.
+  Nip05Resolver({Nip05Cache? cache, required Nip05Repository nip05Repository})
+    : _cache = cache ?? _MemoryNip05Cache(),
+      _nip05Repository = nip05Repository;
+
+  /// checks the nip05 object for validity
+  /// it checks the cache first, if not found it fetches from the network
+  /// if either fails valid is set to false
+  ///
+  /// [nip05] the nip05 identifier
+  /// [pubkey] the public key
+  /// returns the [Nip05] object
+  Future<Nip05> check({required String nip05, required String pubkey}) async {
+    if (nip05.isEmpty || pubkey.isEmpty) {
+      throw Exception("nip05 or pubkey empty");
+    }
+
+    final result = await resolve(nip05);
+    if (result case Nip05Found(:final data) when data.pubKey == pubkey) {
+      return data;
+    }
+    return Nip05(
+      pubKey: pubkey,
+      identifier: Nip05.canonicalIdentifier(nip05) ?? nip05,
+      valid: false,
+    );
+  }
+
+  /// Resolves NIP-05 data without requiring a pubkey for validation.
+  ///
+  /// [nip05] the nip05 identifier (e.g. "username@example.com")
+  /// returns a [Nip05ResolveResult], one of [Nip05Found], [Nip05NotFound],
+  /// or [Nip05ResolveError]. Throws if [nip05] is empty.
+  /// A [Nip05NotFound] is remembered for [nip05NotFoundDuration].
+  Future<Nip05ResolveResult> resolve(String nip05) async {
+    if (nip05.isEmpty) {
+      throw Exception("nip05 empty");
+    }
+
+    final identifier = Nip05.canonicalIdentifier(nip05);
+    if (identifier == null) {
+      return const Nip05NotFound();
+    }
+
+    // Check cache first
+    final databaseResult = await _cache.loadNip05(identifier);
+    if (databaseResult != null) {
+      int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      int age = now - (databaseResult.networkFetchTime ?? 0);
+      if (databaseResult.pubKey == null &&
+          age < nip05NotFoundDuration.inSeconds) {
+        return const Nip05NotFound();
+      }
+      // before #936, check() also cached failed verifications
+      if (databaseResult.pubKey != null &&
+          databaseResult.valid &&
+          age < nip05ValidDuration.inSeconds) {
+        return Nip05Found(databaseResult);
+      }
+    }
+
+    // Check if there's an in-flight fetch for this nip05
+    if (_inFlightResolves.containsKey(identifier)) {
+      return await _inFlightResolves[identifier]!;
+    }
+
+    // Create a new fetch and add it to the in-flight map
+    final fetch = _performResolve(identifier);
+    _inFlightResolves[identifier] = fetch;
+
+    try {
+      return await fetch;
+    } finally {
+      _inFlightResolves.remove(identifier);
+    }
+  }
+
+  Future<Nip05ResolveResult> _performResolve(String nip05) async {
+    try {
+      final result = await _nip05Repository.fetchNip05(nip05);
+      if (result == null) {
+        await _cache.saveNip05(
+          Nip05(
+            pubKey: null,
+            identifier: nip05,
+            networkFetchTime: DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          ),
+        );
+        return const Nip05NotFound();
+      }
+      await _cache.saveNip05(result);
+      return Nip05Found(result);
+    } on FormatException catch (e) {
+      return Nip05ResolveInvalidResponse(e);
+    } on TypeError catch (e) {
+      return Nip05ResolveInvalidResponse(Exception(e.toString()));
+    } catch (e) {
+      return Nip05ResolveNetworkError(
+        e is Exception ? e : Exception(e.toString()),
+      );
+    }
+  }
+}
+
+class _MemoryNip05Cache implements Nip05Cache {
+  final Map<String, Nip05> _nip05s = {};
+
+  @override
+  Future<void> saveNip05(Nip05 nip05) async {
+    _nip05s[nip05.identifier] = nip05;
+  }
+
+  @override
+  Future<Nip05?> loadNip05(String identifier) async => _nip05s[identifier];
+}

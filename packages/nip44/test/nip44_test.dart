@@ -1,13 +1,11 @@
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dostr_nip44/dostr_nip44.dart';
 import 'package:dostr_nip44/src/utils.dart';
+import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/ecc/curves/secp256k1.dart';
 import 'package:test/test.dart';
-
-import 'dart:typed_data';
-
-import 'package:pointycastle/digests/sha256.dart';
 
 Uint8List hexToBytes(String hex) {
   if (hex.startsWith('0x')) {

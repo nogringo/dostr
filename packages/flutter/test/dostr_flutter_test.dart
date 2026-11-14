@@ -3,10 +3,8 @@ import 'dart:convert';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
+import 'package:material_ui/material_ui.dart';
 
 import 'helpers.dart';
 
@@ -138,123 +136,17 @@ void main() {
       expect(dostr.metadata.fetched, [alicePubkey, bobPubkey]);
     });
 
-    test('getColorFromPubkey is stable and evenly lit', () {
-      final alice = DostrFlutter.getColorFromPubkey(alicePubkey);
-      final bob = DostrFlutter.getColorFromPubkey(bobPubkey);
+    test('colorFromPubkey is stable and evenly lit', () {
+      final alice = colorFromPubkey(alicePubkey);
+      final bob = colorFromPubkey(bobPubkey);
 
-      expect(DostrFlutter.getColorFromPubkey(alicePubkey), alice);
+      expect(colorFromPubkey(alicePubkey), alice);
       expect(alice, isNot(bob));
       for (final color in [alice, bob]) {
         final hsl = HSLColor.fromColor(color);
         expect(hsl.saturation, closeTo(0.6, 0.01));
         expect(hsl.lightness, closeTo(0.45, 0.01));
       }
-    });
-  });
-
-  group('DostrFlutter.fetchNip05', () {
-    late List<Uri> requested;
-
-    // Nip05Result is not exported, so the return type is inferred.
-    fetch(
-      String nip05,
-      Future<http.Response> Function(http.Request request) answer,
-    ) {
-      return http.runWithClient(
-        () => DostrFlutter.fetchNip05(nip05),
-        () => MockClient((request) {
-          requested.add(request.url);
-          return answer(request);
-        }),
-      );
-    }
-
-    setUp(() => requested = []);
-
-    test('finds the pubkey and relays of a name', () async {
-      final result = await fetch(
-        'bob@example.com',
-        (_) async => http.Response(
-          jsonEncode({
-            'names': {'bob': bobPubkey},
-            'relays': {
-              bobPubkey: ['wss://relay.example.com'],
-            },
-          }),
-          200,
-        ),
-      );
-
-      expect(result.error, isNull);
-      expect(result.pubkey, bobPubkey);
-      expect(result.relays, ['wss://relay.example.com']);
-      expect(
-        requested.single,
-        Uri.parse('https://example.com/.well-known/nostr.json?name=bob'),
-      );
-    });
-
-    test('has no relays when the document lists none', () async {
-      final result = await fetch(
-        'bob@example.com',
-        (_) async => http.Response(
-          jsonEncode({
-            'names': {'bob': bobPubkey},
-          }),
-          200,
-        ),
-      );
-
-      expect(result.pubkey, bobPubkey);
-      expect(result.relays, isNull);
-    });
-
-    test('fails on a name the document does not list', () async {
-      final result = await fetch(
-        'carol@example.com',
-        (_) async => http.Response(
-          jsonEncode({
-            'names': {'bob': bobPubkey},
-          }),
-          200,
-        ),
-      );
-
-      expect(result.pubkey, isNull);
-      expect(result.error, isNotNull);
-    });
-
-    test('fails on an HTTP error', () async {
-      final result = await fetch(
-        'bob@example.com',
-        (_) async => http.Response('', 404),
-      );
-
-      expect(result.pubkey, isNull);
-      expect(result.error, contains('404'));
-    });
-
-    test('fails on a document that is not JSON', () async {
-      final result = await fetch(
-        'bob@example.com',
-        (_) async => http.Response('<html></html>', 200),
-      );
-
-      expect(result.pubkey, isNull);
-      expect(result.error, isNotNull);
-    });
-
-    test('fails without a request on an address without one @', () async {
-      for (final nip05 in ['example.com', 'a@b@example.com']) {
-        final result = await fetch(
-          nip05,
-          (_) async => http.Response('{}', 200),
-        );
-
-        expect(result.pubkey, isNull);
-        expect(result.error, isNotNull);
-      }
-      expect(requested, isEmpty);
     });
   });
 

@@ -8,7 +8,8 @@ Native platforms only (Android, iOS, Linux, macOS, Windows). On web,
 `verify` throws `UnsupportedError`: use `Bip340EventVerifier`, or
 `DostrEventVerifier` from `dostr_flutter`, which picks Web Crypto there.
 
-`dostr_flutter` depends on it for `DostrEventVerifier`.
+`DostrEventVerifier` from `dostr_flutter` verifies in Dart on native platforms:
+pass a `RustEventVerifier` instead to verify faster.
 
 ## Install
 

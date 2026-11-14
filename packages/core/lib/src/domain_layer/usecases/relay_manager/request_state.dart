@@ -1,14 +1,14 @@
 import 'dart:async';
 
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-import 'package:dostr_nip01/dostr_nip01.dart';
-import '../../entities/timeout_pausable.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
+import '../../entities/timeout_pausable.dart';
 
 /// Single relay request state
 class RelayRequestState {

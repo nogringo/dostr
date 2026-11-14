@@ -1,5 +1,5 @@
-/// defaults
-class BroadcastDefaults {
-  static const double considerDonePercent = 1.0;
-  static const Duration timeout = Duration(seconds: 10);
-}
+/// share of the relays that must answer before a publish counts as done
+const double defaultConsiderDonePercent = 1.0;
+
+/// how long a publish waits for its relays
+const Duration defaultBroadcastTimeout = Duration(seconds: 10);

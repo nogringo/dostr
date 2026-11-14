@@ -1,7 +1,7 @@
-import 'ur.dart';
-import 'fountain_encoder.dart' as fountain_encoder;
-import 'fountain_decoder.dart' as fountain_decoder;
 import 'bytewords.dart' as bytewords;
+import 'fountain_decoder.dart' as fountain_decoder;
+import 'fountain_encoder.dart' as fountain_encoder;
+import 'ur.dart';
 import 'utils.dart';
 
 class InvalidScheme implements Exception {}

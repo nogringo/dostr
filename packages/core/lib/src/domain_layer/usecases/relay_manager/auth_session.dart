@@ -1,10 +1,11 @@
 import 'dart:async';
 
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import '../../entities/relay_connection_key.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
+import '../../entities/relay_connection_key.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
 /// the AUTH waiting for its OK, and whether the relay accepted it.

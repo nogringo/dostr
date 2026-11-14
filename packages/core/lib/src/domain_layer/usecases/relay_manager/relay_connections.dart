@@ -2,26 +2,26 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:rxdart/rxdart.dart';
+import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../../../config/relay_defaults.dart';
-import 'package:dostr_signer/dostr_signer.dart';
-import '../../entities/timeout_pausable.dart';
+import '../../../shared/logger/logger.dart';
+import '../../../shared/nips/nip01/client_msg.dart';
+import '../../../shared/nips/nip01/decode_nostr_msg.dart';
+import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/subscription_limit.dart';
+import '../../entities/timeout_pausable.dart';
 import '../../repositories/nostr_transport.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
-import '../../../shared/logger/logger.dart';
-import 'package:web_socket_channel/status.dart' as ws_status;
-import '../../../shared/nips/nip01/client_msg.dart';
-import '../../../shared/nips/nip01/decode_nostr_msg.dart';
-import '../../../shared/nips/nip01/nostr_message_raw.dart';
-import 'relay_auth.dart';
-import 'relay_connection.dart';
 import 'backoff.dart';
 import 'idle_connections.dart';
+import 'relay_auth.dart';
+import 'relay_connection.dart';
 import 'relay_limits.dart';
 import 'relay_revivals.dart';
 

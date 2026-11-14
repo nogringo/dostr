@@ -4,7 +4,7 @@
 library;
 
 export 'src/event_filter.dart';
-export 'src/filter.dart';
 export 'src/event_kind_classification.dart';
 export 'src/event_verifier.dart';
+export 'src/filter.dart';
 export 'src/nip_01_event.dart';

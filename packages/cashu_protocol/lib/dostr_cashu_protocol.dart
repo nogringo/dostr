@@ -4,7 +4,7 @@
 ///
 /// ```dart
 /// final token = CashuTokenEncoder.decodedToken(encoded);
-/// final mint = CashuRepoImpl(client: http.Client());
+/// final mint = HttpCashuRepository(client: http.Client());
 /// final states = await mint.checkTokenState(
 ///   mintUrl: token!.mintUrl,
 ///   proofPubkeys: token.proofs.map((proof) => proof.Y).toList(),
@@ -15,8 +15,7 @@ library;
 export 'src/cashu_bdhke.dart';
 export 'src/cashu_key_derivation.dart';
 export 'src/cashu_keypair.dart';
-export 'src/cashu_repo.dart';
-export 'src/cashu_repo_impl.dart';
+export 'src/cashu_repository.dart';
 export 'src/cashu_seed.dart';
 export 'src/cashu_token_encoder.dart';
 export 'src/cashu_token_ur_encoder.dart';
@@ -33,5 +32,6 @@ export 'src/entities/cashu_quote_melt.dart';
 export 'src/entities/cashu_token.dart';
 export 'src/entities/cashu_token_state_response.dart';
 export 'src/entities/cashu_user_seedphrase.dart';
+export 'src/http_cashu_repository.dart';
 export 'src/ur/ur_decoder.dart' show URDecoder;
 export 'src/ur/ur_encoder.dart' show UREncoder;

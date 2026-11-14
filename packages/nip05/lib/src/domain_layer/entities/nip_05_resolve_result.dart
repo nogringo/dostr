@@ -1,6 +1,6 @@
 import 'nip_05.dart';
 
-/// Result of [Nip05Usecase.resolve].
+/// Result of [Nip05Resolver.resolve].
 ///
 /// Lets callers distinguish three outcomes:
 /// - [Nip05Found] - the identifier was resolved (from cache or network).

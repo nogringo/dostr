@@ -169,7 +169,7 @@ class DemoLocalizationsRu extends DemoLocalizations {
 
   @override
   String get widgetsSectionGetColorDescription =>
-      'Статический метод, который генерирует детерминированные цвета из pubkey.';
+      'Функция, которая генерирует детерминированные цвета из pubkey.';
 
   @override
   String get blossomPageTitle => 'Операции с медиа и файлами Blossom';

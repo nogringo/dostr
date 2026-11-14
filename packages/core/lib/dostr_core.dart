@@ -11,7 +11,7 @@ export 'src/config/relay_defaults.dart';
 export 'src/config/request_defaults.dart';
 export 'src/config/user_agent.dart';
 export 'src/config/version.dart';
-export 'src/data_layer/models/nip_01_event_model.dart';
+export 'src/data_layer/models/nip_01_event_base64.dart';
 export 'src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 export 'src/domain_layer/entities/message_length_limit.dart';
 export 'src/domain_layer/entities/nip_01_utils.dart';

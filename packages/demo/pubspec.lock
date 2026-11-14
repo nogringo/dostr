@@ -201,6 +201,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  dostr_nip05:
+    dependency: "direct overridden"
+    description:
+      path: "../nip05"
+      relative: true
+    source: path
+    version: "0.1.0"
   dostr_nip07:
     dependency: "direct overridden"
     description:

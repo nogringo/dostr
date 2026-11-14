@@ -16,3 +16,5 @@ include: package:flutter_lints/flutter.yaml
 linter:
   rules:
     unnecessary_ignore: true
+    directives_ordering: true
+    prefer_relative_imports: true

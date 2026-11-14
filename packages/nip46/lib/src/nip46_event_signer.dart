@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dostr_core/dostr_core.dart';
-import 'bounded_lru_set.dart';
 import 'package:rxdart/rxdart.dart';
 
+import 'bounded_lru_set.dart';
 import 'bunker_connection.dart';
 import 'bunker_request.dart';
 

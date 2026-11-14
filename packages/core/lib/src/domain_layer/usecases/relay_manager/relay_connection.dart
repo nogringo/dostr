@@ -2,12 +2,13 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+
+import '../../../shared/logger/logger.dart';
 import '../../entities/relay.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_connectivity.dart';
 import '../../entities/relay_stats.dart';
 import '../../repositories/nostr_transport.dart';
-import '../../../shared/logger/logger.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
 /// dostr_core: everyone else sees a [RelayConnectivity].

@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 
 /// A mint whose private key for an amount is the amount + 1000.
 class FakeMint {

@@ -290,15 +290,15 @@ seconds for them:
 
 Both are in the NIP-11 document of the relay, which
 [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.
-`CachedRelayInfoRepo` fetches it once per relay and refreshes it in the
+`CachedRelayInfoRepository` fetches it once per relay and refreshes it in the
 background:
 
 ```dart
 import 'package:http/http.dart' as http;
 import 'package:dostr_nip11/dostr_nip11.dart';
 
-final relayInfo = CachedRelayInfoRepo(
-  HttpRelayInfoRepo(http.Client()),
+final relayInfo = CachedRelayInfoRepository(
+  HttpRelayInfoRepository(http.Client()),
   maxAge: const Duration(hours: 1),
   failureMaxAge: const Duration(minutes: 1),
 );
@@ -312,7 +312,7 @@ final relays = RelayManager(
 );
 ```
 
-Give `CachedRelayInfoRepo` a `RelayInfoCache` to keep the documents across
+Give `CachedRelayInfoRepository` a `RelayInfoCache` to keep the documents across
 restarts, so a socket does not wait for the network to read them.
 
 A relay that publishes no limit and closes a socket with a 1009 reads less than

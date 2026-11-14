@@ -1,23 +1,11 @@
-import 'package:http/http.dart' as http;
 import 'package:dostr_nip05/dostr_nip05.dart';
-
-class MemoryNip05Cache implements Nip05Cache {
-  final Map<String, Nip05> _nip05s = {};
-
-  @override
-  Future<void> saveNip05(Nip05 nip05) async =>
-      _nip05s[nip05.identifier] = nip05;
-
-  @override
-  Future<Nip05?> loadNip05(String identifier) async => _nip05s[identifier];
-}
+import 'package:http/http.dart' as http;
 
 /// `dart run example/dostr_nip05_example.dart bob@example.com`
 Future<void> main(List<String> args) async {
   final client = http.Client();
-  final nip05 = Nip05Usecase(
-    cache: MemoryNip05Cache(),
-    nip05Repository: Nip05HttpRepositoryImpl(client: client),
+  final nip05 = Nip05Resolver(
+    nip05Repository: HttpNip05Repository(client: client),
   );
 
   final result = await nip05.resolve(args.first);

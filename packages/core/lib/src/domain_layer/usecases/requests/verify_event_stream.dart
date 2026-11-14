@@ -1,8 +1,8 @@
+import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:rxdart/rxdart.dart';
 
-import 'verified_event_cache.dart';
 import '../../../shared/logger/logger.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
+import 'verified_event_cache.dart';
 
 class VerifyEventStream {
   final Stream<Nip01Event> unverifiedStreamInput;

@@ -6,9 +6,12 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_flutter/l10n/app_localizations.dart';
+import 'package:dostr_nip05/dostr_nip05.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+import 'package:material_ui/material_ui.dart';
 
 const alicePrivateKey =
     'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127';
@@ -37,7 +40,7 @@ class FakeMetadataFetcher extends MetadataFetcher {
 }
 
 /// A [DostrFlutter] that never reaches a relay, with its secure storage in
-/// [storage].
+/// [storage], and whose NIP-05 documents are [nip05Response].
 class TestDostrFlutter {
   TestDostrFlutter({Map<String, String>? storage})
     : storage = storage ?? <String, String>{} {
@@ -52,11 +55,17 @@ class TestDostrFlutter {
       relayReqs: relayReqs,
       relayPublishes: RelayPublishes(relayManager: _relayManager),
       metadataFetcher: metadata,
+      nip05Resolver: Nip05Resolver(
+        nip05Repository: HttpNip05Repository(
+          client: MockClient((_) async => nip05Response),
+        ),
+      ),
       npubSeparator: '...',
     );
   }
 
   final Map<String, String> storage;
+  http.Response nip05Response = http.Response('', 404);
   final _relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(
       pingInterval: null,

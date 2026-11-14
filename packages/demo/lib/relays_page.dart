@@ -1,9 +1,9 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:dostr_demo/l10n/app_localizations_context.dart';
+import 'package:material_ui/material_ui.dart';
 
+import 'l10n/app_localizations_context.dart';
 import 'main.dart';
 
 class RelaysPage extends StatefulWidget {

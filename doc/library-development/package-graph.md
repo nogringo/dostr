@@ -14,14 +14,14 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | ---: | --- | --- | ---: |
 | 0 | `dostr_cashu_protocol` |  | 0 |
 | 0 | `dostr_nip01` |  | 17 |
-| 0 | `dostr_nip05` |  | 0 |
+| 0 | `dostr_nip05` |  | 1 |
 | 0 | `dostr_nip11` |  | 0 |
 | 0 | `dostr_nip44` |  | 2 |
 | 0 | `dostr_nip49` |  | 0 |
 | 0 | `dostr_url_set` |  | 3 |
 | 1 | `dostr_nip13` | `dostr_nip01` | 0 |
 | 1 | `dostr_nip19` | `dostr_nip01` | 3 |
-| 1 | `dostr_rust_verifier` | `dostr_nip01` | 1 |
+| 1 | `dostr_rust_verifier` | `dostr_nip01` | 0 |
 | 1 | `dostr_signer` | `dostr_nip01` | 11 |
 | 2 | `dostr_accounts` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_bip340` | `dostr_nip01`, `dostr_nip44`, `dostr_signer` | 2 |
@@ -38,5 +38,5 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 3 | `dostr_nip77` | `dostr_core` | 1 |
 | 3 | `dostr_nip85` | `dostr_core`, `dostr_nip01` | 0 |
 | 3 | `dostr_zaps` | `dostr_core`, `dostr_nip01`, `dostr_signer` | 0 |
-| 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_rust_verifier`, `dostr_signer`, `dostr_web_crypto` | 0 |
+| 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip05`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_signer`, `dostr_web_crypto` | 0 |
 | 4 | `dostr_mock_relay` | `dostr_bip340`, `dostr_core`, `dostr_nip44`, `dostr_nip77` | 0 |

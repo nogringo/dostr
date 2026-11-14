@@ -1,10 +1,11 @@
 import 'dart:async';
 
-import 'package:dostr_signer/dostr_signer.dart';
-import '../../entities/timeout_pausable.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import '../../entities/relay_connection_key.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+
 import '../../../shared/logger/logger.dart';
+import '../../entities/relay_connection_key.dart';
+import '../../entities/timeout_pausable.dart';
 import 'auth_session.dart';
 
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and

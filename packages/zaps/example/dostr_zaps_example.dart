@@ -1,7 +1,7 @@
-import 'package:http/http.dart' as http;
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
+import 'package:http/http.dart' as http;
 
 /// `dart run example/dostr_zaps_example.dart wss://relay.example.com <hex pubkey> [name@domain.com]`
 ///
@@ -40,7 +40,7 @@ Future<void> main(List<String> args) async {
         close: req.close,
       );
     },
-    lnurl: Lnurl(transport: LnurlTransportHttpImpl(http.Client())),
+    lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
   );
 
   await for (final receipt in zaps.fetchZappedReceipts(pubKey: recipient)) {

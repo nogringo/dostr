@@ -1,6 +1,6 @@
-import 'package:material_ui/material_ui.dart';
+import 'package:dostr_flutter/src/utils/string_color.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:dostr_flutter/utils/string_color.dart';
+import 'package:material_ui/material_ui.dart';
 
 /// Reference values were computed independently from the "String Color"
 /// specification (NIP-54 wiki, kind 30818 / d-tag `string-color`) to guard

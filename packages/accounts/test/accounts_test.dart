@@ -1,8 +1,8 @@
-import 'package:test/test.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:test/test.dart';
 
 void main() async {
   group('accounts', () {

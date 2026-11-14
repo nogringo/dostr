@@ -153,7 +153,7 @@ class DemoLocalizationsZh extends DemoLocalizations {
       '支持多种认证方式的登录组件（NIP-05、npub、nsec、bunker 等）。';
 
   @override
-  String get widgetsSectionGetColorDescription => '根据 pubkey 生成确定性颜色的静态方法。';
+  String get widgetsSectionGetColorDescription => '根据 pubkey 生成确定性颜色的函数。';
 
   @override
   String get blossomPageTitle => 'Blossom 媒体与文件操作';

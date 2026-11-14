@@ -23,7 +23,7 @@ import 'package:http/http.dart' as http;
 import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
 
 final token = CashuTokenEncoder.decodedToken(encoded)!;
-final mint = CashuRepoImpl(client: http.Client());
+final mint = HttpCashuRepository(client: http.Client());
 
 final states = await mint.checkTokenState(
   mintUrl: token.mintUrl,
@@ -115,8 +115,8 @@ code goes in as its `cashuB` string.
 - NUT-00: blind signatures (`CashuBdhke`, `CashuTools.hashToCurve`) and v4
   `cashuB` tokens (`CashuTokenEncoder`). V3 `cashuA` tokens are not supported.
 - NUT-01, NUT-02: keys and keysets (`CahsuKeyset`).
-- NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepo`, whose
-  `CashuRepoImpl` talks to the mint over an `http.Client`.
+- NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepository`, whose
+  `HttpCashuRepository` talks to the mint over an `http.Client`.
 - NUT-06: mint info (`CashuMintInfo`).
 - NUT-07: proof states.
 - NUT-09: restore.
@@ -136,14 +136,16 @@ uniformly random secp256k1 scalar.
 
 These types used to live in `ndk_cashu`. Besides the import:
 
+- `CashuRepo` is `CashuRepository`, and `CashuRepoImpl` is
+  `HttpCashuRepository`.
 - `CashuBdhke.createBlindedMsgForAmounts` takes a `nextCounter` callback
   instead of `cacheManager` and `mintUrl`, and throws when it cannot derive an
   output instead of leaving it out.
 - `CashuBdhke.unblindSignatures` pairs signatures and outputs by position, as
   the mint returns them, and takes each amount from the signature. It accepts
   fewer signatures than outputs, for NUT-08 change.
-- `CashuRepoImpl.swap` no longer sorts the outputs: sort them before.
+- `HttpCashuRepository.swap` no longer sorts the outputs: sort them before.
 - `kQuoteKeyDerivationCounterSlot` is not here, as it names a storage slot.
 - `CashuConfig` is not here. Its protocol constants are
   `CashuTools.apiVersion`, `CashuTools.hashToCurveDomainSeparator` and
-  `CashuRepoImpl.networkTimeout`.
+  `HttpCashuRepository.networkTimeout`.

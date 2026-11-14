@@ -14,7 +14,7 @@ dependencies:
 import 'package:http/http.dart' as http;
 import 'package:dostr_nip11/dostr_nip11.dart';
 
-final repo = HttpRelayInfoRepo(http.Client());
+final repo = HttpRelayInfoRepository(http.Client());
 
 final info = await repo.getRelayInfo('wss://relay.example.com');
 print(info?.limitation?.maxSubscriptions);
@@ -22,10 +22,10 @@ print(info?.limitation?.maxSubscriptions);
 
 `getRelayInfo` fetches the document over HTTP(S) on the relay's own url, on every call, with no cache. It returns null when the relay answers without one: an error status, a body that is not a JSON object, or one past `maxBytes` (1 MiB by default). It throws when the relay could not be reached, since asking again later may work: a timeout, a network failure, or a 408, a 429 or a 5xx, which throws a `RelayInfoStatusException` that carries the status. A url that is not ws, wss, http or https throws an `ArgumentError`.
 
-To fetch it once per relay, wrap the repo in `CachedRelayInfoRepo`. It also remembers a relay that answered without a document. Once an answer is older than `maxAge`, a call still gets it right away while the relay is fetched again in the background, so a call waits for the network only while its relay never answered. Without `maxAge`, an answer stays until it is evicted. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
+To fetch it once per relay, wrap the repo in `CachedRelayInfoRepository`. It also remembers a relay that answered without a document. Once an answer is older than `maxAge`, a call still gets it right away while the relay is fetched again in the background, so a call waits for the network only while its relay never answered. Without `maxAge`, an answer stays until it is evicted. Concurrent calls share the request. A fetch that throws serves the last answer of that relay, and throws only for a relay that never answered. It is asked again on the next call, or once `failureMaxAge` passes, so a relay that is down or rate limits is not asked on every call. `evict(url)` and `clear()` forget what it holds. It keys the cache on the url as given, so normalize urls first:
 
 ```dart
-final cached = CachedRelayInfoRepo(
+final cached = CachedRelayInfoRepository(
   repo,
   maxAge: const Duration(hours: 1),
   failureMaxAge: const Duration(minutes: 1),
@@ -35,7 +35,7 @@ final cached = CachedRelayInfoRepo(
 To keep the answers across restarts, give it a `RelayInfoCache`. It saves each answer as a `RelayInfoRecord`, a relay without a document included, and reads it on the first call for that relay, so a restart serves it without waiting for a request. Once `maxAge` has passed since it was fetched, it is fetched again in the background, as above. A failure is not saved, and `evict(url)` and `clear()` forget the relays in `cache` too. A read that throws fetches the relay. A call does not wait for the write, and a write that throws keeps the answer in memory only:
 
 ```dart
-final cached = CachedRelayInfoRepo(
+final cached = CachedRelayInfoRepository(
   repo,
   cache: myRelayInfoCache,
   maxAge: const Duration(hours: 1),
@@ -61,4 +61,4 @@ More in [example/](example/). The relay limits of [`dostr_core`](https://pub.dev
 
 ## Coming from `ndk`
 
-`RelayInfo`, `RelayLimitation`, `RelayFees`, `RelayFee` and `RelayInfoRepo` keep their names. `RelayInfoHttpRepoImpl(httpDS: http)` is now `HttpRelayInfoRepo(http)`. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:dostr_nip11/dostr_nip11.dart`. The cache of `ndk.connectivity.getRelayInfo` is now `CachedRelayInfoRepo`.
+`RelayInfo`, `RelayLimitation`, `RelayFees` and `RelayFee` keep their names, and `RelayInfoRepo` is now `RelayInfoRepository`. `RelayInfoHttpRepoImpl(httpDS: http)` is now `HttpRelayInfoRepository(http)`. The deep imports under `package:ndk/` (`domain_layer/entities/relay_info.dart`, `domain_layer/repositories/relay_info_repo.dart` and `data_layer/repositories/relay_info_http_impl.dart`) are now `package:dostr_nip11/dostr_nip11.dart`. The cache of `ndk.connectivity.getRelayInfo` is now `CachedRelayInfoRepository`.

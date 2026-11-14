@@ -377,10 +377,10 @@ abstract class DemoLocalizations {
   /// **'Login widget with multiple auth methods (NIP-05, npub, nsec, bunker, etc.).'**
   String get widgetsSectionNLoginDescription;
 
-  /// Description of the getColor section. getColor is a method name, keep it as is.
+  /// Description of the colorFromPubkey section.
   ///
   /// In en, this message translates to:
-  /// **'Static method that generates deterministic colors from pubkeys.'**
+  /// **'Function that generates deterministic colors from pubkeys.'**
   String get widgetsSectionGetColorDescription;
 
   /// Heading of the Blossom page. Blossom is a protocol name, keep it as is.

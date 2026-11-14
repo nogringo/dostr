@@ -79,6 +79,8 @@ dependency_overrides:
     path: ../home_relays
   dostr_nip01:
     path: ../nip01
+  dostr_nip05:
+    path: ../nip05
   dostr_nip07:
     path: ../nip07
   dostr_nip19:

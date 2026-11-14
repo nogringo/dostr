@@ -1,7 +1,7 @@
 import 'dart:convert';
 
-import 'package:flutter/services.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:flutter/services.dart';
 
 /// A permission that can be requested when logging in with a NIP-55 external
 /// signer, so the signer can pre-authorize silent (ContentResolver) responses.

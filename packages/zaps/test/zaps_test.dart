@@ -1,11 +1,11 @@
 import 'dart:convert';
 
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 import 'mocks/fake_network.dart';
@@ -21,7 +21,7 @@ void main() {
     query: relays.query,
     subscribe: relays.subscribe,
     lnurl: Lnurl(
-      transport: LnurlTransportHttpImpl(
+      transport: HttpLnurlTransport(
         client ?? MockClient((_) async => http.Response('not found', 404)),
       ),
     ),

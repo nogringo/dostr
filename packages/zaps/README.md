@@ -22,7 +22,7 @@ final zaps = Zaps(
     final sub = myRelays.subscribe(filter);
     return (events: sub.events, close: sub.close);
   },
-  lnurl: Lnurl(transport: LnurlTransportHttpImpl(http.Client())),
+  lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
 );
 
 final zapRequest = await zaps.createZapRequest(
@@ -40,7 +40,7 @@ final invoice = await zaps.fetchInvoice(
 final receipts = await zaps.fetchZappedReceipts(pubKey: recipient).toList();
 ```
 
-`query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription to a filter and returns its events and a `close` to end it. `lnurl` fetches the LNURL-pay metadata and the invoices, `LnurlTransportHttpImpl` does it over HTTPS.
+`query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription to a filter and returns its events and a `close` to end it. `lnurl` fetches the LNURL-pay metadata and the invoices, `HttpLnurlTransport` does it over HTTPS.
 
 `fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. Pass `eventId` or `addressableId` to `createZapRequest` to zap an event, and `comment` for a message.
 
@@ -63,4 +63,4 @@ The receipts are parsed, not verified. `receipt.isValid(nostrPubKey: ..., recipi
 
 ## Coming from `ndk`
 
-`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:dostr_zaps/dostr_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.
+`Zaps`, `ZapRequest`, `ZapReceipt`, `InvoiceResponse`, `Lnurl` and `LnurlResponse` keep their names, and `LnurlTransportHttpImpl` is now `HttpLnurlTransport`. The deep imports under `package:ndk/domain_layer/usecases/zaps/`, `package:ndk/domain_layer/usecases/lnurl/`, `package:ndk/domain_layer/repositories/lnurl_transport.dart` and `package:ndk/data_layer/repositories/lnurl_http_impl.dart` are now `package:dostr_zaps/dostr_zaps.dart`. `Zaps` takes `query` and `subscribe` instead of `requests`. `subscribeToZapReceipts` returns a `ZapsSubscription` instead of an `NdkResponse`: read `events` instead of `stream`, and call `close()` instead of `ndk.requests.closeSubscription(response.requestId)`.

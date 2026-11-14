@@ -156,8 +156,7 @@ class DemoLocalizationsJa extends DemoLocalizations {
       '複数の認証方法 (NIP-05、npub、nsec、bunker など) に対応したログインウィジェットです。';
 
   @override
-  String get widgetsSectionGetColorDescription =>
-      'pubkey から決定的な色を生成する静的メソッドです。';
+  String get widgetsSectionGetColorDescription => 'pubkey から決定的な色を生成する関数です。';
 
   @override
   String get blossomPageTitle => 'Blossom メディアとファイル操作';

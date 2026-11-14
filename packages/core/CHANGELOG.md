@@ -77,9 +77,9 @@ NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with
 gone.
 
 `dostr_core` makes no HTTP calls and does not read NIP-11 documents. `RelayInfo`
-and `RelayInfoRepo` are in [`dostr_nip11`](https://pub.dev/packages/dostr_nip11),
-and `RelayInfoHttpRepoImpl(httpDS: http)` is its `HttpRelayInfoRepo(client)`,
-which takes an `http.Client`. `HttpRequestDS` is gone: the packages that make
+is in [`dostr_nip11`](https://pub.dev/packages/dostr_nip11), `RelayInfoRepo` is
+its `RelayInfoRepository`, and `RelayInfoHttpRepoImpl(httpDS: http)` is its
+`HttpRelayInfoRepository(client)`, which takes an `http.Client`. `HttpRequestDS` is gone: the packages that make
 HTTP calls take an `http.Client`. The deprecated `RelayInfo.get` is gone.
 
 `configureDefaultUserAgent`, which sets the User-Agent of the websockets of the
@@ -99,9 +99,9 @@ and `payloadId` recomputes it from the payload.
 `seedRelaysConnected`: it opens no connection when it is built. `dostr_core`
 has no `DEFAULT_BOOTSTRAP_RELAYS`. Nothing replaces
 `ndk.relays.seedRelaysConnected`.
-`RequestDefaults` and `BroadcastDefaults` keep only what `dostr_core` uses:
-`DEFAULT_QUERY_TIMEOUT`, `DEFAULT_USER_AGENT` and
-`MAX_INBOX_RELAYS_TO_BROADCAST` are gone, among others.
+`RequestDefaults` and `BroadcastDefaults` are gone. What `dostr_core` uses of
+them is a top-level constant, and the rest is gone: `DEFAULT_QUERY_TIMEOUT`,
+`DEFAULT_USER_AGENT` and `MAX_INBOX_RELAYS_TO_BROADCAST`, among others.
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs`
 and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so
@@ -109,10 +109,10 @@ is `defaultWebSocketConnectTimeout`.
 
 The default constants are in lowerCamelCase:
 `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`,
-`RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is
-`RequestDefaults.defaultAuthCallbackTimeout` and `BroadcastDefaults.TIMEOUT` is
-`BroadcastDefaults.timeout`. `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read,
-is gone.
+`RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`,
+`BroadcastDefaults.TIMEOUT` is `defaultBroadcastTimeout` and
+`BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDonePercent`.
+`RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read, is gone.
 
 #### `RelayManager`
 
@@ -298,9 +298,9 @@ read the flag.
 `Nip01Event` is a final class: it can no longer be extended, implemented or
 mocked. Build the events a test needs with its constructor or `fromJson`.
 
-`Nip01EventModel` is now a deprecated alias of `Nip01Event`, which has its
-`fromJson`, `toJson` and `toJsonString`. `Nip01EventModel.fromEntity(event)`
-is gone: use `event` itself. `toBase64()` is an extension member, which
+`Nip01EventModel` is gone: use `Nip01Event`, which has its `fromJson`, `toJson`
+and `toJsonString`, and `event` itself instead of
+`Nip01EventModel.fromEntity(event)`. `toBase64()` is an extension member, which
 `package:dostr_core/dostr_core.dart` exports.
 
 `fromJson` is strict. It used to read a missing `pubkey` or `content` as `''`

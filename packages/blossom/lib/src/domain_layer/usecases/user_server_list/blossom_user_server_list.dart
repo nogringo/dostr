@@ -1,5 +1,5 @@
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 import '../files/blossom.dart';
 

@@ -2,12 +2,12 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:cbor/cbor.dart';
-import 'ur/ur.dart';
-import 'ur/ur_decoder.dart';
-import 'ur/ur_encoder.dart';
 
 import 'cashu_token_encoder.dart';
 import 'entities/cashu_token.dart';
+import 'ur/ur.dart';
+import 'ur/ur_decoder.dart';
+import 'ur/ur_encoder.dart';
 
 /// Cashu tokens as Uniform Resources, for animated QR codes (NUT-16).
 ///

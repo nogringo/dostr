@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
 import 'package:dostr_blossom/dostr_blossom.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 import '../mocks/mock_blossom_server.dart';
@@ -29,7 +29,7 @@ void main() {
   late BlossomRepository repo;
 
   setUp(() {
-    repo = BlossomRepositoryImpl(client: http.Client(), fileIO: createFileIO());
+    repo = HttpBlossomRepository(client: http.Client(), fileIO: createFileIO());
   });
 
   /// puts a blob on [server] while it still accepts anonymous writes

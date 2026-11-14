@@ -1,13 +1,14 @@
 import 'dart:async';
 
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import '../../entities/relay_connection_key.dart';
-import '../../entities/relay_failure.dart';
-import '../../entities/relay_req_event.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
+import '../../entities/relay_connection_key.dart';
+import '../../entities/relay_failure.dart';
+import '../../entities/relay_req_event.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';

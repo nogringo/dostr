@@ -8,7 +8,7 @@ import 'package:test/test.dart';
 void main() {
   group('FileIO - computeFileHash', () {
     late Directory tempDir;
-    late FileIONative fileIO;
+    late NativeFileIO fileIO;
 
     Future<String> computeFinalHash(String filePath) async {
       String? hash;
@@ -28,7 +28,7 @@ void main() {
     setUp(() async {
       // Create a temporary directory for testing
       tempDir = await Directory.systemTemp.createTemp('file_io_test_');
-      fileIO = FileIONative();
+      fileIO = NativeFileIO();
     });
 
     tearDown(() async {
@@ -163,7 +163,7 @@ void main() {
 
   group('FileIO - writeFileStream', () {
     late Directory tempDir;
-    final fileIO = FileIONative();
+    final fileIO = NativeFileIO();
 
     setUp(() async {
       tempDir = await Directory.systemTemp.createTemp('file_io_write_test_');

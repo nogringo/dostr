@@ -1,8 +1,8 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:dostr_nip46/dostr_nip46.dart';
-import 'package:dostr_demo/l10n/app_localizations_context.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:material_ui/material_ui.dart';
 
+import 'l10n/app_localizations_context.dart';
 import 'main.dart';
 
 const _clientMetadata = Nip46ClientMetadata(name: 'Dostr demo');
@@ -236,7 +236,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
 
             // Color from pubkey demo
             _buildSection(
-              title: 'getColorFromPubkey',
+              title: 'colorFromPubkey',
               description: l10n.widgetsSectionGetColorDescription,
               child: Card(
                 child: Padding(
@@ -312,7 +312,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
   }
 
   Widget _buildColorDemo(String fakePubkey) {
-    final color = DostrFlutter.getColorFromPubkey(fakePubkey);
+    final color = colorFromPubkey(fakePubkey);
     return Column(
       children: [
         Container(

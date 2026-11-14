@@ -1,10 +1,9 @@
 import 'dart:async';
 import 'dart:collection';
 
-import 'package:rxdart/rxdart.dart';
-
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
+import 'package:rxdart/rxdart.dart';
 
 /// A usecase that handles accounts
 class Accounts implements AuthAccounts {

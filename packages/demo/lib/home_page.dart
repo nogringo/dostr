@@ -1,13 +1,13 @@
 import 'dart:async';
 
-import 'package:material_ui/material_ui.dart';
-import 'package:go_router/go_router.dart';
 import 'package:dostr_core/dostr_core.dart' show packageVersion;
-import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_demo/l10n/app_localizations_context.dart';
-import 'package:dostr_demo/login_popup.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:go_router/go_router.dart';
+import 'package:material_ui/material_ui.dart';
 
+import 'l10n/app_localizations_context.dart';
+import 'login_popup.dart';
 import 'main.dart';
 
 class HomePage extends StatefulWidget {

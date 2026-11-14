@@ -1,8 +1,9 @@
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
-import 'utils.dart';
+
 import 'constants.dart';
+import 'utils.dart';
 
 // Mask for 64-bit unsigned integers
 final BigInt _mask64 = maxUint64;

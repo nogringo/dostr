@@ -2,14 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 final _blob = utf8.encode('a blob from a note');
@@ -23,7 +23,7 @@ class _Servers {
 
   _Servers(this.having);
 
-  late final repository = BlossomRepositoryImpl(
+  late final repository = HttpBlossomRepository(
     client: MockClient((request) async {
       requests.add('${request.method} ${request.url.host}${request.url.path}');
       if (!having.contains(request.url.host) ||

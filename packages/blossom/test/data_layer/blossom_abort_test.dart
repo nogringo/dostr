@@ -1,14 +1,14 @@
 import 'dart:async';
 
 import 'package:crypto/crypto.dart';
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 const _servers = ['https://a.example', 'https://b.example'];
@@ -28,8 +28,8 @@ class _StalledServers {
   });
 }
 
-BlossomRepositoryImpl _repo(http.Client client) =>
-    BlossomRepositoryImpl(client: client, fileIO: createFileIO());
+HttpBlossomRepository _repo(http.Client client) =>
+    HttpBlossomRepository(client: client, fileIO: createFileIO());
 
 /// lets the operation reach its first request, or whatever it waits on
 Future<void> _settle() => Future<void>.delayed(Duration.zero);

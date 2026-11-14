@@ -4,19 +4,17 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart' as crypto;
-import 'package:http/http.dart' as http;
-
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
-
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
-import '../../mocks/mock_blossom_server.dart';
 import '../../mocks/blossom_for_accounts.dart';
+import '../../mocks/mock_blossom_server.dart';
 
 const int primaryServerPort = 30000;
 const int secondaryServerPort = 30001;
@@ -580,7 +578,7 @@ void main() {
   });
 
   group("stream blobs", () {
-    final BlossomRepository blossomRepo = BlossomRepositoryImpl(
+    final BlossomRepository blossomRepo = HttpBlossomRepository(
       client: http.Client(),
       fileIO: createFileIO(),
     );

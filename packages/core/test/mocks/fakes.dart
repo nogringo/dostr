@@ -1,9 +1,8 @@
 import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
-import 'package:test/test.dart';
-
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
+import 'package:test/test.dart';
 
 /// the only signature [FakeVerifier] accepts
 final String fakeSig = 'f' * 128;

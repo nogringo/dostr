@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:dostr_core/src/domain_layer/usecases/requests/verify_event_stream.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/domain_layer/usecases/requests/verify_event_stream.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

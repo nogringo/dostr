@@ -1,10 +1,10 @@
-import 'package:http/http.dart' as http;
 import 'package:dostr_nip11/dostr_nip11.dart';
+import 'package:http/http.dart' as http;
 
 /// `dart run example/dostr_nip11_example.dart wss://relay.example.com`
 Future<void> main(List<String> args) async {
   final client = http.Client();
-  final repo = HttpRelayInfoRepo(client);
+  final repo = HttpRelayInfoRepository(client);
 
   try {
     final info = await repo.getRelayInfo(args.first);

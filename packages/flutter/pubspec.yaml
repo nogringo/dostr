@@ -36,11 +36,11 @@ dependencies:
   dostr_core: ^0.1.0
   dostr_fetchers: ^0.1.0
   dostr_nip01: ^0.1.0
+  dostr_nip05: ^0.1.0
   dostr_nip07: ^0.1.0
   dostr_nip19: ^0.1.0
   dostr_nip46: ^0.1.0
   dostr_nip55: ^0.1.0
-  dostr_rust_verifier: ^0.1.0
   dostr_signer: ^0.1.0
   dostr_web_crypto: ^0.1.0
   qr: ^4.0.1

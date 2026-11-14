@@ -1,6 +1,5 @@
-import 'random_hex.dart';
-
 import 'nip46_client_metadata.dart';
+import 'random_hex.dart';
 
 /// A `nostrconnect://` invitation, from `Bunkers.createNostrConnect`.
 class NostrConnect {

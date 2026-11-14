@@ -44,7 +44,7 @@
   "widgetsSectionNUserProfileDescription": "Profilo utente completo con banner, immagine, nome e NIP-05.",
   "widgetsSectionNSwitchAccountDescription": "Widget di gestione account con cambio account e logout.",
   "widgetsSectionNLoginDescription": "Widget di accesso con più metodi di autenticazione (NIP-05, npub, nsec, bunker, ecc.).",
-  "widgetsSectionGetColorDescription": "Metodo statico che genera colori deterministici dalle pubkey.",
+  "widgetsSectionGetColorDescription": "Funzione che genera colori deterministici dalle pubkey.",
   "blossomPageTitle": "Operazioni media e file di Blossom",
   "blossomImageDemoTitle": "Demo immagine (getBlob)",
   "blossomVideoDemoTitle": "Demo video (checkBlob)",

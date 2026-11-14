@@ -1,12 +1,12 @@
 import 'dart:typed_data';
 
-import 'package:http/http.dart' as http;
-import 'package:http/testing.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
 import 'package:dostr_blossom/src/data_layer/io/file_io_platform.dart';
-import 'package:dostr_blossom/src/data_layer/repositories/blossom/blossom_impl.dart';
+import 'package:dostr_blossom/src/data_layer/repositories/blossom/http_blossom_repository.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
 final _sha256 = 'ab' * 32;
@@ -32,7 +32,7 @@ void main() {
     accounts: accounts,
     eventSignerFactory: const Bip340EventSignerFactory(),
     getUserServerList: (_) async => list,
-    blossomRepository: BlossomRepositoryImpl(
+    blossomRepository: HttpBlossomRepository(
       client: MockClient((request) async {
         requests.add(request);
         return http.Response('', 500);

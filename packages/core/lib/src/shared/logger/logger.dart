@@ -1,7 +1,7 @@
-import 'logger_defaults.dart';
 import 'console_output.dart';
-import 'log_level.dart';
 import 'dostr_logger.dart';
+import 'log_level.dart';
+import 'logger_defaults.dart';
 
 /// A mixin class that provides a logger instance.
 // coverage:ignore-start

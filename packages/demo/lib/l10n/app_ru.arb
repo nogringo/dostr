@@ -44,7 +44,7 @@
   "widgetsSectionNUserProfileDescription": "Полный профиль пользователя с баннером, фото, именем и NIP-05.",
   "widgetsSectionNSwitchAccountDescription": "Виджет управления аккаунтами с переключением и выходом.",
   "widgetsSectionNLoginDescription": "Виджет входа с несколькими способами аутентификации (NIP-05, npub, nsec, bunker и т. д.).",
-  "widgetsSectionGetColorDescription": "Статический метод, который генерирует детерминированные цвета из pubkey.",
+  "widgetsSectionGetColorDescription": "Функция, которая генерирует детерминированные цвета из pubkey.",
   "blossomPageTitle": "Операции с медиа и файлами Blossom",
   "blossomImageDemoTitle": "Демо изображения (getBlob)",
   "blossomVideoDemoTitle": "Демо видео (checkBlob)",

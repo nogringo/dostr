@@ -15,8 +15,10 @@
    amount, which mixed up outputs of the same amount past 32 of them, and it
    could not unblind NUT-08 change: fewer signatures than blank outputs, with
    amounts the mint imprinted.
- - `CashuRepoImpl.swap` sends the outputs in the order it gets them instead of
-   sorting the caller's list in place.
+ - `CashuRepo` is now `CashuRepository`, and `CashuRepoImpl` is now
+   `HttpCashuRepository`.
+ - `HttpCashuRepository.swap` sends the outputs in the order it gets them
+   instead of sorting the caller's list in place.
  - `CashuTokenUrEncoder` (NUT-16 animated QR codes) moved here from the `ur`
    package, and so did the Uniform Resources encoding of that package, a copy
    of dart-bc-ur under the MIT license (`lib/src/ur/LICENSE`). There is no

@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
-import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -31,7 +31,7 @@ void main() {
         }
         return http.Response('unexpected request', 500);
       });
-      final transport = LnurlTransportHttpImpl(client);
+      final transport = HttpLnurlTransport(client);
       final Lnurl lnurl = Lnurl(transport: transport);
 
       var lnurlResponse = await lnurl.getLnurlResponse(link);
@@ -41,7 +41,7 @@ void main() {
 
     test('getLnurlResponse returns null for invalid link', () async {
       final client = MockClient((_) async => http.Response('not found', 404));
-      final transport = LnurlTransportHttpImpl(client);
+      final transport = HttpLnurlTransport(client);
       final Lnurl lnurl = Lnurl(transport: transport);
 
       final link = 'https://invalid.com';

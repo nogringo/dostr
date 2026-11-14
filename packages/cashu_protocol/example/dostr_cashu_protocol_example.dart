@@ -1,5 +1,5 @@
-import 'package:http/http.dart' as http;
 import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
+import 'package:http/http.dart' as http;
 
 /// The amount of a `cashuB` token that its mint still holds as unspent.
 Future<int> unspentAmount(String encoded) async {
@@ -8,7 +8,7 @@ Future<int> unspentAmount(String encoded) async {
 
   final client = http.Client();
   try {
-    final states = await CashuRepoImpl(client: client).checkTokenState(
+    final states = await HttpCashuRepository(client: client).checkTokenState(
       mintUrl: token.mintUrl,
       proofPubkeys: token.proofs.map((proof) => proof.Y).toList(),
     );

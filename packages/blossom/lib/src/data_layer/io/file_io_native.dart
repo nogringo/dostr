@@ -9,7 +9,7 @@ import 'file_io.dart';
 
 /// Native platform implementation using dart:io
 /// Works on: Windows, macOS, Linux, Android, iOS
-class FileIONative implements FileIO {
+class NativeFileIO implements FileIO {
   @override
   Stream<Uint8List> readFileAsStream(String filePath, {int chunkSize = 8192}) {
     final file = File(filePath);

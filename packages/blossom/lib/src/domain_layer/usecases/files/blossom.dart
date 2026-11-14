@@ -1,19 +1,19 @@
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:http/http.dart' as http;
 
 import '../../../data_layer/io/file_io_platform.dart';
-import '../../../data_layer/repositories/blossom/blossom_impl.dart';
+import '../../../data_layer/repositories/blossom/http_blossom_repository.dart';
 import '../../entities/blob_upload_progress.dart';
 import '../../entities/blossom_authorization.dart';
 import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_hash_mismatch_exception.dart';
 import '../../entities/blossom_request_exception.dart';
 import '../../entities/blossom_strategies.dart';
-import 'package:dostr_nip01/dostr_nip01.dart';
-import '../../repositories/blossom.dart';
-import 'package:dostr_signer/dostr_signer.dart';
+import '../../repositories/blossom_repository.dart';
 import 'blossom_exceptions.dart';
 
 /// The servers in [pubkey]'s Blossom server list (kind 10063, BUD-03), or
@@ -107,7 +107,7 @@ class Blossom {
        _getUserServerList = getUserServerList,
        _blossomImpl =
            blossomRepository ??
-           BlossomRepositoryImpl(client: http.Client(), fileIO: createFileIO()),
+           HttpBlossomRepository(client: http.Client(), fileIO: createFileIO()),
        _eventSignerFactory = eventSignerFactory,
        _authHandler = authHandler;
 
