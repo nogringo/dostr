@@ -3,3 +3,5 @@ template-arb-file: app_en.arb
 output-dir: lib/l10n/generated
 output-localization-file: demo_localizations.dart
 output-class: DemoLocalizations
+# gen-l10n still emits the flutter_localizations delegates, deprecated in favor of material_ui.
+header: "// ignore_for_file: deprecated_member_use"

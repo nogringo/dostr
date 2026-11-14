@@ -7,8 +7,10 @@ It re-exports [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), [`dostr_nip
 ## Install
 
 ```bash
-flutter pub add dostr_core dostr_accounts dostr_flutter
+flutter pub add dostr_core dostr_accounts dostr_flutter material_ui
 ```
+
+The widgets are built on [`material_ui`](https://pub.dev/packages/material_ui), so your app must use it too. Its `Theme` and `Material` are separate from those of `package:flutter/material.dart`: inside a `MaterialApp` from the latter, the widgets ignore your theme and fail their `Material` checks. See the [migration steps](https://pub.dev/packages/material_ui#migrating-existing-code-to-this-package).
 
 ## Usage
 
@@ -17,7 +19,7 @@ import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
@@ -38,8 +40,10 @@ Future<void> main() async {
 
   runApp(
     MaterialApp(
-      localizationsDelegates:
-          dostr_flutter.AppLocalizations.localizationsDelegates,
+      localizationsDelegates: const [
+        dostr_flutter.AppLocalizations.delegate,
+        ...GlobalMaterialLocalizations.delegates,
+      ],
       supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
       home: Scaffold(
         body: StreamBuilder(
@@ -68,7 +72,7 @@ To answer NIP-42 authentication, give the same `Accounts` to the `RelayManager`,
 
 ## Localization
 
-The widgets read their texts from `AppLocalizations` in `package:dostr_flutter/l10n/app_localizations.dart`, and throw when its delegate is missing. `localizationsDelegates` holds it along with Flutter's Material, Cupertino and widgets delegates. If your app has its own localizations, add `dostr_flutter.AppLocalizations.delegate` to your list instead. See Flutter's [internationalization guide](https://docs.flutter.dev/ui/accessibility-and-internationalization/internationalization).
+The widgets read their texts from `AppLocalizations` in `package:dostr_flutter/l10n/app_localizations.dart`, and throw when its delegate is missing. Add `dostr_flutter.AppLocalizations.delegate` next to `GlobalMaterialLocalizations.delegates` from `material_ui`, which covers the Material, Cupertino and widgets texts. Don't use `AppLocalizations.localizationsDelegates`: gen-l10n fills it with the `flutter_localizations` delegates, which `material_ui` widgets don't read. See Flutter's [internationalization guide](https://docs.flutter.dev/ui/accessibility-and-internationalization/internationalization).
 
 It ships 13 locales: `de`, `en`, `es`, `fi`, `fr`, `it`, `ja`, `pl`, `pt`, `pt_BR`, `ru`, `sk` and `zh`. `NLocaleSwitcher` (a button that opens a dialog) and `NLocaleSwitcherDropdown` let the user pick one of them and pass it to `onLocaleChanged`. Applying it to `MaterialApp.locale` is up to you.
 

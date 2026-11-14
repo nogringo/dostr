@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_flutter/widgets/login/nostr_connect_dialog_view.dart';

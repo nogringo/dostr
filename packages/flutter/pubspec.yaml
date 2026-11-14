@@ -17,7 +17,7 @@ platforms:
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
-  flutter: ">=3.40.0"
+  flutter: ">=3.47.0"
 
 resolution: workspace
 
@@ -30,6 +30,7 @@ dependencies:
   flutter_secure_storage: ">=8.0.0 <12.0.0"
   http: ">=1.0.0 <2.0.0"
   intl: ^0.20.3
+  material_ui: ^1.11.0
   dostr_accounts: ^0.1.0
   dostr_bip340: ^0.1.0
   dostr_core: ^0.11.0-dev.2

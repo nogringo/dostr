@@ -7,7 +7,7 @@ import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_flutter/l10n/app_localizations.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 const alicePrivateKey =
@@ -97,7 +97,10 @@ Widget localizedApp(Widget child, {Locale? locale, ThemeData? theme}) {
   return MaterialApp(
     locale: locale,
     theme: theme,
-    localizationsDelegates: AppLocalizations.localizationsDelegates,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      ...GlobalMaterialLocalizations.delegates,
+    ],
     supportedLocales: AppLocalizations.supportedLocales,
     home: Scaffold(body: child),
   );

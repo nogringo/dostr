@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';

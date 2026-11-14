@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
 import 'package:media_kit/media_kit.dart';
@@ -86,20 +85,22 @@ class MyApp extends StatelessWidget {
         localizationsDelegates: const [
           DemoLocalizations.delegate,
           dostr_flutter.AppLocalizations.delegate,
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
+          ...GlobalMaterialLocalizations.delegates,
         ],
         // Use dostr_flutter's locale list: it's the superset that includes the
         // extra locales (fi, pt, pt_BR) translated in that package. The demo
         // shell falls back to English for those via the delegate above.
         supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
         routerConfig: appRouter,
-        builder: (context, child) => Stack(
-          children: [
-            SafeArea(top: false, child: child ?? const SizedBox.shrink()),
-            NPendingRequests(dostrFlutter: dostrFlutter),
-          ],
+        // media_kit_video's controls still use package:flutter/material.dart.
+        // ignore: deprecated_member_use
+        builder: (context, child) => MaterialUiCompatibilityBridge(
+          child: Stack(
+            children: [
+              SafeArea(top: false, child: child ?? const SizedBox.shrink()),
+              NPendingRequests(dostrFlutter: dostrFlutter),
+            ],
+          ),
         ),
       ),
     );

@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/material.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:go_router/go_router.dart';
 import 'package:dostr_core/dostr_core.dart' show packageVersion;
 import 'package:dostr_signer/dostr_signer.dart';
