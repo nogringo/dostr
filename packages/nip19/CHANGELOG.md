@@ -7,5 +7,5 @@
  - The constructors throw an `ArgumentError` for a key or id that is not 32 bytes of hex, a relay url or identifier longer than 255 bytes, or a kind outside 32 bits. In `ndk`, `Nip19.encodePubKey` encoded a key of any length, and an identifier over 255 bytes threw a bare `Exception`.
  - Every entity but `Nsec` has a `uri` getter, its NIP-21 `nostr:` URI, and `Naddr` has the `coordinate` of an `a` tag.
  - Entities are values, with `==` and `hashCode`. Their `relays` are an unmodifiable list, empty rather than null, and `Nsec.toString` hides the private key.
- - `naddr` on a replaceable event (kinds 0, 3, 41 and 10000 to 19999) gives an empty identifier, as NIP-19 asks. In `ndk`, it needed a `d` tag, and returned null for kinds 10000 to 19999.
+ - `naddr` on a replaceable event (kinds 0, 3 and 10000 to 19999) gives an empty identifier, as NIP-19 asks. In `ndk`, it needed a `d` tag, returned null for kinds 10000 to 19999, and gave an naddr for kind 41 (NIP-28 channel metadata), which NIP-01 makes regular.
  - Removed from `ndk`: `Nip19.isNip19` and `nip19regex`, `isKey`, `encodeSimplePubKey`, `convertBits`, `kNpubLength` and `kNoteIdLength`, `Hrps` (each class has a `prefix` constant instead), and the `Nip19Encoder`, `Nip19Decoder`, `Nip19Utils`, `Nip19TLV` and `InvalidPadding` classes.

@@ -64,8 +64,8 @@ final naddr = event.naddr();
 ```
 
 `nevent` holds the id, author and kind of the event. `naddr` holds its kind,
-author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3,
-41 and 10000 to 19999). It returns null for any other kind, and for an
+author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3
+and 10000 to 19999). It returns null for any other kind, and for an
 addressable event without a `d` tag.
 
 Entities are values: two with the same fields are equal, and their `relays`

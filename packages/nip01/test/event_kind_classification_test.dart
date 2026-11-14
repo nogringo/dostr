@@ -2,11 +2,15 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('metadata, contact list and channel metadata are replaceable', () {
-    for (final kind in [0, 3, 41]) {
+  test('metadata and contact list are replaceable', () {
+    for (final kind in [0, 3]) {
       expect(EventKindClassification.isReplaceableKind(kind), isTrue);
       expect(EventKindClassification.isAddressableKind(kind), isFalse);
     }
+  });
+
+  test('channel metadata is regular', () {
+    expect(EventKindClassification.isReplaceableKind(41), isFalse);
   });
 
   test('tells regular replaceable kinds from addressable ones', () {

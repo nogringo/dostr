@@ -171,7 +171,7 @@ void main() {
           '460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c';
 
       test('should recognize replaceable event kinds', () {
-        final kinds = [0, 3, 41];
+        final kinds = [0, 3];
         for (final kind in kinds) {
           final event = Nip01Event(
             pubKey: testPubkey,
@@ -211,7 +211,7 @@ void main() {
       });
 
       test('should not recognize non-addressable kinds', () {
-        final kinds = [1, 2, 4, 5, 6, 7, 40, 42, 9999, 20000, 29999, 40000];
+        final kinds = [1, 2, 4, 5, 6, 7, 40, 41, 42, 9999, 20000, 29999, 40000];
         for (final kind in kinds) {
           final event = Nip01Event(
             pubKey: testPubkey,

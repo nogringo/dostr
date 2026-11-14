@@ -1,7 +1,7 @@
 class EventKindClassification {
-  /// replaceable although below 10000: metadata (NIP-01), contact list
-  /// (NIP-02) and channel metadata (NIP-28)
-  static const legacyReplaceableKinds = {0, 3, 41};
+  /// replaceable although below 10000: metadata (NIP-01) and contact list
+  /// (NIP-02). Not channel metadata (41): NIP-01 makes kinds 4 to 44 regular.
+  static const legacyReplaceableKinds = {0, 3};
 
   static bool isEphemeralKind(int kind) => kind >= 20000 && kind <= 29999;
 
