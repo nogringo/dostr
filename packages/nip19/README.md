@@ -77,14 +77,15 @@ cannot be modified. `Nsec.toString` leaves the private key out.
 
 ## Errors
 
-- `decode` throws a `FormatException` when the input is not valid bech32, has
-  another prefix, misses a required field, or holds a key or id that is not 32
-  bytes. No message quotes the input, since it may be an `nsec`.
+- `decode` throws a `FormatException` when the input is not valid bech32, is
+  longer than the 5000 characters NIP-19 allows, has another prefix, misses a
+  required field, or holds a key or id that is not 32 bytes. No message quotes
+  the input, since it may be an `nsec`.
 - `tryDecode` returns null where `decode` throws.
 - The constructors throw an `ArgumentError` when a key or id is not 32 bytes of
-  hex, when a relay url or an `naddr` identifier is longer than 255 bytes, or
-  when a kind does not fit 32 bits. They accept uppercase hex and keep it
-  lowercase.
+  hex, when a relay url or an `naddr` identifier is longer than 255 bytes
+  (`Nip19Entity.maxTlvValueLength`), or when a kind does not fit 32 bits. They
+  accept uppercase hex and keep it lowercase.
 
 Unknown TLV entries are ignored, as NIP-19 asks, and so are relays that are not
 valid UTF-8 and an `nevent` author or kind of the wrong length.

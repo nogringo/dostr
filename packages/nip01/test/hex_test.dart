@@ -27,4 +27,45 @@ void main() {
       expect(isLowercaseHex('abc'), isFalse);
     });
   });
+
+  group('bytesToHex', () {
+    test('writes two lowercase digits per byte', () {
+      expect(bytesToHex([0, 15, 16, 171, 255]), '000f10abff');
+      expect(bytesToHex([]), '');
+    });
+
+    test('rejects a value that does not fit a byte', () {
+      expect(() => bytesToHex([256]), throwsRangeError);
+      expect(() => bytesToHex([-1]), throwsRangeError);
+    });
+  });
+
+  group('hexToBytes', () {
+    test('reads lowercase and uppercase hex', () {
+      expect(hexToBytes('000f10abff'), [0, 15, 16, 171, 255]);
+      expect(hexToBytes('ABff'), [171, 255]);
+      expect(hexToBytes(''), isEmpty);
+    });
+
+    for (final value in ['abc', 'zz', '+f', '-1', ' a', 'g0']) {
+      test('rejects "$value"', () {
+        expect(() => hexToBytes(value), throwsFormatException);
+      });
+    }
+
+    test('does not quote the hex in its error', () {
+      const key =
+          '67dea2ed018072d675f5415ecfaed7d2597555e202d85b3d65ea4e58d2d92ffz';
+      expect(
+        () => hexToBytes(key),
+        throwsA(
+          isA<FormatException>().having(
+            (e) => e.toString(),
+            'toString',
+            isNot(contains(key.substring(0, 8))),
+          ),
+        ),
+      );
+    });
+  });
 }

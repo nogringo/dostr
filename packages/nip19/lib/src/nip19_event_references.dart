@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 import 'nip19_entity.dart';
-import 'tlv.dart';
 
 /// NIP-19 references to an event.
 extension Nip19EventReferences on Nip01Event {
@@ -23,7 +22,7 @@ extension Nip19EventReferences on Nip01Event {
         ? ''
         : null;
     if (identifier == null ||
-        utf8.encode(identifier).length > maxTlvValueLength) {
+        utf8.encode(identifier).length > Nip19Entity.maxTlvValueLength) {
       return null;
     }
     return Naddr(

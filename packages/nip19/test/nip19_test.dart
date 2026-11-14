@@ -1,8 +1,8 @@
 import 'dart:convert';
 
+import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip19/src/bech32_codec.dart';
-import 'package:dostr_nip19/src/hex.dart';
 import 'package:dostr_nip19/src/tlv.dart';
 import 'package:test/test.dart';
 
@@ -123,6 +123,13 @@ void main() {
         encodeBech32('nrelay', tlvEntry(0, utf8.encode('wss://r.x.com'))),
       ),
       ('a truncated TLV entry', encodeBech32('nprofile', [0, 32, 1, 2])),
+      (
+        'a string longer than 5000 characters',
+        encodeBech32('nprofile', [
+          ...tlvEntry(0, hexToBytes(pubkey)),
+          for (var i = 0; i < 12; i++) ...tlvEntry(9, List.filled(255, 0)),
+        ]),
+      ),
       (
         'an nprofile without a pubkey',
         encodeBech32('nprofile', tlvEntry(1, utf8.encode('wss://r.x.com'))),

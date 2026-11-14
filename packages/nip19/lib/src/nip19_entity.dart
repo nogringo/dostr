@@ -4,7 +4,6 @@ import 'dart:typed_data';
 import 'package:dostr_nip01/hex.dart';
 
 import 'bech32_codec.dart';
-import 'hex.dart';
 import 'tlv.dart';
 
 const _special = 0;
@@ -19,6 +18,10 @@ const _uriScheme = 'nostr:';
 sealed class Nip19Entity {
   const Nip19Entity();
 
+  /// The most bytes a relay url or an naddr identifier can hold, since NIP-19
+  /// stores the length of each in one byte.
+  static const maxTlvValueLength = 255;
+
   /// Decodes [input], with or without the `nostr:` prefix of NIP-21. Throws a
   /// [FormatException] when it is not an entity.
   factory Nip19Entity.decode(String input) => _decode(input);
@@ -32,8 +35,15 @@ sealed class Nip19Entity {
   String encode();
 }
 
+// Sealed, not a mixin, which would make a switch over Nip19Entity
+// non-exhaustive.
+sealed class _Nip21Entity extends Nip19Entity {
+  /// This entity as a NIP-21 URI: `nostr:` followed by [encode].
+  String get uri => '$_uriScheme${encode()}';
+}
+
 /// An npub: a public key.
-final class Npub extends Nip19Entity {
+final class Npub extends _Nip21Entity {
   /// The prefix of an npub.
   static const prefix = 'npub';
 
@@ -52,9 +62,6 @@ final class Npub extends Nip19Entity {
 
   @override
   String encode() => encodeBech32(prefix, hexToBytes(pubkey));
-
-  /// This npub as a NIP-21 URI: `nostr:` followed by [encode].
-  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) => other is Npub && other.pubkey == pubkey;
@@ -100,7 +107,7 @@ final class Nsec extends Nip19Entity {
 }
 
 /// A note: an event id.
-final class Note extends Nip19Entity {
+final class Note extends _Nip21Entity {
   /// The prefix of a note.
   static const prefix = 'note';
 
@@ -120,9 +127,6 @@ final class Note extends Nip19Entity {
   @override
   String encode() => encodeBech32(prefix, hexToBytes(eventId));
 
-  /// This note as a NIP-21 URI: `nostr:` followed by [encode].
-  String get uri => '$_uriScheme${encode()}';
-
   @override
   bool operator ==(Object other) => other is Note && other.eventId == eventId;
 
@@ -134,7 +138,7 @@ final class Note extends Nip19Entity {
 }
 
 /// An nprofile: a public key, with relays where to find the profile.
-final class Nprofile extends Nip19Entity {
+final class Nprofile extends _Nip21Entity {
   /// The prefix of an nprofile.
   static const prefix = 'nprofile';
 
@@ -174,9 +178,6 @@ final class Nprofile extends Nip19Entity {
     ..._relayEntries(relays),
   ]);
 
-  /// This nprofile as a NIP-21 URI: `nostr:` followed by [encode].
-  String get uri => '$_uriScheme${encode()}';
-
   @override
   bool operator ==(Object other) =>
       other is Nprofile &&
@@ -192,7 +193,7 @@ final class Nprofile extends Nip19Entity {
 
 /// An nevent: an event id, with relays where to find the event and, when
 /// known, its author and kind.
-final class Nevent extends Nip19Entity {
+final class Nevent extends _Nip21Entity {
   /// The prefix of an nevent.
   static const prefix = 'nevent';
 
@@ -250,9 +251,6 @@ final class Nevent extends Nip19Entity {
     if (kind case final kind?) ...tlvEntry(_kind, _uint32(kind)),
   ]);
 
-  /// This nevent as a NIP-21 URI: `nostr:` followed by [encode].
-  String get uri => '$_uriScheme${encode()}';
-
   @override
   bool operator ==(Object other) =>
       other is Nevent &&
@@ -273,7 +271,7 @@ final class Nevent extends Nip19Entity {
 
 /// An naddr: the coordinate of an addressable or replaceable event, with
 /// relays where to find it.
-final class Naddr extends Nip19Entity {
+final class Naddr extends _Nip21Entity {
   /// The prefix of an naddr.
   static const prefix = 'naddr';
 
@@ -338,9 +336,6 @@ final class Naddr extends Nip19Entity {
     ...tlvEntry(_author, hexToBytes(pubkey)),
     ...tlvEntry(_kind, _uint32(kind)),
   ]);
-
-  /// This naddr as a NIP-21 URI: `nostr:` followed by [encode].
-  String get uri => '$_uriScheme${encode()}';
 
   @override
   bool operator ==(Object other) =>
@@ -410,9 +405,9 @@ String _checkKey(String value, String name) {
 
 String _checkTlvValue(String value, String name) {
   final length = utf8.encode(value).length;
-  if (length > maxTlvValueLength) {
+  if (length > Nip19Entity.maxTlvValueLength) {
     throw ArgumentError(
-      'is $length bytes long, more than $maxTlvValueLength',
+      'is $length bytes long, more than ${Nip19Entity.maxTlvValueLength}',
       name,
     );
   }

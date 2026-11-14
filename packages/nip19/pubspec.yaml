@@ -15,7 +15,6 @@ environment:
 resolution: workspace
 
 dependencies:
-  bech32: ^0.2.2
   dostr_nip01: ^0.1.0
 
 dev_dependencies:
