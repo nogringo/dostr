@@ -7,7 +7,9 @@ import 'relay_failure.dart';
 /// authenticated one, and the url reports the first of these its connections
 /// reached.
 enum RelayRequestStatus {
-  /// the relay has not ended the request, it may still send events
+  // No `queued` value: it would break the exhaustive switches of apps.
+  /// the relay has not ended the request, it may still send events. A request
+  /// still waiting for a slot on a full connection is pending too
   pending,
 
   /// the relay sent an EOSE, it has given everything it stored. A

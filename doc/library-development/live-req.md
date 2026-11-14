@@ -1,26 +1,27 @@
-# Architecture Decision Record: one live REQ per connection
+# One live REQ per connection
 
-Title: a subscription goes out alone, then, once its relay has answered EOSE,
-listens through a REQ that its connection shares with the other subscriptions
+Status: proposed, not implemented yet.
+
+A subscription goes out alone, then, once its relay has answered EOSE, listens
+through a REQ that its connection shares with the other subscriptions.
 
 ## Context and Problem Statement
 
-`Requests.subscription()` sends one REQ per subscription to each relay it routes
-to, under the subscription's id. That REQ asks two things: the events the relay
-stores, until its EOSE, and the events it receives afterwards.
+`RelayReqs.req(closeOnEose: false)` sends one REQ per subscription to each relay
+it is given, under the subscription's id. That REQ asks two things: the events
+the relay stores, until its EOSE, and the events it receives afterwards.
 
 A subscription holds a slot on each of its connections for as long as it lives
-([relay-req-queue.md](relay-req-queue.md)). A screen showing a thread, its
-reactions, its zaps and the profiles of its authors holds one subscription per
-question. Once subscriptions fill their share of a connection, the next one waits
-in the queue.
+(see "Relay limits" in the [dostr_core README](../../packages/core/README.md)).
+A screen showing a thread, its reactions, its zaps and the profiles of its
+authors holds one subscription per question. Once subscriptions fill their share
+of a connection, the next one waits in the queue.
 
-Two subscriptions share a REQ only when everything about them is identical
-(`ConcurrencyCheck`). Merging different ones before their EOSE runs into the
-stored part of the REQ: `limit` picks the newest events of each filter on the
-relay, and `search` (NIP-50) leaves the matching to the relay. An EVENT names the
-REQ it answers, not the filter, so the client cannot tell which subscription the
-relay selected an event for.
+Two subscriptions never share a REQ, even identical ones. Merging them before
+their EOSE runs into the stored part of the REQ: `limit` picks the newest events
+of each filter on the relay, and `search` (NIP-50) leaves the matching to the
+relay. An EVENT names the REQ it answers, not the filter, so the client cannot
+tell which subscription the relay selected an event for.
 
 After EOSE, `limit` no longer applies: NIP-01 makes it valid for the initial query
 only. Every other field of a filter, `search` aside, is a test on the event that
@@ -48,8 +49,9 @@ relay sends the newest `n` events again, and whatever the gap held beyond those
 
 ### Terms
 
-- A short request ends on its EOSE: `Requests.query()`.
-- A long request also wants what arrives after its EOSE: `Requests.subscription()`.
+- A short request ends on its EOSE: `RelayReqs.req()`.
+- A long request also wants what arrives after its EOSE:
+  `RelayReqs.req(closeOnEose: false)` today, `RelayReqs.subscribe()` below.
 - Its own REQ: the REQ a subscription sends alone on a connection, as today.
 - Its listener: its filters with `limit: 0`, for the new events.
 - The live REQ of a connection: the REQ that carries the listeners of the
@@ -87,8 +89,7 @@ each `RelayConnectionKey`:
   code.
 - The live REQ drops everything it receives before its EOSE. NIP-01 sends stored
   events before EOSE and new ones after, so a relay that honors `limit: 0` sends
-  nothing there. A relay that reads it as "no limit", as ndk's own caches do, only
-  costs bandwidth.
+  nothing there. A relay that reads it as "no limit" only costs bandwidth.
 - Each event is verified once, then handed to the listeners whose filters it
   matches (`Filter.matches`), and to no other. An event that matches no listener
   is dropped.
@@ -100,7 +101,7 @@ Removing a subscription:
 
 - One still on its own REQ closes that REQ, as today.
 - A listener stops getting events right away. Its filters leave the live REQ at
-  the next rewrite, or after `LIVE_REQ_SHRINK_DELAY` if no rewrite comes first: a
+  the next rewrite, or after `liveReqShrinkDelay` if no rewrite comes first: a
   scrolling feed adds and removes subscriptions faster than rewrites are worth.
 - When the last listener leaves, the live REQ is closed right away, so `hasWorkOn`
   lets the connection go.
@@ -108,7 +109,7 @@ Removing a subscription:
 ### Slots
 
 For the gate, own REQs and live REQs are all subscriptions. Together they stay
-within the subscription share of [relay-req-queue.md](relay-req-queue.md), so they
+within the subscription share (`limit - limit ~/ 4`), so they
 never take the slots kept for queries, however many `search` subscriptions an app
 opens.
 
@@ -131,8 +132,8 @@ The filters of the live REQ are those of its listeners:
 
 1. Identical filters go out once. A filter is left out when another one matches
    everything it matches.
-2. A live REQ carries at most `MAX_FILTERS_PER_LIVE_REQ` filters, and stays
-   within the relay's NIP-11 `max_message_length`, or `DEFAULT_MAX_MESSAGE_LENGTH`
+2. A live REQ carries at most `maxFiltersPerLiveReq` filters, and stays
+   within the relay's NIP-11 `max_message_length`, or `defaultMaxMessageLength`
    when it is unknown. The listeners that do not fit go into a second live REQ on
    that connection.
 
@@ -151,7 +152,7 @@ event answers.
 ### Refusals
 
 A rewrite is refused when the relay answers it with a CLOSED before its EOSE, or
-when no EOSE comes within `LIVE_REQ_EOSE_TIMEOUT`, since some relays refuse with a
+when no EOSE comes within `liveReqEoseTimeout`, since some relays refuse with a
 NOTICE that names no REQ. strfry answers a REQ it cannot take with
 `CLOSED "bad req: ..."`.
 
@@ -177,14 +178,14 @@ On the new socket:
 
 - A subscription that never got its EOSE on that connection is replayed as today.
 - Any other one goes out alone again. Each filter gets as `since` the time of the
-  last message the previous socket received, minus `CATCH_UP_MARGIN`, unless its
+  last message the previous socket received, minus `catchUpMargin`, unless its
   own `since` is later, and no `limit`: whatever it missed, it would have received
   live. That one REQ brings what the gap held, then the new events, and the relay
   guarantees nothing falls between them. After its EOSE, the listener moves again.
 - The last message is the last moment the previous socket is known to have
   worked, since a socket can die without notice.
 - A filter that can match a `kind:1059`, through its `kinds` or for lack of them,
-  goes back `GIFT_WRAP_CATCH_UP_MARGIN` instead, because of the NIP-59 timestamps.
+  goes back `giftWrapCatchUpMargin` instead, because of the NIP-59 timestamps.
 
 ### Outcomes
 
@@ -196,8 +197,6 @@ after a reconnection or a CLOSED of the live REQ, reports what that REQ gets.
 
 `RelayReqs.subscribe()` opens a subscription that moves. It mirrors `RelayReq`:
 `send(url, filters)`, `seal()`, `events`, `outcomes` and `close()`.
-`Requests.subscription()` uses it, and keeps the cache read, the routing and
-`ConcurrencyCheck` above it.
 
 The id of a subscription stays the NIP-01 id of its own REQ. Once it has moved, its
 new events come through the live REQ of the connection.
@@ -221,19 +220,17 @@ this and moves there.
 
 In `relay_defaults.dart`:
 
-- `MAX_FILTERS_PER_LIVE_REQ`: 100, a value we chose under the 200 strfry accepts
+- `maxFiltersPerLiveReq`: 100, a value we chose under the 200 strfry accepts
   by default
-- `DEFAULT_MAX_MESSAGE_LENGTH`: 65536 bytes, a value we chose for relays that
+- `defaultMaxMessageLength`: 65536 bytes, a value we chose for relays that
   publish no `max_message_length`
-- `LIVE_REQ_EOSE_TIMEOUT`: 10 seconds
-- `LIVE_REQ_SHRINK_DELAY`: 5 seconds
-- `CATCH_UP_MARGIN`: 10 minutes, for the clock skew of the authors
-- `GIFT_WRAP_CATCH_UP_MARGIN`: 2 days, from NIP-59
+- `liveReqEoseTimeout`: 10 seconds
+- `liveReqShrinkDelay`: 5 seconds
+- `catchUpMargin`: 10 minutes, for the clock skew of the authors
+- `giftWrapCatchUpMargin`: 2 days, from NIP-59
 
-`max_message_length` reaches dostr_core the way the subscription limit does: a
-`MessageLengthLimit` provider on `RelayManager`. `ndk` answers it from
-`NdkConfig` first, then from the NIP-11 document that `Connectivity.getRelayInfo`
-caches.
+`max_message_length` already reaches dostr_core through the `messageLengthLimit`
+callback of `RelayManager`.
 
 ## Consequences
 
@@ -244,7 +241,7 @@ caches.
   socket. What it judges on the REQ as a whole, such as its size, refuses a
   rewrite, which stops compaction on that socket.
 - The subscriptions that moved hold one slot per connection, or one per
-  `MAX_FILTERS_PER_LIVE_REQ`. A subscription holds a slot of its own until it
+  `maxFiltersPerLiveReq`. A subscription holds a slot of its own until it
   moves: a burst past the share waits, as today, then drains as subscriptions
   move.
 - Moving costs a rewrite: no stored events, an immediate EOSE, and a second slot
@@ -273,18 +270,18 @@ On a mock relay:
 - a relay that ignores `limit: 0`: what it sends before the EOSE of a live REQ
   reaches no listener
 - moves that come while a rewrite waits for its EOSE go into one next rewrite
-- removing a listener writes nothing before `LIVE_REQ_SHRINK_DELAY`, and the last
+- removing a listener writes nothing before `liveReqShrinkDelay`, and the last
   listener leaving sends a CLOSE
 - a rewrite refused with a CLOSED, or without an EOSE within
-  `LIVE_REQ_EOSE_TIMEOUT`, leaves the previous live REQ and the own REQs open, and
+  `liveReqEoseTimeout`, leaves the previous live REQ and the own REQs open, and
   the connection stops compacting until a new socket
 - with the share full of subscriptions waiting to move, the rewrite goes out one
   slot past it, then their own REQs close and the queued subscriptions go out
 - a connection with a limit under 4 never compacts
-- listeners past `MAX_FILTERS_PER_LIVE_REQ` or `max_message_length` go into a
+- listeners past `maxFiltersPerLiveReq` or `max_message_length` go into a
   second live REQ
 - after a reconnection, no live REQ is replayed. Each subscription that had moved
-  goes out alone with `since` set to the last message minus `CATCH_UP_MARGIN` and
+  goes out alone with `since` set to the last message minus `catchUpMargin` and
   no `limit`, then moves again after its EOSE. A `kind:1059` one goes back two
   days, and one that never got its EOSE is replayed as today
 - a live REQ closed by the relay after its EOSE sends each of its listeners out
@@ -313,5 +310,5 @@ On a mock relay:
   for relays known to judge only by event kind and socket.
 - Replaying the live REQ on a new socket. It is cheaper, but what it proved
   belongs to the previous socket, as the strfry case shows.
-- Merging short requests too, such as the `limit: 1` queries of `askReplaceable`.
-  `limit` and `search` make it a different problem, for another ADR.
+- Merging short requests too, such as `limit: 1` queries for a replaceable
+  event. `limit` and `search` make it a different problem, for another proposal.
