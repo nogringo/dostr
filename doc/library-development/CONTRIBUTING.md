@@ -1,9 +1,3 @@
----
-label: Contributing
-icon: repo-forked
-order: 100
----
-
 # Contributing to Dostr
 
 We love your input! We want to make contributing to this project as easy and transparent as possible, whether it's:
@@ -79,8 +73,8 @@ If you are unsure where to put your code, please ask us. We are happy to help yo
 ## Documentation Guidelines
 
 Every public-facing API should be documented. <br>
-Types of documentation we use are inline docs and Retype, deployed on [GitHub Pages](https://nogringo.github.io/dostr/).
-When you add a new use case or edit a feature, make sure to create/edit a corresponding markdown file in `/doc`.
+Types of documentation we use are inline docs, the README of each package, shown on pub.dev, and markdown pages in `/doc` for what spans several packages.
+When you add a new use case or edit a feature, update the README of its package.
 Generally we use examples in our docs if you do, please add them to the `example/` folder of the package as a test so we can ensure everything continues to work.
 
 

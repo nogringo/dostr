@@ -1,10 +1,3 @@
----
-label: Common Terminology
-order: 1
-icon: bookmark
-
----
-
 # Common terminology
 
 The words this documentation uses for Nostr notions, and the names they go by elsewhere.

@@ -1,10 +1,3 @@
----
-label: Library Development
-icon: repo-clone
-
----
-
-
 # Library development 🏗️
 
 ## Setup

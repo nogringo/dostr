@@ -1,8 +1,3 @@
----
-icon: info
-order: 0
----
-
 # Tips
 
 ## Keep one RelayManager
@@ -48,16 +43,4 @@ req.events
 
 ## Reduce native WebSocket memory overhead
 
-Native applications can opt out of `permessage-deflate` negotiation:
-
-```dart
-final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(
-    compressionEnabled: false,
-  ),
-);
-```
-
-Disabling compression can reduce memory and codec overhead for long-running services, but sends more bytes for compressible traffic and can perform worse on bandwidth-constrained links. Compression remains enabled by default.
-
-Browser WebSocket APIs do not expose compression negotiation controls, so this setting has no effect on web builds.
+Native apps can turn off WebSocket compression to save memory, at the cost of more bytes on the wire, see [WebSocket compression](../packages/core/README.md#websocket-compression).

@@ -57,7 +57,7 @@ final info = RelayInfo(
 );
 ```
 
-More in [example/](example/) and the [connectivity docs](https://nogringo.github.io/dostr/usecases/connectivity/).
+More in [example/](example/). The relay limits of [`dostr_core`](https://pub.dev/packages/dostr_core#relay-limits) show how a `RelayManager` reads `max_subscriptions` and `max_message_length` from it.
 
 ## Coming from `ndk`
 

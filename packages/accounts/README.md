@@ -37,9 +37,41 @@ await signer.getPublicKeyAsync();
 accounts.loginExternalSigner(signer: signer);
 ```
 
-`accountsStream` emits the known accounts on subscription, then an unmodifiable snapshot every time one is added or removed. `authStateChanges` emits the logged account, or null, every time it changes.
+The other external signers log in the same way: a browser extension with [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), an Android signer app with [`dostr_nip55`](https://pub.dev/packages/dostr_nip55).
 
-More in [example/](example/) and the [accounts docs](https://nogringo.github.io/dostr/usecases/accounts/).
+You can log in several accounts and move between them with `switchAccount(pubkey: ...)`. `logout` removes the logged one, `removeAccount` any of them.
+
+More in [example/](example/).
+
+## Reacting to changes
+
+```dart
+accounts.authStateChanges.listen((account) {
+  // the logged account, null when logged out
+});
+
+accounts.accountsStream.listen((accounts) {
+  // pubkey -> Account, emitted on every add and remove
+});
+```
+
+`accountsStream` emits the current accounts on subscription, then an unmodifiable snapshot each time an account is added or removed. `switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`.
+
+`accounts.accounts` is a read-only view of the same data, for a synchronous read. `getLoggedAccount()`, `isLoggedIn` and `canSign` tell who is logged and whether they can sign.
+
+## Relay authentication
+
+Give `Accounts` to the `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core), with an `AuthHandler`, and relays that ask for NIP-42 authentication get the logged account where the handler agrees:
+
+```dart
+final relayManager = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  accounts: accounts,
+  authHandler: (url, pubkey) async => url == 'wss://relay.example.com',
+);
+```
+
+See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication) of `dostr_core`.
 
 ## Coming from `ndk`
 

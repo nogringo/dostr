@@ -33,7 +33,9 @@ if (await nip55Signer.isAppInstalled()) {
 
 `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 
-`login()` asks the signer app for the user's public key and pre-authorizes `Nip55Signer.defaultPermissions`, so later requests can be answered silently, without opening the signer app. Pass your own list of `Nip55Permission` to ask for other ones. Keep `login.package` and pass it to `Nip55Signer(package:)`: requests then go straight to the same signer app.
+`login()` asks the signer app for the user's public key and pre-authorizes `Nip55Signer.defaultPermissions`, so later requests can be answered silently, without opening the signer app. Pass your own list of `Nip55Permission` to ask for other ones. Keep `login.package` and pass it to `Nip55Signer(package:)`: requests then go straight to the same signer app. With no package, each request opens a signer app.
+
+To restore the account in a later session, store `login.pubkey` and `login.package` and build the same `Nip55EventSigner` from them: nothing reaches the signer app until the first request.
 
 The signer app may ask the user to approve each request. While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it. A refusal throws a `SignerRequestRejectedException`. At most `maxConcurrentRequests` requests (100 by default) go out at once. The rest wait in a queue.
 

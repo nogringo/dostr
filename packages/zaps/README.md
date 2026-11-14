@@ -42,9 +42,24 @@ final receipts = await zaps.fetchZappedReceipts(pubKey: recipient).toList();
 
 `query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription to a filter and returns its events and a `close` to end it. `lnurl` fetches the LNURL-pay metadata and the invoices, `LnurlTransportHttpImpl` does it over HTTPS.
 
-`fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. `fetchZappedReceipts` and `subscribeToZapReceipts` match the receipts (kind 9735) by recipient, and by event or addressable event when given.
+`fetchInvoice` encodes the zap request in the invoice only when the LNURL server allows Nostr and the request is signed. Without a zap request it returns a plain lightning invoice. Pass `eventId` or `addressableId` to `createZapRequest` to zap an event, and `comment` for a message.
 
-More in [example/](example/) and the [zaps docs](https://nogringo.github.io/dostr/usecases/zaps/).
+More in [example/](example/), which runs `query` and `subscribe` on the `RelayReqs` of [`dostr_core`](https://pub.dev/packages/dostr_core).
+
+## Receipts
+
+`fetchZappedReceipts` and `subscribeToZapReceipts` match the receipts (kind `9735`) by recipient, and by event or addressable event when given:
+
+```dart
+final receipts =
+    await zaps.fetchZappedReceipts(pubKey: author, eventId: eventId).toList();
+
+final live = zaps.subscribeToZapReceipts(pubKey: author, eventId: eventId);
+live.events.listen((event) => print(ZapReceipt.fromEvent(event).amountSats));
+await live.close();
+```
+
+The receipts are parsed, not verified. `receipt.isValid(nostrPubKey: ..., recipientLnurl: ...)` checks one against the `nostrPubkey` of the recipient's LNURL server, which `getLnurlResponse(link)` of your `Lnurl` returns. Per NIP-57 this proves the receipt came from that server, not that the payment happened.
 
 ## Coming from `ndk`
 

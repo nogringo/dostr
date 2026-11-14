@@ -55,4 +55,71 @@ await sub.cancel();
 
 `query` answers the `get*` methods and `subscribe` the `stream*` ones. Both are called once per relay of the providers asked. `defaultProviders` defaults to `DEFAULT_NIP85_PROVIDERS`, served by `wss://nip85.uid.ovh`, and each call can pass its own `providers` instead.
 
-More in [example/](example/) and the [trusted assertions docs](https://nogringo.github.io/dostr/usecases/trusted-assertions/).
+More in [example/](example/).
+
+## Your own providers
+
+A provider is a `Nip85TrustedProvider`: the assertion kind, the metric, the provider's pubkey and the relay it publishes on. `Nip85TrustedProvider.fromTag` reads one from a kind `10040` tag such as `["30382:rank", "<pubkey>", "<relay>"]`.
+
+Set them for every call:
+
+```dart
+final ta = TrustedAssertions(
+  query: query,
+  subscribe: subscribe,
+  defaultProviders: myProviders,
+);
+```
+
+or per call:
+
+```dart
+final user = await ta.getUserMetrics(
+  pubkey,
+  metrics: {Nip85Metric.rank, Nip85Metric.postCount, Nip85Metric.replyCount},
+  providers: myProviders,
+);
+```
+
+## Streaming updates
+
+Providers like [Cipolin](https://github.com/nogringo/cipolin/) emit progressive updates while syncing, so the `stream*` methods fit them best:
+
+```dart
+final sub = ta
+    .streamUserMetrics(
+      pubkey,
+      metrics: {Nip85Metric.rank, Nip85Metric.followers, Nip85Metric.reactionsCount},
+      providers: myProviders,
+    )
+    .listen((m) {
+      print('update createdAt=${m.createdAt} rank=${m.rank} followers=${m.followers}');
+    });
+
+// closes the relay subscriptions
+await sub.cancel();
+```
+
+## Events, addresses and external identifiers
+
+Event metrics (kind `30383`):
+
+```dart
+final eventMetrics = await ta.getEventMetrics(
+  eventId,
+  metrics: {Nip85Metric.rank, Nip85Metric.commentCount, Nip85Metric.zapAmount},
+  providers: myProviders,
+);
+```
+
+Addressable metrics (kind `30384`):
+
+```dart
+final addressMetrics = await ta.getAddressableMetrics(
+  '30023:$pubkey:my-article-slug',
+  metrics: {Nip85Metric.rank, Nip85Metric.reactionCount, Nip85Metric.zapCount},
+  providers: myProviders,
+);
+```
+
+`getExternalIdMetrics` and `streamExternalIdMetrics` do the same for external identifiers (kind `30385`).

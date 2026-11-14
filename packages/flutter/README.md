@@ -1,32 +1,14 @@
-This package helps you to easily produce Nostr apps by providing generics Widgets and functions.
+# dostr_flutter
 
-## Features
+Ready-made Nostr widgets for Flutter apps (login, profiles, account switcher, pending signer requests), and logged in accounts kept across restarts.
 
-- Nostr widgets
-- Login persistence
+It re-exports [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), [`dostr_nip55`](https://pub.dev/packages/dostr_nip55) and [`dostr_web_crypto`](https://pub.dev/packages/dostr_web_crypto).
 
-## Getting started
-
-### Add dependencies
+## Install
 
 ```bash
 flutter pub add dostr_core dostr_accounts dostr_flutter
 ```
-
-### Add internationalization
-
-Follow the [Official documentation](https://docs.flutter.dev/ui/accessibility-and-internationalization/internationalization)
-
-```dart
-import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
-
-MaterialApp(
-    localizationsDelegates: dostr_flutter.AppLocalizations.localizationsDelegates,
-    supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
-);
-```
-
-`localizationsDelegates` holds the widgets' delegate along with Flutter's Material, Cupertino and widgets delegates. If your app has its own localizations, add `dostr_flutter.AppLocalizations.delegate` to your list instead.
 
 ## Usage
 
@@ -34,10 +16,13 @@ MaterialApp(
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
+import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
+import 'package:flutter/material.dart';
 
 final relayManager = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
+
 final dostrFlutter = DostrFlutter(
   accounts: Accounts(const DostrEventSignerFactory()),
   relayReqs: RelayReqs(
@@ -47,25 +32,63 @@ final dostrFlutter = DostrFlutter(
   relayPublishes: RelayPublishes(relayManager: relayManager),
 );
 
-// reads saved accounts from secure storage and logs them in again
-// typically called before runApp
-await dostrFlutter.restoreAccountsState();
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dostrFlutter.restoreAccountsState();
 
-// NLogin, NSwitchAccount and NUserProfile call it themselves:
-// call it only after changing accounts from your own code
-await dostrFlutter.saveAccountsState();
-
-NBanner(dostrFlutter: dostrFlutter);
-NPicture(dostrFlutter: dostrFlutter);
-NName(dostrFlutter: dostrFlutter);
-NUserProfile(dostrFlutter: dostrFlutter);
-NLogin(dostrFlutter: dostrFlutter);
-NSwitchAccount(dostrFlutter: dostrFlutter);
+  runApp(
+    MaterialApp(
+      localizationsDelegates:
+          dostr_flutter.AppLocalizations.localizationsDelegates,
+      supportedLocales: dostr_flutter.AppLocalizations.supportedLocales,
+      home: Scaffold(
+        body: StreamBuilder(
+          stream: dostrFlutter.accounts.authStateChanges,
+          builder: (context, _) => ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (dostrFlutter.accounts.isLoggedIn)
+                NUserProfile(dostrFlutter: dostrFlutter)
+              else
+                NLogin(dostrFlutter: dostrFlutter),
+            ],
+          ),
+        ),
+      ),
+    ),
+  );
+}
 ```
 
-By default, the logged-in user is used for user widgets; you can override it by passing a `pubkey` parameter.
+`DostrEventSignerFactory` and `DostrEventVerifier` pick an implementation per platform. On the web they are `WebEventSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`. Elsewhere they are `Bip340EventSignerFactory` and `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier), whose build hook compiles Rust: install the [Rust toolchain](https://rustup.rs) to build for Android, iOS or desktop.
 
-The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
+`DostrFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), and a `metadataFetcher`. The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
+
+To answer NIP-42 authentication, give the same `Accounts` to the `RelayManager`, see the relay authentication of [`dostr_accounts`](https://pub.dev/packages/dostr_accounts#relay-authentication).
+
+## Localization
+
+The widgets read their texts from `AppLocalizations` in `package:dostr_flutter/l10n/app_localizations.dart`, and throw when its delegate is missing. `localizationsDelegates` holds it along with Flutter's Material, Cupertino and widgets delegates. If your app has its own localizations, add `dostr_flutter.AppLocalizations.delegate` to your list instead. See Flutter's [internationalization guide](https://docs.flutter.dev/ui/accessibility-and-internationalization/internationalization).
+
+It ships 13 locales: `de`, `en`, `es`, `fi`, `fr`, `it`, `ja`, `pl`, `pt`, `pt_BR`, `ru`, `sk` and `zh`. `NLocaleSwitcher` (a button that opens a dialog) and `NLocaleSwitcherDropdown` let the user pick one of them and pass it to `onLocaleChanged`. Applying it to `MaterialApp.locale` is up to you.
+
+## Widgets
+
+Each widget takes the `DostrFlutter` as `dostrFlutter`.
+
+- `NLogin`: the login form. A NIP-05 address or an npub logs in read-only, an nsec with the private key. It also offers the browser extension (on the web only), a `bunker://` url and the signer app (on Android only). Each method has an `enable...Login` flag, and `enablePubkeyLogin: false` hides both the NIP-05 and npub fields. Pass a `NostrConnect` from `dostrFlutter.bunkers.createNostrConnect(...)` as `nostrConnect` to also show a `nostrconnect://` QR code, and a `Nip46ClientMetadata` as `clientMetadata` to name your app to the bunker. `onLoggedIn` runs once an account is logged in.
+- `NUserProfile`: the banner, picture, name and NIP-05 of a profile, with a logout button on the logged account.
+- `NPicture`, `NName` and `NBanner`: the picture, name or banner alone. Without a picture, `NPicture` shows an initial on a color derived from the pubkey.
+- `NSwitchAccount`: the accounts, with a tap to switch and a logout for the others. Give it `onAddAccount` to show an add account button.
+- `NPendingRequests`: a floating panel of the requests waiting on the logged account's external signer, where the user can cancel them. It is a `Positioned`, so put it in a `Stack` over your content.
+
+The profile widgets show the logged account unless given a `pubkey`. Pass a `metadata` (`Metadata.fromEvent(event)`) when you already have the profile, to skip the fetch.
+
+## Saving accounts
+
+`restoreAccountsState()` logs the saved accounts in again and switches to the one that was logged last. `saveAccountsState()` saves them. `NLogin`, `NSwitchAccount` and `NUserProfile` call it themselves, so call it only after changing `accounts` from your own code.
+
+The accounts are written to [`flutter_secure_storage`](https://pub.dev/packages/flutter_secure_storage), private keys included, under `accountsKey` (`ndk_flutter_accounts`, or `dev_ndk_flutter_accounts` in debug builds). Pass a `FlutterSecureStorage` as `storage` to change its options. NIP-07, NIP-46 and NIP-55 accounts come back without asking the signer again. An account with any other external signer is not saved.
 
 ## Coming from `ndk_flutter`
 

@@ -6,9 +6,13 @@
 
 Dostr is a set of Dart packages for building Nostr applications. Each package covers one part of Nostr and depends only on what it needs, so an application can pick the parts it uses.
 
-# Get started here ➡️ [Documentation](https://nogringo.github.io/dostr/)
+# Get started here ➡️ [Getting started](doc/getting-started.md)
 
-## [🔗 Contributing](https://nogringo.github.io/dostr/library-development/contributing/)
+Each package documents itself in its README, listed below. [doc/](doc/) covers what spans several packages: the [outbox model](doc/outbox-model.md), [tips](doc/tips.md) and [performance](doc/performance.md).
+
+Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
+
+## [🔗 Contributing](doc/library-development/CONTRIBUTING.md)
 
 ## Monorepo Packages
 

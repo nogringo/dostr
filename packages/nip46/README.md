@@ -35,9 +35,59 @@ final signer = bunkers.createSigner(connection!);
 await signer.getPublicKeyAsync();
 ```
 
-To let the remote signer start, create an invitation with `bunkers.createNostrConnect(relays: [...])`, show its `nostrConnectURL` (as a QR code, for example) and wait for `bunkers.connectWithNostrConnect`. Its key pair comes from the `eventSignerFactory` of `Bunkers`. Pass a `Nip46ClientMetadata` to either flow so the remote signer can name your app and see the permissions it asks for.
+Log the signer in with `accounts.loginExternalSigner(signer: signer)`, where `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts). `getPublicKey()` is synchronous and throws until the public key is known: call `getPublicKeyAsync()` once, or pass a known key as `cachedPublicKey`.
 
-Store `connection.toJson()` and rebuild it with `BunkerConnection.fromJson` to restore the session later. `getPublicKey()` is synchronous and throws until the public key is known: call `getPublicKeyAsync()` once, or pass a known key as `cachedPublicKey`.
+## Nostr Connect
+
+To let the remote signer start, create a `nostrconnect://` invitation, show its url (as a QR code, for example) and wait:
+
+```dart
+final nostrConnect = bunkers.createNostrConnect(
+  relays: ['wss://relay.example.com'],
+  clientMetadata: clientMetadata,
+);
+print(nostrConnect.nostrConnectURL);
+
+final connection = await bunkers.connectWithNostrConnect(
+  nostrConnect,
+  authCallback: (url) => print('approve at $url'),
+);
+```
+
+Its key pair comes from the `eventSignerFactory` of `Bunkers`.
+
+## Client metadata
+
+Pass the same `Nip46ClientMetadata` to both flows, as `clientMetadata`. A `bunker://` url does not identify your app, so this metadata is the only way for the remote signer to label the connection and see the permissions it asks for:
+
+```dart
+const clientMetadata = Nip46ClientMetadata(
+  name: 'My app',
+  url: 'https://myapp.example',
+  perms: ['sign_event:1', 'nip44_encrypt'],
+);
+```
+
+## Restoring a connection
+
+Store the `BunkerConnection` to re-establish the connection in future sessions: `connection.toJson()` serializes it and `BunkerConnection.fromJson()` restores it. Without it, users have to connect again each time.
+
+```dart
+final signer = bunkers.createSigner(BunkerConnection.fromJson(stored));
+await signer.getPublicKeyAsync();
+accounts.loginExternalSigner(signer: signer);
+```
+
+NIP-46 lets the remote signer pick the relays. Call `switchRelays()` right after connecting, before other requests, and store the connection again when it returns relays:
+
+```dart
+final relays = await signer.switchRelays();
+if (relays != null) {
+  // store signer.connection again
+}
+```
+
+## Pending requests
 
 The remote signer may ask the user to approve each request. While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it. A refusal throws a `SignerRequestRejectedException`. At most `maxConcurrentRequests` requests (100 by default) go out at once. The rest wait in a queue.
 

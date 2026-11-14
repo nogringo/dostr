@@ -33,9 +33,16 @@ await RelayPublishes(relayManager: relays)
     .done;
 ```
 
-`mineEvent` adds a `nonce` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce. Sign it after mining with an `EventSigner` (`signer`, for example a `Bip340EventSigner` of `dostr_bip340`), then publish it with `RelayPublishes` of `dostr_core`, where `relays` is the app's `RelayManager`. The id covers the pubkey, so give the event the signer's pubkey before mining.
+`mineEvent` adds a `["nonce", "<nonce>", "<target>"]` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce. Sign it after mining with an `EventSigner` (`signer`, for example a `Bip340EventSigner` of `dostr_bip340`), then publish it with `RelayPublishes` of `dostr_core`, where `relays` is the app's `RelayManager`. The id covers the pubkey and `created_at`, so set both before mining, to the signer's pubkey, and change neither after.
 
-`mineEvent` throws after `maxIterations` tries, 1,000,000 by default. A difficulty `d` takes 2^d tries on average, about a million at 20, so raise it for 20 and above.
+Each try picks a random nonce, so a difficulty `d` takes 2^d tries on average, about a million at 20. `mineEvent` throws an `Exception` after `maxIterations` tries, 1,000,000 by default, so raise it for 20 and above.
+
+## Checking
+
+- `Nip13.getDifficulty(id)` counts the leading zero bits of an id, and `Nip13.checkDifficulty(id, target)` compares them with a target.
+- `Nip13.validateEvent(event)` checks the event against the target of its `nonce` tag (`getTargetDifficultyFromEvent`), and returns true when it has none. To require work from others, check the id against your own minimum with `checkDifficulty`.
+- `Nip13.calculateCommitment(id)` is the work behind an id, 2^difficulty, as a `BigInt`.
+- They read the id as it is and do not recompute it. For an event you did not build, check `event.hasValidId` first, or verify the event.
 
 ## Coming from `ndk`
 

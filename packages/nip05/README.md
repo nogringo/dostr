@@ -29,9 +29,21 @@ switch (await nip05.resolve('bob@example.com')) {
 }
 ```
 
-`cache` is a `Nip05Cache`, keyed by the canonical identifier (`Nip05.canonicalIdentifier`). A found identifier is kept for `NIP_05_VALID_DURATION` (24 hours), a missing one for `NIP_05_NOT_FOUND_DURATION` (1 hour). Concurrent calls for the same identifier share one request. `check` resolves the identifier and tells whether it points to the given pubkey.
+`resolve` tells a missing address (`Nip05NotFound`) apart from a server that could not be reached (`Nip05ResolveError`). `relays` lists the relays the domain gives for the pubkey, if any.
 
-More in [example/](example/) and the [domain verification docs](https://nogringo.github.io/dostr/usecases/domain-verification/).
+To check an address against a pubkey you already have:
+
+```dart
+final result = await nip05.check(
+  nip05: 'username@domain.example',
+  pubkey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
+);
+print('valid? ${result.valid}, relays: ${result.relays}');
+```
+
+`cache` is a `Nip05Cache`, keyed by the canonical identifier (`Nip05.canonicalIdentifier`): implement it on your storage to keep results across restarts. A found identifier is kept for `NIP_05_VALID_DURATION` (24 hours), a missing one for `NIP_05_NOT_FOUND_DURATION` (1 hour). A request gives up after `NIP_05_REQUEST_TIMEOUT` (5 seconds). Concurrent calls for the same identifier share one request.
+
+More in [example/](example/).
 
 ## Coming from `ndk`
 

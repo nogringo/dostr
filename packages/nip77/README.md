@@ -43,6 +43,99 @@ final result = await response.future;
 filter. `loadEvent` reads one local event, for the ids you pass to `reconcile`
 as `localIds`. `needStream` and `haveStream` emit ids as rounds complete.
 
+Fetch `result.needIds` with the `RelayReqs` of `dostr_core`, and publish
+`result.haveIds` with its `RelayPublishes`.
+
+Good for syncing large event sets (long history), periodic reconciliation with
+your relays, making sure a relay has all your events, and discovering events you
+missed. For small queries, a plain REQ with `RelayReqs` is simpler.
+
+## Timeouts
+
+```dart
+final response = nip77.reconcile(
+  relayUrl: 'wss://relay.example.com',
+  filter: filter,
+  openTimeout: Duration(seconds: 30), // first answer to NEG-OPEN
+  idleTimeout: Duration(seconds: 15), // silence between two rounds
+);
+```
+
+There is no overall deadline: a large sync runs for as long as the relay keeps
+answering. When one of the two runs out, the future fails with
+`Nip77TimeoutException`, whose `openUnanswered` tells which.
+
+## Relay authentication (NIP-42)
+
+Some relays only reconcile with a client that authenticated, the same way they
+only serve a REQ to one. The `auth` parameter says which identity the
+reconciliation may be attributed to, as on `RelayReqs`:
+
+```dart
+final response = nip77.reconcile(
+  relayUrl: 'wss://relay.example.com',
+  filter: Filter(authors: [myPubkey]),
+  auth: AuthPolicy.require(account),
+);
+```
+
+| policy | connection | what a relay learns |
+| --- | --- | --- |
+| `AuthPolicy.never()` | anonymous, always | nothing. A relay that refuses the negotiation without an identity simply does not reconcile |
+| `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses | who you are, but only after that relay asked |
+| `AuthPolicy.require(a)` | bound to `a` from the start | who you are, as soon as it sends a challenge |
+
+Without `auth`, a negotiation reveals no identity, unless the `RelayManager` has
+`accounts` and an `authHandler`: a refused negotiation then authenticates as the
+logged account where the handler agrees. See the
+[NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication)
+of `dostr_core`.
+
+If `require` names an account that cannot sign, no connection can carry the
+reconciliation. Rather than fall back to the anonymous one, which is what
+`require` rules out, nothing is sent and `reconcile` itself throws
+`Nip77AuthUnavailableException`.
+
+## Errors
+
+A relay that refuses the negotiation with a `NEG-ERR` naming `CLOSED` fails it
+with `Nip77NotSupportedException`. One that ignores `NEG-OPEN` only fails with
+`Nip77TimeoutException` once `openTimeout` runs out (30 s by default). Pass a
+shorter `openTimeout` if that wait is too long:
+
+```dart
+try {
+  final response = nip77.reconcile(
+    relayUrl: 'wss://relay.example.com',
+    filter: filter,
+    openTimeout: const Duration(seconds: 10),
+  );
+  await response.future;
+} on Nip77NotSupportedException catch (e) {
+  print('Relay does not support NIP-77: ${e.message}');
+  // fall back to a plain REQ
+} on Nip77TimeoutException catch (e) {
+  print('Reconciliation timed out: ${e.timeout}');
+}
+```
+
+A relay that requires an identity you did not give it fails with
+`Nip77AuthRequiredException`:
+
+```dart
+try {
+  await nip77.reconcile(
+    relayUrl: 'wss://relay.example.com',
+    filter: filter,
+    auth: const AuthPolicy.never(),
+  ).future;
+} on Nip77AuthRequiredException catch (e) {
+  print('Relay wants an identity: ${e.message}');
+} on Nip77AuthUnavailableException catch (e) {
+  print('${e.pubkey} cannot sign, nothing was sent');
+}
+```
+
 ## Coming from `ndk` or `dostr_core`
 
 `package:dostr_core/shared/nips/nip77/negentropy.dart` and the `Nip77`,
