@@ -12,28 +12,50 @@ import 'nprofile.dart';
 
 /// NIP-19 decoding functions
 class Nip19Decoder {
-  /// Decode a NIP-19 encoded string (npub, note, nevent, nprofile, naddr)
-  /// Returns the decoded hex string
+  /// Decode a NIP-19 encoded string (npub, nsec, note, nevent, nprofile,
+  /// naddr) and return the hex string it holds. Throws a [FormatException]
+  /// when it is not one, or when a key or note id is not 32 bytes.
   static String decode(String nip19String) {
+    final String hrp;
+    final List<int> data;
     try {
-      var decoder = Bech32Decoder();
-      var bech32Result = decoder.convert(nip19String, nip19String.length);
-      var data = Nip19Utils.convertBits(bech32Result.data, 5, 8, false);
-      if (bech32Result.hrp != Hrps.kNoteId &&
-          bech32Result.hrp != Hrps.kPublicKey &&
-          bech32Result.hrp != Hrps.kPrivateKey) {
-        final tlv = Nip19TLV.parseTLV(data);
-        final special = tlv.where((t) => t.type == 0).firstOrNull?.value;
-        if (special != null) {
-          return hex.encode(special);
-        } else {
-          throw "Missing 'special' kind in TLV entity, cant decode to hex";
-        }
-      } else {
-        return hex.encode(data);
+      final bech32Result = Bech32Decoder().convert(
+        nip19String,
+        nip19String.length,
+      );
+      hrp = bech32Result.hrp;
+      data = Nip19Utils.convertBits(bech32Result.data, 5, 8, false);
+    } catch (e) {
+      throw FormatException("Not bech32: $e", nip19String);
+    }
+    if (hrp == Hrps.kNoteId ||
+        hrp == Hrps.kPublicKey ||
+        hrp == Hrps.kPrivateKey) {
+      if (data.length != 32) {
+        throw FormatException(
+          "$hrp holds ${data.length} bytes instead of 32",
+          nip19String,
+        );
       }
+      return hex.encode(data);
+    }
+    final special = Nip19TLV.parseTLV(
+      data,
+    ).where((t) => t.type == 0).firstOrNull?.value;
+    if (special == null) {
+      throw FormatException("$hrp has no special entry", nip19String);
+    }
+    return hex.encode(special);
+  }
+
+  /// Whether [str] is a valid [hrp] entity holding 32 bytes, such as an npub.
+  static bool holdsKey(String hrp, String str) {
+    try {
+      final result = Bech32Decoder().convert(str, str.length);
+      return result.hrp == hrp &&
+          Nip19Utils.convertBits(result.data, 5, 8, false).length == 32;
     } catch (_) {
-      return "";
+      return false;
     }
   }
 

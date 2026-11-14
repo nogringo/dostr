@@ -53,7 +53,7 @@ class NName extends StatelessWidget {
       // Use provided metadata if available, otherwise load it
       final userMetadata =
           metadata ?? await dostrFlutter.loadMetadata(_pubkey!);
-      return userMetadata?.getName();
+      return userMetadata?.tryGetName();
     } catch (e) {
       return null;
     }

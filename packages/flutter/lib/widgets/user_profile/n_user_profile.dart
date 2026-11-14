@@ -49,19 +49,12 @@ class NUserProfile extends StatelessWidget {
   }
 
   Widget _buildProfile(BuildContext context, Metadata? metadata) {
-    String name = dostrFlutter.formatNpub(profilePubkey!);
-    String? nip05;
+    final name =
+        metadata?.tryGetName() ?? dostrFlutter.formatNpub(profilePubkey!);
+    final nip05 = metadata?.cleanNip05;
 
     // Check if this is the logged account
     final isLoggedAccount = profilePubkey == _accounts.getPublicKey();
-
-    if (metadata != null) {
-      name = metadata.getName();
-
-      if (metadata.cleanNip05 != null) {
-        nip05 = metadata.cleanNip05;
-      }
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,7 +132,14 @@ class NUserProfile extends StatelessWidget {
         if (showName)
           Row(
             children: [
-              Text(name, style: Theme.of(context).textTheme.displaySmall),
+              Flexible(
+                child: Text(
+                  name,
+                  style: Theme.of(context).textTheme.displaySmall,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
               if (showNip05Indicator && nip05 != null)
                 Padding(
                   padding: const EdgeInsets.only(left: 8),

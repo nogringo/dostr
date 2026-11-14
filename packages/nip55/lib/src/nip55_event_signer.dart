@@ -63,6 +63,7 @@ class Nip55EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   }
 
   void _notifyPendingRequestsChange() {
+    if (_pendingRequestsController.isClosed) return;
     _pendingRequestsController.add(
       _pendingRequests.values.map((e) => e.request).toList(),
     );

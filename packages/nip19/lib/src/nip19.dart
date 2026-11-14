@@ -35,20 +35,16 @@ class Nip19 {
     }
   }
 
-  /// Check if a string is a public key (npub)
-  static bool isPubkey(String str) {
-    return isKey(Hrps.kPublicKey, str);
-  }
+  /// Whether [str] is a valid npub.
+  static bool isPubkey(String str) =>
+      Nip19Decoder.holdsKey(Hrps.kPublicKey, str);
 
-  /// Check if a string is a private key (nsec)
-  static bool isPrivateKey(String str) {
-    return isKey(Hrps.kPrivateKey, str);
-  }
+  /// Whether [str] is a valid nsec.
+  static bool isPrivateKey(String str) =>
+      Nip19Decoder.holdsKey(Hrps.kPrivateKey, str);
 
-  /// Check if a string is a note ID (note1)
-  static bool isNoteId(String str) {
-    return isKey(Hrps.kNoteId, str);
-  }
+  /// Whether [str] is a valid note id (note1).
+  static bool isNoteId(String str) => Nip19Decoder.holdsKey(Hrps.kNoteId, str);
 
   // ============================================================================
   // Encoding methods (delegated to Nip19Encoder)
@@ -129,8 +125,9 @@ class Nip19 {
   // Decoding methods (delegated to Nip19Decoder)
   // ============================================================================
 
-  /// Decode a NIP-19 encoded string (npub, note, nevent, nprofile, naddr)
-  /// Returns the decoded hex string
+  /// Decode a NIP-19 encoded string (npub, nsec, note, nevent, nprofile,
+  /// naddr) and return the hex string it holds. Throws a [FormatException]
+  /// when it is not one, or when a key or note id is not 32 bytes.
   static String decode(String nip19String) {
     return Nip19Decoder.decode(nip19String);
   }

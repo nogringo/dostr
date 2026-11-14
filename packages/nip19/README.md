@@ -48,9 +48,10 @@ Keys and ids are hex strings. `encodePubKey`, `encodePrivateKey` and
 
 ## Errors
 
-- `Nip19.decode` never throws: it returns an empty string when the input is not
-  valid. For an `nprofile` or `nevent` it returns the pubkey or event id and
-  drops the hints. Use `decodeNaddr` for an `naddr`.
+- `Nip19.decode` throws a `FormatException` when the input is not valid, or
+  when an `npub`, `nsec` or `note` does not hold 32 bytes. For an `nprofile` or
+  `nevent` it returns the pubkey or event id and drops the hints. Use
+  `decodeNaddr` for an `naddr`.
 - `decodeNprofile`, `decodeNevent` and `decodeNaddr` throw an `ArgumentError`
   for another prefix or a missing required field, and other exceptions when the
   string is not valid bech32.
@@ -61,7 +62,8 @@ Keys and ids are hex strings. `encodePubKey`, `encodePrivateKey` and
 `Nip19.isNip19` finds an entity in text, with or without the `nostr:` prefix of
 [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md). The decoders
 do not accept that prefix: strip it first. `isPubkey`, `isPrivateKey` and
-`isNoteId` only check the prefix of a string.
+`isNoteId` tell whether a string is a whole, valid `npub`, `nsec` or `note`, so
+a partial one, such as text still being typed, is not one.
 
 ## Coming from `ndk`
 

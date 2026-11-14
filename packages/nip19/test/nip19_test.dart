@@ -566,11 +566,22 @@ void main() {
     group('validation methods', () {
       test('isPubkey should correctly identify npub strings', () {
         const validNpub =
-            'npub1xp5rjcgx6ctlvkhe5r3wyejxz6y75sjqm6ynhux4qvvkg6jz5uks77vqd5';
+            'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg';
         const notNpub = 'note1abcd';
 
         expect(Nip19.isPubkey(validNpub), true);
         expect(Nip19.isPubkey(notNpub), false);
+      });
+
+      test('isPubkey rejects a partial or corrupted npub', () {
+        const validNpub =
+            'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg';
+
+        expect(Nip19.isPubkey('npub'), false);
+        expect(Nip19.isPubkey('npub1'), false);
+        expect(Nip19.isPubkey(validNpub.substring(0, 30)), false);
+        expect(Nip19.isPubkey('${validNpub.substring(0, 62)}q'), false);
+        expect(Nip19.isPubkey(Nip19.encodePubKey('ab' * 31)), false);
       });
 
       test('isPrivateKey should correctly identify nsec strings', () {
@@ -582,9 +593,17 @@ void main() {
         expect(Nip19.isPrivateKey(notNsec), false);
       });
 
+      test('isPrivateKey rejects a partial nsec', () {
+        const validNsec =
+            'nsec1vl029mgpspedva04g90vltkh6fvh240zqtv9k0t9af8935ke9laqsnlfe5';
+
+        expect(Nip19.isPrivateKey('nsec1'), false);
+        expect(Nip19.isPrivateKey(validNsec.substring(0, 20)), false);
+      });
+
       test('isNoteId should correctly identify note1 strings', () {
         const validNote =
-            'note15ylfqkhfduchm9pxfq8dsgrq7qppe7cxdvzxr3t2enq3vjd23dpqhva0cr';
+            'note158lfqkhfduchm9pxfv8dsgrq7qppe7cxdvzxr3t2enq3vjd23dpqrn06dn';
         const notNote = 'npub1abcd';
 
         expect(Nip19.isNoteId(validNote), true);
@@ -593,9 +612,9 @@ void main() {
 
       test('isNip19 should correctly identify NIP-19 strings', () {
         const validNpub =
-            'npub1xp5rjcgx6ctlvkhe5r3wyejxz6y75sjqm6ynhux4qvvkg6jz5uks77vqd5';
+            'npub10elfcs4fr0l0r8af98jlmgdh9c8tcxjvz9qkw038js35mp4dma8qzvjptg';
         const validNote =
-            'note15ylfqkhfduchm9pxfq8dsgrq7qppe7cxdvzxr3t2enq3vjd23dpqhva0cr';
+            'note158lfqkhfduchm9pxfv8dsgrq7qppe7cxdvzxr3t2enq3vjd23dpqrn06dn';
         const validNevent =
             'nevent1qqs2ztln6vaff7jq34c7ys67vwp8qpj87rxncrqf64hv9nry65tykscprpmhxue69uhhyetvv9ujuetcv9khqmr99ehhyee0qgs8d3c64cayj8canmky0jap0c3fekjpzwsthdhx4cthd4my8c5u47srqsqqqqqpk00gdp';
         const notNip19 = 'random-string';
@@ -608,34 +627,30 @@ void main() {
     });
 
     group('error handling', () {
-      test('decode should return empty string for invalid bech32', () {
-        const invalidBech32 = 'invalid_not_bech32';
-        final result = Nip19.decode(invalidBech32);
-        expect(result, '');
+      for (final (name, input) in [
+        ('invalid bech32', 'invalid_not_bech32'),
+        ('a malformed npub', 'npub1invalid'),
+        ('corrupted data', 'npub1qqqqqqq'),
+        ('a random string', 'this-is-not-a-valid-nip19-string'),
+        ('an empty string', ''),
+        ('a bare prefix', 'npub'),
+      ]) {
+        test('decode throws a FormatException for $name', () {
+          expect(() => Nip19.decode(input), throwsFormatException);
+        });
+      }
+
+      test('decode throws for a truncated npub', () {
+        final npub = Nip19.encodePubKey('a' * 64);
+        expect(
+          () => Nip19.decode(npub.substring(0, 20)),
+          throwsFormatException,
+        );
       });
 
-      test('decode should return empty string for malformed npub', () {
-        const malformed = 'npub1invalid';
-        final result = Nip19.decode(malformed);
-        expect(result, '');
-      });
-
-      test('decode should return empty string for corrupted data', () {
-        const corrupted = 'npub1qqqqqqq';
-        final result = Nip19.decode(corrupted);
-        expect(result, '');
-      });
-
-      test('decode should return empty string for random string', () {
-        const random = 'this-is-not-a-valid-nip19-string';
-        final result = Nip19.decode(random);
-        expect(result, '');
-      });
-
-      test('decode should return empty string for empty string', () {
-        const empty = '';
-        final result = Nip19.decode(empty);
-        expect(result, '');
+      test('decode throws for an npub that does not hold 32 bytes', () {
+        final short = Nip19.encodePubKey('ab' * 31);
+        expect(() => Nip19.decode(short), throwsFormatException);
       });
     });
 

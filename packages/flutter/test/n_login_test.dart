@@ -172,39 +172,31 @@ void main() {
       expect(loggedIn, 0);
     });
 
-    testWidgets(
-      'waits for a complete npub',
-      (tester) async {
-        await tester.pumpWidget(login());
+    testWidgets('waits for a complete npub', (tester) async {
+      await tester.pumpWidget(login());
 
-        await tester.enterText(
-          field('npub1...'),
-          Nip19.encodePubKey(bobPubkey).substring(0, 20),
-        );
-        await tester.pump();
+      await tester.enterText(
+        field('npub1...'),
+        Nip19.encodePubKey(bobPubkey).substring(0, 20),
+      );
+      await tester.pump();
 
-        expect(dostr.accounts.isNotLoggedIn, isTrue);
-        expect(loggedIn, 0);
-      },
-      skip: true, // bug: Nip19.decode gives '' and an empty pubkey logs in
-    );
+      expect(dostr.accounts.isNotLoggedIn, isTrue);
+      expect(loggedIn, 0);
+    });
 
-    testWidgets(
-      'waits for a complete nsec',
-      (tester) async {
-        await tester.pumpWidget(login());
+    testWidgets('waits for a complete nsec', (tester) async {
+      await tester.pumpWidget(login());
 
-        await tester.enterText(
-          field('nsec1...'),
-          Nip19.encodePrivateKey(alicePrivateKey).substring(0, 20),
-        );
-        await tester.pump();
+      await tester.enterText(
+        field('nsec1...'),
+        Nip19.encodePrivateKey(alicePrivateKey).substring(0, 20),
+      );
+      await tester.pump();
 
-        expect(dostr.accounts.isNotLoggedIn, isTrue);
-        expect(loggedIn, 0);
-      },
-      skip: true, // bug: Nip19.decode gives '' and Bip340.getPublicKey throws
-    );
+      expect(dostr.accounts.isNotLoggedIn, isTrue);
+      expect(loggedIn, 0);
+    });
 
     testWidgets('logs in with an nsec under the pubkey of the key', (
       tester,

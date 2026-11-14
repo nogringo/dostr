@@ -60,10 +60,13 @@ class Metadata {
       nip05?.trim().toLowerCase().replaceFirst(RegExp('^_@'), '@');
 
   /// [displayName], else [name], else [pubKey]
-  String getName() => switch ((displayName?.trim(), name?.trim())) {
+  String getName() => tryGetName() ?? pubKey;
+
+  /// [displayName], else [name], else null
+  String? tryGetName() => switch ((displayName?.trim(), name?.trim())) {
     (final String displayName, _) when displayName.isNotEmpty => displayName,
     (_, final String name) when name.isNotEmpty => name,
-    _ => pubKey,
+    _ => null,
   };
 }
 

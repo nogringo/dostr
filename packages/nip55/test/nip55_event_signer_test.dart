@@ -382,9 +382,6 @@ void main() {
         expect(await first, '1');
         await pumpEventQueue();
       },
-      skip:
-          'bug: a request ending after dispose adds to the closed '
-          'pendingRequests subject and throws an uncaught StateError',
     );
   });
 }

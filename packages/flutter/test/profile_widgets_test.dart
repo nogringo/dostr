@@ -109,6 +109,20 @@ void main() {
       expect(find.text(shortNpub(bobPubkey)), findsOneWidget);
     });
 
+    testWidgets('keeps the npub for a profile without a name', (tester) async {
+      await tester.pumpWidget(
+        localizedApp(
+          NName(
+            dostrFlutter: dostrFlutter(),
+            metadata: const Metadata(pubKey: bobPubkey),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text(shortNpub(bobPubkey)), findsOneWidget);
+    });
+
     testWidgets('keeps the npub when the fetch fails', (tester) async {
       dostr.metadata.error = Exception('no relay');
 
@@ -328,17 +342,14 @@ void main() {
       expect(find.text('Logout').hitTestable(), findsNothing);
     });
 
-    testWidgets(
-      'lays out a profile without a name',
-      (tester) async {
-        await tester.pumpWidget(
-          profile(metadata: const Metadata(pubKey: alicePubkey)),
-        );
+    testWidgets('lays out a profile without a name', (tester) async {
+      await tester.pumpWidget(
+        profile(metadata: const Metadata(pubKey: alicePubkey)),
+      );
 
-        expect(tester.takeException(), isNull);
-      },
-      skip: true, // bug: the name falls back to the hex pubkey and overflows
-    );
+      expect(tester.takeException(), isNull);
+      expect(find.text(shortNpub(alicePubkey)), findsOneWidget);
+    });
 
     testWidgets('logs out and switches to the next account', (tester) async {
       var loggedOut = false;
