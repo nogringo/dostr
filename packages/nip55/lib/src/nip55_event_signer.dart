@@ -47,8 +47,9 @@ class Nip55EventSigner with ConcurrencyLimiterMixin implements EventSigner {
 
   /// NIP-55 expects pubkeys in hex format ("All pubkeys in this NIP are in hex
   /// format"), so `current_user` is always sent as hex.
-  String get _currentUser =>
-      publicKey.startsWith('npub') ? Nip19.decode(publicKey) : publicKey;
+  String get _currentUser => publicKey.startsWith(Npub.prefix)
+      ? Npub.decode(publicKey).pubkey
+      : publicKey;
 
   String _extractResult(Map<dynamic, dynamic> map) {
     final result = map['signature'] as String?;

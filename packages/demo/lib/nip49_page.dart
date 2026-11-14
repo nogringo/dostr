@@ -39,7 +39,7 @@ class _Nip49PageState extends State<Nip49Page> {
 
   void _generatePrivateKey() {
     _privateKeyController.text =
-        Nip19.encodePrivateKey(Bip340.generatePrivateKey().privateKey!);
+        Nsec(Bip340.generatePrivateKey().privateKey!).encode();
   }
 
   Future<void> _encrypt() async {
@@ -52,7 +52,7 @@ class _Nip49PageState extends State<Nip49Page> {
     try {
       final input = _privateKeyController.text.trim();
       final ncryptsec = await Nip49.encrypt(
-        Nip19.isPrivateKey(input) ? Nip19.decode(input) : input,
+        Nsec.tryDecode(input)?.privateKey ?? input,
         _encryptPasswordController.text,
         logN: _logN,
       );
@@ -170,7 +170,7 @@ class _Nip49PageState extends State<Nip49Page> {
               ),
               if (_decryptedPrivateKey != null)
                 _Result(
-                  value: Nip19.encodePrivateKey(_decryptedPrivateKey!),
+                  value: Nsec(_decryptedPrivateKey!).encode(),
                   caption:
                       'Decrypted in ${_decryptDuration!.inMilliseconds} ms',
                 ),

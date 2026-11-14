@@ -86,7 +86,7 @@ void main() {
     });
 
     test('decodes the npub an older signer returns', () async {
-      reply = (_) => {'result': Nip19.encodePubKey(pubkey)};
+      reply = (_) => {'result': Npub(pubkey).encode()};
 
       expect((await const Nip55Signer().login())!.pubkey, pubkey);
     });
@@ -117,7 +117,7 @@ void main() {
     });
 
     test('getPublicKeyHex returns the key in hex', () async {
-      reply = (_) => {'result': Nip19.encodePubKey(pubkey)};
+      reply = (_) => {'result': Npub(pubkey).encode()};
 
       expect(await const Nip55Signer().getPublicKeyHex(), pubkey);
     });

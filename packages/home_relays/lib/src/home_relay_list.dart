@@ -77,7 +77,7 @@ class HomeRelayList {
   /// The home relays of [pubKey] (hex): the [count] candidates closest to it,
   /// closest first, by `sha256(npub) XOR sha256(url)`.
   List<String> homeRelaysOf(String pubKey, {int count = 8}) {
-    final key = _sha256(Nip19.encodePubKey(pubKey));
+    final key = _sha256(Npub(pubKey).encode());
     final distances = [
       for (final hash in _hashes)
         [for (var i = 0; i < hash.length; i++) hash[i] ^ key[i]],

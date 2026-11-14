@@ -151,7 +151,7 @@ void main() {
         .encryptNip44(plaintext: plaintext, recipientPubKey: stalePublicKey);
 
     test('sends the hex pubkey as current_user for an npub login', () async {
-      final signer = newSigner(publicKey: Nip19.encodePubKey(publicKey));
+      final signer = newSigner(publicKey: Npub(publicKey).encode());
 
       final result = encrypt(signer, 'hello');
       await pumpEventQueue();

@@ -49,9 +49,9 @@ void main() {
       'wss://user.kindpag.es',
       'wss://yabu.me',
     ]);
-    final pubKey = Nip19.decode(
+    final pubKey = Npub.decode(
       'npub1jlp4rzsraw0nvvuyavgf2z497juw7y44v40ch23lnwzlnre3wuusjhmu65',
-    );
+    ).pubkey;
 
     expect(list.homeRelaysOf(pubKey), [
       'wss://relay.angor.io',

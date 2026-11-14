@@ -119,7 +119,7 @@ void main() {
     tearDown(() => dostr.dispose());
 
     test('formatNpub keeps the start and the end of the npub', () {
-      final npub = Nip19.encodePubKey(alicePubkey);
+      final npub = Npub(alicePubkey).encode();
 
       expect(
         dostr.dostrFlutter.formatNpub(alicePubkey),

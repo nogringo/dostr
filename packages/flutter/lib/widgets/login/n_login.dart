@@ -282,14 +282,8 @@ class _NLoginState extends State<NLogin> {
   }
 
   Future<void> loginWithNpub(String npub) async {
-    if (!Nip19.isPubkey(npub)) return;
-
-    String pubkey;
-    try {
-      pubkey = Nip19.decode(npub);
-    } catch (e) {
-      return;
-    }
+    final pubkey = Npub.tryDecode(npub)?.pubkey;
+    if (pubkey == null) return;
 
     if (_accounts.hasAccount(pubkey)) {
       _accounts.switchAccount(pubkey: pubkey);
@@ -301,14 +295,8 @@ class _NLoginState extends State<NLogin> {
   }
 
   Future<void> loginWithNsec(String nsec) async {
-    if (!Nip19.isPrivateKey(nsec)) return;
-
-    String privateKey;
-    try {
-      privateKey = Nip19.decode(nsec);
-    } catch (e) {
-      return;
-    }
+    final privateKey = Nsec.tryDecode(nsec)?.privateKey;
+    if (privateKey == null) return;
 
     final pubkey = Bip340.getPublicKey(privateKey);
 

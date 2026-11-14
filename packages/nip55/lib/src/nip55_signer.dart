@@ -105,7 +105,7 @@ class Nip55Signer {
     );
     final raw = (response['result'] ?? response['signature']) as String?;
     if (raw == null || raw.isEmpty) return null;
-    final pubkey = raw.startsWith('npub') ? Nip19.decode(raw) : raw;
+    final pubkey = raw.startsWith(Npub.prefix) ? Npub.decode(raw).pubkey : raw;
     final pkg = response['package'] as String?;
     return Nip55LoginResult(
       pubkey: pubkey,

@@ -104,7 +104,7 @@ class DostrFlutter {
   }
 
   String formatNpub(String pubkey) {
-    final npub = Nip19.encodePubKey(pubkey);
+    final npub = Npub(pubkey).encode();
     final prefix = npub.substring(0, npubPrefixLength);
     final suffix = npub.substring(npub.length - npubSuffixLength);
     return '$prefix$npubSeparator$suffix';

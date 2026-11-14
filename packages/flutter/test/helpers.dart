@@ -89,7 +89,7 @@ class TestDostrFlutter {
 }
 
 String shortNpub(String pubkey) {
-  final npub = Nip19.encodePubKey(pubkey);
+  final npub = Npub(pubkey).encode();
   return '${npub.substring(0, 10)}...${npub.substring(npub.length - 4)}';
 }
 

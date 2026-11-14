@@ -97,7 +97,9 @@ void main() {
 
     test('download goes through blossom for a url with an extension', () async {
       final uploaded = await client.upload(
-        file: BlossomFile(data: Uint8List.fromList(utf8.encode('with extension'))),
+        file: BlossomFile(
+          data: Uint8List.fromList(utf8.encode('with extension')),
+        ),
         serverUrls: ['http://localhost:3011'],
       );
       final sha256 = uploaded.single.descriptor!.sha256;

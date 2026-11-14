@@ -152,7 +152,7 @@ void main() {
     testWidgets('logs in read-only with an npub', (tester) async {
       await tester.pumpWidget(login());
 
-      await tester.enterText(field('npub1...'), Nip19.encodePubKey(bobPubkey));
+      await tester.enterText(field('npub1...'), Npub(bobPubkey).encode());
       await tester.pump();
 
       final account = dostr.accounts.getLoggedAccount()!;
@@ -177,7 +177,7 @@ void main() {
 
       await tester.enterText(
         field('npub1...'),
-        Nip19.encodePubKey(bobPubkey).substring(0, 20),
+        Npub(bobPubkey).encode().substring(0, 20),
       );
       await tester.pump();
 
@@ -190,7 +190,7 @@ void main() {
 
       await tester.enterText(
         field('nsec1...'),
-        Nip19.encodePrivateKey(alicePrivateKey).substring(0, 20),
+        Nsec(alicePrivateKey).encode().substring(0, 20),
       );
       await tester.pump();
 
@@ -203,10 +203,7 @@ void main() {
     ) async {
       await tester.pumpWidget(login());
 
-      await tester.enterText(
-        field('nsec1...'),
-        Nip19.encodePrivateKey(alicePrivateKey),
-      );
+      await tester.enterText(field('nsec1...'), Nsec(alicePrivateKey).encode());
       await tester.pump();
 
       final account = dostr.accounts.getLoggedAccount()!;
@@ -224,17 +221,14 @@ void main() {
       dostr.accounts.loginPublicKey(pubkey: bobPubkey);
       await tester.pumpWidget(login());
 
-      await tester.enterText(
-        field('nsec1...'),
-        Nip19.encodePrivateKey(alicePrivateKey),
-      );
+      await tester.enterText(field('nsec1...'), Nsec(alicePrivateKey).encode());
       await tester.pump();
 
       expect(dostr.accounts.getPublicKey(), alicePubkey);
       expect(dostr.accounts.accounts, hasLength(2));
       expect(loggedIn, 1);
 
-      await tester.enterText(field('npub1...'), Nip19.encodePubKey(bobPubkey));
+      await tester.enterText(field('npub1...'), Npub(bobPubkey).encode());
       await tester.pump();
 
       expect(dostr.accounts.getPublicKey(), bobPubkey);

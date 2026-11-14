@@ -36,9 +36,9 @@ Future<void> main() async {
     },
   );
 
-  final pubkey = Nip19.decode(
+  final pubkey = Npub.decode(
     'npub1s5yq6wadwrxde4lhfs56gn64hwzuhnfa6r9mj476r5s4hkunzgzqrs6q7z',
-  );
+  ).pubkey;
 
   final metrics = await ta.getUserMetrics(
     pubkey,

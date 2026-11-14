@@ -56,12 +56,7 @@ class _Nip77PageState extends State<Nip77Page> {
 
   Filter _buildFilter() {
     final author = _authorController.text.trim();
-    String pubkey;
-    try {
-      pubkey = author.startsWith('npub') ? Nip19.decode(author) : author;
-    } catch (_) {
-      pubkey = '';
-    }
+    final pubkey = Npub.tryDecode(author)?.pubkey ?? author;
     if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(pubkey)) {
       throw const FormatException('Author must be an npub or a hex pubkey');
     }

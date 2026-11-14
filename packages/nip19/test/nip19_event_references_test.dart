@@ -20,7 +20,7 @@ void main() {
         expect(nevent.startsWith('nevent1'), true);
 
         // Verify we can decode it back
-        final decoded = Nip19.decodeNevent(nevent);
+        final decoded = Nevent.decode(nevent);
         expect(decoded.eventId, event.id);
         expect(decoded.author, event.pubKey);
         expect(decoded.kind, event.kind);
@@ -39,7 +39,7 @@ void main() {
 
         final nevent = event.nevent(relays: relays);
 
-        final decoded = Nip19.decodeNevent(nevent);
+        final decoded = Nevent.decode(nevent);
         expect(decoded.relays, relays);
       });
 
@@ -54,8 +54,8 @@ void main() {
         );
         final nevent = event.nevent();
 
-        final decoded = Nip19.decodeNevent(nevent);
-        expect(decoded.relays, null);
+        final decoded = Nevent.decode(nevent);
+        expect(decoded.relays, isEmpty);
       });
     });
 
@@ -77,29 +77,42 @@ void main() {
         expect(naddr!.startsWith('naddr1'), true);
 
         // Verify we can decode it back
-        final decoded = Nip19.decodeNaddr(naddr);
+        final decoded = Naddr.decode(naddr);
         expect(decoded.identifier, 'my-article');
         expect(decoded.pubkey, event.pubKey);
         expect(decoded.kind, event.kind);
       });
 
-      test('should encode replaceable event (kind 0) as naddr', () {
+      test('gives a replaceable event an empty identifier', () {
+        for (final kind in [0, 3, 10002]) {
+          final event = Nip01Event(
+            pubKey:
+                '460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c',
+            kind: kind,
+            tags: [
+              ['d', 'ignored'],
+            ],
+            content: '{"name":"Alice"}',
+            createdAt: 1234567890,
+          );
+
+          final decoded = Naddr.decode(event.naddr()!);
+          expect(decoded.identifier, '', reason: 'kind $kind');
+          expect(decoded.kind, kind);
+        }
+      });
+
+      test('gives a replaceable event without a d tag an naddr', () {
         final event = Nip01Event(
           pubKey:
               '460c25e682fda7832b52d1f22d3d22b3176d972f60dcdc3212ed8c92ef85065c',
-          kind: 30001,
-          tags: [
-            ['d', 'bla'],
-          ],
+          kind: 0,
+          tags: [],
           content: '{"name":"Alice"}',
           createdAt: 1234567890,
         );
-        final naddr = event.naddr();
 
-        expect(naddr, isNotNull);
-        final decoded = Nip19.decodeNaddr(naddr!);
-        expect(decoded.identifier, event.dTag);
-        expect(decoded.kind, event.kind);
+        expect(Naddr.decode(event.naddr()!).identifier, '');
       });
 
       test('should return null for non-addressable event', () {
@@ -148,7 +161,7 @@ void main() {
         final naddr = event.naddr(relays: relays);
 
         expect(naddr, isNotNull);
-        final decoded = Nip19.decodeNaddr(naddr!);
+        final decoded = Naddr.decode(naddr!);
         expect(decoded.relays, relays);
       });
     });

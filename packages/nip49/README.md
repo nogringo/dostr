@@ -26,7 +26,7 @@ final ncryptsec = await Nip49.encrypt(
 final privateKey = await Nip49.decrypt(ncryptsec, 'password');
 ```
 
-The key goes in and comes out as hex: `Nip19.encodePrivateKey` from
+The key goes in and comes out as hex: `Nsec(privateKey).encode()` from
 [`dostr_nip19`](https://pub.dev/packages/dostr_nip19) turns it into an `nsec`.
 The password is normalized to NFKC first, as NIP-49 requires.
 

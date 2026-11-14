@@ -1,8 +1,8 @@
 # dostr_nip19
 
 [NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) bech32
-encoding and decoding for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent`
-and `naddr`. Pure Dart, no relay or network code.
+entities for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent` and `naddr`.
+Pure Dart, no relay or network code.
 
 ## Install
 
@@ -13,61 +13,96 @@ dependencies:
 
 ## Usage
 
+Each entity is a class: `Npub`, `Nsec`, `Note`, `Nprofile`, `Nevent` and
+`Naddr`. Build one from hex and `encode` it, or `decode` a string into one:
+
 ```dart
 import 'package:dostr_nip19/dostr_nip19.dart';
 
-final npub = Nip19.encodePubKey(
+final npub = Npub(
   '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
-);
-final hex = Nip19.decode(npub);
+).encode();
+final pubkey = Npub.decode(npub).pubkey;
 
-final nevent = Nip19.encodeNevent(
+final nevent = Nevent(
   eventId: 'b9f5441e45ca39179320e0031cfb18e34078673dcc3d3e3a3b3a981760aa5696',
   relays: ['wss://relay.example.com'],
-);
-final reference = Nip19.decodeNevent(nevent);
-print(reference.eventId);
+).encode();
+print(Nevent.decode(nevent).relays);
 ```
 
+`Nip19Entity.decode` takes any of them. `Nip19Entity` is sealed, so a `switch`
+over it is exhaustive:
+
+```dart
+switch (Nip19Entity.decode(input)) {
+  case Npub(:final pubkey) || Nprofile(:final pubkey):
+    openProfile(pubkey);
+  case Note(:final eventId) || Nevent(:final eventId):
+    openEvent(eventId);
+  case Naddr(:final kind, :final pubkey, :final identifier):
+    openAddress(kind, pubkey, identifier);
+  case Nsec():
+    warnAboutSecret();
+}
+```
+
+The decoders accept the `nostr:` prefix of
+[NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before
+an `nsec`, which NIP-21 forbids. Each class has a `prefix` constant, such as
+`Npub.prefix`.
+
 `nevent` and `naddr` encode a `Nip01Event` of
-[`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints. `nevent`
-holds its id, author and kind, and `naddr` its `d` tag, author and kind. `naddr`
-returns null unless the kind is addressable (or `0`, `3` or `41`) and the event
-has a `d` tag:
+[`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints:
 
 ```dart
 final nevent = event.nevent(relays: ['wss://relay.example.com']);
 final naddr = event.naddr();
 ```
 
-Keys and ids are hex strings. `encodePubKey`, `encodePrivateKey` and
-`encodeNoteId` give an `npub`, an `nsec` and a `note`. `encodeNprofile`,
-`encodeNevent` and `encodeNaddr` add relay hints, and `decodeNprofile`,
-`decodeNevent` and `decodeNaddr` read them back as `Nprofile`, `Nevent` and
-`Naddr`.
+`nevent` holds the id, author and kind of the event. `naddr` holds its kind,
+author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3,
+41 and 10000 to 19999). It returns null for any other kind, and for an
+addressable event without a `d` tag.
+
+Entities are values: two with the same fields are equal, and their `relays`
+cannot be modified. `Nsec.toString` leaves the private key out.
 
 ## Errors
 
-- `Nip19.decode` throws a `FormatException` when the input is not valid, or
-  when an `npub`, `nsec` or `note` does not hold 32 bytes. For an `nprofile` or
-  `nevent` it returns the pubkey or event id and drops the hints. Use
-  `decodeNaddr` for an `naddr`.
-- `decodeNprofile`, `decodeNevent` and `decodeNaddr` throw an `ArgumentError`
-  for another prefix or a missing required field, and other exceptions when the
-  string is not valid bech32.
-- `encodeNprofile`, `encodeNevent` and `encodeNaddr` throw an `ArgumentError`
-  when a pubkey or id is not 32 bytes, or when a relay url is longer than 255
-  bytes.
+- `decode` throws a `FormatException` when the input is not valid bech32, has
+  another prefix, misses a required field, or holds a key or id that is not 32
+  bytes. No message quotes the input, since it may be an `nsec`.
+- `tryDecode` returns null where `decode` throws.
+- The constructors throw an `ArgumentError` when a key or id is not 32 bytes of
+  hex, when a relay url or an `naddr` identifier is longer than 255 bytes, or
+  when a kind does not fit 32 bits. They accept uppercase hex and keep it
+  lowercase.
 
-`Nip19.isNip19` finds an entity in text, with or without the `nostr:` prefix of
-[NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md). The decoders
-do not accept that prefix: strip it first. `isPubkey`, `isPrivateKey` and
-`isNoteId` tell whether a string is a whole, valid `npub`, `nsec` or `note`, so
-a partial one, such as text still being typed, is not one.
+Unknown TLV entries are ignored, as NIP-19 asks, and so are relays that are not
+valid UTF-8 and an `nevent` author or kind of the wrong length.
 
 ## Coming from `ndk`
 
-`package:ndk/shared/nips/nip19/nip19.dart` and the `Naddr`, `Nevent` and
-`Nprofile` entities are now all in `package:dostr_nip19/dostr_nip19.dart`, and so
-are the `nevent` and `naddr` methods on `Nip01Event`
-(`package:ndk/shared/nips/nip19/nip19_event_references.dart`).
+`package:ndk/shared/nips/nip19/nip19.dart` is now
+`package:dostr_nip19/dostr_nip19.dart`, and so are the `nevent` and `naddr`
+methods on `Nip01Event`. The static `Nip19` class is gone:
+
+| `ndk` | `dostr_nip19` |
+| --- | --- |
+| `Nip19.encodePubKey(pubkey)` | `Npub(pubkey).encode()` |
+| `Nip19.encodePrivateKey(key)` | `Nsec(key).encode()` |
+| `Nip19.encodeNoteId(id)` | `Note(id).encode()` |
+| `Nip19.encodeNprofile(...)` | `Nprofile(...).encode()` |
+| `Nip19.encodeNevent(...)` | `Nevent(...).encode()` |
+| `Nip19.encodeNaddr(...)` | `Naddr(...).encode()` |
+| `Nip19.decode(npub)` | `Npub.decode(npub).pubkey` |
+| `Nip19.decode(nsec)` | `Nsec.decode(nsec).privateKey` |
+| `Nip19.decode(note)` | `Note.decode(note).eventId` |
+| `Nip19.decodeNprofile(s)` | `Nprofile.decode(s)` |
+| `Nip19.decodeNevent(s)` | `Nevent.decode(s)` |
+| `Nip19.decodeNaddr(s)` | `Naddr.decode(s)` |
+| `Nip19.isPubkey(s)` | `Npub.tryDecode(s) != null` |
+| `Nip19.isPrivateKey(s)` | `Nsec.tryDecode(s) != null` |
+| `Nip19.isNoteId(s)` | `Note.tryDecode(s) != null` |
+| `Hrps.kPublicKey` | `Npub.prefix` |
