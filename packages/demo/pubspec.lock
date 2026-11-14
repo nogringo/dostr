@@ -271,6 +271,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  dostr_string_color:
+    dependency: "direct overridden"
+    description:
+      path: "../string_color"
+      relative: true
+    source: path
+    version: "0.1.0"
   dostr_url_set:
     dependency: "direct overridden"
     description:

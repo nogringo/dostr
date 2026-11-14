@@ -7,6 +7,15 @@ import 'main.dart';
 
 const _clientMetadata = Nip46ClientMetadata(name: 'Dostr demo');
 
+const _colorDemoPubkeys = [
+  '8f43b51ff660faf4039e9c9187394a06b62b719e609f02719c16668b56d7ca99',
+  'e8c5dccad6e6898c02dff327737bdf40e9a808567d07d5d472c24ab1fab28f0b',
+  '3b30053888927b763c02bf42b15db2731ec5bf4d63a55bdba68b30e0cae9b4c7',
+  '6da556857c1d40eb6d548715371c7713642e37c92cd99da2b463e3d2b9c76466',
+  '0b1aa16f9792a4c5f689e6d9df853c80d324aef4dcdbb18c39e8052da0425f65',
+  'd4d5622db202a3b62c31ac6bad729282232e833839920bbbfdcc15f7b4d57e07',
+];
+
 class WidgetsDemoPage extends StatefulWidget {
   const WidgetsDemoPage({super.key});
 
@@ -236,7 +245,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
 
             // Color from pubkey demo
             _buildSection(
-              title: 'colorFromPubkey',
+              title: 'StringColor',
               description: l10n.widgetsSectionGetColorDescription,
               child: Card(
                 child: Padding(
@@ -245,12 +254,8 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      _buildColorDemo('npub1abc...'),
-                      _buildColorDemo('npub1xyz...'),
-                      _buildColorDemo('npub1def...'),
-                      _buildColorDemo('npub1ghi...'),
-                      _buildColorDemo('npub1jkl...'),
-                      _buildColorDemo('npub1mno...'),
+                      for (final pubkey in _colorDemoPubkeys)
+                        _buildColorDemo(pubkey),
                     ],
                   ),
                 ),
@@ -311,8 +316,8 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
     );
   }
 
-  Widget _buildColorDemo(String fakePubkey) {
-    final color = colorFromPubkey(fakePubkey);
+  Widget _buildColorDemo(String pubkey) {
+    final color = StringColor.fromHex(pubkey).toColor();
     return Column(
       children: [
         Container(
@@ -324,7 +329,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
           ),
         ),
         const SizedBox(height: 4),
-        Text(fakePubkey.substring(0, 10), style: const TextStyle(fontSize: 10)),
+        Text(pubkey.substring(0, 10), style: const TextStyle(fontSize: 10)),
       ],
     );
   }

@@ -1,0 +1,27 @@
+name: dostr_string_color
+description: String Color, a color derived from any string or pubkey that reads well as text, background or border in dark and light themes, in pure Dart.
+version: 0.1.0
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
+
+topics:
+  - nostr
+  - dostr
+  - color
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  web:
+  windows:
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.1

@@ -56,7 +56,7 @@ class NBanner extends StatelessWidget {
 
   Widget _buildDefaultBanner(BuildContext context) {
     final colorScheme = ColorScheme.fromSeed(
-      seedColor: StringColor.fromString(_pubkey!),
+      seedColor: StringColor.fromHex(_pubkey!).toColor(),
       brightness: Theme.of(context).brightness,
     );
 
@@ -75,7 +75,7 @@ class NBanner extends StatelessWidget {
         if (loadingProgress == null) return child;
 
         return ColoredBox(
-          color: StringColor.fromString(_pubkey!).withValues(alpha: 0.3),
+          color: StringColor.fromHex(_pubkey!).toColor().withValues(alpha: 0.3),
         );
       },
       errorBuilder: (context, error, stackTrace) {

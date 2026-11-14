@@ -22,7 +22,6 @@ environment:
 resolution: workspace
 
 dependencies:
-  crypto: ">=3.0.0 <4.0.0"
   flutter:
     sdk: flutter
   flutter_localizations:
@@ -42,6 +41,7 @@ dependencies:
   dostr_nip46: ^0.1.0
   dostr_nip55: ^0.1.0
   dostr_signer: ^0.1.0
+  dostr_string_color: ^0.1.0
   dostr_web_crypto: ^0.1.0
   qr: ^4.0.1
   url_launcher: ">=6.0.0 <7.0.0"

@@ -188,7 +188,7 @@
   },
   "widgetsSectionGetColorDescription": "Function that generates deterministic colors from pubkeys.",
   "@widgetsSectionGetColorDescription": {
-    "description": "Description of the colorFromPubkey section."
+    "description": "Description of the StringColor section."
   },
   "blossomPageTitle": "Blossom Media & File Operations",
   "@blossomPageTitle": {

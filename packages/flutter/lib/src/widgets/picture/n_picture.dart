@@ -88,7 +88,7 @@ class NPicture extends StatelessWidget {
 
   Widget _buildDefaultPicture(BuildContext context, Metadata? metadata) {
     final initial = NipAvatar.getInitial(_pubkey!, metadata);
-    final background = StringColor.fromString(_pubkey!);
+    final background = StringColor.fromHex(_pubkey!).toColor();
     // Keep the initial legible by contrasting against the derived background.
     final textColor =
         ThemeData.estimateBrightnessForColor(background) == Brightness.dark

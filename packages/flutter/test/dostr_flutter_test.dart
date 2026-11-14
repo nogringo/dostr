@@ -4,7 +4,6 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:material_ui/material_ui.dart';
 
 import 'helpers.dart';
 
@@ -134,19 +133,6 @@ void main() {
       );
       expect(await dostr.dostrFlutter.loadMetadata(bobPubkey), isNull);
       expect(dostr.metadata.fetched, [alicePubkey, bobPubkey]);
-    });
-
-    test('colorFromPubkey is stable and evenly lit', () {
-      final alice = colorFromPubkey(alicePubkey);
-      final bob = colorFromPubkey(bobPubkey);
-
-      expect(colorFromPubkey(alicePubkey), alice);
-      expect(alice, isNot(bob));
-      for (final color in [alice, bob]) {
-        final hsl = HSLColor.fromColor(color);
-        expect(hsl.saturation, closeTo(0.6, 0.01));
-        expect(hsl.lightness, closeTo(0.45, 0.01));
-      }
     });
   });
 

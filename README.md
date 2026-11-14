@@ -118,6 +118,10 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 ### Other
 
+#### [🔗 String Color](./packages/string_color/)
+
+`dostr_string_color`: String Color, a color derived from any string or pubkey that reads well as text, background or border in dark and light themes, in pure Dart.
+
 #### [🔗 Cashu protocol](./packages/cashu_protocol/)
 
 `dostr_cashu_protocol`: the Cashu protocol (blind signatures, v4 tokens, NUT-13 secrets and the mint API), without Nostr, in pure Dart.

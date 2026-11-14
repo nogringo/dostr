@@ -99,6 +99,8 @@ dependency_overrides:
     path: ../rust_verifier
   dostr_signer:
     path: ../signer
+  dostr_string_color:
+    path: ../string_color
   dostr_url_set:
     path: ../url_set
   dostr_web_crypto:

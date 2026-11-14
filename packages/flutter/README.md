@@ -82,7 +82,7 @@ Each widget takes the `DostrFlutter` as `dostrFlutter`.
 
 - `NLogin`: the login form. A NIP-05 address or an npub logs in read-only, an nsec with the private key. It also offers the browser extension (on the web only), a `bunker://` url and the signer app (on Android only). Each method has an `enable...Login` flag, and `enablePubkeyLogin: false` hides both the NIP-05 and npub fields. Pass a `NostrConnect` from `dostrFlutter.bunkers.createNostrConnect(...)` as `nostrConnect` to also show a `nostrconnect://` QR code, and a `Nip46ClientMetadata` as `clientMetadata` to name your app to the bunker. `onLoggedIn` runs once an account is logged in.
 - `NUserProfile`: the banner, picture, name and NIP-05 of a profile, with a logout button on the logged account.
-- `NPicture`, `NName` and `NBanner`: the picture, name or banner alone. Without a picture, `NPicture` shows an initial on a color derived from the pubkey.
+- `NPicture`, `NName` and `NBanner`: the picture, name or banner alone. Without a picture, `NPicture` shows an initial on the pubkey's String Color, `StringColor.fromHex(pubkey).toColor()`.
 - `NSwitchAccount`: the accounts, with a tap to switch and a logout for the others. Give it `onAddAccount` to show an add account button.
 - `NPendingRequests`: a floating panel of the requests waiting on the logged account's external signer, where the user can cancel them. It is a `Positioned`, so put it in a `Stack` over your content.
 
@@ -98,7 +98,7 @@ The accounts are written to [`flutter_secure_storage`](https://pub.dev/packages/
 
 `package:ndk_flutter/ndk_flutter.dart` is now `package:dostr_flutter/dostr_flutter.dart`. `NdkFlutter` is now `DostrFlutter`, and the widgets take it as `dostrFlutter` instead of `ndkFlutter`. `NdkEventSigner`, `NdkEventSignerFactory` and `NdkEventVerifier` are now `DostrEventSigner`, `DostrEventSignerFactory` and `DostrEventVerifier`. Saved accounts are still read from `ndk_flutter_accounts`, so users stay logged in.
 
-The other files are internal: import `package:dostr_flutter/dostr_flutter.dart` instead of `main/`, `models/`, `signers/`, `utils/`, `verifiers/` or `widgets/`. Only `package:dostr_flutter/l10n/app_localizations.dart` stays, for the delegate. `NipAvatar` is no longer public, and `Nip05Result` is gone. `NdkFlutter.getColorFromPubkey(pubkey)` is now the function `colorFromPubkey(pubkey)`, and `NdkFlutter.fetchNip05(nip05)` is gone: `NLogin` resolves through `dostrFlutter.nip05Resolver`. On Android, iOS and desktop, `DostrEventVerifier` verifies in Dart instead of Rust, and `dostr_flutter` no longer depends on `dostr_rust_verifier`.
+The other files are internal: import `package:dostr_flutter/dostr_flutter.dart` instead of `main/`, `models/`, `signers/`, `utils/`, `verifiers/` or `widgets/`. Only `package:dostr_flutter/l10n/app_localizations.dart` stays, for the delegate. `NipAvatar` is no longer public, and `Nip05Result` is gone. `NdkFlutter.getColorFromPubkey(pubkey)` is gone: `StringColor.fromHex(pubkey).toColor()` gives the color `NPicture` and `NBanner` draw, which is not the old one. `StringColor` now comes from `dostr_string_color`, exported here, whose README lists what changed. `NdkFlutter.fetchNip05(nip05)` is gone too: `NLogin` resolves through `dostrFlutter.nip05Resolver`. On Android, iOS and desktop, `DostrEventVerifier` verifies in Dart instead of Rust, and `dostr_flutter` no longer depends on `dostr_rust_verifier`.
 
 ## TODO
 

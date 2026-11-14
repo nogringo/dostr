@@ -1,12 +1,12 @@
 export 'package:dostr_nip07/dostr_nip07.dart';
 export 'package:dostr_nip55/dostr_nip55.dart';
+export 'package:dostr_string_color/dostr_string_color.dart';
 export 'package:dostr_web_crypto/dostr_web_crypto.dart';
 export 'src/config.dart';
 export 'src/dostr_flutter.dart';
 export 'src/models/metadata.dart';
 export 'src/signers/dostr_event_signer.dart';
 export 'src/utils/nostr_kinds.dart';
-export 'src/utils/pubkey_color.dart';
-export 'src/utils/string_color.dart';
+export 'src/utils/string_color_flutter.dart';
 export 'src/verifiers/dostr_event_verifier.dart';
 export 'src/widgets/widgets.dart';

@@ -377,7 +377,7 @@ abstract class DemoLocalizations {
   /// **'Login widget with multiple auth methods (NIP-05, npub, nsec, bunker, etc.).'**
   String get widgetsSectionNLoginDescription;
 
-  /// Description of the colorFromPubkey section.
+  /// Description of the StringColor section.
   ///
   /// In en, this message translates to:
   /// **'Function that generates deterministic colors from pubkeys.'**

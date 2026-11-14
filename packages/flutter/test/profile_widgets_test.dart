@@ -171,7 +171,7 @@ void main() {
                   .first,
             )
             .color,
-        StringColor.fromString(alicePubkey),
+        StringColor.fromHex(alicePubkey).toColor(),
       );
       expect(dostr.metadata.fetched, isEmpty);
     });
@@ -231,7 +231,7 @@ void main() {
       expect(
         defaultBannerColor(tester),
         ColorScheme.fromSeed(
-          seedColor: StringColor.fromString(alicePubkey),
+          seedColor: StringColor.fromHex(alicePubkey).toColor(),
         ).primaryContainer,
       );
       expect(find.byType(Image), findsNothing);
@@ -251,7 +251,7 @@ void main() {
       expect(
         defaultBannerColor(tester),
         ColorScheme.fromSeed(
-          seedColor: StringColor.fromString(alicePubkey),
+          seedColor: StringColor.fromHex(alicePubkey).toColor(),
           brightness: Brightness.dark,
         ).primaryContainer,
       );
