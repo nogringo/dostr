@@ -1,22 +1,73 @@
 {
   "@@locale": "en",
   "appName": "Nostr Developer Kit Demo",
+  "@appName": {
+    "description": "App title used by the OS, for example in the task switcher or the browser tab."
+  },
   "appBarTitle": "Dostr Demo",
+  "@appBarTitle": {
+    "description": "Title in the home page app bar."
+  },
   "tabAccounts": "Accounts",
+  "@tabAccounts": {
+    "description": "Navigation tab that opens the accounts page."
+  },
   "tabProfile": "Profile",
+  "@tabProfile": {
+    "description": "Navigation tab that opens the profile page."
+  },
   "tabRelays": "Relays",
+  "@tabRelays": {
+    "description": "Navigation tab that opens the relays page."
+  },
   "tabBlossom": "Blossom",
+  "@tabBlossom": {
+    "description": "Navigation tab that opens the Blossom page. Blossom is a protocol name, keep it as is."
+  },
   "tabWidgets": "Widgets",
+  "@tabWidgets": {
+    "description": "Navigation tab that opens the widgets demo page."
+  },
   "profileTooltip": "Profile",
+  "@profileTooltip": {
+    "description": "Tooltip of the profile button in the home page app bar."
+  },
   "loginDialogDefaultTitle": "Log in",
+  "@loginDialogDefaultTitle": {
+    "description": "Title of the login dialog when no account is logged in yet."
+  },
   "loginDialogAddAccountTitle": "Add account",
+  "@loginDialogAddAccountTitle": {
+    "description": "Title of the login dialog when an account is already logged in and the user adds another one."
+  },
   "closeTooltip": "Close",
+  "@closeTooltip": {
+    "description": "Tooltip of the button that closes the login dialog."
+  },
   "accountsHeading": "Accounts",
+  "@accountsHeading": {
+    "description": "Heading of the accounts page."
+  },
   "accountsDescription": "Manage your logged accounts and add new ones.",
+  "@accountsDescription": {
+    "description": "Subtitle under the accounts page heading."
+  },
   "addAnotherAccount": "Add Another Account",
+  "@addAnotherAccount": {
+    "description": "Button on the accounts page that opens the login dialog when an account is already logged in."
+  },
   "logIn": "Log In",
+  "@logIn": {
+    "description": "Button that opens the login dialog when no account is logged in."
+  },
   "profileNoAccount": "No account logged in.",
+  "@profileNoAccount": {
+    "description": "Shown on the profile page when no account is logged in."
+  },
   "profileAbout": "About",
+  "@profileAbout": {
+    "description": "Heading above the profile's about text."
+  },
   "profileMetadataError": "Error fetching metadata: {error}",
   "@profileMetadataError": {
     "placeholders": {
@@ -24,8 +75,17 @@
     }
   },
   "relaysLoginRequired": "Log in to view your relay list.",
+  "@relaysLoginRequired": {
+    "description": "Shown on the relays page when no account is logged in."
+  },
   "relaysFetchButton": "Fetch relay list",
+  "@relaysFetchButton": {
+    "description": "Button that fetches the logged account's relay list."
+  },
   "relayListHeading": "Relay List",
+  "@relayListHeading": {
+    "description": "Heading of the relay list on the relays page."
+  },
   "relayConfiguredCount": "{count, plural, one{{count} configured relay} other{{count} configured relays}}",
   "@relayConfiguredCount": {
     "placeholders": {
@@ -41,19 +101,61 @@
     }
   },
   "relayRead": "Read",
+  "@relayRead": {
+    "description": "Badge on a relay that the account reads from."
+  },
   "relayWrite": "Write",
+  "@relayWrite": {
+    "description": "Badge on a relay that the account writes to."
+  },
   "relayStateConnecting": "Connecting",
+  "@relayStateConnecting": {
+    "description": "Relay connection state, inserted into relayConnection."
+  },
   "relayStateOnline": "Online",
+  "@relayStateOnline": {
+    "description": "Relay connection state, inserted into relayConnection."
+  },
   "relayStateOffline": "Offline",
+  "@relayStateOffline": {
+    "description": "Relay connection state, inserted into relayConnection."
+  },
   "relayStateUnknown": "Unknown",
+  "@relayStateUnknown": {
+    "description": "Relay connection state, inserted into relayConnection."
+  },
   "widgetsPageTitle": "Dostr Flutter Widgets Demo",
+  "@widgetsPageTitle": {
+    "description": "App bar title of the widgets demo page."
+  },
   "widgetsLoginHint": "Log in from the Accounts tab to see personalized widgets.",
+  "@widgetsLoginHint": {
+    "description": "Hint on the widgets demo page when no account is logged in."
+  },
   "widgetsCurrentUser": "Current user: ",
+  "@widgetsCurrentUser": {
+    "description": "Label followed by the logged user's name. Keep the trailing space."
+  },
   "widgetsSizeDefault": "Default",
+  "@widgetsSizeDefault": {
+    "description": "Caption under the smallest profile picture in the NPicture demo."
+  },
   "widgetsSizeLarger": "Larger",
+  "@widgetsSizeLarger": {
+    "description": "Caption under the medium profile picture in the NPicture demo."
+  },
   "widgetsSizeLarge": "Large",
+  "@widgetsSizeLarge": {
+    "description": "Caption under the largest profile picture in the NPicture demo."
+  },
   "widgetsShowLoginWidget": "Show NLogin Widget",
+  "@widgetsShowLoginWidget": {
+    "description": "Button that shows the NLogin widget. NLogin is a widget name, keep it as is."
+  },
   "widgetsLoginWidgetTitle": "NLogin Widget",
+  "@widgetsLoginWidgetTitle": {
+    "description": "Title above the NLogin widget once shown. NLogin is a widget name, keep it as is."
+  },
   "widgetsRequiresLogin": "{widgetName}\\n(requires login)",
   "@widgetsRequiresLogin": {
     "placeholders": {
@@ -61,18 +163,57 @@
     }
   },
   "widgetsSectionNNameDescription": "Displays user name from metadata, falls back to formatted npub.",
+  "@widgetsSectionNNameDescription": {
+    "description": "Description of the NName widget section. NName and npub are names, keep them as is."
+  },
   "widgetsSectionNPictureDescription": "Displays user profile picture with fallback to initials.",
+  "@widgetsSectionNPictureDescription": {
+    "description": "Description of the NPicture widget section. NPicture is a widget name, keep it as is."
+  },
   "widgetsSectionNBannerDescription": "Displays user banner image with fallback to a colored container.",
+  "@widgetsSectionNBannerDescription": {
+    "description": "Description of the NBanner widget section. NBanner is a widget name, keep it as is."
+  },
   "widgetsSectionNUserProfileDescription": "Complete user profile with banner, picture, name, and NIP-05.",
+  "@widgetsSectionNUserProfileDescription": {
+    "description": "Description of the NUserProfile widget section. NIP-05 is a spec name, keep it as is."
+  },
   "widgetsSectionNSwitchAccountDescription": "Account management widget with switching and logout.",
+  "@widgetsSectionNSwitchAccountDescription": {
+    "description": "Description of the NSwitchAccount widget section."
+  },
   "widgetsSectionNLoginDescription": "Login widget with multiple auth methods (NIP-05, npub, nsec, bunker, etc.).",
+  "@widgetsSectionNLoginDescription": {
+    "description": "Description of the NLogin widget section. NIP-05, npub, nsec and bunker are Nostr terms, keep them as is."
+  },
   "widgetsSectionGetColorDescription": "Static method that generates deterministic colors from pubkeys.",
+  "@widgetsSectionGetColorDescription": {
+    "description": "Description of the getColor section. getColor is a method name, keep it as is."
+  },
   "blossomPageTitle": "Blossom Media & File Operations",
+  "@blossomPageTitle": {
+    "description": "Heading of the Blossom page. Blossom is a protocol name, keep it as is."
+  },
   "blossomImageDemoTitle": "Image Demo (getBlob)",
+  "@blossomImageDemoTitle": {
+    "description": "Title of the image download demo. getBlob is a method name, keep it as is."
+  },
   "blossomVideoDemoTitle": "Video Demo (checkBlob)",
+  "@blossomVideoDemoTitle": {
+    "description": "Title of the video streaming demo. checkBlob is a method name, keep it as is."
+  },
   "blossomNoImageYet": "No image downloaded yet",
+  "@blossomNoImageYet": {
+    "description": "Placeholder in the image demo before an image is downloaded."
+  },
   "blossomDownloadImage": "Download Image",
+  "@blossomDownloadImage": {
+    "description": "Button that downloads the demo image."
+  },
   "blossomClearImage": "Clear Image",
+  "@blossomClearImage": {
+    "description": "Button that removes the downloaded demo image."
+  },
   "blossomMimeType": "Mime Type: {value}",
   "@blossomMimeType": {
     "placeholders": {
@@ -86,8 +227,17 @@
     }
   },
   "blossomNoVideoYet": "No video loaded yet",
+  "@blossomNoVideoYet": {
+    "description": "Placeholder in the video demo before a video is loaded."
+  },
   "blossomLoadVideo": "Load Video",
+  "@blossomLoadVideo": {
+    "description": "Button that loads the demo video."
+  },
   "blossomClearVideo": "Clear Video",
+  "@blossomClearVideo": {
+    "description": "Button that removes the loaded demo video."
+  },
   "blossomVideoUrl": "Video URL: {value}",
   "@blossomVideoUrl": {
     "placeholders": {
@@ -95,7 +245,13 @@
     }
   },
   "blossomUploadTitle": "Upload File from Disk",
+  "@blossomUploadTitle": {
+    "description": "Title of the file upload demo."
+  },
   "blossomUploadDescription": "Demonstrates uploadFromFile() with streaming progress.",
+  "@blossomUploadDescription": {
+    "description": "Description of the file upload demo. uploadFromFile() is a method name, keep it as is."
+  },
   "blossomUploadingProgress": "Uploading: {progress}%",
   "@blossomUploadingProgress": {
     "placeholders": {
@@ -103,6 +259,9 @@
     }
   },
   "blossomUploadSuccess": "Upload successful",
+  "@blossomUploadSuccess": {
+    "description": "Shown when the file upload finishes."
+  },
   "blossomSha256": "SHA256: {value}",
   "@blossomSha256": {
     "placeholders": {
@@ -116,12 +275,33 @@
     }
   },
   "blossomNoUploadedFileYet": "No file uploaded yet",
+  "@blossomNoUploadedFileYet": {
+    "description": "Placeholder in the upload demo before a file is uploaded."
+  },
   "blossomPickAndUploadFile": "Pick & Upload File",
+  "@blossomPickAndUploadFile": {
+    "description": "Button that opens the file picker and uploads the chosen file."
+  },
   "clear": "Clear",
+  "@clear": {
+    "description": "Button that resets an upload or download demo."
+  },
   "blossomDownloadTitle": "Download File to Disk",
+  "@blossomDownloadTitle": {
+    "description": "Title of the file download demo."
+  },
   "blossomDownloadDescription": "Demonstrates downloadToFile() and saves directly to disk.",
+  "@blossomDownloadDescription": {
+    "description": "Description of the file download demo. downloadToFile() is a method name, keep it as is."
+  },
   "blossomNoDownloadedFileYet": "No file downloaded yet",
+  "@blossomNoDownloadedFileYet": {
+    "description": "Placeholder in the download demo before a file is downloaded."
+  },
   "blossomDownloadUploadedFile": "Download Uploaded File",
+  "@blossomDownloadUploadedFile": {
+    "description": "Button that downloads the file uploaded in the upload demo."
+  },
   "blossomSavedTo": "Saved to: {value}",
   "@blossomSavedTo": {
     "placeholders": {
@@ -129,9 +309,21 @@
     }
   },
   "blossomUploadFirstToEnableDownload": "Upload a file first to enable download.",
+  "@blossomUploadFirstToEnableDownload": {
+    "description": "Hint under the download button while nothing has been uploaded."
+  },
   "blossomNoUploadedFileToDownload": "No file uploaded yet to download.",
+  "@blossomNoUploadedFileToDownload": {
+    "description": "Error when the download is started before any file was uploaded."
+  },
   "blossomDownloadedToBrowser": "Downloaded to browser",
+  "@blossomDownloadedToBrowser": {
+    "description": "Replaces the file path on the web, where the browser saves the file itself."
+  },
   "downloadSuccess": "Download successful",
+  "@downloadSuccess": {
+    "description": "Shown when the file download finishes."
+  },
   "errorLabel": "Error: {error}",
   "@errorLabel": {
     "placeholders": {
@@ -139,16 +331,49 @@
     }
   },
   "pendingRequestsLoginRequired": "Please log in to see pending requests.",
+  "@pendingRequestsLoginRequired": {
+    "description": "Shown on the pending requests page when no account is logged in."
+  },
   "pendingNoRequests": "No pending requests",
+  "@pendingNoRequests": {
+    "description": "Empty state when no signer request is pending."
+  },
   "pendingUseButtons": "Use the buttons above to trigger requests.",
+  "@pendingUseButtons": {
+    "description": "Hint under the empty state, pointing to the request buttons above it."
+  },
   "pendingRequestCancelled": "Request cancelled",
+  "@pendingRequestCancelled": {
+    "description": "Snackbar after a pending request is cancelled."
+  },
   "pendingRequestCancelFailed": "Failed to cancel request",
+  "@pendingRequestCancelFailed": {
+    "description": "Snackbar when a pending request could not be cancelled."
+  },
   "pendingHeading": "Pending Signer Requests",
+  "@pendingHeading": {
+    "description": "Heading of the pending signer requests page."
+  },
   "pendingDescription": "Requests waiting for approval from your signer.",
+  "@pendingDescription": {
+    "description": "Subtitle under the pending requests heading."
+  },
   "pendingTriggerRequests": "Trigger Requests",
+  "@pendingTriggerRequests": {
+    "description": "Heading above the buttons that send test requests to the signer."
+  },
   "signEvent": "Sign Event",
+  "@signEvent": {
+    "description": "Button that asks the signer to sign a test event."
+  },
   "encrypt": "Encrypt",
+  "@encrypt": {
+    "description": "Button that asks the signer to encrypt a test message."
+  },
   "decrypt": "Decrypt",
+  "@decrypt": {
+    "description": "Button that asks the signer to decrypt the previously encrypted message."
+  },
   "pendingSignedResult": "Signed! ID: {value}",
   "@pendingSignedResult": {
     "placeholders": {
@@ -162,6 +387,9 @@
     }
   },
   "pendingEncryptFirst": "Encrypt first to get ciphertext.",
+  "@pendingEncryptFirst": {
+    "description": "Error when decrypt is pressed before anything was encrypted."
+  },
   "pendingEncryptedResult": "Encrypted: {value}",
   "@pendingEncryptedResult": {
     "placeholders": {
@@ -187,14 +415,41 @@
     }
   },
   "pendingMethodSignEvent": "Sign Event",
+  "@pendingMethodSignEvent": {
+    "description": "Signer method name shown on a pending request."
+  },
   "pendingMethodGetPublicKey": "Get Public Key",
+  "@pendingMethodGetPublicKey": {
+    "description": "Signer method name shown on a pending request."
+  },
   "pendingMethodNip04Encrypt": "NIP-04 Encrypt",
+  "@pendingMethodNip04Encrypt": {
+    "description": "Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is."
+  },
   "pendingMethodNip04Decrypt": "NIP-04 Decrypt",
+  "@pendingMethodNip04Decrypt": {
+    "description": "Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is."
+  },
   "pendingMethodNip44Encrypt": "NIP-44 Encrypt",
+  "@pendingMethodNip44Encrypt": {
+    "description": "Signer method name shown on a pending request. NIP-44 is a spec name, keep it as is."
+  },
   "pendingMethodNip44Decrypt": "NIP-44 Decrypt",
+  "@pendingMethodNip44Decrypt": {
+    "description": "Signer method name shown on a pending request. NIP-44 is a spec name, keep it as is."
+  },
   "pendingMethodPing": "Ping",
+  "@pendingMethodPing": {
+    "description": "Signer method name shown on a pending request."
+  },
   "pendingMethodConnect": "Connect",
+  "@pendingMethodConnect": {
+    "description": "Signer method name shown on a pending request."
+  },
   "pendingMethodSwitchRelays": "Switch Relays",
+  "@pendingMethodSwitchRelays": {
+    "description": "Signer method name shown on a pending request."
+  },
   "pendingSecondsAgo": "{count}s ago",
   "@pendingSecondsAgo": {
     "placeholders": {
@@ -255,5 +510,8 @@
       "value": {}
     }
   },
-  "cancel": "Cancel"
+  "cancel": "Cancel",
+  "@cancel": {
+    "description": "Button that cancels a pending signer request."
+  }
 }

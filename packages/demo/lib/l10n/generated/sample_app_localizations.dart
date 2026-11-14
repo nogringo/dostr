@@ -113,103 +113,103 @@ abstract class SampleAppLocalizations {
     Locale('zh')
   ];
 
-  /// No description provided for @appName.
+  /// App title used by the OS, for example in the task switcher or the browser tab.
   ///
   /// In en, this message translates to:
   /// **'Nostr Developer Kit Demo'**
   String get appName;
 
-  /// No description provided for @appBarTitle.
+  /// Title in the home page app bar.
   ///
   /// In en, this message translates to:
   /// **'Dostr Demo'**
   String get appBarTitle;
 
-  /// No description provided for @tabAccounts.
+  /// Navigation tab that opens the accounts page.
   ///
   /// In en, this message translates to:
   /// **'Accounts'**
   String get tabAccounts;
 
-  /// No description provided for @tabProfile.
+  /// Navigation tab that opens the profile page.
   ///
   /// In en, this message translates to:
   /// **'Profile'**
   String get tabProfile;
 
-  /// No description provided for @tabRelays.
+  /// Navigation tab that opens the relays page.
   ///
   /// In en, this message translates to:
   /// **'Relays'**
   String get tabRelays;
 
-  /// No description provided for @tabBlossom.
+  /// Navigation tab that opens the Blossom page. Blossom is a protocol name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Blossom'**
   String get tabBlossom;
 
-  /// No description provided for @tabWidgets.
+  /// Navigation tab that opens the widgets demo page.
   ///
   /// In en, this message translates to:
   /// **'Widgets'**
   String get tabWidgets;
 
-  /// No description provided for @profileTooltip.
+  /// Tooltip of the profile button in the home page app bar.
   ///
   /// In en, this message translates to:
   /// **'Profile'**
   String get profileTooltip;
 
-  /// No description provided for @loginDialogDefaultTitle.
+  /// Title of the login dialog when no account is logged in yet.
   ///
   /// In en, this message translates to:
   /// **'Log in'**
   String get loginDialogDefaultTitle;
 
-  /// No description provided for @loginDialogAddAccountTitle.
+  /// Title of the login dialog when an account is already logged in and the user adds another one.
   ///
   /// In en, this message translates to:
   /// **'Add account'**
   String get loginDialogAddAccountTitle;
 
-  /// No description provided for @closeTooltip.
+  /// Tooltip of the button that closes the login dialog.
   ///
   /// In en, this message translates to:
   /// **'Close'**
   String get closeTooltip;
 
-  /// No description provided for @accountsHeading.
+  /// Heading of the accounts page.
   ///
   /// In en, this message translates to:
   /// **'Accounts'**
   String get accountsHeading;
 
-  /// No description provided for @accountsDescription.
+  /// Subtitle under the accounts page heading.
   ///
   /// In en, this message translates to:
   /// **'Manage your logged accounts and add new ones.'**
   String get accountsDescription;
 
-  /// No description provided for @addAnotherAccount.
+  /// Button on the accounts page that opens the login dialog when an account is already logged in.
   ///
   /// In en, this message translates to:
   /// **'Add Another Account'**
   String get addAnotherAccount;
 
-  /// No description provided for @logIn.
+  /// Button that opens the login dialog when no account is logged in.
   ///
   /// In en, this message translates to:
   /// **'Log In'**
   String get logIn;
 
-  /// No description provided for @profileNoAccount.
+  /// Shown on the profile page when no account is logged in.
   ///
   /// In en, this message translates to:
   /// **'No account logged in.'**
   String get profileNoAccount;
 
-  /// No description provided for @profileAbout.
+  /// Heading above the profile's about text.
   ///
   /// In en, this message translates to:
   /// **'About'**
@@ -221,19 +221,19 @@ abstract class SampleAppLocalizations {
   /// **'Error fetching metadata: {error}'**
   String profileMetadataError(Object error);
 
-  /// No description provided for @relaysLoginRequired.
+  /// Shown on the relays page when no account is logged in.
   ///
   /// In en, this message translates to:
   /// **'Log in to view your relay list.'**
   String get relaysLoginRequired;
 
-  /// No description provided for @relaysFetchButton.
+  /// Button that fetches the logged account's relay list.
   ///
   /// In en, this message translates to:
   /// **'Fetch relay list'**
   String get relaysFetchButton;
 
-  /// No description provided for @relayListHeading.
+  /// Heading of the relay list on the relays page.
   ///
   /// In en, this message translates to:
   /// **'Relay List'**
@@ -251,85 +251,85 @@ abstract class SampleAppLocalizations {
   /// **'Connection: {state}'**
   String relayConnection(Object state);
 
-  /// No description provided for @relayRead.
+  /// Badge on a relay that the account reads from.
   ///
   /// In en, this message translates to:
   /// **'Read'**
   String get relayRead;
 
-  /// No description provided for @relayWrite.
+  /// Badge on a relay that the account writes to.
   ///
   /// In en, this message translates to:
   /// **'Write'**
   String get relayWrite;
 
-  /// No description provided for @relayStateConnecting.
+  /// Relay connection state, inserted into relayConnection.
   ///
   /// In en, this message translates to:
   /// **'Connecting'**
   String get relayStateConnecting;
 
-  /// No description provided for @relayStateOnline.
+  /// Relay connection state, inserted into relayConnection.
   ///
   /// In en, this message translates to:
   /// **'Online'**
   String get relayStateOnline;
 
-  /// No description provided for @relayStateOffline.
+  /// Relay connection state, inserted into relayConnection.
   ///
   /// In en, this message translates to:
   /// **'Offline'**
   String get relayStateOffline;
 
-  /// No description provided for @relayStateUnknown.
+  /// Relay connection state, inserted into relayConnection.
   ///
   /// In en, this message translates to:
   /// **'Unknown'**
   String get relayStateUnknown;
 
-  /// No description provided for @widgetsPageTitle.
+  /// App bar title of the widgets demo page.
   ///
   /// In en, this message translates to:
   /// **'Dostr Flutter Widgets Demo'**
   String get widgetsPageTitle;
 
-  /// No description provided for @widgetsLoginHint.
+  /// Hint on the widgets demo page when no account is logged in.
   ///
   /// In en, this message translates to:
   /// **'Log in from the Accounts tab to see personalized widgets.'**
   String get widgetsLoginHint;
 
-  /// No description provided for @widgetsCurrentUser.
+  /// Label followed by the logged user's name. Keep the trailing space.
   ///
   /// In en, this message translates to:
   /// **'Current user: '**
   String get widgetsCurrentUser;
 
-  /// No description provided for @widgetsSizeDefault.
+  /// Caption under the smallest profile picture in the NPicture demo.
   ///
   /// In en, this message translates to:
   /// **'Default'**
   String get widgetsSizeDefault;
 
-  /// No description provided for @widgetsSizeLarger.
+  /// Caption under the medium profile picture in the NPicture demo.
   ///
   /// In en, this message translates to:
   /// **'Larger'**
   String get widgetsSizeLarger;
 
-  /// No description provided for @widgetsSizeLarge.
+  /// Caption under the largest profile picture in the NPicture demo.
   ///
   /// In en, this message translates to:
   /// **'Large'**
   String get widgetsSizeLarge;
 
-  /// No description provided for @widgetsShowLoginWidget.
+  /// Button that shows the NLogin widget. NLogin is a widget name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Show NLogin Widget'**
   String get widgetsShowLoginWidget;
 
-  /// No description provided for @widgetsLoginWidgetTitle.
+  /// Title above the NLogin widget once shown. NLogin is a widget name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'NLogin Widget'**
@@ -341,79 +341,79 @@ abstract class SampleAppLocalizations {
   /// **'{widgetName}\\n(requires login)'**
   String widgetsRequiresLogin(Object widgetName);
 
-  /// No description provided for @widgetsSectionNNameDescription.
+  /// Description of the NName widget section. NName and npub are names, keep them as is.
   ///
   /// In en, this message translates to:
   /// **'Displays user name from metadata, falls back to formatted npub.'**
   String get widgetsSectionNNameDescription;
 
-  /// No description provided for @widgetsSectionNPictureDescription.
+  /// Description of the NPicture widget section. NPicture is a widget name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Displays user profile picture with fallback to initials.'**
   String get widgetsSectionNPictureDescription;
 
-  /// No description provided for @widgetsSectionNBannerDescription.
+  /// Description of the NBanner widget section. NBanner is a widget name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Displays user banner image with fallback to a colored container.'**
   String get widgetsSectionNBannerDescription;
 
-  /// No description provided for @widgetsSectionNUserProfileDescription.
+  /// Description of the NUserProfile widget section. NIP-05 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Complete user profile with banner, picture, name, and NIP-05.'**
   String get widgetsSectionNUserProfileDescription;
 
-  /// No description provided for @widgetsSectionNSwitchAccountDescription.
+  /// Description of the NSwitchAccount widget section.
   ///
   /// In en, this message translates to:
   /// **'Account management widget with switching and logout.'**
   String get widgetsSectionNSwitchAccountDescription;
 
-  /// No description provided for @widgetsSectionNLoginDescription.
+  /// Description of the NLogin widget section. NIP-05, npub, nsec and bunker are Nostr terms, keep them as is.
   ///
   /// In en, this message translates to:
   /// **'Login widget with multiple auth methods (NIP-05, npub, nsec, bunker, etc.).'**
   String get widgetsSectionNLoginDescription;
 
-  /// No description provided for @widgetsSectionGetColorDescription.
+  /// Description of the getColor section. getColor is a method name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Static method that generates deterministic colors from pubkeys.'**
   String get widgetsSectionGetColorDescription;
 
-  /// No description provided for @blossomPageTitle.
+  /// Heading of the Blossom page. Blossom is a protocol name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Blossom Media & File Operations'**
   String get blossomPageTitle;
 
-  /// No description provided for @blossomImageDemoTitle.
+  /// Title of the image download demo. getBlob is a method name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Image Demo (getBlob)'**
   String get blossomImageDemoTitle;
 
-  /// No description provided for @blossomVideoDemoTitle.
+  /// Title of the video streaming demo. checkBlob is a method name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Video Demo (checkBlob)'**
   String get blossomVideoDemoTitle;
 
-  /// No description provided for @blossomNoImageYet.
+  /// Placeholder in the image demo before an image is downloaded.
   ///
   /// In en, this message translates to:
   /// **'No image downloaded yet'**
   String get blossomNoImageYet;
 
-  /// No description provided for @blossomDownloadImage.
+  /// Button that downloads the demo image.
   ///
   /// In en, this message translates to:
   /// **'Download Image'**
   String get blossomDownloadImage;
 
-  /// No description provided for @blossomClearImage.
+  /// Button that removes the downloaded demo image.
   ///
   /// In en, this message translates to:
   /// **'Clear Image'**
@@ -431,19 +431,19 @@ abstract class SampleAppLocalizations {
   /// **'Size: {value} bytes'**
   String blossomFileSizeBytes(Object value);
 
-  /// No description provided for @blossomNoVideoYet.
+  /// Placeholder in the video demo before a video is loaded.
   ///
   /// In en, this message translates to:
   /// **'No video loaded yet'**
   String get blossomNoVideoYet;
 
-  /// No description provided for @blossomLoadVideo.
+  /// Button that loads the demo video.
   ///
   /// In en, this message translates to:
   /// **'Load Video'**
   String get blossomLoadVideo;
 
-  /// No description provided for @blossomClearVideo.
+  /// Button that removes the loaded demo video.
   ///
   /// In en, this message translates to:
   /// **'Clear Video'**
@@ -455,13 +455,13 @@ abstract class SampleAppLocalizations {
   /// **'Video URL: {value}'**
   String blossomVideoUrl(Object value);
 
-  /// No description provided for @blossomUploadTitle.
+  /// Title of the file upload demo.
   ///
   /// In en, this message translates to:
   /// **'Upload File from Disk'**
   String get blossomUploadTitle;
 
-  /// No description provided for @blossomUploadDescription.
+  /// Description of the file upload demo. uploadFromFile() is a method name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Demonstrates uploadFromFile() with streaming progress.'**
@@ -473,7 +473,7 @@ abstract class SampleAppLocalizations {
   /// **'Uploading: {progress}%'**
   String blossomUploadingProgress(Object progress);
 
-  /// No description provided for @blossomUploadSuccess.
+  /// Shown when the file upload finishes.
   ///
   /// In en, this message translates to:
   /// **'Upload successful'**
@@ -491,43 +491,43 @@ abstract class SampleAppLocalizations {
   /// **'URL: {value}'**
   String blossomUrl(Object value);
 
-  /// No description provided for @blossomNoUploadedFileYet.
+  /// Placeholder in the upload demo before a file is uploaded.
   ///
   /// In en, this message translates to:
   /// **'No file uploaded yet'**
   String get blossomNoUploadedFileYet;
 
-  /// No description provided for @blossomPickAndUploadFile.
+  /// Button that opens the file picker and uploads the chosen file.
   ///
   /// In en, this message translates to:
   /// **'Pick & Upload File'**
   String get blossomPickAndUploadFile;
 
-  /// No description provided for @clear.
+  /// Button that resets an upload or download demo.
   ///
   /// In en, this message translates to:
   /// **'Clear'**
   String get clear;
 
-  /// No description provided for @blossomDownloadTitle.
+  /// Title of the file download demo.
   ///
   /// In en, this message translates to:
   /// **'Download File to Disk'**
   String get blossomDownloadTitle;
 
-  /// No description provided for @blossomDownloadDescription.
+  /// Description of the file download demo. downloadToFile() is a method name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'Demonstrates downloadToFile() and saves directly to disk.'**
   String get blossomDownloadDescription;
 
-  /// No description provided for @blossomNoDownloadedFileYet.
+  /// Placeholder in the download demo before a file is downloaded.
   ///
   /// In en, this message translates to:
   /// **'No file downloaded yet'**
   String get blossomNoDownloadedFileYet;
 
-  /// No description provided for @blossomDownloadUploadedFile.
+  /// Button that downloads the file uploaded in the upload demo.
   ///
   /// In en, this message translates to:
   /// **'Download Uploaded File'**
@@ -539,25 +539,25 @@ abstract class SampleAppLocalizations {
   /// **'Saved to: {value}'**
   String blossomSavedTo(Object value);
 
-  /// No description provided for @blossomUploadFirstToEnableDownload.
+  /// Hint under the download button while nothing has been uploaded.
   ///
   /// In en, this message translates to:
   /// **'Upload a file first to enable download.'**
   String get blossomUploadFirstToEnableDownload;
 
-  /// No description provided for @blossomNoUploadedFileToDownload.
+  /// Error when the download is started before any file was uploaded.
   ///
   /// In en, this message translates to:
   /// **'No file uploaded yet to download.'**
   String get blossomNoUploadedFileToDownload;
 
-  /// No description provided for @blossomDownloadedToBrowser.
+  /// Replaces the file path on the web, where the browser saves the file itself.
   ///
   /// In en, this message translates to:
   /// **'Downloaded to browser'**
   String get blossomDownloadedToBrowser;
 
-  /// No description provided for @downloadSuccess.
+  /// Shown when the file download finishes.
   ///
   /// In en, this message translates to:
   /// **'Download successful'**
@@ -569,67 +569,67 @@ abstract class SampleAppLocalizations {
   /// **'Error: {error}'**
   String errorLabel(Object error);
 
-  /// No description provided for @pendingRequestsLoginRequired.
+  /// Shown on the pending requests page when no account is logged in.
   ///
   /// In en, this message translates to:
   /// **'Please log in to see pending requests.'**
   String get pendingRequestsLoginRequired;
 
-  /// No description provided for @pendingNoRequests.
+  /// Empty state when no signer request is pending.
   ///
   /// In en, this message translates to:
   /// **'No pending requests'**
   String get pendingNoRequests;
 
-  /// No description provided for @pendingUseButtons.
+  /// Hint under the empty state, pointing to the request buttons above it.
   ///
   /// In en, this message translates to:
   /// **'Use the buttons above to trigger requests.'**
   String get pendingUseButtons;
 
-  /// No description provided for @pendingRequestCancelled.
+  /// Snackbar after a pending request is cancelled.
   ///
   /// In en, this message translates to:
   /// **'Request cancelled'**
   String get pendingRequestCancelled;
 
-  /// No description provided for @pendingRequestCancelFailed.
+  /// Snackbar when a pending request could not be cancelled.
   ///
   /// In en, this message translates to:
   /// **'Failed to cancel request'**
   String get pendingRequestCancelFailed;
 
-  /// No description provided for @pendingHeading.
+  /// Heading of the pending signer requests page.
   ///
   /// In en, this message translates to:
   /// **'Pending Signer Requests'**
   String get pendingHeading;
 
-  /// No description provided for @pendingDescription.
+  /// Subtitle under the pending requests heading.
   ///
   /// In en, this message translates to:
   /// **'Requests waiting for approval from your signer.'**
   String get pendingDescription;
 
-  /// No description provided for @pendingTriggerRequests.
+  /// Heading above the buttons that send test requests to the signer.
   ///
   /// In en, this message translates to:
   /// **'Trigger Requests'**
   String get pendingTriggerRequests;
 
-  /// No description provided for @signEvent.
+  /// Button that asks the signer to sign a test event.
   ///
   /// In en, this message translates to:
   /// **'Sign Event'**
   String get signEvent;
 
-  /// No description provided for @encrypt.
+  /// Button that asks the signer to encrypt a test message.
   ///
   /// In en, this message translates to:
   /// **'Encrypt'**
   String get encrypt;
 
-  /// No description provided for @decrypt.
+  /// Button that asks the signer to decrypt the previously encrypted message.
   ///
   /// In en, this message translates to:
   /// **'Decrypt'**
@@ -647,7 +647,7 @@ abstract class SampleAppLocalizations {
   /// **'Sign failed: {error}'**
   String pendingSignFailed(Object error);
 
-  /// No description provided for @pendingEncryptFirst.
+  /// Error when decrypt is pressed before anything was encrypted.
   ///
   /// In en, this message translates to:
   /// **'Encrypt first to get ciphertext.'**
@@ -677,55 +677,55 @@ abstract class SampleAppLocalizations {
   /// **'Decrypt failed: {error}'**
   String pendingDecryptFailed(Object error);
 
-  /// No description provided for @pendingMethodSignEvent.
+  /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
   /// **'Sign Event'**
   String get pendingMethodSignEvent;
 
-  /// No description provided for @pendingMethodGetPublicKey.
+  /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
   /// **'Get Public Key'**
   String get pendingMethodGetPublicKey;
 
-  /// No description provided for @pendingMethodNip04Encrypt.
+  /// Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'NIP-04 Encrypt'**
   String get pendingMethodNip04Encrypt;
 
-  /// No description provided for @pendingMethodNip04Decrypt.
+  /// Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'NIP-04 Decrypt'**
   String get pendingMethodNip04Decrypt;
 
-  /// No description provided for @pendingMethodNip44Encrypt.
+  /// Signer method name shown on a pending request. NIP-44 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'NIP-44 Encrypt'**
   String get pendingMethodNip44Encrypt;
 
-  /// No description provided for @pendingMethodNip44Decrypt.
+  /// Signer method name shown on a pending request. NIP-44 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
   /// **'NIP-44 Decrypt'**
   String get pendingMethodNip44Decrypt;
 
-  /// No description provided for @pendingMethodPing.
+  /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
   /// **'Ping'**
   String get pendingMethodPing;
 
-  /// No description provided for @pendingMethodConnect.
+  /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
   /// **'Connect'**
   String get pendingMethodConnect;
 
-  /// No description provided for @pendingMethodSwitchRelays.
+  /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
   /// **'Switch Relays'**
@@ -785,7 +785,7 @@ abstract class SampleAppLocalizations {
   /// **'ID: {value}'**
   String pendingId(Object value);
 
-  /// No description provided for @cancel.
+  /// Button that cancels a pending signer request.
   ///
   /// In en, this message translates to:
   /// **'Cancel'**
