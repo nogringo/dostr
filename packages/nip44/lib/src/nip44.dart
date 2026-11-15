@@ -16,6 +16,9 @@ final _hexPattern = RegExp(r'^[0-9a-fA-F]+$');
 
 /// NIP-44 encryption and decryption functions.
 class Nip44 {
+  /// Encrypts [plaintext], 1 to 65535 bytes, into a base64 NIP-44 payload.
+  ///
+  /// [customNonce] is for test vectors only: a nonce must never be reused.
   static Future<String> encryptMessage(
     String plaintext,
     String senderPrivateKey,
@@ -54,6 +57,8 @@ class Nip44 {
     return constructPayload(nonce, ciphertext, mac);
   }
 
+  /// Decrypts a NIP-44 [payload], and throws `Invalid MAC` when it was altered
+  /// or the keys do not match.
   static Future<String> decryptMessage(
     String payload,
     String recipientPrivateKey,

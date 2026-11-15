@@ -2,6 +2,7 @@ import 'package:bip39_mnemonic/bip39_mnemonic.dart';
 
 import 'entities/cashu_user_seedphrase.dart';
 
+/// A NUT-13 secret and its blinding factor, as hex.
 class CashuSeedDeriveSecretResult {
   final String secretHex;
   final String blindingHex;
@@ -12,6 +13,7 @@ class CashuSeedDeriveSecretResult {
   });
 }
 
+/// The BIP-39 seed that NUT-13 secrets are derived from.
 class CashuSeed {
   static const int derivationPurpose = 129372;
   static const int derivationCoinType = 0;

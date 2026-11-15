@@ -1,3 +1,4 @@
+/// The mint's signature `C_` on a blinded message (NUT-00).
 class CashuBlindedSignature {
   CashuBlindedSignature({
     required this.id,

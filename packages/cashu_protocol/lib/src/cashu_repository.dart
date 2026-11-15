@@ -9,6 +9,7 @@ import 'entities/cashu_quote.dart';
 import 'entities/cashu_quote_melt.dart';
 import 'entities/cashu_token_state_response.dart';
 
+/// The mint API: keys, quotes, mint, melt, swap, proof states and restore.
 abstract class CashuRepository {
   /// Sends [outputs] in their order, which the signatures follow: sort them by
   /// amount first (NUT-03) and unblind with the same order.

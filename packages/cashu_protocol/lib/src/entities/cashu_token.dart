@@ -2,6 +2,7 @@ import '../cashu_token_encoder.dart';
 import '../cashu_tools.dart';
 import 'cashu_proof.dart';
 
+/// A Cashu token: proofs from one mint, in one unit, with a memo.
 class CashuToken {
   final List<CashuProof> proofs;
 

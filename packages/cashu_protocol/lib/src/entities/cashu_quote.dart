@@ -1,5 +1,6 @@
 import '../cashu_keypair.dart';
 
+/// A mint quote (NUT-04): the [request] to pay before the mint signs [amount].
 class CashuQuote {
   final String quoteId;
   final String request;
@@ -98,6 +99,7 @@ class CashuQuote {
   }
 }
 
+/// Whether a mint or melt quote is unpaid, pending or paid.
 enum CashuQuoteState {
   unpaid('UNPAID'),
 

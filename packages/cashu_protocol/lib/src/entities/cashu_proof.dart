@@ -1,5 +1,7 @@
 import '../cashu_tools.dart';
 
+/// A proof (NUT-00): an amount of ecash, its secret and the unblinded signature
+/// `C` on it.
 class CashuProof {
   final String keysetId;
   final int amount;
@@ -62,6 +64,7 @@ class CashuProof {
   int get hashCode => Y.hashCode;
 }
 
+/// Whether a proof is unspent, pending or spent at its mint (NUT-07).
 enum CashuProofState {
   unspend('UNSPENT'),
   pending('PENDING'),

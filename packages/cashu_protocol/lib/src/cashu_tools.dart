@@ -9,6 +9,8 @@ import 'entities/cashu_blinded_message.dart';
 import 'entities/cashu_keyset.dart';
 import 'entities/cashu_proof.dart';
 
+/// Cashu helpers: secp256k1 points, hash_to_curve, amounts, keysets and mint
+/// URLs.
 class CashuTools {
   static const String apiVersion = 'v1';
   static const String hashToCurveDomainSeparator =

@@ -1,6 +1,8 @@
 import 'cashu_blinded_signature.dart';
 import 'cashu_quote.dart';
 
+/// The mint's reply to a melt (NUT-05), with the preimage once paid and the
+/// NUT-08 change.
 class CashuMeltResponse {
   final String qoteId;
   final String mintUrl;

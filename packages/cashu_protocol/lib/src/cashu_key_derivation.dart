@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'cashu_keypair.dart';
 import 'cashu_seed.dart';
 
+/// Derives NUT-13 secrets and NUT-20 quote keys from a seed.
 abstract class CashuKeyDerivation {
   Future<CashuSeedDeriveSecretResult> deriveSecret({
     required Uint8List seedBytes,

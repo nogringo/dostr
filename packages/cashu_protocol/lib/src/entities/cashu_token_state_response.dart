@@ -1,5 +1,6 @@
 import 'cashu_proof.dart';
 
+/// The state of the proof with this [Y], from a NUT-07 check.
 class CashuTokenStateResponse {
   final String Y;
   final CashuProofState state;

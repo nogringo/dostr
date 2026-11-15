@@ -2,6 +2,8 @@ import 'bytewords.dart' as bytewords;
 import 'fountain_encoder.dart';
 import 'ur.dart';
 
+/// Encodes a `ur:` Uniform Resource, single-part or as fountain-coded parts for
+/// an animated QR code.
 class UREncoder {
   final UR ur;
   final FountainEncoder fountainEncoder;

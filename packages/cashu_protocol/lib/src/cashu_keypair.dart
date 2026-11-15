@@ -2,6 +2,7 @@ import 'package:pointycastle/export.dart';
 
 import 'cashu_tools.dart';
 
+/// A secp256k1 keypair as hex, with the public key compressed.
 class CashuKeypair {
   final String privateKey;
   final String publicKey;

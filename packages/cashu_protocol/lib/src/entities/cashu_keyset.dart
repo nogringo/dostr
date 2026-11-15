@@ -1,3 +1,5 @@
+/// A mint keyset: its id, unit, input fee and the public key for each amount
+/// (NUT-01, NUT-02).
 class CashuKeyset {
   final String id;
   final String mintUrl;
@@ -72,6 +74,7 @@ class CashuKeyset {
   }
 }
 
+/// The mint public key that signs [amount] in a keyset.
 class CashuMintKeyPair {
   final int amount;
   final String pubkey;
@@ -79,6 +82,7 @@ class CashuMintKeyPair {
   CashuMintKeyPair({required this.amount, required this.pubkey});
 }
 
+/// A keyset as `GET /v1/keysets` lists it, without its keys (NUT-02).
 class CashuKeysetResponse {
   final String id;
   final String mintUrl;
@@ -108,6 +112,7 @@ class CashuKeysetResponse {
   }
 }
 
+/// The keys of a keyset, as `GET /v1/keys` returns them (NUT-01).
 class CashuKeysResponse {
   final String id;
   final String mintUrl;

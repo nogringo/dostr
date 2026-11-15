@@ -4,6 +4,7 @@ import 'package:cbor/cbor.dart';
 
 import 'entities/cashu_token.dart';
 
+/// Encodes and decodes `cashuB` tokens (NUT-00 v4).
 class CashuTokenEncoder {
   static final v4Prefix = 'cashuB';
 

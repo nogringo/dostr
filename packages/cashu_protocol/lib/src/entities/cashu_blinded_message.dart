@@ -1,3 +1,4 @@
+/// An output sent to the mint to sign, with its blinded secret `B_` (NUT-00).
 class CashuBlindedMessage {
   CashuBlindedMessage({
     required this.id,
@@ -31,6 +32,8 @@ class CashuBlindedMessage {
   }
 }
 
+/// A [CashuBlindedMessage] with the secret and blinding factor [r] the wallet
+/// keeps to unblind its signature.
 class CashuBlindedMessageItem {
   final CashuBlindedMessage blindedMessage;
   final String secret;

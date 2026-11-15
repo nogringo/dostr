@@ -17,6 +17,7 @@ import 'entities/cashu_token_state_response.dart';
 
 const _headers = {'Content-Type': 'application/json'};
 
+/// [CashuRepository] over HTTP, with [networkTimeout] on every request.
 class HttpCashuRepository implements CashuRepository {
   static const Duration networkTimeout = Duration(seconds: 10);
 

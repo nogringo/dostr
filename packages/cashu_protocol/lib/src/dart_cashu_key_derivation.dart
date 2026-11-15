@@ -9,6 +9,8 @@ import 'cashu_keypair.dart';
 import 'cashu_seed.dart';
 import 'cashu_tools.dart';
 
+/// What a NUT-13 derivation produces: a secret, a blinding factor or a quote
+/// key.
 enum DerivationType {
   secret(0),
   blindingFactor(1),
@@ -19,6 +21,8 @@ enum DerivationType {
   const DerivationType(this.value);
 }
 
+/// [CashuKeyDerivation] in pure Dart: BIP-32 for `00` keyset ids, HMAC-SHA256
+/// for `01` ones.
 class DartCashuKeyDerivation implements CashuKeyDerivation {
   static const int derivationPurpose = 129372;
   static const int derivationCoinType = 0;

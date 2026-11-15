@@ -10,8 +10,12 @@ import 'entities/cashu_blinded_signature.dart';
 import 'entities/cashu_keyset.dart';
 import 'entities/cashu_proof.dart';
 
+/// A blinded message `B_` as hex, with the blinding factor `r` that unblinds
+/// its signature.
 typedef BlindMessageResult = (String blindedMessageHex, BigInt r);
 
+/// Blind Diffie-Hellman key exchange (NUT-00): blinds outputs and unblinds the
+/// mint's signatures into proofs.
 class CashuBdhke {
   /// NUT-13 outputs for [amounts], one counter from [nextCounter] each. A
   /// reused counter derives an output the mint already signed.

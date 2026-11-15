@@ -5,6 +5,8 @@ import 'dart:typed_data';
 import 'package:convert/convert.dart';
 import 'package:pointycastle/export.dart';
 
+/// The deprecated NIP-04 encryption, AES-CBC with no MAC: use `Nip44` unless
+/// the peer does not support it.
 class Nip04 {
   static var secp256k1 = ECDomainParameters("secp256k1");
 
@@ -18,10 +20,14 @@ class Nip04 {
     return agreement;
   }
 
+  /// Encrypts [text] from the hex private key [priv] to the x-only public key
+  /// [pub], as `<ciphertext>?iv=<iv>`.
   static String encrypt(String priv, String pub, String text) {
     return encryptWithAgreement(text, getAgreement(priv), pub);
   }
 
+  /// Decrypts a `<ciphertext>?iv=<iv>` [text], or returns an empty string when
+  /// it has no `?iv=`.
   static String decrypt(String priv, String pub, String text) {
     return decryptWithAgreement(text, getAgreement(priv), pub);
   }

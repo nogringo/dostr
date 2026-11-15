@@ -1,5 +1,7 @@
 import 'cashu_quote.dart';
 
+/// A melt quote (NUT-05): what paying [request] with ecash costs, fee reserve
+/// included.
 class CashuQuoteMelt {
   final String request;
   final String quoteId;

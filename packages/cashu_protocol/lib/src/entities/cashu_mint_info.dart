@@ -1,3 +1,4 @@
+/// What a mint says about itself at `GET /v1/info` (NUT-06).
 class CashuMintInfo {
   final String? name;
   final String? pubkey;
@@ -104,6 +105,7 @@ class CashuMintInfo {
   }
 }
 
+/// A way to contact the mint operator (NUT-06).
 class CashuMintContact {
   final String method;
   final String info;
@@ -120,6 +122,7 @@ class CashuMintContact {
   Map<String, dynamic> toJson() => {'method': method, 'info': info};
 }
 
+/// The settings a mint declares for one NUT in [CashuMintInfo.nuts].
 class CashuMintNut {
   final List<CashuMintPaymentMethod>? methods;
   final bool? disabled;
@@ -199,6 +202,7 @@ class CashuMintNut {
   }
 }
 
+/// A payment method and unit a mint supports to mint or melt (NUT-04, NUT-05).
 class CashuMintPaymentMethod {
   /// e.g. bolt11
   final String method;
@@ -252,6 +256,7 @@ class CashuMintPaymentMethod {
   }
 }
 
+/// An endpoint whose responses the mint caches (NUT-19).
 class CashuMintCachedEndpoint {
   /// e.g. post
   final String method;

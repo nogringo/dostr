@@ -14,6 +14,8 @@ class InvalidSequenceComponent implements Exception {}
 
 class InvalidFragment implements Exception {}
 
+/// Decodes a `ur:` Uniform Resource, single-part or from the parts of an
+/// animated QR code.
 class URDecoder {
   final fountain_decoder.FountainDecoder fountainDecoder =
       fountain_decoder.FountainDecoder();
