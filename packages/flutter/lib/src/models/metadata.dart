@@ -4,7 +4,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// The profile a `kind:0` event carries.
 class Metadata {
-  final String pubKey;
+  final String pubkey;
   final String? name;
   final String? displayName;
   final String? picture;
@@ -19,7 +19,7 @@ class Metadata {
   final Map<String, dynamic> content;
 
   const Metadata({
-    required this.pubKey,
+    required this.pubkey,
     this.name,
     this.displayName,
     this.picture,
@@ -41,7 +41,7 @@ class Metadata {
       _ => null,
     };
     return Metadata(
-      pubKey: event.pubKey,
+      pubkey: event.pubkey,
       name: text('name'),
       displayName: text('display_name'),
       picture: text('picture'),
@@ -59,8 +59,8 @@ class Metadata {
   String? get cleanNip05 =>
       nip05?.trim().toLowerCase().replaceFirst(RegExp('^_@'), '@');
 
-  /// [displayName], else [name], else [pubKey]
-  String getName() => tryGetName() ?? pubKey;
+  /// [displayName], else [name], else [pubkey]
+  String getName() => tryGetName() ?? pubkey;
 
   /// [displayName], else [name], else null
   String? tryGetName() => switch ((displayName?.trim(), name?.trim())) {

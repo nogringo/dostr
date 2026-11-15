@@ -34,9 +34,9 @@ class Bip340 {
   /// generates a new private key with a secure random generator
   static KeyPair generatePrivateKey() {
     final privKey = _secureRandomHex(32);
-    final pubKey = getPublicKey(privKey);
+    final pubkey = getPublicKey(privKey);
 
-    return KeyPair(privKey, pubKey);
+    return KeyPair(privKey, pubkey);
   }
 
   /// this method signs the event with the provided private key

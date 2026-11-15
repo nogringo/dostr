@@ -128,7 +128,7 @@ void main() {
   });
 
   test('refuses an unsigned event', () {
-    final unsigned = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
+    final unsigned = Nip01Event(pubkey: alice, kind: 1, tags: [], content: '');
 
     expect(
       () => publishes.publish(unsigned, relays: ['wss://relay.example']),
@@ -256,7 +256,7 @@ void main() {
       final relay = await startRelay();
       final event = signedEvent();
       final unsigned = Nip01Event(
-        pubKey: event.pubKey,
+        pubkey: event.pubkey,
         createdAt: event.createdAt,
         kind: event.kind,
         tags: event.tags,
@@ -329,7 +329,7 @@ void main() {
 
     test('refuses to start unsigned', () {
       final unsigned = Nip01Event(
-        pubKey: alice,
+        pubkey: alice,
         kind: 1,
         tags: [],
         content: '',

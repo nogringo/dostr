@@ -16,7 +16,7 @@ class RelayInfo with _Document {
   final String? icon;
 
   /// Nostr public key of the relay admin
-  final String? pubKey;
+  final String? pubkey;
 
   /// Nostr public key of the relay itself
   final String? self;
@@ -54,7 +54,7 @@ class RelayInfo with _Document {
     this.description,
     this.banner,
     this.icon,
-    this.pubKey,
+    this.pubkey,
     this.self,
     this.contact,
     Iterable<Object> nips = const [],
@@ -101,7 +101,7 @@ class RelayInfo with _Document {
       description: _string(document["description"]),
       banner: _string(document["banner"]),
       icon: _string(document["icon"]),
-      pubKey: _string(document["pubkey"]),
+      pubkey: _string(document["pubkey"]),
       self: _string(document["self"]),
       contact: _string(document["contact"]),
       nips: [for (final nip in _list(document["supported_nips"])) ?_nip(nip)],
@@ -128,7 +128,7 @@ class RelayInfo with _Document {
     'description': ?description,
     'banner': ?banner,
     'icon': ?icon,
-    'pubkey': ?pubKey,
+    'pubkey': ?pubkey,
     'self': ?self,
     'contact': ?contact,
     if (nips.isNotEmpty)

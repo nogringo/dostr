@@ -11,13 +11,13 @@ const alice =
 const bob = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 Nip01Event note({
-  String pubKey = alice,
+  String pubkey = alice,
   int kind = Nip01Event.kTextNoteKind,
   List<List<String>> tags = const [],
   String content = 'note',
   int createdAt = 1000,
 }) => Nip01Event(
-  pubKey: pubKey,
+  pubkey: pubkey,
   kind: kind,
   tags: tags,
   content: content,
@@ -96,7 +96,7 @@ void main() {
       final relay = await startRelay(
         events: [
           mine,
-          note(pubKey: bob),
+          note(pubkey: bob),
         ],
       );
       final client = await Client.connect(relay);
@@ -204,7 +204,7 @@ void main() {
 
     test('a deletion removes the events of its author only', () async {
       final mine = note(content: 'mine');
-      final hers = note(pubKey: bob, content: 'hers');
+      final hers = note(pubkey: bob, content: 'hers');
       final relay = await startRelay(events: [mine, hers]);
       final client = await Client.connect(relay);
 
@@ -226,7 +226,7 @@ void main() {
 
     test('the recipient of a gift wrap deletes it', () async {
       final wrap = note(
-        pubKey:
+        pubkey:
             'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
         kind: 1059,
         tags: [

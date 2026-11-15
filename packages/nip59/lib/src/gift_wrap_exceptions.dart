@@ -14,18 +14,18 @@ final class GiftWrapNoSignerException extends GiftWrapException {
 }
 
 /// Thrown when the signer cannot encrypt a seal or a wrap for
-/// [recipientPubKey].
+/// [recipientPubkey].
 final class GiftWrapEncryptionException extends GiftWrapException {
-  final String recipientPubKey;
+  final String recipientPubkey;
 
   /// What the signer threw, or null when it returned no ciphertext.
   final Object? cause;
 
-  const GiftWrapEncryptionException(this.recipientPubKey, {this.cause});
+  const GiftWrapEncryptionException(this.recipientPubkey, {this.cause});
 
   @override
   String toString() =>
-      'GiftWrapEncryptionException: cannot encrypt for $recipientPubKey'
+      'GiftWrapEncryptionException: cannot encrypt for $recipientPubkey'
       '${cause == null ? '' : ': $cause'}';
 }
 

@@ -39,7 +39,7 @@ class Zaps {
        _subscribe = subscribe,
        _lnurl = lnurl;
 
-  /// creates an invoice with an optional zap request encoded if signer, pubKey & relays are non empty
+  /// creates an invoice with an optional zap request encoded if signer, pubkey & relays are non empty
   Future<InvoiceResponse?> fetchInvoice({
     required String lud16Link,
     required int amountSats,
@@ -68,7 +68,7 @@ class Zaps {
   Future<ZapRequest> createZapRequest({
     required int amountSats,
     required NostrSigner signer,
-    required String pubKey,
+    required String pubkey,
     String? eventId,
     String? addressableId,
     String? comment,
@@ -83,7 +83,7 @@ class Zaps {
     var tags = [
       ["relays", ...relays],
       ["amount", amount.toString()],
-      ["p", pubKey],
+      ["p", pubkey],
     ];
     if (eventId != null) {
       tags.add(["e", eventId]);
@@ -95,7 +95,7 @@ class Zaps {
       tags.add(["poll_option", pollOption]);
     }
     final zapRequestEvent = ZapRequest(
-      pubKey: signer.getPublicKey(),
+      pubkey: signer.getPublicKey(),
       tags: tags,
       content: comment ?? '',
     );
@@ -105,37 +105,37 @@ class Zaps {
     return sigendZapRequest;
   }
 
-  /// fetch all zap receipts matching given pubKey and optional event id, in sats
+  /// fetch all zap receipts matching given pubkey and optional event id, in sats
   Stream<ZapReceipt> fetchZappedReceipts({
-    required String pubKey,
+    required String pubkey,
     String? eventId,
     String? addressableId,
     Duration? timeout,
   }) {
     final events = _query(
-      _receiptsFilter(pubKey, eventId, addressableId),
+      _receiptsFilter(pubkey, eventId, addressableId),
       timeout: timeout ?? const Duration(seconds: 10),
     );
-    // TODO how to check validity of zap receipts without nostrPubKey and recipientLnurl????
+    // TODO how to check validity of zap receipts without nostrPubkey and recipientLnurl????
     return events.map((event) => ZapReceipt.fromEvent(event));
   }
 
-  /// subscribe to the zap receipt events matching given pubKey and optional
+  /// subscribe to the zap receipt events matching given pubkey and optional
   /// event id, until the subscription is closed
   ZapsSubscription subscribeToZapReceipts({
-    required String pubKey,
+    required String pubkey,
     String? eventId,
     String? addressableId,
-  }) => _subscribe(_receiptsFilter(pubKey, eventId, addressableId));
+  }) => _subscribe(_receiptsFilter(pubkey, eventId, addressableId));
 
   static Filter _receiptsFilter(
-    String pubKey,
+    String pubkey,
     String? eventId,
     String? addressableId,
   ) => Filter(
     kinds: [ZapReceipt.kKind],
     eTags: eventId != null ? [eventId] : null,
     aTags: addressableId != null ? [addressableId] : null,
-    pTags: [pubKey],
+    pTags: [pubkey],
   );
 }

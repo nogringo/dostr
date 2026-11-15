@@ -17,7 +17,7 @@ Future<void> main() async {
   accounts.switchAccount(pubkey: writer.publicKey);
   final signed = await accounts.sign(
     Nip01Event(
-      pubKey: writer.publicKey,
+      pubkey: writer.publicKey,
       kind: Nip01Event.kTextNoteKind,
       tags: [],
       content: 'hello',

@@ -26,7 +26,7 @@ class GiftWrapUnwrapResult {
   });
 
   /// Whether the seal's pubkey matches the rumor's pubkey
-  bool get isPubkeyMatch => seal.pubKey == rumor.pubKey;
+  bool get isPubkeyMatch => seal.pubkey == rumor.pubkey;
 
   /// Whether the rumor's id matches its content
   bool get isRumorIdValid => rumor.hasValidId;

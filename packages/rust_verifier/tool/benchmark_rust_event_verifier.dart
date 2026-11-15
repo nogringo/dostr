@@ -17,7 +17,7 @@ Future<void> main() async {
 
   final event = signed(
     Nip01Event(
-      pubKey: keyPair.publicKey,
+      pubkey: keyPair.publicKey,
       createdAt: createdAt,
       kind: 1,
       tags: const [],
@@ -38,7 +38,7 @@ Future<void> main() async {
   final largeContent = 'b' * (64 * 1024);
   final largeEvent = signed(
     Nip01Event(
-      pubKey: keyPair.publicKey,
+      pubkey: keyPair.publicKey,
       createdAt: createdAt,
       kind: 1,
       tags: largeTags,

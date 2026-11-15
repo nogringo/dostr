@@ -82,7 +82,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   Future<void> onEvent(Nip01Event event) async {
     final decryptedContent = await localSigner.decryptNip44(
       ciphertext: event.content,
-      senderPubKey: event.pubKey,
+      senderPubkey: event.pubkey,
     );
 
     final response = jsonDecode(decryptedContent!);
@@ -153,11 +153,11 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
       final encryptedRequest = await localSigner.encryptNip44(
         plaintext: jsonEncode(request),
-        recipientPubKey: connection.remotePubkey,
+        recipientPubkey: connection.remotePubkey,
       );
 
       final requestEvent = Nip01Event(
-        pubKey: localSigner.getPublicKey(),
+        pubkey: localSigner.getPublicKey(),
         kind: BunkerRequest.kKind,
         tags: [
           ["p", connection.remotePubkey],
@@ -189,16 +189,16 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   Iterable<String> get signerTransportRelayUrls => connection.relays;
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
+  Future<String?> decrypt(String msg, String destPubkey) async {
     final request = BunkerRequest(
       method: SignerMethod.nip04Decrypt,
-      params: [destPubKey, msg],
+      params: [destPubkey, msg],
     );
 
     final decryptedText = await remoteRequest(
       request: request,
       ciphertext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
     return decryptedText;
   }
@@ -206,32 +206,32 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     final request = BunkerRequest(
       method: SignerMethod.nip44Decrypt,
-      params: [senderPubKey, ciphertext],
+      params: [senderPubkey, ciphertext],
     );
 
     final decryptedText = await remoteRequest(
       request: request,
       ciphertext: ciphertext,
-      counterpartyPubkey: senderPubKey,
+      counterpartyPubkey: senderPubkey,
     );
     return decryptedText;
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
+  Future<String?> encrypt(String msg, String destPubkey) async {
     final request = BunkerRequest(
       method: SignerMethod.nip04Encrypt,
-      params: [destPubKey, msg],
+      params: [destPubkey, msg],
     );
 
     final encryptedText = await remoteRequest(
       request: request,
       plaintext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
     return encryptedText;
   }
@@ -239,17 +239,17 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     final request = BunkerRequest(
       method: SignerMethod.nip44Encrypt,
-      params: [recipientPubKey, plaintext],
+      params: [recipientPubkey, plaintext],
     );
 
     final encryptedText = await remoteRequest(
       request: request,
       plaintext: plaintext,
-      counterpartyPubkey: recipientPubKey,
+      counterpartyPubkey: recipientPubkey,
     );
     return encryptedText;
   }

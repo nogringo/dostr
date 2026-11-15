@@ -18,7 +18,7 @@ class _TrackedSigner extends Bip340Signer {
 }
 
 Nip01Event _note(String pubkey) => Nip01Event(
-  pubKey: pubkey,
+  pubkey: pubkey,
   kind: Nip01Event.kTextNoteKind,
   tags: [],
   content: 'hello',

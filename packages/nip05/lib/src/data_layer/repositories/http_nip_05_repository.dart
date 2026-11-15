@@ -47,7 +47,7 @@ class HttpNip05Repository implements Nip05Repository {
     }
 
     return Nip05(
-      pubKey: pubkey,
+      pubkey: pubkey,
       identifier: nip05,
       valid: true,
       networkFetchTime: DateTime.now().millisecondsSinceEpoch ~/ 1000,

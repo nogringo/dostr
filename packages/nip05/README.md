@@ -20,7 +20,7 @@ final nip05 = Nip05Resolver(
 
 switch (await nip05.resolve('bob@example.com')) {
   case Nip05Found(:final data):
-    print('${data.pubKey} ${data.relays}');
+    print('${data.pubkey} ${data.relays}');
   case Nip05NotFound():
     print('no such user');
   case Nip05ResolveError(:final cause):

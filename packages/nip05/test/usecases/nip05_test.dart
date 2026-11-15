@@ -214,7 +214,7 @@ void main() {
             1000);
 
         final recentNip05 = Nip05(
-          pubKey: 'test_pubkey',
+          pubkey: 'test_pubkey',
           identifier: 'test@example.com',
           valid: true,
           networkFetchTime: recentTimestamp,
@@ -254,7 +254,7 @@ void main() {
                 .millisecondsSinceEpoch ~/
             1000);
         final oldNip05 = Nip05(
-          pubKey: 'test_pubkey',
+          pubkey: 'test_pubkey',
           identifier: 'test@example.com',
           valid: true,
           networkFetchTime: oldTimestamp,
@@ -287,7 +287,7 @@ void main() {
               .millisecondsSinceEpoch ~/
           1000);
       final oldNip05 = Nip05(
-        pubKey: 'test_pubkey',
+        pubkey: 'test_pubkey',
         identifier: 'test@example.com',
         valid: true,
         networkFetchTime: exactTimestamp,
@@ -338,7 +338,7 @@ void main() {
 
       expect(result, isA<Nip05Found>());
       final found = result as Nip05Found;
-      expect(found.data.pubKey, equals('pubkey'));
+      expect(found.data.pubkey, equals('pubkey'));
       expect(found.data.identifier, equals('username@example.com'));
       expect(found.data.relays, equals(['relay1', 'relay2']));
     });
@@ -481,7 +481,7 @@ void main() {
       final result = await nip05Resolver.resolve('domain.test');
 
       expect(sentUrl!.queryParameters['name'], '_');
-      expect((result as Nip05Found).data.pubKey, 'pubkey');
+      expect((result as Nip05Found).data.pubkey, 'pubkey');
     });
 
     test('encodes the name in the query', () async {
@@ -584,7 +584,7 @@ void main() {
         ]);
 
         expect(results[0].valid, true);
-        expect(results[1].pubKey, 'other');
+        expect(results[1].pubkey, 'other');
         expect(results[1].valid, false);
       },
     );
@@ -672,7 +672,7 @@ void main() {
 
       expect(requests, 1);
       expect(result, isA<Nip05NotFound>());
-      expect((await cache.loadNip05('me@github.com'))!.pubKey, isNull);
+      expect((await cache.loadNip05('me@github.com'))!.pubkey, isNull);
     });
 
     test('resolve() refetches an expired Nip05NotFound', () async {
@@ -692,7 +692,7 @@ void main() {
           1000;
       await cache.saveNip05(
         Nip05(
-          pubKey: null,
+          pubkey: null,
           identifier: 'username@example.com',
           networkFetchTime: expiredTimestamp,
         ),
@@ -838,7 +838,7 @@ void main() {
               .millisecondsSinceEpoch ~/
           1000);
       final expiredNip05 = Nip05(
-        pubKey: 'old_pubkey',
+        pubkey: 'old_pubkey',
         identifier: 'username@example.com',
         valid: true,
         networkFetchTime: expiredTimestamp,
@@ -849,12 +849,12 @@ void main() {
       final result = await nip05Resolver.resolve('username@example.com');
       expect(result, isA<Nip05Found>());
       // From network, not 'old_pubkey'
-      expect((result as Nip05Found).data.pubKey, equals('pubkey'));
+      expect((result as Nip05Found).data.pubkey, equals('pubkey'));
 
       // Second call should return cached result (now valid)
       final result2 = await nip05Resolver.resolve('username@example.com');
       expect(result2, isA<Nip05Found>());
-      expect((result2 as Nip05Found).data.pubKey, equals('pubkey'));
+      expect((result2 as Nip05Found).data.pubkey, equals('pubkey'));
     });
   });
 }

@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 void main() {
   final keyPair = Bip340.generatePrivateKey();
   final event = Nip01Event(
-    pubKey: keyPair.publicKey,
+    pubkey: keyPair.publicKey,
     kind: 1,
     tags: [],
     content: 'hello',

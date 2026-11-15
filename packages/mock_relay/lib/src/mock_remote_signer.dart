@@ -40,7 +40,7 @@ class MockRemoteSigner {
     if (event.getFirstTag('p') != publicKey) return;
 
     final request = jsonDecode(
-      await Nip44.decryptMessage(event.content, privateKey, event.pubKey),
+      await Nip44.decryptMessage(event.content, privateKey, event.pubkey),
     );
     final response = await _answer(
       relay,
@@ -48,7 +48,7 @@ class MockRemoteSigner {
       request['params'] as List<dynamic>,
     );
     response['id'] = request['id'];
-    await _respond(relay, event.pubKey, response);
+    await _respond(relay, event.pubkey, response);
   }
 
   /// Answers a nostrconnect:// invitation on [relay], as a signer app does
@@ -69,7 +69,7 @@ class MockRemoteSigner {
     relay.publish(
       Bip340.signEvent(
         event: Nip01Event(
-          pubKey: publicKey,
+          pubkey: publicKey,
           kind: _kNip46Kind,
           tags: [
             ['p', recipient],
@@ -111,7 +111,7 @@ class MockRemoteSigner {
         final unsigned = jsonDecode(params[0] as String);
         final signed = Bip340.signEvent(
           event: Nip01Event(
-            pubKey: publicKey,
+            pubkey: publicKey,
             kind: unsigned['kind'] as int,
             tags: [
               for (final tag in unsigned['tags'] as List)

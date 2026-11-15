@@ -27,7 +27,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 final list = await HomeRelayList.fetch(verifier: Bip340EventVerifier());
-final homeRelays = list.homeRelaysOf(pubKey);
+final homeRelays = list.homeRelaysOf(pubkey);
 ```
 
 `HomeRelayList.fetch` loads the list nmail.li serves at
@@ -40,7 +40,7 @@ A list read from relays goes through `HomeRelayList.fromEvent`, and a list of
 urls through `HomeRelayList(urls)`. Either way the candidates are normalized
 and kept once.
 
-`homeRelaysOf(pubKey)` takes a hex pubkey and gives the closest candidates
+`homeRelaysOf(pubkey)` takes a hex pubkey and gives the closest candidates
 first. Pass `count` for more or fewer than 8.
 
 ## Client behavior

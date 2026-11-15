@@ -140,7 +140,7 @@ class Blossom {
 
     return Nip01Event(
       content: content,
-      pubKey: pubkey,
+      pubkey: pubkey,
       kind: kBlossom,
       createdAt: now,
       tags: [
@@ -919,7 +919,7 @@ class Blossom {
 
     final Nip01Event reportEvent = Nip01Event(
       content: reportMsg,
-      pubKey: signer.getPublicKey(),
+      pubkey: signer.getPublicKey(),
       kind: kReport,
       createdAt: now,
       tags: [

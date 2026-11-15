@@ -9,7 +9,7 @@ import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 Nip01Event list(List<List<String>> tags) => Nip01Event(
-  pubKey: 'a' * 64,
+  pubkey: 'a' * 64,
   kind: 36205,
   tags: tags,
   content: '',
@@ -49,11 +49,11 @@ void main() {
       'wss://user.kindpag.es',
       'wss://yabu.me',
     ]);
-    final pubKey = Npub.decode(
+    final pubkey = Npub.decode(
       'npub1jlp4rzsraw0nvvuyavgf2z497juw7y44v40ch23lnwzlnre3wuusjhmu65',
     ).pubkey;
 
-    expect(list.homeRelaysOf(pubKey), [
+    expect(list.homeRelaysOf(pubkey), [
       'wss://relay.angor.io',
       'wss://relay.primal.net',
       'wss://yabu.me',
@@ -111,9 +111,9 @@ void main() {
     final author = Bip340.generatePrivateKey();
     final other = Bip340.generatePrivateKey();
 
-    Nip01Event listEvent(String pubKey, KeyPair signer) => Bip340.signEvent(
+    Nip01Event listEvent(String pubkey, KeyPair signer) => Bip340.signEvent(
       event: Nip01Event(
-        pubKey: pubKey,
+        pubkey: pubkey,
         kind: 36205,
         tags: [
           ['d', 'home-relays'],
@@ -149,7 +149,7 @@ void main() {
       final changed = Nip01Event(
         id: signed.id,
         sig: signed.sig,
-        pubKey: signed.pubKey,
+        pubkey: signed.pubkey,
         createdAt: signed.createdAt,
         kind: signed.kind,
         tags: [

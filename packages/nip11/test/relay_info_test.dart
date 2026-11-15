@@ -57,7 +57,7 @@ void main() {
       expect(relayInfo.description, equals("Test relay"));
       expect(relayInfo.banner, equals("https://example.com/banner.png"));
       expect(relayInfo.icon, equals("https://example.com/icon.png"));
-      expect(relayInfo.pubKey, equals("abc123"));
+      expect(relayInfo.pubkey, equals("abc123"));
       expect(relayInfo.self, equals("def456"));
       expect(relayInfo.contact, equals("contact@test.com"));
       expect(relayInfo.nips, equals(['1', '2', '3']));

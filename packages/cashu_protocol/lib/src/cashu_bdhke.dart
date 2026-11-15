@@ -118,14 +118,14 @@ class CashuBdhke {
     String keysetId,
     Map<int, String> keysByAmount,
   ) {
-    final mintPubKey = keysByAmount[signature.amount];
-    if (mintPubKey == null) {
+    final mintPubkey = keysByAmount[signature.amount];
+    if (mintPubkey == null) {
       throw Exception('No mint public key for amount ${signature.amount}');
     }
 
     final unblindedSig = unblindingSignature(
       cHex: signature.blindedSignature,
-      kHex: mintPubKey,
+      kHex: mintPubkey,
       r: message.r,
     );
     if (unblindedSig == null) {

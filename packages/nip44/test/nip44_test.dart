@@ -34,10 +34,10 @@ String uncompressedPublicKeyHex(String privateKeyHex) {
 
 void assertConversationKeyGeneration(
   String privKeyHex,
-  String pubKeyHex,
+  String pubkeyHex,
   String expectedConversationKeyHex,
 ) async {
-  final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubKeyHex);
+  final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubkeyHex);
   final conversationKey = Nip44.deriveConversationKey(sharedSecret);
 
   final expectedConversationKey = hexToBytes(expectedConversationKeyHex);
@@ -144,12 +144,12 @@ Future<void> assertDecryptFail(
 
 Future<void> assertConversationKeyFail(
   String privKeyHex,
-  String pubKeyHex,
+  String pubkeyHex,
   String expectedErrorMessage,
 ) async {
   try {
     // Attempt to compute shared secret
-    final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubKeyHex);
+    final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubkeyHex);
     // Attempt to derive conversation key
     Nip44.deriveConversationKey(sharedSecret);
     // If no exception is thrown, the test should fail
@@ -278,20 +278,20 @@ void assertMessageKeyGeneration(
   );
 }
 
-Uint8List generateConversationKey(String privKeyHex, String pubKeyHex) {
-  final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubKeyHex);
+Uint8List generateConversationKey(String privKeyHex, String pubkeyHex) {
+  final sharedSecret = Nip44.computeSharedSecret(privKeyHex, pubkeyHex);
   final conversationKey = Nip44.deriveConversationKey(sharedSecret);
   return conversationKey;
 }
 
 void assertConversationKeyGenerationPub(
   String privKeyHex,
-  String pubKeyHex,
+  String pubkeyHex,
   String expectedConversationKeyHex,
 ) {
   final expectedConversationKey = hexToBytes(expectedConversationKeyHex);
-  //final pk = '02$pubKeyHex';
-  final actualConversationKey = generateConversationKey(privKeyHex, pubKeyHex);
+  //final pk = '02$pubkeyHex';
+  final actualConversationKey = generateConversationKey(privKeyHex, pubkeyHex);
   expect(
     actualConversationKey,
     equals(expectedConversationKey),

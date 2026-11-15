@@ -194,7 +194,7 @@ bool _matches(Filter filter, Nip01Event event) {
     return false;
   }
   return (filter.ids?.contains(event.id) ?? true) &&
-      (filter.authors?.contains(event.pubKey) ?? true) &&
+      (filter.authors?.contains(event.pubkey) ?? true) &&
       (filter.kinds?.contains(event.kind) ?? true) &&
       (filter.tags?.entries.every(
             (wanted) => event.tags.any(

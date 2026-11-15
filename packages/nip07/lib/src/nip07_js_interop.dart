@@ -16,11 +16,11 @@ extension type Nostr._(JSObject _) implements JSObject {
 @anonymous
 extension type Nip04._(JSObject _) implements JSObject {
   external JSPromise<JSString> encrypt(
-    JSString recipientPubKey,
+    JSString recipientPubkey,
     JSString plaintext,
   );
   external JSPromise<JSString> decrypt(
-    JSString senderPubKey,
+    JSString senderPubkey,
     JSString ciphertext,
   );
 }
@@ -29,11 +29,11 @@ extension type Nip04._(JSObject _) implements JSObject {
 @anonymous
 extension type Nip44._(JSObject _) implements JSObject {
   external JSPromise<JSString> encrypt(
-    JSString recipientPubKey,
+    JSString recipientPubkey,
     JSString plaintext,
   );
   external JSPromise<JSString> decrypt(
-    JSString senderPubKey,
+    JSString senderPubkey,
     JSString ciphertext,
   );
 }

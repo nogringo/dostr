@@ -11,7 +11,7 @@ void main() {
 
   Future<Nip01Event> signNote(NostrSigner signer) => signer.sign(
     Nip01Event(
-      pubKey: alicePubkey,
+      pubkey: alicePubkey,
       kind: 1,
       tags: [
         ['t', 'nostr'],

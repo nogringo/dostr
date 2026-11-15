@@ -148,7 +148,7 @@ void main() {
       await _settle();
       repo.abortPending();
       signing.complete(
-        Nip01Event(pubKey: 'a' * 64, kind: 24242, tags: [], content: 'get'),
+        Nip01Event(pubkey: 'a' * 64, kind: 24242, tags: [], content: 'get'),
       );
 
       await expectLater(read, _aborted);

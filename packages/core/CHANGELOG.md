@@ -67,6 +67,8 @@ exports.
 `package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart` are
 now `package:dostr_signer/dostr_signer.dart`, which
 `package:dostr_core/dostr_core.dart` exports.
+`encryptNip44` and `decryptNip44` take `recipientPubkey` and `senderPubkey`
+instead of `recipientPubKey` and `senderPubKey`.
 
 NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with
 `NegentropyEncoder` and `Nip77Result`. `GlobalState` no longer has
@@ -307,7 +309,7 @@ neither it nor any of its tags can be changed: build another event with
 `copyWith`. Changing the list an event was created from used to change its
 tags without changing its id.
 
-`copyWith` gives a copy whose `pubKey`, `createdAt`, `kind`, `tags` or
+`copyWith` gives a copy whose `pubkey`, `createdAt`, `kind`, `tags` or
 `content` changed the id of its new payload, and drops a `sig` that no longer
 matches that id. It used to keep the old id and signature. Pass `id` to keep
 another one, such as the id a remote signer chose.
@@ -315,6 +317,8 @@ another one, such as the id a remote signer chose.
 `Nip01Event.validSig` is gone, from `copyWith` and the constructors too. A
 request only hands out events whose id and signature it checked, and nothing
 read the flag.
+
+`Nip01Event.pubKey` is now `pubkey`, the name NIP-01 gives the field.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
 

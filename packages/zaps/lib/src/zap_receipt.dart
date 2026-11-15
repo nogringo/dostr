@@ -15,8 +15,8 @@ class ZapReceipt {
   /// amount in sats
   int? amountSats;
 
-  /// pubKey
-  String? pubKey;
+  /// pubkey
+  String? pubkey;
 
   /// invoice
   String? bolt11;
@@ -44,7 +44,7 @@ class ZapReceipt {
 
   ZapReceipt.fromEvent(Nip01Event event) {
     String? zapRequestJson;
-    pubKey = event.pubKey;
+    pubkey = event.pubkey;
     if (event.kind == 9735) {
       for (var tag in event.tags) {
         if (tag[0] == 'bolt11') bolt11 = tag[1];
@@ -61,7 +61,7 @@ class ZapReceipt {
           : Nip01Event.tryFromJson(jsonDecode(zapRequestJson));
       if (zapRequest != null) {
         comment = zapRequest.content;
-        sender = zapRequest.pubKey;
+        sender = zapRequest.pubkey;
         lnurl = zapRequest.getFirstTag('lnurl');
         String? amountString = zapRequest.getFirstTag('amount');
         if (amountString != null && amountString.isNotEmpty) {
@@ -88,9 +88,9 @@ class ZapReceipt {
   }
 
   /// is valid
-  bool isValid({required String nostrPubKey, required String recipientLnurl}) {
+  bool isValid({required String nostrPubkey, required String recipientLnurl}) {
     //  - The zap receipt event's pubkey MUST be the same as the recipient's lnurl provider's nostrPubkey (retrieved in step 1 of the protocol flow).
-    if (pubKey != nostrPubKey) {
+    if (pubkey != nostrPubkey) {
       return false;
     }
     //  - The invoiceAmount contained in the bolt11 tag of the zap receipt MUST equal the amount tag of the zap request (if present).
@@ -111,7 +111,7 @@ class ZapReceipt {
   // coverage:ignore-start
   @override
   String toString() {
-    return 'ZapReceipt(paidAt: $paidAt, pubKey: $pubKey, bolt11: $bolt11, preimage: $preimage, amount: $amountSats, recipient: $recipient, eventId: $eventId, comment: $comment, sender: $sender, anon: $anon)';
+    return 'ZapReceipt(paidAt: $paidAt, pubkey: $pubkey, bolt11: $bolt11, preimage: $preimage, amount: $amountSats, recipient: $recipient, eventId: $eventId, comment: $comment, sender: $sender, anon: $anon)';
   }
 
   // coverage:ignore-end

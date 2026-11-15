@@ -9,7 +9,7 @@ extension Nip19EventReferences on Nip01Event {
   /// This event as an nevent, with its id, author and kind, and [relays] as
   /// hints.
   Nevent nevent({List<String> relays = const []}) =>
-      Nevent(eventId: id, relays: relays, author: pubKey, kind: kind);
+      Nevent(eventId: id, relays: relays, author: pubkey, kind: kind);
 
   /// This event as an naddr, with [relays] as hints. A replaceable event gets
   /// an empty identifier, and an addressable one its `d` tag. Null when the
@@ -27,7 +27,7 @@ extension Nip19EventReferences on Nip01Event {
     }
     return Naddr(
       identifier: identifier,
-      pubkey: pubKey,
+      pubkey: pubkey,
       kind: kind,
       relays: relays,
     );

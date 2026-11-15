@@ -127,25 +127,25 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
+  Future<String?> decrypt(String msg, String destPubkey) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for decryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip04Decrypt(privateKey!.toJS, destPubKey.toJS, msg.toJS)
+        .nip04Decrypt(privateKey!.toJS, destPubkey.toJS, msg.toJS)
         .toDart;
     return result.toDart;
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
+  Future<String?> encrypt(String msg, String destPubkey) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for encryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip04Encrypt(privateKey!.toJS, destPubKey.toJS, msg.toJS)
+        .nip04Encrypt(privateKey!.toJS, destPubkey.toJS, msg.toJS)
         .toDart;
     return result.toDart;
   }
@@ -158,14 +158,14 @@ class WebSigner implements NostrSigner {
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for encryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip44Encrypt(privateKey!.toJS, recipientPubKey.toJS, plaintext.toJS)
+        .nip44Encrypt(privateKey!.toJS, recipientPubkey.toJS, plaintext.toJS)
         .toDart;
     return result.toDart;
   }
@@ -173,14 +173,14 @@ class WebSigner implements NostrSigner {
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for decryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip44Decrypt(privateKey!.toJS, senderPubKey.toJS, ciphertext.toJS)
+        .nip44Decrypt(privateKey!.toJS, senderPubkey.toJS, ciphertext.toJS)
         .toDart;
     return result.toDart;
   }

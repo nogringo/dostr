@@ -8,7 +8,7 @@ const relays = ['wss://relay.example.org/', 'wss://relay.example.com/'];
 const regularKinds = [1, 2, 4, 5, 6, 7, 40, 41, 42, 9999, 20000, 29999, 40000];
 
 Nip01Event event(int kind, {String? d}) => Nip01Event(
-  pubKey: pubkey,
+  pubkey: pubkey,
   kind: kind,
   tags: [
     if (d != null) ['d', d],

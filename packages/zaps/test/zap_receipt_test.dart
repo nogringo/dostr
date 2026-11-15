@@ -5,11 +5,11 @@ import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:test/test.dart';
 
 Nip01Event receipt({
-  String pubKey = 'testPubKey',
+  String pubkey = 'testPubkey',
   int kind = 9735,
   List<List<String>> tags = const [],
 }) => Nip01Event(
-  pubKey: pubKey,
+  pubkey: pubkey,
   kind: kind,
   tags: tags,
   content: '',
@@ -47,7 +47,7 @@ void main() {
         ),
       );
 
-      expect(zapReceipt.pubKey, 'testPubKey');
+      expect(zapReceipt.pubkey, 'testPubkey');
       expect(zapReceipt.bolt11, 'testBolt11');
       expect(zapReceipt.preimage, 'testPreimage');
       expect(zapReceipt.comment, 'testComment');
@@ -88,17 +88,17 @@ void main() {
 
       expect(
         zapReceipt.isValid(
-          nostrPubKey: 'testPubKey',
+          nostrPubkey: 'testPubkey',
           recipientLnurl: 'testLnurl',
         ),
         isTrue,
       );
     });
 
-    test('isValid returns false for invalid pubKey', () {
+    test('isValid returns false for invalid pubkey', () {
       final zapReceipt = ZapReceipt.fromEvent(
         receipt(
-          pubKey: 'wrongPubKey',
+          pubkey: 'wrongPubkey',
           tags: [
             ['bolt11', 'lnbc15u1p'],
             [
@@ -120,7 +120,7 @@ void main() {
       );
       expect(
         zapReceipt.isValid(
-          nostrPubKey: 'testPubKey',
+          nostrPubkey: 'testPubkey',
           recipientLnurl: 'testLnurl',
         ),
         isFalse,
@@ -151,7 +151,7 @@ void main() {
       );
       expect(
         zapReceipt.isValid(
-          nostrPubKey: 'testPubKey',
+          nostrPubkey: 'testPubkey',
           recipientLnurl: 'testLnurl',
         ),
         isFalse,
@@ -183,7 +183,7 @@ void main() {
 
       expect(
         zapReceipt.isValid(
-          nostrPubKey: 'testPubKey',
+          nostrPubkey: 'testPubkey',
           recipientLnurl: 'testLnurl',
         ),
         isFalse,

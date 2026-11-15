@@ -33,7 +33,7 @@ const realNote = r'''
 ''';
 
 Nip01Event signedEvent({String content = '', int? createdAt}) => Nip01Event(
-  pubKey: alice,
+  pubkey: alice,
   kind: 1,
   content: content,
   createdAt: createdAt,
@@ -44,7 +44,7 @@ void main() {
     test('gives a real note the id its author signed', () {
       final note = jsonDecode(realNote) as Map<String, dynamic>;
       final event = Nip01Event(
-        pubKey: note['pubkey'],
+        pubkey: note['pubkey'],
         createdAt: note['created_at'],
         kind: note['kind'],
         tags: [for (final tag in note['tags']) List<String>.from(tag)],
@@ -57,7 +57,7 @@ void main() {
     // Reference id: sha256 of Node's JSON.stringify of the same payload.
     test('escapes its payload like JSON.stringify', () {
       final event = Nip01Event(
-        pubKey: alice,
+        pubkey: alice,
         createdAt: 1,
         kind: 1,
         tags: [
@@ -87,7 +87,7 @@ void main() {
 
       test('gives a changed payload its own id and drops the signature', () {
         final changes = [
-          event.copyWith(pubKey: bob),
+          event.copyWith(pubkey: bob),
           event.copyWith(createdAt: 2),
           event.copyWith(kind: 7),
           event.copyWith(
@@ -138,14 +138,14 @@ void main() {
     test('takes the current time when created_at is omitted', () {
       final before = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-      final event = Nip01Event(pubKey: alice, kind: 1, content: '');
+      final event = Nip01Event(pubkey: alice, kind: 1, content: '');
 
       expect(event.createdAt, greaterThanOrEqualTo(before));
     });
 
     test('keeps a created_at of 0', () {
       final event = Nip01Event(
-        pubKey: alice,
+        pubkey: alice,
         createdAt: 0,
         kind: 1,
         content: '',
@@ -164,7 +164,7 @@ void main() {
       final tags = [
         ['p', bob],
       ];
-      final event = Nip01Event(pubKey: alice, kind: 1, tags: tags, content: '');
+      final event = Nip01Event(pubkey: alice, kind: 1, tags: tags, content: '');
 
       tags.add(['t', 'later']);
       tags.first.add('extra');
@@ -186,7 +186,7 @@ void main() {
 
     test('reads its tags', () {
       final event = Nip01Event(
-        pubKey: alice,
+        pubkey: alice,
         kind: 1,
         tags: [
           ['e', 'root', '', 'root'],
@@ -208,7 +208,7 @@ void main() {
 
     test('getTags keeps values as the event holds them', () {
       final event = Nip01Event(
-        pubKey: alice,
+        pubkey: alice,
         kind: 1,
         tags: [
           ['d', 'MyList'],
@@ -267,7 +267,7 @@ void main() {
       final event = Nip01Event.fromJson(note);
 
       expect(event.id, note['id']);
-      expect(event.pubKey, note['pubkey']);
+      expect(event.pubkey, note['pubkey']);
       expect(event.createdAt, note['created_at']);
       expect(event.kind, note['kind']);
       expect(event.tags, note['tags']);
@@ -306,7 +306,7 @@ void main() {
     test('reads back whatever toJson wrote, even an id that is not hex', () {
       final event = Nip01Event(
         id: 'local-1',
-        pubKey: '',
+        pubkey: '',
         createdAt: 1,
         kind: 70000,
         content: '',
@@ -319,7 +319,7 @@ void main() {
     });
 
     test('writes no sig for an unsigned event', () {
-      final event = Nip01Event(pubKey: alice, kind: 1, content: '');
+      final event = Nip01Event(pubkey: alice, kind: 1, content: '');
 
       expect(event.toJson(), isNot(contains('sig')));
       expect(Nip01Event.fromJson(event.toJson()).sig, isNull);

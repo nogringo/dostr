@@ -14,7 +14,7 @@ void main() async {
 
   test('counts the events read and hands out read-only maps', () {
     final stats = MutableRelayStats();
-    final note = Nip01Event(pubKey: alice, kind: 1, tags: [], content: '');
+    final note = Nip01Event(pubkey: alice, kind: 1, tags: [], content: '');
 
     stats.incStatsByNewEvent(note, 100);
     stats.incStatsByNewEvent(note, 50);

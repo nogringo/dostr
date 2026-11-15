@@ -52,7 +52,7 @@ final signer = Bip340Signer(privateKey: privateKey, publicKey: publicKey);
 
 final signed = await signer.sign(
   Nip01Event(
-    pubKey: publicKey,
+    pubkey: publicKey,
     kind: Nip01Event.kTextNoteKind,
     tags: [],
     content: 'hello nostr',

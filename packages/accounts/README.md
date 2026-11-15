@@ -45,7 +45,7 @@ You can log in several accounts and move between them with `switchAccount(pubkey
 
 Each account owns its signer. Removing the account, or calling `dispose` on `Accounts`, disposes of it, which closes the relay subscription of a NIP-46 bunker.
 
-`sign` throws an `AccountCannotSignException` when nobody is logged in or the logged account is read-only, and an `ArgumentError` for an event whose `pubKey` is not the logged account's.
+`sign` throws an `AccountCannotSignException` when nobody is logged in or the logged account is read-only, and an `ArgumentError` for an event whose `pubkey` is not the logged account's.
 
 More in [example/](example/).
 

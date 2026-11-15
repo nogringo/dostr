@@ -3,17 +3,17 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 /// Where [GiftWrap] keeps the plaintext of the gift wraps and seals it
 /// decrypts, per event id and viewer pubkey.
 abstract interface class GiftWrapCache {
-  /// Cached plaintext of [eventId] for [viewerPubKey], or null.
+  /// Cached plaintext of [eventId] for [viewerPubkey], or null.
   Future<String?> loadCachedPlaintext({
     required String eventId,
-    required String viewerPubKey,
+    required String viewerPubkey,
   });
 
-  /// Cached plaintext of [event] for [viewerPubKey], otherwise the result of
+  /// Cached plaintext of [event] for [viewerPubkey], otherwise the result of
   /// [decrypt], which is then cached.
   Future<String?> loadOrDecrypt({
     required Nip01Event event,
-    required String viewerPubKey,
+    required String viewerPubkey,
     required Future<String?> Function() decrypt,
   });
 }

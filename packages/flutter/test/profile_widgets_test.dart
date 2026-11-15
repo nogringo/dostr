@@ -21,21 +21,21 @@ void main() {
       expect(
         NipAvatar.getInitial(
           pubkey,
-          const Metadata(pubKey: pubkey, displayName: ' zed ', name: 'alice'),
+          const Metadata(pubkey: pubkey, displayName: ' zed ', name: 'alice'),
         ),
         'Z',
       );
       expect(
         NipAvatar.getInitial(
           pubkey,
-          const Metadata(pubKey: pubkey, displayName: ' ', name: 'alice'),
+          const Metadata(pubkey: pubkey, displayName: ' ', name: 'alice'),
         ),
         'A',
       );
       expect(
         NipAvatar.getInitial(
           pubkey,
-          const Metadata(pubKey: pubkey, nip05: 'bob@example.com'),
+          const Metadata(pubkey: pubkey, nip05: 'bob@example.com'),
         ),
         'B',
       );
@@ -45,14 +45,14 @@ void main() {
       expect(
         NipAvatar.getInitial(
           pubkey,
-          const Metadata(pubKey: pubkey, nip05: '_@nostr.com'),
+          const Metadata(pubkey: pubkey, nip05: '_@nostr.com'),
         ),
         'N',
       );
       expect(
         NipAvatar.getInitial(
           pubkey,
-          const Metadata(pubKey: pubkey, nip05: '@nostr.com'),
+          const Metadata(pubkey: pubkey, nip05: '@nostr.com'),
         ),
         'N',
       );
@@ -77,7 +77,7 @@ void main() {
         localizedApp(
           NName(
             dostrFlutter: dostrFlutter(),
-            metadata: const Metadata(pubKey: alicePubkey, displayName: 'Alice'),
+            metadata: const Metadata(pubkey: alicePubkey, displayName: 'Alice'),
           ),
         ),
       );
@@ -114,7 +114,7 @@ void main() {
         localizedApp(
           NName(
             dostrFlutter: dostrFlutter(),
-            metadata: const Metadata(pubKey: bobPubkey),
+            metadata: const Metadata(pubkey: bobPubkey),
           ),
         ),
       );
@@ -153,7 +153,7 @@ void main() {
         localizedApp(
           NPicture(
             dostrFlutter: dostrFlutter(),
-            metadata: const Metadata(pubKey: alicePubkey, name: 'alice'),
+            metadata: const Metadata(pubkey: alicePubkey, name: 'alice'),
           ),
         ),
       );
@@ -197,7 +197,7 @@ void main() {
         localizedApp(
           NPicture(
             dostrFlutter: dostrFlutter(),
-            metadata: const Metadata(pubKey: alicePubkey, name: 'alice'),
+            metadata: const Metadata(pubkey: alicePubkey, name: 'alice'),
             useCircleAvatar: false,
           ),
         ),
@@ -242,7 +242,7 @@ void main() {
         localizedApp(
           NBanner(
             dostrFlutter: dostrFlutter(),
-            metadata: const Metadata(pubKey: alicePubkey),
+            metadata: const Metadata(pubkey: alicePubkey),
           ),
           theme: ThemeData(brightness: Brightness.dark),
         ),
@@ -308,7 +308,7 @@ void main() {
 
     testWidgets('hides what it is told to hide', (tester) async {
       const metadata = Metadata(
-        pubKey: alicePubkey,
+        pubkey: alicePubkey,
         name: 'alice',
         nip05: 'alice@example.com',
       );
@@ -335,7 +335,7 @@ void main() {
 
       await tester.pumpWidget(
         profile(
-          metadata: const Metadata(pubKey: alicePubkey, name: 'alice'),
+          metadata: const Metadata(pubkey: alicePubkey, name: 'alice'),
         ),
       );
 
@@ -344,7 +344,7 @@ void main() {
 
     testWidgets('lays out a profile without a name', (tester) async {
       await tester.pumpWidget(
-        profile(metadata: const Metadata(pubKey: alicePubkey)),
+        profile(metadata: const Metadata(pubkey: alicePubkey)),
       );
 
       expect(tester.takeException(), isNull);

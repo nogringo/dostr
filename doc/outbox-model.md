@@ -48,7 +48,7 @@ final lists = fetcherUrlListFn(
 
 final resolution = await resolveUrlSet(
   UrlSet.union([
-    UrlSet.outbox(signed.pubKey),
+    UrlSet.outbox(signed.pubkey),
     for (final p in taggedPubkeys) UrlSet.inbox(p),
   ]),
   lists,
@@ -70,7 +70,7 @@ A new account has no relay list yet, so nobody can find its events. Publish its 
 ```dart
 final relayList = await signer.sign(
   Nip01Event(
-    pubKey: publicKey,
+    pubkey: publicKey,
     kind: 10002,
     tags: [
       ['r', 'wss://relay.example.com'],

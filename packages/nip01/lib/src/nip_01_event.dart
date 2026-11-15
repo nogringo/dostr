@@ -13,7 +13,7 @@ final class Nip01Event {
   final String? _id;
 
   /// The author's public key, in hex.
-  final String pubKey;
+  final String pubkey;
 
   /// Unix time, in seconds.
   final int createdAt;
@@ -35,7 +35,7 @@ final class Nip01Event {
   /// the current time.
   Nip01Event({
     String? id,
-    required String pubKey,
+    required String pubkey,
     required int kind,
     List<List<String>> tags = const [],
     required String content,
@@ -43,7 +43,7 @@ final class Nip01Event {
     int? createdAt,
   }) : this._(
          id: id,
-         pubKey: pubKey,
+         pubkey: pubkey,
          createdAt: createdAt ?? _secondsSinceEpoch(),
          kind: kind,
          tags: _frozen(tags),
@@ -53,7 +53,7 @@ final class Nip01Event {
 
   Nip01Event._({
     required String? id,
-    required this.pubKey,
+    required this.pubkey,
     required this.createdAt,
     required this.kind,
     required this.tags,
@@ -77,7 +77,7 @@ final class Nip01Event {
   Nip01Event.fromJson(Map<dynamic, dynamic> data)
     : this._(
         id: _optional<String>(data, 'id'),
-        pubKey: _required<String>(data, 'pubkey'),
+        pubkey: _required<String>(data, 'pubkey'),
         createdAt: _required<int>(data, 'created_at'),
         kind: _required<int>(data, 'kind'),
         tags: _tagsFromJson(data),
@@ -130,12 +130,12 @@ final class Nip01Event {
 
   /// A copy with the given fields replaced.
   ///
-  /// Changing [pubKey], [createdAt], [kind], [tags] or [content] gives the copy
+  /// Changing [pubkey], [createdAt], [kind], [tags] or [content] gives the copy
   /// the id of its new payload, and drops [sig] once that id differs. Pass [id]
   /// to keep another one, such as a remote signer's.
   Nip01Event copyWith({
     String? id,
-    String? pubKey,
+    String? pubkey,
     int? createdAt,
     int? kind,
     List<List<String>>? tags,
@@ -143,19 +143,19 @@ final class Nip01Event {
     String? sig,
   }) {
     final payloadChanged =
-        pubKey != null ||
+        pubkey != null ||
         createdAt != null ||
         kind != null ||
         tags != null ||
         content != null;
-    final nextPubKey = pubKey ?? this.pubKey;
+    final nextPubkey = pubkey ?? this.pubkey;
     final nextCreatedAt = createdAt ?? this.createdAt;
     final nextKind = kind ?? this.kind;
     final nextTags = tags == null ? this.tags : _frozen(tags);
     final nextContent = content ?? this.content;
     final nextPayloadId = payloadChanged
         ? computeEventId(
-            pubKey: nextPubKey,
+            pubkey: nextPubkey,
             createdAt: nextCreatedAt,
             kind: nextKind,
             tags: nextTags,
@@ -165,7 +165,7 @@ final class Nip01Event {
     final nextId = id ?? nextPayloadId ?? this.id;
     return Nip01Event._(
       id: nextId,
-      pubKey: nextPubKey,
+      pubkey: nextPubkey,
       createdAt: nextCreatedAt,
       kind: nextKind,
       tags: nextTags,
@@ -178,7 +178,7 @@ final class Nip01Event {
   /// A copy with the same [id] and no [sig], such as a NIP-59 rumor.
   Nip01Event withoutSig() => Nip01Event._(
     id: _id,
-    pubKey: pubKey,
+    pubkey: pubkey,
     createdAt: createdAt,
     kind: kind,
     tags: tags,
@@ -191,7 +191,7 @@ final class Nip01Event {
   /// `sig` key for an unsigned event.
   Map<String, dynamic> toJson() => {
     'id': id,
-    'pubkey': pubKey,
+    'pubkey': pubkey,
     'created_at': createdAt,
     'kind': kind,
     'tags': tags,
@@ -215,7 +215,7 @@ final class Nip01Event {
 
   /// The id of this event's payload (NIP-01), whatever [id] it holds.
   String get payloadId => _payloadId ??= computeEventId(
-    pubKey: pubKey,
+    pubkey: pubkey,
     createdAt: createdAt,
     kind: kind,
     tags: tags,
@@ -244,6 +244,6 @@ final class Nip01Event {
 
   @override
   String toString() {
-    return 'Nip01Event{id: $id, pubKey: $pubKey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
+    return 'Nip01Event{id: $id, pubkey: $pubkey, createdAt: $createdAt, kind: $kind, tags: $tags, content: $content}';
   }
 }

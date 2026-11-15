@@ -129,44 +129,44 @@ class Nip55SignerApp {
   Future<Map<dynamic, dynamic>> nip04Encrypt({
     required String plaintext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) {
     return _invoke(
-      _encryptArgs('nip04_encrypt', plaintext, currentUser, pubKey, id),
+      _encryptArgs('nip04_encrypt', plaintext, currentUser, pubkey, id),
     );
   }
 
   Future<Map<dynamic, dynamic>> nip04Decrypt({
     required String ciphertext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) {
     return _invoke(
-      _encryptArgs('nip04_decrypt', ciphertext, currentUser, pubKey, id),
+      _encryptArgs('nip04_decrypt', ciphertext, currentUser, pubkey, id),
     );
   }
 
   Future<Map<dynamic, dynamic>> nip44Encrypt({
     required String plaintext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) {
     return _invoke(
-      _encryptArgs('nip44_encrypt', plaintext, currentUser, pubKey, id),
+      _encryptArgs('nip44_encrypt', plaintext, currentUser, pubkey, id),
     );
   }
 
   Future<Map<dynamic, dynamic>> nip44Decrypt({
     required String ciphertext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) {
     return _invoke(
-      _encryptArgs('nip44_decrypt', ciphertext, currentUser, pubKey, id),
+      _encryptArgs('nip44_decrypt', ciphertext, currentUser, pubkey, id),
     );
   }
 
@@ -187,7 +187,7 @@ class Nip55SignerApp {
     String type,
     String uriData,
     String currentUser,
-    String pubKey,
+    String pubkey,
     String? id,
   ) {
     return {
@@ -195,8 +195,8 @@ class Nip55SignerApp {
       'uri_data': uriData,
       'current_user': currentUser,
       // both casings are sent to stay compatible with signer implementations
-      'pubKey': pubKey,
-      'pubkey': pubKey,
+      'pubKey': pubkey,
+      'pubkey': pubkey,
       'id': id,
     };
   }

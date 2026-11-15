@@ -81,23 +81,23 @@ void injectSetupCode() {
         },
 
         nip04: {
-          encrypt: async function(recipientPubKey, plaintext) {
-            return nip04.encrypt(window.nostr._privkeyHex, recipientPubKey, plaintext);
+          encrypt: async function(recipientPubkey, plaintext) {
+            return nip04.encrypt(window.nostr._privkeyHex, recipientPubkey, plaintext);
           },
 
-          decrypt: async function(senderPubKey, ciphertext) {
-            return nip04.decrypt(window.nostr._privkeyHex, senderPubKey, ciphertext);
+          decrypt: async function(senderPubkey, ciphertext) {
+            return nip04.decrypt(window.nostr._privkeyHex, senderPubkey, ciphertext);
           }
         },
 
         nip44: {
-          encrypt: async function(recipientPubKey, plaintext) {
-            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, recipientPubKey);
+          encrypt: async function(recipientPubkey, plaintext) {
+            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, recipientPubkey);
             return nip44.v2.encrypt(plaintext, conversationKey);
           },
 
-          decrypt: async function(senderPubKey, ciphertext) {
-            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, senderPubKey);
+          decrypt: async function(senderPubkey, ciphertext) {
+            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, senderPubkey);
             return nip44.v2.decrypt(ciphertext, conversationKey);
           }
         }
@@ -164,7 +164,7 @@ void main() {
 
       final pubkey = await nip07Signer.getPublicKeyAsync();
       final event = Nip01Event(
-        pubKey: pubkey,
+        pubkey: pubkey,
         kind: 1,
         tags: [],
         content: 'test content',
@@ -183,7 +183,7 @@ void main() {
 
         final pubkey = await nip07Signer.getPublicKeyAsync();
         final event = Nip01Event(
-          pubKey: pubkey,
+          pubkey: pubkey,
           kind: 1,
           tags: [
             ['client', 'dostr'],
@@ -208,11 +208,11 @@ void main() {
     test('sign returns the event as signed when the account changed', () async {
       await setupNostrExtension();
 
-      final cachedPubKey = await nip07Signer.getPublicKeyAsync();
+      final cachedPubkey = await nip07Signer.getPublicKeyAsync();
       eval("window.nostr.setAccount('${bip340Signer.privateKey}');");
 
       final event = Nip01Event(
-        pubKey: cachedPubKey,
+        pubkey: cachedPubkey,
         kind: 1,
         tags: [
           ['t', 'nostr'],
@@ -223,7 +223,7 @@ void main() {
 
       final signedEvent = await nip07Signer.sign(event);
 
-      expect(signedEvent.pubKey, equals(bip340Signer.publicKey));
+      expect(signedEvent.pubkey, equals(bip340Signer.publicKey));
       expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
     });
 
@@ -231,12 +231,12 @@ void main() {
       await setupNostrExtension();
 
       const message = 'Hello World';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await nip07Signer.encrypt(
         message,
         bip340Signer.publicKey,
       );
-      final decrypted = await bip340Signer.decrypt(encrypted!, nip07PubKey);
+      final decrypted = await bip340Signer.decrypt(encrypted!, nip07Pubkey);
 
       expect(decrypted, equals(message));
     });
@@ -254,9 +254,9 @@ void main() {
       await setupNostrExtension();
 
       const message = 'Hello round trip';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await nip07Signer.encrypt(message, nip07PubKey);
-      final decrypted = await nip07Signer.decrypt(encrypted!, nip07PubKey);
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
+      final encrypted = await nip07Signer.encrypt(message, nip07Pubkey);
+      final decrypted = await nip07Signer.decrypt(encrypted!, nip07Pubkey);
 
       expect(decrypted, equals(message));
     });
@@ -265,14 +265,14 @@ void main() {
       await setupNostrExtension();
 
       const message = 'Secret Message';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await nip07Signer.encryptNip44(
         plaintext: message,
-        recipientPubKey: bip340Signer.publicKey,
+        recipientPubkey: bip340Signer.publicKey,
       );
       final decrypted = await bip340Signer.decryptNip44(
         ciphertext: encrypted!,
-        senderPubKey: nip07PubKey,
+        senderPubkey: nip07Pubkey,
       );
 
       expect(decrypted, equals(message));
@@ -284,7 +284,7 @@ void main() {
       await expectLater(
         nip07Signer.decryptNip44(
           ciphertext: 'invalid_nip44_data',
-          senderPubKey: bip340Signer.publicKey,
+          senderPubkey: bip340Signer.publicKey,
         ),
         throwsA(anything),
       );
@@ -294,14 +294,14 @@ void main() {
       await setupNostrExtension();
 
       const message = 'Hello NIP-44 round trip';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await nip07Signer.encryptNip44(
         plaintext: message,
-        recipientPubKey: nip07PubKey,
+        recipientPubkey: nip07Pubkey,
       );
       final decrypted = await nip07Signer.decryptNip44(
         ciphertext: encrypted!,
-        senderPubKey: nip07PubKey,
+        senderPubkey: nip07Pubkey,
       );
 
       expect(decrypted, equals(message));
@@ -337,7 +337,7 @@ void main() {
       expect(
         () => nip07Signer.encryptNip44(
           plaintext: 'plain',
-          recipientPubKey: bip340Signer.publicKey,
+          recipientPubkey: bip340Signer.publicKey,
         ),
         throwsA(
           isA<Exception>().having(
@@ -353,7 +353,7 @@ void main() {
       expect(
         () => nip07Signer.decryptNip44(
           ciphertext: 'cipher',
-          senderPubKey: bip340Signer.publicKey,
+          senderPubkey: bip340Signer.publicKey,
         ),
         throwsA(
           isA<Exception>().having(
@@ -367,7 +367,7 @@ void main() {
 
     test('throws exception when nostr is null for sign', () async {
       final event = Nip01Event(
-        pubKey: bip340Signer.publicKey,
+        pubkey: bip340Signer.publicKey,
         kind: 1,
         tags: [],
         content: 'test content',
@@ -390,8 +390,8 @@ void main() {
       await setupNostrExtension();
 
       const message = 'Hello from BIP-340';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await bip340Signer.encrypt(message, nip07PubKey);
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
+      final encrypted = await bip340Signer.encrypt(message, nip07Pubkey);
       final decrypted = await nip07Signer.decrypt(
         encrypted!,
         bip340Signer.publicKey,
@@ -404,14 +404,14 @@ void main() {
       await setupNostrExtension();
 
       const message = 'NIP-44 message from BIP-340';
-      final nip07PubKey = await nip07Signer.getPublicKeyAsync();
+      final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await bip340Signer.encryptNip44(
         plaintext: message,
-        recipientPubKey: nip07PubKey,
+        recipientPubkey: nip07Pubkey,
       );
       final decrypted = await nip07Signer.decryptNip44(
         ciphertext: encrypted!,
-        senderPubKey: bip340Signer.publicKey,
+        senderPubkey: bip340Signer.publicKey,
       );
 
       expect(decrypted, equals(message));

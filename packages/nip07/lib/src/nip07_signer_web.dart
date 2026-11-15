@@ -114,7 +114,7 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   Iterable<String> get signerTransportRelayUrls => const <String>[];
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
+  Future<String?> decrypt(String msg, String destPubkey) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
     }
@@ -123,19 +123,19 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip04Decrypt,
       () async {
         final result = await js.nostr!.nip04!
-            .decrypt(destPubKey.toJS, msg.toJS)
+            .decrypt(destPubkey.toJS, msg.toJS)
             .toDart;
         return result.toDart;
       },
       ciphertext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
@@ -145,17 +145,17 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip44Decrypt,
       () async {
         final result = await js.nostr!.nip44!
-            .decrypt(senderPubKey.toJS, ciphertext.toJS)
+            .decrypt(senderPubkey.toJS, ciphertext.toJS)
             .toDart;
         return result.toDart;
       },
       ciphertext: ciphertext,
-      counterpartyPubkey: senderPubKey,
+      counterpartyPubkey: senderPubkey,
     );
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
+  Future<String?> encrypt(String msg, String destPubkey) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
     }
@@ -164,19 +164,19 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip04Encrypt,
       () async {
         final result = await js.nostr!.nip04!
-            .encrypt(destPubKey.toJS, msg.toJS)
+            .encrypt(destPubkey.toJS, msg.toJS)
             .toDart;
         return result.toDart;
       },
       plaintext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
   }
 
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
@@ -186,12 +186,12 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip44Encrypt,
       () async {
         final result = await js.nostr!.nip44!
-            .encrypt(recipientPubKey.toJS, plaintext.toJS)
+            .encrypt(recipientPubkey.toJS, plaintext.toJS)
             .toDart;
         return result.toDart;
       },
       plaintext: plaintext,
-      counterpartyPubkey: recipientPubKey,
+      counterpartyPubkey: recipientPubkey,
     );
   }
 
@@ -224,7 +224,7 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
     return _trackRequest(SignerMethod.signEvent, () async {
       final jsEvent = js.NostrEvent()
-        ..pubkey = event.pubKey
+        ..pubkey = event.pubkey
         ..createdAt = event.createdAt
         ..kind = event.kind
         ..content = event.content
@@ -238,7 +238,7 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       return event.copyWith(
         id: signedEvent.id!,
         sig: signedEvent.sig!,
-        pubKey: signedEvent.pubkey,
+        pubkey: signedEvent.pubkey,
         createdAt: signedEvent.createdAt,
         kind: signedEvent.kind,
         content: signedEvent.content,

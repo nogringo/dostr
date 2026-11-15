@@ -2,3 +2,4 @@
 
  - Initial release, moved out of the `ndk` package, with the `ConcurrencyLimiterMixin` of interactive signers, and the accounts (`Account`, `AuthAccounts`), `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server.
  - `EventSigner` of `ndk` is now `NostrSigner`, and `LocalEventSignerFactory` is now `LocalSignerFactory`, since a signer also encrypts and decrypts.
+ - `recipientPubKey` of `encryptNip44` and `senderPubKey` of `decryptNip44` are now `recipientPubkey` and `senderPubkey`.

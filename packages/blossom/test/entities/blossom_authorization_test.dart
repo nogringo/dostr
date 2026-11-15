@@ -6,7 +6,7 @@ import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 Nip01Event _authEvent(String content) => Nip01Event(
-  pubKey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
+  pubkey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
   kind: 24242,
   tags: [
     ['t', content],
@@ -16,7 +16,7 @@ Nip01Event _authEvent(String content) => Nip01Event(
 
 /// a get event that expires [seconds] from now, in the past when negative
 Nip01Event _expiringIn(int seconds) => Nip01Event(
-  pubKey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
+  pubkey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
   kind: 24242,
   tags: [
     ['t', 'get'],

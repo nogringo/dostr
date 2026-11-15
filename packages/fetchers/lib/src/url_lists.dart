@@ -105,8 +105,8 @@ void _requireNip65(
 
 Stream<UrlListLookup> _watchUrls(
   String pubkey,
-  Stream<Nip01Event> Function(String pubKey) watch,
-  Future<EventLookup> Function(String pubKey) lookup,
+  Stream<Nip01Event> Function(String pubkey) watch,
+  Future<EventLookup> Function(String pubkey) lookup,
   List<String> Function(Nip01Event list) urlsOf,
 ) {
   // taken together: once ended, a lookup with checks is not reused

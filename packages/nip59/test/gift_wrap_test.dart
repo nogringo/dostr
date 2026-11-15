@@ -13,7 +13,7 @@ class _RejectingSigner extends Bip340Signer {
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) => throw SignerRequestRejectedException(requestId: 'decrypt');
 }
 
@@ -36,13 +36,13 @@ void main() {
   );
 
   Nip01Event rumorOf(KeyPair author, {String content = 'hello'}) =>
-      Nip01Event(pubKey: author.publicKey, kind: 14, content: content);
+      Nip01Event(pubkey: author.publicKey, kind: 14, content: content);
 
   /// [rumor] wrapped by alice for bob, then bob logged in.
   Future<Nip01Event> wrapForBob(Nip01Event rumor) async {
     final wrap = await giftWrap.toGiftWrap(
       rumor: rumor,
-      recipientPubKey: bob.publicKey,
+      recipientPubkey: bob.publicKey,
     );
     loggedSigner = signerOf(bob);
     return wrap;
@@ -54,14 +54,14 @@ void main() {
     loggedSigner = signerOf(bob);
     return ephemeral.sign(
       Nip01Event(
-        pubKey: ephemeral.getPublicKey(),
+        pubkey: ephemeral.getPublicKey(),
         kind: GiftWrap.kGiftWrapEventKind,
         tags: [
           ['p', bob.publicKey],
         ],
         content: (await ephemeral.encryptNip44(
           plaintext: payload,
-          recipientPubKey: bob.publicKey,
+          recipientPubkey: bob.publicKey,
         ))!,
       ),
     );
@@ -81,7 +81,7 @@ void main() {
           ['p', bob.publicKey],
         ],
       );
-      expect(rumor.pubKey, alice.publicKey);
+      expect(rumor.pubkey, alice.publicKey);
 
       final wrap = await wrapForBob(rumor);
       expect(wrap.kind, GiftWrap.kGiftWrapEventKind);
@@ -93,7 +93,7 @@ void main() {
       expect(received.id, rumor.id);
       expect(received.content, rumor.content);
       expect(received.kind, rumor.kind);
-      expect(received.pubKey, rumor.pubKey);
+      expect(received.pubkey, rumor.pubkey);
       expect(received.tags, rumor.tags);
     });
 
@@ -102,7 +102,7 @@ void main() {
       () async {
         final wrap = await giftWrap.toGiftWrap(
           rumor: rumorOf(alice),
-          recipientPubKey: bob.publicKey,
+          recipientPubkey: bob.publicKey,
           additionalTags: [
             ['expiration', '1700000000'],
           ],
@@ -118,11 +118,11 @@ void main() {
     test('wrapEvent puts additionalTags on the wrap after its p tag', () async {
       final seal = await giftWrap.sealRumor(
         rumor: rumorOf(alice),
-        recipientPubKey: bob.publicKey,
+        recipientPubkey: bob.publicKey,
       );
 
       final wrap = await giftWrap.wrapEvent(
-        recipientPubKey: bob.publicKey,
+        recipientPubkey: bob.publicKey,
         sealEvent: seal,
         additionalTags: [
           ['pow', '25'],
@@ -162,13 +162,13 @@ void main() {
 
       final seal = await giftWrap.unwrapEvent(wrappedEvent: wrap);
 
-      expect(seal.pubKey, alice.publicKey);
+      expect(seal.pubkey, alice.publicKey);
       expect(await Bip340EventVerifier().verify(seal), isTrue);
     });
 
     test('a custom signer seals and opens instead of the logged one', () async {
       final rumor = giftWrap.createRumor(
-        customPubKey: carol.publicKey,
+        customPubkey: carol.publicKey,
         content: 'from carol',
         kind: 14,
         tags: const [],
@@ -176,7 +176,7 @@ void main() {
 
       final wrap = await giftWrap.toGiftWrap(
         rumor: rumor,
-        recipientPubKey: bob.publicKey,
+        recipientPubkey: bob.publicKey,
         customSigner: signerOf(carol),
       );
       final received = await giftWrap.fromGiftWrap(
@@ -184,14 +184,14 @@ void main() {
         customSigner: signerOf(bob),
       );
 
-      expect(received.pubKey, carol.publicKey);
+      expect(received.pubkey, carol.publicKey);
       expect(received.content, 'from carol');
     });
 
     test('leaves the sig of a signed rumor out of its seal', () async {
       final wrap = await wrapForBob(
         Nip01Event(
-          pubKey: alice.publicKey,
+          pubkey: alice.publicKey,
           kind: 14,
           content: 'signed',
           sig: 'a' * 128,
@@ -207,7 +207,7 @@ void main() {
 
   group('refuses', () {
     test('an event that is not a gift wrap', () async {
-      final note = Nip01Event(pubKey: alice.publicKey, kind: 1, content: '');
+      final note = Nip01Event(pubkey: alice.publicKey, kind: 1, content: '');
 
       await expectLater(
         giftWrap.fromGiftWrap(giftWrap: note),
@@ -242,10 +242,10 @@ void main() {
       () async {
         final seal = await giftWrap.sealRumor(
           rumor: rumorOf(alice, content: 'forged seal'),
-          recipientPubKey: bob.publicKey,
+          recipientPubkey: bob.publicKey,
         );
         final wrap = await giftWrap.wrapEvent(
-          recipientPubKey: bob.publicKey,
+          recipientPubkey: bob.publicKey,
           sealEvent: seal.copyWith(sig: '0' * 128),
         );
         loggedSigner = signerOf(bob);
@@ -296,7 +296,7 @@ void main() {
       final wrap = await wrapForBob(
         Nip01Event(
           id: 'f' * 64,
-          pubKey: alice.publicKey,
+          pubkey: alice.publicKey,
           kind: 14,
           content: 'forged id',
         ),
@@ -336,7 +336,7 @@ void main() {
       await expectLater(
         giftWrap.toGiftWrap(
           rumor: rumorOf(alice),
-          recipientPubKey: bob.publicKey,
+          recipientPubkey: bob.publicKey,
         ),
         throwsA(isA<GiftWrapNoSignerException>()),
       );
@@ -348,10 +348,10 @@ void main() {
 
     test('a recipient it cannot encrypt for', () async {
       await expectLater(
-        giftWrap.toGiftWrap(rumor: rumorOf(alice), recipientPubKey: 'f' * 64),
+        giftWrap.toGiftWrap(rumor: rumorOf(alice), recipientPubkey: 'f' * 64),
         throwsA(
           isA<GiftWrapEncryptionException>()
-              .having((e) => e.recipientPubKey, 'recipientPubKey', 'f' * 64)
+              .having((e) => e.recipientPubkey, 'recipientPubkey', 'f' * 64)
               .having((e) => e.cause, 'cause', isNotNull),
         ),
       );

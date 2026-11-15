@@ -29,9 +29,9 @@ void main() {
 
   test('keeps the lookups still running', () async {
     var started = 0;
-    final lookups = SharedLookups((pubKey) {
+    final lookups = SharedLookups((pubkey) {
       started++;
-      return pubKey.startsWith('running') ? running(pubKey) : finished(pubKey);
+      return pubkey.startsWith('running') ? running(pubkey) : finished(pubkey);
     }, reuseFor: Duration.zero);
 
     for (var i = 0; i < 100; i++) {
@@ -48,9 +48,9 @@ void main() {
 
   test('keeps a finished lookup while it is reused', () async {
     var started = 0;
-    final lookups = SharedLookups((pubKey) {
+    final lookups = SharedLookups((pubkey) {
       started++;
-      return finished(pubKey);
+      return finished(pubkey);
     }, reuseFor: const Duration(minutes: 10));
 
     await lookups.lookup('p0');

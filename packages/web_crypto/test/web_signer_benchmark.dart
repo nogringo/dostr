@@ -19,7 +19,7 @@ void main() {
     setUpAll(() {
       keyPair = Bip340.generatePrivateKey();
       event = Nip01Event(
-        pubKey: keyPair.publicKey,
+        pubkey: keyPair.publicKey,
         kind: 1,
         tags: [],
         content: 'Benchmark event content',
@@ -164,13 +164,13 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await webSigner.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
       }
       for (var i = 0; i < 3; i++) {
         await dartSigner.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
       }
 
@@ -179,7 +179,7 @@ void main() {
       for (var i = 0; i < count; i++) {
         await webSigner.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
       }
       sw.stop();
@@ -190,7 +190,7 @@ void main() {
       for (var i = 0; i < count; i++) {
         await dartSigner.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
       }
       sw.stop();
@@ -264,7 +264,7 @@ void main() {
 
       final encrypted = await webSigner.encryptNip44(
         plaintext: message,
-        recipientPubKey: otherKeyPair.publicKey,
+        recipientPubkey: otherKeyPair.publicKey,
       );
       if (encrypted == null) throw Exception('Encrypt failed');
 
@@ -272,13 +272,13 @@ void main() {
       for (var i = 0; i < 3; i++) {
         await dartSigner.decryptNip44(
           ciphertext: encrypted,
-          senderPubKey: keyPair.publicKey,
+          senderPubkey: keyPair.publicKey,
         );
       }
       for (var i = 0; i < 3; i++) {
         await webSigner.decryptNip44(
           ciphertext: encrypted,
-          senderPubKey: otherKeyPair.publicKey,
+          senderPubkey: otherKeyPair.publicKey,
         );
       }
 
@@ -287,7 +287,7 @@ void main() {
       for (var i = 0; i < count; i++) {
         await dartSigner.decryptNip44(
           ciphertext: encrypted,
-          senderPubKey: keyPair.publicKey,
+          senderPubkey: keyPair.publicKey,
         );
       }
       sw.stop();
@@ -298,7 +298,7 @@ void main() {
       for (var i = 0; i < count; i++) {
         await webSigner.decryptNip44(
           ciphertext: encrypted,
-          senderPubKey: otherKeyPair.publicKey,
+          senderPubkey: otherKeyPair.publicKey,
         );
       }
       sw.stop();

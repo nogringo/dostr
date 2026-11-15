@@ -38,14 +38,14 @@ void runEventVerifierTestSuite({
     tearDown(() => signer.dispose());
 
     Future<Nip01Event> sign({
-      String? pubKey,
+      String? pubkey,
       int kind = 1,
       int createdAt = 1726215220,
       List<List<String>> tags = const [],
       String content = 'hello',
     }) => signer.sign(
       Nip01Event(
-        pubKey: pubKey ?? signer.getPublicKey(),
+        pubkey: pubkey ?? signer.getPublicKey(),
         createdAt: createdAt,
         kind: kind,
         tags: tags,
@@ -187,7 +187,7 @@ void runEventVerifierTestSuite({
         addTearDown(other.dispose);
         final forged = event.copyWith(
           id: event.id,
-          pubKey: other.getPublicKey(),
+          pubkey: other.getPublicKey(),
         );
 
         expect(await verifier.verify(forged), isFalse);
@@ -204,7 +204,7 @@ void runEventVerifierTestSuite({
       test('sig is missing', () async {
         final unsigned = Nip01Event(
           id: event.id,
-          pubKey: event.pubKey,
+          pubkey: event.pubkey,
           createdAt: event.createdAt,
           kind: event.kind,
           tags: event.tags,
@@ -244,7 +244,7 @@ void runEventVerifierTestSuite({
         // has to decode the malformed pubkey itself.
         test('pubkey $malformation', () async {
           final malformed = event.copyWith(
-            pubKey: malform(event.pubKey),
+            pubkey: malform(event.pubkey),
             sig: event.sig,
           );
 
@@ -285,8 +285,8 @@ void runEventVerifierTestSuite({
 
       test('pubkey is uppercase, signed as such', () async {
         final uppercase = signer.getPublicKey().toUpperCase();
-        final signed = await sign(pubKey: uppercase);
-        if (signed.pubKey != uppercase) {
+        final signed = await sign(pubkey: uppercase);
+        if (signed.pubkey != uppercase) {
           markTestSkipped('the signer replaces the pubkey of what it signs');
           return;
         }

@@ -10,8 +10,8 @@ class CashuKeypair {
 
   /// Builds a keypair from a private key hex string by deriving the public key.
   static CashuKeypair fromPrivateKeyHex(String privateKeyHex) {
-    final pubKeyHex = CashuTools.ecPointToHex(derivePublicKey(privateKeyHex));
-    return CashuKeypair(privateKey: privateKeyHex, publicKey: pubKeyHex);
+    final pubkeyHex = CashuTools.ecPointToHex(derivePublicKey(privateKeyHex));
+    return CashuKeypair(privateKey: privateKeyHex, publicKey: pubkeyHex);
   }
 
   static CashuKeypair generateCashuKeyPair() {
@@ -19,9 +19,9 @@ class CashuKeypair {
         .toRadixString(16)
         .padLeft(64, '0');
 
-    final pubKeyHex = CashuTools.ecPointToHex(derivePublicKey(privKey));
+    final pubkeyHex = CashuTools.ecPointToHex(derivePublicKey(privKey));
 
-    return CashuKeypair(privateKey: privKey, publicKey: pubKeyHex);
+    return CashuKeypair(privateKey: privKey, publicKey: pubkeyHex);
   }
 
   static ECPoint derivePublicKey(String privateKeyHex) {
@@ -30,7 +30,7 @@ class CashuKeypair {
 
     final G = CashuTools.getG();
 
-    // calculate public key: pubKey = privKey * G
+    // calculate public key: pubkey = privKey * G
     final publicKeyPoint = G * privateKeyInt;
 
     return publicKeyPoint!;

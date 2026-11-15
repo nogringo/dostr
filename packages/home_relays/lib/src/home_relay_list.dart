@@ -65,7 +65,7 @@ class HomeRelayList {
     } finally {
       client.close();
     }
-    if (event.pubKey != author) {
+    if (event.pubkey != author) {
       throw FormatException('the list at $url is not signed by $author');
     }
     if (!await verifier.verify(event)) {
@@ -74,10 +74,10 @@ class HomeRelayList {
     return HomeRelayList.fromEvent(event);
   }
 
-  /// The home relays of [pubKey] (hex): the [count] candidates closest to it,
+  /// The home relays of [pubkey] (hex): the [count] candidates closest to it,
   /// closest first, by `sha256(npub) XOR sha256(url)`.
-  List<String> homeRelaysOf(String pubKey, {int count = 8}) {
-    final key = _sha256(Npub(pubKey).encode());
+  List<String> homeRelaysOf(String pubkey, {int count = 8}) {
+    final key = _sha256(Npub(pubkey).encode());
     final distances = [
       for (final hash in _hashes)
         [for (var i = 0; i < hash.length; i++) hash[i] ^ key[i]],

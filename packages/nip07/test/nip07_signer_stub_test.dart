@@ -28,7 +28,7 @@ void main() {
 
     test('throws UnsupportedError for every request', () {
       final event = Nip01Event(
-        pubKey: 'pubkey',
+        pubkey: 'pubkey',
         kind: 1,
         tags: [],
         content: '',
@@ -39,11 +39,11 @@ void main() {
       expect(signer.encrypt('msg', 'pubkey'), throwsUnsupportedError);
       expect(signer.decrypt('msg', 'pubkey'), throwsUnsupportedError);
       expect(
-        signer.encryptNip44(plaintext: 'msg', recipientPubKey: 'pubkey'),
+        signer.encryptNip44(plaintext: 'msg', recipientPubkey: 'pubkey'),
         throwsUnsupportedError,
       );
       expect(
-        signer.decryptNip44(ciphertext: 'msg', senderPubKey: 'pubkey'),
+        signer.decryptNip44(ciphertext: 'msg', senderPubkey: 'pubkey'),
         throwsUnsupportedError,
       );
     });

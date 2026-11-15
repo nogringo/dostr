@@ -73,11 +73,11 @@ class Bunkers {
 
     final encryptedRequest = await localSigner.encryptNip44(
       plaintext: jsonEncode(request),
-      recipientPubKey: remotePubkey,
+      recipientPubkey: remotePubkey,
     );
 
     final requestEvent = Nip01Event(
-      pubKey: localSigner.getPublicKey(),
+      pubkey: localSigner.getPublicKey(),
       kind: BunkerRequest.kKind,
       tags: [
         ["p", remotePubkey],
@@ -105,7 +105,7 @@ class Bunkers {
       await for (final event in _responses(subscription)) {
         final decryptedContent = await localSigner.decryptNip44(
           ciphertext: event.content,
-          senderPubKey: remotePubkey,
+          senderPubkey: remotePubkey,
         );
 
         final response = jsonDecode(decryptedContent!);
@@ -178,7 +178,7 @@ class Bunkers {
       await for (final event in _responses(subscription)) {
         final decryptedContent = await localSigner.decryptNip44(
           ciphertext: event.content,
-          senderPubKey: event.pubKey,
+          senderPubkey: event.pubkey,
         );
 
         final response = jsonDecode(decryptedContent!);
@@ -186,7 +186,7 @@ class Bunkers {
         if (response["result"] == secret) {
           return BunkerConnection(
             privateKey: nostrConnect.privateKey,
-            remotePubkey: event.pubKey,
+            remotePubkey: event.pubkey,
             relays: relays,
           );
         }

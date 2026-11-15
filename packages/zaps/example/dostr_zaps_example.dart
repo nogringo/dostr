@@ -43,7 +43,7 @@ Future<void> main(List<String> args) async {
     lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
   );
 
-  await for (final receipt in zaps.fetchZappedReceipts(pubKey: recipient)) {
+  await for (final receipt in zaps.fetchZappedReceipts(pubkey: recipient)) {
     print(
       '${receipt.amountSats} sats from ${receipt.sender}: ${receipt.comment}',
     );
@@ -57,7 +57,7 @@ Future<void> main(List<String> args) async {
         privateKey: key.privateKey,
         publicKey: key.publicKey,
       ),
-      pubKey: recipient,
+      pubkey: recipient,
       relays: [relay],
     );
     final invoice = await zaps.fetchInvoice(

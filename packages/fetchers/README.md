@@ -46,18 +46,18 @@ final reqs = RelayReqs(
 final nip65 = Nip65Fetcher(reqs: reqs);
 final metadata = MetadataFetcher(reqs: reqs, nip65Fetcher: nip65);
 
-await for (final profile in metadata.watch(pubKey)) {
+await for (final profile in metadata.watch(pubkey)) {
   print(profile.content);
 }
 ```
 
 Every fetcher reads one account three ways:
 
-- `watch(pubKey)`: each version newer than the ones before it, as it arrives.
-- `fetch(pubKey)`: the newest version, or null if no relay has one.
-- `lookup(pubKey)`: how the lookup ended, as an `EventLookup`.
+- `watch(pubkey)`: each version newer than the ones before it, as it arrives.
+- `fetch(pubkey)`: the newest version, or null if no relay has one.
+- `lookup(pubkey)`: how the lookup ended, as an `EventLookup`.
 
-`fetchAll(pubKeys)` and `lookupAll(pubKeys)` do the same for several accounts,
+`fetchAll(pubkeys)` and `lookupAll(pubkeys)` do the same for several accounts,
 in a map by pubkey:
 
 ```dart

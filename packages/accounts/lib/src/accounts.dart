@@ -108,10 +108,10 @@ class Accounts implements AuthAccounts {
     if (account == null || !account.signer.canSign()) {
       throw AccountCannotSignException(account?.pubkey);
     }
-    if (event.pubKey != account.pubkey) {
+    if (event.pubkey != account.pubkey) {
       throw ArgumentError.value(
-        event.pubKey,
-        'event.pubKey',
+        event.pubkey,
+        'event.pubkey',
         'is not the logged account ${account.pubkey}',
       );
     }

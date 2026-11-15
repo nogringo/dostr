@@ -328,7 +328,7 @@ class _NLoginState extends State<NLogin> {
     controller.isFetchingNip05 = false;
 
     final pubkey = switch (result) {
-      Nip05Found(:final data) => data.pubKey,
+      Nip05Found(:final data) => data.pubkey,
       _ => null,
     };
     if (pubkey == null) {

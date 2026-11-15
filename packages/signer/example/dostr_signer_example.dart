@@ -6,7 +6,7 @@ Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
   try {
     return await signer.sign(
       Nip01Event(
-        pubKey: signer.getPublicKey(),
+        pubkey: signer.getPublicKey(),
         kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: text,

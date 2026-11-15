@@ -35,34 +35,34 @@ class MockSlowSigner implements NostrSigner {
   bool canSign() => _innerSigner.canSign();
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) =>
+  Future<String?> decrypt(String msg, String destPubkey) =>
       throw UnimplementedError();
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) =>
+  Future<String?> encrypt(String msg, String destPubkey) =>
       throw UnimplementedError();
 
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     await Future.delayed(_delay);
     return _innerSigner.encryptNip44(
       plaintext: plaintext,
-      recipientPubKey: recipientPubKey,
+      recipientPubkey: recipientPubkey,
     );
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     await Future.delayed(_delay);
     return _innerSigner.decryptNip44(
       ciphertext: ciphertext,
-      senderPubKey: senderPubKey,
+      senderPubkey: senderPubkey,
     );
   }
 

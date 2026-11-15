@@ -152,38 +152,38 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
+  Future<String?> decrypt(String msg, String destPubkey) async {
     return _trackRequest(
       SignerMethod.nip04Decrypt,
       (requestId) async {
         final map = await signerApp.nip04Decrypt(
           ciphertext: msg,
           currentUser: _currentUser,
-          pubKey: destPubKey,
+          pubkey: destPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
       ciphertext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
+  Future<String?> encrypt(String msg, String destPubkey) async {
     return _trackRequest(
       SignerMethod.nip04Encrypt,
       (requestId) async {
         final map = await signerApp.nip04Encrypt(
           plaintext: msg,
           currentUser: _currentUser,
-          pubKey: destPubKey,
+          pubkey: destPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
       plaintext: msg,
-      counterpartyPubkey: destPubKey,
+      counterpartyPubkey: destPubkey,
     );
   }
 
@@ -204,7 +204,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     return _trackRequest(
       SignerMethod.nip44Encrypt,
@@ -212,20 +212,20 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
         final map = await signerApp.nip44Encrypt(
           plaintext: plaintext,
           currentUser: _currentUser,
-          pubKey: recipientPubKey,
+          pubkey: recipientPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
       plaintext: plaintext,
-      counterpartyPubkey: recipientPubKey,
+      counterpartyPubkey: recipientPubkey,
     );
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     return _trackRequest(
       SignerMethod.nip44Decrypt,
@@ -233,13 +233,13 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
         final map = await signerApp.nip44Decrypt(
           ciphertext: ciphertext,
           currentUser: _currentUser,
-          pubKey: senderPubKey,
+          pubkey: senderPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
       ciphertext: ciphertext,
-      counterpartyPubkey: senderPubKey,
+      counterpartyPubkey: senderPubkey,
     );
   }
 

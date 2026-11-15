@@ -170,25 +170,25 @@ void main() {
           'nip04_encrypt': (signer, data) => signer.nip04Encrypt(
             plaintext: data,
             currentUser: pubkey,
-            pubKey: 'peer',
+            pubkey: 'peer',
             id: 'req-2',
           ),
           'nip04_decrypt': (signer, data) => signer.nip04Decrypt(
             ciphertext: data,
             currentUser: pubkey,
-            pubKey: 'peer',
+            pubkey: 'peer',
             id: 'req-2',
           ),
           'nip44_encrypt': (signer, data) => signer.nip44Encrypt(
             plaintext: data,
             currentUser: pubkey,
-            pubKey: 'peer',
+            pubkey: 'peer',
             id: 'req-2',
           ),
           'nip44_decrypt': (signer, data) => signer.nip44Decrypt(
             ciphertext: data,
             currentUser: pubkey,
-            pubKey: 'peer',
+            pubkey: 'peer',
             id: 'req-2',
           ),
         };
@@ -235,7 +235,7 @@ void main() {
         await const Nip55SignerApp().nip44Decrypt(
           ciphertext: 'in',
           currentUser: pubkey,
-          pubKey: 'peer',
+          pubkey: 'peer',
         ),
         isEmpty,
       );

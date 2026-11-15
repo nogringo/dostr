@@ -56,12 +56,12 @@ for the account it holds, and `Bip340Signer` does it with `dostr_nip44`:
 ```dart
 final ciphertext = await signer.encryptNip44(
   plaintext: 'hello bob',
-  recipientPubKey: bobPublicKey,
+  recipientPubkey: bobPublicKey,
 );
 
 final reply = await signer.decryptNip44(
   ciphertext: replyFromBob,
-  senderPubKey: bobPublicKey,
+  senderPubkey: bobPublicKey,
 );
 ```
 

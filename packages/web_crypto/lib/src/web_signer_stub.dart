@@ -60,12 +60,12 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) {
+  Future<String?> decrypt(String msg, String destPubkey) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) {
+  Future<String?> encrypt(String msg, String destPubkey) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
 
@@ -77,7 +77,7 @@ class WebSigner implements NostrSigner {
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
@@ -85,7 +85,7 @@ class WebSigner implements NostrSigner {
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }

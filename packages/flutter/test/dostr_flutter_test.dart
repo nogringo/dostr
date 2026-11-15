@@ -12,7 +12,7 @@ void main() {
 
   group('Metadata.fromEvent', () {
     Metadata parse(String content) => Metadata.fromEvent(
-      Nip01Event(pubKey: alicePubkey, kind: 0, tags: [], content: content),
+      Nip01Event(pubkey: alicePubkey, kind: 0, tags: [], content: content),
     );
 
     test('reads the profile fields and keeps the others', () {
@@ -31,7 +31,7 @@ void main() {
         }),
       );
 
-      expect(metadata.pubKey, alicePubkey);
+      expect(metadata.pubkey, alicePubkey);
       expect(metadata.name, 'alice');
       expect(metadata.displayName, 'Alice');
       expect(metadata.picture, 'https://example.com/a.png');
@@ -68,7 +68,7 @@ void main() {
       () {
         expect(
           const Metadata(
-            pubKey: alicePubkey,
+            pubkey: alicePubkey,
             name: 'alice',
             displayName: ' Alice ',
           ).getName(),
@@ -76,14 +76,14 @@ void main() {
         );
         expect(
           const Metadata(
-            pubKey: alicePubkey,
+            pubkey: alicePubkey,
             name: ' alice ',
             displayName: '  ',
           ).getName(),
           'alice',
         );
         expect(
-          const Metadata(pubKey: alicePubkey, name: '').getName(),
+          const Metadata(pubkey: alicePubkey, name: '').getName(),
           alicePubkey,
         );
       },
@@ -92,20 +92,20 @@ void main() {
     test('cleanNip05 lowercases, trims and drops the root underscore', () {
       expect(
         const Metadata(
-          pubKey: alicePubkey,
+          pubkey: alicePubkey,
           nip05: ' Alice@Example.COM ',
         ).cleanNip05,
         'alice@example.com',
       );
       expect(
-        const Metadata(pubKey: alicePubkey, nip05: '_@example.com').cleanNip05,
+        const Metadata(pubkey: alicePubkey, nip05: '_@example.com').cleanNip05,
         '@example.com',
       );
       expect(
-        const Metadata(pubKey: alicePubkey, nip05: 'a_@example.com').cleanNip05,
+        const Metadata(pubkey: alicePubkey, nip05: 'a_@example.com').cleanNip05,
         'a_@example.com',
       );
-      expect(const Metadata(pubKey: alicePubkey).cleanNip05, isNull);
+      expect(const Metadata(pubkey: alicePubkey).cleanNip05, isNull);
     });
   });
 

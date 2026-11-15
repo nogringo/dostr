@@ -3,7 +3,7 @@ import 'package:dostr_nip13/dostr_nip13.dart';
 
 Future<void> main() async {
   final event = Nip01Event(
-    pubKey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
+    pubkey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
     kind: 1,
     tags: [],
     content: 'hello nostr',

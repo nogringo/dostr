@@ -34,7 +34,7 @@ void main() {
 
   Nip01Event listOf(List<String> servers, {required int createdAt}) =>
       Nip01Event(
-        pubKey: 'alice',
+        pubkey: 'alice',
         kind: BlossomUserServerList.kBlossomUserServerList,
         tags: [
           for (final server in servers) ['server', server],
@@ -74,7 +74,7 @@ void main() {
 
       expect(responses.single.broadcastSuccessful, isTrue);
       final event = published.single;
-      expect(event.pubKey, key.publicKey);
+      expect(event.pubkey, key.publicKey);
       expect(event.kind, BlossomUserServerList.kBlossomUserServerList);
       expect(event.tags, [
         ['server', 'https://b.example'],

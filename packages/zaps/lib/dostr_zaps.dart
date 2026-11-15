@@ -7,7 +7,7 @@
 ///   subscribe: subscribe,
 ///   lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
 /// );
-/// final receipts = await zaps.fetchZappedReceipts(pubKey: pubKey).toList();
+/// final receipts = await zaps.fetchZappedReceipts(pubkey: pubkey).toList();
 /// ```
 library;
 

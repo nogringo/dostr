@@ -2,11 +2,11 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip13/dostr_nip13.dart';
 import 'package:test/test.dart';
 
-const _pubKey =
+const _pubkey =
     '6d46059232af4d121456d1fff7fa8dadc32b02510e46e85b912b0585cf038574';
 
 Nip01Event _event({List<List<String>> tags = const []}) => Nip01Event(
-  pubKey: _pubKey,
+  pubkey: _pubkey,
   kind: 1,
   tags: tags,
   content: 'Hello, Nostr!',
@@ -117,7 +117,7 @@ void main() {
   test('validateEvent checks the id against the nonce target', () {
     final minedEvent = Nip01Event.fromJson({
       "id": "00302f635d4e2059c5cdddca2c00b5f455ec6706cfd960a410acc3e9abe36100",
-      "pubkey": _pubKey,
+      "pubkey": _pubkey,
       "created_at": 1234567890,
       "kind": 1,
       "tags": [

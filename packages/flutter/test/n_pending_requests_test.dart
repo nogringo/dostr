@@ -28,7 +28,7 @@ class _HeldNip55SignerApp extends Nip55SignerApp {
   Future<Map<dynamic, dynamic>> nip44Encrypt({
     required String plaintext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) => _hold();
 
@@ -36,7 +36,7 @@ class _HeldNip55SignerApp extends Nip55SignerApp {
   Future<Map<dynamic, dynamic>> nip04Decrypt({
     required String ciphertext,
     required String currentUser,
-    required String pubKey,
+    required String pubkey,
     String? id,
   }) => _hold();
 }
@@ -64,7 +64,7 @@ void main() {
 
   void signNote() => track(
     signer.sign(
-      Nip01Event(pubKey: alicePubkey, kind: 1, tags: [], content: 'hi'),
+      Nip01Event(pubkey: alicePubkey, kind: 1, tags: [], content: 'hi'),
     ),
   );
 
@@ -112,7 +112,7 @@ void main() {
     expect(find.text('request waiting on signer app'), findsOneWidget);
     expect(find.text('1'), findsOneWidget);
 
-    track(signer.encryptNip44(plaintext: 'hi', recipientPubKey: bobPubkey));
+    track(signer.encryptNip44(plaintext: 'hi', recipientPubkey: bobPubkey));
     await tester.pumpAndSettle();
     expect(find.text('requests waiting on signer app'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
@@ -131,7 +131,7 @@ void main() {
     tester,
   ) async {
     await tester.pumpWidget(pendingRequests(animationDuration: Duration.zero));
-    track(signer.encryptNip44(plaintext: 'hi', recipientPubKey: bobPubkey));
+    track(signer.encryptNip44(plaintext: 'hi', recipientPubkey: bobPubkey));
     track(signer.decrypt('cipher', bobPubkey));
     await tester.pumpAndSettle();
 

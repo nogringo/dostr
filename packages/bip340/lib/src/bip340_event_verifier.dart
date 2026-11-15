@@ -10,13 +10,13 @@ class Bip340EventVerifier implements EventVerifier {
     final sig = event.sig;
     if (sig == null ||
         !isLowercaseHex(sig, length: 128) ||
-        !isLowercaseHex(event.pubKey, length: 64) ||
+        !isLowercaseHex(event.pubkey, length: 64) ||
         !event.hasValidId) {
       return false;
     }
     // the bip340 package throws on some malformed input instead of returning false
     try {
-      return bip340.verify(event.pubKey, event.id, sig);
+      return bip340.verify(event.pubkey, event.id, sig);
     } catch (_) {
       return false;
     }

@@ -326,7 +326,7 @@ final serverList = BlossomUserServerList(
   ],
   publish: (event) async {
     final signed = await accounts.sign(event);
-    final relayList = await nip65.fetch(signed.pubKey);
+    final relayList = await nip65.fetch(signed.pubkey);
     return publishes
         .publish(
           signed,

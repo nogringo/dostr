@@ -40,7 +40,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     final l10n = context.l10n;
     try {
       final event = Nip01Event(
-        pubKey: signer.getPublicKey(),
+        pubkey: signer.getPublicKey(),
         kind: 1,
         tags: [],
         content: 'Test event from pending requests demo - ${DateTime.now()}',
@@ -69,7 +69,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
 
     Future<bool> signOne(int index) async {
       final event = Nip01Event(
-        pubKey: pubkey,
+        pubkey: pubkey,
         kind: 1,
         tags: [
           ['client', 'dostr-demo'],
@@ -129,7 +129,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     final pubkey = signer.getPublicKey();
     final startedAt = DateTime.now();
     final event = Nip01Event(
-      pubKey: pubkey,
+      pubkey: pubkey,
       kind: 1,
       tags: [
         ['client', 'dostr-demo'],
@@ -191,7 +191,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
       final pubkey = signer.getPublicKey();
       final result = await signer.encryptNip44(
         plaintext: 'Hello from pending requests demo!',
-        recipientPubKey: pubkey,
+        recipientPubkey: pubkey,
       );
       _ciphertext = result;
       _showResult(
@@ -220,7 +220,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
       await signer.encryptNip44(
         plaintext:
             'Parallel NIP-44 encryption test #${index + 1}/50 from the demo - $startedAt',
-        recipientPubKey: pubkey,
+        recipientPubkey: pubkey,
       );
       return true;
     }
@@ -273,7 +273,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
       final pubkey = signer.getPublicKey();
       final result = await signer.decryptNip44(
         ciphertext: _ciphertext!,
-        senderPubKey: pubkey,
+        senderPubkey: pubkey,
       );
       _showResult(l10n.pendingDecryptedResult(result ?? ''));
     } catch (e) {

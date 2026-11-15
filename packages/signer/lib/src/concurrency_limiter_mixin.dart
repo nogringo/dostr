@@ -44,7 +44,7 @@ mixin ConcurrencyLimiterMixin {
 
   void _releaseSlot() {
     if (_waitQueue.isNotEmpty) {
-      // Hand the slot directly to the next waiter — counter stays the same.
+      // Hand the slot to the next waiter, so the counter stays the same.
       _waitQueue.removeFirst().complete();
     } else {
       _inFlight--;

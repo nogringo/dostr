@@ -315,14 +315,14 @@ class MockRelay {
     events.removeWhere(
       (event) =>
           ids.contains(event.id) &&
-          (event.pubKey == deletion.pubKey ||
+          (event.pubkey == deletion.pubkey ||
               (event.kind == 1059 &&
-                  event.getFirstTag('p') == deletion.pubKey)),
+                  event.getFirstTag('p') == deletion.pubkey)),
     );
   }
 
   static bool _sameAddress(Nip01Event a, Nip01Event b) =>
-      a.pubKey == b.pubKey &&
+      a.pubkey == b.pubkey &&
       a.kind == b.kind &&
       (!EventKindClassification.isAddressableKind(a.kind) ||
           (a.dTag ?? '') == (b.dTag ?? ''));
@@ -477,7 +477,7 @@ class MockRelay {
         event.getFirstTag('challenge') == client.challenge &&
         event.getFirstTag('relay') == url;
     if (accepted) {
-      client.authenticatedAs = event.pubKey;
+      client.authenticatedAs = event.pubkey;
       acceptedAuths++;
     }
     client.send([
@@ -544,7 +544,7 @@ class MockRelay {
 
   static bool _matches(Filter filter, Nip01Event event) {
     if (filter.ids != null && !filter.ids!.contains(event.id)) return false;
-    if (filter.authors != null && !filter.authors!.contains(event.pubKey)) {
+    if (filter.authors != null && !filter.authors!.contains(event.pubkey)) {
       return false;
     }
     if (filter.kinds != null && !filter.kinds!.contains(event.kind)) {

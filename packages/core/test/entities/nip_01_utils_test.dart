@@ -3,7 +3,7 @@ import 'package:test/test.dart';
 
 void main() {
   final event = Nip01Event(
-    pubKey: 'a' * 64,
+    pubkey: 'a' * 64,
     createdAt: 1,
     kind: 1,
     tags: [

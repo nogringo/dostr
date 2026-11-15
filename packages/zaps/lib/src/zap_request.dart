@@ -12,12 +12,12 @@ extension type ZapRequest._(Nip01Event _event) implements Nip01Event {
           : event.copyWith(kind: kZapRequestKind);
 
   ZapRequest({
-    required String pubKey,
+    required String pubkey,
     required List<List<String>> tags,
     required String content,
     String? sig,
   }) : _event = Nip01Event(
-         pubKey: pubKey,
+         pubkey: pubkey,
          kind: kZapRequestKind,
          tags: tags,
          content: content,

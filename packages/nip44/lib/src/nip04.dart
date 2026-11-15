@@ -31,8 +31,8 @@ class Nip04 {
     ECDHBasicAgreement agreement,
     String publicKey,
   ) {
-    var pubKey = getPubKey(publicKey);
-    var agreementD0 = agreement.calculateAgreement(pubKey);
+    var pubkey = getPubkey(publicKey);
+    var agreementD0 = agreement.calculateAgreement(pubkey);
     var encryptKey = agreementD0.toRadixString(16).padLeft(64, "0");
 
     final random = Random.secure();
@@ -75,8 +75,8 @@ class Nip04 {
     var iv = strs[1];
     var ivData = base64.decode(iv);
 
-    var pubKey = getPubKey(publicKey);
-    var agreementD0 = agreement.calculateAgreement(pubKey);
+    var pubkey = getPubkey(publicKey);
+    var agreementD0 = agreement.calculateAgreement(pubkey);
     var encryptKey = agreementD0.toRadixString(16).padLeft(64, "0");
 
     // var encrypter = Encrypter(AES(
@@ -102,7 +102,7 @@ class Nip04 {
     return utf8.decode(result);
   }
 
-  static ECPublicKey getPubKey(String pk) {
+  static ECPublicKey getPubkey(String pk) {
     // BigInt x = BigInt.parse(pk, radix: 16);
     BigInt x = BigInt.parse(
       hex.encode(hex.decode(pk.padLeft(64, '0'))),

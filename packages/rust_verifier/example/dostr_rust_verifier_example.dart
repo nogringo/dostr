@@ -10,7 +10,7 @@ Future<void> main() async {
   );
 
   final event = await signer.sign(
-    Nip01Event(pubKey: keyPair.publicKey, kind: 1, tags: [], content: 'hello'),
+    Nip01Event(pubkey: keyPair.publicKey, kind: 1, tags: [], content: 'hello'),
   );
 
   print(await RustEventVerifier().verify(event));

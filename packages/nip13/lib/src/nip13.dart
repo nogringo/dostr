@@ -79,7 +79,7 @@ class Nip13 {
       ]);
 
       final minedEvent = Nip01Event(
-        pubKey: params.event.pubKey,
+        pubkey: params.event.pubkey,
         kind: params.event.kind,
         tags: updatedTags,
         content: params.event.content,

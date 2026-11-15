@@ -13,7 +13,7 @@ void test() async {
 
   try {
     print('can sign passed : ${testCanSign(nip07Signer)}');
-    print('pubkey passed : ${await testGetPubKey(nip07Signer)}');
+    print('pubkey passed : ${await testGetPubkey(nip07Signer)}');
     print(
       'send encrypted passed : ${await testSendEncrypted(nip07Signer, bip340Signer)}',
     );
@@ -32,7 +32,7 @@ void test() async {
   }
 }
 
-Future<bool> testGetPubKey(Nip07Signer nip07Signer) async {
+Future<bool> testGetPubkey(Nip07Signer nip07Signer) async {
   final pubkey = await nip07Signer.getPublicKeyAsync();
   print(pubkey);
   return pubkey.isNotEmpty;
@@ -69,12 +69,12 @@ Future<bool> testSendEncryptedNip44(
 
   final encryptedMessage = await nip07Signer.encryptNip44(
     plaintext: message,
-    recipientPubKey: bip340Signer.publicKey,
+    recipientPubkey: bip340Signer.publicKey,
   );
 
   final decryptedMessage = await bip340Signer.decryptNip44(
     ciphertext: encryptedMessage!,
-    senderPubKey: await nip07Signer.getPublicKeyAsync(),
+    senderPubkey: await nip07Signer.getPublicKeyAsync(),
   );
 
   return message == decryptedMessage;
@@ -107,24 +107,24 @@ Future<bool> testReceiveEncryptedNip44(
 
   final encryptedMessage = await bip340Signer.encryptNip44(
     plaintext: message,
-    recipientPubKey: await nip07Signer.getPublicKeyAsync(),
+    recipientPubkey: await nip07Signer.getPublicKeyAsync(),
   );
 
   final decryptedMessage = await nip07Signer.decryptNip44(
     ciphertext: encryptedMessage!,
-    senderPubKey: bip340Signer.publicKey,
+    senderPubkey: bip340Signer.publicKey,
   );
 
   return message == decryptedMessage;
 }
 
 Future<bool> testSign(Nip07Signer nip07Signer) async {
-  final pubKey = await nip07Signer.getPublicKeyAsync();
+  final pubkey = await nip07Signer.getPublicKeyAsync();
   final event = Nip01Event(
-    pubKey: pubKey,
+    pubkey: pubkey,
     kind: 1,
     tags: [
-      ['p', pubKey],
+      ['p', pubkey],
       ['lalala', 'pubKey'],
     ],
     content: 'GM',
@@ -134,6 +134,6 @@ Future<bool> testSign(Nip07Signer nip07Signer) async {
 
   return await Bip340EventVerifier().verify(signedEvent) &&
       signedEvent.kind == 1 &&
-      signedEvent.pubKey == pubKey &&
+      signedEvent.pubkey == pubkey &&
       signedEvent.content == 'GM';
 }

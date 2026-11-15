@@ -77,7 +77,7 @@ void main() {
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
-        pubKey: 'pubKey',
+        pubkey: 'pubkey',
         relays: ['relay1', 'relay2'],
       );
 
@@ -129,7 +129,7 @@ void main() {
       final amount = 1000;
       final eventId = 'eventId';
       final comment = 'comment';
-      final pubKey = 'pubKey';
+      final pubkey = 'pubkey';
       final relays = ['relay1', 'relay2'];
       ZapRequest zapRequest = await zaps.createZapRequest(
         amountSats: amount,
@@ -139,7 +139,7 @@ void main() {
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
-        pubKey: pubKey,
+        pubkey: pubkey,
         relays: relays,
       );
 
@@ -149,7 +149,7 @@ void main() {
         containsAll([
           ['amount', (amount * 1000).toString()],
           ['e', eventId],
-          ['p', pubKey],
+          ['p', pubkey],
           ['relays', ...relays],
         ]),
       );
@@ -171,13 +171,13 @@ void main() {
             ),
             delay: const Duration(milliseconds: 1100),
           ),
-          pubKey: 'pubKey',
+          pubkey: 'pubkey',
           relays: ['relay1'],
         );
 
         expect(zapRequest.hasValidId, isTrue);
         expect(
-          Bip340.verify(zapRequest.id, zapRequest.sig!, zapRequest.pubKey),
+          Bip340.verify(zapRequest.id, zapRequest.sig!, zapRequest.pubkey),
           isTrue,
         );
       },
@@ -193,7 +193,7 @@ void main() {
             privateKey: key.privateKey,
             publicKey: key.publicKey,
           ),
-          pubKey: 'pubKey',
+          pubkey: 'pubkey',
           relays: ['relay1', 'relay2'],
         ),
         throwsA(isA<ArgumentError>()),
@@ -209,7 +209,7 @@ void main() {
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
-        pubKey: 'pubKey',
+        pubkey: 'pubkey',
         relays: [],
       );
 
@@ -218,7 +218,7 @@ void main() {
 
     test('ZapRequest.nip01Event keeps a zap request as it is', () {
       final event = ZapRequest(
-        pubKey: key.publicKey,
+        pubkey: key.publicKey,
         tags: [],
         content: '',
       ).copyWith(sig: 'f' * 128);
@@ -231,7 +231,7 @@ void main() {
 
     test('ZapRequest.nip01Event gives another kind a new id and no sig', () {
       final note = Nip01Event(
-        pubKey: key.publicKey,
+        pubkey: key.publicKey,
         kind: 1,
         tags: [],
         content: '',
@@ -245,7 +245,7 @@ void main() {
     });
 
     Nip01Event receipt(String recipient, String bolt11) => Nip01Event(
-      pubKey: key.publicKey,
+      pubkey: key.publicKey,
       kind: ZapReceipt.kKind,
       tags: [
         ['p', recipient],
@@ -258,7 +258,7 @@ void main() {
       relays.events.add(receipt('recipient', 'lnbc21u1p'));
 
       final receipts = await zaps
-          .fetchZappedReceipts(pubKey: 'recipient', eventId: 'eventId')
+          .fetchZappedReceipts(pubkey: 'recipient', eventId: 'eventId')
           .toList();
 
       expect(receipts.single.recipient, 'recipient');
@@ -274,7 +274,7 @@ void main() {
     test('fetchZappedReceipts passes its timeout and addressable id', () async {
       await zaps
           .fetchZappedReceipts(
-            pubKey: 'recipient',
+            pubkey: 'recipient',
             addressableId: '30023:pubkey:d',
             timeout: const Duration(seconds: 3),
           )
@@ -287,7 +287,7 @@ void main() {
     });
 
     test('subscribeToZapReceipts streams receipts until closed', () async {
-      final subscription = zaps.subscribeToZapReceipts(pubKey: 'recipient');
+      final subscription = zaps.subscribeToZapReceipts(pubkey: 'recipient');
       final events = subscription.events.toList();
 
       relays.push(receipt('recipient', 'lnbc1u1p'));

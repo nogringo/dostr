@@ -10,11 +10,11 @@ import 'replaceable_events.dart';
 /// Where the fetchers keep the events they found, so a cold start does not
 /// ask the relays for each of them again.
 abstract interface class ReplaceableEventCache {
-  /// The stored [kind] event of [pubKey] (hex), named [dTag] if addressable,
+  /// The stored [kind] event of [pubkey] (hex), named [dTag] if addressable,
   /// or null if there is none.
   Future<Nip01Event?> load({
     required int kind,
-    required String pubKey,
+    required String pubkey,
     String? dTag,
   });
 
@@ -58,14 +58,14 @@ typedef ReplaceableLookup = ({
 
 /// The event each of [lookups] found, or null.
 Map<String, Nip01Event?> foundEvents(Map<String, EventLookup> lookups) => {
-  for (final MapEntry(key: pubKey, value: lookup) in lookups.entries)
-    pubKey: switch (lookup) {
+  for (final MapEntry(key: pubkey, value: lookup) in lookups.entries)
+    pubkey: switch (lookup) {
       EventFound(:final event) => event,
       _ => null,
     },
 };
 
-/// A lookup of the newest [kind] event of [pubKey], named [dTag] if
+/// A lookup of the newest [kind] event of [pubkey], named [dTag] if
 /// addressable: its versions start on the one in [cache], then each newer one
 /// [ask] gets from the relays, filling the map it is given with what each
 /// relay did.
@@ -81,7 +81,7 @@ Map<String, Nip01Event?> foundEvents(Map<String, EventLookup> lookups) => {
 /// none.
 ReplaceableLookup lookUpReplaceable({
   required int kind,
-  required String pubKey,
+  required String pubkey,
   String? dTag,
   required Stream<Nip01Event> Function(
     Map<String, RelayRequestOutcome> outcomes,
@@ -96,8 +96,8 @@ ReplaceableLookup lookUpReplaceable({
   final result = Completer<EventLookup>();
 
   Stream<Nip01Event> versions() async* {
-    final cached = await cache?.load(kind: kind, pubKey: pubKey, dTag: dTag);
-    final check = await checks?.read(pubKey, kind, dTag: dTag);
+    final cached = await cache?.load(kind: kind, pubkey: pubkey, dTag: dTag);
+    final check = await checks?.read(pubkey, kind, dTag: dTag);
     final now = DateTime.now().toUtc();
     if (cached != null) yield cached;
     if (_isFresh(check, cached != null, now, maxAge)) {
@@ -115,7 +115,7 @@ ReplaceableLookup lookUpReplaceable({
     yield* newerVersions(
       answers,
       kind: kind,
-      pubKey: pubKey,
+      pubkey: pubkey,
       dTag: dTag,
       after: cached,
     ).asyncMap((version) async {
@@ -132,7 +132,7 @@ ReplaceableLookup lookUpReplaceable({
     if (answered) {
       await checks?.write(
         UrlListCheck(
-          pubkey: pubKey,
+          pubkey: pubkey,
           kind: kind,
           dTag: dTag,
           checkedAt: now,
@@ -173,7 +173,7 @@ bool _isFresh(UrlListCheck? check, bool cached, DateTime now, Duration maxAge) {
 /// less than [reuseFor] ago. Once started, a lookup runs to its end, even with
 /// no one listening.
 class SharedLookups {
-  final ReplaceableLookup Function(String pubKey) _start;
+  final ReplaceableLookup Function(String pubkey) _start;
   final Duration reuseFor;
   final Map<String, _SharedLookup> _lookups = {};
   int _sweepAt = _minSweep;
@@ -185,17 +185,17 @@ class SharedLookups {
   /// How many lookups are kept, the stale ones until the next sweep.
   int get length => _lookups.length;
 
-  Stream<Nip01Event> watch(String pubKey) => _lookupOf(pubKey).versions;
+  Stream<Nip01Event> watch(String pubkey) => _lookupOf(pubkey).versions;
 
-  Future<EventLookup> lookup(String pubKey) => _lookupOf(pubKey).done;
+  Future<EventLookup> lookup(String pubkey) => _lookupOf(pubkey).done;
 
-  /// The lookups of [pubKeys], each once. Once each of them asked the relays
+  /// The lookups of [pubkeys], each once. Once each of them asked the relays
   /// or found it needs not, [onAsked] gets the pubkeys that asked.
   Future<Map<String, EventLookup>> lookupAll(
-    Iterable<String> pubKeys, {
+    Iterable<String> pubkeys, {
     required void Function(List<String> asking) onAsked,
   }) async {
-    final lookups = {for (final pubKey in pubKeys) pubKey: _lookupOf(pubKey)};
+    final lookups = {for (final pubkey in pubkeys) pubkey: _lookupOf(pubkey)};
     final dones = [for (final lookup in lookups.values) lookup.done];
     final asked = await Future.wait([
       for (final (i, lookup) in lookups.values.indexed)
@@ -206,21 +206,21 @@ class SharedLookups {
         ]),
     ]);
     onAsked([
-      for (final (i, pubKey) in lookups.keys.indexed)
-        if (asked[i]) pubKey,
+      for (final (i, pubkey) in lookups.keys.indexed)
+        if (asked[i]) pubkey,
     ]);
     return Map.fromIterables(lookups.keys, await Future.wait(dones));
   }
 
-  _SharedLookup _lookupOf(String pubKey) {
-    final lookup = _lookups[pubKey];
+  _SharedLookup _lookupOf(String pubkey) {
+    final lookup = _lookups[pubkey];
     if (lookup != null && !lookup.isStale) return lookup;
     // swept on insertion: a timer would keep the isolate alive
     if (_lookups.length >= _sweepAt) {
       _lookups.removeWhere((_, lookup) => lookup.isStale);
       _sweepAt = max(_minSweep, 2 * _lookups.length);
     }
-    return _lookups[pubKey] = _SharedLookup(_start(pubKey), reuseFor);
+    return _lookups[pubkey] = _SharedLookup(_start(pubkey), reuseFor);
   }
 }
 

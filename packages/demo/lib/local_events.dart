@@ -31,7 +31,7 @@ class LocalEvents {
 /// the fields of the filters this demo builds: ids, authors, kinds and time
 bool _matches(Filter filter, Nip01Event event) =>
     (filter.ids?.contains(event.id) ?? true) &&
-    (filter.authors?.contains(event.pubKey) ?? true) &&
+    (filter.authors?.contains(event.pubkey) ?? true) &&
     (filter.kinds?.contains(event.kind) ?? true) &&
     (filter.since == null || event.createdAt >= filter.since!) &&
     (filter.until == null || event.createdAt <= filter.until!);

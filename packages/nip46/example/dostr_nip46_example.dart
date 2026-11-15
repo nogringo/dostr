@@ -25,7 +25,7 @@ Future<void> main(List<String> args) async {
     final signer = bunkers.createSigner(connection);
     final pubkey = await signer.getPublicKeyAsync();
     final note = await signer.sign(
-      Nip01Event(pubKey: pubkey, kind: 1, tags: [], content: 'hello'),
+      Nip01Event(pubkey: pubkey, kind: 1, tags: [], content: 'hello'),
     );
     print(note.toJsonString());
     await signer.dispose();

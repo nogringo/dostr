@@ -21,7 +21,7 @@ final giftWrap = GiftWrap(
 );
 
 final rumor = giftWrap.createRumor(content: 'hello', kind: 14, tags: []);
-final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubKey: pubkey);
+final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubkey: pubkey);
 final received = await giftWrap.fromGiftWrap(giftWrap: wrap);
 ```
 
@@ -33,10 +33,10 @@ More in [example/](example/).
 
 ## API
 
-- `createRumor`: an unsigned event, as the signer's pubkey unless `customPubKey` is given.
+- `createRumor`: an unsigned event, as the signer's pubkey unless `customPubkey` is given.
 - `sealRumor` and `unsealRumor`: the kind `13` seal, signed by the sender.
 - `wrapEvent` and `unwrapEvent`: the kind `1059` wrap of a seal, signed by a one-time key.
-- `toGiftWrap`: seals the rumor and wraps the seal for `recipientPubKey`. The seal and the wrap get a `created_at` up to two days before the rumor's. `additionalTags` go on the wrap after its `p` tag, such as a NIP-40 `expiration`.
+- `toGiftWrap`: seals the rumor and wraps the seal for `recipientPubkey`. The seal and the wrap get a `created_at` up to two days before the rumor's. `additionalTags` go on the wrap after its `p` tag, such as a NIP-40 `expiration`.
 - `fromGiftWrap`: unwraps a kind `1059` and returns the rumor. Unless `verifySignature` is false, it checks the seal's signature, and that the rumor is from the seal's signer and matches its id.
 - `fromGiftWrapWithInfo`: unwraps without throwing on a bad signature, and returns the seal, the rumor and whether each signature is valid.
 
@@ -47,7 +47,7 @@ What cannot be wrapped or opened throws a `GiftWrapException`:
 - `GiftWrapDecryptionException`: the signer cannot decrypt the wrap or the seal, because it is for someone else or because the signer failed. `cause` holds what the signer threw.
 - `InvalidGiftWrapException`: the wrap decrypts but holds no valid seal and rumor. A payload is not an event, the seal's signature is wrong, or the rumor is not the seal signer's or does not match its id. `fromGiftWrapWithInfo` reports the last three instead of throwing.
 - `GiftWrapEncryptionException`: the signer cannot encrypt for the recipient.
-- `GiftWrapNoSignerException`: the call has no `customSigner` (or `customPubKey` for `createRumor`), and `signer` returns null.
+- `GiftWrapNoSignerException`: the call has no `customSigner` (or `customPubkey` for `createRumor`), and `signer` returns null.
 
 A `SignerRequestRejectedException` or `SignerRequestCancelledException` of the signer passes through unchanged. An event that is not a kind `1059` throws an `ArgumentError`.
 
@@ -58,7 +58,7 @@ A wrap is dated up to two days before its rumor, so a filter with `since: lastSe
 ```dart
 final filter = Filter(
   kinds: [GiftWrap.kGiftWrapEventKind],
-  pTags: [myPubKey],
+  pTags: [myPubkey],
   since: lastSeen - 2 * 24 * 60 * 60,
 );
 ```
@@ -86,7 +86,7 @@ What changed:
 | `accounts` | `signer`, a function that returns the signer to use, or null |
 | `eventSignerFactory` | `signerFactory` |
 | `decryptedEventPayloads`, required | `cache`, an optional `GiftWrapCache` |
-| `recipientPubkey`, `recipientPublicKey`, `customPubkey` | `recipientPubKey`, `customPubKey` |
+| `recipientPublicKey` of `wrapEvent` | `recipientPubkey` |
 | `kGiftWrapEventkind` | `kGiftWrapEventKind` |
 | `createRumor` returned a `Future` | returns the rumor |
 | the static `GiftWrap.wrapEvent(eventSignerFactory: ...)` | `giftWrap.wrapEvent(...)`, with the `signerFactory` of `GiftWrap` |

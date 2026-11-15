@@ -100,7 +100,7 @@ class AuthSession {
     try {
       signedAuth = await account.signer.sign(
         Nip01Event(
-          pubKey: account.pubkey,
+          pubkey: account.pubkey,
           kind: _kAuthKind,
           tags: [
             ["relay", key.url],

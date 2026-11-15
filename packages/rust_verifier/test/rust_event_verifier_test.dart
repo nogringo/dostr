@@ -108,7 +108,7 @@ void main() {
         ];
         final event = signed(
           Nip01Event(
-            pubKey: keyPair.publicKey,
+            pubkey: keyPair.publicKey,
             createdAt: createdAt,
             kind: 1,
             tags: tags,
@@ -125,7 +125,7 @@ void main() {
       final tags = List.generate(200, (index) => ['x', '$index-${'a' * 1024}']);
       final event = signed(
         Nip01Event(
-          pubKey: keyPair.publicKey,
+          pubkey: keyPair.publicKey,
           createdAt: createdAt,
           kind: 1,
           tags: tags,

@@ -42,18 +42,18 @@ class ReplaceableAsks {
     required this.window,
   });
 
-  /// What [relays] send for the newest event of [pubKey] (hex). [pubKey]
+  /// What [relays] send for the newest event of [pubkey] (hex). [pubkey]
   /// joins the next REQs right away, which go out at most [window] later,
   /// and each runs until its relay answered or [timeout]. Once they ended,
   /// [outcomes] gets what each relay did.
   Stream<Nip01Event> ask(
-    String pubKey, {
+    String pubkey, {
     required Iterable<String> relays,
     Map<String, RelayRequestOutcome>? outcomes,
   }) {
     final urls = {for (final url in relays) ?cleanRelayUrl(url)};
     return _answers({
-      for (final url in urls) url: _wait(url, pubKey),
+      for (final url in urls) url: _wait(url, pubkey),
     }, outcomes);
   }
 
@@ -61,9 +61,9 @@ class ReplaceableAsks {
   void flush() {
     _windowEnd?.cancel();
     _windowEnd = null;
-    for (final MapEntry(key: url, value: byPubKey) in _pending.entries) {
+    for (final MapEntry(key: url, value: byPubkey) in _pending.entries) {
       final lots = [
-        for (final chunk in _chunks(byPubKey.entries, maxAuthorsPerFilter))
+        for (final chunk in _chunks(byPubkey.entries, maxAuthorsPerFilter))
           Map.fromEntries(chunk),
       ];
       for (final req in _chunks(lots, maxFiltersPerReq)) {
@@ -86,16 +86,16 @@ class ReplaceableAsks {
     }
   }
 
-  _Waiter _wait(String url, String pubKey) {
+  _Waiter _wait(String url, String pubkey) {
     if (_pending.isEmpty) _windowEnd = Timer(window, flush);
     final waiter = _Waiter();
-    ((_pending[url] ??= {})[pubKey] ??= []).add(waiter);
+    ((_pending[url] ??= {})[pubkey] ??= []).add(waiter);
     return waiter;
   }
 
   Future<void> _send(String url, List<_Lot> lots) async {
-    final byPubKey = {for (final lot in lots) ...lot};
-    final waiters = [for (final list in byPubKey.values) ...list];
+    final byPubkey = {for (final lot in lots) ...lot};
+    final waiters = [for (final list in byPubkey.values) ...list];
     try {
       final req = _reqs.req(
         relays: {
@@ -113,12 +113,12 @@ class ReplaceableAsks {
         timeout: timeout,
       );
       await for (final received in req.events) {
-        for (final waiter in byPubKey[received.event.pubKey] ?? const []) {
+        for (final waiter in byPubkey[received.event.pubkey] ?? const []) {
           waiter.events.add(received.event);
         }
       }
       final outcome = (await req.done)[url];
-      if (byPubKey.length > 1 && _mayBeTooBig(outcome)) {
+      if (byPubkey.length > 1 && _mayBeTooBig(outcome)) {
         await Future.wait([
           for (final smaller in _smaller(lots)) _send(url, smaller),
         ]);

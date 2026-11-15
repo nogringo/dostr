@@ -63,21 +63,21 @@ abstract class NostrSigner {
   String getPublicKey();
 
   @Deprecated('Use nip44 decrypt instead. Deprecated by nostr spec. (nip04)')
-  Future<String?> decrypt(String msg, String destPubKey);
+  Future<String?> decrypt(String msg, String destPubkey);
 
   @Deprecated('Use nip44 encrypt instead. Deprecated by nostr spec. (nip04)')
-  Future<String?> encrypt(String msg, String destPubKey);
+  Future<String?> encrypt(String msg, String destPubkey);
 
   bool canSign();
 
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   });
 
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   });
 
   /// Stream of pending requests waiting for user approval.

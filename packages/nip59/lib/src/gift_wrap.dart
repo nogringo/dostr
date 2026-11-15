@@ -37,7 +37,7 @@ class GiftWrap {
   NostrSigner _getSigner({NostrSigner? customSigner}) =>
       customSigner ?? signer() ?? (throw const GiftWrapNoSignerException());
 
-  /// [rumor] sealed by the signer and wrapped for [recipientPubKey], ready to
+  /// [rumor] sealed by the signer and wrapped for [recipientPubkey], ready to
   /// publish.
   ///
   /// The seal and the wrap get a `created_at` up to two days before the
@@ -45,17 +45,17 @@ class GiftWrap {
   /// NIP-40 `expiration`.
   Future<Nip01Event> toGiftWrap({
     required Nip01Event rumor,
-    required String recipientPubKey,
+    required String recipientPubkey,
     NostrSigner? customSigner,
     List<List<String>>? additionalTags,
   }) async {
     final seal = await sealRumor(
       rumor: rumor,
-      recipientPubKey: recipientPubKey,
+      recipientPubkey: recipientPubkey,
       customSigner: customSigner,
     );
     return wrapEvent(
-      recipientPubKey: recipientPubKey,
+      recipientPubkey: recipientPubkey,
       sealEvent: seal,
       additionalTags: additionalTags,
       randomizeCreatedAtBefore: rumor.createdAt,
@@ -102,11 +102,11 @@ class GiftWrap {
     if (cache == null) {
       return null;
     }
-    final viewerPubKey = _getSigner(customSigner: customSigner).getPublicKey();
+    final viewerPubkey = _getSigner(customSigner: customSigner).getPublicKey();
 
     final cachedSealJson = await cache.loadCachedPlaintext(
       eventId: giftWrap.id,
-      viewerPubKey: viewerPubKey,
+      viewerPubkey: viewerPubkey,
     );
     if (cachedSealJson == null) {
       return null;
@@ -118,7 +118,7 @@ class GiftWrap {
 
     final cachedRumorJson = await cache.loadCachedPlaintext(
       eventId: seal.id,
-      viewerPubKey: viewerPubKey,
+      viewerPubkey: viewerPubkey,
     );
     if (cachedRumorJson == null) {
       return null;
@@ -162,39 +162,39 @@ class GiftWrap {
     );
   }
 
-  /// An unsigned event of [customPubKey], or else of the signer.
+  /// An unsigned event of [customPubkey], or else of the signer.
   Nip01Event createRumor({
-    String? customPubKey,
+    String? customPubkey,
     required String content,
     required int kind,
     required List<List<String>> tags,
   }) => Nip01Event(
-    pubKey: customPubKey ?? _getSigner().getPublicKey(),
+    pubkey: customPubkey ?? _getSigner().getPublicKey(),
     kind: kind,
     tags: tags,
     content: content,
   );
 
-  /// [rumor] encrypted for [recipientPubKey] in a kind 13 seal signed by the
+  /// [rumor] encrypted for [recipientPubkey] in a kind 13 seal signed by the
   /// signer, without the rumor's `sig`.
   ///
   /// The seal gets [createdAt], or else a random one up to two days before the
   /// rumor's.
   Future<Nip01Event> sealRumor({
     required Nip01Event rumor,
-    required String recipientPubKey,
+    required String recipientPubkey,
     NostrSigner? customSigner,
     int? createdAt,
   }) async {
     final signer = _getSigner(customSigner: customSigner);
     final seal = Nip01Event(
-      pubKey: signer.getPublicKey(),
+      pubkey: signer.getPublicKey(),
       kind: kSealEventKind,
       tags: const [],
       content: await _encrypt(
         signer,
         rumor.withoutSig().toJsonString(),
-        recipientPubKey,
+        recipientPubkey,
       ),
       createdAt: createdAt ?? _randomCreatedAtBefore(rumor.createdAt),
     );
@@ -220,14 +220,14 @@ class GiftWrap {
     return rumor;
   }
 
-  /// [sealEvent] encrypted for [recipientPubKey] in a kind 1059 wrap, signed
+  /// [sealEvent] encrypted for [recipientPubkey] in a kind 1059 wrap, signed
   /// by a one-time key, with a `p` tag for the recipient and then
   /// [additionalTags].
   ///
   /// The wrap gets [createdAt], or else a random one up to two days before
   /// [randomizeCreatedAtBefore], or else the seal's.
   Future<Nip01Event> wrapEvent({
-    required String recipientPubKey,
+    required String recipientPubkey,
     required Nip01Event sealEvent,
     List<List<String>>? additionalTags,
     int? createdAt,
@@ -235,16 +235,16 @@ class GiftWrap {
   }) async {
     final ephemeralSigner = signerFactory.createWithNewKeyPair();
     final giftWrap = Nip01Event(
-      pubKey: ephemeralSigner.getPublicKey(),
+      pubkey: ephemeralSigner.getPublicKey(),
       kind: kGiftWrapEventKind,
       tags: [
-        ['p', recipientPubKey],
+        ['p', recipientPubkey],
         ...?additionalTags,
       ],
       content: await _encrypt(
         ephemeralSigner,
         sealEvent.toJsonString(),
-        recipientPubKey,
+        recipientPubkey,
       ),
       createdAt:
           createdAt ??
@@ -267,20 +267,20 @@ class GiftWrap {
   Future<String> _encrypt(
     NostrSigner signer,
     String plaintext,
-    String recipientPubKey,
+    String recipientPubkey,
   ) => _callSigner(
     () => signer.encryptNip44(
       plaintext: plaintext,
-      recipientPubKey: recipientPubKey,
+      recipientPubkey: recipientPubkey,
     ),
-    (cause) => GiftWrapEncryptionException(recipientPubKey, cause: cause),
+    (cause) => GiftWrapEncryptionException(recipientPubkey, cause: cause),
   );
 
   Future<String> _decrypt(Nip01Event event, NostrSigner signer) async {
     Future<String> decrypt() => _callSigner(
       () => signer.decryptNip44(
         ciphertext: event.content,
-        senderPubKey: event.pubKey,
+        senderPubkey: event.pubkey,
       ),
       (cause) => GiftWrapDecryptionException(event.id, cause: cause),
     );
@@ -289,7 +289,7 @@ class GiftWrap {
         ? await decrypt()
         : await cache.loadOrDecrypt(
             event: event,
-            viewerPubKey: signer.getPublicKey(),
+            viewerPubkey: signer.getPublicKey(),
             decrypt: decrypt,
           );
     return plaintext ?? (throw GiftWrapDecryptionException(event.id));
@@ -341,7 +341,7 @@ class GiftWrap {
   }
 
   static void _checkRumor(Nip01Event rumor, {required Nip01Event seal}) {
-    if (rumor.pubKey != seal.pubKey) {
+    if (rumor.pubkey != seal.pubkey) {
       throw const InvalidGiftWrapException(
         "the rumor's pubkey is not the seal's",
       );

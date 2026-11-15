@@ -15,7 +15,7 @@ const int secondRefusingPort = 30021;
 const int publicPort = 30022;
 
 Nip01Event _authEvent(String type) => Nip01Event(
-  pubKey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
+  pubkey: 'd0a1ffb8761b974cec4a3be8cbcb2e96a7090dcf465ffeac839aa4ca20c9a59e',
   kind: 24242,
   tags: [
     ['t', type],
@@ -228,7 +228,7 @@ void main() {
     late String url;
 
     Nip01Event getEvent({required int expiresIn}) => Nip01Event(
-      pubKey: _authEvent('get').pubKey,
+      pubkey: _authEvent('get').pubkey,
       kind: 24242,
       tags: [
         ['t', 'get'],

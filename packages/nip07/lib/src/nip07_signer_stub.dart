@@ -26,27 +26,27 @@ class Nip07Signer implements NostrSigner {
   Iterable<String> get signerTransportRelayUrls => const <String>[];
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
+  Future<String?> decrypt(String msg, String destPubkey) async {
     throw UnsupportedError('NIP-07 is not available on this platform');
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) async {
     throw UnsupportedError('NIP-07 is not available on this platform');
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
+  Future<String?> encrypt(String msg, String destPubkey) async {
     throw UnsupportedError('NIP-07 is not available on this platform');
   }
 
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) async {
     throw UnsupportedError('NIP-07 is not available on this platform');
   }

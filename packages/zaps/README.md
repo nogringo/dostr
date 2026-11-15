@@ -28,7 +28,7 @@ final zaps = Zaps(
 final zapRequest = await zaps.createZapRequest(
   amountSats: 21,
   signer: Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
-  pubKey: recipient,
+  pubkey: recipient,
   relays: ['wss://relay.example.com'],
 );
 final invoice = await zaps.fetchInvoice(
@@ -37,7 +37,7 @@ final invoice = await zaps.fetchInvoice(
   zapRequest: zapRequest,
 );
 
-final receipts = await zaps.fetchZappedReceipts(pubKey: recipient).toList();
+final receipts = await zaps.fetchZappedReceipts(pubkey: recipient).toList();
 ```
 
 `query` streams the events relays hold for a filter and ends once they are done or the timeout runs out. `subscribe` opens a live subscription to a filter and returns its events and a `close` to end it. `lnurl` fetches the LNURL-pay metadata and the invoices, `HttpLnurlTransport` does it over HTTPS.
@@ -52,14 +52,14 @@ More in [example/](example/), which runs `query` and `subscribe` on the `RelayRe
 
 ```dart
 final receipts =
-    await zaps.fetchZappedReceipts(pubKey: author, eventId: eventId).toList();
+    await zaps.fetchZappedReceipts(pubkey: author, eventId: eventId).toList();
 
-final live = zaps.subscribeToZapReceipts(pubKey: author, eventId: eventId);
+final live = zaps.subscribeToZapReceipts(pubkey: author, eventId: eventId);
 live.events.listen((event) => print(ZapReceipt.fromEvent(event).amountSats));
 await live.close();
 ```
 
-The receipts are parsed, not verified. `receipt.isValid(nostrPubKey: ..., recipientLnurl: ...)` checks one against the `nostrPubkey` of the recipient's LNURL server, which `getLnurlResponse(link)` of your `Lnurl` returns. Per NIP-57 this proves the receipt came from that server, not that the payment happened.
+The receipts are parsed, not verified. `receipt.isValid(nostrPubkey: ..., recipientLnurl: ...)` checks one against the `nostrPubkey` of the recipient's LNURL server, which `getLnurlResponse(link)` of your `Lnurl` returns. Per NIP-57 this proves the receipt came from that server, not that the payment happened.
 
 ## Coming from `ndk`
 

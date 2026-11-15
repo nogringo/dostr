@@ -7,7 +7,7 @@ const List<String> defaultIndexerRelays = [
   'wss://relay.ditto.pub',
 ];
 
-/// The [kind] events of [pubKey] among [events], named [dTag] if addressable,
+/// The [kind] events of [pubkey] among [events], named [dTag] if addressable,
 /// each newer than the ones before it and than [after], the lowest id winning
 /// a tie (NIP-01).
 ///
@@ -16,7 +16,7 @@ const List<String> defaultIndexerRelays = [
 Stream<Nip01Event> newerVersions(
   Stream<Nip01Event> events, {
   required int kind,
-  required String pubKey,
+  required String pubkey,
   String? dTag,
   Nip01Event? after,
 }) {
@@ -26,7 +26,7 @@ Stream<Nip01Event> newerVersions(
       .where(
         (event) =>
             event.kind == kind &&
-            event.pubKey == pubKey &&
+            event.pubkey == pubkey &&
             (dTag == null || event.dTag == dTag),
       )
       .where((event) {

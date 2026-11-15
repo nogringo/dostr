@@ -31,11 +31,11 @@ class FakeMetadataFetcher extends MetadataFetcher {
   Object? error;
 
   @override
-  Future<Nip01Event?> fetch(String pubKey) async {
-    fetched.add(pubKey);
+  Future<Nip01Event?> fetch(String pubkey) async {
+    fetched.add(pubkey);
     final error = this.error;
     if (error != null) throw error;
-    return events[pubKey];
+    return events[pubkey];
   }
 }
 
@@ -78,7 +78,7 @@ class TestDostrFlutter {
 
   void addProfile(String pubkey, Map<String, Object?> content) {
     metadata.events[pubkey] = Nip01Event(
-      pubKey: pubkey,
+      pubkey: pubkey,
       kind: 0,
       tags: [],
       content: jsonEncode(content),

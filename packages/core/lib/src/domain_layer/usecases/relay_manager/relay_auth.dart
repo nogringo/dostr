@@ -163,7 +163,7 @@ class RelayAuth {
       return null;
     }
 
-    final author = _accounts?.accounts[event.pubKey];
+    final author = _accounts?.accounts[event.pubkey];
     if (author != null && author.signer.canSign()) {
       return author;
     }

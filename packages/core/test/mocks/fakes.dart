@@ -44,23 +44,23 @@ class FakeSigner extends NostrSigner {
   Future<void> dispose() async {}
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) =>
+  Future<String?> decrypt(String msg, String destPubkey) =>
       throw UnimplementedError();
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) =>
+  Future<String?> encrypt(String msg, String destPubkey) =>
       throw UnimplementedError();
 
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) => throw UnimplementedError();
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) => throw UnimplementedError();
 }
 
@@ -102,13 +102,13 @@ Account fakeAccount(String pubkey, {bool canSign = true}) => Account(
 );
 
 Nip01Event signedEvent({
-  String? pubKey,
+  String? pubkey,
   int kind = 1,
   String content = '',
   List<List<String>> tags = const [],
   int? createdAt,
 }) => Nip01Event(
-  pubKey: pubKey ?? alice,
+  pubkey: pubkey ?? alice,
   kind: kind,
   tags: tags,
   content: content,

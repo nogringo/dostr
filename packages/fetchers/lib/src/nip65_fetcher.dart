@@ -61,7 +61,7 @@ class Nip65Fetcher {
     this.batchWindow = defaultBatchWindow,
   }) : _reqs = reqs;
 
-  /// Each `kind:10002` event of [pubKey] (hex) found on [relays] and on its
+  /// Each `kind:10002` event of [pubkey] (hex) found on [relays] and on its
   /// home relays, as soon as it arrives, if newer than the ones before it.
   /// The one in [cache] comes first, and [checks] may spare the relays.
   ///
@@ -69,33 +69,33 @@ class Nip65Fetcher {
   /// so far, and so is one finished less than [maxAge] ago when there are no
   /// [checks]. Once started, a lookup runs until every relay answered or
   /// [timeout], even with no one listening.
-  Stream<Nip01Event> watch(String pubKey) => _lookups.watch(pubKey);
+  Stream<Nip01Event> watch(String pubkey) => _lookups.watch(pubkey);
 
-  /// The newest `kind:10002` event of [pubKey] (hex) found on [relays] and on
+  /// The newest `kind:10002` event of [pubkey] (hex) found on [relays] and on
   /// its home relays, or null if none has one.
-  Future<Nip01Event?> fetch(String pubKey) => lastVersion(watch(pubKey));
+  Future<Nip01Event?> fetch(String pubkey) => lastVersion(watch(pubkey));
 
-  /// How the lookup [watch] runs for [pubKey] ended.
-  Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
+  /// How the lookup [watch] runs for [pubkey] ended.
+  Future<EventLookup> lookup(String pubkey) => _lookups.lookup(pubkey);
 
-  /// [fetch] for each of [pubKeys]. Their REQs go out once each lookup asked
+  /// [fetch] for each of [pubkeys]. Their REQs go out once each lookup asked
   /// for them, without waiting for the end of [batchWindow].
-  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubKeys) async =>
-      foundEvents(await lookupAll(pubKeys));
+  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubkeys) async =>
+      foundEvents(await lookupAll(pubkeys));
 
-  /// [lookup] for each of [pubKeys], their REQs sent as [fetchAll] does.
-  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubKeys) =>
-      _lookups.lookupAll(pubKeys, onAsked: (_) => _asks.flush());
+  /// [lookup] for each of [pubkeys], their REQs sent as [fetchAll] does.
+  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubkeys) =>
+      _lookups.lookupAll(pubkeys, onAsked: (_) => _asks.flush());
 
-  ReplaceableLookup _lookUp(String pubKey) => lookUpReplaceable(
+  ReplaceableLookup _lookUp(String pubkey) => lookUpReplaceable(
     kind: _kind,
-    pubKey: pubKey,
+    pubkey: pubkey,
     cache: cache,
     checks: checks,
     maxAge: maxAge,
     ask: (outcomes) => _asks.ask(
-      pubKey,
-      relays: [...relays, ...?homeRelayList?.homeRelaysOf(pubKey)],
+      pubkey,
+      relays: [...relays, ...?homeRelayList?.homeRelaysOf(pubkey)],
       outcomes: outcomes,
     ),
   );

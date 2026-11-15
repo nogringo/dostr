@@ -43,7 +43,7 @@ void main() {
         );
         final actuallySigned = await externalSigner.sign(
           Nip01Event(
-            pubKey: publicKey,
+            pubkey: publicKey,
             kind: 1,
             tags: [
               ['t', 'nostr'],
@@ -64,7 +64,7 @@ void main() {
 
         final signedEvent = await signer.sign(
           Nip01Event(
-            pubKey: stalePublicKey,
+            pubkey: stalePublicKey,
             kind: 1,
             tags: [
               ['t', 'nostr'],
@@ -74,7 +74,7 @@ void main() {
           ),
         );
 
-        expect(signedEvent.pubKey, equals(publicKey));
+        expect(signedEvent.pubkey, equals(publicKey));
         expect(signedEvent.id, equals(actuallySigned.id));
         expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
       },
@@ -92,7 +92,7 @@ void main() {
         addTearDown(signer.dispose);
 
         final event = Nip01Event(
-          pubKey: publicKey,
+          pubkey: publicKey,
           kind: 1,
           tags: [],
           content: 'test content',
@@ -148,7 +148,7 @@ void main() {
         call.arguments as Map<dynamic, dynamic>;
 
     Future<String?> encrypt(Nip55Signer signer, String plaintext) => signer
-        .encryptNip44(plaintext: plaintext, recipientPubKey: stalePublicKey);
+        .encryptNip44(plaintext: plaintext, recipientPubkey: stalePublicKey);
 
     test('sends the hex pubkey as current_user for an npub login', () async {
       final signer = newSigner(publicKey: Npub(publicKey).encode());
@@ -175,7 +175,7 @@ void main() {
       );
       addTearDown(subscription.cancel);
       final event = Nip01Event(
-        pubKey: publicKey,
+        pubkey: publicKey,
         kind: 1,
         tags: [],
         content: 'hi',
@@ -205,8 +205,8 @@ void main() {
 
       signer.encrypt('plain04', stalePublicKey);
       signer.decrypt('cipher04', stalePublicKey);
-      signer.encryptNip44(plaintext: 'plain44', recipientPubKey: publicKey);
-      signer.decryptNip44(ciphertext: 'cipher44', senderPubKey: publicKey);
+      signer.encryptNip44(plaintext: 'plain44', recipientPubkey: publicKey);
+      signer.decryptNip44(ciphertext: 'cipher44', senderPubkey: publicKey);
       await pumpEventQueue();
 
       expect(
@@ -279,7 +279,7 @@ void main() {
       final signer = newSigner();
 
       final signed = signer.sign(
-        Nip01Event(pubKey: publicKey, kind: 1, tags: [], content: ''),
+        Nip01Event(pubkey: publicKey, kind: 1, tags: [], content: ''),
       );
       await pumpEventQueue();
       answers.single.complete({'signature': 'sig', 'event': 'not json'});

@@ -47,7 +47,7 @@ void main() {
     group('signing', () {
       test('sign returns valid signature', () async {
         final event = Nip01Event(
-          pubKey: keyPair.publicKey,
+          pubkey: keyPair.publicKey,
           kind: 1,
           tags: [],
           content: 'Test content',
@@ -67,7 +67,7 @@ void main() {
         );
 
         final event = Nip01Event(
-          pubKey: keyPair.publicKey,
+          pubkey: keyPair.publicKey,
           kind: 1,
           tags: [],
           content: 'Test content',
@@ -134,14 +134,14 @@ void main() {
 
         final encrypted = await signer.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
         expect(encrypted, isNotNull);
         expect(encrypted, isNot(equals(message)));
 
         final decrypted = await otherSigner.decryptNip44(
           ciphertext: encrypted!,
-          senderPubKey: keyPair.publicKey,
+          senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
 
@@ -160,17 +160,17 @@ void main() {
     group('derivePublicKey', () {
       test('derives correct public key from private key', () {
         final keyPair = Bip340.generatePrivateKey();
-        final derivedPubKey = factory.derivePublicKey(keyPair.privateKey!);
+        final derivedPubkey = factory.derivePublicKey(keyPair.privateKey!);
 
-        expect(derivedPubKey, equals(keyPair.publicKey));
+        expect(derivedPubkey, equals(keyPair.publicKey));
       });
 
       test('derived public key is consistent', () {
         final keyPair = Bip340.generatePrivateKey();
-        final derivedPubKey1 = factory.derivePublicKey(keyPair.privateKey!);
-        final derivedPubKey2 = factory.derivePublicKey(keyPair.privateKey!);
+        final derivedPubkey1 = factory.derivePublicKey(keyPair.privateKey!);
+        final derivedPubkey2 = factory.derivePublicKey(keyPair.privateKey!);
 
-        expect(derivedPubKey1, equals(derivedPubKey2));
+        expect(derivedPubkey1, equals(derivedPubkey2));
       });
     });
 
@@ -184,17 +184,17 @@ void main() {
 
       test('generated public key matches derived public key', () {
         final (privateKey, publicKey) = factory.generateKeyPair();
-        final derivedPubKey = factory.derivePublicKey(privateKey);
+        final derivedPubkey = factory.derivePublicKey(privateKey);
 
-        expect(publicKey, equals(derivedPubKey));
+        expect(publicKey, equals(derivedPubkey));
       });
 
       test('generates unique keypairs', () {
-        final (privKey1, pubKey1) = factory.generateKeyPair();
-        final (privKey2, pubKey2) = factory.generateKeyPair();
+        final (privKey1, pubkey1) = factory.generateKeyPair();
+        final (privKey2, pubkey2) = factory.generateKeyPair();
 
         expect(privKey1, isNot(equals(privKey2)));
-        expect(pubKey1, isNot(equals(pubKey2)));
+        expect(pubkey1, isNot(equals(pubkey2)));
       });
     });
 
@@ -247,7 +247,7 @@ void main() {
         );
 
         final event = Nip01Event(
-          pubKey: signer.getPublicKey(),
+          pubkey: signer.getPublicKey(),
           kind: 1,
           tags: [],
           content: 'Test with derived public key',
@@ -307,7 +307,7 @@ void main() {
         final signer = factory.createWithNewKeyPair();
 
         final event = Nip01Event(
-          pubKey: signer.getPublicKey(),
+          pubkey: signer.getPublicKey(),
           kind: 1,
           tags: [],
           content: 'Test with new keypair',

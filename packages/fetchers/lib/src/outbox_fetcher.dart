@@ -71,7 +71,7 @@ class OutboxFetcher {
   }) : _reqs = reqs,
        name = name ?? 'kind-$kind';
 
-  /// Each [kind] event of [pubKey] (hex) found on its write relays and on
+  /// Each [kind] event of [pubkey] (hex) found on its write relays and on
   /// [relays], as soon as it arrives, if newer than the ones before it. The
   /// one in [cache] comes first, and [checks] may spare the relays.
   ///
@@ -83,28 +83,28 @@ class OutboxFetcher {
   /// so far, and so is one finished less than [maxAge] ago when there are no
   /// [checks]. Once started, a lookup runs until every relay answered or
   /// [timeout], even with no one listening.
-  Stream<Nip01Event> watch(String pubKey) => _lookups.watch(pubKey);
+  Stream<Nip01Event> watch(String pubkey) => _lookups.watch(pubkey);
 
-  /// The newest [kind] event of [pubKey] (hex) found on its write relays and
+  /// The newest [kind] event of [pubkey] (hex) found on its write relays and
   /// on [relays], or null if none has one.
-  Future<Nip01Event?> fetch(String pubKey) => lastVersion(watch(pubKey));
+  Future<Nip01Event?> fetch(String pubkey) => lastVersion(watch(pubkey));
 
-  /// How the lookup [watch] runs for [pubKey] ended.
+  /// How the lookup [watch] runs for [pubkey] ended.
   ///
   /// While no relay answers [nip65Fetcher], the write relays are unknown, and
   /// [relays] lacking the event does not make it [EventNotFound].
-  Future<EventLookup> lookup(String pubKey) => _lookups.lookup(pubKey);
+  Future<EventLookup> lookup(String pubkey) => _lookups.lookup(pubkey);
 
-  /// [fetch] for each of [pubKeys]. Their REQs to [relays] and for their
+  /// [fetch] for each of [pubkeys]. Their REQs to [relays] and for their
   /// relay lists go out once each lookup asked for them, without waiting for
   /// the end of [batchWindow]. Their write relays are asked as for [fetch].
-  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubKeys) async =>
-      foundEvents(await lookupAll(pubKeys));
+  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubkeys) async =>
+      foundEvents(await lookupAll(pubkeys));
 
-  /// [lookup] for each of [pubKeys], their REQs sent as [fetchAll] does.
-  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubKeys) =>
+  /// [lookup] for each of [pubkeys], their REQs sent as [fetchAll] does.
+  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubkeys) =>
       _lookups.lookupAll(
-        pubKeys,
+        pubkeys,
         onAsked: (asking) {
           _asks.flush();
           // their lookups started the relay list lookups this one reuses
@@ -112,11 +112,11 @@ class OutboxFetcher {
         },
       );
 
-  ReplaceableLookup _lookUp(String pubKey) {
+  ReplaceableLookup _lookUp(String pubkey) {
     Future<EventLookup>? nip65Lookup;
     return lookUpReplaceable(
       kind: kind,
-      pubKey: pubKey,
+      pubkey: pubkey,
       dTag: dTag,
       cache: cache,
       checks: checks,
@@ -124,7 +124,7 @@ class OutboxFetcher {
       ask: (outcomes) {
         final asked = <String>{};
         Stream<Nip01Event> askOn(List<String> urls) => _asks.ask(
-          pubKey,
+          pubkey,
           relays: [
             for (final url in cleanRelayUrls(urls))
               if (asked.add(url)) url,
@@ -134,11 +134,11 @@ class OutboxFetcher {
 
         final nip65Fetcher = this.nip65Fetcher;
         // a lookup failing before its end never awaits it
-        nip65Lookup = nip65Fetcher?.lookup(pubKey)?..ignore();
+        nip65Lookup = nip65Fetcher?.lookup(pubkey)?..ignore();
         return MergeStream([
           askOn(relays),
           ?nip65Fetcher
-              ?.watch(pubKey)
+              ?.watch(pubkey)
               .flatMap((relayList) => askOn(writeRelaysOf(relayList))),
         ]);
       },

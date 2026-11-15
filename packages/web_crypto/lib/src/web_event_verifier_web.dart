@@ -46,7 +46,7 @@ class WebEventVerifier implements EventVerifier {
     final sig = event.sig;
     if (sig == null ||
         !isLowercaseHex(sig, length: 128) ||
-        !isLowercaseHex(event.pubKey, length: 64)) {
+        !isLowercaseHex(event.pubkey, length: 64)) {
       return false;
     }
 
@@ -59,7 +59,7 @@ class WebEventVerifier implements EventVerifier {
 
     final jsEvent = NostrEventJS();
     jsEvent.id = event.id;
-    jsEvent.pubkey = event.pubKey;
+    jsEvent.pubkey = event.pubkey;
     jsEvent.createdAt = event.createdAt;
     jsEvent.kind = event.kind;
     jsEvent.content = event.content;

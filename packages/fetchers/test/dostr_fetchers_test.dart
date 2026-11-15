@@ -16,11 +16,11 @@ const bob = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
 
 Nip01Event relayList(
   List<List<String>> tags, {
-  String pubKey = alice,
+  String pubkey = alice,
   int createdAt = 1000,
   int kind = 10002,
 }) => Nip01Event(
-  pubKey: pubKey,
+  pubkey: pubkey,
   kind: kind,
   tags: tags,
   content: '',
@@ -29,11 +29,11 @@ Nip01Event relayList(
 
 Nip01Event metadata(
   String name, {
-  String pubKey = alice,
+  String pubkey = alice,
   int createdAt = 1000,
   int kind = 0,
 }) => Nip01Event(
-  pubKey: pubKey,
+  pubkey: pubkey,
   kind: kind,
   tags: [],
   content: jsonEncode({'name': name}),
@@ -49,19 +49,19 @@ class AcceptAll implements EventVerifier {
 class MemoryCache implements ReplaceableEventCache {
   final Map<String, Nip01Event> events = {};
 
-  static String _key(int kind, String pubKey, String? dTag) =>
-      '$kind|$pubKey|${dTag ?? ''}';
+  static String _key(int kind, String pubkey, String? dTag) =>
+      '$kind|$pubkey|${dTag ?? ''}';
 
   @override
   Future<Nip01Event?> load({
     required int kind,
-    required String pubKey,
+    required String pubkey,
     String? dTag,
-  }) async => events[_key(kind, pubKey, dTag)];
+  }) async => events[_key(kind, pubkey, dTag)];
 
   @override
   Future<void> save(Nip01Event event) async =>
-      events[_key(event.kind, event.pubKey, event.dTag)] = event;
+      events[_key(event.kind, event.pubkey, event.dTag)] = event;
 }
 
 /// Answers every REQ with all its [events], whatever the filter, then EOSE.
@@ -267,7 +267,7 @@ void main() {
           await startRelay([
             relayList([
               ['r', 'wss://bob.example.com'],
-            ], pubKey: bob),
+            ], pubkey: bob),
             relayList([
               ['r', 'wss://note.example.com'],
             ], kind: 1),
@@ -450,7 +450,7 @@ void main() {
           [for (final version in versions) version.id],
           [old.id, current.id],
         );
-        expect((await cache.load(kind: 10002, pubKey: alice))?.id, current.id);
+        expect((await cache.load(kind: 10002, pubkey: alice))?.id, current.id);
       });
 
       test('reads a freshly checked list from the cache', () async {
@@ -678,7 +678,7 @@ void main() {
         reqs: reqs,
         relays: [
           await startRelay([
-            metadata('bob', pubKey: bob),
+            metadata('bob', pubkey: bob),
             relayList([
               ['r', 'wss://a.example.com'],
             ]),
@@ -754,13 +754,13 @@ void main() {
   });
 
   group('batching', () {
-    List<String> pubKeysOf(int count) => [
+    List<String> pubkeysOf(int count) => [
       for (var i = 0; i < count; i++) i.toRadixString(16).padLeft(64, '0'),
     ];
 
     test('asks the pubkeys looked up together in one REQ per relay', () async {
       final ofAlice = metadata('alice');
-      final ofBob = metadata('bob', pubKey: bob);
+      final ofBob = metadata('bob', pubkey: bob);
       final relay = await startCountedRelay([ofAlice, ofBob]);
       final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
 
@@ -793,10 +793,10 @@ void main() {
           reqs: reqs,
           relays: [
             await startRelay([
-              for (final pubKey in [alice, bob])
+              for (final pubkey in [alice, bob])
                 relayList([
                   ['r', writeRelay.url],
-                ], pubKey: pubKey),
+                ], pubkey: pubkey),
             ]),
           ],
         ),
@@ -817,7 +817,7 @@ void main() {
       final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
 
       await fetcher.lookupAll(
-        pubKeysOf(maxFiltersPerReq * maxAuthorsPerFilter + 1),
+        pubkeysOf(maxFiltersPerReq * maxAuthorsPerFilter + 1),
       );
 
       expect(
@@ -836,7 +836,7 @@ void main() {
       final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
 
       final lookups = await fetcher.lookupAll(
-        pubKeysOf(maxAuthorsPerFilter + 1),
+        pubkeysOf(maxAuthorsPerFilter + 1),
       );
 
       expect(lookups.values, everyElement(isA<EventNotFound>()));
@@ -850,7 +850,7 @@ void main() {
     test('asks each pubkey alone on a relay that refuses the REQ', () async {
       final relay = LocalRelay([
         metadata('alice'),
-        metadata('bob', pubKey: bob),
+        metadata('bob', pubkey: bob),
       ], maxAuthors: 1);
       await relay.start();
       relays.add(relay);
@@ -871,7 +871,7 @@ void main() {
     test('asks each pubkey alone on a relay the REQ is too long for', () async {
       final relay = await startCountedRelay([
         metadata('alice'),
-        metadata('bob', pubKey: bob),
+        metadata('bob', pubkey: bob),
       ]);
       relayManager = RelayManager(
         nostrTransportFactory: WebSocketClientNostrTransportFactory(
@@ -900,7 +900,7 @@ void main() {
     ]) {
       test('asks no pubkey alone after "$refusal"', () async {
         final relay = LocalRelay(
-          [metadata('alice'), metadata('bob', pubKey: bob)],
+          [metadata('alice'), metadata('bob', pubkey: bob)],
           maxAuthors: 1,
           refusal: refusal,
         );
@@ -923,11 +923,11 @@ void main() {
     const neverEnds = Duration(minutes: 1);
 
     Map<String, String?> idsOf(Map<String, Nip01Event?> events) =>
-        events.map((pubKey, event) => MapEntry(pubKey, event?.id));
+        events.map((pubkey, event) => MapEntry(pubkey, event?.id));
 
     test('sends the REQ once each pubkey asked', () async {
       final ofAlice = relayList([]);
-      final ofBob = relayList([], pubKey: bob);
+      final ofBob = relayList([], pubkey: bob);
       final relay = await startCountedRelay([ofAlice, ofBob]);
       final fetcher = Nip65Fetcher(
         reqs: reqs,
@@ -954,7 +954,7 @@ void main() {
           found: true,
         ),
       );
-      final ofBob = relayList([], pubKey: bob);
+      final ofBob = relayList([], pubkey: bob);
       final relay = await startCountedRelay([ofBob]);
       final fetcher = Nip65Fetcher(
         reqs: reqs,
@@ -974,7 +974,7 @@ void main() {
 
     test('sends the REQs to the indexers and for the relay lists', () async {
       final ofAlice = metadata('alice');
-      final ofBob = metadata('bob', pubKey: bob);
+      final ofBob = metadata('bob', pubkey: bob);
       final indexer = await startCountedRelay([ofAlice, ofBob]);
       final listRelay = await startCountedRelay([]);
       final fetcher = MetadataFetcher(
@@ -1053,7 +1053,7 @@ void main() {
                 ['relay', 'wss://bob.example.com'],
               ],
               kind: 10050,
-              pubKey: bob,
+              pubkey: bob,
             ),
             metadata('alice'),
             relayList([
@@ -1185,7 +1185,7 @@ void main() {
                 ['server', 'https://bob.example.com'],
               ],
               kind: 10063,
-              pubKey: bob,
+              pubkey: bob,
             ),
             relayList([
               ['server', 'https://a.example.com'],
@@ -1248,7 +1248,7 @@ void main() {
                 ['relay', 'wss://bob.example.com'],
               ],
               kind: 36205,
-              pubKey: bob,
+              pubkey: bob,
             ),
             relayList([
               ['d', 'other'],
@@ -1302,19 +1302,19 @@ void main() {
               ['relay', 'wss://dm.example.com'],
             ],
             kind: 10050,
-            pubKey: bob,
+            pubkey: bob,
           ),
           relayList(
             [
               ['server', 'https://cdn.example.com'],
             ],
             kind: 10063,
-            pubKey: bob,
+            pubkey: bob,
           ),
         ]),
       );
-      Future<List<String>> urlsOf(String pubKey, UrlListKind kind) async =>
-          (await lists(pubKey, kind, const []) as UrlListFound).urls;
+      Future<List<String>> urlsOf(String pubkey, UrlListKind kind) async =>
+          (await lists(pubkey, kind, const []) as UrlListFound).urls;
 
       expect(await urlsOf(alice, UrlListKind.outbox), [
         'wss://both.example.com',
@@ -1426,14 +1426,14 @@ void main() {
             ['relay', 'wss://dm.example.com'],
           ],
           kind: 10050,
-          pubKey: bob,
+          pubkey: bob,
         ),
         relayList(
           [
             ['server', 'https://cdn.example.com'],
           ],
           kind: 10063,
-          pubKey: bob,
+          pubkey: bob,
         ),
       ]);
       final snapshot = await watchUrlSet(
@@ -1472,7 +1472,7 @@ void main() {
                 ['relay', 'wss://dm.example.com'],
               ],
               kind: 10050,
-              pubKey: bob,
+              pubkey: bob,
             ),
           ]),
         ],
@@ -1575,9 +1575,9 @@ void main() {
   });
 
   group('EventFetcher', () {
-    Nip01Event note(String content, {int kind = 1, String pubKey = alice}) =>
+    Nip01Event note(String content, {int kind = 1, String pubkey = alice}) =>
         Nip01Event(
-          pubKey: pubKey,
+          pubkey: pubkey,
           kind: kind,
           tags: [],
           content: content,
@@ -1604,7 +1604,7 @@ void main() {
       final a = await startRelay([
         note('kept'),
         note('other kind', kind: 7),
-        note('by bob', pubKey: bob),
+        note('by bob', pubkey: bob),
       ]);
       final b = await startRelay([note('kept')]);
 

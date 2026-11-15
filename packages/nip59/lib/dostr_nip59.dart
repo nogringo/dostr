@@ -6,7 +6,7 @@
 ///   eventVerifier: verifier,
 ///   signerFactory: const Bip340SignerFactory(),
 /// );
-/// final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubKey: pubkey);
+/// final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubkey: pubkey);
 /// ```
 library;
 

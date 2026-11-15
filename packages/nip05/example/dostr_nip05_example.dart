@@ -11,7 +11,7 @@ Future<void> main(List<String> args) async {
   final result = await nip05.resolve(args.first);
   switch (result) {
     case Nip05Found(:final data):
-      print('${data.identifier}: ${data.pubKey}, relays ${data.relays}');
+      print('${data.identifier}: ${data.pubkey}, relays ${data.relays}');
     case Nip05NotFound():
       print('${args.first} does not exist');
     case Nip05ResolveError(:final cause):

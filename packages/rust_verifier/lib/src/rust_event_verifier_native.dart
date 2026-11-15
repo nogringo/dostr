@@ -20,7 +20,7 @@ class RustEventVerifier implements EventVerifier {
     final signature = event.sig;
     if (signature == null ||
         !isLowercaseHex(event.id, length: 64) ||
-        !isLowercaseHex(event.pubKey, length: 64) ||
+        !isLowercaseHex(event.pubkey, length: 64) ||
         !isLowercaseHex(signature, length: 128)) {
       return false;
     }
@@ -71,7 +71,7 @@ class RustEventVerifier implements EventVerifier {
 
       final bytes = packed.asTypedList(packedLength);
       _copyAscii(event.id, bytes, 0);
-      _copyAscii(event.pubKey, bytes, 64);
+      _copyAscii(event.pubkey, bytes, 64);
       _copyAscii(signature, bytes, 128);
 
       return rust_lib.verifyNostrEventPackedNative(

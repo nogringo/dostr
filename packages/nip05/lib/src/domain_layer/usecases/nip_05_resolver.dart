@@ -32,11 +32,11 @@ class Nip05Resolver {
     }
 
     final result = await resolve(nip05);
-    if (result case Nip05Found(:final data) when data.pubKey == pubkey) {
+    if (result case Nip05Found(:final data) when data.pubkey == pubkey) {
       return data;
     }
     return Nip05(
-      pubKey: pubkey,
+      pubkey: pubkey,
       identifier: Nip05.canonicalIdentifier(nip05) ?? nip05,
       valid: false,
     );
@@ -63,12 +63,12 @@ class Nip05Resolver {
     if (databaseResult != null) {
       int now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
       int age = now - (databaseResult.networkFetchTime ?? 0);
-      if (databaseResult.pubKey == null &&
+      if (databaseResult.pubkey == null &&
           age < nip05NotFoundDuration.inSeconds) {
         return const Nip05NotFound();
       }
       // before #936, check() also cached failed verifications
-      if (databaseResult.pubKey != null &&
+      if (databaseResult.pubkey != null &&
           databaseResult.valid &&
           age < nip05ValidDuration.inSeconds) {
         return Nip05Found(databaseResult);
@@ -97,7 +97,7 @@ class Nip05Resolver {
       if (result == null) {
         await _cache.saveNip05(
           Nip05(
-            pubKey: null,
+            pubkey: null,
             identifier: nip05,
             networkFetchTime: DateTime.now().millisecondsSinceEpoch ~/ 1000,
           ),

@@ -24,9 +24,9 @@ Future<void> main() async {
   );
   final wrap = await giftWrap.toGiftWrap(
     rumor: rumor,
-    recipientPubKey: bob.publicKey,
+    recipientPubkey: bob.publicKey,
   );
-  print('kind ${wrap.kind} signed by ${wrap.pubKey}');
+  print('kind ${wrap.kind} signed by ${wrap.pubkey}');
 
   current = signerOf(bob);
   final received = await giftWrap.fromGiftWrap(giftWrap: wrap);

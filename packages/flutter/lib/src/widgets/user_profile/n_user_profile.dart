@@ -17,7 +17,7 @@ class NUserProfile extends StatelessWidget {
   Accounts get _accounts => dostrFlutter.accounts;
 
   String? get profilePubkey =>
-      metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
+      metadata?.pubkey ?? pubkey ?? _accounts.getPublicKey();
 
   const NUserProfile({
     super.key,

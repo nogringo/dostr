@@ -63,7 +63,7 @@ void main() {
 
     test('sign should request remote signing and update event', () async {
       final event = Nip01Event(
-        pubKey: MockRemoteSigner.publicKey,
+        pubkey: MockRemoteSigner.publicKey,
         kind: 1,
         tags: [],
         content: 'Hello, world!',
@@ -80,7 +80,7 @@ void main() {
       remoteSigner.signEventContentOverride = 'mutated by remote signer';
 
       final event = Nip01Event(
-        pubKey: MockRemoteSigner.publicKey,
+        pubkey: MockRemoteSigner.publicKey,
         kind: 1,
         tags: [
           ['t', 'test'],
@@ -132,7 +132,7 @@ void main() {
       final bunkerSigner = bunkers.createSigner(bunkerConnection);
       final signedTestEvent = await bunkerSigner.sign(
         Nip01Event(
-          pubKey: MockRemoteSigner.publicKey,
+          pubkey: MockRemoteSigner.publicKey,
           kind: 1,
           tags: [],
           content: 'Test event via bunker URL',
@@ -202,11 +202,11 @@ void main() {
 
       final encryptedMessage = await localSigner.encryptNip44(
         plaintext: testMessage,
-        recipientPubKey: MockRemoteSigner.publicKey,
+        recipientPubkey: MockRemoteSigner.publicKey,
       );
       final decryptedText = await signer.decryptNip44(
         ciphertext: encryptedMessage!,
-        senderPubKey: keyPair.publicKey,
+        senderPubkey: keyPair.publicKey,
       );
 
       expect(decryptedText, equals(testMessage));
@@ -224,7 +224,7 @@ void main() {
 
         final encryptedMessage = await signer.encryptNip44(
           plaintext: testMessage,
-          recipientPubKey: keyPair.publicKey,
+          recipientPubkey: keyPair.publicKey,
         );
 
         expect(encryptedMessage, isNotEmpty);
@@ -232,7 +232,7 @@ void main() {
         expect(
           await localSigner.decryptNip44(
             ciphertext: encryptedMessage!,
-            senderPubKey: await signer.getPublicKeyAsync(),
+            senderPubkey: await signer.getPublicKeyAsync(),
           ),
           equals(testMessage),
         );

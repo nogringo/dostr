@@ -24,7 +24,7 @@ dependencies:
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 final event = Nip01Event(
-  pubKey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
+  pubkey: '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d',
   kind: Nip01Event.kTextNoteKind,
   tags: [
     ['t', 'nostr'],
@@ -85,7 +85,7 @@ To write a verifier, implement `EventVerifier`:
 class MyVerifier implements EventVerifier {
   @override
   Future<bool> verify(Nip01Event event) async {
-    // check event.id against the payload, and event.sig against event.pubKey
+    // check event.id against the payload, and event.sig against event.pubkey
   }
 }
 ```

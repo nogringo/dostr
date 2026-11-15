@@ -13,7 +13,7 @@ class NName extends StatelessWidget {
 
   Accounts get _accounts => dostrFlutter.accounts;
 
-  String? get _pubkey => metadata?.pubKey ?? pubkey ?? _accounts.getPublicKey();
+  String? get _pubkey => metadata?.pubkey ?? pubkey ?? _accounts.getPublicKey();
 
   const NName({
     super.key,

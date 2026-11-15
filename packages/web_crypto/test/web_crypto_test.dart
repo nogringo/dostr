@@ -41,7 +41,7 @@ void main() {
 
     test('sign returns valid signature', () async {
       final event = Nip01Event(
-        pubKey: keyPair.publicKey,
+        pubkey: keyPair.publicKey,
         kind: 1,
         tags: [],
         content: 'Test content',
@@ -69,7 +69,7 @@ void main() {
       );
 
       final event = Nip01Event(
-        pubKey: keyPair.publicKey,
+        pubkey: keyPair.publicKey,
         kind: 1,
         tags: [],
         content: 'Test content',
@@ -142,14 +142,14 @@ void main() {
         const message = 'Hello, NIP-44 from web!';
         final encrypted = await signer.encryptNip44(
           plaintext: message,
-          recipientPubKey: otherKeyPair.publicKey,
+          recipientPubkey: otherKeyPair.publicKey,
         );
         expect(encrypted, isNotNull);
         expect(encrypted, isNot(equals(message)));
 
         final decrypted = await dartSigner.decryptNip44(
           ciphertext: encrypted!,
-          senderPubKey: keyPair.publicKey,
+          senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
 
@@ -165,13 +165,13 @@ void main() {
         const message = 'Hello from Dart NIP-44!';
         final encrypted = await dartSigner.encryptNip44(
           plaintext: message,
-          recipientPubKey: keyPair.publicKey,
+          recipientPubkey: keyPair.publicKey,
         );
         expect(encrypted, isNotNull);
 
         final decrypted = await signer.decryptNip44(
           ciphertext: encrypted!,
-          senderPubKey: otherKeyPair.publicKey,
+          senderPubkey: otherKeyPair.publicKey,
         );
         expect(decrypted, equals(message));
 

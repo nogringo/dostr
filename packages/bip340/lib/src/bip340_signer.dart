@@ -73,13 +73,13 @@ class Bip340Signer implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubKey) async {
-    return Nip04.decrypt(privateKey!, destPubKey, msg);
+  Future<String?> decrypt(String msg, String destPubkey) async {
+    return Nip04.decrypt(privateKey!, destPubkey, msg);
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubKey) async {
-    return Nip04.encrypt(privateKey!, destPubKey, msg);
+  Future<String?> encrypt(String msg, String destPubkey) async {
+    return Nip04.encrypt(privateKey!, destPubkey, msg);
   }
 
   @override
@@ -90,17 +90,17 @@ class Bip340Signer implements NostrSigner {
   @override
   Future<String?> encryptNip44({
     required String plaintext,
-    required String recipientPubKey,
+    required String recipientPubkey,
   }) {
-    return Nip44.encryptMessage(plaintext, privateKey!, recipientPubKey);
+    return Nip44.encryptMessage(plaintext, privateKey!, recipientPubkey);
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
-    required String senderPubKey,
+    required String senderPubkey,
   }) {
-    return Nip44.decryptMessage(ciphertext, privateKey!, senderPubKey);
+    return Nip44.decryptMessage(ciphertext, privateKey!, senderPubkey);
   }
 
   // Local signer - no pending requests (operations are instant)
