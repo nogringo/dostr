@@ -25,6 +25,8 @@
   "readOnly": "Somente leitura",
   "nsec": "Nsec",
   "extension": "Extensão",
+  "signerApp": "App de assinatura",
+  "signer": "Assinante",
   "userMetadata": "Metadados do usuário",
   "shortTextNote": "Nota de texto curta",
   "recommendRelay": "Recomendar relay",

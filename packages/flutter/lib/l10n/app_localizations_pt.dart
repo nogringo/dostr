@@ -88,6 +88,12 @@ class AppLocalizationsPt extends AppLocalizations {
   String get extension => 'Extensão';
 
   @override
+  String get signerApp => 'App de assinatura';
+
+  @override
+  String get signer => 'Assinante';
+
+  @override
   String get userMetadata => 'Metadados do utilizador';
 
   @override
@@ -718,6 +724,12 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get extension => 'Extensão';
+
+  @override
+  String get signerApp => 'App de assinatura';
+
+  @override
+  String get signer => 'Assinante';
 
   @override
   String get userMetadata => 'Metadados do usuário';

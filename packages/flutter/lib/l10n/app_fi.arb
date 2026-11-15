@@ -34,6 +34,8 @@
   "readOnly": "Vain luku",
   "nsec": "Nsec",
   "extension": "Laajennus",
+  "signerApp": "Allekirjoitussovellus",
+  "signer": "Allekirjoittaja",
   "userMetadata": "Käyttäjän metatiedot",
   "shortTextNote": "Lyhyt tekstiviesti",
   "recommendRelay": "Suosittele välittäjää",

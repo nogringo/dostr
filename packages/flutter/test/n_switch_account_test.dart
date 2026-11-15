@@ -58,6 +58,28 @@ void main() {
     );
   });
 
+  testWidgets('labels a NIP-55 account as a signer app, not a bunker', (
+    tester,
+  ) async {
+    dostr.accounts.removeAccount(pubkey: carolPubkey);
+    dostr.accounts.addAccount(
+      type: AccountType.externalSigner,
+      signer: Nip55EventSigner(
+        publicKey: carolPubkey,
+        nip55Signer: const Nip55Signer(),
+      ),
+    );
+
+    await tester.pumpWidget(switchAccount());
+    await tester.pump();
+
+    expect(
+      find.descendant(of: tileOf('carol'), matching: find.text('Signer app')),
+      findsOneWidget,
+    );
+    expect(find.text('Bunker'), findsNothing);
+  });
+
   testWidgets('marks the logged account and offers no action on it', (
     tester,
   ) async {

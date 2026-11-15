@@ -25,6 +25,8 @@
   "readOnly": "只读",
   "nsec": "Nsec",
   "extension": "扩展",
+  "signerApp": "签名应用",
+  "signer": "签名器",
   "userMetadata": "用户元数据",
   "shortTextNote": "短文本笔记",
   "recommendRelay": "推荐中继",

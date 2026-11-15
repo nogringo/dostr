@@ -25,6 +25,8 @@
   "readOnly": "Только чтение",
   "nsec": "Nsec",
   "extension": "Расширение",
+  "signerApp": "Приложение для подписи",
+  "signer": "Подписант",
   "userMetadata": "Метаданные пользователя",
   "shortTextNote": "Короткая заметка",
   "recommendRelay": "Рекомендовать реле",

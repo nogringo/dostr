@@ -106,6 +106,14 @@
   "@extension": {
     "description": "Label for browser extension account type"
   },
+  "signerApp": "Signer app",
+  "@signerApp": {
+    "description": "Label for NIP-55 signer app account type"
+  },
+  "signer": "Signer",
+  "@signer": {
+    "description": "Label for an external signer account of unknown type"
+  },
   "userMetadata": "User Metadata",
   "@userMetadata": {
     "description": "Nostr event kind 0"

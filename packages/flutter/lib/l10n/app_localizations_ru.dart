@@ -88,6 +88,12 @@ class AppLocalizationsRu extends AppLocalizations {
   String get extension => 'Расширение';
 
   @override
+  String get signerApp => 'Приложение для подписи';
+
+  @override
+  String get signer => 'Подписант';
+
+  @override
   String get userMetadata => 'Метаданные пользователя';
 
   @override

@@ -1,4 +1,5 @@
 import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -45,13 +46,12 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
         backgroundColor = Colors.red;
         break;
       case AccountType.externalSigner:
-        if (account.signer is Nip07EventSigner) {
-          label = l10n.extension;
-          backgroundColor = Colors.orange;
-        } else {
-          label = l10n.bunker;
-          backgroundColor = Colors.green;
-        }
+        (label, backgroundColor) = switch (account.signer) {
+          Nip07EventSigner() => (l10n.extension, Colors.orange),
+          Nip55EventSigner() => (l10n.signerApp, Colors.purple),
+          Nip46EventSigner() => (l10n.bunker, Colors.green),
+          _ => (l10n.signer, Colors.grey),
+        };
         break;
     }
 

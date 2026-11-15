@@ -88,6 +88,12 @@ class AppLocalizationsSk extends AppLocalizations {
   String get extension => 'Rozšírenie';
 
   @override
+  String get signerApp => 'Podpisovacia aplikácia';
+
+  @override
+  String get signer => 'Podpisovateľ';
+
+  @override
   String get userMetadata => 'Metadáta používateľa';
 
   @override

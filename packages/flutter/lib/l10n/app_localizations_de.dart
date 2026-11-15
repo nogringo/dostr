@@ -88,6 +88,12 @@ class AppLocalizationsDe extends AppLocalizations {
   String get extension => 'Erweiterung';
 
   @override
+  String get signerApp => 'Signer-App';
+
+  @override
+  String get signer => 'Signer';
+
+  @override
   String get userMetadata => 'Benutzermetadaten';
 
   @override

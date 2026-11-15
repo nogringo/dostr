@@ -25,6 +25,8 @@
   "readOnly": "読み取り専用",
   "nsec": "Nsec",
   "extension": "拡張機能",
+  "signerApp": "署名アプリ",
+  "signer": "署名者",
   "userMetadata": "ユーザーメタデータ",
   "shortTextNote": "短いテキストノート",
   "recommendRelay": "リレー推奨",

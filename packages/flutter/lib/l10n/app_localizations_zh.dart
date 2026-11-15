@@ -88,6 +88,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get extension => '扩展';
 
   @override
+  String get signerApp => '签名应用';
+
+  @override
+  String get signer => '签名器';
+
+  @override
   String get userMetadata => '用户元数据';
 
   @override

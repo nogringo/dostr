@@ -34,6 +34,8 @@
   "readOnly": "Sola lettura",
   "nsec": "Nsec",
   "extension": "Estensione",
+  "signerApp": "App di firma",
+  "signer": "Firmatario",
   "userMetadata": "Metadati utente",
   "shortTextNote": "Nota di testo breve",
   "recommendRelay": "Relay consigliato",

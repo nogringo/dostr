@@ -88,6 +88,12 @@ class AppLocalizationsFi extends AppLocalizations {
   String get extension => 'Laajennus';
 
   @override
+  String get signerApp => 'Allekirjoitussovellus';
+
+  @override
+  String get signer => 'Allekirjoittaja';
+
+  @override
   String get userMetadata => 'Käyttäjän metatiedot';
 
   @override

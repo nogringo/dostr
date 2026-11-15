@@ -88,6 +88,12 @@ class AppLocalizationsJa extends AppLocalizations {
   String get extension => '拡張機能';
 
   @override
+  String get signerApp => '署名アプリ';
+
+  @override
+  String get signer => '署名者';
+
+  @override
   String get userMetadata => 'ユーザーメタデータ';
 
   @override

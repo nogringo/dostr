@@ -270,6 +270,18 @@ abstract class AppLocalizations {
   /// **'Extension'**
   String get extension;
 
+  /// Label for NIP-55 signer app account type
+  ///
+  /// In en, this message translates to:
+  /// **'Signer app'**
+  String get signerApp;
+
+  /// Label for an external signer account of unknown type
+  ///
+  /// In en, this message translates to:
+  /// **'Signer'**
+  String get signer;
+
   /// Nostr event kind 0
   ///
   /// In en, this message translates to:

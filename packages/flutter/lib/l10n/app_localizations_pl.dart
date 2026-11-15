@@ -88,6 +88,12 @@ class AppLocalizationsPl extends AppLocalizations {
   String get extension => 'Rozszerzenie';
 
   @override
+  String get signerApp => 'Aplikacja podpisująca';
+
+  @override
+  String get signer => 'Podpisujący';
+
+  @override
   String get userMetadata => 'Metadane użytkownika';
 
   @override
