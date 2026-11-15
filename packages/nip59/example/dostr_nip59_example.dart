@@ -15,7 +15,7 @@ Future<void> main() async {
     signerFactory: const Bip340SignerFactory(),
   );
 
-  final rumor = await giftWrap.createRumor(
+  final rumor = giftWrap.createRumor(
     content: 'hello bob',
     kind: 14,
     tags: [
@@ -24,7 +24,7 @@ Future<void> main() async {
   );
   final wrap = await giftWrap.toGiftWrap(
     rumor: rumor,
-    recipientPubkey: bob.publicKey,
+    recipientPubKey: bob.publicKey,
   );
   print('kind ${wrap.kind} signed by ${wrap.pubKey}');
 

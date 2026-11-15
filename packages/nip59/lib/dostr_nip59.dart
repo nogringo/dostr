@@ -6,10 +6,11 @@
 ///   eventVerifier: verifier,
 ///   signerFactory: const Bip340SignerFactory(),
 /// );
-/// final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubkey: pubkey);
+/// final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubKey: pubkey);
 /// ```
 library;
 
-export 'src/domain_layer/entities/gift_wrap_unwrap_result.dart';
-export 'src/domain_layer/repositories/gift_wrap_cache.dart';
-export 'src/domain_layer/usecases/gift_wrap/gift_wrap.dart';
+export 'src/gift_wrap.dart';
+export 'src/gift_wrap_cache.dart';
+export 'src/gift_wrap_exceptions.dart';
+export 'src/gift_wrap_unwrap_result.dart';
