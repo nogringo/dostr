@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -114,14 +115,12 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     final account = _accounts.getLoggedAccount();
     if (account == null) return 'signer';
 
-    final signer = account.signer;
-    final signerType = signer.runtimeType.toString();
-
-    if (signerType.contains('Nip55')) return 'signer app';
-    if (signerType.contains('Nip46')) return 'bunker';
-    if (signerType.contains('Nip07')) return 'extension';
-
-    return 'signer';
+    return switch (account.signer) {
+      Nip55EventSigner() => 'signer app',
+      Nip46EventSigner() => 'bunker',
+      Nip07EventSigner() => 'extension',
+      _ => 'signer',
+    };
   }
 
   void _toggle() {
