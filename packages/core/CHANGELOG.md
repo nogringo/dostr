@@ -225,6 +225,9 @@ Open REQs with `RelayReqs`. Close one with `RelayReq.close`, by its id with
 `RelayReq.events` gives each event as a `RelayReqEvent`, with the relay that
 sent it in `relayUrl`. The deprecated `Nip01Event.sources` is gone.
 
+`EventFilter` is gone, since no request takes one any more: filter
+`RelayReq.events` with `where`.
+
 A subscription now reports `RelayRequestStatus.eose` on each relay that sent
 its EOSE, instead of staying `pending` until it is closed. It still runs until
 closed, and a CLOSED, a lost connection or its timeout replace that `eose`.
