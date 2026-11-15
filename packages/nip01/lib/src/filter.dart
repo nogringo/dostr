@@ -63,6 +63,8 @@ class Filter {
           };
   }
 
+  /// [eTags], [pTags], [aTags] and [dTags] set the tag filters of those
+  /// names, over the same names in [tags].
   Filter({
     this.ids,
     this.authors,
@@ -176,6 +178,7 @@ class Filter {
   }
   // coverage:ignore-end
 
+  /// A deep copy: changing its lists leaves this filter as it is.
   Filter clone() {
     return Filter(
       ids: ids != null ? List<String>.from(ids!) : null,
@@ -185,7 +188,7 @@ class Filter {
       since: since,
       until: until,
       limit: limit,
-      tags: tags != null ? Map<String, List<String>>.from(tags!) : null,
+      tags: tags?.map((name, values) => MapEntry(name, List.of(values))),
     );
   }
 

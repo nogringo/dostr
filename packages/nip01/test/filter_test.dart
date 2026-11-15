@@ -64,6 +64,15 @@ void main() {
     });
 
     test('is kept by clone', () => expectEveryField(everyField().clone()));
+
+    test('of a clone can change without changing the original', () {
+      final filter = everyField();
+      final copy = filter.clone();
+      copy.authors!.add('author3');
+      copy.getTag('p')!.add('ptag2');
+
+      expectEveryField(filter);
+    });
   });
 
   group('tags', () {

@@ -4,6 +4,7 @@ import 'event_id.dart';
 
 /// A NIP-01 event. It cannot change: [copyWith] gives a changed copy.
 final class Nip01Event {
+  /// The kind of a short text note.
   static const int kTextNoteKind = 1;
 
   /// The id the event was given, or else the hash of its payload: check it
@@ -11,16 +12,19 @@ final class Nip01Event {
   String get id => _id ?? payloadId;
   final String? _id;
 
+  /// The author's public key, in hex.
   final String pubKey;
 
   /// Unix time, in seconds.
   final int createdAt;
 
+  /// What the event is, such as [kTextNoteKind].
   final int kind;
 
   /// A copy of the tags the event was created with, unmodifiable.
   final List<List<String>> tags;
 
+  /// The content, in the format its [kind] defines.
   final String content;
 
   /// The BIP-340 signature of [id], or null for an unsigned event such as a
@@ -195,6 +199,7 @@ final class Nip01Event {
     if (sig != null) 'sig': sig,
   };
 
+  /// The same as `jsonEncode(event)`.
   String toJsonString() => json.encode(toJson());
 
   /// Events with the same [id] are equal, whatever their payload or [sig]: an
@@ -227,6 +232,7 @@ final class Nip01Event {
       if (tag.length > 1 && tag[0] == name) tag[1],
   ];
 
+  /// The values of the `p` tags, the pubkeys the event refers to.
   List<String> get pTags => getTags('p');
 
   /// The value of the first `d` tag, the identifier of an addressable event.

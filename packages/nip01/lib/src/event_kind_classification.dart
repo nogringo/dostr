@@ -1,5 +1,5 @@
 /// The kind ranges of NIP-01: regular, replaceable, addressable and ephemeral.
-class EventKindClassification {
+abstract final class EventKindClassification {
   // Not channel metadata (41): NIP-01 makes kinds 4 to 44 regular.
   static const _legacyReplaceableKinds = {0, 3};
 

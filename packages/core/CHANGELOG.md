@@ -282,6 +282,9 @@ length, where they used to ignore the longer ones.
 `Filter.tTags` and `mTags` are gone, from the constructor too: use
 `getTag('t')` and `tags: {'t': hashtags}`.
 
+`Filter.clone` copies the values of the tag filters too, which it used to share
+with the original filter.
+
 `RelayReq.send` leaves out the filters that match nothing, and does not send to
 a relay left with none. A REQ whose filters all match nothing ends right away,
 with no relay in its outcomes. An empty tag list no longer means "has this
@@ -318,7 +321,8 @@ current time.
 `EventKindClassification.isParameterizedReplaceableKind` is gone: use
 `isAddressableKind`, the name NIP-01 now gives these kinds.
 `isRegularReplaceableKind` and `legacyReplaceableKinds` are gone too:
-`isReplaceableKind` covers them.
+`isReplaceableKind` covers them. `EventKindClassification` only has static
+members, and can no longer be instantiated or extended.
 
 `Nip01Event` is a final class: it can no longer be extended, implemented or
 mocked. Build the events a test needs with its constructor or `fromJson`.
