@@ -1,0 +1,42 @@
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart';
+
+Future<void> main() async {
+  const relay = 'wss://relay.example.com';
+  final relays = RelayManager(
+    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  );
+  final publishes = RelayPublishes(relayManager: relays);
+  final reqs = RelayReqs(
+    relayManager: relays,
+    eventVerifier: Bip340EventVerifier(),
+  );
+  final signer = Bip340EventSignerFactory().createWithNewKeyPair();
+
+  final event = await signer.sign(
+    Nip01Event(
+      pubKey: signer.getPublicKey(),
+      kind: 1,
+      tags: [],
+      content: 'hello nostr',
+    ),
+  );
+  final outcomes = await publishes.publish(event, relays: [relay]).done;
+  for (final response in outcomes.values) {
+    print('${response.relayUrl}: ${response.broadcastSuccessful}');
+  }
+
+  final req = reqs.req(
+    relays: {
+      relay: [
+        Filter(kinds: [1], authors: [signer.getPublicKey()], limit: 10),
+      ],
+    },
+  );
+  await for (final received in req.events) {
+    print('${received.relayUrl}: ${received.event.content}');
+  }
+
+  await signer.dispose();
+  await relays.closeAllTransports();
+}

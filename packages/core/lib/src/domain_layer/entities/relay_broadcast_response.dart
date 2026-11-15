@@ -1,9 +1,12 @@
 import 'relay_failure.dart';
 
-/// hols information about a individual relay broadcast response \
-/// e.g. \
+/// The answer of one relay to a published event, from its NIP-01 OK message,
+/// for example:
+///
+/// ```text
 /// ["OK", "b1a649ebe8...", true, "duplicate: already have this event"]
 /// ["OK", "b1a649ebe8...", false, "pow: difficulty 26 is less than 30"]
+/// ```
 class RelayBroadcastResponse {
   /// the relay url
   final String relayUrl;
