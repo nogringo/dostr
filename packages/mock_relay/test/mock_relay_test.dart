@@ -77,7 +77,7 @@ class Client {
   /// Opens a subscription and waits for its EOSE.
   Future<String> subscribe(Filter filter) async {
     final id = 'sub${_nextId++}';
-    send(['REQ', id, filter.toMap()]);
+    send(['REQ', id, filter.toJson()]);
     await waitFor((m) => m[0] == 'EOSE' && m[1] == id);
     return id;
   }
@@ -315,7 +315,7 @@ void main() {
 
   group('maxMessageLength', () {
     final filter = Filter(authors: [alice], search: 'café');
-    final req = jsonEncode(['REQ', 'sub0', filter.toMap()]);
+    final req = jsonEncode(['REQ', 'sub0', filter.toJson()]);
 
     test('a message one UTF-8 byte too long closes the socket', () async {
       final relay = MockRelay(maxMessageLength: utf8.encode(req).length - 1);

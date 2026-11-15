@@ -395,7 +395,7 @@ class MockRelay {
       case 'REQ':
         _onReq(client, message[1] as String, [
           for (final filter in message.skip(2))
-            if (filter is Map<String, dynamic>) Filter.fromMap(filter),
+            if (filter is Map<String, dynamic>) Filter.fromJson(filter),
         ]);
       case 'CLOSE':
         client.subscriptions.remove(message[1]);

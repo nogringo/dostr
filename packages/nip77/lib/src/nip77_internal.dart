@@ -185,7 +185,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     final negOpen = [
       'NEG-OPEN',
       state.subscriptionId,
-      state.filter.toMap(),
+      state.filter.toJson(),
       neg.NegentropyEncoder.bytesToHex(initialMessage),
     ];
     _relayManager.send(state.connectionKey, negOpen);

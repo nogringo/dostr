@@ -185,7 +185,7 @@ void main() {
       );
       await req.done;
 
-      final sent = jsonEncode(['REQ', req.id, hundredKilobytes.toMap()]);
+      final sent = jsonEncode(['REQ', req.id, hundredKilobytes.toJson()]);
       expect(learned, [(relay.url, utf8.encode(sent).length - 1)]);
     });
 
@@ -295,7 +295,7 @@ void main() {
 
       await eventually(() => relay.received('REQ').isNotEmpty);
       expect(relay.received('REQ'), [
-        ['REQ', req.id, notes.single.toMap()],
+        ['REQ', req.id, notes.single.toJson()],
       ]);
       await req.close();
     });

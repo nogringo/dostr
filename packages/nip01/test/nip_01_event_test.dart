@@ -136,7 +136,7 @@ void main() {
     });
 
     test('takes the current time when created_at is omitted', () {
-      final before = Nip01Event.secondsSinceEpoch();
+      final before = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
       final event = Nip01Event(pubKey: alice, kind: 1, content: '');
 

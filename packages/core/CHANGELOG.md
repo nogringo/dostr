@@ -71,8 +71,8 @@ NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with
 `onNegClosed`. A protocol of its own, NIP-77 included, plugs in with
 `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
 
-`Tuple`, `Helpers` and `MutexSimple` are gone, and
-`Nip01Event.secondsSinceEpoch()` replaces `Helpers.now`.
+`Tuple`, `Helpers` and `MutexSimple` are gone: use
+`DateTime.now().millisecondsSinceEpoch ~/ 1000` for `Helpers.now`.
 `castToListOfListOfString` of `package:ndk/shared/helpers/list_casting.dart` is
 gone.
 
@@ -264,18 +264,23 @@ reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its
 #### Filters
 
 An empty list in a `Filter` matches nothing, as NIP-01 requires, instead of
-standing for an absent one. `toMap`, `fromMap` and `clone` keep `authors: []`,
-where they used to drop it and leave a filter with no author constraint at
-all. `Filter.matchesNothing` tells whether a filter can match any event.
+standing for an absent one. `toJson`, `fromJson` and `clone` keep
+`authors: []`, where they used to drop it and leave a filter with no author
+constraint at all. `Filter.matchesNothing` tells whether a filter can match any
+event.
 
-`Filter.fromMap` and `Filter.fromJson` are strict: a field of the wrong type
-throws a `FormatException` instead of a `TypeError`, and `Filter.tryFromJson`
-returns null where they throw. `fromMap`, `setTag` and `getTag` take a tag name
-of any length, where they used to ignore the longer ones.
+`Filter.toMap` and `Filter.fromMap` are now `toJson` and `fromJson`, as in
+`Nip01Event`. `fromJson` is strict: a field of the wrong type throws a
+`FormatException` instead of a `TypeError`, and `Filter.tryFromJson` returns
+null where it throws. `fromJson`, `setTag` and `getTag` take a tag name of any
+length, where they used to ignore the longer ones.
 
 `Filter.cloneWithAuthors`, `cloneWithPTags` and `mergeAuthors` are gone: use
 `filter.clone()..authors = authors`, `filter.clone()..setTag('p', pTags)` and
 `a.clone()..authors = {...a.authors!, ...b.authors!}.toList()`.
+
+`Filter.tTags` and `mTags` are gone, from the constructor too: use
+`getTag('t')` and `tags: {'t': hashtags}`.
 
 `RelayReq.send` leaves out the filters that match nothing, and does not send to
 a relay left with none. A REQ whose filters all match nothing ends right away,
@@ -307,8 +312,13 @@ read the flag.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
 
+`Nip01Event.secondsSinceEpoch()` is gone: leave `createdAt` out to get the
+current time.
+
 `EventKindClassification.isParameterizedReplaceableKind` is gone: use
 `isAddressableKind`, the name NIP-01 now gives these kinds.
+`isRegularReplaceableKind` and `legacyReplaceableKinds` are gone too:
+`isReplaceableKind` covers them.
 
 `Nip01Event` is a final class: it can no longer be extended, implemented or
 mocked. Build the events a test needs with its constructor or `fromJson`.

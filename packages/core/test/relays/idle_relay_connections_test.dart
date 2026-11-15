@@ -163,7 +163,7 @@ void main() {
         'wanted',
         const Duration(seconds: 1),
       );
-      final notes = Filter(kinds: [1]).toMap();
+      final notes = Filter(kinds: [1]).toJson();
       manager.send(anonymous, ['REQ', 'other', notes]);
       manager.send(anonymous, ['REQ', 'wanted', notes]);
       await pending;

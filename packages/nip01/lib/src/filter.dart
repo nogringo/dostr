@@ -24,17 +24,11 @@ class Filter {
   /// List of pubkey tags to filter by.
   List<String>? get pTags => getTag("p");
 
-  /// List of hashtag tags to filter by.
-  List<String>? get tTags => getTag("t");
-
   /// List of replaceable event tags to filter by.
   List<String>? get aTags => getTag("a");
 
   /// List of addressable event identifiers to filter by.
   List<String>? get dTags => getTag("d");
-
-  /// List of MIME type tags to filter by (NIP-94).
-  List<String>? get mTags => getTag("m");
 
   /// Unix timestamp to filter events created after this time.
   int? since;
@@ -50,9 +44,9 @@ class Filter {
   /// Read-only view of the tag filters, keyed by the bare tag name ('p', 'e',
   /// 'd', ...), value is a list of tag values.
   ///
-  /// The NIP-01 '#' prefix is a wire-format detail only: [toMap] and [toJson]
-  /// add it when a filter is serialized for a relay, everything else, cache
-  /// reads above all, sees bare keys.
+  /// The NIP-01 '#' prefix is a wire-format detail only: [toJson] adds it when
+  /// a filter is serialized for a relay, everything else, cache reads above
+  /// all, sees bare keys.
   ///
   /// The returned map cannot be modified directly, so callers cannot bypass
   /// key normalization. Mutate through [setTag] or the [tags] setter instead;
@@ -77,10 +71,8 @@ class Filter {
     Map<String, List<String>>? tags,
     List<String>? eTags,
     List<String>? pTags,
-    List<String>? tTags,
     List<String>? aTags,
     List<String>? dTags,
-    List<String>? mTags,
     this.since,
     this.until,
     this.limit,
@@ -88,10 +80,8 @@ class Filter {
     this.tags = tags;
     if (eTags != null) setTag("e", eTags);
     if (pTags != null) setTag("p", pTags);
-    if (tTags != null) setTag("t", tTags);
     if (aTags != null) setTag("a", aTags);
     if (dTags != null) setTag("d", dTags);
-    if (mTags != null) setTag("m", mTags);
   }
 
   /// Reads a NIP-01 filter JSON object, as `jsonDecode` returns it.
@@ -100,47 +90,47 @@ class Filter {
   /// of strings, `kinds` a list of ints, `search` a string, and `since`,
   /// `until` and `limit` ints. Anything else throws a [FormatException], where
   /// [tryFromJson] returns null. Other keys are ignored.
-  Filter.fromMap(Map<dynamic, dynamic> map)
-    : ids = _optionalList<String>(map, 'ids'),
-      authors = _optionalList<String>(map, 'authors'),
-      kinds = _optionalList<int>(map, 'kinds'),
-      search = _optional<String>(map, 'search'),
-      since = _optional<int>(map, 'since'),
-      until = _optional<int>(map, 'until'),
-      limit = _optional<int>(map, 'limit'),
-      _tags = _tagsFromMap(map);
+  Filter.fromJson(Map<dynamic, dynamic> data)
+    : ids = _optionalList<String>(data, 'ids'),
+      authors = _optionalList<String>(data, 'authors'),
+      kinds = _optionalList<int>(data, 'kinds'),
+      search = _optional<String>(data, 'search'),
+      since = _optional<int>(data, 'since'),
+      until = _optional<int>(data, 'until'),
+      limit = _optional<int>(data, 'limit'),
+      _tags = _tagsFromJson(data);
 
-  /// The filter that [fromMap] reads from [data], or null where it throws or
-  /// [data] is not a map.
+  /// The filter that [Filter.fromJson] reads from [data], or null where it
+  /// throws or [data] is not a map.
   ///
   /// Use it for JSON that comes from outside, such as a client's REQ.
   static Filter? tryFromJson(Object? data) {
     if (data is! Map) return null;
     try {
-      return Filter.fromMap(data);
+      return Filter.fromJson(data);
     } on FormatException {
       return null;
     }
   }
 
-  static Map<String, List<String>>? _tagsFromMap(Map<dynamic, dynamic> map) {
+  static Map<String, List<String>>? _tagsFromJson(Map<dynamic, dynamic> data) {
     final tags = {
-      for (final key in map.keys)
+      for (final key in data.keys)
         if (key is String && key.length > 1 && key.startsWith('#'))
-          _bareTagKey(key): ?_optionalList<String>(map, key),
+          _bareTagKey(key): ?_optionalList<String>(data, key),
     };
     return tags.isEmpty ? null : tags;
   }
 
-  static T? _optional<T>(Map<dynamic, dynamic> map, String key) =>
-      switch (map[key]) {
+  static T? _optional<T>(Map<dynamic, dynamic> data, String key) =>
+      switch (data[key]) {
         null => null,
         final T value => value,
         final value => throw FormatException('"$key" is not a $T', value),
       };
 
-  static List<T>? _optionalList<T>(Map<dynamic, dynamic> map, String key) =>
-      switch (map[key]) {
+  static List<T>? _optionalList<T>(Map<dynamic, dynamic> data, String key) =>
+      switch (data[key]) {
         null => null,
         final List values when values.every((value) => value is T) =>
           List<T>.from(values),
@@ -154,7 +144,8 @@ class Filter {
       (kinds?.isEmpty ?? false) ||
       (_tags?.values.any((values) => values.isEmpty) ?? false);
 
-  Map<String, dynamic> toMap() {
+  /// The NIP-01 JSON object of this filter, ready for `jsonEncode`.
+  Map<String, dynamic> toJson() {
     var body = {
       "ids": ids,
       "authors": authors,
@@ -178,15 +169,10 @@ class Filter {
     return body;
   }
 
-  Map<String, dynamic> toJson() => toMap();
-
-  /// The same as [Filter.fromMap].
-  factory Filter.fromJson(Map<dynamic, dynamic> json) => Filter.fromMap(json);
-
   // coverage:ignore-start
   @override
   String toString() {
-    return toMap().toString();
+    return toJson().toString();
   }
   // coverage:ignore-end
 

@@ -56,7 +56,7 @@ class ClientMsg {
   List _reqToJson() {
     List<dynamic> json = [type, id];
     for (var filter in filters!) {
-      json.add(filter.toMap());
+      json.add(filter.toJson());
     }
     return json;
   }

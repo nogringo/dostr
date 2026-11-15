@@ -236,7 +236,7 @@ class GiftWrap {
     final signer = _getSigner(customSigner: customSigner);
 
     final encryptedContent = await signer.encryptNip44(
-      plaintext: rumor.toJsonString(),
+      plaintext: rumor.withoutSig().toJsonString(),
       recipientPubKey: recipientPubkey,
     );
 

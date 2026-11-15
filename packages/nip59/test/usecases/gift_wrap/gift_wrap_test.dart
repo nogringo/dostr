@@ -265,6 +265,24 @@ void main() {
       );
     });
 
+    test('leaves the sig of a signed rumor out of its seal', () async {
+      final giftWrap = await giftWrapService.toGiftWrap(
+        rumor: Nip01Event(
+          pubKey: key1.publicKey,
+          kind: 14,
+          content: 'signed',
+          sig: 'a' * 128,
+        ),
+        recipientPubkey: key2.publicKey,
+      );
+      loggedSigner = signerOf(key2);
+
+      final rumor = await giftWrapService.fromGiftWrap(giftWrap: giftWrap);
+
+      expect(rumor.content, 'signed');
+      expect(rumor.sig, isNull);
+    });
+
     group('refuses a rumor its seal does not vouch for', () {
       Future<Nip01Event> wrapForKey2(Nip01Event rumor) async {
         final giftWrap = await giftWrapService.toGiftWrap(

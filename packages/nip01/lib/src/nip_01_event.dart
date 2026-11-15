@@ -6,12 +6,6 @@ import 'event_id.dart';
 final class Nip01Event {
   static const int kTextNoteKind = 1;
 
-  /// NIP-02
-  static const int kContactListKind = 3;
-
-  /// NIP-17
-  static const int kDmRelayListKind = 10050;
-
   /// The id the event was given, or else the hash of its payload: check it
   /// with [hasValidId].
   String get id => _id ?? payloadId;
@@ -46,7 +40,7 @@ final class Nip01Event {
   }) : this._(
          id: id,
          pubKey: pubKey,
-         createdAt: createdAt ?? secondsSinceEpoch(),
+         createdAt: createdAt ?? _secondsSinceEpoch(),
          kind: kind,
          tags: _frozen(tags),
          content: content,
@@ -211,7 +205,7 @@ final class Nip01Event {
   @override
   int get hashCode => id.hashCode;
 
-  static int secondsSinceEpoch() =>
+  static int _secondsSinceEpoch() =>
       DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
   /// The id of this event's payload (NIP-01), whatever [id] it holds.

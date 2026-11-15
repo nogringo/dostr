@@ -10,12 +10,13 @@ void main() {
     since: 1620000000,
     until: 1630000000,
     limit: 10,
+    tags: {
+      't': ['ttag1'],
+    },
     eTags: ['etag1'],
     pTags: ['ptag1'],
-    tTags: ['ttag1'],
     aTags: ['atag1'],
     dTags: ['dtag1'],
-    mTags: ['mtag1'],
   );
 
   final everyFieldOnTheWire = {
@@ -31,7 +32,6 @@ void main() {
     '#t': ['ttag1'],
     '#a': ['atag1'],
     '#d': ['dtag1'],
-    '#m': ['mtag1'],
   };
 
   void expectEveryField(Filter filter) {
@@ -44,27 +44,23 @@ void main() {
     expect(filter.limit, 10);
     expect(filter.eTags, ['etag1']);
     expect(filter.pTags, ['ptag1']);
-    expect(filter.tTags, ['ttag1']);
+    expect(filter.getTag('t'), ['ttag1']);
     expect(filter.aTags, ['atag1']);
     expect(filter.dTags, ['dtag1']);
-    expect(filter.mTags, ['mtag1']);
   }
 
   group('every field', () {
     test('is set by the constructor', () => expectEveryField(everyField()));
 
-    test('is read by fromMap, tag keys without their #', () {
-      final filter = Filter.fromMap(everyFieldOnTheWire);
+    test('is read by fromJson, tag keys without their #', () {
+      final filter = Filter.fromJson(everyFieldOnTheWire);
 
       expectEveryField(filter);
-      expect(
-        filter.tags!.keys,
-        unorderedEquals(['e', 'p', 't', 'a', 'd', 'm']),
-      );
+      expect(filter.tags!.keys, unorderedEquals(['e', 'p', 't', 'a', 'd']));
     });
 
-    test('is written by toMap, tag keys with their #', () {
-      expect(everyField().toMap(), everyFieldOnTheWire);
+    test('is written by toJson, tag keys with their #', () {
+      expect(everyField().toJson(), everyFieldOnTheWire);
     });
 
     test('is kept by clone', () => expectEveryField(everyField().clone()));
@@ -112,10 +108,10 @@ void main() {
       expect(filter.getTag('x'), ['xtag1', 'xtag2']);
       expect(filter.getTag('p'), ['ptag1']);
       expect(filter.getTag('#p'), ['ptag1']);
-      expect(filter.toMap()['#p'], ['ptag1']);
+      expect(filter.toJson()['#p'], ['ptag1']);
     });
 
-    test('keep a name of any length, through toMap and fromMap', () {
+    test('keep a name of any length, through toJson and fromJson', () {
       final filter = Filter(
         tags: {
           'expiration': ['1'],
@@ -124,7 +120,7 @@ void main() {
 
       expect(filter.getTag('expiration'), ['1']);
       expect(filter.getTag('ab'), ['2']);
-      expect(Filter.fromMap(filter.toMap()).tags, {
+      expect(Filter.fromJson(filter.toJson()).tags, {
         'expiration': ['1'],
         'ab': ['2'],
       });
@@ -165,14 +161,14 @@ void main() {
 
     test('ignores null fields and keys it does not know', () {
       expect(
-        Filter.fromJson({'ids': null, '#p': null, 'other': 1}).toMap(),
+        Filter.fromJson({'ids': null, '#p': null, 'other': 1}).toJson(),
         isEmpty,
       );
     });
 
     test('tryFromJson reads what fromJson reads', () {
       expect(
-        Filter.tryFromJson(everyFieldOnTheWire)!.toMap(),
+        Filter.tryFromJson(everyFieldOnTheWire)!.toJson(),
         everyFieldOnTheWire,
       );
     });
@@ -185,15 +181,15 @@ void main() {
   });
 
   group('an empty list', () {
-    test('is kept by toMap, fromMap and clone', () {
+    test('is kept by toJson, fromJson and clone', () {
       final filter = Filter(authors: [], kinds: [1]);
 
-      expect(filter.toMap(), {
+      expect(filter.toJson(), {
         'authors': <String>[],
         'kinds': [1],
       });
       expect(filter.clone().authors, isEmpty);
-      expect(Filter.fromMap(filter.toMap()).authors, isEmpty);
+      expect(Filter.fromJson(filter.toJson()).authors, isEmpty);
     });
 
     test('matches nothing (NIP-01)', () {
