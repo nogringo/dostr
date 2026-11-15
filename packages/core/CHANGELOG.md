@@ -265,6 +265,15 @@ standing for an absent one. `toMap`, `fromMap` and `clone` keep `authors: []`,
 where they used to drop it and leave a filter with no author constraint at
 all. `Filter.matchesNothing` tells whether a filter can match any event.
 
+`Filter.fromMap` and `Filter.fromJson` are strict: a field of the wrong type
+throws a `FormatException` instead of a `TypeError`, and `Filter.tryFromJson`
+returns null where they throw. `fromMap`, `setTag` and `getTag` take a tag name
+of any length, where they used to ignore the longer ones.
+
+`Filter.cloneWithAuthors`, `cloneWithPTags` and `mergeAuthors` are gone: use
+`filter.clone()..authors = authors`, `filter.clone()..setTag('p', pTags)` and
+`a.clone()..authors = {...a.authors!, ...b.authors!}.toList()`.
+
 `RelayReq.send` leaves out the filters that match nothing, and does not send to
 a relay left with none. A REQ whose filters all match nothing ends right away,
 with no relay in its outcomes. An empty tag list no longer means "has this
@@ -294,6 +303,9 @@ request only hands out events whose id and signature it checked, and nothing
 read the flag.
 
 `Nip01Event.kTextNodeKind` is now `kTextNoteKind`.
+
+`EventKindClassification.isParameterizedReplaceableKind` is gone: use
+`isAddressableKind`, the name NIP-01 now gives these kinds.
 
 `Nip01Event` is a final class: it can no longer be extended, implemented or
 mocked. Build the events a test needs with its constructor or `fromJson`.

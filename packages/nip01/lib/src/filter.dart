@@ -30,10 +30,10 @@ class Filter {
   /// List of replaceable event tags to filter by.
   List<String>? get aTags => getTag("a");
 
-  /// ...
+  /// List of addressable event identifiers to filter by.
   List<String>? get dTags => getTag("d");
 
-  /// other tags
+  /// List of MIME type tags to filter by (NIP-94).
   List<String>? get mTags => getTag("m");
 
   /// Unix timestamp to filter events created after this time.
@@ -94,25 +94,58 @@ class Filter {
     if (mTags != null) setTag("m", mTags);
   }
 
-  Filter.fromMap(Map<String, dynamic> map) {
-    ids = map['ids'] == null ? null : List<String>.from(map['ids']);
-    authors = map['authors'] == null ? null : List<String>.from(map['authors']);
-    kinds = map['kinds'] == null ? null : List<int>.from(map['kinds']);
-    search = map['search'];
-    since = map['since'];
-    until = map['until'];
-    limit = map['limit'];
+  /// Reads a NIP-01 filter JSON object, as `jsonDecode` returns it.
+  ///
+  /// When present, `ids`, `authors` and the '#'-prefixed tag filters are lists
+  /// of strings, `kinds` a list of ints, `search` a string, and `since`,
+  /// `until` and `limit` ints. Anything else throws a [FormatException], where
+  /// [tryFromJson] returns null. Other keys are ignored.
+  Filter.fromMap(Map<dynamic, dynamic> map)
+    : ids = _optionalList<String>(map, 'ids'),
+      authors = _optionalList<String>(map, 'authors'),
+      kinds = _optionalList<int>(map, 'kinds'),
+      search = _optional<String>(map, 'search'),
+      since = _optional<int>(map, 'since'),
+      until = _optional<int>(map, 'until'),
+      limit = _optional<int>(map, 'limit'),
+      _tags = _tagsFromMap(map);
 
-    // Handle arbitrary tags: relays serialize them '#'-prefixed, we store
-    // them bare.
-    final tagFilters = <String, List<String>>{};
-    map.forEach((key, value) {
-      if (key.startsWith('#') && key.length == 2) {
-        tagFilters[key.substring(1)] = List<String>.from(value);
-      }
-    });
-    tags = tagFilters.isEmpty ? null : tagFilters;
+  /// The filter that [fromMap] reads from [data], or null where it throws or
+  /// [data] is not a map.
+  ///
+  /// Use it for JSON that comes from outside, such as a client's REQ.
+  static Filter? tryFromJson(Object? data) {
+    if (data is! Map) return null;
+    try {
+      return Filter.fromMap(data);
+    } on FormatException {
+      return null;
+    }
   }
+
+  static Map<String, List<String>>? _tagsFromMap(Map<dynamic, dynamic> map) {
+    final tags = {
+      for (final key in map.keys)
+        if (key is String && key.length > 1 && key.startsWith('#'))
+          _bareTagKey(key): ?_optionalList<String>(map, key),
+    };
+    return tags.isEmpty ? null : tags;
+  }
+
+  static T? _optional<T>(Map<dynamic, dynamic> map, String key) =>
+      switch (map[key]) {
+        null => null,
+        final T value => value,
+        final value => throw FormatException('"$key" is not a $T', value),
+      };
+
+  static List<T>? _optionalList<T>(Map<dynamic, dynamic> map, String key) =>
+      switch (map[key]) {
+        null => null,
+        final List values when values.every((value) => value is T) =>
+          List<T>.from(values),
+        final value => throw FormatException('"$key" is not a List<$T>', value),
+      };
 
   /// Whether no event can match: NIP-01 says an empty list matches nothing.
   bool get matchesNothing =>
@@ -147,7 +180,8 @@ class Filter {
 
   Map<String, dynamic> toJson() => toMap();
 
-  factory Filter.fromJson(Map<String, dynamic> json) => Filter.fromMap(json);
+  /// The same as [Filter.fromMap].
+  factory Filter.fromJson(Map<dynamic, dynamic> json) => Filter.fromMap(json);
 
   // coverage:ignore-start
   @override
@@ -155,42 +189,6 @@ class Filter {
     return toMap().toString();
   }
   // coverage:ignore-end
-
-  /// Creates a new [Filter] with updated authors.
-  ///
-  /// [authors] The new list of authors to use in the filter.
-  Filter cloneWithAuthors(List<String> authors) {
-    Map<String, dynamic> map = toMap();
-    map['authors'] = authors;
-    return Filter.fromMap(map);
-  }
-
-  /// Creates a new [Filter] with updated pubkey tags.
-  ///
-  /// [pTags] The new list of pubkey tags to use in the filter.
-  Filter cloneWithPTags(List<String> pTags) {
-    Map<String, dynamic> map = toMap();
-    map['#p'] = pTags;
-    return Filter.fromMap(map);
-  }
-
-  /// Creates a new [Filter] by merging authors from two filters.
-  ///
-  /// [filter1] The first filter to merge.
-  /// [filter2] The second filter to merge.
-  ///
-  /// Throws an exception if either filter doesn't contain authors.
-  /// [filter1] is used as a basis
-  static Filter mergeAuthors(Filter filter1, Filter filter2) {
-    Map<String, dynamic> map = filter1.toMap();
-    if (filter1.authors == null || filter2.authors == null) {
-      throw Exception("Filter does not contain authors");
-    }
-    map['authors'] = [...filter1.authors!, ...filter2.authors!];
-    // remove duplicates
-    map['authors'] = map['authors'].toSet().toList();
-    return Filter.fromMap(map);
-  }
 
   Filter clone() {
     return Filter(
@@ -205,17 +203,13 @@ class Filter {
     );
   }
 
-  // set an arbitrary tag
+  /// Sets the values of the tag filter [tagName], with or without its '#'.
   void setTag(String tagName, List<String> values) {
-    if (tagName.length > 2) return;
     (_tags ??= {})[_bareTagKey(tagName)] = values;
   }
 
-  // get an arbitrary tag
-  List<String>? getTag(String tagName) {
-    if (_tags == null || tagName.length > 2) return null;
-    return _tags![_bareTagKey(tagName)];
-  }
+  /// The values of the tag filter [tagName], with or without its '#'.
+  List<String>? getTag(String tagName) => _tags?[_bareTagKey(tagName)];
 
   /// Tag key without the NIP-01 '#', the form [tags] stores.
   static String _bareTagKey(String tagName) =>

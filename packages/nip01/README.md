@@ -50,7 +50,9 @@ getters, `pTags` and `dTag`, because the Dostr packages read them everywhere:
 
 `EventKindClassification` tells the kinds of NIP-01 apart: replaceable
 (10000 to 19999, and 0 and 3), addressable (30000 to 39999) and ephemeral
-(20000 to 29999).
+(20000 to 29999). `isReplaceableKind` is true for the addressable kinds too,
+since a newer event replaces an older one in both: check `isAddressableKind`
+first to tell them apart.
 
 To read and write the JSON form:
 
@@ -73,6 +75,9 @@ Both keep the id they read, even a wrong one: check it with `hasValidId` or
 an `EventVerifier` before trusting the event. When the JSON has no id, they
 compute it. `toJson` leaves `sig` out of an unsigned event, such as a NIP-59
 rumor.
+
+`Filter` reads its JSON form the same way: `Filter.fromJson` throws a
+`FormatException` where `Filter.tryFromJson` returns null.
 
 To write a verifier, implement `EventVerifier`:
 

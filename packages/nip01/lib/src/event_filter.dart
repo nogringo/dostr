@@ -1,10 +1,7 @@
 import 'nip_01_event.dart';
 
-/// A class that filters events \
-/// Used to clean event streams based on the event
+/// A filter that drops events from a stream before they reach the caller.
 abstract class EventFilter {
-  /// Filters an event \
-  /// true => event is accepted \
-  /// false => event is rejected
+  /// Whether to keep [event]: false drops it.
   bool filter(Nip01Event event);
 }

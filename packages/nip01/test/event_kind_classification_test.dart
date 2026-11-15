@@ -17,16 +17,9 @@ void main() {
     expect(EventKindClassification.isReplaceableKind(10002), isTrue);
     expect(EventKindClassification.isRegularReplaceableKind(10002), isTrue);
     expect(EventKindClassification.isAddressableKind(10002), isFalse);
-    expect(
-      EventKindClassification.isParameterizedReplaceableKind(10002),
-      isFalse,
-    );
 
     expect(EventKindClassification.isReplaceableKind(30023), isTrue);
-    expect(
-      EventKindClassification.isParameterizedReplaceableKind(30023),
-      isTrue,
-    );
+    expect(EventKindClassification.isRegularReplaceableKind(30023), isFalse);
     expect(EventKindClassification.isAddressableKind(30023), isTrue);
   });
 

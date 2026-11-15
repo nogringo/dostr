@@ -114,30 +114,74 @@ void main() {
       expect(filter.getTag('#p'), ['ptag1']);
       expect(filter.toMap()['#p'], ['ptag1']);
     });
+
+    test('keep a name of any length, through toMap and fromMap', () {
+      final filter = Filter(
+        tags: {
+          'expiration': ['1'],
+        },
+      )..setTag('#ab', ['2']);
+
+      expect(filter.getTag('expiration'), ['1']);
+      expect(filter.getTag('ab'), ['2']);
+      expect(Filter.fromMap(filter.toMap()).tags, {
+        'expiration': ['1'],
+        'ab': ['2'],
+      });
+    });
   });
 
-  test('cloneWithAuthors replaces the authors', () {
-    final filter = Filter(authors: ['author1', 'author2']);
+  group('JSON', () {
+    final malformed = <Map<String, Object?>>[
+      {'ids': 'id1'},
+      {
+        'ids': [1],
+      },
+      {
+        'authors': ['author1', null],
+      },
+      {
+        'kinds': ['1'],
+      },
+      {'search': 5},
+      {'since': '1620000000'},
+      {'until': 1.5},
+      {'limit': '10'},
+      {'#p': 'ptag1'},
+      {
+        '#p': [1],
+      },
+    ];
 
-    expect(filter.cloneWithAuthors(['author3', 'author4']).authors, [
-      'author3',
-      'author4',
-    ]);
-  });
+    test('throws a FormatException for a malformed filter', () {
+      for (final data in malformed) {
+        expect(
+          () => Filter.fromJson(data),
+          throwsFormatException,
+          reason: '$data',
+        );
+      }
+    });
 
-  test('cloneWithPTags replaces the p tags', () {
-    final filter = Filter(pTags: ['ptag1']);
+    test('ignores null fields and keys it does not know', () {
+      expect(
+        Filter.fromJson({'ids': null, '#p': null, 'other': 1}).toMap(),
+        isEmpty,
+      );
+    });
 
-    expect(filter.cloneWithPTags(['ptag2', 'ptag3']).pTags, ['ptag2', 'ptag3']);
-  });
+    test('tryFromJson reads what fromJson reads', () {
+      expect(
+        Filter.tryFromJson(everyFieldOnTheWire)!.toMap(),
+        everyFieldOnTheWire,
+      );
+    });
 
-  test('mergeAuthors keeps each author once', () {
-    final merged = Filter.mergeAuthors(
-      Filter(authors: ['author1', 'author2']),
-      Filter(authors: ['author2', 'author3']),
-    );
-
-    expect(merged.authors, ['author1', 'author2', 'author3']);
+    test('tryFromJson returns null where fromJson throws', () {
+      for (final data in <Object?>[null, 'filter', [], ...malformed]) {
+        expect(Filter.tryFromJson(data), isNull, reason: '$data');
+      }
+    });
   });
 
   group('an empty list', () {
