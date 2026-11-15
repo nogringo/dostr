@@ -144,18 +144,21 @@ String _renderMarkdown(_Graph graph) {
     ..writeln()
     ..writeln(
       'The workspace has ${graph.packages.length} packages and '
-      '${graph.edgeCount} direct dependencies between them, with no cycle. A '
-      'package sits one layer above the deepest package it depends on: layer '
-      '0, at the bottom, depends on no other package of the workspace.',
+      '${graph.edgeCount} direct dependencies between them, with no cycle.',
+    )
+    ..writeln(
+      'A package sits one layer above the deepest package it depends on: '
+      'layer 0, at the bottom, depends on no other package of the workspace.',
     )
     ..writeln()
+    ..writeln('An arrow from A to B means that A depends on B.')
     ..writeln(
-      'An arrow from A to B means that A depends on B. The graph draws '
-      '${graph.drawnCount} of the ${graph.edgeCount} dependencies and leaves '
-      'out those a longer path already implies'
-      '${graph.omittedExample() ?? ''}. Names drop their `dostr_` prefix. The '
-      'table lists every direct dependency.',
+      'The graph draws ${graph.drawnCount} of the ${graph.edgeCount} '
+      'dependencies and leaves out those a longer path already implies'
+      '${graph.omittedExample() ?? ''}.',
     )
+    ..writeln('Names drop their `dostr_` prefix.')
+    ..writeln('The table lists every direct dependency.')
     ..writeln()
     ..writeln('Run `$_command` after changing a dependency between packages.')
     ..writeln()

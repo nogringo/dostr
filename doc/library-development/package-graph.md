@@ -2,9 +2,13 @@
 
 # Package graph
 
-The workspace has 28 packages and 53 direct dependencies between them, with no cycle. A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
+The workspace has 28 packages and 53 direct dependencies between them, with no cycle.
+A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
-An arrow from A to B means that A depends on B. The graph draws 34 of the 53 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`. Names drop their `dostr_` prefix. The table lists every direct dependency.
+An arrow from A to B means that A depends on B.
+The graph draws 34 of the 53 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
+Names drop their `dostr_` prefix.
+The table lists every direct dependency.
 
 Run `dart run tool/package_graph.dart` after changing a dependency between packages.
 

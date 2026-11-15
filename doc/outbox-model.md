@@ -1,6 +1,7 @@
 # Outbox model (gossip)
 
-The outbox model ([gossip model](https://mikedilger.com/gossip-model/)) reads an account's events from the relays it writes to, and publishes an event where its readers look: the author's write relays and the read relays of the pubkeys it tags. Both come from NIP-65 relay lists (kind 10002), which [`dostr_fetchers`](../packages/fetchers/README.md) reads and [`dostr_url_set`](../packages/url_set/README.md) turns into relays.
+The outbox model ([gossip model](https://mikedilger.com/gossip-model/)) reads an account's events from the relays it writes to, and publishes an event where its readers look: the author's write relays and the read relays of the pubkeys it tags.
+Both come from NIP-65 relay lists (kind 10002), which [`dostr_fetchers`](../packages/fetchers/README.md) reads and [`dostr_url_set`](../packages/url_set/README.md) turns into relays.
 
 The examples share this setup, on top of the `reqs` of [Relay REQs](../packages/core/README.md#usage):
 
@@ -61,11 +62,13 @@ if (resolution case UrlsResolved(:final urls)) {
 }
 ```
 
-`UrlsUnavailable` means a relay list could not be read: keep the event and try again later rather than publishing to fewer relays than intended. A `UrlSet` serializes to JSON for that.
+`UrlsUnavailable` means a relay list could not be read: keep the event and try again later rather than publishing to fewer relays than intended.
+A `UrlSet` serializes to JSON for that.
 
 ## A new account
 
-A new account has no relay list yet, so nobody can find its events. Publish its kind 10002 first, on its write relays and where the fetchers of other clients look for it: the indexer relays (`defaultIndexerRelays`) and its [home relays](../packages/fetchers/README.md#home-relays).
+A new account has no relay list yet, so nobody can find its events.
+Publish its kind 10002 first, on its write relays and where the fetchers of other clients look for it: the indexer relays (`defaultIndexerRelays`) and its [home relays](../packages/fetchers/README.md#home-relays).
 
 ```dart
 final relayList = await signer.sign(

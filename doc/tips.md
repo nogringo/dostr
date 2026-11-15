@@ -2,7 +2,8 @@
 
 ## Keep one RelayManager
 
-A `RelayManager` holds the relay connections, and every `RelayReqs`, `RelayPublishes` and fetcher built on it shares them. Create it once and pass it down, or provide it with [riverpod](https://pub.dev/packages/riverpod), get_it or a singleton:
+A `RelayManager` holds the relay connections, and every `RelayReqs`, `RelayPublishes` and fetcher built on it shares them.
+Create it once and pass it down, or provide it with [riverpod](https://pub.dev/packages/riverpod), get_it or a singleton:
 
 ```dart
 import 'package:dostr_bip340/dostr_bip340.dart';
@@ -27,7 +28,8 @@ final relayReqsProvider = Provider<RelayReqs>(
 
 ## Avoid layout shifts
 
-Buffering events and updating the UI periodically avoids a redraw per event. With [rxdart](https://pub.dev/packages/rxdart):
+Buffering events and updating the UI periodically avoids a redraw per event.
+With [rxdart](https://pub.dev/packages/rxdart):
 
 ```dart
 import 'package:rxdart/rxdart.dart';
