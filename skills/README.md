@@ -1,6 +1,7 @@
 # Skills
 
-Agent skills for Claude Code. Each skill is a self-contained directory with a `SKILL.md` manifest.
+Agent skills for Claude Code.
+Each skill is a self-contained directory with a `SKILL.md` manifest.
 
 ## Available Skills
 

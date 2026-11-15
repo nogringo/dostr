@@ -1,15 +1,12 @@
 # dostr_rust_verifier
 
 A fast Nostr event verifier, written in Rust and called through `dart:ffi`.
-`RustEventVerifier` checks the event id and the BIP-340 signature in one native
-call, and is faster than `Bip340EventVerifier`.
+`RustEventVerifier` checks the event id and the BIP-340 signature in one native call, and is faster than `Bip340EventVerifier`.
 
-Native platforms only (Android, iOS, Linux, macOS, Windows). On web,
-`verify` throws `UnsupportedError`: use `Bip340EventVerifier`, or
-`DostrEventVerifier` from `dostr_flutter`, which picks Web Crypto there.
+Native platforms only (Android, iOS, Linux, macOS, Windows).
+On web, `verify` throws `UnsupportedError`: use `Bip340EventVerifier`, or `DostrEventVerifier` from `dostr_flutter`, which picks Web Crypto there.
 
-`DostrEventVerifier` from `dostr_flutter` verifies in Dart on native platforms:
-pass a `RustEventVerifier` instead to verify faster.
+`DostrEventVerifier` from `dostr_flutter` verifies in Dart on native platforms: pass a `RustEventVerifier` instead to verify faster.
 
 ## Install
 
@@ -19,9 +16,8 @@ dependencies:
   dostr_core: ^0.1.0
 ```
 
-The build hook compiles the crate in `rust/`, so the
-[Rust toolchain](https://rustup.rs) must be installed. The version is pinned in
-`rust/rust-toolchain.toml`.
+The build hook compiles the crate in `rust/`, so the [Rust toolchain](https://rustup.rs) must be installed.
+The version is pinned in `rust/rust-toolchain.toml`.
 
 ## Usage
 
@@ -40,10 +36,7 @@ final reqs = RelayReqs(
 
 ## Coming from `ndk`
 
-Import `RustEventVerifier` from
-`package:dostr_rust_verifier/dostr_rust_verifier.dart` instead of
-`package:ndk/ndk.dart`.
+Import `RustEventVerifier` from `package:dostr_rust_verifier/dostr_rust_verifier.dart` instead of `package:ndk/ndk.dart`.
 
-`ndk_rust_verifier`, up to 0.5.0, was built with flutter_rust_bridge and needed
-Flutter. `dostr_rust_verifier` builds the crate with a native assets hook, and
-is pure Dart.
+`ndk_rust_verifier`, up to 0.5.0, was built with flutter_rust_bridge and needed Flutter.
+`dostr_rust_verifier` builds the crate with a native assets hook, and is pure Dart.

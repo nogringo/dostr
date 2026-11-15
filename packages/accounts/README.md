@@ -29,7 +29,8 @@ accounts.switchAccount(pubkey: key.publicKey);
 final signed = await accounts.sign(event);
 ```
 
-The `LocalSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `NostrSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
+The `LocalSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`.
+`loginExternalSigner` takes any `NostrSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
 
 ```dart
 final signer = bunkers.createSigner(connection);
@@ -39,11 +40,15 @@ accounts.loginExternalSigner(signer: signer);
 
 The other external signers log in the same way: a browser extension with [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), an Android signer app with [`dostr_nip55`](https://pub.dev/packages/dostr_nip55).
 
-You can log in several accounts and move between them with `switchAccount(pubkey: ...)`. `addAccount` adds one without logging it in. A pubkey is an account only once: adding it again throws an `AccountExistsException`, and switching to an unknown one an `UnknownAccountException`.
+You can log in several accounts and move between them with `switchAccount(pubkey: ...)`.
+`addAccount` adds one without logging it in.
+A pubkey is an account only once: adding it again throws an `AccountExistsException`, and switching to an unknown one an `UnknownAccountException`.
 
-`logout` removes the logged account, `removeAccount` any of them. Nobody is logged in after `logout`, even when other accounts remain.
+`logout` removes the logged account, `removeAccount` any of them.
+Nobody is logged in after `logout`, even when other accounts remain.
 
-Each account owns its signer. Removing the account, or calling `dispose` on `Accounts`, disposes of it, which closes the relay subscription of a NIP-46 bunker.
+Each account owns its signer.
+Removing the account, or calling `dispose` on `Accounts`, disposes of it, which closes the relay subscription of a NIP-46 bunker.
 
 `sign` throws an `AccountCannotSignException` when nobody is logged in or the logged account is read-only, and an `ArgumentError` for an event whose `pubkey` is not the logged account's.
 
@@ -61,9 +66,12 @@ accounts.accountsStream.listen((accounts) {
 });
 ```
 
-Both emit their current value on subscription, `null` for `authStateChanges` when nobody is logged in. `accountsStream` then emits an unmodifiable snapshot each time an account is added or removed. `switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`, and not at all when that account is already the logged one.
+Both emit their current value on subscription, `null` for `authStateChanges` when nobody is logged in.
+`accountsStream` then emits an unmodifiable snapshot each time an account is added or removed.
+`switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`, and not at all when that account is already the logged one.
 
-`accounts.accounts` is a read-only view of the same data, for a synchronous read. `getLoggedAccount()`, `isLoggedIn` and `canSign` tell who is logged and whether they can sign.
+`accounts.accounts` is a read-only view of the same data, for a synchronous read.
+`getLoggedAccount()`, `isLoggedIn` and `canSign` tell who is logged and whether they can sign.
 
 ## Relay authentication
 
@@ -81,7 +89,9 @@ See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authe
 
 ## Coming from `ndk`
 
-`Accounts` keeps its name and most of its API. Import it from `package:dostr_accounts/dostr_accounts.dart` instead of `package:ndk/ndk.dart` or the deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart`. `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` become a `Bunkers` connection and `loginExternalSigner`, as above.
+`Accounts` keeps its name and most of its API.
+Import it from `package:dostr_accounts/dostr_accounts.dart` instead of `package:ndk/ndk.dart` or the deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart`.
+`ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` become a `Bunkers` connection and `loginExternalSigner`, as above.
 
 What changed:
 

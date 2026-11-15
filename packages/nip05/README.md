@@ -28,7 +28,8 @@ switch (await nip05.resolve('bob@example.com')) {
 }
 ```
 
-`resolve` tells a missing address (`Nip05NotFound`) apart from a server that could not be reached (`Nip05ResolveError`). `relays` lists the relays the domain gives for the pubkey, if any.
+`resolve` tells a missing address (`Nip05NotFound`) apart from a server that could not be reached (`Nip05ResolveError`).
+`relays` lists the relays the domain gives for the pubkey, if any.
 
 To check an address against a pubkey you already have:
 
@@ -40,10 +41,17 @@ final result = await nip05.check(
 print('valid? ${result.valid}, relays: ${result.relays}');
 ```
 
-Without a `cache`, the resolver keeps what it resolved in memory. To keep it across restarts, pass a `Nip05Cache` on your storage, keyed by the canonical identifier (`Nip05.canonicalIdentifier`). A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour). A request gives up after `nip05RequestTimeout` (5 seconds). Concurrent calls for the same identifier share one request.
+Without a `cache`, the resolver keeps what it resolved in memory.
+To keep it across restarts, pass a `Nip05Cache` on your storage, keyed by the canonical identifier (`Nip05.canonicalIdentifier`).
+A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour).
+A request gives up after `nip05RequestTimeout` (5 seconds).
+Concurrent calls for the same identifier share one request.
 
 More in [example/](example/).
 
 ## Coming from `ndk`
 
-`Nip05Usecase` is now `Nip05Resolver` and `Nip05HttpRepositoryImpl` is now `HttpNip05Repository`. The other classes keep their names. The deep imports under `package:ndk/` (`config/nip_05_defaults.dart`, `data_layer/repositories/nip_05_http_impl.dart`, `domain_layer/entities/nip_05.dart`, `domain_layer/entities/nip_05_resolve_result.dart`, `domain_layer/repositories/nip_05_repo.dart` and `domain_layer/usecases/nip05/nip_05.dart`) are now `package:dostr_nip05/dostr_nip05.dart`. `Nip05Resolver` takes `cache` instead of `database`, and `Nip05Model` is gone.
+`Nip05Usecase` is now `Nip05Resolver` and `Nip05HttpRepositoryImpl` is now `HttpNip05Repository`.
+The other classes keep their names.
+The deep imports under `package:ndk/` (`config/nip_05_defaults.dart`, `data_layer/repositories/nip_05_http_impl.dart`, `domain_layer/entities/nip_05.dart`, `domain_layer/entities/nip_05_resolve_result.dart`, `domain_layer/repositories/nip_05_repo.dart` and `domain_layer/usecases/nip05/nip_05.dart`) are now `package:dostr_nip05/dostr_nip05.dart`.
+`Nip05Resolver` takes `cache` instead of `database`, and `Nip05Model` is gone.

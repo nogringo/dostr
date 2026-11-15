@@ -33,9 +33,12 @@ await RelayPublishes(relayManager: relays)
     .done;
 ```
 
-`mineEvent` adds a `["nonce", "<nonce>", "<target>"]` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce. Sign it after mining with a `NostrSigner` (`signer`, for example a `Bip340Signer` of `dostr_bip340`), then publish it with `RelayPublishes` of `dostr_core`, where `relays` is the app's `RelayManager`. The id covers the pubkey and `created_at`, so set both before mining, to the signer's pubkey, and change neither after.
+`mineEvent` adds a `["nonce", "<nonce>", "<target>"]` tag (replacing any existing one) and returns an unsigned event, since the id changes with the nonce.
+Sign it after mining with a `NostrSigner` (`signer`, for example a `Bip340Signer` of `dostr_bip340`), then publish it with `RelayPublishes` of `dostr_core`, where `relays` is the app's `RelayManager`.
+The id covers the pubkey and `created_at`, so set both before mining, to the signer's pubkey, and change neither after.
 
-Each try picks a random nonce, so a difficulty `d` takes 2^d tries on average, about a million at 20. `mineEvent` throws an `Exception` after `maxIterations` tries, 1,000,000 by default, so raise it for 20 and above.
+Each try picks a random nonce, so a difficulty `d` takes 2^d tries on average, about a million at 20.
+`mineEvent` throws an `Exception` after `maxIterations` tries, 1,000,000 by default, so raise it for 20 and above.
 
 ## Checking
 
@@ -46,7 +49,8 @@ Each try picks a random nonce, so a difficulty `d` takes 2^d tries on average, a
 
 ## Coming from `ndk`
 
-`ndk.proofOfWork` and the `ProofOfWork` usecase have no counterpart here. Use the static methods of `Nip13`:
+`ndk.proofOfWork` and the `ProofOfWork` usecase have no counterpart here.
+Use the static methods of `Nip13`:
 
 | Before | After |
 | ------ | ----- |

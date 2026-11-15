@@ -1,12 +1,9 @@
 # dostr_fetchers
 
-Fetches the lists a Nostr account publishes about itself from the relays where
-NIP-65 puts them, on top of `dostr_core`: its metadata, relay list, DM relays,
-Blossom servers and `home-relays` list.
+Fetches the lists a Nostr account publishes about itself from the relays where NIP-65 puts them, on top of `dostr_core`: its metadata, relay list, DM relays, Blossom servers and `home-relays` list.
 
-Each fetcher asks the account's write relays as soon as its relay list
-arrives, and a few indexer relays meanwhile. It hands over every newer version
-as it comes, and tells a list no relay holds from one no relay answered for.
+Each fetcher asks the account's write relays as soon as its relay list arrives, and a few indexer relays meanwhile.
+It hands over every newer version as it comes, and tells a list no relay holds from one no relay answered for.
 
 ## Install
 
@@ -25,11 +22,9 @@ dependencies:
 | `BlossomServersFetcher` | 10063, BUD-03 Blossom servers | `blossomServersOf` |
 | `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` of `dostr_home_relays` |
 
-`Nip65Fetcher` asks its `relays`, `defaultIndexerRelays` unless given, and the
-account's home relays when it has a `homeRelayList`. The others extend
-`OutboxFetcher`: they ask the write relays their `nip65Fetcher` finds, and
-their `relays` while the relay list is on its way. Give them all the same
-`Nip65Fetcher` and they share its lookups.
+`Nip65Fetcher` asks its `relays`, `defaultIndexerRelays` unless given, and the account's home relays when it has a `homeRelayList`.
+The others extend `OutboxFetcher`: they ask the write relays their `nip65Fetcher` finds, and their `relays` while the relay list is on its way.
+Give them all the same `Nip65Fetcher` and they share its lookups.
 
 ```dart
 import 'package:dostr_bip340/dostr_bip340.dart';
@@ -57,8 +52,7 @@ Every fetcher reads one account three ways:
 - `fetch(pubkey)`: the newest version, or null if no relay has one.
 - `lookup(pubkey)`: how the lookup ended, as an `EventLookup`.
 
-`fetchAll(pubkeys)` and `lookupAll(pubkeys)` do the same for several accounts,
-in a map by pubkey:
+`fetchAll(pubkeys)` and `lookupAll(pubkeys)` do the same for several accounts, in a map by pubkey:
 
 ```dart
 final profiles = await metadata.fetchAll([alice, bob]);
@@ -69,51 +63,33 @@ A lookup ends in one of three states:
 
 - `EventFound`: the newest version, from the cache or a relay.
 - `EventNotFound`: a relay answered (EOSE) and none holds the event.
-- `EventUnavailable`: no relay answered, so nothing is known. An
-  `OutboxFetcher` also ends there while the relay list is unavailable, since
-  the relays that would hold the event are unknown.
+- `EventUnavailable`: no relay answered, so nothing is known. An `OutboxFetcher` also ends there while the relay list is unavailable, since the relays that would hold the event are unknown.
 
-A lookup runs until every relay answered or `timeout`, five seconds unless
-given, counted from when its REQs go out, even once no one listens. Each
-fetcher reuses a lookup still running, and one finished less than `maxAge`
-ago, ten minutes unless given, when it has no checks.
+A lookup runs until every relay answered or `timeout`, five seconds unless given, counted from when its REQs go out, even once no one listens.
+Each fetcher reuses a lookup still running, and one finished less than `maxAge` ago, ten minutes unless given, when it has no checks.
 
 ## Batching
 
-The pubkeys a fetcher looks up within `batchWindow`, 50 ms unless given, share
-the REQs of each relay. Each filter holds up to 100 of them in `authors`, with
-their number as `limit`, since a relay returns only the latest version of each.
-100 is the lowest `max_limit` seen in relays' NIP-11, so a relay that clamps
-`limit` still returns every author. A REQ holds up to 9 such filters, about
-61 KB: under 65,535 bytes and under the 10 filters nostream accepts by default.
+The pubkeys a fetcher looks up within `batchWindow`, 50 ms unless given, share the REQs of each relay.
+Each filter holds up to 100 of them in `authors`, with their number as `limit`, since a relay returns only the latest version of each. 100 is the lowest `max_limit` seen in relays' NIP-11, so a relay that clamps `limit` still returns every author.
+A REQ holds up to 9 such filters, about 61 KB: under 65,535 bytes and under the 10 filters nostream accepts by default.
 
-A relay that refuses a REQ with a CLOSED is asked again for each of its filters
-alone, then for each pubkey alone, unless the CLOSED starts with
-`auth-required:`, `restricted:`, `rate-limited:` or `blocked:`, which refuse a
-REQ whatever its size.
+A relay that refuses a REQ with a CLOSED is asked again for each of its filters alone, then for each pubkey alone, unless the CLOSED starts with `auth-required:`, `restricted:`, `rate-limited:` or `blocked:`, which refuse a REQ whatever its size.
 
-`fetchAll` and `lookupAll` know their pubkeys up front: their REQs go out as
-soon as each of their lookups read the cache, without waiting for the end of
-`batchWindow`. An `OutboxFetcher` sends those for the relay lists the same
-way, while the write relays, asked as each relay list arrives, still wait for
-the window.
+`fetchAll` and `lookupAll` know their pubkeys up front: their REQs go out as soon as each of their lookups read the cache, without waiting for the end of `batchWindow`.
+An `OutboxFetcher` sends those for the relay lists the same way, while the write relays, asked as each relay list arrives, still wait for the window.
 
 ## Cache and checks
 
-Without a cache, a cold start asks the relays for every list again. Give the
-fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds,
-then stores each newer one.
+Without a cache, a cold start asks the relays for every list again.
+Give the fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds, then stores each newer one.
 
-Give them a `UrlListCheckStore` from `dostr_url_set` too, and a lookup a relay
-answered less than `maxAge` ago is answered from the cache alone, an absent
-event included. Past `maxAge` the relays are asked again, and while none
-answers the last known state holds.
+Give them a `UrlListCheckStore` from `dostr_url_set` too, and a lookup a relay answered less than `maxAge` ago is answered from the cache alone, an absent event included.
+Past `maxAge` the relays are asked again, and while none answers the last known state holds.
 
 ## Resolving a `UrlSet`
 
-`fetcherUrlListFn` reads the lists of a
-[`dostr_url_set`](https://pub.dev/packages/dostr_url_set) `UrlSet` with these
-fetchers, cache and checks included:
+`fetcherUrlListFn` reads the lists of a [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) `UrlSet` with these fetchers, cache and checks included:
 
 ```dart
 import 'package:dostr_url_set/dostr_url_set.dart';
@@ -129,9 +105,8 @@ final resolution = await resolveUrlSet(UrlSet.dm(bob), lists);
 `dmRelays` and `blossomServers` must find the write relays with `nip65`.
 Private relay lists (kind 10013) are not supported.
 
-`resolveUrlSet` waits for every list. To ask a relay as soon as a list names
-it, watch the set with `fetcherUrlListWatchFn`, which takes the same fetchers
-and gives each version of a list they find:
+`resolveUrlSet` waits for every list.
+To ask a relay as soon as a list names it, watch the set with `fetcherUrlListWatchFn`, which takes the same fetchers and gives each version of a list they find:
 
 ```dart
 final watch = fetcherUrlListWatchFn(
@@ -148,9 +123,8 @@ A DM list found on the indexers then comes before the NIP-65 lookup ends.
 
 ## Fetching any filter
 
-`EventFetcher` asks the relays a `UrlSet` resolves to for the events of any
-filter. Each relay is asked as soon as a list names it, with its own REQ and
-timeout, so the defaults of a fallback reached late still get their full time:
+`EventFetcher` asks the relays a `UrlSet` resolves to for the events of any filter.
+Each relay is asked as soon as a list names it, with its own REQ and timeout, so the defaults of a fallback reached late still get their full time:
 
 ```dart
 final nip65 = Nip65Fetcher(reqs: reqs);
@@ -173,21 +147,17 @@ if (!result.complete) print('partial: ${result.unavailable}');
 ```
 
 `urlLists` reads the lists the set names, here the NIP-65 of `alice`.
-`EventFetcher` does not build these fetchers itself: give it the ones the rest
-of the app uses, so each list is looked up once and kept in one cache.
+`EventFetcher` does not build these fetchers itself: give it the ones the rest of the app uses, so each list is looked up once and kept in one cache.
 
-`events` gives each matching event once, as soon as a relay sends it. `done`
-says how the fetch ended: the events, what each relay did, and the lists that
-were unavailable. `complete` is true only when every list was available and
-every relay sent its EOSE, so an empty result is then known to be empty. Each
-relay applies the filter's `limit` on its own.
+`events` gives each matching event once, as soon as a relay sends it.
+`done` says how the fetch ended: the events, what each relay did, and the lists that were unavailable.
+`complete` is true only when every list was available and every relay sent its EOSE, so an empty result is then known to be empty.
+Each relay applies the filter's `limit` on its own.
 
 ## Home relays
 
-[`dostr_home_relays`](https://pub.dev/packages/dostr_home_relays) computes the
-relays every client derives for an account from a `home-relays` list, as the
-Computed Home Relays NIP describes. Pass the list to `Nip65Fetcher` to also ask
-them for relay lists:
+[`dostr_home_relays`](https://pub.dev/packages/dostr_home_relays) computes the relays every client derives for an account from a `home-relays` list, as the Computed Home Relays NIP describes.
+Pass the list to `Nip65Fetcher` to also ask them for relay lists:
 
 ```dart
 import 'package:dostr_home_relays/dostr_home_relays.dart';

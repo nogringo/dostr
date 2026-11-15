@@ -4,11 +4,13 @@
 [![Pub](https://img.shields.io/pub/v/dostr_core.svg)](https://pub.dev/packages/dostr_core)
 [![License](https://img.shields.io/github/license/nogringo/dostr.svg)](LICENSE)
 
-Dostr is a set of Dart packages for building Nostr applications. Each package covers one part of Nostr and depends only on what it needs, so an application can pick the parts it uses.
+Dostr is a set of Dart packages for building Nostr applications.
+Each package covers one part of Nostr and depends only on what it needs, so an application can pick the parts it uses.
 
 # Get started here ➡️ [Getting started](doc/getting-started.md)
 
-Each package documents itself in its README, listed below. [doc/](doc/) covers what spans several packages: the [outbox model](doc/outbox-model.md), [tips](doc/tips.md) and [performance](doc/performance.md).
+Each package documents itself in its README, listed below.
+[doc/](doc/) covers what spans several packages: the [outbox model](doc/outbox-model.md), [tips](doc/tips.md) and [performance](doc/performance.md).
 
 Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
@@ -18,7 +20,8 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 #### [🔗 Core](./packages/core/)
 
-`dostr_core`: relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick. Start here.
+`dostr_core`: relay connections, NIP-42 authentication, and REQ and EVENT on the relays you pick.
+Start here.
 
 #### [🔗 Fetchers](./packages/fetchers/)
 
@@ -52,11 +55,13 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 #### [🔗 Rust verifier](./packages/rust_verifier/)
 
-`dostr_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI. Needs the Rust toolchain.
+`dostr_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI.
+Needs the Rust toolchain.
 
 #### [🔗 Web crypto](./packages/web_crypto/)
 
-`dostr_web_crypto`: fast BIP-340 signer and event verifier for the web, with @noble/curves through JS interop. Pure Dart, no Flutter needed.
+`dostr_web_crypto`: fast BIP-340 signer and event verifier for the web, with @noble/curves through JS interop.
+Pure Dart, no Flutter needed.
 
 #### [🔗 Accounts](./packages/accounts/)
 
@@ -124,7 +129,8 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 #### [🔗 Dostr Flutter](./packages/flutter/)
 
-Flutter widgets and utilities that require Flutter as a dependency. It exports the NIP-07 signer of `dostr_nip07` and the NIP-55 signer of `dostr_nip55`.
+Flutter widgets and utilities that require Flutter as a dependency.
+It exports the NIP-07 signer of `dostr_nip07` and the NIP-55 signer of `dostr_nip55`.
 
 #### [🔗 Dostr demo app](./packages/demo/)
 

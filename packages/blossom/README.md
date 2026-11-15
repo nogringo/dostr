@@ -1,6 +1,7 @@
 # dostr_blossom
 
-[Blossom](https://github.com/hzrd149/blossom) file storage for Nostr: upload, download, mirror, list and delete blobs, on the servers you pick or on a user's server list (kind `10063`). `Files` wraps it in a simpler API that also takes plain urls.
+[Blossom](https://github.com/hzrd149/blossom) file storage for Nostr: upload, download, mirror, list and delete blobs, on the servers you pick or on a user's server list (kind `10063`).
+`Files` wraps it in a simpler API that also takes plain urls.
 
 It signs through [`dostr_signer`](https://pub.dev/packages/dostr_signer), which also gives it its accounts and auth policies, and asks you how to read a user's server list.
 
@@ -17,7 +18,8 @@ dependencies:
 
 ## Usage
 
-`Blossom` signs as the logged account of an `AuthAccounts`, such as the `Accounts` of [`dostr_accounts`](https://pub.dev/packages/dostr_accounts). Here the fetchers of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) read a user's server list from their write relays:
+`Blossom` signs as the logged account of an `AuthAccounts`, such as the `Accounts` of [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
+Here the fetchers of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) read a user's server list from their write relays:
 
 ```dart
 import 'package:dostr_accounts/dostr_accounts.dart';
@@ -66,17 +68,21 @@ More in [example/](example/).
 
 Upload, list and delete use the user's server list (kind `10063`) when no `serverUrls` are given.
 
-A read tries `serverUrls` first. Given `pubkeyToFetchUserServerList` too, it reads that user's server list only once none of `serverUrls` had the blob, and then tries the servers it did not try yet.
+A read tries `serverUrls` first.
+Given `pubkeyToFetchUserServerList` too, it reads that user's server list only once none of `serverUrls` had the blob, and then tries the servers it did not try yet.
 
 A server url may end with a slash, as kind `10063` lists often write it.
 
-The authorization events are signed automatically and are valid for five minutes (`Blossom.defaultAuthExpiration`), or for the `authExpiration` passed to the `Blossom` constructor. An operation that outlives it, such as a long streamed download, signs a new event when a server refuses the expired one.
+The authorization events are signed automatically and are valid for five minutes (`Blossom.defaultAuthExpiration`), or for the `authExpiration` passed to the `Blossom` constructor.
+An operation that outlives it, such as a long streamed download, signs a new event when a server refuses the expired one.
 
-Cancelling the subscription to an upload stream, such as `uploadBlobFromFile`, aborts that upload. `blossom.abortPending()` ends every operation in flight with a `RequestAbortedException`, including one still waiting on a signer, and tries no other server.
+Cancelling the subscription to an upload stream, such as `uploadBlobFromFile`, aborts that upload.
+`blossom.abortPending()` ends every operation in flight with a `RequestAbortedException`, including one still waiting on a signer, and tries no other server.
 
 ## Errors
 
-A read that no server served (`getBlob`, `checkBlob`, `getBlobStream`, `downloadBlobToFile`, `listBlobs`) throws a `BlossomRequestException`. Its `errors` say why each server failed, in the order they were tried: an `HttpRequestException` carries the status the server answered with.
+A read that no server served (`getBlob`, `checkBlob`, `getBlobStream`, `downloadBlobToFile`, `listBlobs`) throws a `BlossomRequestException`.
+Its `errors` say why each server failed, in the order they were tried: an `HttpRequestException` carries the status the server answered with.
 
 ```dart
 try {
@@ -88,15 +94,18 @@ try {
 }
 ```
 
-A download checks that the bytes hash to the sha256 it asked for. A server that serves anything else fails with a `BlossomHashMismatchException`: `getBlob` moves on to the next server, while `getBlobStream` ends with it and `downloadBlobToFile` throws it without saving anything.
+A download checks that the bytes hash to the sha256 it asked for.
+A server that serves anything else fails with a `BlossomHashMismatchException`: `getBlob` moves on to the next server, while `getBlobStream` ends with it and `downloadBlobToFile` throws it without saving anything.
 
-An operation with no server to talk to throws a `BlossomNoServerListException` before sending anything: the user has no server list (kind `10063`), or an empty one, or the call gave neither servers nor a pubkey. Its `pubkey` says whose list is missing.
+An operation with no server to talk to throws a `BlossomNoServerListException` before sending anything: the user has no server list (kind `10063`), or an empty one, or the call gave neither servers nor a pubkey.
+Its `pubkey` says whose list is missing.
 
 Writes report each server in their results instead: `BlobUploadResult` and `BlobDeleteResult` say whether that server succeeded, and why not.
 
 ## Server authentication (BUD-01)
 
-Some servers only serve a private blob, or only accept an upload, from a client that signed a kind `24242` event. The `auth` parameter says which identity a server may learn, with the same `AuthPolicy` as relays use for [NIP-42](https://pub.dev/packages/dostr_core#nip-42-authentication):
+Some servers only serve a private blob, or only accept an upload, from a client that signed a kind `24242` event.
+The `auth` parameter says which identity a server may learn, with the same `AuthPolicy` as relays use for [NIP-42](https://pub.dev/packages/dostr_core#nip-42-authentication):
 
 ```dart
 final response = await blossom.getBlob(
@@ -112,9 +121,12 @@ final response = await blossom.getBlob(
 | `AuthPolicy.allow(a)` | nothing at first, then the signed event once a server answered 401 | who you are, but only after that server asked |
 | `AuthPolicy.require(a)` | the signed event on the first request | who you are, as soon as you ask it for anything |
 
-The account does not have to be one of `accounts`. `allow` costs a refused HTTP round trip, and for an upload a body sent twice, so prefer `require` when the server is known to ask. If `require` names an account that cannot sign, nothing is sent and the call throws `BlossomAuthUnavailableException`.
+The account does not have to be one of `accounts`.
+`allow` costs a refused HTTP round trip, and for an upload a body sent twice, so prefer `require` when the server is known to ask.
+If `require` names an account that cannot sign, nothing is sent and the call throws `BlossomAuthUnavailableException`.
 
-Without `auth`, reads stay anonymous and everything else authorises as a throwaway key. Give `Blossom` an `authHandler` and it authorises as the logged account instead, only on the servers the handler agrees to.
+Without `auth`, reads stay anonymous and everything else authorises as a throwaway key.
+Give `Blossom` an `authHandler` and it authorises as the logged account instead, only on the servers the handler agrees to.
 
 ## Files
 
@@ -136,23 +148,31 @@ final results = await files.upload(
 );
 ```
 
-A url naming a sha256, with or without a file extension (`https://cdn.example.com/<sha256>.pdf`), goes through Blossom. Its own server is tried first, then `serverUrls`, then the server list of `pubkey`, which is read only once the others failed. The bytes must hash to that sha256. Any other url is fetched directly.
+A url naming a sha256, with or without a file extension (`https://cdn.example.com/<sha256>.pdf`), goes through Blossom.
+Its own server is tried first, then `serverUrls`, then the server list of `pubkey`, which is read only once the others failed.
+The bytes must hash to that sha256.
+Any other url is fetched directly.
 
 `upload`, `uploadFromFile` and `delete` use the logged account's server list (kind `10063`) when no `serverUrls` are given.
 
 `checkUrl` answers the url itself when its server has the blob, extension included, and otherwise the url of a server that has it.
 
-`upload` takes the same `strategy` as `Blossom.uploadBlob`. A `BlossomFile` that already knows its `sha256` is not hashed again. `uploadFromFile` and `downloadToFile` stream from and to disk, so a large file is never held whole in memory.
+`upload` takes the same `strategy` as `Blossom.uploadBlob`.
+A `BlossomFile` that already knows its `sha256` is not hashed again.
+`uploadFromFile` and `downloadToFile` stream from and to disk, so a large file is never held whole in memory.
 
-Every method takes the same `auth` parameter as `Blossom`, see [Server authentication](#server-authentication-bud-01). It is ignored for a plain url, which is fetched directly.
+Every method takes the same `auth` parameter as `Blossom`, see [Server authentication](#server-authentication-bud-01).
+It is ignored for a plain url, which is fetched directly.
 
 ## Methods
 
 ### uploadBlob
 
-Uploads a blob. With `serverMediaOptimisation`, the `/media` endpoint is used (BUD-05), and the server's hash differs from the original.
+Uploads a blob.
+With `serverMediaOptimisation`, the `/media` endpoint is used (BUD-05), and the server's hash differs from the original.
 
-With `UploadStrategy.mirrorAfterSuccess`, the other servers mirror the blob the first one answered with. After a `/media` upload that blob has a new hash, so the mirrors sign their own `upload` authorization naming it (BUD-04): with a remote signer, that is a second prompt.
+With `UploadStrategy.mirrorAfterSuccess`, the other servers mirror the blob the first one answered with.
+After a `/media` upload that blob has a new hash, so the mirrors sign their own `upload` authorization naming it (BUD-04): with a remote signer, that is a second prompt.
 
 ```dart
 Future<List<BlobUploadResult>> uploadBlob({
@@ -169,7 +189,8 @@ Future<List<BlobUploadResult>> uploadBlob({
 
 ### uploadBlobFromFile
 
-Reads the file in chunks, so a large file is never held whole in memory. On the web it asks the user to pick a file.
+Reads the file in chunks, so a large file is never held whole in memory.
+On the web it asks the user to pick a file.
 
 ```dart
 Stream<BlobUploadProgress> uploadBlobFromFile({
@@ -186,7 +207,10 @@ Stream<BlobUploadProgress> uploadBlobFromFile({
 
 ### checkUpload
 
-Asks each server whether it would take the upload before any byte is sent (BUD-06). Branch on `statusCode` (413 means too large) and show `reason` to the user. BUD-06 is optional: a server without it answers something like 404, which says nothing about the upload. A refused upload reports the same `statusCode` and `reason` in its `BlobUploadResult`.
+Asks each server whether it would take the upload before any byte is sent (BUD-06).
+Branch on `statusCode` (413 means too large) and show `reason` to the user.
+BUD-06 is optional: a server without it answers something like 404, which says nothing about the upload.
+A refused upload reports the same `statusCode` and `reason` in its `BlobUploadResult`.
 
 ```dart
 Future<List<BlobUploadCheck>> checkUpload({
@@ -215,7 +239,8 @@ Future<BlobResponse> getBlob({
 
 ### downloadBlobToFile
 
-Writes the blob to a file without holding it in memory. On the web it opens the browser's download dialog.
+Writes the blob to a file without holding it in memory.
+On the web it opens the browser's download dialog.
 
 ```dart
 Future<void> downloadBlobToFile({
@@ -229,7 +254,8 @@ Future<void> downloadBlobToFile({
 
 ### checkBlob
 
-Returns the url of a server that has the blob, without downloading it. Useful for a video player that takes a url.
+Returns the url of a server that has the blob, without downloading it.
+Useful for a video player that takes a url.
 
 ```dart
 Future<String> checkBlob({
@@ -279,7 +305,8 @@ Future<List<BlobDeleteResult>> deleteBlob({
 
 ### mirrorToServers
 
-Copies a blob that already lives somewhere else onto other servers, without downloading it first. `blossomUrl` may end with a file extension, such as `https://cdn.example.com/<sha256>.pdf`.
+Copies a blob that already lives somewhere else onto other servers, without downloading it first.
+`blossomUrl` may end with a file extension, such as `https://cdn.example.com/<sha256>.pdf`.
 
 ```dart
 Future<List<BlobUploadResult>> mirrorToServers({
@@ -291,7 +318,8 @@ Future<List<BlobUploadResult>> mirrorToServers({
 
 ### directDownload
 
-Downloads any url, without Blossom. `directDownloadToFile` writes it to a file.
+Downloads any url, without Blossom.
+`directDownloadToFile` writes it to a file.
 
 ```dart
 Future<BlobResponse> directDownload({required Uri url})
@@ -314,7 +342,8 @@ Future<int> report({
 
 ## Reading and publishing a server list
 
-`BlossomUserServerList` reads a user's server list and publishes the logged account's, the most trusted server first. It takes a `query` that returns the events of a kind by some authors, and a `publish` that signs an event as the logged account and sends it to its author's write relays:
+`BlossomUserServerList` reads a user's server list and publishes the logged account's, the most trusted server first.
+It takes a `query` that returns the events of a kind by some authors, and a `publish` that signs an event as the logged account and sends it to its author's write relays:
 
 ```dart
 final publishes = RelayPublishes(relayManager: relayManager);

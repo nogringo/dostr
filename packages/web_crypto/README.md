@@ -1,18 +1,13 @@
 # dostr_web_crypto
 
-Fast [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki)
-Schnorr signatures for Nostr events on the web: a `NostrSigner` that holds a
-private key, its `LocalSignerFactory`, and an `EventVerifier`. They call
-[@noble/curves](https://github.com/paulmillr/noble-curves) through JS interop,
-which is much faster than pure Dart in the browser. The signer also does NIP-04
-and NIP-44 encryption.
+Fast [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) Schnorr signatures for Nostr events on the web: a `NostrSigner` that holds a private key, its `LocalSignerFactory`, and an `EventVerifier`.
+They call [@noble/curves](https://github.com/paulmillr/noble-curves) through JS interop, which is much faster than pure Dart in the browser.
+The signer also does NIP-04 and NIP-44 encryption.
 
-Pure Dart, no Flutter needed. The JS bundle is embedded and injected into the
-page the first time a class needs it, so there is nothing to add to
-`index.html`.
+Pure Dart, no Flutter needed.
+The JS bundle is embedded and injected into the page the first time a class needs it, so there is nothing to add to `index.html`.
 
-[`dostr_flutter`](https://pub.dev/packages/dostr_flutter) depends on it and exports
-it, so Flutter apps that already use `dostr_flutter` don't need to add it.
+[`dostr_flutter`](https://pub.dev/packages/dostr_flutter) depends on it and exports it, so Flutter apps that already use `dostr_flutter` don't need to add it.
 
 ## Install
 
@@ -40,20 +35,16 @@ final event = await signer.sign(
 final valid = await WebEventVerifier().verify(event);
 ```
 
-The classes only work on the web. On other platforms they throw
-`UnsupportedError`: use `dostr_bip340`, or `RustEventVerifier` from
-`dostr_rust_verifier`.
+The classes only work on the web.
+On other platforms they throw `UnsupportedError`: use `dostr_bip340`, or `RustEventVerifier` from `dostr_rust_verifier`.
 
 ## Coming from `ndk_flutter`
 
-`WebEventVerifier` moved here from `ndk_flutter`, and so did `WebEventSigner`,
-now `WebSigner`.
-`package:ndk_flutter/ndk_flutter.dart` is now
-`package:dostr_flutter/dostr_flutter.dart`, which still exports them. The web
-`NdkEventSignerFactory` of `ndk_flutter` is now `DostrSignerFactory`, a
-typedef of `WebSignerFactory`.
+`WebEventVerifier` moved here from `ndk_flutter`, and so did `WebEventSigner`, now `WebSigner`.
+`package:ndk_flutter/ndk_flutter.dart` is now `package:dostr_flutter/dostr_flutter.dart`, which still exports them.
+The web `NdkEventSignerFactory` of `ndk_flutter` is now `DostrSignerFactory`, a typedef of `WebSignerFactory`.
 
 ## Rebuilding the JS bundle
 
-`lib/src/nostr_crypto_js.dart` is generated from `js/nostr_crypto.src.js`. To
-rebuild it, run `npm install`, then `./build.sh`, in `js/`.
+`lib/src/nostr_crypto_js.dart` is generated from `js/nostr_crypto.src.js`.
+To rebuild it, run `npm install`, then `./build.sh`, in `js/`.

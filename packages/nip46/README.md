@@ -2,7 +2,8 @@
 
 [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) remote signing for Nostr: connect to a bunker with a `bunker://` URL, or let it connect to you with a `nostrconnect://` URL, then sign events and encrypt or decrypt NIP-04 and NIP-44 messages through it.
 
-It implements the `NostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so Dostr accounts can use it. It runs on [`dostr_core`](https://pub.dev/packages/dostr_core).
+It implements the `NostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so Dostr accounts can use it.
+It runs on [`dostr_core`](https://pub.dev/packages/dostr_core).
 
 ## Standalone
 
@@ -35,7 +36,8 @@ final signer = bunkers.createSigner(connection!);
 await signer.getPublicKeyAsync();
 ```
 
-Log the signer in with `accounts.loginExternalSigner(signer: signer)`, where `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts). `getPublicKey()` is synchronous and throws until the public key is known: call `getPublicKeyAsync()` once, or pass a known key as `cachedPublicKey`.
+Log the signer in with `accounts.loginExternalSigner(signer: signer)`, where `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
+`getPublicKey()` is synchronous and throws until the public key is known: call `getPublicKeyAsync()` once, or pass a known key as `cachedPublicKey`.
 
 ## Nostr Connect
 
@@ -58,7 +60,8 @@ Its key pair comes from the `signerFactory` of `Bunkers`.
 
 ## Client metadata
 
-Pass the same `Nip46ClientMetadata` to both flows, as `clientMetadata`. A `bunker://` url does not identify your app, so this metadata is the only way for the remote signer to label the connection and see the permissions it asks for:
+Pass the same `Nip46ClientMetadata` to both flows, as `clientMetadata`.
+A `bunker://` url does not identify your app, so this metadata is the only way for the remote signer to label the connection and see the permissions it asks for:
 
 ```dart
 const clientMetadata = Nip46ClientMetadata(
@@ -70,7 +73,8 @@ const clientMetadata = Nip46ClientMetadata(
 
 ## Restoring a connection
 
-Store the `BunkerConnection` to re-establish the connection in future sessions: `connection.toJson()` serializes it and `BunkerConnection.fromJson()` restores it. Without it, users have to connect again each time.
+Store the `BunkerConnection` to re-establish the connection in future sessions: `connection.toJson()` serializes it and `BunkerConnection.fromJson()` restores it.
+Without it, users have to connect again each time.
 
 ```dart
 final signer = bunkers.createSigner(BunkerConnection.fromJson(stored));
@@ -78,7 +82,8 @@ await signer.getPublicKeyAsync();
 accounts.loginExternalSigner(signer: signer);
 ```
 
-NIP-46 lets the remote signer pick the relays. Call `switchRelays()` right after connecting, before other requests, and store the connection again when it returns relays:
+NIP-46 lets the remote signer pick the relays.
+Call `switchRelays()` right after connecting, before other requests, and store the connection again when it returns relays:
 
 ```dart
 final relays = await signer.switchRelays();
@@ -89,8 +94,17 @@ if (relays != null) {
 
 ## Pending requests
 
-The remote signer may ask the user to approve each request. While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it. A refusal throws a `SignerRequestRejectedException`. At most `maxConcurrentRequests` requests (100 by default) go out at once. The rest wait in a queue.
+The remote signer may ask the user to approve each request.
+While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
+A refusal throws a `SignerRequestRejectedException`.
+At most `maxConcurrentRequests` requests (100 by default) go out at once.
+The rest wait in a queue.
 
 ## Coming from `ndk`
 
-`Nip46EventSigner` is now `Nip46Signer`, and `Bunkers` takes its factory as `signerFactory` instead of `eventSignerFactory`. The other classes keep their names. Import them from `package:dostr_nip46/dostr_nip46.dart` instead of `package:ndk/ndk.dart`: it also exports `Nip46Signer` and `BunkerRequest`. `NostrConnect` no longer generates its own keys: build it with `bunkers.createNostrConnect(relays: ..., clientMetadata: ...)` instead of `NostrConnect(relays: ..., clientMetadata: ...)`. It has `privateKey` and `publicKey` instead of `keyPair`. The deep imports changed package: `package:ndk/data_layer/repositories/signers/nip46_event_signer.dart`, `package:ndk/domain_layer/usecases/bunkers/...` and `package:ndk/domain_layer/entities/nip46_client_metadata.dart` are now `package:dostr_nip46/dostr_nip46.dart`.
+`Nip46EventSigner` is now `Nip46Signer`, and `Bunkers` takes its factory as `signerFactory` instead of `eventSignerFactory`.
+The other classes keep their names.
+Import them from `package:dostr_nip46/dostr_nip46.dart` instead of `package:ndk/ndk.dart`: it also exports `Nip46Signer` and `BunkerRequest`.
+`NostrConnect` no longer generates its own keys: build it with `bunkers.createNostrConnect(relays: ..., clientMetadata: ...)` instead of `NostrConnect(relays: ..., clientMetadata: ...)`.
+It has `privateKey` and `publicKey` instead of `keyPair`.
+The deep imports changed package: `package:ndk/data_layer/repositories/signers/nip46_event_signer.dart`, `package:ndk/domain_layer/usecases/bunkers/...` and `package:ndk/domain_layer/entities/nip46_client_metadata.dart` are now `package:dostr_nip46/dostr_nip46.dart`.

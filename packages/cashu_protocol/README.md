@@ -1,9 +1,7 @@
 # dostr_cashu_protocol
 
-The [Cashu](https://cashu.space) ecash protocol in pure Dart, without Nostr:
-blind signatures, v4 tokens, deterministic secrets and the mint API. It holds
-no state: the proofs, keysets and derivation counters are the caller's to
-store.
+The [Cashu](https://cashu.space) ecash protocol in pure Dart, without Nostr: blind signatures, v4 tokens, deterministic secrets and the mint API.
+It holds no state: the proofs, keysets and derivation counters are the caller's to store.
 
 > Experimental, do not use in production.
 
@@ -31,8 +29,7 @@ final states = await mint.checkTokenState(
 );
 ```
 
-Swap the token for fresh proofs derived from a seed phrase (NUT-13), so they
-can be restored from the seed alone:
+Swap the token for fresh proofs derived from a seed phrase (NUT-13), so they can be restored from the seed alone:
 
 ```dart
 final seed = CashuSeed(
@@ -73,15 +70,11 @@ final proofs = CashuBdhke.unblindSignatures(
 );
 ```
 
-The mint returns the signatures in the order of the outputs, which `swap`
-sends as given: sort the outputs by amount (NUT-03), here already done by
-`splitAmount`, and unblind them in that order.
+The mint returns the signatures in the order of the outputs, which `swap` sends as given: sort the outputs by amount (NUT-03), here already done by `splitAmount`, and unblind them in that order.
 
-`nextCounter` hands out the derivation counter of each output, here from the
-app's own `counters` store. Persist it before the swap: a counter used twice
-derives an output the mint already signed. This example ignores input fees:
-with a keyset whose `inputFeePPK` is not 0, the outputs must add up to the
-inputs minus the fee.
+`nextCounter` hands out the derivation counter of each output, here from the app's own `counters` store.
+Persist it before the swap: a counter used twice derives an output the mint already signed.
+This example ignores input fees: with a keyset whose `inputFeePPK` is not 0, the outputs must add up to the inputs minus the fee.
 
 Show a token too large for one QR code as an animated QR code (NUT-16):
 
@@ -104,48 +97,33 @@ void onScan(String frame) {
 }
 ```
 
-The frames can come in any order and some can be missed: the decoder only
-needs enough of them, and `estimatedPercentComplete()` tells how far it is.
-Each frame is a `ur:bytes` Uniform Resource that holds the serialized
-`cashuB` token, as cashu.me writes and reads it. A token that fits in one QR
-code goes in as its `cashuB` string.
+The frames can come in any order and some can be missed: the decoder only needs enough of them, and `estimatedPercentComplete()` tells how far it is.
+Each frame is a `ur:bytes` Uniform Resource that holds the serialized `cashuB` token, as cashu.me writes and reads it.
+A token that fits in one QR code goes in as its `cashuB` string.
 
 ## What it covers
 
-- NUT-00: blind signatures (`CashuBdhke`, `CashuTools.hashToCurve`) and v4
-  `cashuB` tokens (`CashuTokenEncoder`). V3 `cashuA` tokens are not supported.
+- NUT-00: blind signatures (`CashuBdhke`, `CashuTools.hashToCurve`) and v4 `cashuB` tokens (`CashuTokenEncoder`). V3 `cashuA` tokens are not supported.
 - NUT-01, NUT-02: keys and keysets (`CashuKeyset`).
-- NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepository`, whose
-  `HttpCashuRepository` talks to the mint over an `http.Client`.
+- NUT-03, NUT-04, NUT-05: swap, mint and melt, through `CashuRepository`, whose `HttpCashuRepository` talks to the mint over an `http.Client`.
 - NUT-06: mint info (`CashuMintInfo`).
 - NUT-07: proof states.
 - NUT-09: restore.
-- NUT-13: deterministic secrets from a BIP-39 seed phrase (`CashuSeed`,
-  `DartCashuKeyDerivation`), for both keyset id versions.
-- NUT-16: animated QR codes (`CashuTokenUrEncoder`), on the Uniform Resources
-  of a copy of [dart-bc-ur](https://github.com/bukata-sa/dart-bc-ur) by
-  Aleksandr Bukata, MIT licensed (see `lib/src/ur/LICENSE`).
-- NUT-20: mint quotes locked to a key that `CashuKeyDerivation.deriveQuoteKey`
-  derives from the seed, and signed when minting.
+- NUT-13: deterministic secrets from a BIP-39 seed phrase (`CashuSeed`, `DartCashuKeyDerivation`), for both keyset id versions.
+- NUT-16: animated QR codes (`CashuTokenUrEncoder`), on the Uniform Resources of a copy of [dart-bc-ur](https://github.com/bukata-sa/dart-bc-ur) by Aleksandr Bukata, MIT licensed (see `lib/src/ur/LICENSE`).
+- NUT-20: mint quotes locked to a key that `CashuKeyDerivation.deriveQuoteKey` derives from the seed, and signed when minting.
 
-A decoded v4 token holds its keyset ids and signatures in lowercase hex, as
-mints do. A blinding factor that `CashuBdhke.blindMessage` generates is a
-uniformly random secp256k1 scalar.
+A decoded v4 token holds its keyset ids and signatures in lowercase hex, as mints do.
+A blinding factor that `CashuBdhke.blindMessage` generates is a uniformly random secp256k1 scalar.
 
 ## Coming from `ndk_cashu`
 
-These types used to live in `ndk_cashu`. Besides the import:
+These types used to live in `ndk_cashu`.
+Besides the import:
 
-- `CashuRepo` is `CashuRepository`, and `CashuRepoImpl` is
-  `HttpCashuRepository`.
-- `CashuBdhke.createBlindedMsgForAmounts` takes a `nextCounter` callback
-  instead of `cacheManager` and `mintUrl`, and throws when it cannot derive an
-  output instead of leaving it out.
-- `CashuBdhke.unblindSignatures` pairs signatures and outputs by position, as
-  the mint returns them, and takes each amount from the signature. It accepts
-  fewer signatures than outputs, for NUT-08 change.
+- `CashuRepo` is `CashuRepository`, and `CashuRepoImpl` is `HttpCashuRepository`.
+- `CashuBdhke.createBlindedMsgForAmounts` takes a `nextCounter` callback instead of `cacheManager` and `mintUrl`, and throws when it cannot derive an output instead of leaving it out.
+- `CashuBdhke.unblindSignatures` pairs signatures and outputs by position, as the mint returns them, and takes each amount from the signature. It accepts fewer signatures than outputs, for NUT-08 change.
 - `HttpCashuRepository.swap` no longer sorts the outputs: sort them before.
 - `kQuoteKeyDerivationCounterSlot` is not here, as it names a storage slot.
-- `CashuConfig` is not here. Its protocol constants are
-  `CashuTools.apiVersion`, `CashuTools.hashToCurveDomainSeparator` and
-  `HttpCashuRepository.networkTimeout`.
+- `CashuConfig` is not here. Its protocol constants are `CashuTools.apiVersion`, `CashuTools.hashToCurveDomainSeparator` and `HttpCashuRepository.networkTimeout`.

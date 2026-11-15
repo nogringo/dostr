@@ -1,12 +1,7 @@
 # dostr_nip77
 
-[NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy
-sync for Nostr: finds which events a relay has that you don't, and the other way
-around, without downloading either set. It runs on the connections of an
-[`dostr_core`](https://pub.dev/packages/dostr_core) `RelayManager`, NIP-42
-authentication included, with the
-[Negentropy V1](https://github.com/hoytech/negentropy/blob/master/docs/negentropy-protocol-v1.md)
-codec under it.
+[NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy sync for Nostr: finds which events a relay has that you don't, and the other way around, without downloading either set.
+It runs on the connections of an [`dostr_core`](https://pub.dev/packages/dostr_core) `RelayManager`, NIP-42 authentication included, with the [Negentropy V1](https://github.com/hoytech/negentropy/blob/master/docs/negentropy-protocol-v1.md) codec under it.
 
 Add it next to `dostr_core`.
 
@@ -39,16 +34,14 @@ final result = await response.future;
 // result.haveIds: stored locally, not on the relay
 ```
 
-`loadEventIds` returns the id and creation time of the local events matching a
-filter. `loadEvent` reads one local event, for the ids you pass to `reconcile`
-as `localIds`. `needStream` and `haveStream` emit ids as rounds complete.
+`loadEventIds` returns the id and creation time of the local events matching a filter.
+`loadEvent` reads one local event, for the ids you pass to `reconcile` as `localIds`.
+`needStream` and `haveStream` emit ids as rounds complete.
 
-Fetch `result.needIds` with the `RelayReqs` of `dostr_core`, and publish
-`result.haveIds` with its `RelayPublishes`.
+Fetch `result.needIds` with the `RelayReqs` of `dostr_core`, and publish `result.haveIds` with its `RelayPublishes`.
 
-Good for syncing large event sets (long history), periodic reconciliation with
-your relays, making sure a relay has all your events, and discovering events you
-missed. For small queries, a plain REQ with `RelayReqs` is simpler.
+Good for syncing large event sets (long history), periodic reconciliation with your relays, making sure a relay has all your events, and discovering events you missed.
+For small queries, a plain REQ with `RelayReqs` is simpler.
 
 ## Timeouts
 
@@ -61,15 +54,13 @@ final response = nip77.reconcile(
 );
 ```
 
-There is no overall deadline: a large sync runs for as long as the relay keeps
-answering. When one of the two runs out, the future fails with
-`Nip77TimeoutException`, whose `openUnanswered` tells which.
+There is no overall deadline: a large sync runs for as long as the relay keeps answering.
+When one of the two runs out, the future fails with `Nip77TimeoutException`, whose `openUnanswered` tells which.
 
 ## Relay authentication (NIP-42)
 
-Some relays only reconcile with a client that authenticated, the same way they
-only serve a REQ to one. The `auth` parameter says which identity the
-reconciliation may be attributed to, as on `RelayReqs`:
+Some relays only reconcile with a client that authenticated, the same way they only serve a REQ to one.
+The `auth` parameter says which identity the reconciliation may be attributed to, as on `RelayReqs`:
 
 ```dart
 final response = nip77.reconcile(
@@ -85,23 +76,17 @@ final response = nip77.reconcile(
 | `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses | who you are, but only after that relay asked |
 | `AuthPolicy.require(a)` | bound to `a` from the start | who you are, as soon as it sends a challenge |
 
-Without `auth`, a negotiation reveals no identity, unless the `RelayManager` has
-`accounts` and an `authHandler`: a refused negotiation then authenticates as the
-logged account where the handler agrees. See the
-[NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication)
-of `dostr_core`.
+Without `auth`, a negotiation reveals no identity, unless the `RelayManager` has `accounts` and an `authHandler`: a refused negotiation then authenticates as the logged account where the handler agrees.
+See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication) of `dostr_core`.
 
-If `require` names an account that cannot sign, no connection can carry the
-reconciliation. Rather than fall back to the anonymous one, which is what
-`require` rules out, nothing is sent and `reconcile` itself throws
-`Nip77AuthUnavailableException`.
+If `require` names an account that cannot sign, no connection can carry the reconciliation.
+Rather than fall back to the anonymous one, which is what `require` rules out, nothing is sent and `reconcile` itself throws `Nip77AuthUnavailableException`.
 
 ## Errors
 
-A relay that refuses the negotiation with a `NEG-ERR` naming `CLOSED` fails it
-with `Nip77NotSupportedException`. One that ignores `NEG-OPEN` only fails with
-`Nip77TimeoutException` once `openTimeout` runs out (30 s by default). Pass a
-shorter `openTimeout` if that wait is too long:
+A relay that refuses the negotiation with a `NEG-ERR` naming `CLOSED` fails it with `Nip77NotSupportedException`.
+One that ignores `NEG-OPEN` only fails with `Nip77TimeoutException` once `openTimeout` runs out (30 s by default).
+Pass a shorter `openTimeout` if that wait is too long:
 
 ```dart
 try {
@@ -119,8 +104,7 @@ try {
 }
 ```
 
-A relay that requires an identity you did not give it fails with
-`Nip77AuthRequiredException`:
+A relay that requires an identity you did not give it fails with `Nip77AuthRequiredException`:
 
 ```dart
 try {
@@ -138,9 +122,5 @@ try {
 
 ## Coming from `ndk` or `dostr_core`
 
-`package:dostr_core/shared/nips/nip77/negentropy.dart` and the `Nip77`,
-`Nip77Response` and `Nip77Result` classes are now all in
-`package:dostr_nip77/dostr_nip77.dart`. `Nip77` takes the `RelayManager` and
-two cache reads instead of `GlobalState` and a `CacheManager`, and no longer has
-`processNegMsg`, `processNegErr` or `processNegClosed`: it registers itself on
-the `RelayManager`.
+`package:dostr_core/shared/nips/nip77/negentropy.dart` and the `Nip77`, `Nip77Response` and `Nip77Result` classes are now all in `package:dostr_nip77/dostr_nip77.dart`.
+`Nip77` takes the `RelayManager` and two cache reads instead of `GlobalState` and a `CacheManager`, and no longer has `processNegMsg`, `processNegErr` or `processNegClosed`: it registers itself on the `RelayManager`.

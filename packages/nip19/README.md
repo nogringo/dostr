@@ -1,7 +1,6 @@
 # dostr_nip19
 
-[NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) bech32
-entities for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent` and `naddr`.
+[NIP-19](https://github.com/nostr-protocol/nips/blob/master/19.md) bech32 entities for Nostr: `npub`, `nsec`, `note`, `nprofile`, `nevent` and `naddr`.
 Pure Dart, no relay or network code.
 
 ## Install
@@ -13,8 +12,8 @@ dependencies:
 
 ## Usage
 
-Each entity is a class: `Npub`, `Nsec`, `Note`, `Nprofile`, `Nevent` and
-`Naddr`. Build one from hex and `encode` it, or `decode` a string into one:
+Each entity is a class: `Npub`, `Nsec`, `Note`, `Nprofile`, `Nevent` and `Naddr`.
+Build one from hex and `encode` it, or `decode` a string into one:
 
 ```dart
 import 'package:dostr_nip19/dostr_nip19.dart';
@@ -31,11 +30,11 @@ final nevent = Nevent(
 print(Nevent.decode(nevent).relays);
 ```
 
-`Note` is a common class name. If it clashes with one of your app, import the
-package with a prefix: `import 'package:dostr_nip19/dostr_nip19.dart' as nip19;`.
+`Note` is a common class name.
+If it clashes with one of your app, import the package with a prefix: `import 'package:dostr_nip19/dostr_nip19.dart' as nip19;`.
 
-`Nip19Entity.decode` takes any of them. `Nip19Entity` is sealed, so a `switch`
-over it is exhaustive:
+`Nip19Entity.decode` takes any of them.
+`Nip19Entity` is sealed, so a `switch` over it is exhaustive:
 
 ```dart
 switch (Nip19Entity.decode(input)) {
@@ -50,55 +49,38 @@ switch (Nip19Entity.decode(input)) {
 }
 ```
 
-The decoders accept the `nostr:` prefix of
-[NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before
-an `nsec`, which NIP-21 forbids. For the same reason, every class but `Nsec`
-extends `Nip21Entity`, whose `uri` getter is its string with the `nostr:`
-prefix, so `if (entity case Nip21Entity(:final uri))` reads it from any decoded
-entity that has one. Each class has a `prefix` constant, such as `Npub.prefix`.
+The decoders accept the `nostr:` prefix of [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before an `nsec`, which NIP-21 forbids.
+For the same reason, every class but `Nsec` extends `Nip21Entity`, whose `uri` getter is its string with the `nostr:` prefix, so `if (entity case Nip21Entity(:final uri))` reads it from any decoded entity that has one.
+Each class has a `prefix` constant, such as `Npub.prefix`.
 
 `Naddr.coordinate` is the `<kind>:<pubkey>:<identifier>` of an `a` tag.
 
-`nevent` and `naddr` give the `Nevent` and the `Naddr` of a `Nip01Event` of
-[`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints:
+`nevent` and `naddr` give the `Nevent` and the `Naddr` of a `Nip01Event` of [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), with relay hints:
 
 ```dart
 final link = event.nevent(relays: ['wss://relay.example.com']).uri;
 final coordinate = event.naddr()?.coordinate;
 ```
 
-`nevent` holds the id, author and kind of the event. `naddr` holds its kind,
-author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3
-and 10000 to 19999). It returns null for any other kind, and for an
-addressable event without a `d` tag or with one longer than 255 bytes, which
-an naddr cannot hold.
+`nevent` holds the id, author and kind of the event.
+`naddr` holds its kind, author and `d` tag, or an empty identifier for a replaceable event (kinds 0, 3 and 10000 to 19999).
+It returns null for any other kind, and for an addressable event without a `d` tag or with one longer than 255 bytes, which an naddr cannot hold.
 
-Entities are values: two with the same fields are equal, and their `relays`
-cannot be modified. `Nsec.toString` leaves the private key out.
+Entities are values: two with the same fields are equal, and their `relays` cannot be modified.
+`Nsec.toString` leaves the private key out.
 
 ## Errors
 
-- `decode` throws a `FormatException` when the input is not valid bech32, is
-  longer than the 5000 characters NIP-19 allows, has another prefix, misses a
-  required field, or holds a key or id that is not 32 bytes. No message quotes
-  the input, since it may be an `nsec`.
+- `decode` throws a `FormatException` when the input is not valid bech32, is longer than the 5000 characters NIP-19 allows, has another prefix, misses a required field, or holds a key or id that is not 32 bytes. No message quotes the input, since it may be an `nsec`.
 - `tryDecode` returns null where `decode` throws.
-- The constructors throw an `ArgumentError` when a key or id is not 32 bytes of
-  hex, when a relay url or an `naddr` identifier is longer than 255 bytes
-  (`Nip19Entity.maxTlvValueLength`), when the relays would make the string
-  longer than 5000 characters, or when a kind does not fit 32 bits. So `encode`
-  never makes a string that `decode` refuses. They accept uppercase hex and
-  keep it lowercase.
+- The constructors throw an `ArgumentError` when a key or id is not 32 bytes of hex, when a relay url or an `naddr` identifier is longer than 255 bytes (`Nip19Entity.maxTlvValueLength`), when the relays would make the string longer than 5000 characters, or when a kind does not fit 32 bits. So `encode` never makes a string that `decode` refuses. They accept uppercase hex and keep it lowercase.
 
-Unknown TLV entries are ignored, as NIP-19 asks, and so are relays that are not
-valid UTF-8 and an `nevent` author or kind of the wrong length.
+Unknown TLV entries are ignored, as NIP-19 asks, and so are relays that are not valid UTF-8 and an `nevent` author or kind of the wrong length.
 
 ## Coming from `ndk`
 
-`package:ndk/shared/nips/nip19/nip19.dart` is now
-`package:dostr_nip19/dostr_nip19.dart`, and so are the `nevent` and `naddr`
-methods on `Nip01Event`, which now return an entity rather than a string. The
-static `Nip19` class is gone:
+`package:ndk/shared/nips/nip19/nip19.dart` is now `package:dostr_nip19/dostr_nip19.dart`, and so are the `nevent` and `naddr` methods on `Nip01Event`, which now return an entity rather than a string.
+The static `Nip19` class is gone:
 
 | `ndk` | `dostr_nip19` |
 | --- | --- |
