@@ -27,7 +27,6 @@ workspace:
   - packages/cashu_protocol
   - packages/blossom
   - packages/nip59
-  - packages/nip85
   - packages/nip13
   - packages/nip07
   - packages/nip46

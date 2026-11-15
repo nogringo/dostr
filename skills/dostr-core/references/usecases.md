@@ -23,7 +23,6 @@ There is no facade: each feature is its own package, built from the parts it nee
 | Proof of work (NIP-13) | `dostr_nip13` | `Nip13` |
 | Zaps (NIP-57) | `dostr_zaps` | `Zaps` |
 | Negentropy (NIP-77) | `dostr_nip77` | `Nip77` |
-| Trusted assertions (NIP-85) | `dostr_nip85` | |
 | Blossom files | `dostr_blossom` | `Blossom`, `Files` |
 
 Each package README has its standalone setup.

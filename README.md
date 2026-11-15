@@ -108,10 +108,6 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 `dostr_nip77`: NIP-77 negentropy sync on top of `dostr_core`, with the Negentropy V1 codec.
 
-#### [🔗 NIP-85](./packages/nip85/)
-
-`dostr_nip85`: NIP-85 trusted assertions, to fetch and stream the metrics trusted providers compute for users, events and addresses.
-
 #### [🔗 Blossom](./packages/blossom/)
 
 `dostr_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers.
