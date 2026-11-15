@@ -5,181 +5,166 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-/// A usecase that handles accounts
+import 'accounts_exceptions.dart';
+
+/// The accounts of an app, and the one logged in among them.
+///
+/// Each account owns its signer: removing the account, or disposing of
+/// [Accounts], disposes of the signer.
 class Accounts implements AuthAccounts {
-  /// Factory for creating EventSigner instances
+  /// Builds the signers of [loginPrivateKey] and [loginPublicKey].
   final LocalEventSignerFactory eventSignerFactory;
 
   final Map<String, Account> _accounts = {};
   String? _loggedPubkey;
 
-  /// Stream controller for authentication state changes
-  final _stateController = BehaviorSubject<Account?>();
+  final _stateController = BehaviorSubject<Account?>.seeded(null);
 
-  /// Stream controller for the known accounts
   final _accountsController = BehaviorSubject<Map<String, Account>>.seeded(
     UnmodifiableMapView(<String, Account>{}),
   );
 
-  /// Creates a new Accounts instance with the given event signer factory
   Accounts(this.eventSignerFactory);
 
-  /// pubKey -> Account, read-only view, listen to [accountsStream] for changes
-  /// Same instance until the accounts actually change, so every mutation of
-  /// [_accounts] has to go through [_notifyAccountsChange]
+  /// The accounts by pubkey: an unmodifiable snapshot, the last one
+  /// [accountsStream] emitted.
   @override
   Map<String, Account> get accounts => _accountsController.value;
 
-  /// Stream of authentication state changes
-  /// Emits the current Account when logged in, or null when logged out
+  /// The logged account on subscription, then each time it changes. Null
+  /// when nobody is logged in.
   Stream<Account?> get authStateChanges => _stateController.stream;
 
-  /// Stream of the known accounts, pubKey -> Account
-  /// Emits the current accounts on subscription, then an unmodifiable snapshot
-  /// every time an account is added, replaced or removed
+  /// The accounts by pubkey on subscription, then a new snapshot each time
+  /// one is added or removed.
   Stream<Map<String, Account>> get accountsStream => _accountsController.stream;
 
-  /// adds a new Account and sets the logged pubkey
-  void loginPrivateKey({required String pubkey, required String privkey}) {
-    if (_accounts.containsKey(pubkey)) {
-      throw Exception("Cannot login, pubkey already logged in");
-    }
-    addAccount(
-      pubkey: pubkey,
-      type: AccountType.privateKey,
-      signer: eventSignerFactory.create(privateKey: privkey, publicKey: pubkey),
-    );
-    _loggedPubkey = pubkey;
-    _notifyAuthStateChange();
+  /// Adds an account that signs with [privkey], whose pubkey it derives, and
+  /// logs it in.
+  void loginPrivateKey({required String privkey}) {
+    final pubkey = eventSignerFactory.derivePublicKey(privkey);
+    _loginLocal(AccountType.privateKey, pubkey: pubkey, privkey: privkey);
   }
 
-  /// do we have the account for this pubkey?
-  bool hasAccount(String pubkey) {
-    return _accounts.containsKey(pubkey);
+  /// Adds a read-only account and logs it in.
+  void loginPublicKey({required String pubkey}) =>
+      _loginLocal(AccountType.publicKey, pubkey: pubkey);
+
+  /// Adds an account that signs with [signer] and logs it in. A NIP-46
+  /// signer must know its pubkey first, from `getPublicKeyAsync`.
+  ///
+  /// [signer] belongs to the account from then on, unless this throws.
+  void loginExternalSigner({required EventSigner signer}) =>
+      _login(AccountType.externalSigner, signer);
+
+  bool hasAccount(String pubkey) => _accounts.containsKey(pubkey);
+
+  /// Removes the logged account. Nobody is logged in afterwards, even when
+  /// other accounts remain.
+  Future<void> logout() async {
+    final pubkey = _loggedPubkey;
+    if (pubkey != null) await removeAccount(pubkey: pubkey);
   }
 
-  /// adds a new read-only Account and sets the logged pubkey
-  void loginPublicKey({required String pubkey}) {
-    if (_accounts.containsKey(pubkey)) {
-      throw Exception("Cannot login, pubkey already logged in");
-    }
-    addAccount(
-      pubkey: pubkey,
-      type: AccountType.publicKey,
-      signer: eventSignerFactory.create(privateKey: null, publicKey: pubkey),
-    );
-    _loggedPubkey = pubkey;
-    _notifyAuthStateChange();
-  }
-
-  /// adds a new read-only Account and sets the logged pubkey
-  void loginExternalSigner({required EventSigner signer}) {
-    final pubkey = signer.getPublicKey();
-    if (_accounts.containsKey(pubkey)) {
-      throw Exception("Cannot login, pubkey already logged in");
-    }
-    addAccount(
-      pubkey: pubkey,
-      type: AccountType.externalSigner,
-      signer: signer,
-    );
-    _loggedPubkey = pubkey;
-    _notifyAuthStateChange();
-  }
-
-  void logout() {
-    if (_loggedPubkey != null) {
-      _accounts.remove(_loggedPubkey);
-      _loggedPubkey = null;
-      _notifyAccountsChange();
-      _notifyAuthStateChange();
-    }
-  }
-
-  /// set logged account
   void switchAccount({required String pubkey}) {
-    if (pubkey.isNotEmpty && _accounts.containsKey(pubkey)) {
-      _loggedPubkey = pubkey;
-      _notifyAuthStateChange();
-    } else {
-      throw Exception("unknown account for pubkey");
-    }
+    if (!hasAccount(pubkey)) throw UnknownAccountException(pubkey);
+    _loggedPubkey = pubkey;
+    _notifyAuthStateChange();
   }
 
-  /// adds an Account
-  void addAccount({
-    required String pubkey,
-    required AccountType type,
-    required EventSigner signer,
-  }) {
-    _accounts[pubkey] = Account(type: type, pubkey: pubkey, signer: signer);
+  /// Adds an account for the pubkey of [signer], without logging it in.
+  ///
+  /// Throws an [AccountExistsException] when that pubkey is already an
+  /// account. Otherwise [signer] belongs to the account from then on.
+  Account addAccount({required AccountType type, required EventSigner signer}) {
+    final pubkey = signer.getPublicKey();
+    _checkNew(pubkey);
+    final account = Account(type: type, pubkey: pubkey, signer: signer);
+    _accounts[pubkey] = account;
     _notifyAccountsChange();
+    return account;
   }
 
-  /// removes an Account
-  void removeAccount({required String pubkey}) {
-    final wasLoggedIn = _loggedPubkey == pubkey;
-    if (wasLoggedIn) {
+  /// Removes the account of [pubkey], if any, logs it out if it was logged
+  /// in, and completes once its signer is disposed of.
+  Future<void> removeAccount({required String pubkey}) async {
+    final account = _accounts.remove(pubkey);
+    if (account == null) return;
+    _notifyAccountsChange();
+    if (_loggedPubkey == pubkey) {
       _loggedPubkey = null;
-    }
-    _accounts.remove(pubkey);
-    _notifyAccountsChange();
-    if (wasLoggedIn) {
       _notifyAuthStateChange();
     }
+    await account.dispose();
   }
 
-  /// low-level method, should not be used directly in most cases, use broadcast instead which calls signing on the signer
+  /// Signs [event] with the signer of the logged account.
+  ///
+  /// Throws an [AccountCannotSignException] when nobody is logged in or the
+  /// logged account is read-only, and an [ArgumentError] when [event] is not
+  /// the logged account's.
   Future<Nip01Event> sign(Nip01Event event) async {
-    Account? account = getLoggedAccount();
-    if (account != null && account.signer.canSign()) {
-      return account.signer.sign(event);
+    final account = getLoggedAccount();
+    if (account == null || !account.signer.canSign()) {
+      throw AccountCannotSignException(account?.pubkey);
     }
-    throw Exception("Cannot sign");
+    if (event.pubKey != account.pubkey) {
+      throw ArgumentError.value(
+        event.pubKey,
+        'event.pubKey',
+        'is not the logged account ${account.pubkey}',
+      );
+    }
+    return account.signer.sign(event);
   }
 
-  /// returns currently logged in account
   @override
-  Account? getLoggedAccount() {
-    return _loggedPubkey != null ? _accounts[_loggedPubkey] : null;
-  }
+  Account? getLoggedAccount() => _accounts[_loggedPubkey];
 
-  /// is currently logged in account able to sign events
-  bool get canSign {
-    Account? account = getLoggedAccount();
-    return account != null && account.signer.canSign();
-  }
+  /// Whether the logged account can sign events.
+  bool get canSign => getLoggedAccount()?.signer.canSign() ?? false;
 
   bool get cannotSign => !canSign;
 
-  /// is logged in
-  bool get isLoggedIn => getLoggedAccount() != null;
+  bool get isLoggedIn => _loggedPubkey != null;
 
-  /// is not logged in
   bool get isNotLoggedIn => !isLoggedIn;
 
-  /// returns public key of currently logged in account or null if not logged in
-  String? getPublicKey() {
-    return getLoggedAccount()?.pubkey;
+  /// The pubkey of the logged account, null when nobody is logged in.
+  String? getPublicKey() => _loggedPubkey;
+
+  void _loginLocal(
+    AccountType type, {
+    required String pubkey,
+    String? privkey,
+  }) {
+    _checkNew(pubkey);
+    _login(
+      type,
+      eventSignerFactory.create(privateKey: privkey, publicKey: pubkey),
+    );
   }
 
-  /// Notifies listeners of auth state changes
+  void _login(AccountType type, EventSigner signer) {
+    final account = addAccount(type: type, signer: signer);
+    switchAccount(pubkey: account.pubkey);
+  }
+
+  void _checkNew(String pubkey) {
+    if (hasAccount(pubkey)) throw AccountExistsException(pubkey);
+  }
+
   void _notifyAuthStateChange() {
-    _stateController.add(getLoggedAccount());
+    final account = getLoggedAccount();
+    if (account != _stateController.value) _stateController.add(account);
   }
 
-  /// Notifies listeners of accounts changes, no-op if nothing actually changed
-  void _notifyAccountsChange() {
-    final previous = _accountsController.value;
-    final unchanged =
-        previous.length == _accounts.length &&
-        _accounts.entries.every((entry) => previous[entry.key] == entry.value);
-    if (unchanged) return;
-    _accountsController.add(UnmodifiableMapView(Map.of(_accounts)));
-  }
+  void _notifyAccountsChange() =>
+      _accountsController.add(UnmodifiableMapView(Map.of(_accounts)));
 
-  /// Dispose of resources
+  /// Disposes of every account's signer and closes the streams.
   Future<void> dispose() async {
+    await Future.wait(_accounts.values.map((account) => account.dispose()));
     await _stateController.close();
     await _accountsController.close();
   }

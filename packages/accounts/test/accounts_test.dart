@@ -4,6 +4,26 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
+class _TrackedSigner extends Bip340EventSigner {
+  _TrackedSigner(KeyPair key)
+    : super(privateKey: key.privateKey, publicKey: key.publicKey);
+
+  bool disposed = false;
+
+  @override
+  Future<void> dispose() {
+    disposed = true;
+    return super.dispose();
+  }
+}
+
+Nip01Event _note(String pubkey) => Nip01Event(
+  pubKey: pubkey,
+  kind: Nip01Event.kTextNoteKind,
+  tags: [],
+  content: 'hello',
+);
+
 void main() async {
   group('accounts', () {
     KeyPair key0 = Bip340.generatePrivateKey();
@@ -19,53 +39,72 @@ void main() async {
       await accounts.dispose();
     });
 
-    test('loginPublicKey', () {
+    test('loginPublicKey', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginPublicKey(pubkey: key0.publicKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.cannotSign, true);
       expect(accounts.getPublicKey(), key0.publicKey);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.type, AccountType.publicKey);
       expect(accounts.hasAccount(key0.publicKey), true);
-      accounts.logout();
+      await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
     });
 
-    test('cannot sign', () {
-      expect(accounts.isNotLoggedIn, true);
+    test('a read-only account cannot sign', () async {
       accounts.loginPublicKey(pubkey: key0.publicKey);
-      expect(accounts.isLoggedIn, true);
-      expect(accounts.cannotSign, true);
-      expect(accounts.getPublicKey(), key0.publicKey);
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
-      expect(accounts.hasAccount(key0.publicKey), true);
-      expect(
-        () => accounts.sign(
-          Nip01Event(
-            pubKey: key0.publicKey,
-            kind: Nip01Event.kTextNoteKind,
-            tags: [],
-            content: "",
+      await expectLater(
+        accounts.sign(_note(key0.publicKey)),
+        throwsA(
+          isA<AccountCannotSignException>().having(
+            (e) => e.pubkey,
+            'pubkey',
+            key0.publicKey,
           ),
         ),
-        throwsA(isA<Exception>()),
       );
     });
 
-    test('loginPrivateKey', () {
-      expect(accounts.isNotLoggedIn, true);
-      accounts.loginPrivateKey(
-        pubkey: key0.publicKey,
-        privkey: key0.privateKey!,
+    test('nobody can sign when logged out', () async {
+      await expectLater(
+        accounts.sign(_note(key0.publicKey)),
+        throwsA(
+          isA<AccountCannotSignException>().having(
+            (e) => e.pubkey,
+            'pubkey',
+            isNull,
+          ),
+        ),
       );
+    });
+
+    test('loginPrivateKey derives the pubkey', () async {
+      expect(accounts.isNotLoggedIn, true);
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.type, AccountType.privateKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
-      accounts.logout();
+      await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
     });
 
-    test('loginExternalSigner', () {
+    test('signs as the logged account', () async {
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
+      final signed = await accounts.sign(_note(key0.publicKey));
+      expect(Bip340.verify(signed.id, signed.sig!, key0.publicKey), isTrue);
+    });
+
+    test('refuses to sign an event of another pubkey', () async {
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
+      await expectLater(
+        accounts.sign(_note(key1.publicKey)),
+        throwsArgumentError,
+      );
+    });
+
+    test('loginExternalSigner', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginExternalSigner(
         signer: Bip340EventSigner(
@@ -75,11 +114,25 @@ void main() async {
       );
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
-      accounts.logout();
+      expect(accounts.getLoggedAccount()!.type, AccountType.externalSigner);
+      await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
     });
 
-    test('remove account', () {
+    test('addAccount takes the pubkey of the signer, without logging in', () {
+      final account = accounts.addAccount(
+        type: AccountType.externalSigner,
+        signer: Bip340EventSigner(
+          privateKey: key0.privateKey,
+          publicKey: key0.publicKey,
+        ),
+      );
+      expect(account.pubkey, key0.publicKey);
+      expect(accounts.accounts, {key0.publicKey: account});
+      expect(accounts.isNotLoggedIn, true);
+    });
+
+    test('remove account', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginExternalSigner(
         signer: Bip340EventSigner(
@@ -89,59 +142,46 @@ void main() async {
       );
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
-      accounts.removeAccount(pubkey: key0.publicKey);
+      await accounts.removeAccount(pubkey: key0.publicKey);
       expect(accounts.isNotLoggedIn, true);
     });
 
-    test('do not allow duplicated login', () {
-      expect(accounts.isNotLoggedIn, true);
-      accounts.loginPrivateKey(
-        pubkey: key0.publicKey,
-        privkey: key0.privateKey!,
-      );
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
-      expect(accounts.isLoggedIn, true);
-      expect(accounts.canSign, true);
-      expect(
-        () => accounts.loginPrivateKey(
-          pubkey: key0.publicKey,
-          privkey: key0.privateKey!,
+    test('do not allow duplicated accounts', () {
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
+      final logged = accounts.getLoggedAccount();
+      final duplicate = _TrackedSigner(key0);
+
+      final exists = throwsA(
+        isA<AccountExistsException>().having(
+          (e) => e.pubkey,
+          'pubkey',
+          key0.publicKey,
         ),
-        throwsA(isA<Exception>()),
       );
+      expect(() => accounts.loginPrivateKey(privkey: key0.privateKey!), exists);
+      expect(() => accounts.loginPublicKey(pubkey: key0.publicKey), exists);
+      expect(() => accounts.loginExternalSigner(signer: duplicate), exists);
       expect(
-        () => accounts.loginPublicKey(pubkey: key0.publicKey),
-        throwsA(isA<Exception>()),
-      );
-      expect(
-        () => accounts.loginExternalSigner(
-          signer: Bip340EventSigner(
-            privateKey: key0.privateKey,
-            publicKey: key0.publicKey,
-          ),
+        () => accounts.addAccount(
+          type: AccountType.externalSigner,
+          signer: duplicate,
         ),
-        throwsA(isA<Exception>()),
+        exists,
       );
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
-      accounts.logout();
-      expect(accounts.isNotLoggedIn, true);
+
+      expect(accounts.getLoggedAccount(), same(logged));
+      expect(duplicate.disposed, isFalse);
     });
 
-    test('switchAccount', () {
+    test('switchAccount', () async {
       expect(accounts.isNotLoggedIn, true);
-      accounts.loginPrivateKey(
-        pubkey: key0.publicKey,
-        privkey: key0.privateKey!,
-      );
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
       expect(accounts.hasAccount(key0.publicKey), true);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
 
-      accounts.loginPrivateKey(
-        pubkey: key1.publicKey,
-        privkey: key1.privateKey!,
-      );
+      accounts.loginPrivateKey(privkey: key1.privateKey!);
       expect(accounts.hasAccount(key1.publicKey), true);
       expect(accounts.getLoggedAccount()!.pubkey, key1.publicKey);
 
@@ -150,7 +190,7 @@ void main() async {
       expect(accounts.hasAccount(key1.publicKey), true);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
 
-      accounts.logout();
+      await accounts.logout();
       expect(accounts.hasAccount(key0.publicKey), false);
       expect(accounts.hasAccount(key1.publicKey), true);
       expect(accounts.isNotLoggedIn, true);
@@ -165,12 +205,19 @@ void main() async {
 
       expect(
         () => accounts.switchAccount(pubkey: key0.publicKey),
-        throwsA(isA<Exception>()),
+        throwsA(
+          isA<UnknownAccountException>().having(
+            (e) => e.pubkey,
+            'pubkey',
+            key0.publicKey,
+          ),
+        ),
       );
 
-      accounts.logout();
+      await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
     });
+
     test('state Changes Listener', () async {
       final firstAccount = Bip340.generatePrivateKey();
       final secondAccount = Bip340.generatePrivateKey();
@@ -180,25 +227,36 @@ void main() async {
       final expectation = expectLater(
         stream,
         emitsInOrder([
+          isNull,
           predicate<Account?>((a) => a?.pubkey == firstAccount.publicKey),
           predicate<Account?>((a) => a?.pubkey == secondAccount.publicKey),
           predicate<Account?>((a) => a?.pubkey == firstAccount.publicKey),
-          predicate<Account?>((a) => a?.pubkey == null),
+          isNull,
         ]),
       );
 
-      accounts.loginPrivateKey(
-        pubkey: firstAccount.publicKey,
-        privkey: firstAccount.privateKey!,
-      );
+      accounts.loginPrivateKey(privkey: firstAccount.privateKey!);
 
       accounts.loginPublicKey(pubkey: secondAccount.publicKey);
 
       accounts.switchAccount(pubkey: firstAccount.publicKey);
 
-      accounts.logout();
+      await accounts.logout();
 
       await expectation;
+    });
+
+    test('authStateChanges does not repeat the logged account', () async {
+      final emitted = <Account?>[];
+      final sub = accounts.authStateChanges.listen(emitted.add);
+
+      accounts.loginPublicKey(pubkey: key0.publicKey);
+      accounts.switchAccount(pubkey: key0.publicKey);
+
+      await Future.delayed(Duration.zero);
+      await sub.cancel();
+
+      expect(emitted, [isNull, accounts.getLoggedAccount()]);
     });
 
     test('accountsStream emits on every change', () async {
@@ -213,13 +271,10 @@ void main() async {
         ]),
       );
 
-      accounts.loginPrivateKey(
-        pubkey: key0.publicKey,
-        privkey: key0.privateKey!,
-      );
+      accounts.loginPrivateKey(privkey: key0.privateKey!);
       accounts.loginPublicKey(pubkey: key1.publicKey);
-      accounts.removeAccount(pubkey: key0.publicKey);
-      accounts.removeAccount(pubkey: key1.publicKey);
+      await accounts.removeAccount(pubkey: key0.publicKey);
+      await accounts.removeAccount(pubkey: key1.publicKey);
 
       await expectation;
     });
@@ -229,7 +284,7 @@ void main() async {
       final sub = accounts.accountsStream.listen(emitted.add);
 
       accounts.loginPublicKey(pubkey: key0.publicKey);
-      accounts.removeAccount(pubkey: key1.publicKey);
+      await accounts.removeAccount(pubkey: key1.publicKey);
       accounts.switchAccount(pubkey: key0.publicKey);
 
       await Future.delayed(Duration.zero);
@@ -253,12 +308,37 @@ void main() async {
         await Future.delayed(Duration.zero);
         order.clear();
 
-        removeLoggedAccount(accounts);
+        await removeLoggedAccount(accounts);
         await Future.delayed(Duration.zero);
 
         expect(order, ['accounts', 'auth']);
         await accounts.dispose();
       }
+    });
+
+    test('removing an account disposes of its signer', () async {
+      final logged = _TrackedSigner(key0);
+      final other = _TrackedSigner(key1);
+      accounts.addAccount(type: AccountType.externalSigner, signer: other);
+      accounts.loginExternalSigner(signer: logged);
+
+      await accounts.logout();
+      expect(logged.disposed, isTrue);
+      expect(other.disposed, isFalse);
+
+      await accounts.removeAccount(pubkey: key1.publicKey);
+      expect(other.disposed, isTrue);
+    });
+
+    test('dispose disposes of every signer', () async {
+      final signers = [_TrackedSigner(key0), _TrackedSigner(key1)];
+      for (final signer in signers) {
+        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
+      }
+
+      await accounts.dispose();
+
+      expect(signers.map((s) => s.disposed), everyElement(isTrue));
     });
 
     test('emitted accounts are unmodifiable snapshots', () async {
@@ -268,7 +348,7 @@ void main() async {
       expect(() => snapshot.clear(), throwsUnsupportedError);
       expect(() => accounts.accounts.clear(), throwsUnsupportedError);
 
-      accounts.removeAccount(pubkey: key0.publicKey);
+      await accounts.removeAccount(pubkey: key0.publicKey);
       expect(snapshot, hasLength(1));
       expect(accounts.accounts, isEmpty);
     });
@@ -278,18 +358,21 @@ void main() async {
       expect(accounts.accounts, same(await accounts.accountsStream.first));
 
       final before = accounts.accounts;
-      accounts.removeAccount(pubkey: key1.publicKey);
+      await accounts.removeAccount(pubkey: key1.publicKey);
       expect(accounts.accounts, same(before));
 
-      accounts.removeAccount(pubkey: key0.publicKey);
+      await accounts.removeAccount(pubkey: key0.publicKey);
       expect(accounts.accounts, isNot(same(before)));
     });
 
     test("dispose closes stream", () async {
-      final stream = accounts.authStateChanges;
+      final expectation = expectLater(
+        accounts.authStateChanges,
+        emitsInOrder([isNull, emitsDone]),
+      );
       await accounts.dispose();
 
-      await expectLater(stream, emitsDone);
+      await expectation;
     });
   });
 }

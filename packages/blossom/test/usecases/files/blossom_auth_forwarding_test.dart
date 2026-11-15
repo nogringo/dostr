@@ -28,7 +28,7 @@ void main() {
 
     KeyPair key = Bip340.generatePrivateKey();
     final accounts = Accounts(const Bip340EventSignerFactory());
-    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey!);
     loggedAccount = accounts.getLoggedAccount()!;
     return blossomFor(accounts);
   }

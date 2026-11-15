@@ -18,6 +18,14 @@ void main() {
       expect(signer.cachedPublicKey, 'pubkey');
     });
 
+    test('gives the cached public key, as in the browser', () {
+      expect(signer.getPublicKey(), 'pubkey');
+
+      final uncached = Nip07EventSigner();
+      addTearDown(uncached.dispose);
+      expect(uncached.getPublicKey, throwsUnsupportedError);
+    });
+
     test('throws UnsupportedError for every request', () {
       final event = Nip01Event(
         pubKey: 'pubkey',
@@ -26,7 +34,6 @@ void main() {
         content: '',
       );
 
-      expect(() => signer.getPublicKey(), throwsUnsupportedError);
       expect(signer.getPublicKeyAsync, throwsUnsupportedError);
       expect(signer.sign(event), throwsUnsupportedError);
       expect(signer.encrypt('msg', 'pubkey'), throwsUnsupportedError);

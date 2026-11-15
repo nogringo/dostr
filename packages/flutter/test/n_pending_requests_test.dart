@@ -56,7 +56,6 @@ void main() {
   });
 
   tearDown(() async {
-    await signer.dispose();
     await dostr.dispose();
   });
 

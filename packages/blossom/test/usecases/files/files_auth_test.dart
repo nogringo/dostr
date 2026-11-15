@@ -37,7 +37,7 @@ void main() {
     other = _signable(Bip340.generatePrivateKey());
 
     final accounts = Accounts(const Bip340EventSignerFactory());
-    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey!);
     files = Files(blossomFor(accounts));
   });
 

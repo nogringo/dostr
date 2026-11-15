@@ -213,10 +213,7 @@ void main() {
     });
 
     testWidgets('switches to an account it already has', (tester) async {
-      dostr.accounts.loginPrivateKey(
-        pubkey: alicePubkey,
-        privkey: alicePrivateKey,
-      );
+      dostr.accounts.loginPrivateKey(privkey: alicePrivateKey);
       dostr.accounts.loginPublicKey(pubkey: bobPubkey);
       await tester.pumpWidget(login());
 

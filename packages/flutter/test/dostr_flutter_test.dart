@@ -146,14 +146,13 @@ void main() {
       final accounts = saved.accounts;
       accounts.loginPublicKey(pubkey: bobPubkey);
       accounts.addAccount(
-        pubkey: carolPubkey,
         type: AccountType.externalSigner,
         signer: Nip55EventSigner(
           publicKey: carolPubkey,
           nip55Signer: const Nip55Signer(package: 'com.example.signer'),
         ),
       );
-      accounts.loginPrivateKey(pubkey: alicePubkey, privkey: alicePrivateKey);
+      accounts.loginPrivateKey(privkey: alicePrivateKey);
 
       await saved.dostrFlutter.saveAccountsState();
 
@@ -177,22 +176,17 @@ void main() {
 
     test('restores what it saved', () async {
       saved.accounts.addAccount(
-        pubkey: carolPubkey,
         type: AccountType.externalSigner,
         signer: Nip07EventSigner(cachedPublicKey: carolPubkey),
       );
       saved.accounts.addAccount(
-        pubkey: bobPubkey,
         type: AccountType.externalSigner,
         signer: Nip55EventSigner(
           publicKey: bobPubkey,
           nip55Signer: const Nip55Signer(package: 'com.example.signer'),
         ),
       );
-      saved.accounts.loginPrivateKey(
-        pubkey: alicePubkey,
-        privkey: alicePrivateKey,
-      );
+      saved.accounts.loginPrivateKey(privkey: alicePrivateKey);
       saved.accounts.switchAccount(pubkey: bobPubkey);
       await saved.dostrFlutter.saveAccountsState();
 

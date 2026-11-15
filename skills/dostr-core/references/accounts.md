@@ -28,11 +28,11 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 
 final accounts = Accounts(const Bip340EventSignerFactory());
 
-accounts.loginPrivateKey(pubkey: pubkey, privkey: privkey);
+accounts.loginPrivateKey(privkey: privkey); // derives the pubkey
 accounts.loginPublicKey(pubkey: otherPubkey); // read-only
 accounts.loginExternalSigner(signer: nip46Signer);
 accounts.switchAccount(pubkey: pubkey);
-accounts.logout();
+await accounts.logout(); // disposes of the signer
 
 final signed = await accounts.sign(event);
 accounts.authStateChanges.listen((account) {}); // null when logged out

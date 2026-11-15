@@ -66,7 +66,7 @@ void main() {
   group('publishUserServerList', () {
     test('publishes the list of the logged account, in order', () async {
       final key = Bip340.generatePrivateKey();
-      accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+      accounts.loginPrivateKey(privkey: key.privateKey!);
 
       final responses = await serverList.publishUserServerList(
         serverUrlsOrdered: ['https://b.example', 'https://a.example'],

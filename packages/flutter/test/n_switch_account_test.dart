@@ -17,14 +17,10 @@ void main() {
     dostr.addProfile(carolPubkey, {'name': 'carol'});
     dostr.accounts.loginPublicKey(pubkey: bobPubkey);
     dostr.accounts.addAccount(
-      pubkey: carolPubkey,
       type: AccountType.externalSigner,
       signer: Nip07EventSigner(cachedPublicKey: carolPubkey),
     );
-    dostr.accounts.loginPrivateKey(
-      pubkey: alicePubkey,
-      privkey: alicePrivateKey,
-    );
+    dostr.accounts.loginPrivateKey(privkey: alicePrivateKey);
   });
 
   tearDown(() => dostr.dispose());

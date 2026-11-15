@@ -3,9 +3,10 @@
 ///
 /// ```dart
 /// final accounts = Accounts(const Bip340EventSignerFactory());
-/// accounts.loginPrivateKey(pubkey: pubkey, privkey: privkey);
+/// accounts.loginPrivateKey(privkey: privkey);
 /// final signed = await accounts.sign(event);
 /// ```
 library;
 
 export 'src/accounts.dart';
+export 'src/accounts_exceptions.dart';

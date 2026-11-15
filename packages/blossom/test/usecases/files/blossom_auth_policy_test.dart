@@ -44,7 +44,7 @@ void main() {
     other = _signable(Bip340.generatePrivateKey());
 
     final accounts = Accounts(const Bip340EventSignerFactory());
-    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey!);
     client = blossomFor(accounts);
   });
 
@@ -244,7 +244,7 @@ void main() {
       final key = Bip340.generatePrivateKey();
       rangedOther = _signable(Bip340.generatePrivateKey());
       final accounts = Accounts(const Bip340EventSignerFactory());
-      accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+      accounts.loginPrivateKey(privkey: key.privateKey!);
       rangedClient = blossomFor(accounts);
     });
 

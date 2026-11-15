@@ -24,7 +24,7 @@ void main() {
 
   Blossom clientWith({required bool handler}) {
     final accounts = Accounts(const Bip340EventSignerFactory());
-    accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey!);
     return blossomFor(
       accounts,
       authHandler: handler

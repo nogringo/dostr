@@ -97,19 +97,16 @@ class AccountsStorage {
     final stored = NostrWidgetsAccounts.fromJson(jsonDecode(storedAccounts));
 
     for (var account in stored.accounts) {
+      if (accounts.hasAccount(account.pubkey)) continue;
+
       if (account.kind == AccountKinds.nip07) {
         final signer = Nip07EventSigner(cachedPublicKey: account.pubkey);
-        accounts.addAccount(
-          pubkey: account.pubkey,
-          type: AccountType.externalSigner,
-          signer: signer,
-        );
+        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
         continue;
       }
 
       if (account.kind == AccountKinds.nip55) {
         accounts.addAccount(
-          pubkey: account.pubkey,
           type: AccountType.externalSigner,
           signer: Nip55EventSigner(
             publicKey: account.pubkey,
@@ -131,17 +128,12 @@ class AccountsStorage {
           eventSignerFactory: accounts.eventSignerFactory,
           cachedPublicKey: account.pubkey,
         );
-        accounts.addAccount(
-          pubkey: account.pubkey,
-          type: AccountType.externalSigner,
-          signer: signer,
-        );
+        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
         continue;
       }
 
       if (account.kind == AccountKinds.pubkey) {
         accounts.addAccount(
-          pubkey: account.pubkey,
           type: AccountType.publicKey,
           signer: accounts.eventSignerFactory.create(
             privateKey: null,
@@ -152,15 +144,10 @@ class AccountsStorage {
       }
 
       if (account.kind == AccountKinds.privkey) {
-        final pubkey = accounts.eventSignerFactory.derivePublicKey(
-          account.signerSeed!,
-        );
         accounts.addAccount(
-          pubkey: pubkey,
           type: AccountType.privateKey,
           signer: accounts.eventSignerFactory.create(
             privateKey: account.signerSeed!,
-            publicKey: pubkey,
           ),
         );
         continue;

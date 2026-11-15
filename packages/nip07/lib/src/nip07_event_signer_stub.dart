@@ -53,6 +53,7 @@ class Nip07EventSigner implements EventSigner {
 
   @override
   String getPublicKey() {
+    if (cachedPublicKey != null) return cachedPublicKey!;
     throw UnsupportedError('NIP-07 is not available on this platform');
   }
 

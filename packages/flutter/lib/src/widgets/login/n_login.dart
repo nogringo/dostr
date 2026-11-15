@@ -305,7 +305,7 @@ class _NLoginState extends State<NLogin> {
     if (_accounts.hasAccount(pubkey)) {
       _accounts.switchAccount(pubkey: pubkey);
     } else {
-      _accounts.loginPrivateKey(pubkey: pubkey, privkey: privateKey);
+      _accounts.loginPrivateKey(privkey: privateKey);
     }
 
     await controller.loggedIn();

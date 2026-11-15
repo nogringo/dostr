@@ -22,7 +22,7 @@ accounts.authStateChanges.listen((account) {
   // null when logged out
 });
 
-accounts.loginPrivateKey(pubkey: key.publicKey, privkey: key.privateKey!);
+accounts.loginPrivateKey(privkey: key.privateKey!);
 accounts.loginPublicKey(pubkey: otherPubkey); // read-only, now the logged one
 accounts.switchAccount(pubkey: key.publicKey);
 
@@ -39,7 +39,13 @@ accounts.loginExternalSigner(signer: signer);
 
 The other external signers log in the same way: a browser extension with [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), an Android signer app with [`dostr_nip55`](https://pub.dev/packages/dostr_nip55).
 
-You can log in several accounts and move between them with `switchAccount(pubkey: ...)`. `logout` removes the logged one, `removeAccount` any of them.
+You can log in several accounts and move between them with `switchAccount(pubkey: ...)`. `addAccount` adds one without logging it in. A pubkey is an account only once: adding it again throws an `AccountExistsException`, and switching to an unknown one an `UnknownAccountException`.
+
+`logout` removes the logged account, `removeAccount` any of them. Nobody is logged in after `logout`, even when other accounts remain.
+
+Each account owns its signer. Removing the account, or calling `dispose` on `Accounts`, disposes of it, which closes the relay subscription of a NIP-46 bunker.
+
+`sign` throws an `AccountCannotSignException` when nobody is logged in or the logged account is read-only, and an `ArgumentError` for an event whose `pubKey` is not the logged account's.
 
 More in [example/](example/).
 
@@ -55,7 +61,7 @@ accounts.accountsStream.listen((accounts) {
 });
 ```
 
-`accountsStream` emits the current accounts on subscription, then an unmodifiable snapshot each time an account is added or removed. `switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`.
+Both emit their current value on subscription, `null` for `authStateChanges` when nobody is logged in. `accountsStream` then emits an unmodifiable snapshot each time an account is added or removed. `switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`, and not at all when that account is already the logged one.
 
 `accounts.accounts` is a read-only view of the same data, for a synchronous read. `getLoggedAccount()`, `isLoggedIn` and `canSign` tell who is logged and whether they can sign.
 
@@ -75,4 +81,16 @@ See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authe
 
 ## Coming from `ndk`
 
-`Accounts` keeps its name and its API. Import it from `package:dostr_accounts/dostr_accounts.dart` instead of `package:ndk/ndk.dart` or the deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart`. `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` become a `Bunkers` connection and `loginExternalSigner`, as above.
+`Accounts` keeps its name and most of its API. Import it from `package:dostr_accounts/dostr_accounts.dart` instead of `package:ndk/ndk.dart` or the deep import `package:ndk/domain_layer/usecases/accounts/accounts.dart`. `ndk.accounts.loginWithBunkerUrl`, `loginWithNostrConnect` and `loginWithBunkerConnection` become a `Bunkers` connection and `loginExternalSigner`, as above.
+
+What changed:
+
+| `ndk` | `dostr_accounts` |
+|-------|------------------|
+| `loginPrivateKey(pubkey: ..., privkey: ...)` | `loginPrivateKey(privkey: ...)`, the pubkey is derived |
+| `addAccount(pubkey: ..., type: ..., signer: ...)`, replaced an existing account | `addAccount(type: ..., signer: ...)`, takes the pubkey of the signer and throws `AccountExistsException` for an existing one |
+| `logout()` and `removeAccount()` returned `void` and left the signer open | return a `Future` that completes once the signer is disposed of |
+| `dispose()` left the signers open | disposes of every signer |
+| `authStateChanges` emitted nothing until the first login | emits `null` on subscription when nobody is logged in |
+| a bare `Exception` | `AccountExistsException`, `UnknownAccountException`, `AccountCannotSignException` |
+| `sign` signed an event of any pubkey | throws an `ArgumentError` when the event is not the logged account's |

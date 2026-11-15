@@ -10,10 +10,7 @@ Future<void> main() async {
 
   final writer = Bip340.generatePrivateKey();
   final reader = Bip340.generatePrivateKey();
-  accounts.loginPrivateKey(
-    pubkey: writer.publicKey,
-    privkey: writer.privateKey!,
-  );
+  accounts.loginPrivateKey(privkey: writer.privateKey!);
   accounts.loginPublicKey(pubkey: reader.publicKey);
   print('can sign as the read-only account? ${accounts.canSign}');
 
@@ -28,6 +25,6 @@ Future<void> main() async {
   );
   print('signed ${signed.id}');
 
-  accounts.logout();
+  await accounts.logout();
   await accounts.dispose();
 }
