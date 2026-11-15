@@ -2,17 +2,17 @@
 
 ## Signers
 
-Every signer implements `EventSigner` from `dostr_signer`.
+Every signer implements `NostrSigner` from `dostr_signer`.
 
 | Signer | Package |
 |--------|---------|
-| `Bip340EventSigner(privateKey:, publicKey:)` | `dostr_bip340` |
-| `Nip46EventSigner` (bunker) | `dostr_nip46` |
-| `Nip07EventSigner` (browser extension) | `dostr_nip07` |
-| `Nip55EventSigner` (Android signer app, Flutter) | `dostr_nip55` |
+| `Bip340Signer(privateKey:, publicKey:)` | `dostr_bip340` |
+| `Nip46Signer` (bunker) | `dostr_nip46` |
+| `Nip07Signer` (browser extension) | `dostr_nip07` |
+| `Nip55Signer` (Android signer app, Flutter) | `dostr_nip55` |
 
 ```dart
-final signer = Bip340EventSignerFactory().createWithNewKeyPair();
+final signer = Bip340SignerFactory().createWithNewKeyPair();
 final signed = await signer.sign(
   Nip01Event(pubKey: signer.getPublicKey(), kind: 1, tags: [], content: 'hi'),
 );
@@ -26,7 +26,7 @@ External signers expose `pendingRequests`, `pendingRequestsStream` and `cancelRe
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 
-final accounts = Accounts(const Bip340EventSignerFactory());
+final accounts = Accounts(const Bip340SignerFactory());
 
 accounts.loginPrivateKey(privkey: privkey); // derives the pubkey
 accounts.loginPublicKey(pubkey: otherPubkey); // read-only

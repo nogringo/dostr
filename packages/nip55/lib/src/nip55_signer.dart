@@ -1,216 +1,270 @@
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:flutter/services.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+import 'package:rxdart/rxdart.dart';
 
-/// A permission that can be requested when logging in with a NIP-55 external
-/// signer, so the signer can pre-authorize silent (ContentResolver) responses.
-///
-/// See https://github.com/nostr-protocol/nips/blob/master/55.md
-class Nip55Permission {
-  const Nip55Permission({required this.type, this.kind});
+import 'nip55_signer_app.dart';
 
-  /// The request type to authorize, e.g. `sign_event`, `nip04_encrypt`.
-  final String type;
-
-  /// Optional event kind, only relevant for `sign_event`.
-  final int? kind;
-
-  Map<String, dynamic> toJson() {
-    return {'type': type, if (kind != null) 'kind': kind};
-  }
+/// Internal class to track a pending request with its completer
+class _PendingRequestEntry {
+  final Completer<dynamic> completer;
+  final PendingSignerRequest request;
+  _PendingRequestEntry(this.completer, this.request);
 }
 
-/// Result of a NIP-55 login (`get_public_key`).
-class Nip55LoginResult {
-  const Nip55LoginResult({required this.pubkey, this.package});
-
-  /// The user's public key, in hex format.
-  final String pubkey;
-
-  /// The signer app package name, if the signer returned
-  /// it. Used to target the same signer for subsequent requests.
-  final String? package;
-}
-
-/// Dart bridge to a NIP-55 "Android Signer Application".
+/// Signer backed by a NIP-55 external signer application.
 ///
 /// NIP-55 is a protocol implemented by several external signer apps.
-/// This class talks to whichever compatible signer is installed through the
-/// native `dostr_nip55` method channel (`Nip55Plugin` on Android).
-///
-/// Every method resolves to a `Map` that contains (at least) a `signature`
-/// key with the result, mirroring the historical external-signer plugin API.
-class Nip55Signer {
-  static const MethodChannel _channel = MethodChannel('dostr_nip55');
+/// This signer delegates all cryptographic
+/// operations to whichever compatible signer is installed via [Nip55SignerApp].
+class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
+  final Nip55SignerApp signerApp;
 
-  /// Default permissions requested at login so common operations can be
-  /// answered silently (via ContentResolver) without reopening the signer.
-  static const List<Nip55Permission> defaultPermissions = [
-    Nip55Permission(type: 'sign_event'),
-    Nip55Permission(type: 'nip04_encrypt'),
-    Nip55Permission(type: 'nip04_decrypt'),
-    Nip55Permission(type: 'nip44_encrypt'),
-    Nip55Permission(type: 'nip44_decrypt'),
-  ];
+  final String publicKey;
 
-  /// The signer app package, captured at login. Used to
-  /// target the right signer for both the ContentResolver and the Intent.
-  /// When `null`, the native side lets Android route through a compatible
-  /// signer app.
-  final String? package;
+  final _pendingRequests = <String, _PendingRequestEntry>{};
+  final _pendingRequestsController =
+      BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
 
-  const Nip55Signer({this.package});
+  int _requestCounter = 0;
 
-  /// Whether a NIP-55 compatible external signer is installed.
-  Future<bool> isAppInstalled() async {
-    final data = await _channel.invokeMethod<bool>('isAppInstalled');
-    return data ?? false;
+  @override
+  final int maxConcurrentRequests;
+
+  /// Default external-signer concurrency. Lower this if you target a flow that
+  /// prompts the user via Android intents for every request.
+  static const int defaultMaxConcurrentRequests = 100;
+
+  /// get a NIP-55 external signer
+  Nip55Signer({
+    required this.publicKey,
+    required this.signerApp,
+    this.maxConcurrentRequests = defaultMaxConcurrentRequests,
+  }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+
+  /// NIP-55 expects pubkeys in hex format ("All pubkeys in this NIP are in hex
+  /// format"), so `current_user` is always sent as hex.
+  String get _currentUser => publicKey.startsWith(Npub.prefix)
+      ? Npub.decode(publicKey).pubkey
+      : publicKey;
+
+  String _extractResult(Map<dynamic, dynamic> map) {
+    final result = map['signature'] as String?;
+    if (result == null || result.isEmpty) {
+      throw Exception('Empty result from external signer');
+    }
+    return result;
   }
 
-  /// Requests the user's public key (login). Optionally pre-authorizes
-  /// [permissions] so subsequent requests can be answered silently.
-  ///
-  /// Returns the raw signer response map. Most callers want
-  /// [getPublicKeyHex] instead.
-  Future<Map<dynamic, dynamic>> getPublicKey({
-    List<Nip55Permission>? permissions,
+  String _generateRequestId() {
+    return 'nip55_${DateTime.now().millisecondsSinceEpoch}_${_requestCounter++}';
+  }
+
+  void _notifyPendingRequestsChange() {
+    if (_pendingRequestsController.isClosed) return;
+    _pendingRequestsController.add(
+      _pendingRequests.values.map((e) => e.request).toList(),
+    );
+  }
+
+  /// Wraps an async operation to track it as a pending request
+  Future<T> _trackRequest<T>(
+    SignerMethod method,
+    Future<T> Function(String requestId) operation, {
+    Nip01Event? event,
+    String? plaintext,
+    String? ciphertext,
+    String? counterpartyPubkey,
+  }) {
+    final requestId = _generateRequestId();
+    final completer = Completer<T>();
+    final pendingRequest = PendingSignerRequest(
+      id: requestId,
+      method: method,
+      createdAt: DateTime.now(),
+      signerPubkey: publicKey,
+      event: event,
+      plaintext: plaintext,
+      ciphertext: ciphertext,
+      counterpartyPubkey: counterpartyPubkey,
+    );
+
+    _pendingRequests[requestId] = _PendingRequestEntry(
+      completer as Completer<dynamic>,
+      pendingRequest,
+    );
+    _notifyPendingRequestsChange();
+
+    // Throttle the actual call to the signer; queued requests still appear in
+    // `pendingRequests` so the UI sees the full backlog. If the request was
+    // cancelled while queued, skip the signer call entirely.
+    runThrottled(() async {
+          if (!_pendingRequests.containsKey(requestId)) {
+            throw SignerRequestCancelledException(requestId);
+          }
+          return await operation(requestId);
+        })
+        .then((result) {
+          if (!completer.isCompleted) {
+            completer.complete(result);
+          }
+        })
+        .catchError((e) {
+          if (!completer.isCompleted) {
+            final error = SignerRequestRejectedException(requestId: requestId);
+            completer.completeError(error);
+          }
+        })
+        .whenComplete(() {
+          _pendingRequests.remove(requestId);
+          _notifyPendingRequestsChange();
+        });
+
+    return completer.future;
+  }
+
+  @override
+  Future<Nip01Event> sign(Nip01Event event) async {
+    return _trackRequest(SignerMethod.signEvent, (requestId) async {
+      final map = await signerApp.signEvent(
+        currentUser: _currentUser,
+        eventJson: event.toJsonString(),
+        id: requestId,
+      );
+      final signature = _extractResult(map);
+
+      // Prefer the event the signer actually signed, when it returns one.
+      final signedEventJson = map['event'] as String?;
+      if (signedEventJson == null || signedEventJson.isEmpty) {
+        return event.copyWith(sig: signature);
+      }
+      return Nip01Event.tryFromJson(jsonDecode(signedEventJson)) ??
+          (throw Exception('The signer app returned an invalid event'));
+    }, event: event);
+  }
+
+  @override
+  String getPublicKey() {
+    return publicKey;
+  }
+
+  @override
+  Future<String?> decrypt(String msg, String destPubKey) async {
+    return _trackRequest(
+      SignerMethod.nip04Decrypt,
+      (requestId) async {
+        final map = await signerApp.nip04Decrypt(
+          ciphertext: msg,
+          currentUser: _currentUser,
+          pubKey: destPubKey,
+          id: requestId,
+        );
+        return _extractResult(map);
+      },
+      ciphertext: msg,
+      counterpartyPubkey: destPubKey,
+    );
+  }
+
+  @override
+  Future<String?> encrypt(String msg, String destPubKey) async {
+    return _trackRequest(
+      SignerMethod.nip04Encrypt,
+      (requestId) async {
+        final map = await signerApp.nip04Encrypt(
+          plaintext: msg,
+          currentUser: _currentUser,
+          pubKey: destPubKey,
+          id: requestId,
+        );
+        return _extractResult(map);
+      },
+      plaintext: msg,
+      counterpartyPubkey: destPubKey,
+    );
+  }
+
+  @override
+  bool canSign() {
+    return publicKey.isNotEmpty;
+  }
+
+  @override
+  bool get requiresInteractiveSigning => true;
+
+  @override
+  bool get requiresSignerNetwork => false;
+
+  @override
+  Iterable<String> get signerTransportRelayUrls => const <String>[];
+
+  @override
+  Future<String?> encryptNip44({
+    required String plaintext,
+    required String recipientPubKey,
   }) async {
-    final arguments = <String, dynamic>{
-      'type': 'get_public_key',
-      'uri_data': 'login',
-    };
-    if (permissions != null) {
-      arguments['permissions'] = jsonEncode(permissions);
-    }
-    return _invoke(arguments);
-  }
-
-  /// Requests the user's public key and returns it as a hex pubkey, or `null`
-  /// if the user rejected or no key was returned.
-  ///
-  /// NIP-55 returns the key in the `result` field, in hex format. Older
-  /// signer implementations may return an npub instead, so both are
-  /// accepted. See https://github.com/nostr-protocol/nips/blob/master/55.md
-  Future<String?> getPublicKeyHex({List<Nip55Permission>? permissions}) async {
-    return (await login(permissions: permissions))?.pubkey;
-  }
-
-  /// Logs in: requests the user's public key, pre-authorizing [permissions]
-  /// (defaults to [defaultPermissions]), and captures the signer app package.
-  /// Returns `null` if the user rejected or no key was returned.
-  Future<Nip55LoginResult?> login({List<Nip55Permission>? permissions}) async {
-    final response = await getPublicKey(
-      permissions: permissions ?? defaultPermissions,
-    );
-    final raw = (response['result'] ?? response['signature']) as String?;
-    if (raw == null || raw.isEmpty) return null;
-    final pubkey = raw.startsWith(Npub.prefix) ? Npub.decode(raw).pubkey : raw;
-    final pkg = response['package'] as String?;
-    return Nip55LoginResult(
-      pubkey: pubkey,
-      package: (pkg != null && pkg.isNotEmpty) ? pkg : null,
+    return _trackRequest(
+      SignerMethod.nip44Encrypt,
+      (requestId) async {
+        final map = await signerApp.nip44Encrypt(
+          plaintext: plaintext,
+          currentUser: _currentUser,
+          pubKey: recipientPubKey,
+          id: requestId,
+        );
+        return _extractResult(map);
+      },
+      plaintext: plaintext,
+      counterpartyPubkey: recipientPubKey,
     );
   }
 
-  Future<Map<dynamic, dynamic>> signEvent({
-    required String currentUser,
-    required String eventJson,
-    String? id,
-  }) {
-    return _invoke({
-      'type': 'sign_event',
-      'current_user': currentUser,
-      'uri_data': eventJson,
-      'id': id,
-    });
-  }
-
-  Future<Map<dynamic, dynamic>> nip04Encrypt({
-    required String plaintext,
-    required String currentUser,
-    required String pubKey,
-    String? id,
-  }) {
-    return _invoke(
-      _encryptArgs('nip04_encrypt', plaintext, currentUser, pubKey, id),
-    );
-  }
-
-  Future<Map<dynamic, dynamic>> nip04Decrypt({
+  @override
+  Future<String?> decryptNip44({
     required String ciphertext,
-    required String currentUser,
-    required String pubKey,
-    String? id,
-  }) {
-    return _invoke(
-      _encryptArgs('nip04_decrypt', ciphertext, currentUser, pubKey, id),
+    required String senderPubKey,
+  }) async {
+    return _trackRequest(
+      SignerMethod.nip44Decrypt,
+      (requestId) async {
+        final map = await signerApp.nip44Decrypt(
+          ciphertext: ciphertext,
+          currentUser: _currentUser,
+          pubKey: senderPubKey,
+          id: requestId,
+        );
+        return _extractResult(map);
+      },
+      ciphertext: ciphertext,
+      counterpartyPubkey: senderPubKey,
     );
   }
 
-  Future<Map<dynamic, dynamic>> nip44Encrypt({
-    required String plaintext,
-    required String currentUser,
-    required String pubKey,
-    String? id,
-  }) {
-    return _invoke(
-      _encryptArgs('nip44_encrypt', plaintext, currentUser, pubKey, id),
-    );
-  }
+  @override
+  Stream<List<PendingSignerRequest>> get pendingRequestsStream =>
+      _pendingRequestsController.stream;
 
-  Future<Map<dynamic, dynamic>> nip44Decrypt({
-    required String ciphertext,
-    required String currentUser,
-    required String pubKey,
-    String? id,
-  }) {
-    return _invoke(
-      _encryptArgs('nip44_decrypt', ciphertext, currentUser, pubKey, id),
-    );
-  }
+  @override
+  List<PendingSignerRequest> get pendingRequests =>
+      _pendingRequests.values.map((e) => e.request).toList();
 
-  Future<Map<dynamic, dynamic>> decryptZapEvent({
-    required String eventJson,
-    required String currentUser,
-    String? id,
-  }) {
-    return _invoke({
-      'type': 'decrypt_zap_event',
-      'uri_data': eventJson,
-      'current_user': currentUser,
-      'id': id,
-    });
-  }
-
-  Map<String, dynamic> _encryptArgs(
-    String type,
-    String uriData,
-    String currentUser,
-    String pubKey,
-    String? id,
-  ) {
-    return {
-      'type': type,
-      'uri_data': uriData,
-      'current_user': currentUser,
-      // both casings are sent to stay compatible with signer implementations
-      'pubKey': pubKey,
-      'pubkey': pubKey,
-      'id': id,
-    };
-  }
-
-  Future<Map<dynamic, dynamic>> _invoke(Map<String, dynamic> arguments) async {
-    // Target the signer captured at login (if any), so the request goes to the
-    // right app and can be answered silently via its ContentResolver.
-    if (package != null) {
-      arguments['package'] = package;
+  @override
+  bool cancelRequest(String requestId) {
+    final entry = _pendingRequests.remove(requestId);
+    if (entry != null) {
+      entry.completer.completeError(SignerRequestCancelledException(requestId));
+      _notifyPendingRequestsChange();
+      return true;
     }
-    final data = await _channel.invokeMethod<Map<dynamic, dynamic>>(
-      'nostrsigner',
-      arguments,
-    );
-    return data ?? {};
+    return false;
+  }
+
+  @override
+  Future<void> dispose() async {
+    cancelAllQueued();
+    await _pendingRequestsController.close();
   }
 }

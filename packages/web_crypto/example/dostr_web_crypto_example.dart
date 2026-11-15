@@ -2,7 +2,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 
 Future<void> main() async {
-  final signer = const WebEventSignerFactory().createWithNewKeyPair();
+  final signer = const WebSignerFactory().createWithNewKeyPair();
 
   final event = await signer.sign(
     Nip01Event(

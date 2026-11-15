@@ -9,7 +9,7 @@ void main() {
   late MockRelay relayB;
   late MockRemoteSigner remoteSigner;
   late RelayManager relayManager;
-  late Nip46EventSigner signer;
+  late Nip46Signer signer;
 
   int bunkerRequestsOn(MockRelay relay) => relay
       .received('EVENT')
@@ -28,7 +28,7 @@ void main() {
         pingInterval: null,
       ),
     );
-    signer = Nip46EventSigner(
+    signer = Nip46Signer(
       connection: BunkerConnection(
         privateKey:
             '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc',
@@ -40,7 +40,7 @@ void main() {
         eventVerifier: Bip340EventVerifier(),
       ),
       relayPublishes: RelayPublishes(relayManager: relayManager),
-      eventSignerFactory: const Bip340EventSignerFactory(),
+      signerFactory: const Bip340SignerFactory(),
     );
   });
 

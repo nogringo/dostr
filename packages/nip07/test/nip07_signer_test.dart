@@ -109,13 +109,13 @@ void injectSetupCode() {
 void main() {
   injectSetupCode();
 
-  group('Nip07EventSigner', () {
-    late Nip07EventSigner nip07Signer;
-    late Bip340EventSigner bip340EventSigner;
+  group('Nip07Signer', () {
+    late Nip07Signer nip07Signer;
+    late Bip340Signer bip340Signer;
 
     setUp(() {
-      nip07Signer = Nip07EventSigner();
-      bip340EventSigner = Bip340EventSigner(
+      nip07Signer = Nip07Signer();
+      bip340Signer = Bip340Signer(
         privateKey:
             'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127',
         publicKey:
@@ -153,7 +153,7 @@ void main() {
           isA<Exception>().having(
             (e) => e.toString(),
             'message',
-            contains('Use getPublicKeyAsync with Nip07EventSigner'),
+            contains('Use getPublicKeyAsync with Nip07Signer'),
           ),
         ),
       );
@@ -209,7 +209,7 @@ void main() {
       await setupNostrExtension();
 
       final cachedPubKey = await nip07Signer.getPublicKeyAsync();
-      eval("window.nostr.setAccount('${bip340EventSigner.privateKey}');");
+      eval("window.nostr.setAccount('${bip340Signer.privateKey}');");
 
       final event = Nip01Event(
         pubKey: cachedPubKey,
@@ -223,7 +223,7 @@ void main() {
 
       final signedEvent = await nip07Signer.sign(event);
 
-      expect(signedEvent.pubKey, equals(bip340EventSigner.publicKey));
+      expect(signedEvent.pubKey, equals(bip340Signer.publicKey));
       expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
     });
 
@@ -234,12 +234,9 @@ void main() {
       final nip07PubKey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await nip07Signer.encrypt(
         message,
-        bip340EventSigner.publicKey,
+        bip340Signer.publicKey,
       );
-      final decrypted = await bip340EventSigner.decrypt(
-        encrypted!,
-        nip07PubKey,
-      );
+      final decrypted = await bip340Signer.decrypt(encrypted!, nip07PubKey);
 
       expect(decrypted, equals(message));
     });
@@ -248,7 +245,7 @@ void main() {
       await setupNostrExtension();
 
       await expectLater(
-        nip07Signer.decrypt('invalid_data', bip340EventSigner.publicKey),
+        nip07Signer.decrypt('invalid_data', bip340Signer.publicKey),
         throwsA(anything),
       );
     });
@@ -271,9 +268,9 @@ void main() {
       final nip07PubKey = await nip07Signer.getPublicKeyAsync();
       final encrypted = await nip07Signer.encryptNip44(
         plaintext: message,
-        recipientPubKey: bip340EventSigner.publicKey,
+        recipientPubKey: bip340Signer.publicKey,
       );
-      final decrypted = await bip340EventSigner.decryptNip44(
+      final decrypted = await bip340Signer.decryptNip44(
         ciphertext: encrypted!,
         senderPubKey: nip07PubKey,
       );
@@ -287,7 +284,7 @@ void main() {
       await expectLater(
         nip07Signer.decryptNip44(
           ciphertext: 'invalid_nip44_data',
-          senderPubKey: bip340EventSigner.publicKey,
+          senderPubKey: bip340Signer.publicKey,
         ),
         throwsA(anything),
       );
@@ -312,7 +309,7 @@ void main() {
 
     test('throws exception when nostr is null for encrypt', () async {
       expect(
-        () => nip07Signer.encrypt('msg', bip340EventSigner.publicKey),
+        () => nip07Signer.encrypt('msg', bip340Signer.publicKey),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -325,7 +322,7 @@ void main() {
 
     test('throws exception when nostr is null for decrypt', () async {
       expect(
-        () => nip07Signer.decrypt('msg', bip340EventSigner.publicKey),
+        () => nip07Signer.decrypt('msg', bip340Signer.publicKey),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -340,7 +337,7 @@ void main() {
       expect(
         () => nip07Signer.encryptNip44(
           plaintext: 'plain',
-          recipientPubKey: bip340EventSigner.publicKey,
+          recipientPubKey: bip340Signer.publicKey,
         ),
         throwsA(
           isA<Exception>().having(
@@ -356,7 +353,7 @@ void main() {
       expect(
         () => nip07Signer.decryptNip44(
           ciphertext: 'cipher',
-          senderPubKey: bip340EventSigner.publicKey,
+          senderPubKey: bip340Signer.publicKey,
         ),
         throwsA(
           isA<Exception>().having(
@@ -370,7 +367,7 @@ void main() {
 
     test('throws exception when nostr is null for sign', () async {
       final event = Nip01Event(
-        pubKey: bip340EventSigner.publicKey,
+        pubKey: bip340Signer.publicKey,
         kind: 1,
         tags: [],
         content: 'test content',
@@ -394,10 +391,10 @@ void main() {
 
       const message = 'Hello from BIP-340';
       final nip07PubKey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await bip340EventSigner.encrypt(message, nip07PubKey);
+      final encrypted = await bip340Signer.encrypt(message, nip07PubKey);
       final decrypted = await nip07Signer.decrypt(
         encrypted!,
-        bip340EventSigner.publicKey,
+        bip340Signer.publicKey,
       );
 
       expect(decrypted, equals(message));
@@ -408,13 +405,13 @@ void main() {
 
       const message = 'NIP-44 message from BIP-340';
       final nip07PubKey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await bip340EventSigner.encryptNip44(
+      final encrypted = await bip340Signer.encryptNip44(
         plaintext: message,
         recipientPubKey: nip07PubKey,
       );
       final decrypted = await nip07Signer.decryptNip44(
         ciphertext: encrypted!,
-        senderPubKey: bip340EventSigner.publicKey,
+        senderPubKey: bip340Signer.publicKey,
       );
 
       expect(decrypted, equals(message));

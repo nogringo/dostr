@@ -6,10 +6,10 @@ import 'package:dostr_nip07/dostr_nip07.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Nip07EventSigner outside the browser', () {
-    late Nip07EventSigner signer;
+  group('Nip07Signer outside the browser', () {
+    late Nip07Signer signer;
 
-    setUp(() => signer = Nip07EventSigner(cachedPublicKey: 'pubkey'));
+    setUp(() => signer = Nip07Signer(cachedPublicKey: 'pubkey'));
     tearDown(() => signer.dispose());
 
     test('cannot sign', () {
@@ -21,7 +21,7 @@ void main() {
     test('gives the cached public key, as in the browser', () {
       expect(signer.getPublicKey(), 'pubkey');
 
-      final uncached = Nip07EventSigner();
+      final uncached = Nip07Signer();
       addTearDown(uncached.dispose);
       expect(uncached.getPublicKey, throwsUnsupportedError);
     });

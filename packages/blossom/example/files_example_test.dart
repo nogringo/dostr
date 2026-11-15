@@ -5,8 +5,8 @@ import 'package:test/test.dart';
 
 Files _files() => Files(
   Blossom(
-    accounts: Accounts(const Bip340EventSignerFactory()),
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    accounts: Accounts(const Bip340SignerFactory()),
+    signerFactory: const Bip340SignerFactory(),
     getUserServerList: (_) async => null,
   ),
 );

@@ -9,7 +9,7 @@ void main() {
   runEventVerifierTestSuite(
     name: 'WebEventVerifier',
     createVerifier: WebEventVerifier.new,
-    createSigner: const WebEventSignerFactory().createWithNewKeyPair,
+    createSigner: const WebSignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );
 }

@@ -4,7 +4,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-class _TrackedSigner extends Bip340EventSigner {
+class _TrackedSigner extends Bip340Signer {
   _TrackedSigner(KeyPair key)
     : super(privateKey: key.privateKey, publicKey: key.publicKey);
 
@@ -32,7 +32,7 @@ void main() async {
     late Accounts accounts;
 
     setUp(() async {
-      accounts = Accounts(const Bip340EventSignerFactory());
+      accounts = Accounts(const Bip340SignerFactory());
     });
 
     tearDown(() async {
@@ -107,7 +107,7 @@ void main() async {
     test('loginExternalSigner', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginExternalSigner(
-        signer: Bip340EventSigner(
+        signer: Bip340Signer(
           privateKey: key0.privateKey,
           publicKey: key0.publicKey,
         ),
@@ -122,7 +122,7 @@ void main() async {
     test('addAccount takes the pubkey of the signer, without logging in', () {
       final account = accounts.addAccount(
         type: AccountType.externalSigner,
-        signer: Bip340EventSigner(
+        signer: Bip340Signer(
           privateKey: key0.privateKey,
           publicKey: key0.publicKey,
         ),
@@ -135,7 +135,7 @@ void main() async {
     test('remove account', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginExternalSigner(
-        signer: Bip340EventSigner(
+        signer: Bip340Signer(
           privateKey: key0.privateKey,
           publicKey: key0.publicKey,
         ),
@@ -298,7 +298,7 @@ void main() async {
         (Accounts a) => a.logout(),
         (Accounts a) => a.removeAccount(pubkey: key0.publicKey),
       ]) {
-        final accounts = Accounts(const Bip340EventSignerFactory());
+        final accounts = Accounts(const Bip340SignerFactory());
         final order = <String>[];
 
         accounts.accountsStream.listen((_) => order.add('accounts'));

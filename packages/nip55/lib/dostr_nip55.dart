@@ -1,14 +1,14 @@
 /// NIP-55 Android signer: log in, sign and encrypt with a signer app.
 ///
 /// ```dart
-/// const nip55Signer = Nip55Signer();
-/// final login = await nip55Signer.login();
-/// final signer = Nip55EventSigner(
+/// const signerApp = Nip55SignerApp();
+/// final login = await signerApp.login();
+/// final signer = Nip55Signer(
 ///   publicKey: login!.pubkey,
-///   nip55Signer: Nip55Signer(package: login.package),
+///   signerApp: Nip55SignerApp(package: login.package),
 /// );
 /// ```
 library;
 
-export 'src/nip55_event_signer.dart';
 export 'src/nip55_signer.dart';
+export 'src/nip55_signer_app.dart';

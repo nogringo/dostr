@@ -38,8 +38,10 @@ connects with, are in [`dostr_url_set`](https://pub.dev/packages/dostr_url_set):
 `package:dostr_core/dostr_core.dart` exports them. `relayUrlRegex` and the url
 normalizer behind them are internal to `dostr_url_set`.
 
-`Bip340`, `Bip340EventSigner`, `Bip340EventVerifier` and `KeyPair` are in
-[`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and `Nip01Utils.signWithPrivateKey` is now
+`Bip340`, `Bip340EventVerifier` and `KeyPair` are in
+[`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and so are
+`Bip340EventSigner` and `Bip340EventSignerFactory`, now `Bip340Signer` and
+`Bip340SignerFactory`. `Nip01Utils.signWithPrivateKey` is now
 `Bip340.signEvent`. `Nip04` and `Nip44` are in
 [`dostr_nip44`](https://pub.dev/packages/dostr_nip44).
 
@@ -54,10 +56,11 @@ exports.
 `package:ndk/domain_layer/entities/filter.dart` are now
 `package:dostr_nip01/dostr_nip01.dart`.
 
-`EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`,
-`SignerMethod`, `SignerRequestRejectedException` and
-`SignerRequestCancelledException` are in
-[`dostr_signer`](https://pub.dev/packages/dostr_signer):
+`EventSigner` is now `NostrSigner`, and `LocalEventSignerFactory` is now
+`LocalSignerFactory`, since a signer also encrypts and decrypts. They are in
+[`dostr_signer`](https://pub.dev/packages/dostr_signer) with
+`PendingSignerRequest`, `SignerMethod`, `SignerRequestRejectedException` and
+`SignerRequestCancelledException`:
 `package:ndk/domain_layer/repositories/event_signer.dart`,
 `package:ndk/domain_layer/entities/pending_signer_request.dart`,
 `package:ndk/domain_layer/entities/signer_request_rejected_exception.dart` and

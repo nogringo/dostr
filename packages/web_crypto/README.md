@@ -1,8 +1,8 @@
 # dostr_web_crypto
 
 Fast [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki)
-Schnorr signatures for Nostr events on the web: an `EventSigner` that holds a
-private key, its `LocalEventSignerFactory`, and an `EventVerifier`. They call
+Schnorr signatures for Nostr events on the web: a `NostrSigner` that holds a
+private key, its `LocalSignerFactory`, and an `EventVerifier`. They call
 [@noble/curves](https://github.com/paulmillr/noble-curves) through JS interop,
 which is much faster than pure Dart in the browser. The signer also does NIP-04
 and NIP-44 encryption.
@@ -27,7 +27,7 @@ dependencies:
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 
-final signer = const WebEventSignerFactory().createWithNewKeyPair();
+final signer = const WebSignerFactory().createWithNewKeyPair();
 final event = await signer.sign(
   Nip01Event(
     pubKey: signer.getPublicKey(),
@@ -46,11 +46,12 @@ The classes only work on the web. On other platforms they throw
 
 ## Coming from `ndk_flutter`
 
-`WebEventSigner` and `WebEventVerifier` moved here from `ndk_flutter`.
+`WebEventVerifier` moved here from `ndk_flutter`, and so did `WebEventSigner`,
+now `WebSigner`.
 `package:ndk_flutter/ndk_flutter.dart` is now
 `package:dostr_flutter/dostr_flutter.dart`, which still exports them. The web
-`NdkEventSignerFactory` of `ndk_flutter` is now `DostrEventSignerFactory`, a
-typedef of `WebEventSignerFactory`.
+`NdkEventSignerFactory` of `ndk_flutter` is now `DostrSignerFactory`, a
+typedef of `WebSignerFactory`.
 
 ## Rebuilding the JS bundle
 

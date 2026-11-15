@@ -13,7 +13,7 @@ Future<void> main(List<String> args) async {
       eventVerifier: Bip340EventVerifier(),
     ),
     relayPublishes: RelayPublishes(relayManager: relayManager),
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    signerFactory: const Bip340SignerFactory(),
   );
 
   final connection = await bunkers.connectWithBunkerUrl(

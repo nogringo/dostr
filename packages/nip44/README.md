@@ -6,7 +6,7 @@ for Nostr, in pure Dart, with the deprecated
 next to it for the clients and wallets that still need it.
 
 [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) depends on it:
-`Bip340EventSigner` encrypts and decrypts with it. Add it on its own when you
+`Bip340Signer` encrypts and decrypts with it. Add it on its own when you
 encrypt with a private key you hold yourself.
 
 ## Install
@@ -50,8 +50,8 @@ final plaintext = await Nip44.decryptMessage(
 
 ## Through a signer
 
-Most apps never call this package. Every `EventSigner` encrypts and decrypts
-for the account it holds, and `Bip340EventSigner` does it with `dostr_nip44`:
+Most apps never call this package. Every `NostrSigner` encrypts and decrypts
+for the account it holds, and `Bip340Signer` does it with `dostr_nip44`:
 
 ```dart
 final ciphertext = await signer.encryptNip44(

@@ -1,4 +1,4 @@
-name: test_nip07_event_signer
+name: test_nip07_signer
 description: "A Flutter project for manual NIP-07 extension testing."
 publish_to: 'none'
 version: 0.1.0

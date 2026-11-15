@@ -48,7 +48,7 @@ Keep one `RelayManager` for the whole app. [Relay REQs](../packages/core/README.
 ## Sign and publish
 
 ```dart
-final signer = Bip340EventSigner(privateKey: privateKey, publicKey: publicKey);
+final signer = Bip340Signer(privateKey: privateKey, publicKey: publicKey);
 
 final signed = await signer.sign(
   Nip01Event(
@@ -64,7 +64,7 @@ final outcomes = await RelayPublishes(relayManager: relays)
     .done;
 ```
 
-See [Relay publishes](../packages/core/README.md#relay-publishes). Other signers (NIP-46 bunkers, NIP-07 extensions, NIP-55 apps) implement the same `EventSigner`, see [Signers](../packages/signer/README.md#signers).
+See [Relay publishes](../packages/core/README.md#relay-publishes). Other signers (NIP-46 bunkers, NIP-07 extensions, NIP-55 apps) implement the same `NostrSigner`, see [Signers](../packages/signer/README.md#signers).
 
 ## Read where accounts publish
 

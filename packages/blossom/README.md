@@ -36,10 +36,10 @@ final reqs = RelayReqs(
 final nip65 = Nip65Fetcher(reqs: reqs);
 final serverLists = BlossomServersFetcher(reqs: reqs, nip65Fetcher: nip65);
 
-final accounts = Accounts(const Bip340EventSignerFactory());
+final accounts = Accounts(const Bip340SignerFactory());
 final blossom = Blossom(
   accounts: accounts,
-  eventSignerFactory: const Bip340EventSignerFactory(),
+  signerFactory: const Bip340SignerFactory(),
   getUserServerList: (pubkey) async {
     final serverList = await serverLists.fetch(pubkey);
     return serverList == null ? null : blossomServersOf(serverList);

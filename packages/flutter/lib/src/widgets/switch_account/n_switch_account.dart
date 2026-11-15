@@ -47,9 +47,9 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
         break;
       case AccountType.externalSigner:
         (label, backgroundColor) = switch (account.signer) {
-          Nip07EventSigner() => (l10n.extension, Colors.orange),
-          Nip55EventSigner() => (l10n.signerApp, Colors.purple),
-          Nip46EventSigner() => (l10n.bunker, Colors.green),
+          Nip07Signer() => (l10n.extension, Colors.orange),
+          Nip55Signer() => (l10n.signerApp, Colors.purple),
+          Nip46Signer() => (l10n.bunker, Colors.green),
           _ => (l10n.signer, Colors.grey),
         };
         break;

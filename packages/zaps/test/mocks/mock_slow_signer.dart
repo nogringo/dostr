@@ -3,11 +3,11 @@ import 'package:dostr_signer/dostr_signer.dart';
 
 /// A wrapper signer that adds a delay to simulate slow signing
 /// (like NIP-46, NIP-55, etc.) where user interaction is required.
-class MockSlowSigner implements EventSigner {
-  final EventSigner _innerSigner;
+class MockSlowSigner implements NostrSigner {
+  final NostrSigner _innerSigner;
   final Duration _delay;
 
-  MockSlowSigner({required EventSigner innerSigner, required Duration delay})
+  MockSlowSigner({required NostrSigner innerSigner, required Duration delay})
     : _innerSigner = innerSigner,
       _delay = delay;
 

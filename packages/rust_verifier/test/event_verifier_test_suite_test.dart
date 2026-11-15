@@ -6,7 +6,7 @@ void main() {
   runEventVerifierTestSuite(
     name: 'RustEventVerifier',
     createVerifier: RustEventVerifier.new,
-    createSigner: const Bip340EventSignerFactory().createWithNewKeyPair,
+    createSigner: const Bip340SignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );
 }

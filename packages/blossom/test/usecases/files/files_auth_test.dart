@@ -15,7 +15,7 @@ const int filesAuthPort = 30050;
 Account _signable(KeyPair keyPair) => Account(
   type: AccountType.privateKey,
   pubkey: keyPair.publicKey,
-  signer: Bip340EventSigner(
+  signer: Bip340Signer(
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
   ),
@@ -36,7 +36,7 @@ void main() {
     final key = Bip340.generatePrivateKey();
     other = _signable(Bip340.generatePrivateKey());
 
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
     accounts.loginPrivateKey(privkey: key.privateKey!);
     files = Files(blossomFor(accounts));
   });

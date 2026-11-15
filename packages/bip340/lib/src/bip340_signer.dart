@@ -5,11 +5,11 @@ import 'package:rxdart/rxdart.dart';
 
 import 'bip340.dart';
 
-/// Default factory for creating Bip340EventSigner instances
-class Bip340EventSignerFactory implements LocalEventSignerFactory {
-  const Bip340EventSignerFactory();
+/// Default factory for creating Bip340Signer instances
+class Bip340SignerFactory implements LocalSignerFactory {
+  const Bip340SignerFactory();
   @override
-  EventSigner create({String? privateKey, String? publicKey}) {
+  NostrSigner create({String? privateKey, String? publicKey}) {
     final derivedPublicKey =
         publicKey ?? (privateKey != null ? derivePublicKey(privateKey) : null);
 
@@ -17,10 +17,7 @@ class Bip340EventSignerFactory implements LocalEventSignerFactory {
       throw ArgumentError('Either publicKey or privateKey must be provided');
     }
 
-    return Bip340EventSigner(
-      privateKey: privateKey,
-      publicKey: derivedPublicKey,
-    );
+    return Bip340Signer(privateKey: privateKey, publicKey: derivedPublicKey);
   }
 
   @override
@@ -36,22 +33,22 @@ class Bip340EventSignerFactory implements LocalEventSignerFactory {
   }
 
   @override
-  EventSigner createWithNewKeyPair() {
+  NostrSigner createWithNewKeyPair() {
     final (privateKey, publicKey) = generateKeyPair();
     return create(privateKey: privateKey, publicKey: publicKey);
   }
 }
 
-/// Pure Dart Event Signer
-class Bip340EventSigner implements EventSigner {
+/// Pure Dart signer
+class Bip340Signer implements NostrSigner {
   /// hex private key
   String? privateKey;
 
   /// hex public key
   String publicKey;
 
-  /// Get a new event signer with the given keys
-  Bip340EventSigner({required this.privateKey, required this.publicKey});
+  /// Get a new signer with the given keys
+  Bip340Signer({required this.privateKey, required this.publicKey});
 
   @override
   bool get requiresInteractiveSigning => false;

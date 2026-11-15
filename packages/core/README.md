@@ -17,7 +17,7 @@ dependencies:
 ```
 
 `dostr_core` has no signing or verification code of its own: it takes any
-`EventSigner` and `EventVerifier`. [`dostr_bip340`](https://pub.dev/packages/dostr_bip340)
+`NostrSigner` and `EventVerifier`. [`dostr_bip340`](https://pub.dev/packages/dostr_bip340)
 provides pure Dart ones.
 
 ## Usage

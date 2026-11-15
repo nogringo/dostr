@@ -7,13 +7,13 @@ import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('WebEventSigner', () {
-    late WebEventSigner signer;
+  group('WebSigner', () {
+    late WebSigner signer;
     late KeyPair keyPair;
 
     setUp(() {
       keyPair = Bip340.generatePrivateKey();
-      signer = WebEventSigner(
+      signer = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -32,7 +32,7 @@ void main() {
     });
 
     test('canSign returns false when no private key', () {
-      final readOnlySigner = WebEventSigner(
+      final readOnlySigner = WebSigner(
         privateKey: null,
         publicKey: keyPair.publicKey,
       );
@@ -63,7 +63,7 @@ void main() {
     });
 
     test('sign throws when no private key', () async {
-      final readOnlySigner = WebEventSigner(
+      final readOnlySigner = WebSigner(
         privateKey: null,
         publicKey: keyPair.publicKey,
       );
@@ -79,122 +79,104 @@ void main() {
       await readOnlySigner.dispose();
     });
 
-    group('NIP-04 interop with Bip340EventSigner', () {
+    group('NIP-04 interop with Bip340Signer', () {
       late KeyPair otherKeyPair;
 
       setUp(() {
         otherKeyPair = Bip340.generatePrivateKey();
       });
 
-      test(
-        'encrypt with WebEventSigner, decrypt with Bip340EventSigner',
-        () async {
-          final dartSigner = Bip340EventSigner(
-            privateKey: otherKeyPair.privateKey,
-            publicKey: otherKeyPair.publicKey,
-          );
+      test('encrypt with WebSigner, decrypt with Bip340Signer', () async {
+        final dartSigner = Bip340Signer(
+          privateKey: otherKeyPair.privateKey,
+          publicKey: otherKeyPair.publicKey,
+        );
 
-          const message = 'Hello, NIP-04 from web!';
-          final encrypted = await signer.encrypt(
-            message,
-            otherKeyPair.publicKey,
-          );
-          expect(encrypted, isNotNull);
-          expect(encrypted, isNot(equals(message)));
+        const message = 'Hello, NIP-04 from web!';
+        final encrypted = await signer.encrypt(message, otherKeyPair.publicKey);
+        expect(encrypted, isNotNull);
+        expect(encrypted, isNot(equals(message)));
 
-          final decrypted = await dartSigner.decrypt(
-            encrypted!,
-            keyPair.publicKey,
-          );
-          expect(decrypted, equals(message));
+        final decrypted = await dartSigner.decrypt(
+          encrypted!,
+          keyPair.publicKey,
+        );
+        expect(decrypted, equals(message));
 
-          await dartSigner.dispose();
-        },
-      );
+        await dartSigner.dispose();
+      });
 
-      test(
-        'encrypt with Bip340EventSigner, decrypt with WebEventSigner',
-        () async {
-          final dartSigner = Bip340EventSigner(
-            privateKey: otherKeyPair.privateKey,
-            publicKey: otherKeyPair.publicKey,
-          );
+      test('encrypt with Bip340Signer, decrypt with WebSigner', () async {
+        final dartSigner = Bip340Signer(
+          privateKey: otherKeyPair.privateKey,
+          publicKey: otherKeyPair.publicKey,
+        );
 
-          const message = 'Hello from Dart NIP-04!';
-          final encrypted = await dartSigner.encrypt(
-            message,
-            keyPair.publicKey,
-          );
-          expect(encrypted, isNotNull);
+        const message = 'Hello from Dart NIP-04!';
+        final encrypted = await dartSigner.encrypt(message, keyPair.publicKey);
+        expect(encrypted, isNotNull);
 
-          final decrypted = await signer.decrypt(
-            encrypted!,
-            otherKeyPair.publicKey,
-          );
-          expect(decrypted, equals(message));
+        final decrypted = await signer.decrypt(
+          encrypted!,
+          otherKeyPair.publicKey,
+        );
+        expect(decrypted, equals(message));
 
-          await dartSigner.dispose();
-        },
-      );
+        await dartSigner.dispose();
+      });
     });
 
-    group('NIP-44 interop with Bip340EventSigner', () {
+    group('NIP-44 interop with Bip340Signer', () {
       late KeyPair otherKeyPair;
 
       setUp(() {
         otherKeyPair = Bip340.generatePrivateKey();
       });
 
-      test(
-        'encrypt with WebEventSigner, decrypt with Bip340EventSigner',
-        () async {
-          final dartSigner = Bip340EventSigner(
-            privateKey: otherKeyPair.privateKey,
-            publicKey: otherKeyPair.publicKey,
-          );
+      test('encrypt with WebSigner, decrypt with Bip340Signer', () async {
+        final dartSigner = Bip340Signer(
+          privateKey: otherKeyPair.privateKey,
+          publicKey: otherKeyPair.publicKey,
+        );
 
-          const message = 'Hello, NIP-44 from web!';
-          final encrypted = await signer.encryptNip44(
-            plaintext: message,
-            recipientPubKey: otherKeyPair.publicKey,
-          );
-          expect(encrypted, isNotNull);
-          expect(encrypted, isNot(equals(message)));
+        const message = 'Hello, NIP-44 from web!';
+        final encrypted = await signer.encryptNip44(
+          plaintext: message,
+          recipientPubKey: otherKeyPair.publicKey,
+        );
+        expect(encrypted, isNotNull);
+        expect(encrypted, isNot(equals(message)));
 
-          final decrypted = await dartSigner.decryptNip44(
-            ciphertext: encrypted!,
-            senderPubKey: keyPair.publicKey,
-          );
-          expect(decrypted, equals(message));
+        final decrypted = await dartSigner.decryptNip44(
+          ciphertext: encrypted!,
+          senderPubKey: keyPair.publicKey,
+        );
+        expect(decrypted, equals(message));
 
-          await dartSigner.dispose();
-        },
-      );
+        await dartSigner.dispose();
+      });
 
-      test(
-        'encrypt with Bip340EventSigner, decrypt with WebEventSigner',
-        () async {
-          final dartSigner = Bip340EventSigner(
-            privateKey: otherKeyPair.privateKey,
-            publicKey: otherKeyPair.publicKey,
-          );
+      test('encrypt with Bip340Signer, decrypt with WebSigner', () async {
+        final dartSigner = Bip340Signer(
+          privateKey: otherKeyPair.privateKey,
+          publicKey: otherKeyPair.publicKey,
+        );
 
-          const message = 'Hello from Dart NIP-44!';
-          final encrypted = await dartSigner.encryptNip44(
-            plaintext: message,
-            recipientPubKey: keyPair.publicKey,
-          );
-          expect(encrypted, isNotNull);
+        const message = 'Hello from Dart NIP-44!';
+        final encrypted = await dartSigner.encryptNip44(
+          plaintext: message,
+          recipientPubKey: keyPair.publicKey,
+        );
+        expect(encrypted, isNotNull);
 
-          final decrypted = await signer.decryptNip44(
-            ciphertext: encrypted!,
-            senderPubKey: otherKeyPair.publicKey,
-          );
-          expect(decrypted, equals(message));
+        final decrypted = await signer.decryptNip44(
+          ciphertext: encrypted!,
+          senderPubKey: otherKeyPair.publicKey,
+        );
+        expect(decrypted, equals(message));
 
-          await dartSigner.dispose();
-        },
-      );
+        await dartSigner.dispose();
+      });
     });
 
     group('pending requests (local signer)', () {
@@ -214,7 +196,7 @@ void main() {
       test('dispose closes stream without error', () async {
         await signer.dispose();
         // Recreate for tearDown
-        signer = WebEventSigner(
+        signer = WebSigner(
           privateKey: keyPair.privateKey,
           publicKey: keyPair.publicKey,
         );
@@ -222,8 +204,8 @@ void main() {
     });
   });
 
-  group('WebEventSignerFactory', () {
-    const factory = WebEventSignerFactory();
+  group('WebSignerFactory', () {
+    const factory = WebSignerFactory();
 
     test('derivePublicKey matches Bip340', () {
       final keyPair = Bip340.generatePrivateKey();

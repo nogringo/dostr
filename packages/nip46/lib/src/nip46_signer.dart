@@ -15,7 +15,7 @@ class _PendingRequestEntry {
   _PendingRequestEntry(this.completer, this.request);
 }
 
-class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
+class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   BunkerConnection connection;
   RelayReqs relayReqs;
   RelayPublishes relayPublishes;
@@ -32,8 +32,8 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
 
   String? cachedPublicKey;
 
-  late EventSigner localEventSigner;
-  final LocalEventSignerFactory eventSignerFactory;
+  late NostrSigner localSigner;
+  final LocalSignerFactory signerFactory;
 
   @override
   final int maxConcurrentRequests;
@@ -43,18 +43,18 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   /// Lower this if you hit relay rate limits.
   static const int defaultMaxConcurrentRequests = 100;
 
-  Nip46EventSigner({
+  Nip46Signer({
     required this.connection,
     required this.relayReqs,
     required this.relayPublishes,
     this.authCallback,
     this.cachedPublicKey,
-    required this.eventSignerFactory,
+    required this.signerFactory,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
-    localEventSigner = eventSignerFactory.create(
+    localSigner = signerFactory.create(
       privateKey: connection.privateKey,
-      publicKey: eventSignerFactory.derivePublicKey(connection.privateKey),
+      publicKey: signerFactory.derivePublicKey(connection.privateKey),
     );
 
     listenRelays();
@@ -64,7 +64,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
     final filter = Filter(
       authors: [connection.remotePubkey],
       kinds: [BunkerRequest.kKind],
-      pTags: [localEventSigner.getPublicKey()],
+      pTags: [localSigner.getPublicKey()],
     );
     subscription = relayReqs.req(
       relays: {
@@ -80,7 +80,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
   }
 
   Future<void> onEvent(Nip01Event event) async {
-    final decryptedContent = await localEventSigner.decryptNip44(
+    final decryptedContent = await localSigner.decryptNip44(
       ciphertext: event.content,
       senderPubKey: event.pubKey,
     );
@@ -151,13 +151,13 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
         throw SignerRequestCancelledException(request.id);
       }
 
-      final encryptedRequest = await localEventSigner.encryptNip44(
+      final encryptedRequest = await localSigner.encryptNip44(
         plaintext: jsonEncode(request),
         recipientPubKey: connection.remotePubkey,
       );
 
       final requestEvent = Nip01Event(
-        pubKey: localEventSigner.getPublicKey(),
+        pubKey: localSigner.getPublicKey(),
         kind: BunkerRequest.kKind,
         tags: [
           ["p", connection.remotePubkey],
@@ -165,7 +165,7 @@ class Nip46EventSigner with ConcurrencyLimiterMixin implements EventSigner {
         content: encryptedRequest!,
       );
 
-      final signedEvent = await localEventSigner.sign(requestEvent);
+      final signedEvent = await localSigner.sign(requestEvent);
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
       relayPublishes.publish(signedEvent, relays: connection.relays);

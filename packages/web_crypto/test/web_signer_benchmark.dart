@@ -12,7 +12,7 @@ void _report(String label, int count, int ms) {
 }
 
 void main() {
-  group('WebEventSigner benchmark', () {
+  group('WebSigner benchmark', () {
     late KeyPair keyPair;
     late Nip01Event event;
 
@@ -29,11 +29,11 @@ void main() {
     test('benchmark sign', () async {
       const count = 10;
 
-      final webSigner = WebEventSigner(
+      final webSigner = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
-      final dartSigner = Bip340EventSigner(
+      final dartSigner = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -52,7 +52,7 @@ void main() {
         await webSigner.sign(event);
       }
       sw.stop();
-      _report('WebEventSigner.sign', count, sw.elapsedMilliseconds);
+      _report('WebSigner.sign', count, sw.elapsedMilliseconds);
 
       // Dart
       sw = Stopwatch()..start();
@@ -60,7 +60,7 @@ void main() {
         await dartSigner.sign(event);
       }
       sw.stop();
-      _report('Bip340EventSigner.sign', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.sign', count, sw.elapsedMilliseconds);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -69,7 +69,7 @@ void main() {
     test('benchmark verify', () async {
       const count = 50;
 
-      final signer = Bip340EventSigner(
+      final signer = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -109,11 +109,11 @@ void main() {
       const message = 'Hello, NIP-04 benchmark!';
       final otherKeyPair = Bip340.generatePrivateKey();
 
-      final webSigner = WebEventSigner(
+      final webSigner = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
-      final dartSigner = Bip340EventSigner(
+      final dartSigner = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -132,7 +132,7 @@ void main() {
         await webSigner.encrypt(message, otherKeyPair.publicKey);
       }
       sw.stop();
-      _report('WebEventSigner.nip04Encrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip04Encrypt', count, sw.elapsedMilliseconds);
 
       // Dart
       sw = Stopwatch()..start();
@@ -140,7 +140,7 @@ void main() {
         await dartSigner.encrypt(message, otherKeyPair.publicKey);
       }
       sw.stop();
-      _report('Bip340EventSigner.nip04Encrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip04Encrypt', count, sw.elapsedMilliseconds);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -151,11 +151,11 @@ void main() {
       const message = 'Hello, NIP-44 benchmark!';
       final otherKeyPair = Bip340.generatePrivateKey();
 
-      final webSigner = WebEventSigner(
+      final webSigner = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
-      final dartSigner = Bip340EventSigner(
+      final dartSigner = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -183,7 +183,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('WebEventSigner.nip44Encrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip44Encrypt', count, sw.elapsedMilliseconds);
 
       // Dart
       sw = Stopwatch()..start();
@@ -194,7 +194,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('Bip340EventSigner.nip44Encrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip44Encrypt', count, sw.elapsedMilliseconds);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -205,11 +205,11 @@ void main() {
       const message = 'Hello, NIP-04 decrypt benchmark!';
       final otherKeyPair = Bip340.generatePrivateKey();
 
-      final webSigner = WebEventSigner(
+      final webSigner = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
-      final dartSigner = Bip340EventSigner(
+      final dartSigner = Bip340Signer(
         privateKey: otherKeyPair.privateKey,
         publicKey: otherKeyPair.publicKey,
       );
@@ -234,7 +234,7 @@ void main() {
         await dartSigner.decrypt(encrypted, keyPair.publicKey);
       }
       sw.stop();
-      _report('Bip340EventSigner.nip04Decrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip04Decrypt', count, sw.elapsedMilliseconds);
 
       // Web decrypt
       sw = Stopwatch()..start();
@@ -242,7 +242,7 @@ void main() {
         await webSigner.decrypt(encrypted, otherKeyPair.publicKey);
       }
       sw.stop();
-      _report('WebEventSigner.nip04Decrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip04Decrypt', count, sw.elapsedMilliseconds);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -253,11 +253,11 @@ void main() {
       const message = 'Hello, NIP-44 decrypt benchmark!';
       final otherKeyPair = Bip340.generatePrivateKey();
 
-      final webSigner = WebEventSigner(
+      final webSigner = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
-      final dartSigner = Bip340EventSigner(
+      final dartSigner = Bip340Signer(
         privateKey: otherKeyPair.privateKey,
         publicKey: otherKeyPair.publicKey,
       );
@@ -291,7 +291,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('Bip340EventSigner.nip44Decrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip44Decrypt', count, sw.elapsedMilliseconds);
 
       // Web decrypt
       sw = Stopwatch()..start();
@@ -302,7 +302,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('WebEventSigner.nip44Decrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip44Decrypt', count, sw.elapsedMilliseconds);
 
       await webSigner.dispose();
       await dartSigner.dispose();

@@ -23,7 +23,7 @@ void main() {
   late bool Function(String url) answer;
 
   Blossom clientWith({required bool handler}) {
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
     accounts.loginPrivateKey(privkey: key.privateKey!);
     return blossomFor(
       accounts,
@@ -114,7 +114,7 @@ void main() {
         final account = Account(
           type: AccountType.privateKey,
           pubkey: other.publicKey,
-          signer: Bip340EventSigner(
+          signer: Bip340Signer(
             privateKey: other.privateKey,
             publicKey: other.publicKey,
           ),
@@ -152,7 +152,7 @@ void main() {
       final account = Account(
         type: AccountType.privateKey,
         pubkey: key.publicKey,
-        signer: Bip340EventSigner(
+        signer: Bip340Signer(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
@@ -176,7 +176,7 @@ void main() {
       final account = Account(
         type: AccountType.privateKey,
         pubkey: key.publicKey,
-        signer: Bip340EventSigner(
+        signer: Bip340Signer(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),

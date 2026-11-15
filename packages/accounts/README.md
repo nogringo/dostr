@@ -16,7 +16,7 @@ dependencies:
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 
-final accounts = Accounts(const Bip340EventSignerFactory());
+final accounts = Accounts(const Bip340SignerFactory());
 
 accounts.authStateChanges.listen((account) {
   // null when logged out
@@ -29,7 +29,7 @@ accounts.switchAccount(pubkey: key.publicKey);
 final signed = await accounts.sign(event);
 ```
 
-The `LocalEventSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `EventSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
+The `LocalSignerFactory` given to `Accounts` builds the signers of `loginPrivateKey` and `loginPublicKey`. `loginExternalSigner` takes any `NostrSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
 
 ```dart
 final signer = bunkers.createSigner(connection);
@@ -87,6 +87,7 @@ What changed:
 
 | `ndk` | `dostr_accounts` |
 |-------|------------------|
+| `eventSignerFactory` | `signerFactory` |
 | `loginPrivateKey(pubkey: ..., privkey: ...)` | `loginPrivateKey(privkey: ...)`, the pubkey is derived |
 | `addAccount(pubkey: ..., type: ..., signer: ...)`, replaced an existing account | `addAccount(type: ..., signer: ...)`, takes the pubkey of the signer and throws `AccountExistsException` for an existing one |
 | `logout()` and `removeAccount()` returned `void` and left the signer open | return a `Future` that completes once the signer is disposed of |

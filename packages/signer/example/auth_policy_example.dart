@@ -1,7 +1,7 @@
 import 'package:dostr_signer/dostr_signer.dart';
 
 /// Authenticates as [signer] only when a server asks for it.
-AuthPolicy whenAsked(EventSigner signer) => AuthPolicy.allow(
+AuthPolicy whenAsked(NostrSigner signer) => AuthPolicy.allow(
   Account(
     type: AccountType.privateKey,
     pubkey: signer.getPublicKey(),

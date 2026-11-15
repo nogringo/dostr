@@ -67,7 +67,7 @@ class Zaps {
   /// creates a zap request
   Future<ZapRequest> createZapRequest({
     required int amountSats,
-    required EventSigner signer,
+    required NostrSigner signer,
     required String pubKey,
     String? eventId,
     String? addressableId,

@@ -10,12 +10,12 @@ import 'package:web/web.dart' as web;
 import 'js_interop.dart';
 import 'nostr_crypto_js.dart';
 
-/// Web factory: produces [WebEventSigner] instances using @noble/curves.
-class WebEventSignerFactory implements LocalEventSignerFactory {
-  const WebEventSignerFactory();
+/// Web factory: produces [WebSigner] instances using @noble/curves.
+class WebSignerFactory implements LocalSignerFactory {
+  const WebSignerFactory();
 
   @override
-  EventSigner create({String? privateKey, String? publicKey}) {
+  NostrSigner create({String? privateKey, String? publicKey}) {
     final derivedPublicKey =
         publicKey ?? (privateKey != null ? derivePublicKey(privateKey) : null);
 
@@ -23,15 +23,13 @@ class WebEventSignerFactory implements LocalEventSignerFactory {
       throw ArgumentError('Either publicKey or privateKey must be provided');
     }
 
-    return WebEventSigner(privateKey: privateKey, publicKey: derivedPublicKey);
+    return WebSigner(privateKey: privateKey, publicKey: derivedPublicKey);
   }
 
   @override
   String derivePublicKey(String privateKey) {
-    WebEventSigner._injectJS();
-    return WebEventSigner._requireNostrCrypto()
-        .getPublicKey(privateKey.toJS)
-        .toDart;
+    WebSigner._injectJS();
+    return WebSigner._requireNostrCrypto().getPublicKey(privateKey.toJS).toDart;
   }
 
   @override
@@ -45,15 +43,15 @@ class WebEventSignerFactory implements LocalEventSignerFactory {
   }
 
   @override
-  EventSigner createWithNewKeyPair() {
+  NostrSigner createWithNewKeyPair() {
     final (privateKey, publicKey) = generateKeyPair();
     return create(privateKey: privateKey, publicKey: publicKey);
   }
 }
 
-/// Web implementation of EventSigner using @noble/curves and Web Crypto API
+/// Web implementation of NostrSigner using @noble/curves and Web Crypto API
 /// via JS interop for fast BIP-340 signing, NIP-04 and NIP-44 encryption.
-class WebEventSigner implements EventSigner {
+class WebSigner implements NostrSigner {
   /// hex private key
   String? privateKey;
 
@@ -63,8 +61,8 @@ class WebEventSigner implements EventSigner {
   final Completer<bool> _isInitialized = Completer<bool>();
   static bool _jsInjected = false;
 
-  /// Get a new web event signer with the given keys
-  WebEventSigner({required this.privateKey, required this.publicKey}) {
+  /// Get a new web signer with the given keys
+  WebSigner({required this.privateKey, required this.publicKey}) {
     _init();
   }
 

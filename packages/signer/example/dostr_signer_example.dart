@@ -2,7 +2,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 /// Returns null when the user rejects or cancels the request on the signer.
-Future<Nip01Event?> signNote(EventSigner signer, String text) async {
+Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
   try {
     return await signer.sign(
       Nip01Event(

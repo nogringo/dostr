@@ -39,7 +39,7 @@ final _aborted = throwsA(isA<http.RequestAbortedException>());
 void main() {
   late Accounts accounts;
 
-  setUp(() => accounts = Accounts(const Bip340EventSignerFactory()));
+  setUp(() => accounts = Accounts(const Bip340SignerFactory()));
   tearDown(() => accounts.dispose());
 
   Blossom blossomFor(
@@ -47,7 +47,7 @@ void main() {
     BlossomRepository? repository,
   }) => Blossom(
     accounts: accounts,
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    signerFactory: const Bip340SignerFactory(),
     getUserServerList: getUserServerList,
     blossomRepository: repository,
   );

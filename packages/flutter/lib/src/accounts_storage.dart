@@ -30,29 +30,29 @@ class AccountsStorage {
     final stored = NostrWidgetsAccounts(accounts: []);
 
     for (var account in accounts.accounts.values) {
-      if (account.signer is Nip07EventSigner) {
+      if (account.signer is Nip07Signer) {
         stored.accounts.add(
           NostrAccount(kind: AccountKinds.nip07, pubkey: account.pubkey),
         );
         continue;
       }
 
-      if (account.signer is Nip55EventSigner) {
+      if (account.signer is Nip55Signer) {
         // `signerSeed` holds the signer app package so
         // silent signing keeps working after restart.
-        final signer = account.signer as Nip55EventSigner;
+        final signer = account.signer as Nip55Signer;
         stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.nip55,
             pubkey: account.pubkey,
-            signerSeed: signer.nip55Signer.package,
+            signerSeed: signer.signerApp.package,
           ),
         );
         continue;
       }
 
-      if (account.signer is Nip46EventSigner) {
-        final signer = account.signer as Nip46EventSigner;
+      if (account.signer is Nip46Signer) {
+        final signer = account.signer as Nip46Signer;
         stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.bunker,
@@ -100,7 +100,7 @@ class AccountsStorage {
       if (accounts.hasAccount(account.pubkey)) continue;
 
       if (account.kind == AccountKinds.nip07) {
-        final signer = Nip07EventSigner(cachedPublicKey: account.pubkey);
+        final signer = Nip07Signer(cachedPublicKey: account.pubkey);
         accounts.addAccount(type: AccountType.externalSigner, signer: signer);
         continue;
       }
@@ -108,24 +108,24 @@ class AccountsStorage {
       if (account.kind == AccountKinds.nip55) {
         accounts.addAccount(
           type: AccountType.externalSigner,
-          signer: Nip55EventSigner(
+          signer: Nip55Signer(
             publicKey: account.pubkey,
             // restore the signer app package captured at login (null for
             // legacy accounts -> Android routes through a compatible signer).
-            nip55Signer: Nip55Signer(package: account.signerSeed),
+            signerApp: Nip55SignerApp(package: account.signerSeed),
           ),
         );
         continue;
       }
 
       if (account.kind == AccountKinds.bunker) {
-        final signer = Nip46EventSigner(
+        final signer = Nip46Signer(
           connection: BunkerConnection.fromJson(
             jsonDecode(account.signerSeed!),
           ),
           relayReqs: relayReqs,
           relayPublishes: relayPublishes,
-          eventSignerFactory: accounts.eventSignerFactory,
+          signerFactory: accounts.signerFactory,
           cachedPublicKey: account.pubkey,
         );
         accounts.addAccount(type: AccountType.externalSigner, signer: signer);
@@ -135,7 +135,7 @@ class AccountsStorage {
       if (account.kind == AccountKinds.pubkey) {
         accounts.addAccount(
           type: AccountType.publicKey,
-          signer: accounts.eventSignerFactory.create(
+          signer: accounts.signerFactory.create(
             privateKey: null,
             publicKey: account.pubkey,
           ),
@@ -146,7 +146,7 @@ class AccountsStorage {
       if (account.kind == AccountKinds.privkey) {
         accounts.addAccount(
           type: AccountType.privateKey,
-          signer: accounts.eventSignerFactory.create(
+          signer: accounts.signerFactory.create(
             privateKey: account.signerSeed!,
           ),
         );

@@ -2,13 +2,13 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-class Nip07EventSigner implements EventSigner {
+class Nip07Signer implements NostrSigner {
   String? cachedPublicKey;
 
   final _pendingRequestsController =
       BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
 
-  Nip07EventSigner({this.cachedPublicKey, int maxConcurrentRequests = 100})
+  Nip07Signer({this.cachedPublicKey, int maxConcurrentRequests = 100})
     : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
 
   @override

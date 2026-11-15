@@ -25,7 +25,7 @@ void main() {
 
     KeyPair key1 = Bip340.generatePrivateKey();
 
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
     accounts.loginPrivateKey(privkey: key1.privateKey!);
 
     loggedAccount = accounts.getLoggedAccount()!;

@@ -1,7 +1,7 @@
 import 'package:dostr_nip07/dostr_nip07.dart';
 
 Future<void> main() async {
-  final signer = Nip07EventSigner();
+  final signer = Nip07Signer();
   if (!signer.canSign()) {
     print('No NIP-07 extension in this browser');
     return;

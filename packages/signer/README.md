@@ -1,8 +1,8 @@
 # dostr_signer
 
-The `EventSigner` interface that Dostr signers implement, whether they hold the
-key (`Bip340EventSigner`), ask a remote bunker (NIP-46), a browser extension
-(NIP-07) or a signer app (NIP-55). It comes with `LocalEventSignerFactory`,
+The `NostrSigner` interface that Dostr signers implement, whether they hold the
+key (`Bip340Signer`), ask a remote bunker (NIP-46), a browser extension
+(NIP-07) or a signer app (NIP-55). It comes with `LocalSignerFactory`,
 the `PendingSignerRequest` that interactive signers expose while they wait for
 the user, and the `SignerRequestRejectedException` and
 `SignerRequestCancelledException` they throw.
@@ -29,13 +29,13 @@ dependencies:
 
 ## Usage
 
-Code that signs takes any `EventSigner`:
+Code that signs takes any `NostrSigner`:
 
 ```dart
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-Future<Nip01Event?> signNote(EventSigner signer, String text) async {
+Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
   try {
     return await signer.sign(
       Nip01Event(
@@ -58,17 +58,17 @@ An interactive signer lists what waits for the user in `pendingRequests` and
 has an empty list. `ConcurrencyLimiterMixin` caps how many requests an
 interactive signer sends at once and queues the rest.
 
-To write a signer, implement `EventSigner`, and `LocalEventSignerFactory` if
+To write a signer, implement `NostrSigner`, and `LocalSignerFactory` if
 the Dostr packages should create it from a private key.
 
 ## Signers
 
 | Type | Package | Description | Pending requests |
 |------|---------|-------------|------------------|
-| `Bip340EventSigner` | [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) | Local signer with the private key, pure Dart | No (instant) |
-| `Nip46EventSigner` | [`dostr_nip46`](https://pub.dev/packages/dostr_nip46) | Remote signer through a NIP-46 bunker | Yes |
-| `Nip07EventSigner` | [`dostr_nip07`](https://pub.dev/packages/dostr_nip07) | Browser extension (NIP-07) | Yes |
-| `Nip55EventSigner` | [`dostr_nip55`](https://pub.dev/packages/dostr_nip55) | Android signer app (NIP-55), Flutter plugin | Yes |
+| `Bip340Signer` | [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) | Local signer with the private key, pure Dart | No (instant) |
+| `Nip46Signer` | [`dostr_nip46`](https://pub.dev/packages/dostr_nip46) | Remote signer through a NIP-46 bunker | Yes |
+| `Nip07Signer` | [`dostr_nip07`](https://pub.dev/packages/dostr_nip07) | Browser extension (NIP-07) | Yes |
+| `Nip55Signer` | [`dostr_nip55`](https://pub.dev/packages/dostr_nip55) | Android signer app (NIP-55), Flutter plugin | Yes |
 
 To keep several accounts and switch between them, see
 [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
@@ -142,7 +142,7 @@ Dispose a signer, or the account that holds it, when done:
 
 ## Accounts and authentication
 
-- `Account`: a pubkey and the `EventSigner` that signs for it.
+- `Account`: a pubkey and the `NostrSigner` that signs for it.
 - `AuthAccounts`: where the logged-in account comes from, implemented by
   `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 - `AuthPolicy`: what one operation may reveal. `never()` stays anonymous,
@@ -166,9 +166,10 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 
 ## Coming from `ndk`
 
-`EventSigner`, `LocalEventSignerFactory`, `PendingSignerRequest`, the two
-exceptions and `ConcurrencyLimiterMixin` used to be in `ndk`. What changed is
-in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
+`PendingSignerRequest`, the two exceptions and `ConcurrencyLimiterMixin` used
+to be in `ndk`, and so did `NostrSigner` and `LocalSignerFactory`, as
+`EventSigner` and `LocalEventSignerFactory`. What changed is in the
+[`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 
 `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`,
 `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart`

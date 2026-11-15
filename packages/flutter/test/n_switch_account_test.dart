@@ -18,7 +18,7 @@ void main() {
     dostr.accounts.loginPublicKey(pubkey: bobPubkey);
     dostr.accounts.addAccount(
       type: AccountType.externalSigner,
-      signer: Nip07EventSigner(cachedPublicKey: carolPubkey),
+      signer: Nip07Signer(cachedPublicKey: carolPubkey),
     );
     dostr.accounts.loginPrivateKey(privkey: alicePrivateKey);
   });
@@ -64,9 +64,9 @@ void main() {
     dostr.accounts.removeAccount(pubkey: carolPubkey);
     dostr.accounts.addAccount(
       type: AccountType.externalSigner,
-      signer: Nip55EventSigner(
+      signer: Nip55Signer(
         publicKey: carolPubkey,
-        nip55Signer: const Nip55Signer(),
+        signerApp: const Nip55SignerApp(),
       ),
     );
 

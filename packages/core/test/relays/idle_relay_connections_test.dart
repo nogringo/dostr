@@ -60,7 +60,7 @@ class _NoConnections implements NostrTransportFactory {
       throw StateError('Tests must not open network connections');
 }
 
-class _Signer implements EventSigner {
+class _Signer implements NostrSigner {
   @override
   bool canSign() => true;
   @override

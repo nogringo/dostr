@@ -15,7 +15,7 @@ void main() {
   serverList;
 
   setUp(() {
-    accounts = Accounts(const Bip340EventSignerFactory());
+    accounts = Accounts(const Bip340SignerFactory());
     relayEvents = [];
     queries = [];
     published = [];

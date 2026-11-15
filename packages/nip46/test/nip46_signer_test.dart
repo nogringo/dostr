@@ -8,7 +8,7 @@ const _clientPrivateKey =
     '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc';
 
 void main() {
-  const eventSignerFactory = Bip340EventSignerFactory();
+  const signerFactory = Bip340SignerFactory();
 
   late RelayManager relayManager;
   late RelayReqs relayReqs;
@@ -29,7 +29,7 @@ void main() {
 
   tearDown(() => relayManager.closeAllTransports());
 
-  Nip46EventSigner newSigner(List<String> relays) => Nip46EventSigner(
+  Nip46Signer newSigner(List<String> relays) => Nip46Signer(
     connection: BunkerConnection(
       privateKey: _clientPrivateKey,
       remotePubkey: MockRemoteSigner.publicKey,
@@ -37,13 +37,13 @@ void main() {
     ),
     relayReqs: relayReqs,
     relayPublishes: relayPublishes,
-    eventSignerFactory: eventSignerFactory,
+    signerFactory: signerFactory,
   );
 
-  group('Nip46EventSigner', () {
+  group('Nip46Signer', () {
     late MockRelay relay;
     late MockRemoteSigner remoteSigner;
-    late Nip46EventSigner signer;
+    late Nip46Signer signer;
 
     setUp(() async {
       relay = MockRelay();
@@ -113,7 +113,7 @@ void main() {
       final bunkers = Bunkers(
         relayReqs: relayReqs,
         relayPublishes: relayPublishes,
-        eventSignerFactory: eventSignerFactory,
+        signerFactory: signerFactory,
       );
 
       final bunkerConnection = await bunkers.connectWithBunkerUrl(
@@ -147,7 +147,7 @@ void main() {
 
     test('decrypt should request remote decryption', () async {
       final keyPair = Bip340.generatePrivateKey();
-      final localSigner = Bip340EventSigner(
+      final localSigner = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -170,7 +170,7 @@ void main() {
       () async {
         const testMessage = 'Hello, this is a test message to encrypt!';
         final keyPair = Bip340.generatePrivateKey();
-        final localSigner = Bip340EventSigner(
+        final localSigner = Bip340Signer(
           privateKey: keyPair.privateKey,
           publicKey: keyPair.publicKey,
         );
@@ -194,7 +194,7 @@ void main() {
 
     test('decryptNip44 should request remote NIP-44 decryption', () async {
       final keyPair = Bip340.generatePrivateKey();
-      final localSigner = Bip340EventSigner(
+      final localSigner = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -217,7 +217,7 @@ void main() {
       () async {
         const testMessage = 'Hello, this is a NIP-44 encryption test!';
         final keyPair = Bip340.generatePrivateKey();
-        final localSigner = Bip340EventSigner(
+        final localSigner = Bip340Signer(
           privateKey: keyPair.privateKey,
           publicKey: keyPair.publicKey,
         );

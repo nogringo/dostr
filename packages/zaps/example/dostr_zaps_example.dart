@@ -53,7 +53,7 @@ Future<void> main(List<String> args) async {
     final key = Bip340.generatePrivateKey();
     final zapRequest = await zaps.createZapRequest(
       amountSats: 21,
-      signer: Bip340EventSigner(
+      signer: Bip340Signer(
         privateKey: key.privateKey,
         publicKey: key.publicKey,
       ),

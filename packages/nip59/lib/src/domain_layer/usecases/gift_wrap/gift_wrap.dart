@@ -15,9 +15,9 @@ class GiftWrap {
 
   /// Signer used when a call gets no `customSigner`, such as the logged-in
   /// account's, or null when there is none.
-  final EventSigner? Function() signer;
+  final NostrSigner? Function() signer;
   final EventVerifier eventVerifier;
-  final LocalEventSignerFactory eventSignerFactory;
+  final LocalSignerFactory signerFactory;
 
   /// Without it, every unwrap decrypts again.
   final GiftWrapCache? cache;
@@ -25,11 +25,11 @@ class GiftWrap {
   GiftWrap({
     required this.signer,
     required this.eventVerifier,
-    required this.eventSignerFactory,
+    required this.signerFactory,
     this.cache,
   });
 
-  EventSigner _getSigner({EventSigner? customSigner}) {
+  NostrSigner _getSigner({NostrSigner? customSigner}) {
     final resolved = customSigner ?? signer();
     if (resolved == null) {
       throw Exception("cannot sign without account or custom signer");
@@ -57,7 +57,7 @@ class GiftWrap {
   Future<Nip01Event> toGiftWrap({
     required Nip01Event rumor,
     required String recipientPubkey,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
   }) async {
     final sealCreatedAt = _randomCreatedAtBefore(rumor.createdAt);
 
@@ -71,7 +71,7 @@ class GiftWrap {
     final giftWrap = await wrapEvent(
       recipientPublicKey: recipientPubkey,
       sealEvent: sealedRumor,
-      eventSignerFactory: eventSignerFactory,
+      signerFactory: signerFactory,
       randomizeCreatedAtBefore: rumor.createdAt,
     );
     return giftWrap;
@@ -85,7 +85,7 @@ class GiftWrap {
   /// [returns] the original rumor event
   Future<Nip01Event> fromGiftWrap({
     required Nip01Event giftWrap,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
     bool verifySignature = true,
   }) async {
     if (giftWrap.kind != kGiftWrapEventkind) {
@@ -112,7 +112,7 @@ class GiftWrap {
   /// [verifySignature] works as in [fromGiftWrap].
   Future<Nip01Event?> tryFromGiftWrapFromCache({
     required Nip01Event giftWrap,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
     bool verifySignature = true,
   }) async {
     if (giftWrap.kind != kGiftWrapEventkind) {
@@ -169,7 +169,7 @@ class GiftWrap {
   /// [returns] a [GiftWrapUnwrapResult] containing the seal, rumor, and verification status
   Future<GiftWrapUnwrapResult> fromGiftWrapWithInfo({
     required Nip01Event giftWrap,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
   }) async {
     if (giftWrap.kind != kGiftWrapEventkind) {
       throw Exception("Event is not a gift wrap (kind:1059)");
@@ -230,7 +230,7 @@ class GiftWrap {
   Future<Nip01Event> sealRumor({
     required Nip01Event rumor,
     required String recipientPubkey,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
     int? createdAt,
   }) async {
     final signer = _getSigner(customSigner: customSigner);
@@ -269,7 +269,7 @@ class GiftWrap {
   /// Throws [Exception] if verification fails and verifySignature is true
   Future<Nip01Event> unsealRumor({
     required Nip01Event sealedEvent,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
     bool verifySignature = true,
   }) async {
     // Verify seal signature if requested
@@ -305,7 +305,7 @@ class GiftWrap {
   /// wraps a sealed msg \
   /// [recipientPublicKey] the reciever of the rumor \
   /// [sealEvent] not wrapped event \
-  /// [eventSignerFactory] factory to create event signers \
+  /// [signerFactory] factory to create signers \
   /// [createdAt] exact created_at timestamp to use for the gift wrap \
   /// [randomizeCreatedAtBefore] randomizes created_at in the 2 days before this timestamp \
   /// [returns] giftWrapEvent
@@ -313,12 +313,12 @@ class GiftWrap {
     required String recipientPublicKey,
     required Nip01Event sealEvent,
     List<List<String>>? additionalTags,
-    required LocalEventSignerFactory eventSignerFactory,
+    required LocalSignerFactory signerFactory,
     int? createdAt,
     int? randomizeCreatedAtBefore,
   }) async {
     // Generate a random one-time-use keypair
-    final ephemeralSigner = eventSignerFactory.createWithNewKeyPair();
+    final ephemeralSigner = signerFactory.createWithNewKeyPair();
 
     final encryptedSeal = await ephemeralSigner.encryptNip44(
       plaintext: sealEvent.toJsonString(),
@@ -363,7 +363,7 @@ class GiftWrap {
   /// [customSigner] optional signer to use instead of the logged-in account's signer
   Future<Nip01Event> unwrapEvent({
     required Nip01Event wrappedEvent,
-    EventSigner? customSigner,
+    NostrSigner? customSigner,
   }) async {
     final signer = _getSigner(customSigner: customSigner);
 

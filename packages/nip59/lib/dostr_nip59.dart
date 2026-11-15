@@ -4,7 +4,7 @@
 /// final giftWrap = GiftWrap(
 ///   signer: () => signer,
 ///   eventVerifier: verifier,
-///   eventSignerFactory: const Bip340EventSignerFactory(),
+///   signerFactory: const Bip340SignerFactory(),
 /// );
 /// final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubkey: pubkey);
 /// ```

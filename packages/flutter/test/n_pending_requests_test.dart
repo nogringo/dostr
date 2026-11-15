@@ -8,7 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'helpers.dart';
 
 /// A signer app that answers only when the test completes [answers].
-class _HeldNip55Signer extends Nip55Signer {
+class _HeldNip55SignerApp extends Nip55SignerApp {
   final answers = <Completer<Map<dynamic, dynamic>>>[];
 
   Future<Map<dynamic, dynamic>> _hold() {
@@ -43,14 +43,14 @@ class _HeldNip55Signer extends Nip55Signer {
 
 void main() {
   late TestDostrFlutter dostr;
-  late _HeldNip55Signer app;
-  late Nip55EventSigner signer;
+  late _HeldNip55SignerApp app;
+  late Nip55Signer signer;
   late List<Object> errors;
 
   setUp(() {
     dostr = TestDostrFlutter();
-    app = _HeldNip55Signer();
-    signer = Nip55EventSigner(publicKey: alicePubkey, nip55Signer: app);
+    app = _HeldNip55SignerApp();
+    signer = Nip55Signer(publicKey: alicePubkey, signerApp: app);
     errors = [];
     dostr.accounts.loginExternalSigner(signer: signer);
   });

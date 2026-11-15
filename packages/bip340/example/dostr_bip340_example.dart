@@ -2,7 +2,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 Future<void> main() async {
-  final signer = Bip340EventSignerFactory().createWithNewKeyPair();
+  final signer = Bip340SignerFactory().createWithNewKeyPair();
 
   final event = await signer.sign(
     Nip01Event(

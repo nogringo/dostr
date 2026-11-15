@@ -13,7 +13,7 @@ import 'accounts_exceptions.dart';
 /// [Accounts], disposes of the signer.
 class Accounts implements AuthAccounts {
   /// Builds the signers of [loginPrivateKey] and [loginPublicKey].
-  final LocalEventSignerFactory eventSignerFactory;
+  final LocalSignerFactory signerFactory;
 
   final Map<String, Account> _accounts = {};
   String? _loggedPubkey;
@@ -24,7 +24,7 @@ class Accounts implements AuthAccounts {
     UnmodifiableMapView(<String, Account>{}),
   );
 
-  Accounts(this.eventSignerFactory);
+  Accounts(this.signerFactory);
 
   /// The accounts by pubkey: an unmodifiable snapshot, the last one
   /// [accountsStream] emitted.
@@ -42,7 +42,7 @@ class Accounts implements AuthAccounts {
   /// Adds an account that signs with [privkey], whose pubkey it derives, and
   /// logs it in.
   void loginPrivateKey({required String privkey}) {
-    final pubkey = eventSignerFactory.derivePublicKey(privkey);
+    final pubkey = signerFactory.derivePublicKey(privkey);
     _loginLocal(AccountType.privateKey, pubkey: pubkey, privkey: privkey);
   }
 
@@ -54,7 +54,7 @@ class Accounts implements AuthAccounts {
   /// signer must know its pubkey first, from `getPublicKeyAsync`.
   ///
   /// [signer] belongs to the account from then on, unless this throws.
-  void loginExternalSigner({required EventSigner signer}) =>
+  void loginExternalSigner({required NostrSigner signer}) =>
       _login(AccountType.externalSigner, signer);
 
   bool hasAccount(String pubkey) => _accounts.containsKey(pubkey);
@@ -76,7 +76,7 @@ class Accounts implements AuthAccounts {
   ///
   /// Throws an [AccountExistsException] when that pubkey is already an
   /// account. Otherwise [signer] belongs to the account from then on.
-  Account addAccount({required AccountType type, required EventSigner signer}) {
+  Account addAccount({required AccountType type, required NostrSigner signer}) {
     final pubkey = signer.getPublicKey();
     _checkNew(pubkey);
     final account = Account(type: type, pubkey: pubkey, signer: signer);
@@ -139,13 +139,10 @@ class Accounts implements AuthAccounts {
     String? privkey,
   }) {
     _checkNew(pubkey);
-    _login(
-      type,
-      eventSignerFactory.create(privateKey: privkey, publicKey: pubkey),
-    );
+    _login(type, signerFactory.create(privateKey: privkey, publicKey: pubkey));
   }
 
-  void _login(AccountType type, EventSigner signer) {
+  void _login(AccountType type, NostrSigner signer) {
     final account = addAccount(type: type, signer: signer);
     switchAccount(pubkey: account.pubkey);
   }

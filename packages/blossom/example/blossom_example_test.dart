@@ -6,8 +6,8 @@ import 'package:test/test.dart';
 void main() async {
   test('download test', () async {
     final blossom = Blossom(
-      accounts: Accounts(const Bip340EventSignerFactory()),
-      eventSignerFactory: const Bip340EventSignerFactory(),
+      accounts: Accounts(const Bip340SignerFactory()),
+      signerFactory: const Bip340SignerFactory(),
       getUserServerList: (_) async => null,
     );
 

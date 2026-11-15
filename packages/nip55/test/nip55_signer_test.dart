@@ -1,262 +1,387 @@
-import 'dart:convert';
+import 'dart:async';
 
+import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+class _FakeNip55SignerApp extends Nip55SignerApp {
+  _FakeNip55SignerApp(this.response);
+
+  final Map<dynamic, dynamic> response;
+
+  @override
+  Future<Map<dynamic, dynamic>> signEvent({
+    required String currentUser,
+    required String eventJson,
+    String? id,
+  }) async {
+    return response;
+  }
+}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  const channel = MethodChannel('dostr_nip55');
-  const pubkey =
+  const privateKey =
+      'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127';
+  const publicKey =
       '953f12b4f6966a289fde9adfc511e00a66cfa4cb9d69551dee51f3f387e8e277';
-  const package = 'com.example.signer';
+  const stalePublicKey =
+      'e247d5da03bab4206b4d6ef5d9db0e175e0dbf51585fa16345dd53abdd2d9259';
 
-  late List<MethodCall> calls;
-  late Object? Function(MethodCall call) reply;
-
-  setUp(() {
-    calls = [];
-    reply = (_) => null;
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, (call) async {
-          calls.add(call);
-          return reply(call);
-        });
-  });
-
-  tearDown(() {
-    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-        .setMockMethodCallHandler(channel, null);
-  });
-
-  Map<dynamic, dynamic> argumentsOf(MethodCall call) =>
-      call.arguments as Map<dynamic, dynamic>;
-
-  group('isAppInstalled', () {
-    test('asks the native side', () async {
-      reply = (_) => true;
-
-      expect(await const Nip55Signer().isAppInstalled(), isTrue);
-      expect(calls.single.method, 'isAppInstalled');
-    });
-
-    test('is false when the native side answers nothing', () async {
-      expect(await const Nip55Signer().isAppInstalled(), isFalse);
-    });
-  });
-
-  group('login', () {
-    test('asks for the public key with the default permissions', () async {
-      reply = (_) => {'result': pubkey, 'package': package};
-
-      final login = await const Nip55Signer().login();
-
-      expect(login!.pubkey, pubkey);
-      expect(login.package, package);
-      expect(calls.single.method, 'nostrsigner');
-      final arguments = argumentsOf(calls.single);
-      expect(arguments['type'], 'get_public_key');
-      expect(arguments['uri_data'], 'login');
-      expect(arguments.containsKey('package'), isFalse);
-      expect(jsonDecode(arguments['permissions'] as String), [
-        {'type': 'sign_event'},
-        {'type': 'nip04_encrypt'},
-        {'type': 'nip04_decrypt'},
-        {'type': 'nip44_encrypt'},
-        {'type': 'nip44_decrypt'},
-      ]);
-    });
-
-    test('sends the permissions it is given, with their kind', () async {
-      reply = (_) => {'result': pubkey};
-
-      await const Nip55Signer().login(
-        permissions: const [
-          Nip55Permission(type: 'sign_event', kind: 22242),
-          Nip55Permission(type: 'nip44_decrypt'),
-        ],
-      );
-
-      expect(jsonDecode(argumentsOf(calls.single)['permissions'] as String), [
-        {'type': 'sign_event', 'kind': 22242},
-        {'type': 'nip44_decrypt'},
-      ]);
-    });
-
-    test('decodes the npub an older signer returns', () async {
-      reply = (_) => {'result': Npub(pubkey).encode()};
-
-      expect((await const Nip55Signer().login())!.pubkey, pubkey);
-    });
-
-    test('falls back to the signature field', () async {
-      reply = (_) => {'signature': pubkey};
-
-      expect((await const Nip55Signer().login())!.pubkey, pubkey);
-    });
-
-    test('prefers the result field over the signature field', () async {
-      reply = (_) => {'result': pubkey, 'signature': 'other'};
-
-      expect((await const Nip55Signer().login())!.pubkey, pubkey);
-    });
-
-    test('leaves out an empty package', () async {
-      reply = (_) => {'result': pubkey, 'package': ''};
-
-      expect((await const Nip55Signer().login())!.package, isNull);
-    });
-
-    test('is null when the signer app returns no key', () async {
-      expect(await const Nip55Signer().login(), isNull);
-
-      reply = (_) => {'result': ''};
-      expect(await const Nip55Signer().login(), isNull);
-    });
-
-    test('getPublicKeyHex returns the key in hex', () async {
-      reply = (_) => {'result': Npub(pubkey).encode()};
-
-      expect(await const Nip55Signer().getPublicKeyHex(), pubkey);
-    });
-
-    test('getPublicKey sends no permissions unless asked', () async {
-      reply = (_) => {'result': pubkey};
-
-      final response = await const Nip55Signer().getPublicKey();
-
-      expect(response['result'], pubkey);
-      expect(argumentsOf(calls.single).containsKey('permissions'), isFalse);
-    });
-  });
-
-  group('requests', () {
-    test('signEvent sends the event to the signer app of the login', () async {
-      reply = (_) => {'signature': 'sig'};
-
-      final response = await const Nip55Signer(
-        package: package,
-      ).signEvent(currentUser: pubkey, eventJson: '{"kind":1}', id: 'req-1');
-
-      expect(response, {'signature': 'sig'});
-      expect(argumentsOf(calls.single), {
-        'type': 'sign_event',
-        'current_user': pubkey,
-        'uri_data': '{"kind":1}',
-        'id': 'req-1',
-        'package': package,
-      });
-    });
-
-    test('leave the package out when none was captured', () async {
-      await const Nip55Signer().signEvent(currentUser: pubkey, eventJson: '{}');
-
-      expect(argumentsOf(calls.single).containsKey('package'), isFalse);
-    });
-
-    final cryptoRequests =
-        <
-          String,
-          Future<Map<dynamic, dynamic>> Function(
-            Nip55Signer signer,
-            String data,
-          )
-        >{
-          'nip04_encrypt': (signer, data) => signer.nip04Encrypt(
-            plaintext: data,
-            currentUser: pubkey,
-            pubKey: 'peer',
-            id: 'req-2',
+  group('Nip55Signer', () {
+    test(
+      'sign returns the event the external signer actually signed',
+      () async {
+        final externalSigner = Bip340Signer(
+          privateKey: privateKey,
+          publicKey: publicKey,
+        );
+        final actuallySigned = await externalSigner.sign(
+          Nip01Event(
+            pubKey: publicKey,
+            kind: 1,
+            tags: [
+              ['t', 'nostr'],
+            ],
+            content: 'test content',
+            createdAt: 1234567890,
           ),
-          'nip04_decrypt': (signer, data) => signer.nip04Decrypt(
-            ciphertext: data,
-            currentUser: pubkey,
-            pubKey: 'peer',
-            id: 'req-2',
-          ),
-          'nip44_encrypt': (signer, data) => signer.nip44Encrypt(
-            plaintext: data,
-            currentUser: pubkey,
-            pubKey: 'peer',
-            id: 'req-2',
-          ),
-          'nip44_decrypt': (signer, data) => signer.nip44Decrypt(
-            ciphertext: data,
-            currentUser: pubkey,
-            pubKey: 'peer',
-            id: 'req-2',
-          ),
-        };
-
-    for (final MapEntry(key: type, value: request) in cryptoRequests.entries) {
-      test('$type sends the counterparty under both key casings', () async {
-        reply = (_) => {'signature': 'out'};
-
-        final response = await request(
-          const Nip55Signer(package: package),
-          'in',
         );
 
-        expect(response['signature'], 'out');
-        expect(argumentsOf(calls.single), {
-          'type': type,
-          'uri_data': 'in',
-          'current_user': pubkey,
-          'pubKey': 'peer',
-          'pubkey': 'peer',
-          'id': 'req-2',
-          'package': package,
-        });
-      });
-    }
+        final signer = Nip55Signer(
+          publicKey: stalePublicKey,
+          signerApp: _FakeNip55SignerApp({
+            'signature': actuallySigned.sig,
+            'event': actuallySigned.toJsonString(),
+          }),
+        );
+        addTearDown(signer.dispose);
 
-    test('decryptZapEvent sends the zap request', () async {
-      await const Nip55Signer().decryptZapEvent(
-        eventJson: '{"kind":9734}',
-        currentUser: pubkey,
-        id: 'req-3',
-      );
+        final signedEvent = await signer.sign(
+          Nip01Event(
+            pubKey: stalePublicKey,
+            kind: 1,
+            tags: [
+              ['t', 'nostr'],
+            ],
+            content: 'test content',
+            createdAt: 1234567890,
+          ),
+        );
 
-      expect(argumentsOf(calls.single), {
-        'type': 'decrypt_zap_event',
-        'uri_data': '{"kind":9734}',
-        'current_user': pubkey,
-        'id': 'req-3',
-      });
+        expect(signedEvent.pubKey, equals(publicKey));
+        expect(signedEvent.id, equals(actuallySigned.id));
+        expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
+      },
+    );
+
+    test(
+      'sign keeps the local event when the signer returns no event',
+      () async {
+        const signature = 'ab12';
+
+        final signer = Nip55Signer(
+          publicKey: publicKey,
+          signerApp: _FakeNip55SignerApp({'signature': signature}),
+        );
+        addTearDown(signer.dispose);
+
+        final event = Nip01Event(
+          pubKey: publicKey,
+          kind: 1,
+          tags: [],
+          content: 'test content',
+          createdAt: 1234567890,
+        );
+
+        final signedEvent = await signer.sign(event);
+
+        expect(signedEvent.id, equals(event.id));
+        expect(signedEvent.sig, equals(signature));
+      },
+    );
+  });
+
+  group('Nip55Signer through the signer app', () {
+    const channel = MethodChannel('dostr_nip55');
+    const package = 'com.example.signer';
+
+    late List<MethodCall> calls;
+    late List<Completer<Object?>> answers;
+
+    setUp(() {
+      calls = [];
+      answers = [];
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) {
+            calls.add(call);
+            final answer = Completer<Object?>();
+            answers.add(answer);
+            return answer.future;
+          });
     });
 
-    test('an empty answer reads as an empty map', () async {
-      expect(
-        await const Nip55Signer().nip44Decrypt(
-          ciphertext: 'in',
-          currentUser: pubkey,
-          pubKey: 'peer',
-        ),
-        isEmpty,
-      );
-    });
-
-    test('a native error reaches the caller', () async {
-      reply = (_) => throw PlatformException(code: 'REJECTED');
-
-      expect(
-        const Nip55Signer().signEvent(currentUser: pubkey, eventJson: '{}'),
-        throwsA(
-          isA<PlatformException>().having((e) => e.code, 'code', 'REJECTED'),
-        ),
-      );
-    });
-
-    test('a missing plugin reaches the caller', () async {
+    tearDown(() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
+    });
+
+    Nip55Signer newSigner({
+      String publicKey = publicKey,
+      int maxConcurrentRequests = 100,
+    }) {
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: const Nip55SignerApp(package: package),
+        maxConcurrentRequests: maxConcurrentRequests,
+      );
+      addTearDown(signer.dispose);
+      return signer;
+    }
+
+    Map<dynamic, dynamic> argumentsOf(MethodCall call) =>
+        call.arguments as Map<dynamic, dynamic>;
+
+    Future<String?> encrypt(Nip55Signer signer, String plaintext) => signer
+        .encryptNip44(plaintext: plaintext, recipientPubKey: stalePublicKey);
+
+    test('sends the hex pubkey as current_user for an npub login', () async {
+      final signer = newSigner(publicKey: Npub(publicKey).encode());
+
+      final result = encrypt(signer, 'hello');
+      await pumpEventQueue();
+
+      final arguments = argumentsOf(calls.single);
+      expect(arguments['type'], 'nip44_encrypt');
+      expect(arguments['current_user'], publicKey);
+      expect(arguments['uri_data'], 'hello');
+      expect(arguments['pubkey'], stalePublicKey);
+      expect(arguments['package'], package);
+
+      answers.single.complete({'signature': 'ciphertext'});
+      expect(await result, 'ciphertext');
+    });
+
+    test('lists a request as pending until the signer app answers', () async {
+      final signer = newSigner();
+      final emitted = <int>[];
+      final subscription = signer.pendingRequestsStream.listen(
+        (requests) => emitted.add(requests.length),
+      );
+      addTearDown(subscription.cancel);
+      final event = Nip01Event(
+        pubKey: publicKey,
+        kind: 1,
+        tags: [],
+        content: 'hi',
+        createdAt: 1234567890,
+      );
+
+      final signed = signer.sign(event);
+      await pumpEventQueue();
+
+      final pending = signer.pendingRequests.single;
+      expect(pending.method, SignerMethod.signEvent);
+      expect(pending.event!.id, event.id);
+      expect(pending.signerPubkey, publicKey);
+      expect(argumentsOf(calls.single)['id'], pending.id);
+      expect(argumentsOf(calls.single)['uri_data'], event.toJsonString());
+
+      answers.single.complete({'signature': 'sig'});
+      expect((await signed).sig, 'sig');
+      await pumpEventQueue();
+
+      expect(signer.pendingRequests, isEmpty);
+      expect(emitted, [0, 1, 0]);
+    });
+
+    test('describes each encryption request for the UI', () async {
+      final signer = newSigner();
+
+      signer.encrypt('plain04', stalePublicKey);
+      signer.decrypt('cipher04', stalePublicKey);
+      signer.encryptNip44(plaintext: 'plain44', recipientPubKey: publicKey);
+      signer.decryptNip44(ciphertext: 'cipher44', senderPubKey: publicKey);
+      await pumpEventQueue();
 
       expect(
-        const Nip55Signer().isAppInstalled(),
-        throwsA(isA<MissingPluginException>()),
+        [
+          for (final request in signer.pendingRequests)
+            (
+              request.method,
+              request.plaintext,
+              request.ciphertext,
+              request.counterpartyPubkey,
+            ),
+        ],
+        [
+          (SignerMethod.nip04Encrypt, 'plain04', null, stalePublicKey),
+          (SignerMethod.nip04Decrypt, null, 'cipher04', stalePublicKey),
+          (SignerMethod.nip44Encrypt, 'plain44', null, publicKey),
+          (SignerMethod.nip44Decrypt, null, 'cipher44', publicKey),
+        ],
+      );
+      expect(
+        [for (final call in calls) argumentsOf(call)['type']],
+        ['nip04_encrypt', 'nip04_decrypt', 'nip44_encrypt', 'nip44_decrypt'],
       );
     });
+
+    test('rejects with the request id when the signer app fails', () async {
+      final signer = newSigner();
+
+      final result = encrypt(signer, 'hello');
+      await pumpEventQueue();
+      final id = signer.pendingRequests.single.id;
+      answers.single.completeError(PlatformException(code: 'USER_REJECTED'));
+
+      await expectLater(
+        result,
+        throwsA(
+          isA<SignerRequestRejectedException>().having(
+            (e) => e.requestId,
+            'requestId',
+            id,
+          ),
+        ),
+      );
+      await pumpEventQueue();
+      expect(signer.pendingRequests, isEmpty);
+    });
+
+    test('rejects an answer without a result', () async {
+      final signer = newSigner();
+
+      final results = [
+        encrypt(signer, 'a'),
+        encrypt(signer, 'b'),
+        encrypt(signer, 'c'),
+      ];
+      await pumpEventQueue();
+      answers[0].complete(null);
+      answers[1].complete(<String, Object?>{});
+      answers[2].complete({'signature': ''});
+
+      for (final result in results) {
+        await expectLater(
+          result,
+          throwsA(isA<SignerRequestRejectedException>()),
+        );
+      }
+    });
+
+    test('rejects a signed event that is not JSON', () async {
+      final signer = newSigner();
+
+      final signed = signer.sign(
+        Nip01Event(pubKey: publicKey, kind: 1, tags: [], content: ''),
+      );
+      await pumpEventQueue();
+      answers.single.complete({'signature': 'sig', 'event': 'not json'});
+
+      await expectLater(signed, throwsA(isA<SignerRequestRejectedException>()));
+    });
+
+    test('cancelRequest fails the caller and drops the late answer', () async {
+      final signer = newSigner();
+
+      final result = encrypt(signer, 'hello');
+      await pumpEventQueue();
+      final id = signer.pendingRequests.single.id;
+
+      expect(signer.cancelRequest(id), isTrue);
+      expect(signer.pendingRequests, isEmpty);
+      await expectLater(
+        result,
+        throwsA(
+          isA<SignerRequestCancelledException>().having(
+            (e) => e.requestId,
+            'requestId',
+            id,
+          ),
+        ),
+      );
+
+      answers.single.complete({'signature': 'late'});
+      await pumpEventQueue();
+      expect(signer.pendingRequests, isEmpty);
+      expect(signer.cancelRequest(id), isFalse);
+    });
+
+    test('cancelRequest is false for an unknown request', () {
+      expect(newSigner().cancelRequest('nip55_0_0'), isFalse);
+    });
+
+    test('queues requests past maxConcurrentRequests', () async {
+      final signer = newSigner(maxConcurrentRequests: 1);
+
+      final first = encrypt(signer, 'one');
+      final second = encrypt(signer, 'two');
+      await pumpEventQueue();
+
+      expect(signer.pendingRequests, hasLength(2));
+      expect(calls, hasLength(1));
+      expect(signer.queuedRequests, 1);
+
+      answers[0].complete({'signature': '1'});
+      expect(await first, '1');
+      await pumpEventQueue();
+
+      expect(calls, hasLength(2));
+      expect(argumentsOf(calls[1])['uri_data'], 'two');
+      answers[1].complete({'signature': '2'});
+      expect(await second, '2');
+    });
+
+    test('a request cancelled in the queue never reaches the app', () async {
+      final signer = newSigner(maxConcurrentRequests: 1);
+
+      final first = encrypt(signer, 'one');
+      final second = encrypt(signer, 'two');
+      await pumpEventQueue();
+
+      expect(signer.cancelRequest(signer.pendingRequests.last.id), isTrue);
+      await expectLater(
+        second,
+        throwsA(isA<SignerRequestCancelledException>()),
+      );
+
+      answers.single.complete({'signature': '1'});
+      expect(await first, '1');
+      await pumpEventQueue();
+
+      expect(calls, hasLength(1));
+      expect(signer.pendingRequests, isEmpty);
+      expect(signer.queuedRequests, 0);
+    });
+
+    test(
+      'dispose rejects the queued requests and lets the running one finish',
+      () async {
+        final signer = Nip55Signer(
+          publicKey: publicKey,
+          signerApp: const Nip55SignerApp(),
+          maxConcurrentRequests: 1,
+        );
+
+        final first = encrypt(signer, 'one');
+        final queued = encrypt(signer, 'two');
+        await pumpEventQueue();
+        await signer.dispose();
+
+        await expectLater(
+          queued,
+          throwsA(isA<SignerRequestRejectedException>()),
+        );
+        answers.single.complete({'signature': '1'});
+        expect(await first, '1');
+        await pumpEventQueue();
+      },
+    );
   });
 }

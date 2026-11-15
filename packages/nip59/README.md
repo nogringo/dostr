@@ -17,7 +17,7 @@ import 'package:dostr_nip59/dostr_nip59.dart';
 final giftWrap = GiftWrap(
   signer: () => mySigner,
   eventVerifier: Bip340EventVerifier(),
-  eventSignerFactory: const Bip340EventSignerFactory(),
+  signerFactory: const Bip340SignerFactory(),
 );
 
 final rumor = await giftWrap.createRumor(content: 'hello', kind: 14, tags: []);

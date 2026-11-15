@@ -20,7 +20,7 @@ void main() {
   late List<http.BaseRequest> requests;
 
   setUp(() {
-    accounts = Accounts(const Bip340EventSignerFactory());
+    accounts = Accounts(const Bip340SignerFactory());
     requests = [];
   });
   tearDown(() {
@@ -30,7 +30,7 @@ void main() {
 
   Blossom blossomWith(List<String>? list) => Blossom(
     accounts: accounts,
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    signerFactory: const Bip340SignerFactory(),
     getUserServerList: (_) async => list,
     blossomRepository: HttpBlossomRepository(
       client: MockClient((request) async {

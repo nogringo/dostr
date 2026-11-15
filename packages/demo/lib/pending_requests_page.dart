@@ -36,7 +36,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     });
   }
 
-  Future<void> _signEvent(EventSigner signer) async {
+  Future<void> _signEvent(NostrSigner signer) async {
     final l10n = context.l10n;
     try {
       final event = Nip01Event(
@@ -52,7 +52,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     }
   }
 
-  Future<void> _signEventsInParallel(EventSigner signer) async {
+  Future<void> _signEventsInParallel(NostrSigner signer) async {
     if (_isBulkSigning) return;
 
     final l10n = context.l10n;
@@ -122,7 +122,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     }
   }
 
-  Future<void> _signSameEventInParallel(EventSigner signer) async {
+  Future<void> _signSameEventInParallel(NostrSigner signer) async {
     if (_isDuplicateSigning) return;
 
     final l10n = context.l10n;
@@ -185,7 +185,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     }
   }
 
-  Future<void> _encryptNip44(EventSigner signer) async {
+  Future<void> _encryptNip44(NostrSigner signer) async {
     final l10n = context.l10n;
     try {
       final pubkey = signer.getPublicKey();
@@ -202,7 +202,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     }
   }
 
-  Future<void> _encryptNip44InParallel(EventSigner signer) async {
+  Future<void> _encryptNip44InParallel(NostrSigner signer) async {
     if (_isBulkEncrypting) return;
 
     final l10n = context.l10n;
@@ -263,7 +263,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     }
   }
 
-  Future<void> _decryptNip44(EventSigner signer) async {
+  Future<void> _decryptNip44(NostrSigner signer) async {
     final l10n = context.l10n;
     if (_ciphertext == null) {
       _showError(l10n.pendingEncryptFirst);

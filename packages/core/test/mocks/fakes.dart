@@ -11,7 +11,7 @@ final String alice = 'a' * 64;
 final String bob = 'b' * 64;
 
 /// Signs with [fakeSig], whatever the event.
-class FakeSigner extends EventSigner {
+class FakeSigner extends NostrSigner {
   FakeSigner(this.publicKey, {this.signable = true});
 
   final String publicKey;

@@ -147,9 +147,9 @@ void main() {
       accounts.loginPublicKey(pubkey: bobPubkey);
       accounts.addAccount(
         type: AccountType.externalSigner,
-        signer: Nip55EventSigner(
+        signer: Nip55Signer(
           publicKey: carolPubkey,
-          nip55Signer: const Nip55Signer(package: 'com.example.signer'),
+          signerApp: const Nip55SignerApp(package: 'com.example.signer'),
         ),
       );
       accounts.loginPrivateKey(privkey: alicePrivateKey);
@@ -177,13 +177,13 @@ void main() {
     test('restores what it saved', () async {
       saved.accounts.addAccount(
         type: AccountType.externalSigner,
-        signer: Nip07EventSigner(cachedPublicKey: carolPubkey),
+        signer: Nip07Signer(cachedPublicKey: carolPubkey),
       );
       saved.accounts.addAccount(
         type: AccountType.externalSigner,
-        signer: Nip55EventSigner(
+        signer: Nip55Signer(
           publicKey: bobPubkey,
-          nip55Signer: const Nip55Signer(package: 'com.example.signer'),
+          signerApp: const Nip55SignerApp(package: 'com.example.signer'),
         ),
       );
       saved.accounts.loginPrivateKey(privkey: alicePrivateKey);
@@ -196,9 +196,9 @@ void main() {
       final accounts = restored.accounts.accounts;
 
       expect(accounts.keys, [carolPubkey, bobPubkey, alicePubkey]);
-      expect(accounts[carolPubkey]!.signer, isA<Nip07EventSigner>());
+      expect(accounts[carolPubkey]!.signer, isA<Nip07Signer>());
       expect(
-        (accounts[bobPubkey]!.signer as Nip55EventSigner).nip55Signer.package,
+        (accounts[bobPubkey]!.signer as Nip55Signer).signerApp.package,
         'com.example.signer',
       );
       expect(accounts[alicePubkey]!.type, AccountType.privateKey);
@@ -229,7 +229,7 @@ void main() {
       expect(account.pubkey, bobPubkey);
       expect(account.type, AccountType.externalSigner);
       expect(
-        (account.signer as Nip55EventSigner).nip55Signer.package,
+        (account.signer as Nip55Signer).signerApp.package,
         'com.example.signer',
       );
     });

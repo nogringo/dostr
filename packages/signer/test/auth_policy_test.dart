@@ -1,7 +1,7 @@
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-class _Signer implements EventSigner {
+class _Signer implements NostrSigner {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

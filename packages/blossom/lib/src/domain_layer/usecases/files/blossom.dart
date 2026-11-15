@@ -84,11 +84,11 @@ class Blossom {
   final BlossomServerListResolver _getUserServerList;
   final BlossomRepository _blossomImpl;
   final AuthAccounts _accounts;
-  final LocalEventSignerFactory _eventSignerFactory;
+  final LocalSignerFactory _signerFactory;
   final AuthHandler? _authHandler;
   final Duration _authExpiration;
 
-  /// [accounts] gives the logged-in account, [eventSignerFactory] makes the
+  /// [accounts] gives the logged-in account, [signerFactory] makes the
   /// throwaway keys, and [getUserServerList] reads a user's kind 10063 list.
   /// Without [blossomRepository], it talks to the servers over HTTP.
   ///
@@ -97,7 +97,7 @@ class Blossom {
   /// expired one.
   Blossom({
     required AuthAccounts accounts,
-    required LocalEventSignerFactory eventSignerFactory,
+    required LocalSignerFactory signerFactory,
     required BlossomServerListResolver getUserServerList,
     AuthHandler? authHandler,
     BlossomRepository? blossomRepository,
@@ -108,7 +108,7 @@ class Blossom {
        _blossomImpl =
            blossomRepository ??
            HttpBlossomRepository(client: http.Client(), fileIO: createFileIO()),
-       _eventSignerFactory = eventSignerFactory,
+       _signerFactory = signerFactory,
        _authHandler = authHandler;
 
   /// how many times [abortPending] ran
@@ -419,7 +419,7 @@ class Blossom {
   }
 
   /// A fresh key, for something that has to be signed but names nobody.
-  EventSigner _throwawaySigner() => _eventSignerFactory.createWithNewKeyPair();
+  NostrSigner _throwawaySigner() => _signerFactory.createWithNewKeyPair();
 
   /// Asks each server whether it would accept this upload, before any byte of
   /// the blob is sent [BUD-06]. Servers and authorization resolve as in
@@ -885,7 +885,7 @@ class Blossom {
     final aborts = _aborts;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
-    final EventSigner signer;
+    final NostrSigner signer;
     switch (auth) {
       case null:
         final account = _defaultAccount();

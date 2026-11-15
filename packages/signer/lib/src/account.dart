@@ -1,4 +1,4 @@
-import 'event_signer.dart';
+import 'nostr_signer.dart';
 import 'pending_signer_request.dart';
 
 enum AccountType { privateKey, publicKey, externalSigner }
@@ -7,7 +7,7 @@ enum AccountType { privateKey, publicKey, externalSigner }
 class Account {
   final AccountType type;
   final String pubkey;
-  final EventSigner signer;
+  final NostrSigner signer;
 
   Account({required this.type, required this.pubkey, required this.signer});
 

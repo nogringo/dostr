@@ -116,9 +116,9 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     if (account == null) return 'signer';
 
     return switch (account.signer) {
-      Nip55EventSigner() => 'signer app',
-      Nip46EventSigner() => 'bunker',
-      Nip07EventSigner() => 'extension',
+      Nip55Signer() => 'signer app',
+      Nip46Signer() => 'bunker',
+      Nip07Signer() => 'extension',
       _ => 'signer',
     };
   }

@@ -15,7 +15,7 @@ const int policyPort = 30040;
 Account _signable(KeyPair keyPair) => Account(
   type: AccountType.privateKey,
   pubkey: keyPair.publicKey,
-  signer: Bip340EventSigner(
+  signer: Bip340Signer(
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
   ),
@@ -24,7 +24,7 @@ Account _signable(KeyPair keyPair) => Account(
 Account _watchOnly(KeyPair keyPair) => Account(
   type: AccountType.publicKey,
   pubkey: keyPair.publicKey,
-  signer: Bip340EventSigner(privateKey: null, publicKey: keyPair.publicKey),
+  signer: Bip340Signer(privateKey: null, publicKey: keyPair.publicKey),
 );
 
 void main() {
@@ -43,7 +43,7 @@ void main() {
     loggedIn = _signable(key);
     other = _signable(Bip340.generatePrivateKey());
 
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
     accounts.loginPrivateKey(privkey: key.privateKey!);
     client = blossomFor(accounts);
   });
@@ -123,10 +123,10 @@ void main() {
     });
 
     test('the authorization lasts as long as the constructor says', () async {
-      final accounts = Accounts(const Bip340EventSignerFactory());
+      final accounts = Accounts(const Bip340SignerFactory());
       final shortLived = Blossom(
         accounts: accounts,
-        eventSignerFactory: const Bip340EventSignerFactory(),
+        signerFactory: const Bip340SignerFactory(),
         getUserServerList: (_) async => null,
         authExpiration: const Duration(seconds: 42),
       );
@@ -243,7 +243,7 @@ void main() {
 
       final key = Bip340.generatePrivateKey();
       rangedOther = _signable(Bip340.generatePrivateKey());
-      final accounts = Accounts(const Bip340EventSignerFactory());
+      final accounts = Accounts(const Bip340SignerFactory());
       accounts.loginPrivateKey(privkey: key.privateKey!);
       rangedClient = blossomFor(accounts);
     });

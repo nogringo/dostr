@@ -33,7 +33,7 @@ void main() {
           eventVerifier: Bip340EventVerifier(),
         ),
         relayPublishes: RelayPublishes(relayManager: relayManager),
-        eventSignerFactory: const Bip340EventSignerFactory(),
+        signerFactory: const Bip340SignerFactory(),
       );
     });
 

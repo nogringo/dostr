@@ -5,14 +5,14 @@ void main() {
   runEventVerifierTestSuite(
     name: 'Bip340EventVerifier',
     createVerifier: Bip340EventVerifier.new,
-    createSigner: const Bip340EventSignerFactory().createWithNewKeyPair,
+    createSigner: const Bip340SignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );
 
   runEventVerifierTestSuite(
     name: 'Bip340EventVerifier without isolate',
     createVerifier: () => Bip340EventVerifier(),
-    createSigner: const Bip340EventSignerFactory().createWithNewKeyPair,
+    createSigner: const Bip340SignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );
 }

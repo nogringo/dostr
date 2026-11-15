@@ -22,7 +22,7 @@ void main() {
   runEventVerifierTestSuite(
     name: 'MyEventVerifier',
     createVerifier: MyEventVerifier.new,
-    createSigner: () => MyEventSigner.withNewKey(),
+    createSigner: () => MySigner.withNewKey(),
   );
 }
 ```

@@ -10,11 +10,11 @@ There is no facade: each feature is its own package, built from the parts it nee
 | Computed home relays | `dostr_home_relays` | `HomeRelayList` |
 | Relay information (NIP-11) | `dostr_nip11` | `HttpRelayInfoRepository`, `CachedRelayInfoRepository` |
 | Events and verification interface | `dostr_nip01` | `Nip01Event`, `Filter`, `EventVerifier` |
-| Signing and verification | `dostr_bip340`, `dostr_rust_verifier`, `dostr_web_crypto` | `Bip340EventSigner`, `Bip340EventVerifier`, `RustEventVerifier`, `WebEventSigner`, `WebEventVerifier` |
+| Signing and verification | `dostr_bip340`, `dostr_rust_verifier`, `dostr_web_crypto` | `Bip340Signer`, `Bip340EventVerifier`, `RustEventVerifier`, `WebSigner`, `WebEventVerifier` |
 | Accounts | `dostr_accounts` | `Accounts` |
-| Remote signing (NIP-46) | `dostr_nip46` | `Bunkers`, `Nip46EventSigner` |
-| Browser extension (NIP-07) | `dostr_nip07` | `Nip07EventSigner` |
-| Android signer app (NIP-55) | `dostr_nip55` | `Nip55EventSigner` |
+| Remote signing (NIP-46) | `dostr_nip46` | `Bunkers`, `Nip46Signer` |
+| Browser extension (NIP-07) | `dostr_nip07` | `Nip07Signer` |
+| Android signer app (NIP-55) | `dostr_nip55` | `Nip55Signer` |
 | bech32 (NIP-19) | `dostr_nip19` | |
 | Encryption (NIP-44, NIP-04) | `dostr_nip44` | |
 | Private key encryption (NIP-49) | `dostr_nip49` | |

@@ -8,7 +8,7 @@ import '../../mocks/memory_gift_wrap_cache.dart';
 import '../../mocks/mock_event_verifier.dart';
 
 void main() {
-  EventSigner? loggedSigner;
+  NostrSigner? loggedSigner;
   late GiftWrap giftWrapService;
 
   // Test keys
@@ -16,13 +16,13 @@ void main() {
   final key2 = Bip340.generatePrivateKey();
   final key3 = Bip340.generatePrivateKey(); // For custom signer tests
 
-  EventSigner signerOf(KeyPair key) =>
-      Bip340EventSigner(privateKey: key.privateKey, publicKey: key.publicKey);
+  NostrSigner signerOf(KeyPair key) =>
+      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey);
 
   GiftWrap giftWrapWith({GiftWrapCache? cache}) => GiftWrap(
     signer: () => loggedSigner,
     eventVerifier: MockEventVerifier(),
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    signerFactory: const Bip340SignerFactory(),
     cache: cache,
   );
 
@@ -102,7 +102,7 @@ void main() {
         recipientPublicKey: key2.publicKey,
         sealEvent: seal,
         additionalTags: additionalTags,
-        eventSignerFactory: const Bip340EventSignerFactory(),
+        signerFactory: const Bip340SignerFactory(),
       );
 
       // Verify additional tags were included
@@ -170,7 +170,7 @@ void main() {
       'Can use custom signer instead of logged-in account for wrap and unwrap',
       () async {
         // Create a custom signer with key3 (different from logged-in key1)
-        final customSigner = Bip340EventSigner(
+        final customSigner = Bip340Signer(
           privateKey: key3.privateKey,
           publicKey: key3.publicKey,
         );
@@ -191,7 +191,7 @@ void main() {
         );
 
         // Create a signer for the recipient to unwrap
-        final recipientSigner = Bip340EventSigner(
+        final recipientSigner = Bip340Signer(
           privateKey: key2.privateKey,
           publicKey: key2.publicKey,
         );
@@ -211,7 +211,7 @@ void main() {
 
     test('Custom signer seal uses correct pubkey', () async {
       // Create a custom signer
-      final customSigner = Bip340EventSigner(
+      final customSigner = Bip340Signer(
         privateKey: key3.privateKey,
         publicKey: key3.publicKey,
       );

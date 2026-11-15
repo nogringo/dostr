@@ -12,10 +12,8 @@ import 'mocks/fake_network.dart';
 import 'mocks/mock_slow_signer.dart';
 
 void main() {
-  EventSigner eventSignerFactory({
-    String? privateKey,
-    required String publicKey,
-  }) => Bip340EventSigner(privateKey: privateKey, publicKey: publicKey);
+  NostrSigner signerFactory({String? privateKey, required String publicKey}) =>
+      Bip340Signer(privateKey: privateKey, publicKey: publicKey);
 
   Zaps zapsFor(FakeRelays relays, {http.Client? client}) => Zaps(
     query: relays.query,
@@ -75,7 +73,7 @@ void main() {
         amountSats: amount,
         eventId: 'eventId',
         comment: 'comment',
-        signer: eventSignerFactory(
+        signer: signerFactory(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
@@ -137,7 +135,7 @@ void main() {
         amountSats: amount,
         eventId: eventId,
         comment: comment,
-        signer: eventSignerFactory(
+        signer: signerFactory(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),
@@ -167,7 +165,7 @@ void main() {
           eventId: 'eventId',
           comment: 'comment',
           signer: MockSlowSigner(
-            innerSigner: eventSignerFactory(
+            innerSigner: signerFactory(
               privateKey: key.privateKey,
               publicKey: key.publicKey,
             ),
@@ -191,7 +189,7 @@ void main() {
           amountSats: -1000,
           eventId: 'eventId',
           comment: 'comment',
-          signer: eventSignerFactory(
+          signer: signerFactory(
             privateKey: key.privateKey,
             publicKey: key.publicKey,
           ),
@@ -207,7 +205,7 @@ void main() {
         amountSats: 1000,
         eventId: 'eventId',
         comment: 'comment',
-        signer: eventSignerFactory(
+        signer: signerFactory(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
         ),

@@ -2,7 +2,7 @@
 /// logged one.
 ///
 /// ```dart
-/// final accounts = Accounts(const Bip340EventSignerFactory());
+/// final accounts = Accounts(const Bip340SignerFactory());
 /// accounts.loginPrivateKey(privkey: privkey);
 /// final signed = await accounts.sign(event);
 /// ```

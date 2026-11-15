@@ -1,3 +1,3 @@
 ## 0.1.0
 
- - Initial release, moved out of the `ndk_flutter` package: `WebEventSigner`, `WebEventVerifier`, and `WebEventSignerFactory`, the web factory that `ndk_flutter` called `NdkEventSignerFactory`.
+ - Initial release, moved out of the `ndk_flutter` package: `WebSigner`, `WebEventVerifier`, and `WebSignerFactory`, the web factory that `ndk_flutter` called `NdkEventSignerFactory`. `WebEventSigner` of `ndk_flutter` is now `WebSigner`, after the `NostrSigner` it implements.

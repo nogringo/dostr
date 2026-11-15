@@ -1,16 +1,16 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'pending_signer_request.dart';
 
-/// Factory for creating [EventSigner] instances.
+/// Factory for creating [NostrSigner] instances.
 ///
-/// If [LocalEventSignerFactory.create] is called without a `publicKey`,
+/// If [LocalSignerFactory.create] is called without a `publicKey`,
 /// implementations must derive it from the `privateKey`.
-abstract class LocalEventSignerFactory {
-  /// Creates an EventSigner instance.
+abstract class LocalSignerFactory {
+  /// Creates a NostrSigner instance.
   ///
   /// If [publicKey] is null, implementations MUST derive it from [privateKey].
   /// At least one of [privateKey] or [publicKey] must be provided!
-  EventSigner create({String? privateKey, String? publicKey});
+  NostrSigner create({String? privateKey, String? publicKey});
 
   /// Derives a public key from a private key.
   /// Implementations MUST provide the derivation logic.
@@ -20,14 +20,14 @@ abstract class LocalEventSignerFactory {
   /// Returns a record with (privateKey, publicKey).
   (String privateKey, String publicKey) generateKeyPair();
 
-  /// Generates a new EventSigner with a fresh keypair.
-  EventSigner createWithNewKeyPair() {
+  /// Generates a new NostrSigner with a fresh keypair.
+  NostrSigner createWithNewKeyPair() {
     final (privateKey, publicKey) = generateKeyPair();
     return create(privateKey: privateKey, publicKey: publicKey);
   }
 }
 
-abstract class EventSigner {
+abstract class NostrSigner {
   /// Whether signing depends on an external or user-mediated signer workflow
   /// instead of being completed locally and synchronously from key material
   /// already available in-process.
@@ -83,7 +83,7 @@ abstract class EventSigner {
   /// Stream of pending requests waiting for user approval.
   /// Emits whenever the list changes (request added, completed, or cancelled).
   ///
-  /// For local signers (like Bip340EventSigner), this will always emit an
+  /// For local signers (like Bip340Signer), this will always emit an
   /// empty list. For interactive signers (NIP-46, NIP-07, NIP-55), this emits
   /// requests currently waiting for user approval or external completion.
   Stream<List<PendingSignerRequest>> get pendingRequestsStream;

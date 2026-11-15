@@ -34,7 +34,7 @@ Future<void> main() async {
   MediaKit.ensureInitialized();
   Logger.setLogLevel(LogLevel.info);
 
-  accounts = Accounts(const DostrEventSignerFactory());
+  accounts = Accounts(const DostrSignerFactory());
   relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
     accounts: accounts,

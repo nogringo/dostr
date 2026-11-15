@@ -39,7 +39,7 @@ class _Servers {
 void main() {
   late Accounts accounts;
 
-  setUp(() => accounts = Accounts(const Bip340EventSignerFactory()));
+  setUp(() => accounts = Accounts(const Bip340SignerFactory()));
   tearDown(() => accounts.dispose());
 
   /// Files on [servers], [lists] giving each pubkey's server list and [asked]
@@ -52,7 +52,7 @@ void main() {
   }) => Files(
     Blossom(
       accounts: accounts,
-      eventSignerFactory: const Bip340EventSignerFactory(),
+      signerFactory: const Bip340SignerFactory(),
       authHandler: authHandler,
       getUserServerList: (pubkey) async {
         asked?.add(pubkey);
@@ -165,7 +165,7 @@ void main() {
     final account = Account(
       type: AccountType.privateKey,
       pubkey: key.publicKey,
-      signer: Bip340EventSigner(
+      signer: Bip340Signer(
         privateKey: key.privateKey,
         publicKey: key.publicKey,
       ),

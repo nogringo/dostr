@@ -24,7 +24,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
   );
   late final Blossom _blossom = Blossom(
     accounts: accounts,
-    eventSignerFactory: accounts.eventSignerFactory,
+    signerFactory: accounts.signerFactory,
     getUserServerList: (pubkey) async => switch (await _serverLists.fetch(
       pubkey,
     )) {

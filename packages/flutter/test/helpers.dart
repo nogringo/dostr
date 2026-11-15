@@ -51,7 +51,7 @@ class TestDostrFlutter {
     );
     metadata = FakeMetadataFetcher(relayReqs);
     dostrFlutter = DostrFlutter(
-      accounts: Accounts(const Bip340EventSignerFactory()),
+      accounts: Accounts(const Bip340SignerFactory()),
       relayReqs: relayReqs,
       relayPublishes: RelayPublishes(relayManager: _relayManager),
       metadataFetcher: metadata,

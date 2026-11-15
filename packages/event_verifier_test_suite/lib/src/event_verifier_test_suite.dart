@@ -16,19 +16,19 @@ import 'package:test/test.dart';
 /// runEventVerifierTestSuite(
 ///   name: 'Bip340EventVerifier',
 ///   createVerifier: Bip340EventVerifier.new,
-///   createSigner: const Bip340EventSignerFactory().createWithNewKeyPair,
+///   createSigner: const Bip340SignerFactory().createWithNewKeyPair,
 ///   externalEvents: bip340ExternalEvents,
 /// );
 /// ```
 void runEventVerifierTestSuite({
   required String name,
   required EventVerifier Function() createVerifier,
-  required EventSigner Function() createSigner,
+  required NostrSigner Function() createSigner,
   Iterable<Map<String, Object>> externalEvents = const [],
 }) {
   group(name, () {
     late EventVerifier verifier;
-    late EventSigner signer;
+    late NostrSigner signer;
 
     setUp(() {
       verifier = createVerifier();

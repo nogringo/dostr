@@ -5,7 +5,7 @@ import 'package:dostr_signer/dostr_signer.dart';
 
 Blossom blossomFor(Accounts accounts, {AuthHandler? authHandler}) => Blossom(
   accounts: accounts,
-  eventSignerFactory: const Bip340EventSignerFactory(),
+  signerFactory: const Bip340SignerFactory(),
   authHandler: authHandler,
   getUserServerList: (_) async => null,
 );

@@ -26,7 +26,7 @@ final relayManager = RelayManager(
 );
 
 final dostrFlutter = DostrFlutter(
-  accounts: Accounts(const DostrEventSignerFactory()),
+  accounts: Accounts(const DostrSignerFactory()),
   relayReqs: RelayReqs(
     relayManager: relayManager,
     eventVerifier: DostrEventVerifier(),
@@ -64,7 +64,7 @@ Future<void> main() async {
 }
 ```
 
-`DostrEventSignerFactory` and `DostrEventVerifier` pick an implementation per platform. On the web they are `WebEventSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`. Elsewhere they are `Bip340EventSignerFactory` and `Bip340EventVerifier` from [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), in pure Dart, so the app builds without any native toolchain. To verify faster on Android, iOS or desktop, give `RelayReqs` the `RustEventVerifier` of [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) instead. Its build hook compiles Rust, so it needs the [Rust toolchain](https://rustup.rs).
+`DostrSignerFactory` and `DostrEventVerifier` pick an implementation per platform. On the web they are `WebSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`. Elsewhere they are `Bip340SignerFactory` and `Bip340EventVerifier` from [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), in pure Dart, so the app builds without any native toolchain. To verify faster on Android, iOS or desktop, give `RelayReqs` the `RustEventVerifier` of [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) instead. Its build hook compiles Rust, so it needs the [Rust toolchain](https://rustup.rs).
 
 `DostrFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), a `metadataFetcher` and a `nip05Resolver`. The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers). Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app. `NLogin` resolves NIP-05 addresses with `nip05Resolver`, a `Nip05Resolver` of [`dostr_nip05`](https://pub.dev/packages/dostr_nip05) that keeps them in memory unless you pass your own.
 
@@ -96,7 +96,7 @@ The accounts are written to [`flutter_secure_storage`](https://pub.dev/packages/
 
 ## Coming from `ndk_flutter`
 
-`package:ndk_flutter/ndk_flutter.dart` is now `package:dostr_flutter/dostr_flutter.dart`. `NdkFlutter` is now `DostrFlutter`, and the widgets take it as `dostrFlutter` instead of `ndkFlutter`. `NdkEventSigner`, `NdkEventSignerFactory` and `NdkEventVerifier` are now `DostrEventSigner`, `DostrEventSignerFactory` and `DostrEventVerifier`. Saved accounts are still read from `ndk_flutter_accounts`, so users stay logged in.
+`package:ndk_flutter/ndk_flutter.dart` is now `package:dostr_flutter/dostr_flutter.dart`. `NdkFlutter` is now `DostrFlutter`, and the widgets take it as `dostrFlutter` instead of `ndkFlutter`. `NdkEventSigner`, `NdkEventSignerFactory` and `NdkEventVerifier` are now `DostrSigner`, `DostrSignerFactory` and `DostrEventVerifier`. Saved accounts are still read from `ndk_flutter_accounts`, so users stay logged in.
 
 The other files are internal: import `package:dostr_flutter/dostr_flutter.dart` instead of `main/`, `models/`, `signers/`, `utils/`, `verifiers/` or `widgets/`. Only `package:dostr_flutter/l10n/app_localizations.dart` stays, for the delegate. `NipAvatar` is no longer public, and `Nip05Result` is gone. `NdkFlutter.getColorFromPubkey(pubkey)` is gone: `StringColor.fromHex(pubkey).toColor()` gives the color `NPicture` and `NBanner` draw, which is not the old one. `StringColor` now comes from `dostr_string_color`, exported here, whose README lists what changed. `NdkFlutter.fetchNip05(nip05)` is gone too: `NLogin` resolves through `dostrFlutter.nip05Resolver`. On Android, iOS and desktop, `DostrEventVerifier` verifies in Dart instead of Rust, and `dostr_flutter` no longer depends on `dostr_rust_verifier`.
 

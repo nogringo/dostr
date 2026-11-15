@@ -44,11 +44,11 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 #### [🔗 Signer](./packages/signer/)
 
-`dostr_signer`: the `EventSigner` interface that signers implement, with their pending requests and errors, and the accounts a request may authenticate as, with the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server, in pure Dart.
+`dostr_signer`: the `NostrSigner` interface that signers implement, with their pending requests and errors, and the accounts a request may authenticate as, with the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server, in pure Dart.
 
 #### [🔗 BIP-340](./packages/bip340/)
 
-`dostr_bip340`: BIP-340 Schnorr signing and verification for Nostr events (event signer and verifier), in pure Dart.
+`dostr_bip340`: BIP-340 Schnorr signing and verification for Nostr events (signer and event verifier), in pure Dart.
 
 #### [🔗 Rust verifier](./packages/rust_verifier/)
 
@@ -56,7 +56,7 @@ Try the [demo app](https://nogringo.github.io/dostr/) in your browser.
 
 #### [🔗 Web crypto](./packages/web_crypto/)
 
-`dostr_web_crypto`: fast BIP-340 event signer and verifier for the web, with @noble/curves through JS interop. Pure Dart, no Flutter needed.
+`dostr_web_crypto`: fast BIP-340 signer and event verifier for the web, with @noble/curves through JS interop. Pure Dart, no Flutter needed.
 
 #### [🔗 Accounts](./packages/accounts/)
 

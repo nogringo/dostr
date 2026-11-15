@@ -14,7 +14,7 @@ class _PendingRequestEntry {
   _PendingRequestEntry(this.completer, this.request);
 }
 
-class Nip07EventSigner with ConcurrencyLimiterMixin implements EventSigner {
+class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   String? cachedPublicKey;
 
   final _pendingRequests = <String, _PendingRequestEntry>{};
@@ -28,7 +28,7 @@ class Nip07EventSigner with ConcurrencyLimiterMixin implements EventSigner {
 
   static const int defaultMaxConcurrentRequests = 100;
 
-  Nip07EventSigner({
+  Nip07Signer({
     this.cachedPublicKey,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
@@ -205,7 +205,7 @@ class Nip07EventSigner with ConcurrencyLimiterMixin implements EventSigner {
       cachedPublicKey = pubkey.toDart;
     });
 
-    throw Exception('Use getPublicKeyAsync with Nip07EventSigner');
+    throw Exception('Use getPublicKeyAsync with Nip07Signer');
   }
 
   Future<String> getPublicKeyAsync() async {

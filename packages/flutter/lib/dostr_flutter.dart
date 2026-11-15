@@ -5,7 +5,7 @@ export 'package:dostr_web_crypto/dostr_web_crypto.dart';
 export 'src/config.dart';
 export 'src/dostr_flutter.dart';
 export 'src/models/metadata.dart';
-export 'src/signers/dostr_event_signer.dart';
+export 'src/signers/dostr_signer.dart';
 export 'src/utils/nostr_kinds.dart';
 export 'src/utils/string_color_flutter.dart';
 export 'src/verifiers/dostr_event_verifier.dart';

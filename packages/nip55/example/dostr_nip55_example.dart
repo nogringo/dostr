@@ -4,18 +4,18 @@ import 'package:flutter/widgets.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  const nip55Signer = Nip55Signer();
-  if (!await nip55Signer.isAppInstalled()) {
+  const signerApp = Nip55SignerApp();
+  if (!await signerApp.isAppInstalled()) {
     debugPrint('No NIP-55 signer app installed');
     return;
   }
 
-  final login = await nip55Signer.login();
+  final login = await signerApp.login();
   if (login == null) return;
 
-  final signer = Nip55EventSigner(
+  final signer = Nip55Signer(
     publicKey: login.pubkey,
-    nip55Signer: Nip55Signer(package: login.package),
+    signerApp: Nip55SignerApp(package: login.package),
   );
   debugPrint(signer.getPublicKey());
 }

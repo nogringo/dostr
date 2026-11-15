@@ -97,7 +97,7 @@ class LoginController extends ChangeNotifier {
   Future<void> loginWithExternalSigner() async {
     isWaitingForExternalSigner = true;
     try {
-      const signer = Nip55Signer();
+      const signer = Nip55SignerApp();
 
       final isInstalled = await signer.isAppInstalled();
 
@@ -113,10 +113,10 @@ class LoginController extends ChangeNotifier {
         return;
       }
 
-      final externalSigner = Nip55EventSigner(
+      final externalSigner = Nip55Signer(
         publicKey: loginResult.pubkey,
         // pin the signer captured at login so later requests can be silent
-        nip55Signer: Nip55Signer(package: loginResult.package),
+        signerApp: Nip55SignerApp(package: loginResult.package),
       );
 
       dostrFlutter.accounts.loginExternalSigner(signer: externalSigner);

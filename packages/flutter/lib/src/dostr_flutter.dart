@@ -56,7 +56,7 @@ class DostrFlutter {
        bunkers = Bunkers(
          relayReqs: relayReqs,
          relayPublishes: relayPublishes,
-         eventSignerFactory: accounts.eventSignerFactory,
+         signerFactory: accounts.signerFactory,
        ),
        _accountsStorage = AccountsStorage(
          storage: storage ?? const FlutterSecureStorage(),

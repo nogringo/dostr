@@ -5,14 +5,14 @@ import 'package:dostr_signer/dostr_signer.dart';
 Future<void> main() async {
   final alice = Bip340.generatePrivateKey();
   final bob = Bip340.generatePrivateKey();
-  EventSigner signerOf(KeyPair key) =>
-      Bip340EventSigner(privateKey: key.privateKey, publicKey: key.publicKey);
+  NostrSigner signerOf(KeyPair key) =>
+      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey);
 
   var current = signerOf(alice);
   final giftWrap = GiftWrap(
     signer: () => current,
     eventVerifier: Bip340EventVerifier(),
-    eventSignerFactory: const Bip340EventSignerFactory(),
+    signerFactory: const Bip340SignerFactory(),
   );
 
   final rumor = await giftWrap.createRumor(

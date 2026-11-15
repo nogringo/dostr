@@ -4,7 +4,7 @@ import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 
 Future<void> main() async {
   final keyPair = Bip340.generatePrivateKey();
-  final signer = Bip340EventSigner(
+  final signer = Bip340Signer(
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
   );

@@ -3,13 +3,13 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:test/test.dart';
 
 void main() {
-  group('Bip340EventSigner', () {
-    late Bip340EventSigner signer;
+  group('Bip340Signer', () {
+    late Bip340Signer signer;
     late KeyPair keyPair;
 
     setUp(() {
       keyPair = Bip340.generatePrivateKey();
-      signer = Bip340EventSigner(
+      signer = Bip340Signer(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
       );
@@ -37,7 +37,7 @@ void main() {
       test('dispose closes stream without error', () async {
         await signer.dispose();
         // Re-create signer for tearDown
-        signer = Bip340EventSigner(
+        signer = Bip340Signer(
           privateKey: keyPair.privateKey,
           publicKey: keyPair.publicKey,
         );
@@ -61,7 +61,7 @@ void main() {
       });
 
       test('sign throws when no private key', () async {
-        final readOnlySigner = Bip340EventSigner(
+        final readOnlySigner = Bip340Signer(
           privateKey: null,
           publicKey: keyPair.publicKey,
         );
@@ -85,7 +85,7 @@ void main() {
       });
 
       test('returns false when no private key', () {
-        final readOnlySigner = Bip340EventSigner(
+        final readOnlySigner = Bip340Signer(
           privateKey: null,
           publicKey: keyPair.publicKey,
         );
@@ -103,7 +103,7 @@ void main() {
     group('encryption/decryption', () {
       test('encrypt and decrypt NIP-04 roundtrip', () async {
         final otherKeyPair = Bip340.generatePrivateKey();
-        final otherSigner = Bip340EventSigner(
+        final otherSigner = Bip340Signer(
           privateKey: otherKeyPair.privateKey,
           publicKey: otherKeyPair.publicKey,
         );
@@ -125,7 +125,7 @@ void main() {
 
       test('encrypt and decrypt NIP-44 roundtrip', () async {
         final otherKeyPair = Bip340.generatePrivateKey();
-        final otherSigner = Bip340EventSigner(
+        final otherSigner = Bip340Signer(
           privateKey: otherKeyPair.privateKey,
           publicKey: otherKeyPair.publicKey,
         );
@@ -150,11 +150,11 @@ void main() {
     });
   });
 
-  group('Bip340EventSignerFactory', () {
-    late Bip340EventSignerFactory factory;
+  group('Bip340SignerFactory', () {
+    late Bip340SignerFactory factory;
 
     setUp(() {
-      factory = const Bip340EventSignerFactory();
+      factory = const Bip340SignerFactory();
     });
 
     group('derivePublicKey', () {
@@ -325,8 +325,8 @@ void main() {
 
     group('factory is const', () {
       test('same instance when created with const', () {
-        const factory1 = Bip340EventSignerFactory();
-        const factory2 = Bip340EventSignerFactory();
+        const factory1 = Bip340SignerFactory();
+        const factory2 = Bip340SignerFactory();
 
         expect(identical(factory1, factory2), isTrue);
       });

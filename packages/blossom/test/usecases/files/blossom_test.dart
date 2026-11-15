@@ -34,7 +34,7 @@ void main() {
 
     KeyPair key1 = Bip340.generatePrivateKey();
 
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
     accounts.loginPrivateKey(privkey: key1.privateKey!);
 
     loggedAccount = accounts.getLoggedAccount()!;
@@ -973,7 +973,7 @@ void main() {
   });
 
   test('Get blobs with a logged account', () async {
-    final accounts = Accounts(const Bip340EventSignerFactory());
+    final accounts = Accounts(const Bip340SignerFactory());
 
     final keyPair = Bip340.generatePrivateKey();
     accounts.loginPrivateKey(privkey: keyPair.privateKey!);
@@ -1374,7 +1374,7 @@ void main() {
     test(
       'uploadBlob should work without logged in account using temporary signer',
       () async {
-        final accountsNoLogin = Accounts(const Bip340EventSignerFactory());
+        final accountsNoLogin = Accounts(const Bip340SignerFactory());
 
         final testData = Uint8List.fromList(
           utf8.encode('Temporary signer test'),

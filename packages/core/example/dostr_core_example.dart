@@ -11,7 +11,7 @@ Future<void> main() async {
     relayManager: relays,
     eventVerifier: Bip340EventVerifier(),
   );
-  final signer = Bip340EventSignerFactory().createWithNewKeyPair();
+  final signer = Bip340SignerFactory().createWithNewKeyPair();
 
   final event = await signer.sign(
     Nip01Event(

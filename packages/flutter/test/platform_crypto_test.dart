@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'helpers.dart';
 
 void main() {
-  const signerFactory = DostrEventSignerFactory();
+  const signerFactory = DostrSignerFactory();
   final verifier = DostrEventVerifier();
 
-  Future<Nip01Event> signNote(EventSigner signer) => signer.sign(
+  Future<Nip01Event> signNote(NostrSigner signer) => signer.sign(
     Nip01Event(
       pubKey: alicePubkey,
       kind: 1,
@@ -21,7 +21,7 @@ void main() {
     ),
   );
 
-  test('DostrEventSignerFactory derives the BIP-340 public key', () {
+  test('DostrSignerFactory derives the BIP-340 public key', () {
     expect(signerFactory.derivePublicKey(alicePrivateKey), alicePubkey);
 
     final (privateKey, publicKey) = signerFactory.generateKeyPair();
@@ -33,7 +33,7 @@ void main() {
       signerFactory.create(privateKey: alicePrivateKey),
     );
     final bip340Signed = await signNote(
-      Bip340EventSigner(privateKey: alicePrivateKey, publicKey: alicePubkey),
+      Bip340Signer(privateKey: alicePrivateKey, publicKey: alicePubkey),
     );
 
     expect(await verifier.verify(platformSigned), isTrue);

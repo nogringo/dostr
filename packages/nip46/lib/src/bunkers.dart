@@ -7,24 +7,24 @@ import 'package:rxdart/rxdart.dart';
 import 'bunker_connection.dart';
 import 'bunker_request.dart';
 import 'nip46_client_metadata.dart';
-import 'nip46_event_signer.dart';
+import 'nip46_signer.dart';
 import 'nostr_connect.dart';
 
 /// Bunkers usecase that handles NIP-46 remote signing protocol operations
 class Bunkers {
   final RelayReqs _relayReqs;
   final RelayPublishes _relayPublishes;
-  final LocalEventSignerFactory _eventSignerFactory;
+  final LocalSignerFactory _signerFactory;
 
   static const int kMaxWaitingTimeForConnectionSeconds = 600;
 
   Bunkers({
     required RelayReqs relayReqs,
     required RelayPublishes relayPublishes,
-    required LocalEventSignerFactory eventSignerFactory,
+    required LocalSignerFactory signerFactory,
   }) : _relayReqs = relayReqs,
        _relayPublishes = relayPublishes,
-       _eventSignerFactory = eventSignerFactory;
+       _signerFactory = signerFactory;
 
   /// Connects to a bunker using a bunker URL (bunker://)
   /// authCallback is called with the auth URL if the bunker requires authentication
@@ -50,9 +50,9 @@ class Bunkers {
       throw ArgumentError('Secret parameter is required in bunker URL');
     }
 
-    final keyPair = _eventSignerFactory.generateKeyPair();
+    final keyPair = _signerFactory.generateKeyPair();
 
-    final localEventSigner = _eventSignerFactory.create(
+    final localSigner = _signerFactory.create(
       privateKey: keyPair.$1,
       publicKey: keyPair.$2,
     );
@@ -71,13 +71,13 @@ class Bunkers {
       ],
     );
 
-    final encryptedRequest = await localEventSigner.encryptNip44(
+    final encryptedRequest = await localSigner.encryptNip44(
       plaintext: jsonEncode(request),
       recipientPubKey: remotePubkey,
     );
 
     final requestEvent = Nip01Event(
-      pubKey: localEventSigner.getPublicKey(),
+      pubKey: localSigner.getPublicKey(),
       kind: BunkerRequest.kKind,
       tags: [
         ["p", remotePubkey],
@@ -85,7 +85,7 @@ class Bunkers {
       content: encryptedRequest!,
     );
 
-    final signedEvent = await localEventSigner.sign(requestEvent);
+    final signedEvent = await localSigner.sign(requestEvent);
 
     // Subscribe BEFORE broadcasting to avoid missing the response,
     // since NIP-46 uses ephemeral events (kind 24133)
@@ -94,7 +94,7 @@ class Bunkers {
       Filter(
         authors: [remotePubkey],
         kinds: [BunkerRequest.kKind],
-        pTags: [localEventSigner.getPublicKey()],
+        pTags: [localSigner.getPublicKey()],
         since: someTimeAgo(),
       ),
     );
@@ -103,7 +103,7 @@ class Bunkers {
 
     try {
       await for (final event in _responses(subscription)) {
-        final decryptedContent = await localEventSigner.decryptNip44(
+        final decryptedContent = await localSigner.decryptNip44(
           ciphertext: event.content,
           senderPubKey: remotePubkey,
         );
@@ -138,7 +138,7 @@ class Bunkers {
     required List<String> relays,
     Nip46ClientMetadata? clientMetadata,
   }) {
-    final (privateKey, publicKey) = _eventSignerFactory.generateKeyPair();
+    final (privateKey, publicKey) = _signerFactory.generateKeyPair();
     return NostrConnect(
       relays: relays,
       privateKey: privateKey,
@@ -160,7 +160,7 @@ class Bunkers {
       throw ArgumentError('At least one relay is required in bunker URL');
     }
 
-    final localEventSigner = _eventSignerFactory.create(
+    final localSigner = _signerFactory.create(
       privateKey: nostrConnect.privateKey,
       publicKey: nostrConnect.publicKey,
     );
@@ -169,14 +169,14 @@ class Bunkers {
       relays,
       Filter(
         kinds: [BunkerRequest.kKind],
-        pTags: [localEventSigner.getPublicKey()],
+        pTags: [localSigner.getPublicKey()],
         since: someTimeAgo(),
       ),
     );
 
     try {
       await for (final event in _responses(subscription)) {
-        final decryptedContent = await localEventSigner.decryptNip44(
+        final decryptedContent = await localSigner.decryptNip44(
           ciphertext: event.content,
           senderPubKey: event.pubKey,
         );
@@ -215,16 +215,16 @@ class Bunkers {
   }
 
   /// Creates a simple signer that delegates to this bunker instance
-  Nip46EventSigner createSigner(
+  Nip46Signer createSigner(
     BunkerConnection connection, {
     Function(String)? authCallback,
   }) {
-    return Nip46EventSigner(
+    return Nip46Signer(
       connection: connection,
       relayReqs: _relayReqs,
       relayPublishes: _relayPublishes,
       authCallback: authCallback,
-      eventSignerFactory: _eventSignerFactory,
+      signerFactory: _signerFactory,
     );
   }
 }
