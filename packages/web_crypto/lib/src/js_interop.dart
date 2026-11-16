@@ -27,14 +27,16 @@ extension type NostrCrypto._(JSObject _) implements JSObject {
     JSString publicKeyHex,
     JSString ciphertext,
   );
-  external JSPromise<JSString> nip44Encrypt(
+  external JSUint8Array nip44ConversationKey(
     JSString privateKeyHex,
     JSString publicKeyHex,
+  );
+  external JSPromise<JSString> nip44Encrypt(
+    JSUint8Array conversationKey,
     JSString plaintext,
   );
   external JSPromise<JSString> nip44Decrypt(
-    JSString privateKeyHex,
-    JSString publicKeyHex,
+    JSUint8Array conversationKey,
     JSString payloadB64,
   );
 }

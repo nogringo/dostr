@@ -53,13 +53,17 @@ class WebSignerFactory implements LocalSignerFactory {
 /// via JS interop for fast BIP-340 signing, NIP-04 and NIP-44 encryption.
 class WebSigner implements NostrSigner {
   /// hex private key
-  String? privateKey;
+  final String? privateKey;
 
   /// hex public key
   String publicKey;
 
   final Completer<bool> _isInitialized = Completer<bool>();
   static bool _jsInjected = false;
+
+  // Bounded: each gift wrap comes from a one-off key that never comes back.
+  static const _maxConversationKeys = 256;
+  final _conversationKeys = <String, JSUint8Array>{};
 
   /// Get a new web signer with the given keys
   WebSigner({required this.privateKey, required this.publicKey}) {
@@ -165,7 +169,7 @@ class WebSigner implements NostrSigner {
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip44Encrypt(privateKey!.toJS, recipientPubkey.toJS, plaintext.toJS)
+        .nip44Encrypt(_conversationKey(crypto, recipientPubkey), plaintext.toJS)
         .toDart;
     return result.toDart;
   }
@@ -180,9 +184,19 @@ class WebSigner implements NostrSigner {
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip44Decrypt(privateKey!.toJS, senderPubkey.toJS, ciphertext.toJS)
+        .nip44Decrypt(_conversationKey(crypto, senderPubkey), ciphertext.toJS)
         .toDart;
     return result.toDart;
+  }
+
+  JSUint8Array _conversationKey(NostrCrypto crypto, String pubkey) {
+    final key =
+        _conversationKeys.remove(pubkey) ??
+        crypto.nip44ConversationKey(privateKey!.toJS, pubkey.toJS);
+    if (_conversationKeys.length >= _maxConversationKeys) {
+      _conversationKeys.remove(_conversationKeys.keys.first);
+    }
+    return _conversationKeys[pubkey] = key;
   }
 
   // Local signer - no pending requests (operations are instant)
@@ -201,6 +215,7 @@ class WebSigner implements NostrSigner {
 
   @override
   Future<void> dispose() async {
+    _conversationKeys.clear();
     await _pendingRequestsController.close();
   }
 }

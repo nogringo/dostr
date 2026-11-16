@@ -1,4 +1,5 @@
 import { schnorr, secp256k1 } from '@noble/curves/secp256k1.js';
+import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex, concatBytes } from '@noble/hashes/utils.js';
 import { chacha20 } from '@noble/ciphers/chacha.js';
@@ -153,10 +154,6 @@ async function hmacSha256(key, data) {
   return new Uint8Array(signature);
 }
 
-async function hkdfExtract(ikm, salt) {
-  return hmacSha256(salt, ikm);
-}
-
 async function hkdfExpand(prk, info, length) {
   const hashLen = 32;
   const n = Math.ceil(length / hashLen);
@@ -280,16 +277,23 @@ function unpad(padded) {
 // ---------------------------------------------------------------------------
 
 /**
- * Encrypt a NIP-44 message
+ * The NIP-44 conversation key between two peers, the same on both sides
  * @param {string} privateKeyHex
  * @param {string} publicKeyHex
+ * @returns {Uint8Array}
+ */
+function nip44ConversationKey(privateKeyHex, publicKeyHex) {
+  const salt = new TextEncoder().encode('nip44-v2');
+  return hmac(sha256, salt, getSharedSecret(privateKeyHex, publicKeyHex));
+}
+
+/**
+ * Encrypt a NIP-44 message
+ * @param {Uint8Array} conversationKey
  * @param {string} plaintext
  * @returns {Promise<string>}
  */
-async function nip44Encrypt(privateKeyHex, publicKeyHex, plaintext) {
-  const sharedSecret = getSharedSecret(privateKeyHex, publicKeyHex);
-  const salt = new TextEncoder().encode('nip44-v2');
-  const conversationKey = await hkdfExtract(sharedSecret, salt);
+async function nip44Encrypt(conversationKey, plaintext) {
   const nonce = crypto.getRandomValues(new Uint8Array(32));
 
   const hkdfOutput = await hkdfExpand(conversationKey, nonce, 76);
@@ -313,12 +317,11 @@ async function nip44Encrypt(privateKeyHex, publicKeyHex, plaintext) {
 
 /**
  * Decrypt a NIP-44 message
- * @param {string} privateKeyHex
- * @param {string} publicKeyHex
+ * @param {Uint8Array} conversationKey
  * @param {string} payloadB64
  * @returns {Promise<string>}
  */
-async function nip44Decrypt(privateKeyHex, publicKeyHex, payloadB64) {
+async function nip44Decrypt(conversationKey, payloadB64) {
   if (payloadB64.startsWith('#')) throw new Error('Unsupported version');
   if (payloadB64.length < 132) throw new Error('Invalid payload size');
   const payload = base64ToBytes(payloadB64);
@@ -328,10 +331,6 @@ async function nip44Decrypt(privateKeyHex, publicKeyHex, payloadB64) {
   const nonce = payload.subarray(1, 33);
   const mac = payload.subarray(payload.length - 32);
   const ciphertext = payload.subarray(33, payload.length - 32);
-
-  const sharedSecret = getSharedSecret(privateKeyHex, publicKeyHex);
-  const salt = new TextEncoder().encode('nip44-v2');
-  const conversationKey = await hkdfExtract(sharedSecret, salt);
 
   const hkdfOutput = await hkdfExpand(conversationKey, nonce, 76);
   const chachaKey = hkdfOutput.slice(0, 32);
@@ -354,6 +353,7 @@ window.NostrCrypto = {
   getPublicKey,
   nip04Encrypt,
   nip04Decrypt,
+  nip44ConversationKey,
   nip44Encrypt,
   nip44Decrypt,
 };
