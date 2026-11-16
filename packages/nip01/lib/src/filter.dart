@@ -1,56 +1,53 @@
 import 'dart:collection';
 
-/// Represents a filter for querying Nostr events.
+/// The NIP-01 filter of a REQ: an event matches it when it meets every
+/// condition the filter sets. Its fields can change: [clone] gives an
+/// independent copy.
 ///
-/// This class encapsulates various criteria that can be used to filter
-/// Nostr events when querying relays or local caches.
 /// https://github.com/nostr-protocol/nips/blob/master/01.md#communication-between-clients-and-relays
 class Filter {
-  /// List of event IDs to filter by.
+  /// The ids of the events to match.
   List<String>? ids;
 
-  /// List of author public keys to filter by.
+  /// The pubkeys of the authors to match, in hex.
   List<String>? authors;
 
-  /// List of event kinds to filter by.
+  /// The kinds to match.
   List<int>? kinds;
 
-  /// Text to search for in event content.
+  /// A NIP-50 search query, for the relays that support it.
   String? search;
 
-  /// List of event tags to filter by.
+  /// The values of the `#e` filter: the ids of the events referred to.
   List<String>? get eTags => getTag("e");
 
-  /// List of pubkey tags to filter by.
+  /// The values of the `#p` filter: the pubkeys referred to.
   List<String>? get pTags => getTag("p");
 
-  /// List of replaceable event tags to filter by.
+  /// The values of the `#a` filter: the `kind:pubkey:d` coordinates of the
+  /// addressable or replaceable events referred to.
   List<String>? get aTags => getTag("a");
 
-  /// List of addressable event identifiers to filter by.
+  /// The values of the `#d` filter: the identifiers of the addressable events
+  /// to match.
   List<String>? get dTags => getTag("d");
 
-  /// Unix timestamp to filter events created after this time.
+  /// The oldest `created_at` to match, in Unix seconds, included.
   int? since;
 
-  /// Unix timestamp to filter events created before this time.
+  /// The newest `created_at` to match, in Unix seconds, included.
   int? until;
 
-  /// Maximum number of events to return.
+  /// The most events a relay returns for the initial query, the newest ones.
   int? limit;
 
   Map<String, List<String>>? _tags;
 
-  /// Read-only view of the tag filters, keyed by the bare tag name ('p', 'e',
-  /// 'd', ...), value is a list of tag values.
+  /// The tag filters, by tag name without the NIP-01 '#', such as 'p' or 'e'.
   ///
-  /// The NIP-01 '#' prefix is a wire-format detail only: [toJson] adds it when
-  /// a filter is serialized for a relay, everything else, cache reads above
-  /// all, sees bare keys.
-  ///
-  /// The returned map cannot be modified directly, so callers cannot bypass
-  /// key normalization. Mutate through [setTag] or the [tags] setter instead;
-  /// both accept '#'-prefixed keys such as '#p' and store them bare.
+  /// The map cannot be modified, so that every name stays bare: change it with
+  /// [setTag] or this setter, which both take a name with or without its '#'.
+  /// Only the JSON form, of [toJson] and [Filter.fromJson], has the '#'.
   Map<String, List<String>>? get tags =>
       _tags == null ? null : UnmodifiableMapView(_tags!);
 
@@ -158,14 +155,12 @@ class Filter {
       "limit": limit,
     };
 
-    // Add arbitrary tags to the map, NIP-01 wants them '#'-prefixed
     if (tags != null) {
       body.addAll({
         for (final entry in tags!.entries) _wireTagKey(entry.key): entry.value,
       });
     }
 
-    // remove null values
     body.removeWhere((key, value) => value == null);
 
     return body;

@@ -75,6 +75,8 @@ class MyVerifier implements EventVerifier {
 }
 ```
 
+`package:dostr_nip01/hex.dart` has the hex helpers a verifier needs: `isLowercaseHex` checks that an id, a pubkey or a sig is the lowercase hex NIP-01 requires, and `bytesToHex` and `hexToBytes` convert between bytes and hex.
+
 ## Coming from `ndk`
 
 `Nip01Event` and `EventVerifier` used to be in `ndk`.
