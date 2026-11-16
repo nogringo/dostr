@@ -117,7 +117,7 @@ void main() {
   test('nostrconnect URL carries perms and metadata', () {
     final keyPair = Bip340.generatePrivateKey();
     final nostrConnect = NostrConnect(
-      relays: ['wss://relay.example.com'],
+      relays: [RelayUrl.parse('wss://relay.example.com')],
       privateKey: keyPair.privateKey!,
       publicKey: keyPair.publicKey,
       clientMetadata: const Nip46ClientMetadata(

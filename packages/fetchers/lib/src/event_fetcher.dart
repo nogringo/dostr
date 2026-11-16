@@ -52,9 +52,9 @@ class EventFetch {
   final _done = Completer<EventFetchResult>();
   late final StreamSubscription<UrlSetSnapshot> _snapshots;
   UrlSetSnapshot? _last;
-  final Set<String> _asked = {};
-  final Map<String, RelayReq> _running = {};
-  final Map<String, RelayRequestOutcome> _outcomes = {};
+  final Set<RelayUrl> _asked = {};
+  final Map<RelayUrl, RelayReq> _running = {};
+  final Map<RelayUrl, RelayRequestOutcome> _outcomes = {};
   final List<Nip01Event> _received = [];
   final Set<String> _ids = {};
   bool _resolved = false;
@@ -165,7 +165,7 @@ final class EventFetchResult {
   final List<Nip01Event> events;
 
   /// What each relay asked did with its REQ, by relay url.
-  final Map<String, RelayRequestOutcome> outcomes;
+  final Map<RelayUrl, RelayRequestOutcome> outcomes;
 
   /// Each unavailable list of the set: the relays it names were not asked.
   final List<UnavailableUrlList> unavailable;

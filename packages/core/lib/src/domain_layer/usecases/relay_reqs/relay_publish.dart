@@ -30,7 +30,7 @@ class RelayPublishes {
   /// authentication.
   RelayPublish publish(
     Nip01Event event, {
-    required Iterable<String> relays,
+    required Iterable<RelayUrl> relays,
     AuthPolicy? auth,
     Duration timeout = defaultBroadcastTimeout,
     double considerDonePercent = defaultConsiderDonePercent,
@@ -78,26 +78,26 @@ class RelayPublish {
 
   final BroadcastState _state;
   final RelayBroadcasts _broadcasts;
-  final Set<String> _sentTo = {};
+  final Set<RelayUrl> _sentTo = {};
   Nip01Event? _signed;
 
   /// The OK of each relay so far, keyed by relay url. A relay that did not
   /// answer yet has neither [RelayBroadcastResponse.okReceived] nor a
   /// [RelayBroadcastResponse.failure].
-  Map<String, RelayBroadcastResponse> get outcomes => _outcomesOf(_state);
+  Map<RelayUrl, RelayBroadcastResponse> get outcomes => _outcomesOf(_state);
 
   /// [outcomes] each time a relay answers, closed once the publish is done.
-  Stream<Map<String, RelayBroadcastResponse>> get outcomesStream =>
+  Stream<Map<RelayUrl, RelayBroadcastResponse>> get outcomesStream =>
       _state.stateUpdates.map(_outcomesOf);
 
   /// [outcomes] once the publish is done, see [RelayPublishes.publish]. Fails
   /// with the error the publish was [fail]ed on.
   // late: an unawaited failure would otherwise surface as an uncaught error
-  late final Future<Map<String, RelayBroadcastResponse>> done = _state
+  late final Future<Map<RelayUrl, RelayBroadcastResponse>> done = _state
       .publishDoneFuture
       .then(_outcomesOf);
 
-  static Map<String, RelayBroadcastResponse> _outcomesOf(
+  static Map<RelayUrl, RelayBroadcastResponse> _outcomesOf(
     BroadcastState state,
   ) => Map.unmodifiable(state.broadcasts);
 
@@ -126,7 +126,7 @@ class RelayPublish {
   void fail(Object error, [StackTrace? stackTrace]) =>
       _state.addError(error, stackTrace);
 
-  /// Sends the signed event to [relayUrl] on the connection the publish's
+  /// Sends the signed event to [url] on the connection the publish's
   /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
   /// the publish is over, nor twice to a relay.
   ///
@@ -134,7 +134,7 @@ class RelayPublish {
   /// the connection is up: a reason it gives not to send after all fails the
   /// relay with that reason.
   bool send(
-    String relayUrl, {
+    RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     Future<String?> Function()? veto,
   }) {
@@ -142,8 +142,7 @@ class RelayPublish {
     if (signed == null) {
       throw StateError('${event.id} has to be started before it is sent');
     }
-    final url = cleanRelayUrl(relayUrl);
-    if (url == null || _state.networkController.isClosed || !_sentTo.add(url)) {
+    if (_state.networkController.isClosed || !_sentTo.add(url)) {
       return false;
     }
     unawaited(

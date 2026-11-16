@@ -1,7 +1,8 @@
+import 'package:dostr_relay_url/dostr_relay_url.dart';
+
 /// Connection attempts of a `RelayConnectivity`, kept by its `RelayManager`.
 abstract interface class Relay {
-  /// relay url
-  String get url;
+  RelayUrl get url;
 
   /// is it connecting
   bool get connecting;

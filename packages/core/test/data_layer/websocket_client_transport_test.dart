@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 const _wait = Duration(seconds: 2);
@@ -17,7 +18,7 @@ void main() {
     final port = closed.port;
     await closed.close();
 
-    final transport = factory('ws://127.0.0.1:$port');
+    final transport = factory(RelayUrl.parse('ws://127.0.0.1:$port'));
     addTearDown(transport.close);
 
     await expectLater(
@@ -35,7 +36,9 @@ void main() {
       silent.listen(accepted.complete);
       addTearDown(silent.close);
 
-      final transport = factory('ws://127.0.0.1:${silent.port}');
+      final transport = factory(
+        RelayUrl.parse('ws://127.0.0.1:${silent.port}'),
+      );
       final ready = transport.ready;
       final socket = await accepted.future.timeout(_wait);
       addTearDown(socket.destroy);
@@ -58,7 +61,7 @@ void main() {
     });
     addTearDown(() => server.close(force: true));
 
-    final transport = factory('ws://127.0.0.1:${server.port}');
+    final transport = factory(RelayUrl.parse('ws://127.0.0.1:${server.port}'));
     addTearDown(transport.close);
     final ended = Completer<void>();
     transport.listen((_) {}, onDone: ended.complete);
@@ -186,7 +189,7 @@ class _EchoRelay {
   static Future<_EchoRelay> start() async =>
       _EchoRelay._(await HttpServer.bind(InternetAddress.loopbackIPv4, 0));
 
-  String get url => 'ws://127.0.0.1:${_server.port}';
+  RelayUrl get url => RelayUrl.parse('ws://127.0.0.1:${_server.port}');
 
   Future<WebSocket> get nextSocket => _upgraded.stream.first;
 

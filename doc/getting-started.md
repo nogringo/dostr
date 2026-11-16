@@ -33,7 +33,7 @@ final reqs = RelayReqs(
 
 final req = reqs.req(
   relays: {
-    'wss://relay.example.com': [
+    RelayUrl.parse('wss://relay.example.com'): [
       Filter(kinds: [Nip01Event.kTextNoteKind], authors: [pubkey], limit: 10),
     ],
   },
@@ -62,7 +62,7 @@ final signed = await signer.sign(
 );
 
 final outcomes = await RelayPublishes(relayManager: relays)
-    .publish(signed, relays: ['wss://relay.example.com'])
+    .publish(signed, relays: [RelayUrl.parse('wss://relay.example.com')])
     .done;
 ```
 

@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dostr_relay_url/dostr_relay_url.dart';
+
 import '../../../config/relay_defaults.dart';
 import '../../../shared/logger/logger.dart';
 import '../../entities/message_length_limit.dart';
@@ -24,7 +26,7 @@ class MessageTooLong implements Exception {
 class RelayLimits {
   final SubscriptionLimit? _subscriptionLimit;
   final MessageLengthLimit? _messageLengthLimit;
-  final FutureOr<void> Function(String url, int length)?
+  final FutureOr<void> Function(RelayUrl url, int length)?
   _onMessageLengthLearned;
 
   /// told once the limits of a connection are known
@@ -32,13 +34,13 @@ class RelayLimits {
 
   /// most UTF-8 bytes each relay reads in one message, by url, learned from
   /// the sockets it closed with a 1009
-  final Map<String, int> _learnedMessageLengths = {};
+  final Map<RelayUrl, int> _learnedMessageLengths = {};
 
   RelayLimits({
     required void Function(RelayConnection connectivity) onKnown,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
-    FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
+    FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) : _onKnown = onKnown,
        _subscriptionLimit = subscriptionLimit,
        _messageLengthLimit = messageLengthLimit,
@@ -68,8 +70,8 @@ class RelayLimits {
   }
 
   static FutureOr<int?> _askOne(
-    FutureOr<int?> Function(String url)? provider,
-    String url,
+    FutureOr<int?> Function(RelayUrl url)? provider,
+    RelayUrl url,
     String name,
   ) {
     if (provider == null) return null;

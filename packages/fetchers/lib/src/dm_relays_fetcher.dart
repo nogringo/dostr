@@ -19,7 +19,7 @@ class DmRelaysFetcher extends OutboxFetcher {
 
 /// The normalized relays of [dmRelayList], a `kind:10050`: its `relay` tags,
 /// each once, in order.
-List<String> dmRelaysOf(Nip01Event dmRelayList) => cleanRelayUrls([
+List<RelayUrl> dmRelaysOf(Nip01Event dmRelayList) => cleanRelayUrls([
   for (final tag in dmRelayList.tags)
     if (tag.length > 1 && tag[0] == 'relay') tag[1],
 ]).toSet().toList();

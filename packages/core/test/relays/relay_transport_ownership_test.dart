@@ -76,7 +76,7 @@ class _Factory implements NostrTransportFactory {
 
 void main() {
   const url = 'wss://relay.example';
-  final key = RelayConnectionKey.anonymous(url);
+  final key = RelayConnectionKey.anonymous(RelayUrl.parse(url));
   late RelayManagerParts parts;
   late _Factory factory;
   late RelayManager manager;
@@ -353,7 +353,7 @@ void main() {
     await reconnecting;
 
     expect(manager.isConnectionOpen(key), isTrue);
-    expect(manager.isRelayConnected(other), isTrue);
+    expect(manager.isRelayConnected(RelayUrl.parse(other)), isTrue);
   });
 
   test('a replay skips the requests the socket already carries', () async {

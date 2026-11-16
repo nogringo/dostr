@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -23,7 +24,7 @@ class BroadcastState implements TimeoutPausable {
 
   /// relay urls this broadcast is currently re-sending to after an
   /// auth-required refusal
-  final Set<String> retryingAuth = {};
+  final Set<RelayUrl> retryingAuth = {};
 
   /// stream controller for state updates
   final BehaviorSubject<BroadcastState> _stateUpdatesController =
@@ -40,7 +41,7 @@ class BroadcastState implements TimeoutPausable {
 
   //! our broadcast tracking obj
   /// key is relay url, value is [RelayBroadcastResponse]
-  Map<String, RelayBroadcastResponse> broadcasts = {};
+  Map<RelayUrl, RelayBroadcastResponse> broadcasts = {};
 
   /// completes when all relays have responded or timed out
   /// first string is the relay url, second is the response

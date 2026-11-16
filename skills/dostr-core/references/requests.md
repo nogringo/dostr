@@ -7,7 +7,7 @@ No cache, no outbox routing, no deduplication across relays.
 ```dart
 final req = reqs.req(
   relays: {
-    'wss://relay.example.com': [Filter(kinds: [1], authors: [pubkey], limit: 20)],
+    RelayUrl.parse('wss://relay.example.com'): [Filter(kinds: [1], authors: [pubkey], limit: 20)],
   },
   timeout: Duration(seconds: 10),
 );
@@ -18,6 +18,7 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 ```
 
 - `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.
+- Relays are `RelayUrl`s: `RelayUrl.parse(url)` throws on a url that is not a relay's, `cleanRelayUrl(url)` returns null, `cleanRelayUrls(urls)` drops them. A `RelayUrl` is a `String`.
 - Without `relays`, call `req.send(url, filters)` per relay, then `req.seal()`.
 - `auth: AuthPolicy.never() / allow(account) / require(account)` picks the identity (NIP-42).
 - Events are verified; an event two relays hold arrives twice.
@@ -27,8 +28,8 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 ```dart
 final signed = await signer.sign(event);
 final outcomes = await publishes
-    .publish(signed, relays: ['wss://relay.example.com'])
-    .done; // Map<String, RelayBroadcastResponse>
+    .publish(signed, relays: [RelayUrl.parse('wss://relay.example.com')])
+    .done; // Map<RelayUrl, RelayBroadcastResponse>
 ```
 
 The event must be signed. No retry, no cache.

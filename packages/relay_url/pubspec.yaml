@@ -1,5 +1,5 @@
 name: dostr_relay_url
-description: Normalization of Nostr relay urls, as RFC 3986 describes, so two spellings of one relay compare equal, in pure Dart.
+description: Normalization of Nostr relay urls, so two spellings of one relay compare equal, and a type for the normalized ones, in pure Dart.
 version: 0.1.0
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr

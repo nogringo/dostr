@@ -84,7 +84,7 @@ ReplaceableLookup lookUpReplaceable({
   required String pubkey,
   String? dTag,
   required Stream<Nip01Event> Function(
-    Map<String, RelayRequestOutcome> outcomes,
+    Map<RelayUrl, RelayRequestOutcome> outcomes,
   )
   ask,
   Future<String?> Function()? unlocated,
@@ -108,7 +108,7 @@ ReplaceableLookup lookUpReplaceable({
       return;
     }
 
-    final outcomes = <String, RelayRequestOutcome>{};
+    final outcomes = <RelayUrl, RelayRequestOutcome>{};
     final answers = ask(outcomes);
     asked.complete(true);
     var newest = cached;

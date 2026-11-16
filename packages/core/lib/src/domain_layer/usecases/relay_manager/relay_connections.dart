@@ -82,8 +82,8 @@ class RelayConnections {
   /// value: relay connectivity
   final Map<RelayConnectionKey, RelayConnection> relays = {};
 
-  /// clean urls of relays that are blocked
-  final Set<String> blockedRelays = {};
+  /// relays that are blocked
+  final Set<RelayUrl> blockedRelays = {};
 
   /// Tracks relay connect attempts that are still finishing setup so callers
   /// can wait for "socket open + listener attached", not just raw socket open.
@@ -97,7 +97,7 @@ class RelayConnections {
 
   // Track processing order per relay so EVENT/EOSE/AUTH/CLOSED ordering stays
   // correct without introducing cross-relay head-of-line blocking.
-  final Map<String, Completer<void>> _lastMessageCompleters = {};
+  final Map<RelayUrl, Completer<void>> _lastMessageCompleters = {};
 
   final _updates = BehaviorSubject<List<RelayConnection>>();
 
@@ -112,7 +112,7 @@ class RelayConnections {
     int reconnectMaximumStep = defaultReconnectMaximumStep,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
-    FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
+    FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) : _auth = auth,
        _onMessage = onMessage,
        _reconnectMaximumStep = reconnectMaximumStep {
@@ -153,7 +153,7 @@ class RelayConnections {
       .toList();
 
   /// Whether the anonymous connection to [url] is open.
-  bool isRelayConnected(String url) =>
+  bool isRelayConnected(RelayUrl url) =>
       isConnectionOpen(RelayConnectionKey.anonymous(url));
 
   /// checks if the connection identified by [key] is open
@@ -175,14 +175,12 @@ class RelayConnections {
   }
 
   /// The anonymous connection to [url], if there is one.
-  RelayConnection? getRelayConnectivity(String url) =>
+  RelayConnection? getRelayConnectivity(RelayUrl url) =>
       relays[RelayConnectionKey.anonymous(url)];
 
   /// every connection currently held towards [url]
-  List<RelayConnectionKey> keysFor(String url) {
-    final relayUrl = RelayConnectionKey.anonymous(url).url;
-    return relays.keys.where((key) => key.url == relayUrl).toList();
-  }
+  List<RelayConnectionKey> keysFor(RelayUrl url) =>
+      relays.keys.where((key) => key.url == url).toList();
 
   /// Waits up to [timeout] for [transport] to open, and returns why it did not.
   static Future<Object?> _whyNotOpen(
@@ -206,7 +204,7 @@ class RelayConnections {
     String? authPubkey,
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
-    String? url = cleanRelayUrl(dirtyUrl);
+    final url = cleanRelayUrl(dirtyUrl);
     if (url == null) {
       notifyChanged();
       return (
@@ -359,7 +357,7 @@ class RelayConnections {
   }
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
-  Future<bool> reconnectRelay(String url, {bool force = false}) =>
+  Future<bool> reconnectRelay(RelayUrl url, {bool force = false}) =>
       reconnectConnection(RelayConnectionKey.anonymous(url), force: force);
 
   /// Reconnects the connection identified by [key], if it is closed. An
@@ -436,7 +434,7 @@ class RelayConnections {
   /// while it decides. A connection that already exists was agreed to when it
   /// was first opened, so reconnecting it does not ask again.
   Future<RelayConnection?> openConnectionAs(
-    String url,
+    RelayUrl url,
     Account account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,

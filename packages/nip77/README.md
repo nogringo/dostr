@@ -25,8 +25,9 @@ final nip77 = Nip77(
   loadEvent: store.loadEvent,
 );
 
+final relay = RelayUrl.parse('wss://relay.example.com');
 final response = nip77.reconcile(
-  relayUrl: 'wss://relay.example.com',
+  relayUrl: relay,
   filter: Filter(authors: [myPubkey]),
 );
 final result = await response.future;
@@ -47,7 +48,7 @@ For small queries, a plain REQ with `RelayReqs` is simpler.
 
 ```dart
 final response = nip77.reconcile(
-  relayUrl: 'wss://relay.example.com',
+  relayUrl: relay,
   filter: filter,
   openTimeout: Duration(seconds: 30), // first answer to NEG-OPEN
   idleTimeout: Duration(seconds: 15), // silence between two rounds
@@ -64,7 +65,7 @@ The `auth` parameter says which identity the reconciliation may be attributed to
 
 ```dart
 final response = nip77.reconcile(
-  relayUrl: 'wss://relay.example.com',
+  relayUrl: relay,
   filter: Filter(authors: [myPubkey]),
   auth: AuthPolicy.require(account),
 );
@@ -91,7 +92,7 @@ Pass a shorter `openTimeout` if that wait is too long:
 ```dart
 try {
   final response = nip77.reconcile(
-    relayUrl: 'wss://relay.example.com',
+    relayUrl: relay,
     filter: filter,
     openTimeout: const Duration(seconds: 10),
   );
@@ -109,7 +110,7 @@ A relay that requires an identity you did not give it fails with `Nip77AuthRequi
 ```dart
 try {
   await nip77.reconcile(
-    relayUrl: 'wss://relay.example.com',
+    relayUrl: relay,
     filter: filter,
     auth: const AuthPolicy.never(),
   ).future;

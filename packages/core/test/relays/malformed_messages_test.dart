@@ -50,7 +50,7 @@ class _ThrowingHandler extends RelayProtocolHandler {
 }
 
 void main() {
-  const url = 'wss://relay.example.com';
+  final url = RelayUrl.parse('wss://relay.example.com');
   late _Factory factory;
   late RelayManager manager;
 

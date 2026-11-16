@@ -1,3 +1,5 @@
+import 'package:dostr_relay_url/dostr_relay_url.dart';
+
 import 'relay_failure.dart';
 
 /// The answer of one relay to a published event, from its NIP-01 OK message,
@@ -8,8 +10,7 @@ import 'relay_failure.dart';
 /// ["OK", "b1a649ebe8...", false, "pow: difficulty 26 is less than 30"]
 /// ```
 class RelayBroadcastResponse {
-  /// the relay url
-  final String relayUrl;
+  final RelayUrl relayUrl;
 
   /// true if the relay responded with "OK"
   bool okReceived;

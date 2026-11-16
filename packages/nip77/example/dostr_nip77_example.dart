@@ -14,7 +14,7 @@ Future<void> main() async {
   );
 
   final response = nip77.reconcile(
-    relayUrl: 'wss://relay.example.com',
+    relayUrl: RelayUrl.parse('wss://relay.example.com'),
     filter: Filter(kinds: [0], limit: 100),
   );
   final result = await response.future;

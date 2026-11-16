@@ -1,11 +1,11 @@
 import 'package:dostr_core/dostr_core.dart';
 
 /// Relays that index users' `kind:0` and `kind:10002` events.
-const List<String> defaultIndexerRelays = [
-  'wss://purplepag.es',
-  'wss://relay.primal.net',
-  'wss://relay.ditto.pub',
-];
+final List<RelayUrl> defaultIndexerRelays = List.unmodifiable([
+  RelayUrl.parse('wss://purplepag.es'),
+  RelayUrl.parse('wss://relay.primal.net'),
+  RelayUrl.parse('wss://relay.ditto.pub'),
+]);
 
 /// The [kind] events of [pubkey] among [events], named [dTag] if addressable,
 /// each newer than the ones before it and than [after], the lowest id winning

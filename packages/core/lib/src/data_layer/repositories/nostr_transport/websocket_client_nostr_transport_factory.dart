@@ -24,15 +24,9 @@ class WebSocketClientNostrTransportFactory implements NostrTransportFactory {
   final bool compressionEnabled;
 
   @override
-  NostrTransport call(String url) {
-    final myUrl = cleanRelayUrl(url);
-
-    if (myUrl == null) {
-      throw Exception("relayUrl is not parsable");
-    }
-
+  NostrTransport call(RelayUrl url) {
     return connectWebSocket(
-      Uri.parse(myUrl),
+      Uri.parse(url),
       pingInterval: pingInterval,
       compressionEnabled: compressionEnabled,
     );

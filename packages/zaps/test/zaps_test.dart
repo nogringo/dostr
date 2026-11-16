@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
@@ -12,6 +13,9 @@ import 'mocks/fake_network.dart';
 import 'mocks/mock_slow_signer.dart';
 
 void main() {
+  final relay1 = RelayUrl.parse('wss://relay1.example.com');
+  final relay2 = RelayUrl.parse('wss://relay2.example.com');
+
   NostrSigner signerFactory({String? privateKey, required String publicKey}) =>
       Bip340Signer(privateKey: privateKey, publicKey: publicKey);
 
@@ -78,7 +82,7 @@ void main() {
           publicKey: key.publicKey,
         ),
         pubkey: 'pubkey',
-        relays: ['relay1', 'relay2'],
+        relays: [relay1, relay2],
       );
 
       var invoiceResponse = await zaps.fetchInvoice(
@@ -130,7 +134,7 @@ void main() {
       final eventId = 'eventId';
       final comment = 'comment';
       final pubkey = 'pubkey';
-      final relays = ['relay1', 'relay2'];
+      final relays = [relay1, relay2];
       ZapRequest zapRequest = await zaps.createZapRequest(
         amountSats: amount,
         eventId: eventId,
@@ -172,7 +176,7 @@ void main() {
             delay: const Duration(milliseconds: 1100),
           ),
           pubkey: 'pubkey',
-          relays: ['relay1'],
+          relays: [relay1],
         );
 
         expect(zapRequest.hasValidId, isTrue);
@@ -194,7 +198,7 @@ void main() {
             publicKey: key.publicKey,
           ),
           pubkey: 'pubkey',
-          relays: ['relay1', 'relay2'],
+          relays: [relay1, relay2],
         ),
         throwsA(isA<ArgumentError>()),
       );

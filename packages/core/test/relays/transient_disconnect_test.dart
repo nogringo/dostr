@@ -110,7 +110,7 @@ class _FlakyTransportFactory implements NostrTransportFactory {
   bool down = false;
 
   @override
-  NostrTransport call(String url) {
+  NostrTransport call(RelayUrl url) {
     if (down) return _RefusedTransport();
     final transport = _FlakyTransport(_inner(url));
     created.add(transport);

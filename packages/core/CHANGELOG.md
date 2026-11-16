@@ -95,6 +95,19 @@ They used to escape as uncaught errors, which end a plain Dart process.
 
 `RelayManager.resetTransport` and `RelayManager.closeTransport` are now `resetConnectionsTo` and `closeConnectionsTo`: they act on every connection to the relay, anonymous or bound, where `isRelayConnected`, `reconnectRelay` and `getRelayConnectivity` only look at the anonymous one.
 
+#### Relay urls
+
+The relay urls `dostr_core` takes and gives are `RelayUrl`s, from [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): normalized urls, as an extension type on `String`, so code that reads one as a `String` keeps working.
+Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `cleanRelayUrl`, which returns null.
+
+ - `RelayManager.isRelayConnected`, `reconnectRelay`, `resetConnectionsTo`, `closeConnectionsTo`, `getRelayConnectivity` and `openConnectionAs` take a `RelayUrl`. `connectRelay` still takes a `dirtyUrl`, which it normalizes.
+ - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.
+ - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
+ - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
+ - `RelayConnectivity.url`, `Relay.url`, `RelayReqEvent.relayUrl` and `RelayBroadcastResponse.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
+ - `NostrTransportFactory`, `SubscriptionLimit`, `MessageLengthLimit` and `onMessageLengthLearned` are given a `RelayUrl`. One written for a `String` still fits.
+ - `WebSocketClientNostrTransportFactory` no longer throws on a url it cannot parse, since it is given a `RelayUrl`.
+
 #### Reconnecting
 
 `RelayManager` is the only thing that reconnects, and a `NostrTransport` is a single socket.

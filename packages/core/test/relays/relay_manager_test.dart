@@ -76,7 +76,7 @@ void main() {
   });
 
   test('refuses unclean and blocked urls without opening anything', () async {
-    manager.blockedRelays.add('wss://blocked.example');
+    manager.blockedRelays.add(RelayUrl.parse('wss://blocked.example'));
 
     expect(await manager.connectRelay(dirtyUrl: 'https://not.a.relay'), (
       connected: false,
@@ -231,7 +231,7 @@ void main() {
     expect(manager.isRelayConnected(idle.url), isFalse);
     await forgotten.close();
     unsigned.fail(StateError('test over'));
-    await unsigned.done.catchError((_) => <String, RelayBroadcastResponse>{});
+    await unsigned.done.catchError((_) => <RelayUrl, RelayBroadcastResponse>{});
   });
 
   test('hands what it does not handle to protocol handlers', () async {
@@ -271,10 +271,10 @@ void main() {
       },
       '6100',
     ]);
-    manager.send(RelayConnectionKey.anonymous('wss://unknown.example'), [
-      'NEG-CLOSE',
-      'neg-2',
-    ]);
+    manager.send(
+      RelayConnectionKey.anonymous(RelayUrl.parse('wss://unknown.example')),
+      ['NEG-CLOSE', 'neg-2'],
+    );
 
     await eventually(() => relay.received('NEG-OPEN').isNotEmpty);
     expect(relay.received('NEG-OPEN').single, [

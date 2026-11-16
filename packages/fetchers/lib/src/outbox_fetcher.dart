@@ -17,7 +17,9 @@ class OutboxFetcher {
   final int kind;
   final String? dTag;
   final Nip65Fetcher? nip65Fetcher;
-  final List<String> relays;
+
+  /// [defaultIndexerRelays] unless given.
+  final List<RelayUrl> relays;
   final Duration timeout;
 
   /// Where the events found are kept. [watch] starts on the one it holds.
@@ -61,7 +63,7 @@ class OutboxFetcher {
     required this.kind,
     this.dTag,
     this.nip65Fetcher,
-    this.relays = defaultIndexerRelays,
+    List<RelayUrl>? relays,
     this.timeout = const Duration(seconds: 5),
     this.cache,
     this.checks,
@@ -69,6 +71,7 @@ class OutboxFetcher {
     this.batchWindow = defaultBatchWindow,
     String? name,
   }) : _reqs = reqs,
+       relays = relays ?? defaultIndexerRelays,
        name = name ?? 'kind-$kind';
 
   /// Each [kind] event of [pubkey] (hex) found on its write relays and on
@@ -122,11 +125,11 @@ class OutboxFetcher {
       checks: checks,
       maxAge: maxAge,
       ask: (outcomes) {
-        final asked = <String>{};
-        Stream<Nip01Event> askOn(List<String> urls) => _asks.ask(
+        final asked = <RelayUrl>{};
+        Stream<Nip01Event> askOn(List<RelayUrl> urls) => _asks.ask(
           pubkey,
           relays: [
-            for (final url in cleanRelayUrls(urls))
+            for (final url in urls)
               if (asked.add(url)) url,
           ],
           outcomes: outcomes,

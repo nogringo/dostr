@@ -19,12 +19,12 @@ class HomeRelayList {
   static const int kind = 36205;
   static const String dTag = 'home-relays';
 
-  /// The normalized relay urls, each once.
-  final List<String> candidates;
+  /// The relay urls, each once.
+  final List<RelayUrl> candidates;
   final List<List<int>> _hashes;
 
   HomeRelayList(Iterable<String> relays)
-    : this._(List.unmodifiable({...cleanRelayUrls(relays.toList())}));
+    : this._(List.unmodifiable({...cleanRelayUrls(relays)}));
 
   HomeRelayList._(this.candidates)
     : _hashes = [for (final url in candidates) _sha256(url)];
@@ -76,7 +76,7 @@ class HomeRelayList {
 
   /// The home relays of [pubkey] (hex): the [count] candidates closest to it,
   /// closest first, by `sha256(npub) XOR sha256(url)`.
-  List<String> homeRelaysOf(String pubkey, {int count = 8}) {
+  List<RelayUrl> homeRelaysOf(String pubkey, {int count = 8}) {
     final key = _sha256(Npub(pubkey).encode());
     final distances = [
       for (final hash in _hashes)

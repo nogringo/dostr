@@ -70,4 +70,11 @@ void main() {
     expect(signer.connection.relays, equals([relayA.url]));
     expect(await signer.ping(), equals('pong'));
   });
+
+  test('keeps the relays when none it is sent is a relay url', () async {
+    remoteSigner.switchRelaysResult = ['https://relay.example.com'];
+
+    expect(await signer.switchRelays(), isNull);
+    expect(signer.connection.relays, equals([relayA.url]));
+  });
 }

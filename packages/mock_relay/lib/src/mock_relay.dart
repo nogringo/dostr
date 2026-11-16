@@ -135,7 +135,8 @@ class MockRelay {
 
   /// Known before [start], so a client can be pointed at a relay that is not
   /// up yet. It stays the same across restarts.
-  String get url => 'ws://127.0.0.1:${_port ??= _reservePort()}';
+  RelayUrl get url =>
+      RelayUrl.parse('ws://127.0.0.1:${_port ??= _reservePort()}');
 
   Iterable<MockRelayClient> get openClients => clients.where((c) => !c.closed);
 

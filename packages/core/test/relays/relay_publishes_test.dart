@@ -57,7 +57,7 @@ void main() {
   });
 
   test('fails a relay it cannot connect to', () async {
-    const blocked = 'wss://blocked.example';
+    final blocked = RelayUrl.parse('wss://blocked.example');
     manager.blockedRelays.add(blocked);
 
     final responses = await publishes
@@ -131,7 +131,10 @@ void main() {
     final unsigned = Nip01Event(pubkey: alice, kind: 1, tags: [], content: '');
 
     expect(
-      () => publishes.publish(unsigned, relays: ['wss://relay.example']),
+      () => publishes.publish(
+        unsigned,
+        relays: [RelayUrl.parse('wss://relay.example')],
+      ),
       throwsArgumentError,
     );
   });
@@ -149,7 +152,10 @@ void main() {
     final relay = await startRelay();
 
     await publishes
-        .publish(signedEvent(), relays: [relay.url, '${relay.url}/'])
+        .publish(
+          signedEvent(),
+          relays: [relay.url, RelayUrl.parse('${relay.url}/')],
+        )
         .done;
 
     expect(relay.received('EVENT'), hasLength(1));
@@ -296,8 +302,7 @@ void main() {
       final publish = publishes.open(event)..start(event);
 
       expect(publish.send(relay.url), isTrue);
-      expect(publish.send('${relay.url}/'), isFalse);
-      expect(publish.send('https://relay.example'), isFalse);
+      expect(publish.send(RelayUrl.parse('${relay.url}/')), isFalse);
       publish.seal();
       await publish.done;
 
@@ -324,7 +329,10 @@ void main() {
     test('cannot be sent before it is started', () {
       final publish = publishes.open(signedEvent());
 
-      expect(() => publish.send('wss://relay.example'), throwsStateError);
+      expect(
+        () => publish.send(RelayUrl.parse('wss://relay.example')),
+        throwsStateError,
+      );
     });
 
     test('refuses to start unsigned', () {

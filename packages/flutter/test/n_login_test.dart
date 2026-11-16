@@ -134,7 +134,7 @@ void main() {
         login(
           enableBunkerLogin: false,
           nostrConnect: NostrConnect(
-            relays: ['wss://relay.example.com'],
+            relays: [RelayUrl.parse('wss://relay.example.com')],
             privateKey: alicePrivateKey,
             publicKey: alicePubkey,
           ),

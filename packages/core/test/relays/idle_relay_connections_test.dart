@@ -10,6 +10,7 @@ import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
@@ -72,12 +73,16 @@ void main() {
   late RelayManager manager;
   final requests = <RequestState>[];
   final broadcasts = <BroadcastState>[];
-  final anonymous = RelayConnectionKey.anonymous('wss://relay.example');
+  final anonymous = RelayConnectionKey.anonymous(
+    RelayUrl.parse('wss://relay.example'),
+  );
   final authenticated = RelayConnectionKey.authenticated(
-    'wss://relay.example',
+    RelayUrl.parse('wss://relay.example'),
     'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
   );
-  final other = RelayConnectionKey.anonymous('wss://other.example');
+  final other = RelayConnectionKey.anonymous(
+    RelayUrl.parse('wss://other.example'),
+  );
 
   _Transport connect(RelayConnectionKey key) {
     final transport = _Transport();
@@ -106,7 +111,7 @@ void main() {
     return request;
   }
 
-  BroadcastState broadcast(String id, {String? url}) {
+  BroadcastState broadcast(String id, {RelayUrl? url}) {
     final broadcast = BroadcastState(timeout: const Duration(minutes: 1));
     parts.broadcasts.inFlight[id] = [broadcast];
     broadcasts.add(broadcast);

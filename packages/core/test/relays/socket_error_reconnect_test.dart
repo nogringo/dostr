@@ -64,7 +64,7 @@ class _FaultyTransportFactory implements NostrTransportFactory {
   final List<_FaultyTransport> created = [];
 
   @override
-  NostrTransport call(String url) {
+  NostrTransport call(RelayUrl url) {
     final transport = _FaultyTransport(_inner(url));
     created.add(transport);
     return transport;

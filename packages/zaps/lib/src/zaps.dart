@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show Logger;
+import 'package:dostr_core/dostr_core.dart' show Logger, RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
@@ -72,7 +72,7 @@ class Zaps {
     String? eventId,
     String? addressableId,
     String? comment,
-    required Iterable<String> relays,
+    required Iterable<RelayUrl> relays,
     String? pollOption,
   }) async {
     if (amountSats < 0) {

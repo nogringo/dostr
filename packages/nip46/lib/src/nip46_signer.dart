@@ -186,7 +186,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   bool get requiresSignerNetwork => true;
 
   @override
-  Iterable<String> get signerTransportRelayUrls => connection.relays;
+  Iterable<RelayUrl> get signerTransportRelayUrls => connection.relays;
 
   @override
   Future<String?> decrypt(String msg, String destPubkey) async {
@@ -302,16 +302,19 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   /// Returns the relays the remote signer moved to, or null if it keeps the
   /// current ones.
-  Future<List<String>?> switchRelays() async {
+  Future<List<RelayUrl>?> switchRelays() async {
     final request = BunkerRequest(method: SignerMethod.switchRelays);
 
     final response = await remoteRequest(request: request);
 
-    final relays = jsonDecode(response);
-    if (relays is! List || relays.isEmpty) return null;
+    final decoded = jsonDecode(response);
+    final relays = decoded is List
+        ? cleanRelayUrls(decoded.whereType<String>())
+        : const <RelayUrl>[];
+    if (relays.isEmpty) return null;
 
     final previousSubscription = subscription;
-    connection.relays = List<String>.from(relays);
+    connection.relays = relays;
     await listenRelays();
     await previousSubscription?.close();
 

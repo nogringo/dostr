@@ -42,7 +42,7 @@ class RelayBroadcasts {
   /// Tracks [relayUrl] in [broadcastState], so its OK can be routed back.
   void _registerRelayBroadcast({
     required BroadcastState broadcastState,
-    required String relayUrl,
+    required RelayUrl relayUrl,
     required Nip01Event eventToPublish,
   }) {
     // Store the event for potential retries on auth-required
@@ -65,7 +65,7 @@ class RelayBroadcasts {
   /// use this to signal a failed broadcast
   void _failBroadcast(
     BroadcastState broadcastState,
-    String relay,
+    RelayUrl relay,
     RelayFailure failure,
   ) {
     if (broadcastState.networkController.isClosed) {
@@ -106,7 +106,7 @@ class RelayBroadcasts {
   /// after all fails the relay with that reason.
   Future<void> publishToRelay(
     BroadcastState state,
-    String url,
+    RelayUrl url,
     Nip01Event event, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     Future<String?> Function()? veto,
@@ -173,7 +173,7 @@ class RelayBroadcasts {
   /// relay saw, whether or not anything was sent on it.
   Future<({RelayConnection? relay, RelayFailure? failure})>
   _connectionForBroadcast(
-    String url,
+    RelayUrl url,
     AuthPolicy? auth, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
@@ -258,7 +258,7 @@ class RelayBroadcasts {
 
   /// In-flight broadcasts of [eventId] sent to [relayUrl] that have no answer
   /// from it yet.
-  List<BroadcastState> _broadcastsWaitingOn(String eventId, String relayUrl) {
+  List<BroadcastState> _broadcastsWaitingOn(String eventId, RelayUrl relayUrl) {
     final states = inFlight[eventId] ?? const [];
     return states
         .where(
@@ -266,7 +266,7 @@ class RelayBroadcasts {
               !state.networkController.isClosed &&
               state.broadcasts.values.any(
                 (response) =>
-                    cleanRelayUrl(response.relayUrl) == relayUrl &&
+                    response.relayUrl == relayUrl &&
                     !response.okReceived &&
                     response.failure == null,
               ),
@@ -400,6 +400,6 @@ class RelayBroadcasts {
       .any(
         (state) =>
             !state.networkController.isClosed &&
-            state.broadcasts.keys.any((url) => cleanRelayUrl(url) == key.url),
+            state.broadcasts.containsKey(key.url),
       );
 }

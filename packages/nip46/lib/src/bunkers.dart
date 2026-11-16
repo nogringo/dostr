@@ -39,7 +39,7 @@ class Bunkers {
     }
 
     final remotePubkey = uri.host;
-    final relays = uri.queryParametersAll['relay'] ?? [];
+    final relays = cleanRelayUrls(uri.queryParametersAll['relay'] ?? []);
     final secret = uri.queryParameters['secret'];
 
     if (relays.isEmpty) {
@@ -135,7 +135,7 @@ class Bunkers {
 
   /// Creates a nostr connect invitation (nostrconnect://) with a fresh key pair
   NostrConnect createNostrConnect({
-    required List<String> relays,
+    required List<RelayUrl> relays,
     Nip46ClientMetadata? clientMetadata,
   }) {
     final (privateKey, publicKey) = _signerFactory.generateKeyPair();
@@ -197,9 +197,9 @@ class Bunkers {
     }
   }
 
-  RelayReq _subscribe(List<String> relays, Filter filter) => _relayReqs.req(
+  RelayReq _subscribe(List<RelayUrl> relays, Filter filter) => _relayReqs.req(
     relays: {
-      for (final relay in cleanRelayUrls(relays)) relay: [filter],
+      for (final relay in relays) relay: [filter],
     },
     closeOnEose: false,
   );

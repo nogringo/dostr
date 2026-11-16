@@ -30,7 +30,7 @@ class ReplaceableAsks {
   final Duration window;
 
   /// The waiters of the next REQs, by relay url, then by pubkey.
-  final Map<String, Map<String, List<_Waiter>>> _pending = {};
+  final Map<RelayUrl, Map<String, List<_Waiter>>> _pending = {};
   Timer? _windowEnd;
 
   ReplaceableAsks(
@@ -48,14 +48,11 @@ class ReplaceableAsks {
   /// [outcomes] gets what each relay did.
   Stream<Nip01Event> ask(
     String pubkey, {
-    required Iterable<String> relays,
-    Map<String, RelayRequestOutcome>? outcomes,
-  }) {
-    final urls = {for (final url in relays) ?cleanRelayUrl(url)};
-    return _answers({
-      for (final url in urls) url: _wait(url, pubkey),
-    }, outcomes);
-  }
+    required Iterable<RelayUrl> relays,
+    Map<RelayUrl, RelayRequestOutcome>? outcomes,
+  }) => _answers({
+    for (final url in relays.toSet()) url: _wait(url, pubkey),
+  }, outcomes);
 
   /// Sends the next REQs now, without waiting for the end of [window].
   void flush() {
@@ -74,8 +71,8 @@ class ReplaceableAsks {
   }
 
   Stream<Nip01Event> _answers(
-    Map<String, _Waiter> waiters,
-    Map<String, RelayRequestOutcome>? outcomes,
+    Map<RelayUrl, _Waiter> waiters,
+    Map<RelayUrl, RelayRequestOutcome>? outcomes,
   ) async* {
     if (waiters.isEmpty) return;
     yield* MergeStream([
@@ -86,14 +83,14 @@ class ReplaceableAsks {
     }
   }
 
-  _Waiter _wait(String url, String pubkey) {
+  _Waiter _wait(RelayUrl url, String pubkey) {
     if (_pending.isEmpty) _windowEnd = Timer(window, flush);
     final waiter = _Waiter();
     ((_pending[url] ??= {})[pubkey] ??= []).add(waiter);
     return waiter;
   }
 
-  Future<void> _send(String url, List<_Lot> lots) async {
+  Future<void> _send(RelayUrl url, List<_Lot> lots) async {
     final byPubkey = {for (final lot in lots) ...lot};
     final waiters = [for (final list in byPubkey.values) ...list];
     try {

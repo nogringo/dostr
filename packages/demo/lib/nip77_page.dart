@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 
+import 'package:dostr_core/dostr_core.dart' show RelayUrl, cleanRelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip77/dostr_nip77.dart';
@@ -27,7 +28,7 @@ class _Nip77PageState extends State<Nip77Page> {
   int _liveNeed = 0;
   int _liveHave = 0;
   Nip77Result? _result;
-  String? _reconciledRelay;
+  RelayUrl? _reconciledRelay;
   String? _error;
   bool _fetching = false;
   bool _pushing = false;
@@ -82,7 +83,11 @@ class _Nip77PageState extends State<Nip77Page> {
       setState(() => _error = e.message);
       return;
     }
-    final relayUrl = _relayController.text.trim();
+    final relayUrl = cleanRelayUrl(_relayController.text);
+    if (relayUrl == null) {
+      setState(() => _error = 'Not a ws or wss relay url');
+      return;
+    }
 
     setState(() {
       _error = null;

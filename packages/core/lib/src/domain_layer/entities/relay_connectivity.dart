@@ -1,3 +1,5 @@
+import 'package:dostr_relay_url/dostr_relay_url.dart';
+
 import 'relay.dart';
 import 'relay_connection_key.dart';
 import 'relay_stats.dart';
@@ -8,8 +10,7 @@ abstract interface class RelayConnectivity {
   /// identifies this connection: the relay and the identity bound to it
   RelayConnectionKey get key;
 
-  /// relay url/identifier
-  String get url;
+  RelayUrl get url;
 
   /// relay data including connection state
   Relay get relay;

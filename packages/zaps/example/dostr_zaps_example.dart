@@ -8,7 +8,7 @@ import 'package:http/http.dart' as http;
 /// Lists the zap receipts of the pubkey, then fetches a 21 sat zap invoice
 /// for the lightning address when one is given.
 Future<void> main(List<String> args) async {
-  final relay = args[0];
+  final relay = RelayUrl.parse(args[0]);
   final recipient = args[1];
   final relayManager = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),

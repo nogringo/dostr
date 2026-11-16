@@ -29,7 +29,7 @@ Nip13.validateEvent(mined); // true
 
 final signed = await signer.sign(mined);
 await RelayPublishes(relayManager: relays)
-    .publish(signed, relays: ['wss://relay.example.com'])
+    .publish(signed, relays: [RelayUrl.parse('wss://relay.example.com')])
     .done;
 ```
 

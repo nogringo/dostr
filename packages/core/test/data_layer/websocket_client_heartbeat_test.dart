@@ -7,6 +7,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -101,7 +102,7 @@ class _RawPeer {
   static Future<_RawPeer> start() async =>
       _RawPeer(await HttpServer.bind(InternetAddress.loopbackIPv4, 0));
 
-  String get url => 'ws://127.0.0.1:${server.port}';
+  RelayUrl get url => RelayUrl.parse('ws://127.0.0.1:${server.port}');
 
   void sendText(String text) {
     final payload = utf8.encode(text);

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 const _wait = Duration(seconds: 5);
@@ -14,12 +15,12 @@ void main() {
 
   /// Starts browser_relay.dart in [mode], and returns its URL and what it says
   /// after that.
-  Future<(String, StreamIterator<dynamic>)> relay(String mode) async {
+  Future<(RelayUrl, StreamIterator<dynamic>)> relay(String mode) async {
     final events = StreamIterator(
       spawnHybridUri('browser_relay.dart', message: mode).stream,
     );
     await events.moveNext();
-    return (events.current as String, events);
+    return (RelayUrl.parse(events.current as String), events);
   }
 
   Future<void> hangUp(StreamIterator<dynamic> events) async {

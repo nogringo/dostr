@@ -88,8 +88,7 @@ final relayList = await signer.sign(
 await RelayPublishes(relayManager: relays).publish(
   relayList,
   relays: [
-    'wss://relay.example.com',
-    'wss://outbox.example.com',
+    ...cleanRelayUrls(['wss://relay.example.com', 'wss://outbox.example.com']),
     ...defaultIndexerRelays,
     ...homeRelayList.homeRelaysOf(publicKey),
   ],

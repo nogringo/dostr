@@ -4,39 +4,24 @@ import 'package:test/test.dart';
 import '../mocks/fakes.dart';
 
 void main() {
-  group('RelayConnectionKey', () {
-    test('normalizes the url', () {
-      expect(
-        RelayConnectionKey.anonymous(' WSS://Relay.Example:443/ ').url,
-        'wss://relay.example',
-      );
-    });
+  final url = RelayUrl.parse('wss://relay.example');
 
+  group('RelayConnectionKey', () {
     test('tells relays apart', () {
       expect(
-        RelayConnectionKey.anonymous('wss://a.example'),
-        isNot(RelayConnectionKey.anonymous('wss://b.example')),
+        RelayConnectionKey.anonymous(RelayUrl.parse('wss://a.example')),
+        isNot(RelayConnectionKey.anonymous(RelayUrl.parse('wss://b.example'))),
       );
-    });
-
-    test('keeps an unparsable url as given, trimmed', () {
-      expect(RelayConnectionKey.anonymous(' not a url ').url, 'not a url');
     });
 
     test('takes a 64 hex character pubkey only, lowercased', () {
-      final key = RelayConnectionKey.authenticated(
-        'wss://relay.example',
-        'A' * 64,
-      );
+      final key = RelayConnectionKey.authenticated(url, 'A' * 64);
 
       expect(key.pubkey, 'a' * 64);
-      expect(
-        key,
-        RelayConnectionKey.authenticated('wss://relay.example', alice),
-      );
+      expect(key, RelayConnectionKey.authenticated(url, alice));
       expect(
         key.hashCode,
-        RelayConnectionKey.authenticated('wss://relay.example', alice).hashCode,
+        RelayConnectionKey.authenticated(url, alice).hashCode,
       );
       for (final notHex in [
         'npub1',
@@ -44,29 +29,20 @@ void main() {
         RelayConnectionKey.anonymousMarker,
       ]) {
         expect(
-          () => RelayConnectionKey.authenticated('wss://relay.example', notHex),
+          () => RelayConnectionKey.authenticated(url, notHex),
           throwsArgumentError,
         );
       }
     });
 
     test('tells connections to one relay apart by identity', () {
-      final anonymous = RelayConnectionKey.anonymous('wss://relay.example/');
-      final asAlice = RelayConnectionKey.authenticated(
-        'wss://relay.example',
-        alice,
-      );
+      final anonymous = RelayConnectionKey.anonymous(url);
+      final asAlice = RelayConnectionKey.authenticated(url, alice);
 
-      expect(anonymous, RelayConnectionKey.anonymous('wss://relay.example'));
-      expect(
-        anonymous.hashCode,
-        RelayConnectionKey.anonymous('wss://relay.example').hashCode,
-      );
+      expect(anonymous, RelayConnectionKey.anonymous(url));
+      expect(anonymous.hashCode, RelayConnectionKey.anonymous(url).hashCode);
       expect(anonymous, isNot(asAlice));
-      expect(
-        asAlice,
-        isNot(RelayConnectionKey.authenticated('wss://relay.example', bob)),
-      );
+      expect(asAlice, isNot(RelayConnectionKey.authenticated(url, bob)));
       expect(anonymous.isAnonymous, isTrue);
       expect(asAlice.isAnonymous, isFalse);
       expect(anonymous.canonical, 'wss://relay.example|anon');
@@ -75,7 +51,6 @@ void main() {
     });
 
     test('forAuth picks the connection each policy allows', () {
-      const url = 'wss://relay.example';
       final account = fakeAccount(alice);
 
       expect(

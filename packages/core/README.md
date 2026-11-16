@@ -25,6 +25,7 @@ import 'package:dostr_core/dostr_core.dart';
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
 );
+final relay = RelayUrl.parse('wss://relay.example.com');
 
 final reqs = RelayReqs(
   relayManager: relays,
@@ -32,7 +33,7 @@ final reqs = RelayReqs(
 );
 final req = reqs.req(
   relays: {
-    'wss://relay.example.com': [
+    relay: [
       Filter(kinds: [1], limit: 10),
     ],
   },
@@ -43,11 +44,15 @@ await for (final received in req.events) {
 
 final publishes = RelayPublishes(relayManager: relays);
 final outcomes = await publishes
-    .publish(signedEvent, relays: ['wss://relay.example.com'])
+    .publish(signedEvent, relays: [relay])
     .done;
 ```
 
 Keep one `RelayManager` for the whole app: it holds the connections, which every `RelayReqs` and `RelayPublishes` built on it shares.
+
+Relays are named by `RelayUrl`s, the normalized urls of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which `dostr_core` exports.
+Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `cleanRelayUrl`, which returns null.
+A `RelayUrl` is a `String`, so the urls `dostr_core` gives back read as strings.
 
 ## Relay REQs
 
@@ -59,7 +64,7 @@ To ask the relays where an account publishes, see [`dostr_fetchers`](https://pub
 ```dart
 final req = reqs.req(
   relays: {
-    'wss://relay.example.com': [
+    relay: [
       Filter(kinds: [1], authors: [pubkey], limit: 20),
     ],
   },
@@ -91,8 +96,8 @@ Without `relays`, the request stays open until you `seal()` it, so a relay that 
 
 ```dart
 final req = reqs.req();
-req.send('wss://a.example.com', [filterA]);
-req.send('wss://b.example.com', [filterB]);
+req.send(RelayUrl.parse('wss://a.example.com'), [filterA]);
+req.send(RelayUrl.parse('wss://b.example.com'), [filterB]);
 req.seal();
 ```
 
@@ -100,7 +105,7 @@ Each relay takes one `send`.
 Its filters travel in a single REQ, since a second REQ with the same id replaces the first on the relay.
 
 A relay can still be added after `seal()` while the request runs: it then has to answer too before the request ends.
-`send` returns `false` and sends nothing once the request is over, for a url that is not a relay's, and for a relay the request was already sent to.
+`send` returns `false` and sends nothing once the request is over, and for a relay the request was already sent to.
 
 ### What you get
 
@@ -123,7 +128,7 @@ final signed = await signer.sign(event);
 final outcomes = await publishes
     .publish(
       signed,
-      relays: ['wss://relay.example.com', 'wss://other.example.com'],
+      relays: cleanRelayUrls(['wss://relay.example.com', 'wss://other.example.com']),
       timeout: Duration(seconds: 5),
     )
     .done;
@@ -155,7 +160,7 @@ Each REQ and EVENT says which identity it may be attributed to with an `AuthPoli
 
 ```dart
 final req = reqs.req(
-  relays: {'wss://private.example.com': [filter]},
+  relays: {RelayUrl.parse('wss://private.example.com'): [filter]},
   auth: AuthPolicy.allow(account),
 );
 ```

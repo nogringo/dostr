@@ -17,8 +17,12 @@ void main() {
 
     test('waits for every relay it was sent to', () {
       final state = _query();
-      final fast = RelayConnectionKey.anonymous('wss://fast.example.com');
-      final slow = RelayConnectionKey.anonymous('wss://slow.example.com');
+      final fast = RelayConnectionKey.anonymous(
+        RelayUrl.parse('wss://fast.example.com'),
+      );
+      final slow = RelayConnectionKey.anonymous(
+        RelayUrl.parse('wss://slow.example.com'),
+      );
       state.addRequest(fast, _filters);
       state.addRequest(slow, _filters);
 
@@ -31,7 +35,9 @@ void main() {
 
     test('waits for a relay whose connection is still being worked out', () {
       final state = _query();
-      final fast = RelayConnectionKey.anonymous('wss://fast.example.com');
+      final fast = RelayConnectionKey.anonymous(
+        RelayUrl.parse('wss://fast.example.com'),
+      );
 
       // a second send path is resolving which connection to use, so it has no
       // entry yet. The relay that answered must not look like the only one
@@ -47,7 +53,9 @@ void main() {
 
     test('a relay that is authenticating is not finished', () {
       final state = _query();
-      final key = RelayConnectionKey.anonymous('wss://relay.example.com');
+      final key = RelayConnectionKey.anonymous(
+        RelayUrl.parse('wss://relay.example.com'),
+      );
       state.addRequest(key, _filters);
 
       state.requests[key]!.receivedClosed = true;

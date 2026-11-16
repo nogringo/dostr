@@ -1,9 +1,11 @@
+import 'package:dostr_core/dostr_core.dart';
+
 import 'nip46_client_metadata.dart';
 import 'random_hex.dart';
 
 /// A `nostrconnect://` invitation, from `Bunkers.createNostrConnect`.
 class NostrConnect {
-  List<String> relays;
+  List<RelayUrl> relays;
   Nip46ClientMetadata? clientMetadata;
 
   final String privateKey;

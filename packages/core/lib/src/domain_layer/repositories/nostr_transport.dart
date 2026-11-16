@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:dostr_relay_url/dostr_relay_url.dart';
+
 /// One socket to a relay. It never reconnects: `RelayManager` opens a new
 /// transport once this one ends.
 abstract class NostrTransport {
@@ -23,5 +25,5 @@ abstract class NostrTransport {
 }
 
 abstract class NostrTransportFactory {
-  NostrTransport call(String url);
+  NostrTransport call(RelayUrl url);
 }

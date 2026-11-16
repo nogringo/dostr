@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger/logger.dart';
@@ -302,7 +303,7 @@ class RelayRequests implements ConnectionListener {
   /// second REQ with the same id would replace the first on the relay.
   Future<void> sendToRelay(
     RequestState state,
-    String url,
+    RelayUrl url,
     List<Filter> filters,
   ) async {
     // a relay an engine handed over late, once the request is over, must not

@@ -29,7 +29,7 @@ void main() {
 
   tearDown(() => relayManager.closeAllTransports());
 
-  Nip46Signer newSigner(List<String> relays) => Nip46Signer(
+  Nip46Signer newSigner(List<RelayUrl> relays) => Nip46Signer(
     connection: BunkerConnection(
       privateKey: _clientPrivateKey,
       remotePubkey: MockRemoteSigner.publicKey,

@@ -1,3 +1,4 @@
+import 'package:dostr_core/dostr_core.dart' show cleanRelayUrls;
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:material_ui/material_ui.dart';
@@ -36,12 +37,12 @@ Future<void> showNLoginPopup({
               clientMetadata: _clientMetadata,
               nostrConnect: dostrFlutter.bunkers.createNostrConnect(
                 clientMetadata: _clientMetadata,
-                relays: [
+                relays: cleanRelayUrls([
                   "wss://promenade.fiatjaf.com",
                   "wss://relay.ditto.pub",
                   "wss://relay.primal.net",
                   "wss://relay.nmail.li",
-                ],
+                ]),
               ),
               onLoggedIn: () {
                 Navigator.of(dialogContext).pop();

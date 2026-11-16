@@ -16,7 +16,7 @@ typedef Nip77LoadEvent = Future<Nip01Event?> Function(String id);
 
 /// Exception thrown when a relay doesn't support NIP-77
 class Nip77NotSupportedException implements Exception {
-  final String relayUrl;
+  final RelayUrl relayUrl;
   final String? message;
 
   Nip77NotSupportedException(this.relayUrl, [this.message]);
@@ -31,7 +31,7 @@ class Nip77NotSupportedException implements Exception {
 /// connection is exactly what [AuthPolicy.require] ruled out.
 class Nip77AuthUnavailableException implements Exception {
   /// relay the reconciliation was meant for
-  final String relayUrl;
+  final RelayUrl relayUrl;
 
   /// identity that was required
   final String pubkey;
@@ -49,7 +49,7 @@ class Nip77AuthUnavailableException implements Exception {
 /// and the auth policy leaves nobody to authenticate as.
 class Nip77AuthRequiredException implements Exception {
   /// relay that refused
-  final String relayUrl;
+  final RelayUrl relayUrl;
 
   /// raw refusal from the relay
   final String message;
@@ -65,7 +65,7 @@ class Nip77AuthRequiredException implements Exception {
 
 /// Exception thrown when a relay stops answering a NIP-77 reconciliation
 class Nip77TimeoutException implements Exception {
-  final String relayUrl;
+  final RelayUrl relayUrl;
 
   /// how long the relay stayed silent
   final Duration timeout;
@@ -104,8 +104,8 @@ class Nip77Response {
   /// The subscription ID for this session
   String get subscriptionId => _state.subscriptionId;
 
-  /// The relay URL for this session
-  String get relayUrl => _state.relayUrl;
+  /// The relay of this session
+  RelayUrl get relayUrl => _state.relayUrl;
 }
 
 /// Public API for NIP-77 Negentropy sync
@@ -168,7 +168,7 @@ class Nip77 {
   /// answering, and [Nip77AuthRequiredException] if the relay asks for an
   /// identity [auth] rules out.
   Nip77Response reconcile({
-    required String relayUrl,
+    required RelayUrl relayUrl,
     required Filter filter,
     Duration openTimeout = defaultOpenTimeout,
     Duration idleTimeout = defaultIdleTimeout,

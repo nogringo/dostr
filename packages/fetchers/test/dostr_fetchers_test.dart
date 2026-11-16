@@ -84,7 +84,7 @@ class LocalRelay {
     this.refusal = 'bad req: too big',
   });
 
-  String get url => 'ws://127.0.0.1:${_server.port}';
+  RelayUrl get url => RelayUrl.parse('ws://127.0.0.1:${_server.port}');
 
   int get reqCount => reqFilters.length;
 
@@ -136,7 +136,7 @@ void main() {
   late RelayReqs reqs;
   final relays = <LocalRelay>[];
 
-  Future<String> startRelay(List<Nip01Event> events) async {
+  Future<RelayUrl> startRelay(List<Nip01Event> events) async {
     final relay = LocalRelay(events);
     await relay.start();
     relays.add(relay);
@@ -144,11 +144,11 @@ void main() {
   }
 
   /// A relay that accepts the connection and never answers.
-  Future<String> startSilentRelay() async {
+  Future<RelayUrl> startSilentRelay() async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     server.transform(WebSocketTransformer()).listen((_) {});
     addTearDown(() => server.close(force: true));
-    return 'ws://127.0.0.1:${server.port}';
+    return RelayUrl.parse('ws://127.0.0.1:${server.port}');
   }
 
   Future<LocalRelay> startCountedRelay(List<Nip01Event> events) async {
@@ -388,7 +388,7 @@ void main() {
 
   group('Nip65Fetcher lookup', () {
     test('tells a missing list from an unanswered lookup', () async {
-      Future<EventLookup> lookupOn(List<String> urls) => Nip65Fetcher(
+      Future<EventLookup> lookupOn(List<RelayUrl> urls) => Nip65Fetcher(
         reqs: reqs,
         relays: urls,
         timeout: const Duration(milliseconds: 200),
@@ -419,7 +419,7 @@ void main() {
       });
 
       /// A new fetcher each time, as after a restart.
-      Nip65Fetcher fetcherOn(List<String> urls) => Nip65Fetcher(
+      Nip65Fetcher fetcherOn(List<RelayUrl> urls) => Nip65Fetcher(
         reqs: reqs,
         relays: urls,
         cache: cache,
@@ -1068,7 +1068,7 @@ void main() {
 
     test('tells a missing list from an unanswered lookup', () async {
       const timeout = Duration(milliseconds: 200);
-      Future<EventLookup> lookupOn(String url) => DmRelaysFetcher(
+      Future<EventLookup> lookupOn(RelayUrl url) => DmRelaysFetcher(
         reqs: reqs,
         relays: [url],
         nip65Fetcher: Nip65Fetcher(reqs: reqs, relays: [url], timeout: timeout),
@@ -1267,7 +1267,7 @@ void main() {
 
   group('fetcherUrlListFn', () {
     UrlListFn listsOn(
-      String url, {
+      RelayUrl url, {
       Duration timeout = const Duration(seconds: 5),
     }) {
       final nip65 = Nip65Fetcher(reqs: reqs, relays: [url], timeout: timeout);
@@ -1385,8 +1385,8 @@ void main() {
     final noRelays = Future.value(const <String>[]);
 
     UrlListWatchFn watchesOn({
-      required List<String> nip65Relays,
-      required List<String> relays,
+      required List<RelayUrl> nip65Relays,
+      required List<RelayUrl> relays,
       ReplaceableEventCache? cache,
       UrlListCheckStore? checks,
     }) {
@@ -1521,7 +1521,7 @@ void main() {
     });
 
     test('tells a missing list from an unanswered one', () async {
-      Future<List<UrlListLookup>> lookupsOn(String url) => watchesOn(
+      Future<List<UrlListLookup>> lookupsOn(RelayUrl url) => watchesOn(
         nip65Relays: [url],
         relays: [],
       )(alice, UrlListKind.outbox, noRelays).toList();

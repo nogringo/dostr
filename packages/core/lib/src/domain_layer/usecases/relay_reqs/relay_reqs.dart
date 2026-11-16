@@ -72,7 +72,7 @@ class RelayReqs {
   /// [timeout] ends it after that long, not counting NIP-42 authentication.
   /// [name] only shows in logs.
   RelayReq req({
-    Map<String, List<Filter>>? relays,
+    Map<RelayUrl, List<Filter>>? relays,
     String? id,
     String? name,
     bool closeOnEose = true,
@@ -122,8 +122,8 @@ class RelayReq {
   late final StreamController<RelayReqEvent> _events = StreamController(
     onCancel: close,
   );
-  late final Future<Map<String, RelayRequestOutcome>> _done;
-  final Set<String> _sentTo = {};
+  late final Future<Map<RelayUrl, RelayRequestOutcome>> _done;
+  final Set<RelayUrl> _sentTo = {};
   bool _sealed = false;
   Future<void>? _closing;
 
@@ -181,33 +181,31 @@ class RelayReq {
 
   /// Where the request stands on each relay so far, keyed by relay url. A
   /// subscription shows [RelayRequestStatus.eose] on a relay that caught up.
-  Map<String, RelayRequestOutcome> get outcomes => _state.relayOutcomes;
+  Map<RelayUrl, RelayRequestOutcome> get outcomes => _state.relayOutcomes;
 
   /// [outcomes] on every change, closed once the request is over.
-  Stream<Map<String, RelayRequestOutcome>> get outcomesStream =>
+  Stream<Map<RelayUrl, RelayRequestOutcome>> get outcomesStream =>
       _state.relayOutcomesStream;
 
   /// [outcomes] once every relay ended the request, on timeout, or on [close].
-  Future<Map<String, RelayRequestOutcome>> get done => _done;
+  Future<Map<RelayUrl, RelayRequestOutcome>> get done => _done;
 
   /// Whether the request ended on its timeout.
   bool get timedOut => _state.timedOut;
 
-  /// Sends [filters] to [relayUrl] on the connection the request's
+  /// Sends [filters] to [url] on the connection the request's
   /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
-  /// the request is over, to a url that is not a relay's, nor twice to a relay.
+  /// the request is over, nor twice to a relay.
   /// A filter that [Filter.matchesNothing] is left out, and a relay left with
   /// no filter is not sent to.
   ///
   /// A relay sent to after [seal] still has to answer before the request ends.
-  bool send(String relayUrl, List<Filter> filters) {
-    final url = cleanRelayUrl(relayUrl);
+  bool send(RelayUrl url, List<Filter> filters) {
     final matchable = [
       for (final filter in filters)
         if (!filter.matchesNothing) filter.clone(),
     ];
-    if (url == null ||
-        matchable.isEmpty ||
+    if (matchable.isEmpty ||
         !_requests.isStillInFlight(_state) ||
         _state.networkController.isClosed ||
         !_sentTo.add(url)) {

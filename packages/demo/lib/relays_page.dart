@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dostr_core/dostr_core.dart' show RelayUrl, cleanRelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -16,7 +17,7 @@ class RelaysPage extends StatefulWidget {
 class _RelaysPageState extends State<RelaysPage>
     with AutomaticKeepAliveClientMixin {
   /// each relay of the logged account's NIP-65 list, and how it uses it
-  Map<String, ({bool isRead, bool isWrite})>? relays;
+  Map<RelayUrl, ({bool isRead, bool isWrite})>? relays;
   bool _isLoadingRelayList = true;
   StreamSubscription<dynamic>? _relayConnectivitySub;
 
@@ -270,11 +271,13 @@ class _RelaysPageState extends State<RelaysPage>
 }
 
 /// NIP-65: a relay with no marker is both read and write
-Map<String, ({bool isRead, bool isWrite})> _relaysOf(Nip01Event relayList) => {
+Map<RelayUrl, ({bool isRead, bool isWrite})> _relaysOf(Nip01Event relayList) =>
+    {
       for (final tag in relayList.tags)
         if (tag.length > 1 && tag[0] == 'r')
-          tag[1]: (
-            isRead: tag.length < 3 || tag[2] == 'read',
-            isWrite: tag.length < 3 || tag[2] == 'write',
-          ),
+          if (cleanRelayUrl(tag[1]) case final url?)
+            url: (
+              isRead: tag.length < 3 || tag[2] == 'read',
+              isWrite: tag.length < 3 || tag[2] == 'write',
+            ),
     };

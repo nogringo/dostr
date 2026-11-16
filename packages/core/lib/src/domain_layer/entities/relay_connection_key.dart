@@ -9,8 +9,7 @@ final _hexPubkeyRegex = RegExp(r'^[0-9a-fA-F]{64}$');
 /// connection is opened and immutable for its whole lifetime. Several
 /// connections may therefore exist towards the same relay.
 class RelayConnectionKey {
-  /// relay url, normalized
-  final String url;
+  final RelayUrl url;
 
   /// lowercase hex pubkey authenticated on this connection, null when anonymous
   final String? pubkey;
@@ -22,15 +21,15 @@ class RelayConnectionKey {
   const RelayConnectionKey._(this.url, this.pubkey);
 
   /// key of a connection that never authenticates
-  factory RelayConnectionKey.anonymous(String url) =>
-      RelayConnectionKey._(_normalizeUrl(url), null);
+  factory RelayConnectionKey.anonymous(RelayUrl url) =>
+      RelayConnectionKey._(url, null);
 
   /// key of a connection authenticated as [pubkey]
-  factory RelayConnectionKey.authenticated(String url, String pubkey) {
+  factory RelayConnectionKey.authenticated(RelayUrl url, String pubkey) {
     if (!_hexPubkeyRegex.hasMatch(pubkey)) {
       throw ArgumentError.value(pubkey, 'pubkey', 'expected 64 hex characters');
     }
-    return RelayConnectionKey._(_normalizeUrl(url), pubkey.toLowerCase());
+    return RelayConnectionKey._(url, pubkey.toLowerCase());
   }
 
   /// The connection a request under [auth] must use towards [url] (NIP-42).
@@ -38,7 +37,7 @@ class RelayConnectionKey {
   /// Null means no connection can satisfy it and nothing may be sent to that
   /// relay: falling back to the anonymous one is exactly what the caller ruled
   /// out. A null [auth] keeps the historical default.
-  static RelayConnectionKey? forAuth(String url, AuthPolicy? auth) =>
+  static RelayConnectionKey? forAuth(RelayUrl url, AuthPolicy? auth) =>
       switch (auth) {
         AuthPolicyRequire(:final account) =>
           account.signer.canSign()
@@ -54,10 +53,6 @@ class RelayConnectionKey {
 
   /// stable representation, for persisted keys and logs
   String get canonical => '$url|${pubkey ?? anonymousMarker}';
-
-  /// an unparsable url is kept as given: it simply never matches a connection,
-  /// which is what an unparsable url did before it became part of the key
-  static String _normalizeUrl(String url) => cleanRelayUrl(url) ?? url.trim();
 
   @override
   String toString() => canonical;

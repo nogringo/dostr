@@ -2,7 +2,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 
 Future<void> main() async {
-  const relay = 'wss://relay.example.com';
+  final relay = RelayUrl.parse('wss://relay.example.com');
   final relays = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );

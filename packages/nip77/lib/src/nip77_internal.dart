@@ -72,24 +72,19 @@ class _Nip77Internal extends RelayProtocolHandler {
   );
 
   Nip77Response reconcile({
-    required String relayUrl,
+    required RelayUrl relayUrl,
     required Filter filter,
     Duration openTimeout = Nip77.defaultOpenTimeout,
     Duration idleTimeout = Nip77.defaultIdleTimeout,
     List<String>? localIds,
     AuthPolicy? auth,
   }) {
-    final cleanUrl = cleanRelayUrl(relayUrl);
-    if (cleanUrl == null) {
-      throw ArgumentError('Invalid relay URL: $relayUrl');
-    }
-
-    // nothing can carry this reconciliation, and nothing is sent. Raised like
-    // the invalid url above rather than through a future the caller has had no
-    // chance to listen to yet
-    final connectionKey = RelayConnectionKey.forAuth(cleanUrl, auth);
+    // nothing can carry this reconciliation, and nothing is sent. Raised from
+    // the call rather than through a future the caller has had no chance to
+    // listen to yet
+    final connectionKey = RelayConnectionKey.forAuth(relayUrl, auth);
     if (connectionKey == null) {
-      throw Nip77AuthUnavailableException(cleanUrl, auth!.account!.pubkey);
+      throw Nip77AuthUnavailableException(relayUrl, auth!.account!.pubkey);
     }
 
     // Generate subscription ID

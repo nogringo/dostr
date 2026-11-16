@@ -15,6 +15,7 @@ dependencies:
 ```dart
 import 'package:http/http.dart' as http;
 import 'package:dostr_bip340/dostr_bip340.dart';
+import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_zaps/dostr_zaps.dart';
 
 final zaps = Zaps(
@@ -30,7 +31,7 @@ final zapRequest = await zaps.createZapRequest(
   amountSats: 21,
   signer: Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
   pubkey: recipient,
-  relays: ['wss://relay.example.com'],
+  relays: [RelayUrl.parse('wss://relay.example.com')],
 );
 final invoice = await zaps.fetchInvoice(
   lud16Link: Lnurl.getLud16LinkFromLud16('name@domain.com')!,

@@ -30,6 +30,13 @@ void main() {
       expect(cleanRelayUrl('ws://localhost:80'), 'ws://localhost');
     });
 
+    test('removes an empty port (RFC 3986 Section 6.2.3)', () {
+      expect(
+        cleanRelayUrl('wss://relay.primal.net:'),
+        'wss://relay.primal.net',
+      );
+    });
+
     test('preserves non-default ports', () {
       expect(
         cleanRelayUrl('wss://relay.primal.net:8080'),

@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:collection';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 
 import '../../../shared/logger/logger.dart';
 import '../../entities/relay.dart';
@@ -58,7 +59,7 @@ class RelayConnection implements RelayConnectivity {
     : relay = MutableRelay(url: key.url);
 
   @override
-  String get url => key.url;
+  RelayUrl get url => key.url;
 
   @override
   bool get isConnected => relayTransport?.isOpen() ?? false;
@@ -115,7 +116,7 @@ class RelayConnection implements RelayConnectivity {
 /// The [Relay] of a [RelayConnection].
 class MutableRelay implements Relay {
   @override
-  final String url;
+  final RelayUrl url;
 
   @override
   bool connecting = false;

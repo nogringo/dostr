@@ -34,8 +34,8 @@ class Nip77State implements TimeoutPausable {
   /// whether AUTH was already sent for the bound connection after a refusal
   bool authenticatedAfterRefusal = false;
 
-  /// Relay URL this session is connected to
-  String get relayUrl => connectionKey.url;
+  /// Relay this session is connected to
+  RelayUrl get relayUrl => connectionKey.url;
 
   /// Local items for reconciliation
   final List<NegentropyItem> localItems;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../config/relay_defaults.dart';
@@ -49,8 +50,8 @@ class RelayManager {
   Map<RelayConnectionKey, RelayConnectivity> get connectivities =>
       UnmodifiableMapView(_connections.relays);
 
-  /// Clean urls of the relays this manager does not connect to.
-  Set<String> get blockedRelays => _connections.blockedRelays;
+  /// The relays this manager does not connect to.
+  Set<RelayUrl> get blockedRelays => _connections.blockedRelays;
 
   /// Whether a broadcast of [eventId] is still waiting on its relays.
   bool isBroadcasting(String eventId) => _broadcasts.isBroadcasting(eventId);
@@ -103,7 +104,7 @@ class RelayManager {
     AuthHandler? authHandler,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
-    FutureOr<void> Function(String url, int length)? onMessageLengthLearned,
+    FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) {
     if (reconnectMaximumStep <= 0) {
       throw ArgumentError.value(
@@ -178,7 +179,7 @@ class RelayManager {
       _connections.connectedAnonymousRelays;
 
   /// Whether the anonymous connection to [url] is open.
-  bool isRelayConnected(String url) => _connections.isRelayConnected(url);
+  bool isRelayConnected(RelayUrl url) => _connections.isRelayConnected(url);
 
   /// checks if the connection identified by [key] is open
   bool isConnectionOpen(RelayConnectionKey key) =>
@@ -197,7 +198,7 @@ class RelayManager {
   );
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
-  Future<bool> reconnectRelay(String url, {bool force = false}) =>
+  Future<bool> reconnectRelay(RelayUrl url, {bool force = false}) =>
       _connections.reconnectRelay(url, force: force);
 
   /// Reconnects the connection identified by [key], if it is closed. An
@@ -221,7 +222,7 @@ class RelayManager {
   /// Closes and clears only transport-scoped state of every connection to
   /// [url], anonymous or bound, while keeping the entries and relay-scoped
   /// metadata in memory.
-  Future<void> resetConnectionsTo(String url) async {
+  Future<void> resetConnectionsTo(RelayUrl url) async {
     await Future.wait(
       _connections.keysFor(url).map(_connections.resetConnection),
     );
@@ -252,7 +253,7 @@ class RelayManager {
   /// while it decides. A connection that already exists was agreed to when it
   /// was first opened, so reconnecting it does not ask again.
   Future<RelayConnectivity?> openConnectionAs(
-    String url,
+    RelayUrl url,
     Account account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
@@ -381,7 +382,7 @@ class RelayManager {
       : null;
 
   /// Closes every connection to [url], anonymous or bound, and forgets them.
-  Future<void> closeConnectionsTo(String url) async {
+  Future<void> closeConnectionsTo(RelayUrl url) async {
     await Future.wait(_connections.keysFor(url).map(closeConnection));
   }
 
@@ -431,7 +432,7 @@ class RelayManager {
   Future<void> closeAllTransports() => _connections.closeAll();
 
   /// The anonymous connection to [url], if there is one.
-  RelayConnectivity? getRelayConnectivity(String url) =>
+  RelayConnectivity? getRelayConnectivity(RelayUrl url) =>
       _connections.getRelayConnectivity(url);
 
   /// return [RelayConnectivity] of one connection, anonymous or bound

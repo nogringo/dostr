@@ -156,12 +156,39 @@ void main() {
       test('returns null for a port out of range', () {
         expect(cleanRelayUrl('wss://relay.example.com:65536'), null);
       });
+
+      test('returns null for port 0', () {
+        expect(cleanRelayUrl('wss://relay.example.com:0'), null);
+        expect(cleanRelayUrl('ws://relay.example.com:00'), null);
+      });
+    });
+  });
+
+  group('RelayUrl.parse', () {
+    test('normalizes a relay url', () {
+      expect(
+        RelayUrl.parse('WSS://Relay.Primal.NET:443/'),
+        'wss://relay.primal.net',
+      );
+    });
+
+    test('throws a FormatException for a url that is not a relay url', () {
+      expect(
+        () => RelayUrl.parse('https://relay.primal.net'),
+        throwsFormatException,
+      );
     });
   });
 
   group('cleanRelayUrls', () {
     test('returns empty list for empty input', () {
       expect(cleanRelayUrls([]), []);
+    });
+
+    test('takes any iterable', () {
+      expect(cleanRelayUrls({'wss://relay.primal.net/'}), [
+        'wss://relay.primal.net',
+      ]);
     });
 
     test('filters out invalid URLs', () {

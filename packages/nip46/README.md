@@ -45,7 +45,7 @@ To let the remote signer start, create a `nostrconnect://` invitation, show its 
 
 ```dart
 final nostrConnect = bunkers.createNostrConnect(
-  relays: ['wss://relay.example.com'],
+  relays: [RelayUrl.parse('wss://relay.example.com')],
   clientMetadata: clientMetadata,
 );
 print(nostrConnect.nostrConnectURL);

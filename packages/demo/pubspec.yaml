@@ -99,6 +99,8 @@ dependency_overrides:
     path: ../rust_verifier
   dostr_relay_url:
     path: ../relay_url
+  dostr_secp256k1:
+    path: ../secp256k1
   dostr_signer:
     path: ../signer
   dostr_string_color:

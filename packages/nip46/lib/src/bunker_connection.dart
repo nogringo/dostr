@@ -1,7 +1,9 @@
+import 'package:dostr_core/dostr_core.dart';
+
 class BunkerConnection {
   String privateKey;
   String remotePubkey;
-  List<String> relays;
+  List<RelayUrl> relays;
 
   BunkerConnection({
     required this.privateKey,
@@ -19,7 +21,7 @@ class BunkerConnection {
     return BunkerConnection(
       privateKey: json['privateKey'] as String,
       remotePubkey: json['remotePubkey'] as String,
-      relays: List<String>.from(json['relays'] as List),
+      relays: cleanRelayUrls((json['relays'] as List).cast<String>()),
     );
   }
 }

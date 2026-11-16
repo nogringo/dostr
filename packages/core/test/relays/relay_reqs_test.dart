@@ -190,7 +190,7 @@ void main() {
     });
 
     test('reports a blocked relay as notSent', () async {
-      const blocked = 'wss://blocked.example';
+      final blocked = RelayUrl.parse('wss://blocked.example');
       manager.blockedRelays.add(blocked);
 
       final req = reqs.req(relays: {blocked: notes});
@@ -270,14 +270,13 @@ void main() {
       expect(req.send(relay.url, notes), isFalse);
     });
 
-    test('sends to each relay once, and only to relays', () async {
+    test('sends to each relay once', () async {
       final relay = await startRelay();
       final req = reqs.req();
       req.events.listen((_) {});
 
       expect(req.send(relay.url, notes), isTrue);
-      expect(req.send('${relay.url}/', notes), isFalse);
-      expect(req.send('https://relay.example', notes), isFalse);
+      expect(req.send(RelayUrl.parse('${relay.url}/'), notes), isFalse);
 
       await eventually(() => relay.received('REQ').isNotEmpty);
       expect(relay.received('REQ'), hasLength(1));

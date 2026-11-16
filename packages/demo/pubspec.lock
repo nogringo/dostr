@@ -41,14 +41,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
-  bip340:
-    dependency: transitive
-    description:
-      name: bip340
-      sha256: "4c2df9fa2409d26f1d9334b2801015ebe4dc3978191f186743e60e89a90230c4"
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.3.1"
   boolean_selector:
     dependency: transitive
     description:
@@ -257,10 +249,24 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  dostr_relay_url:
+    dependency: "direct overridden"
+    description:
+      path: "../relay_url"
+      relative: true
+    source: path
+    version: "0.1.0"
   dostr_rust_verifier:
     dependency: "direct main"
     description:
       path: "../rust_verifier"
+      relative: true
+    source: path
+    version: "0.1.0"
+  dostr_secp256k1:
+    dependency: "direct overridden"
+    description:
+      path: "../secp256k1"
       relative: true
     source: path
     version: "0.1.0"

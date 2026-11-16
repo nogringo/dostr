@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
@@ -15,8 +16,8 @@ class RelayRequestState {
   /// connection this request was sent on
   final RelayConnectionKey key;
 
-  /// url of the relay this request was sent to
-  String get url => key.url;
+  /// the relay this request was sent to
+  RelayUrl get url => key.url;
 
   /// called by the owning [RequestState] whenever a field the outcome is
   /// derived from changes, so the outcome never has to be derived on read
@@ -177,7 +178,7 @@ class RequestState implements TimeoutPausable {
 
   // the connections of one relay, so collapsing a url into its outcome reads
   // them instead of scanning every connection of the request
-  final Map<String, List<RelayRequestState>> _requestsByUrl = {};
+  final Map<RelayUrl, List<RelayRequestState>> _requestsByUrl = {};
 
   /// timeout duration, closes all streams
   final Duration? timeoutDuration;
@@ -287,31 +288,31 @@ class RequestState implements TimeoutPausable {
         (element) => endedOn(element) && !element.retryingAuth,
       );
 
-  final Map<String, RelayRequestOutcome> _relayOutcomes = {};
+  final Map<RelayUrl, RelayRequestOutcome> _relayOutcomes = {};
 
-  Map<String, RelayRequestOutcome>? _relayOutcomesSnapshot;
+  Map<RelayUrl, RelayRequestOutcome>? _relayOutcomesSnapshot;
 
-  BehaviorSubject<Map<String, RelayRequestOutcome>>? _relayOutcomesSubject;
+  BehaviorSubject<Map<RelayUrl, RelayRequestOutcome>>? _relayOutcomesSubject;
 
   bool _relayOutcomesDone = false;
 
   /// [_relayOutcomes] as it is handed out, built on demand: a request whose
   /// outcomes nobody reads or watches copies nothing.
-  Map<String, RelayRequestOutcome> get _ownRelayOutcomes =>
+  Map<RelayUrl, RelayRequestOutcome> get _ownRelayOutcomes =>
       _relayOutcomesSnapshot ??= Map.unmodifiable(_relayOutcomes);
 
   /// What the request ended with on each relay it was sent to, as it stands now
   ///
   /// Keyed by relay url: several connections to one relay collapse into the
   /// outcome that comes first in [RelayRequestStatus].
-  Map<String, RelayRequestOutcome> get relayOutcomes => _ownRelayOutcomes;
+  Map<RelayUrl, RelayRequestOutcome> get relayOutcomes => _ownRelayOutcomes;
 
   /// [relayOutcomes] on every change, starting with what it holds right now,
   /// and closed once the request is over.
   ///
   /// Late subscribers get the current outcomes instead of missing everything
   /// the relays answered before they listened.
-  Stream<Map<String, RelayRequestOutcome>> get relayOutcomesStream {
+  Stream<Map<RelayUrl, RelayRequestOutcome>> get relayOutcomesStream {
     final subject = _relayOutcomesSubject ??= BehaviorSubject.seeded(
       _ownRelayOutcomes,
     );
@@ -334,7 +335,7 @@ class RequestState implements TimeoutPausable {
     }
   }
 
-  void _onRelayRequestChanged(String url) {
+  void _onRelayRequestChanged(RelayUrl url) {
     if (_recomputeRelayOutcome(url)) {
       _publishRelayOutcomes();
     }
@@ -342,7 +343,7 @@ class RequestState implements TimeoutPausable {
 
   /// Collapses the connections to [url] into its outcome, returning whether
   /// that outcome moved.
-  bool _recomputeRelayOutcome(String url) {
+  bool _recomputeRelayOutcome(RelayUrl url) {
     RelayRequestOutcome? collapsed;
     for (final request in _requestsByUrl[url] ?? const <RelayRequestState>[]) {
       final outcome = _outcomeOf(request);

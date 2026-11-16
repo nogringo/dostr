@@ -14,7 +14,9 @@ const int _kind = 10002;
 /// The fetchers given the same [Nip65Fetcher] share its lookups.
 class Nip65Fetcher {
   final RelayReqs _reqs;
-  final List<String> relays;
+
+  /// [defaultIndexerRelays] unless given.
+  final List<RelayUrl> relays;
   final HomeRelayList? homeRelayList;
   final Duration timeout;
 
@@ -52,14 +54,15 @@ class Nip65Fetcher {
 
   Nip65Fetcher({
     required RelayReqs reqs,
-    this.relays = defaultIndexerRelays,
+    List<RelayUrl>? relays,
     this.homeRelayList,
     this.timeout = const Duration(seconds: 5),
     this.cache,
     this.checks,
     this.maxAge = const Duration(minutes: 10),
     this.batchWindow = defaultBatchWindow,
-  }) : _reqs = reqs;
+  }) : _reqs = reqs,
+       relays = relays ?? defaultIndexerRelays;
 
   /// Each `kind:10002` event of [pubkey] (hex) found on [relays] and on its
   /// home relays, as soon as it arrives, if newer than the ones before it.
@@ -103,18 +106,18 @@ class Nip65Fetcher {
 
 /// The normalized write relays of [relayList], a `kind:10002`: the `r` tags
 /// not marked `read`, since NIP-65 makes an unmarked relay both.
-List<String> writeRelaysOf(Nip01Event relayList) =>
+List<RelayUrl> writeRelaysOf(Nip01Event relayList) =>
     _relaysOf(relayList, except: 'read');
 
 /// The normalized read relays of [relayList], a `kind:10002`: the `r` tags
 /// not marked `write`.
-List<String> readRelaysOf(Nip01Event relayList) =>
+List<RelayUrl> readRelaysOf(Nip01Event relayList) =>
     _relaysOf(relayList, except: 'write');
 
 /// Every normalized relay of [relayList], a `kind:10002`, whatever its marker.
-List<String> allRelaysOf(Nip01Event relayList) => _relaysOf(relayList);
+List<RelayUrl> allRelaysOf(Nip01Event relayList) => _relaysOf(relayList);
 
-List<String> _relaysOf(Nip01Event relayList, {String? except}) =>
+List<RelayUrl> _relaysOf(Nip01Event relayList, {String? except}) =>
     cleanRelayUrls([
       for (final tag in relayList.tags)
         if (tag.length > 1 &&

@@ -7,7 +7,7 @@ import 'package:test/test.dart';
 import '../mocks/fakes.dart';
 
 void main() {
-  const url = 'wss://relay.example';
+  final url = RelayUrl.parse('wss://relay.example');
   final anonymous = RelayConnectionKey.anonymous(url);
   final bound = RelayConnectionKey.authenticated(url, alice);
   final notes = [
