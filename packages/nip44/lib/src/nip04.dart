@@ -3,38 +3,77 @@ import 'dart:typed_data';
 
 import 'package:pointycastle/export.dart';
 
-import 'nip44.dart';
+import 'ecdh.dart';
 import 'utils.dart';
 
 /// The deprecated NIP-04 encryption, AES-CBC with no MAC: use `Nip44` unless
 /// the peer does not support it.
+/// https://github.com/nostr-protocol/nips/blob/master/04.md
+///
+/// Keys are hex strings, as for `Nip44`, and an invalid one throws a
+/// [FormatException].
 class Nip04 {
-  /// Encrypts [text] from the hex private key [priv] to the hex public key
-  /// [pub], as `<ciphertext>?iv=<iv>`.
-  static String encrypt(String priv, String pub, String text) {
+  /// Encrypts [plaintext] from [senderPrivateKey] to [recipientPublicKey], as
+  /// `<ciphertext>?iv=<iv>`.
+  static String encrypt(
+    String plaintext,
+    String senderPrivateKey,
+    String recipientPublicKey,
+  ) {
     final iv = secureRandomBytes(16);
-    final ciphertext = _aesCbc(true, priv, pub, iv).process(utf8.encode(text));
+    final cipher = _aesCbc(
+      true,
+      sharedSecret(senderPrivateKey, recipientPublicKey),
+      iv,
+    );
+    final ciphertext = cipher.process(utf8.encode(plaintext));
     return '${base64.encode(ciphertext)}?iv=${base64.encode(iv)}';
   }
 
-  /// Decrypts a `<ciphertext>?iv=<iv>` [text], or returns an empty string when
-  /// it has no `?iv=`.
-  static String decrypt(String priv, String pub, String text) {
-    final parts = text.split('?iv=');
+  /// Decrypts a `<ciphertext>?iv=<iv>` [payload] from [senderPublicKey] to
+  /// [recipientPrivateKey].
+  ///
+  /// Throws a [FormatException] when [payload] is malformed, or does not
+  /// decrypt with these keys. With no MAC, an altered payload can also decrypt
+  /// to the wrong text.
+  static String decrypt(
+    String payload,
+    String recipientPrivateKey,
+    String senderPublicKey,
+  ) {
+    final parts = payload.split('?iv=');
     if (parts.length != 2) {
-      return '';
+      throw const FormatException('Not a NIP-04 payload: it needs one ?iv=');
     }
-    final cipher = _aesCbc(false, priv, pub, base64.decode(parts[1]));
-    return utf8.decode(cipher.process(base64.decode(parts[0])));
+    final ciphertext = base64.decode(parts[0]);
+    final iv = base64.decode(parts[1]);
+    if (ciphertext.isEmpty || ciphertext.length % 16 != 0) {
+      throw const FormatException('The ciphertext is not whole AES blocks');
+    }
+    if (iv.length != 16) {
+      throw const FormatException('The IV is not 16 bytes');
+    }
+    final cipher = _aesCbc(
+      false,
+      sharedSecret(recipientPrivateKey, senderPublicKey),
+      iv,
+    );
+    final Uint8List plaintext;
+    try {
+      plaintext = cipher.process(ciphertext);
+    } on ArgumentError {
+      throw const FormatException(
+        'Invalid padding: the keys do not match, or the payload was altered',
+      );
+    }
+    return utf8.decode(plaintext);
   }
 
   static PaddedBlockCipher _aesCbc(
     bool forEncryption,
-    String priv,
-    String pub,
+    Uint8List key,
     Uint8List iv,
   ) {
-    final key = Nip44.computeSharedSecret(priv, pub);
     return PaddedBlockCipherImpl(PKCS7Padding(), CBCBlockCipher(AESEngine()))
       ..init(
         forEncryption,

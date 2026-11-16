@@ -7,6 +7,16 @@ import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/macs/hmac.dart';
 import 'package:pointycastle/stream/chacha7539.dart';
 
+typedef MessageKeys = ({
+  Uint8List chachaKey,
+  Uint8List chachaNonce,
+  Uint8List hmacKey,
+});
+
+typedef Payload = ({Uint8List nonce, Uint8List ciphertext, Uint8List mac});
+
+const _version = 2;
+
 Uint8List secureRandomBytes(int length) {
   final random = Random.secure();
   return Uint8List.fromList(
@@ -14,65 +24,53 @@ Uint8List secureRandomBytes(int length) {
   );
 }
 
-Map<String, Uint8List> deriveMessageKeys(
-  Uint8List conversationKey,
-  Uint8List nonce,
-) {
+MessageKeys deriveMessageKeys(Uint8List conversationKey, Uint8List nonce) {
   if (conversationKey.length != 32) {
-    throw FormatException('Invalid conversation key length');
+    throw ArgumentError('must be 32 bytes', 'conversationKey');
   }
   if (nonce.length != 32) {
-    throw FormatException('Invalid nonce length');
+    throw ArgumentError('must be 32 bytes', 'nonce');
   }
-
-  final hkdfOutput = hkdfExpand(prk: conversationKey, info: nonce, length: 76);
-
-  return {
-    'chachaKey': hkdfOutput.sublist(0, 32),
-    'chachaNonce': hkdfOutput.sublist(32, 44), // Should be 12 bytes
-    'hmacKey': hkdfOutput.sublist(44, 76),
-  };
+  final keys = hkdfExpand(prk: conversationKey, info: nonce, length: 76);
+  return (
+    chachaKey: keys.sublist(0, 32),
+    chachaNonce: keys.sublist(32, 44),
+    hmacKey: keys.sublist(44, 76),
+  );
 }
 
 Uint8List pad(Uint8List plaintext) {
-  int unpaddedLen = plaintext.length;
-  if (unpaddedLen < 1 || unpaddedLen > 65535) {
-    throw Exception('Invalid plaintext length');
+  final length = plaintext.length;
+  if (length < 1 || length > 65535) {
+    throw ArgumentError(
+      'must be 1 to 65535 bytes in UTF-8, not $length',
+      'plaintext',
+    );
   }
-
-  int paddedLen = calcPaddedLen(unpaddedLen);
-  Uint8List padded = Uint8List(paddedLen + 2);
-
-  // First two bytes are the length in big-endian
-  padded[0] = (unpaddedLen >> 8) & 0xFF;
-  padded[1] = unpaddedLen & 0xFF;
-
-  padded.setRange(2, 2 + unpaddedLen, plaintext);
-
-  // The rest is zeros by default
-  return padded;
+  return Uint8List(2 + calcPaddedLen(length))
+    ..[0] = length >> 8
+    ..[1] = length
+    ..setRange(2, 2 + length, plaintext);
 }
 
 int calcPaddedLen(int unpaddedLen) {
-  int nextPower = 1 << ((unpaddedLen - 1).bitLength);
-  int chunk = nextPower <= 256 ? 32 : nextPower ~/ 8;
   if (unpaddedLen <= 32) {
     return 32;
-  } else {
-    return chunk * ((unpaddedLen - 1) ~/ chunk + 1);
   }
+  final nextPower = 1 << (unpaddedLen - 1).bitLength;
+  final chunk = nextPower <= 256 ? 32 : nextPower ~/ 8;
+  return chunk * ((unpaddedLen - 1) ~/ chunk + 1);
 }
 
-Uint8List encryptChaCha20(Uint8List key, Uint8List nonce, Uint8List data) =>
-    _chaCha20(key, nonce, data);
+Uint8List unpad(Uint8List padded) {
+  final length = padded[0] << 8 | padded[1];
+  if (length == 0 || padded.length != 2 + calcPaddedLen(length)) {
+    throw const FormatException('Invalid padding');
+  }
+  return padded.sublist(2, 2 + length);
+}
 
-Uint8List decryptChaCha20(
-  Uint8List key,
-  Uint8List nonce,
-  Uint8List ciphertext,
-) => _chaCha20(key, nonce, ciphertext);
-
-Uint8List _chaCha20(Uint8List key, Uint8List nonce, Uint8List input) {
+Uint8List chaCha20(Uint8List key, Uint8List nonce, Uint8List input) {
   final engine = ChaCha7539Engine()
     ..init(true, ParametersWithIV(KeyParameter(key), nonce));
   return engine.process(input);
@@ -81,16 +79,6 @@ Uint8List _chaCha20(Uint8List key, Uint8List nonce, Uint8List input) {
 Uint8List _hmacSha256(Uint8List key, List<int> data) {
   final hmac = HMac(SHA256Digest(), 64)..init(KeyParameter(key));
   return hmac.process(Uint8List.fromList(data));
-}
-
-String constructPayload(Uint8List nonce, Uint8List ciphertext, Uint8List mac) {
-  Uint8List payloadBytes = Uint8List.fromList([
-    0x02, // Version
-    ...nonce,
-    ...ciphertext,
-    ...mac,
-  ]);
-  return base64.encode(payloadBytes);
 }
 
 Uint8List hkdfExtract({required Uint8List ikm, required Uint8List salt}) {
@@ -102,81 +90,59 @@ Uint8List hkdfExpand({
   required Uint8List info,
   required int length,
 }) {
-  var hashLen = 32;
-  int n = (length + hashLen - 1) ~/ hashLen;
-  var okm = <int>[];
+  const hashLength = 32;
+  final blocks = (length + hashLength - 1) ~/ hashLength;
+  final okm = <int>[];
   var previous = <int>[];
-
-  for (var i = 1; i <= n; i++) {
+  for (var i = 1; i <= blocks; i++) {
     previous = _hmacSha256(prk, [...previous, ...info, i]);
     okm.addAll(previous);
   }
   return Uint8List.fromList(okm.sublist(0, length));
 }
 
-Uint8List unpad(Uint8List padded) {
-  int unpaddedLen = (padded[0] << 8) + padded[1];
-  if (unpaddedLen == 0 || padded.length != 2 + calcPaddedLen(unpaddedLen)) {
-    throw Exception('Invalid padding');
-  }
-  return padded.sublist(2, 2 + unpaddedLen);
-}
-
 Uint8List calculateMac(Uint8List key, Uint8List nonce, Uint8List ciphertext) {
   return _hmacSha256(key, [...nonce, ...ciphertext]);
 }
 
-Map<String, dynamic> parsePayload(String payload) {
-  if (payload.isEmpty || payload[0] == '#') {
-    throw Exception('Unknown version');
-  }
-
-  if (payload.length < 132 || payload.length > 87472) {
-    throw Exception('Invalid payload size');
-  }
-
-  Uint8List data = base64.decode(payload);
-
-  if (data[0] != 0x02) {
-    throw Exception('Unsupported version');
-  }
-
-  Uint8List nonce = data.sublist(1, 33);
-  Uint8List mac = data.sublist(data.length - 32);
-  Uint8List ciphertext = data.sublist(33, data.length - 32);
-
-  return {'nonce': nonce, 'ciphertext': ciphertext, 'mac': mac};
-}
-
-void verifyMac(
+bool macMatches(
   Uint8List hmacKey,
   Uint8List nonce,
   Uint8List ciphertext,
   Uint8List mac,
 ) {
-  Uint8List calculatedMac = calculateMac(hmacKey, nonce, ciphertext);
-  if (!_constantTimeEquals(calculatedMac, mac)) {
-    throw Exception('Invalid MAC');
+  final expected = calculateMac(hmacKey, nonce, ciphertext);
+  if (expected.length != mac.length) {
+    return false;
   }
-}
-
-bool _constantTimeEquals(List<int> a, List<int> b) {
-  if (a.length != b.length) return false;
   var diff = 0;
-  for (var i = 0; i < a.length; i++) {
-    diff |= a[i] ^ b[i];
+  for (var i = 0; i < mac.length; i++) {
+    diff |= expected[i] ^ mac[i];
   }
   return diff == 0;
 }
 
-String checkPublicKey(String publicKey) {
-  if (publicKey.length == 66 &&
-      (publicKey.startsWith('02') || publicKey.startsWith('03'))) {
-    return publicKey;
-  } else if (publicKey.length > 66 && publicKey.startsWith('04')) {
-    return publicKey;
-  } else if (publicKey.length == 64) {
-    return '02$publicKey';
+String constructPayload(Uint8List nonce, Uint8List ciphertext, Uint8List mac) {
+  return base64.encode([_version, ...nonce, ...ciphertext, ...mac]);
+}
+
+Payload parsePayload(String payload) {
+  if (payload.startsWith('#')) {
+    throw const FormatException('Unknown version');
   }
-  throw Exception('Invalid Public Key');
+  if (payload.length < 132 || payload.length > 87472) {
+    throw const FormatException('Invalid payload size');
+  }
+  final data = base64.decode(payload);
+  if (data.length < 99 || data.length > 65603) {
+    throw const FormatException('Invalid data size');
+  }
+  if (data[0] != _version) {
+    throw const FormatException('Unknown version');
+  }
+  return (
+    nonce: data.sublist(1, 33),
+    ciphertext: data.sublist(33, data.length - 32),
+    mac: data.sublist(data.length - 32),
+  );
 }

@@ -126,9 +126,9 @@ class MockRemoteSigner {
         );
         return {'result': signed.toJsonString()};
       case 'nip04_encrypt':
-        return {'result': Nip04.encrypt(privateKey, params[0], params[1])};
+        return {'result': Nip04.encrypt(params[1], privateKey, params[0])};
       case 'nip04_decrypt':
-        return {'result': Nip04.decrypt(privateKey, params[0], params[1])};
+        return {'result': Nip04.decrypt(params[1], privateKey, params[0])};
       case 'nip44_encrypt':
         return {
           'result': await Nip44.encryptMessage(

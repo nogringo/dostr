@@ -74,12 +74,12 @@ class Bip340Signer implements NostrSigner {
 
   @override
   Future<String?> decrypt(String msg, String destPubkey) async {
-    return Nip04.decrypt(privateKey!, destPubkey, msg);
+    return Nip04.decrypt(msg, privateKey!, destPubkey);
   }
 
   @override
   Future<String?> encrypt(String msg, String destPubkey) async {
-    return Nip04.encrypt(privateKey!, destPubkey, msg);
+    return Nip04.encrypt(msg, privateKey!, destPubkey);
   }
 
   @override
