@@ -282,6 +282,35 @@ void main() {
       expect(RelayUrl.fromUserInput('not a url'), null);
       expect(RelayUrl.fromUserInput(''), null);
     });
+
+    test('returns null for a scheme missing its colon', () {
+      expect(RelayUrl.fromUserInput('wss//relay.primal.net'), null);
+      expect(RelayUrl.fromUserInput('https//relay.primal.net'), null);
+    });
+
+    test('returns null for a single-label host without a scheme', () {
+      expect(RelayUrl.fromUserInput('npub1abc'), null);
+      expect(RelayUrl.fromUserInput('relay.'), null);
+      expect(RelayUrl.fromUserInput('Localhost.'), 'wss://localhost');
+    });
+
+    test('accepts a single-label host with a scheme', () {
+      expect(RelayUrl.fromUserInput('ws://relay:7777'), 'ws://relay:7777');
+      expect(RelayUrl.fromUserInput('https://relay'), 'wss://relay');
+    });
+  });
+
+  group('RelayUrl.tryParse', () {
+    test('normalizes a relay url', () {
+      expect(
+        RelayUrl.tryParse('WSS://Relay.Primal.NET:443/'),
+        'wss://relay.primal.net',
+      );
+    });
+
+    test('returns null for a url that is not a relay url', () {
+      expect(RelayUrl.tryParse('https://relay.primal.net'), null);
+    });
   });
 
   test('cleanRelayUrl leaves a RelayUrl unchanged', () {

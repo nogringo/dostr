@@ -15,8 +15,9 @@ final _repeatedSlashes = RegExp('/{2,}');
 /// name one relay exactly when they are equal.
 ///
 /// It is a [String], so it goes wherever one does. A [String] becomes one
-/// only through [cleanRelayUrl], [RelayUrl.parse] or [RelayUrl.fromUserInput],
-/// or through a cast, which nothing checks since the type is gone at run time.
+/// only through [cleanRelayUrl], [RelayUrl.tryParse], [RelayUrl.parse] or
+/// [RelayUrl.fromUserInput], or through a cast, which nothing checks since
+/// the type is gone at run time.
 extension type const RelayUrl._(String _url) implements String {
   /// Normalizes [url] as [cleanRelayUrl] does, or throws a [FormatException]
   /// if it is not a ws or wss url.
@@ -24,20 +25,31 @@ extension type const RelayUrl._(String _url) implements String {
       cleanRelayUrl(url) ??
       (throw FormatException('Not a ws or wss relay url', url));
 
+  /// Normalizes [url] as [cleanRelayUrl] does, or returns null if it is not a
+  /// ws or wss url.
+  static RelayUrl? tryParse(String url) => cleanRelayUrl(url);
+
   /// Normalizes [input], a relay url a person typed, or returns null if it is
   /// not one.
   ///
   /// Unlike [cleanRelayUrl], it reads a url without a scheme as a wss url,
-  /// and an http or https url as a ws or wss one, as Nostr clients do.
+  /// and an http or https url as a ws or wss one, as Nostr clients do. A url
+  /// without a scheme must name localhost, an IP address or a host name
+  /// holding a dot, so a pasted key or a scheme missing its colon, as in
+  /// `wss//relay.primal.net`, is not read as a host.
   static RelayUrl? fromUserInput(String input) {
     final trimmed = input.trim();
     final http = _httpScheme.matchAsPrefix(trimmed);
     if (http != null) {
       return cleanRelayUrl('ws${http[1]}://${trimmed.substring(http.end)}');
     }
-    return cleanRelayUrl(
-      _anyScheme.hasMatch(trimmed) ? trimmed : 'wss://$trimmed',
-    );
+    if (_anyScheme.hasMatch(trimmed)) return cleanRelayUrl(trimmed);
+
+    final url = cleanRelayUrl('wss://$trimmed');
+    if (url == null) return null;
+    final host = Uri.parse(url).host;
+    final ipv6 = host.contains(':');
+    return host.contains('.') || ipv6 || host == 'localhost' ? url : null;
   }
 }
 
