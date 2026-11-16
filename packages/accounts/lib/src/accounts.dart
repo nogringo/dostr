@@ -79,7 +79,7 @@ class Accounts implements AuthAccounts {
   Account addAccount({required AccountType type, required NostrSigner signer}) {
     final pubkey = signer.getPublicKey();
     _checkNew(pubkey);
-    final account = Account(type: type, pubkey: pubkey, signer: signer);
+    final account = Account(type: type, signer: signer);
     _accounts[pubkey] = account;
     _notifyAccountsChange();
     return account;
@@ -105,7 +105,7 @@ class Accounts implements AuthAccounts {
   /// the logged account's.
   Future<Nip01Event> sign(Nip01Event event) async {
     final account = getLoggedAccount();
-    if (account == null || !account.signer.canSign()) {
+    if (account == null || !account.signer.canSign) {
       throw AccountCannotSignException(account?.pubkey);
     }
     if (event.pubkey != account.pubkey) {
@@ -122,7 +122,7 @@ class Accounts implements AuthAccounts {
   Account? getLoggedAccount() => _accounts[_loggedPubkey];
 
   /// Whether the logged account can sign events.
-  bool get canSign => getLoggedAccount()?.signer.canSign() ?? false;
+  bool get canSign => getLoggedAccount()?.signer.canSign ?? false;
 
   bool get cannotSign => !canSign;
 

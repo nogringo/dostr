@@ -2,19 +2,18 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 
 /// Methods that can be called on a signer
 enum SignerMethod {
-  signEvent('sign_event'),
-  getPublicKey('get_public_key'),
-  nip04Encrypt('nip04_encrypt'),
-  nip04Decrypt('nip04_decrypt'),
-  nip44Encrypt('nip44_encrypt'),
-  nip44Decrypt('nip44_decrypt'),
-  ping('ping'),
-  connect('connect'),
-  switchRelays('switch_relays');
+  signEvent,
+  getPublicKey,
+  nip04Encrypt,
+  nip04Decrypt,
+  nip44Encrypt,
+  nip44Decrypt,
 
-  /// The NIP-46 protocol string for this method
-  final String protocolString;
-  const SignerMethod(this.protocolString);
+  /// NIP-46 bunkers only
+  ping,
+
+  /// NIP-46 bunkers only
+  switchRelays,
 }
 
 /// Represents a pending request waiting for user approval on a signer.

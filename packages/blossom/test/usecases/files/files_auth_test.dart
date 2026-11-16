@@ -14,7 +14,6 @@ const int filesAuthPort = 30050;
 
 Account _signable(KeyPair keyPair) => Account(
   type: AccountType.privateKey,
-  pubkey: keyPair.publicKey,
   signer: Bip340Signer(
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,

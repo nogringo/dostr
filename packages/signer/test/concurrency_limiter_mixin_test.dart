@@ -7,8 +7,7 @@ import 'package:test/test.dart';
 class _Limiter with ConcurrencyLimiterMixin {
   @override
   final int maxConcurrentRequests;
-  _Limiter(this.maxConcurrentRequests)
-    : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+  _Limiter(this.maxConcurrentRequests);
 }
 
 /// Mimics the way a real signer (NIP-07, NIP-55, NIP-46) drives the mixin:
@@ -97,9 +96,13 @@ void main() {
       expect(result, 'ok');
     });
 
-    test('asserts maxConcurrentRequests > 0', () {
-      expect(() => _Limiter(0), throwsA(isA<AssertionError>()));
-      expect(() => _Limiter(-1), throwsA(isA<AssertionError>()));
+    test('rejects a limit below 1 instead of queueing forever', () async {
+      for (final limit in [0, -1]) {
+        await expectLater(
+          _Limiter(limit).runThrottled(() async => 'never'),
+          throwsRangeError,
+        );
+      }
     });
 
     test(

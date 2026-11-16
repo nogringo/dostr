@@ -11,7 +11,7 @@ class _RejectingSigner extends Bip340Signer {
     : super(privateKey: key.privateKey, publicKey: key.publicKey);
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) => throw SignerRequestRejectedException(requestId: 'decrypt');
@@ -62,7 +62,7 @@ void main() {
         content: (await ephemeral.encryptNip44(
           plaintext: payload,
           recipientPubkey: bob.publicKey,
-        ))!,
+        )),
       ),
     );
   }

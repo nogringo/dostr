@@ -75,7 +75,7 @@ final reply = await signer.decryptNip44(
 
 Remote signers (NIP-46, NIP-07, NIP-55) encrypt where the key is, so the same code works with each of them.
 The gift wrap of [`dostr_nip59`](https://pub.dev/packages/dostr_nip59) encrypts through the signer too.
-The signer's `encrypt` and `decrypt` are the deprecated NIP-04 ones.
+The signer's `encryptNip04` and `decryptNip04` are the deprecated NIP-04 ones.
 
 ## NIP-04
 

@@ -2,7 +2,7 @@
 ///
 /// ```dart
 /// final signer = Nip07Signer();
-/// if (signer.canSign()) {
+/// if (signer.canSign) {
 ///   final pubkey = await signer.getPublicKeyAsync();
 /// }
 /// ```

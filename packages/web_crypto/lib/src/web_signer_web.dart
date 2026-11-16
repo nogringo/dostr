@@ -70,15 +70,6 @@ class WebSigner implements NostrSigner {
     _init();
   }
 
-  @override
-  bool get requiresInteractiveSigning => false;
-
-  @override
-  bool get requiresSignerNetwork => false;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
   Future<void> _init() async {
     if (!_jsInjected) {
       _injectJS();
@@ -131,36 +122,42 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) async {
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for decryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip04Decrypt(privateKey!.toJS, destPubkey.toJS, msg.toJS)
+        .nip04Decrypt(privateKey!.toJS, senderPubkey.toJS, ciphertext.toJS)
         .toDart;
     return result.toDart;
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) async {
+  Future<String> encryptNip04({
+    required String plaintext,
+    required String recipientPubkey,
+  }) async {
     if (privateKey == null || privateKey!.isEmpty) {
       throw Exception('Private key is required for encryption');
     }
     final crypto = await _getCrypto();
     final result = await crypto
-        .nip04Encrypt(privateKey!.toJS, destPubkey.toJS, msg.toJS)
+        .nip04Encrypt(privateKey!.toJS, recipientPubkey.toJS, plaintext.toJS)
         .toDart;
     return result.toDart;
   }
 
   @override
-  bool canSign() {
+  bool get canSign {
     return privateKey != null && privateKey!.isNotEmpty;
   }
 
   @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {
@@ -175,7 +172,7 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) async {

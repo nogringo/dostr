@@ -128,12 +128,12 @@ void main() {
     });
 
     test('canSign returns false when nostr is null', () {
-      expect(nip07Signer.canSign(), isFalse);
+      expect(nip07Signer.canSign, isFalse);
     });
 
     test('canSign returns true when nostr extension is available', () async {
       await setupNostrExtension();
-      expect(nip07Signer.canSign(), isTrue);
+      expect(nip07Signer.canSign, isTrue);
     });
 
     test('getPublicKeyAsync returns public key', () async {
@@ -232,11 +232,14 @@ void main() {
 
       const message = 'Hello World';
       final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await nip07Signer.encrypt(
-        message,
-        bip340Signer.publicKey,
+      final encrypted = await nip07Signer.encryptNip04(
+        plaintext: message,
+        recipientPubkey: bip340Signer.publicKey,
       );
-      final decrypted = await bip340Signer.decrypt(encrypted!, nip07Pubkey);
+      final decrypted = await bip340Signer.decryptNip04(
+        ciphertext: encrypted,
+        senderPubkey: nip07Pubkey,
+      );
 
       expect(decrypted, equals(message));
     });
@@ -245,7 +248,10 @@ void main() {
       await setupNostrExtension();
 
       await expectLater(
-        nip07Signer.decrypt('invalid_data', bip340Signer.publicKey),
+        nip07Signer.decryptNip04(
+          ciphertext: 'invalid_data',
+          senderPubkey: bip340Signer.publicKey,
+        ),
         throwsA(anything),
       );
     });
@@ -255,8 +261,14 @@ void main() {
 
       const message = 'Hello round trip';
       final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await nip07Signer.encrypt(message, nip07Pubkey);
-      final decrypted = await nip07Signer.decrypt(encrypted!, nip07Pubkey);
+      final encrypted = await nip07Signer.encryptNip04(
+        plaintext: message,
+        recipientPubkey: nip07Pubkey,
+      );
+      final decrypted = await nip07Signer.decryptNip04(
+        ciphertext: encrypted,
+        senderPubkey: nip07Pubkey,
+      );
 
       expect(decrypted, equals(message));
     });
@@ -271,7 +283,7 @@ void main() {
         recipientPubkey: bip340Signer.publicKey,
       );
       final decrypted = await bip340Signer.decryptNip44(
-        ciphertext: encrypted!,
+        ciphertext: encrypted,
         senderPubkey: nip07Pubkey,
       );
 
@@ -300,7 +312,7 @@ void main() {
         recipientPubkey: nip07Pubkey,
       );
       final decrypted = await nip07Signer.decryptNip44(
-        ciphertext: encrypted!,
+        ciphertext: encrypted,
         senderPubkey: nip07Pubkey,
       );
 
@@ -309,7 +321,10 @@ void main() {
 
     test('throws exception when nostr is null for encrypt', () async {
       expect(
-        () => nip07Signer.encrypt('msg', bip340Signer.publicKey),
+        () => nip07Signer.encryptNip04(
+          plaintext: 'msg',
+          recipientPubkey: bip340Signer.publicKey,
+        ),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -322,7 +337,10 @@ void main() {
 
     test('throws exception when nostr is null for decrypt', () async {
       expect(
-        () => nip07Signer.decrypt('msg', bip340Signer.publicKey),
+        () => nip07Signer.decryptNip04(
+          ciphertext: 'msg',
+          senderPubkey: bip340Signer.publicKey,
+        ),
         throwsA(
           isA<Exception>().having(
             (e) => e.toString(),
@@ -391,10 +409,13 @@ void main() {
 
       const message = 'Hello from BIP-340';
       final nip07Pubkey = await nip07Signer.getPublicKeyAsync();
-      final encrypted = await bip340Signer.encrypt(message, nip07Pubkey);
-      final decrypted = await nip07Signer.decrypt(
-        encrypted!,
-        bip340Signer.publicKey,
+      final encrypted = await bip340Signer.encryptNip04(
+        plaintext: message,
+        recipientPubkey: nip07Pubkey,
+      );
+      final decrypted = await nip07Signer.decryptNip04(
+        ciphertext: encrypted,
+        senderPubkey: bip340Signer.publicKey,
       );
 
       expect(decrypted, equals(message));
@@ -410,7 +431,7 @@ void main() {
         recipientPubkey: nip07Pubkey,
       );
       final decrypted = await nip07Signer.decryptNip44(
-        ciphertext: encrypted!,
+        ciphertext: encrypted,
         senderPubkey: bip340Signer.publicKey,
       );
 

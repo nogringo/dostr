@@ -285,24 +285,21 @@ class GiftWrap {
       (cause) => GiftWrapDecryptionException(event.id, cause: cause),
     );
     final cache = this.cache;
-    final plaintext = cache == null
-        ? await decrypt()
-        : await cache.loadOrDecrypt(
-            event: event,
-            viewerPubkey: signer.getPublicKey(),
-            decrypt: decrypt,
-          );
-    return plaintext ?? (throw GiftWrapDecryptionException(event.id));
+    if (cache == null) return decrypt();
+    return cache.loadOrDecrypt(
+      event: event,
+      viewerPubkey: signer.getPublicKey(),
+      decrypt: decrypt,
+    );
   }
 
   /// A request the user cancelled or rejected passes through unchanged.
   static Future<String> _callSigner(
-    Future<String?> Function() call,
-    GiftWrapException Function(Object? cause) failure,
+    Future<String> Function() call,
+    GiftWrapException Function(Object cause) failure,
   ) async {
     try {
-      final result = await call();
-      if (result != null) return result;
+      return await call();
     } on SignerRequestCancelledException {
       rethrow;
     } on SignerRequestRejectedException {
@@ -310,7 +307,6 @@ class GiftWrap {
     } on Exception catch (e) {
       throw failure(e);
     }
-    throw failure(null);
   }
 
   static void _checkKind(Nip01Event giftWrap) {

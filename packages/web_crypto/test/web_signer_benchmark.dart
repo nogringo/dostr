@@ -120,16 +120,25 @@ void main() {
 
       // Warmup
       for (var i = 0; i < 3; i++) {
-        await webSigner.encrypt(message, otherKeyPair.publicKey);
+        await webSigner.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
       }
       for (var i = 0; i < 3; i++) {
-        await dartSigner.encrypt(message, otherKeyPair.publicKey);
+        await dartSigner.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
       }
 
       // Web
       var sw = Stopwatch()..start();
       for (var i = 0; i < count; i++) {
-        await webSigner.encrypt(message, otherKeyPair.publicKey);
+        await webSigner.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
       }
       sw.stop();
       _report('WebSigner.nip04Encrypt', count, sw.elapsedMilliseconds);
@@ -137,7 +146,10 @@ void main() {
       // Dart
       sw = Stopwatch()..start();
       for (var i = 0; i < count; i++) {
-        await dartSigner.encrypt(message, otherKeyPair.publicKey);
+        await dartSigner.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
       }
       sw.stop();
       _report('Bip340Signer.nip04Encrypt', count, sw.elapsedMilliseconds);
@@ -214,24 +226,32 @@ void main() {
         publicKey: otherKeyPair.publicKey,
       );
 
-      final encrypted = await webSigner.encrypt(
-        message,
-        otherKeyPair.publicKey,
+      final encrypted = await webSigner.encryptNip04(
+        plaintext: message,
+        recipientPubkey: otherKeyPair.publicKey,
       );
-      if (encrypted == null) throw Exception('Encrypt failed');
 
       // Warmup
       for (var i = 0; i < 3; i++) {
-        await dartSigner.decrypt(encrypted, keyPair.publicKey);
+        await dartSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: keyPair.publicKey,
+        );
       }
       for (var i = 0; i < 3; i++) {
-        await webSigner.decrypt(encrypted, otherKeyPair.publicKey);
+        await webSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: otherKeyPair.publicKey,
+        );
       }
 
       // Dart decrypt
       var sw = Stopwatch()..start();
       for (var i = 0; i < count; i++) {
-        await dartSigner.decrypt(encrypted, keyPair.publicKey);
+        await dartSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: keyPair.publicKey,
+        );
       }
       sw.stop();
       _report('Bip340Signer.nip04Decrypt', count, sw.elapsedMilliseconds);
@@ -239,7 +259,10 @@ void main() {
       // Web decrypt
       sw = Stopwatch()..start();
       for (var i = 0; i < count; i++) {
-        await webSigner.decrypt(encrypted, otherKeyPair.publicKey);
+        await webSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: otherKeyPair.publicKey,
+        );
       }
       sw.stop();
       _report('WebSigner.nip04Decrypt', count, sw.elapsedMilliseconds);
@@ -266,7 +289,6 @@ void main() {
         plaintext: message,
         recipientPubkey: otherKeyPair.publicKey,
       );
-      if (encrypted == null) throw Exception('Encrypt failed');
 
       // Warmup
       for (var i = 0; i < 3; i++) {

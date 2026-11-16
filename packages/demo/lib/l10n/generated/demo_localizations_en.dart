@@ -371,9 +371,6 @@ class DemoLocalizationsEn extends DemoLocalizations {
   String get pendingMethodPing => 'Ping';
 
   @override
-  String get pendingMethodConnect => 'Connect';
-
-  @override
   String get pendingMethodSwitchRelays => 'Switch Relays';
 
   @override

@@ -160,19 +160,13 @@ class Blossom {
   /// Without one, an operation that names nobody reveals nobody.
   Account? _defaultAccount() {
     final account = _accounts.getLoggedAccount();
-    return _authHandler != null && account != null && account.signer.canSign()
+    return _authHandler != null && account != null && account.signer.canSign
         ? account
         : null;
   }
 
-  Account _throwawayAccount() {
-    final signer = _throwawaySigner();
-    return Account(
-      type: AccountType.privateKey,
-      pubkey: signer.getPublicKey(),
-      signer: signer,
-    );
-  }
+  Account _throwawayAccount() =>
+      Account(type: AccountType.privateKey, signer: _throwawaySigner());
 
   /// Whether [serverUrl] may see [pubkey]. A failing [AuthHandler] says no.
   Future<bool> _consent(String serverUrl, String pubkey) async {
@@ -226,7 +220,7 @@ class Blossom {
         authorize = (_) async => const BlossomAuthorization.none();
 
       case AuthPolicyRequire(:final account):
-        if (!account.signer.canSign()) {
+        if (!account.signer.canSign) {
           throw BlossomAuthUnavailableException(account.pubkey, operation);
         }
         if (!throwaway) {
@@ -253,7 +247,7 @@ class Blossom {
         servers = await resolveServers();
         // allow never promised a signature, so an account that cannot give one
         // behaves as never() rather than failing the operation
-        authorize = (build) async => account.signer.canSign()
+        authorize = (build) async => account.signer.canSign
             ? BlossomAuthorization.onRefusal(
                 () => account.signer.sign(build(account.pubkey)),
                 consent: _authHandler == null
@@ -907,7 +901,7 @@ class Blossom {
         signer = _throwawaySigner();
 
       case AuthPolicyRequire(:final account):
-        if (!account.signer.canSign() ||
+        if (!account.signer.canSign ||
             !await _consent(serverUrl, account.pubkey)) {
           throw BlossomAuthUnavailableException(account.pubkey, "report");
         }
@@ -917,8 +911,7 @@ class Blossom {
         // allow never promised a signature, so an account that cannot give one
         // reports anonymously rather than as whoever happens to be logged in
         signer =
-            account.signer.canSign() &&
-                await _consent(serverUrl, account.pubkey)
+            account.signer.canSign && await _consent(serverUrl, account.pubkey)
             ? account.signer
             : _throwawaySigner();
     }

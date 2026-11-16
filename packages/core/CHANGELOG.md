@@ -32,6 +32,11 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 `EventSigner` is now `NostrSigner`, and `LocalEventSignerFactory` is now `LocalSignerFactory`, since a signer also encrypts and decrypts.
 They are in [`dostr_signer`](https://pub.dev/packages/dostr_signer) with `PendingSignerRequest`, `SignerMethod`, `SignerRequestRejectedException` and `SignerRequestCancelledException`: `package:ndk/domain_layer/repositories/event_signer.dart`, `package:ndk/domain_layer/entities/pending_signer_request.dart`, `package:ndk/domain_layer/entities/signer_request_rejected_exception.dart` and `package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `encryptNip44` and `decryptNip44` take `recipientPubkey` and `senderPubkey` instead of `recipientPubKey` and `senderPubKey`.
+`encrypt` and `decrypt` are now `encryptNip04` and `decryptNip04`, with the named parameters of the NIP-44 methods, and the four of them return a `Future<String>` instead of a `Future<String?>`: a signer that cannot encrypt or decrypt throws.
+`canSign` is a getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
+`NostrSigner` and `LocalSignerFactory` are interface classes: a signer implements them and inherits nothing.
+`Account` reads its pubkey from its signer, so its constructor no longer takes `pubkey`.
+`SignerMethod` no longer has `connect` or `protocolString`.
 
 NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with `NegentropyEncoder` and `Nip77Result`.
 `GlobalState` no longer has `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or `onNegClosed`.

@@ -58,7 +58,7 @@ void main() {
     });
 
     test('canSign should return true', () {
-      expect(signer.canSign(), isTrue);
+      expect(signer.canSign, isTrue);
     });
 
     test('sign should request remote signing and update event', () async {
@@ -153,13 +153,13 @@ void main() {
       );
       const testMessage = 'Hello, this is a test message!';
 
-      final encryptedMessage = await localSigner.encrypt(
-        testMessage,
-        MockRemoteSigner.publicKey,
+      final encryptedMessage = await localSigner.encryptNip04(
+        plaintext: testMessage,
+        recipientPubkey: MockRemoteSigner.publicKey,
       );
-      final decryptedText = await signer.decrypt(
-        encryptedMessage!,
-        keyPair.publicKey,
+      final decryptedText = await signer.decryptNip04(
+        ciphertext: encryptedMessage,
+        senderPubkey: keyPair.publicKey,
       );
 
       expect(decryptedText, equals(testMessage));
@@ -175,17 +175,17 @@ void main() {
           publicKey: keyPair.publicKey,
         );
 
-        final encryptedMessage = await signer.encrypt(
-          testMessage,
-          keyPair.publicKey,
+        final encryptedMessage = await signer.encryptNip04(
+          plaintext: testMessage,
+          recipientPubkey: keyPair.publicKey,
         );
 
         expect(encryptedMessage, isNotEmpty);
         expect(encryptedMessage, isNot(equals(testMessage)));
         expect(
-          await localSigner.decrypt(
-            encryptedMessage!,
-            await signer.getPublicKeyAsync(),
+          await localSigner.decryptNip04(
+            ciphertext: encryptedMessage,
+            senderPubkey: await signer.getPublicKeyAsync(),
           ),
           equals(testMessage),
         );
@@ -205,7 +205,7 @@ void main() {
         recipientPubkey: MockRemoteSigner.publicKey,
       );
       final decryptedText = await signer.decryptNip44(
-        ciphertext: encryptedMessage!,
+        ciphertext: encryptedMessage,
         senderPubkey: keyPair.publicKey,
       );
 
@@ -231,7 +231,7 @@ void main() {
         expect(encryptedMessage, isNot(equals(testMessage)));
         expect(
           await localSigner.decryptNip44(
-            ciphertext: encryptedMessage!,
+            ciphertext: encryptedMessage,
             senderPubkey: await signer.getPublicKeyAsync(),
           ),
           equals(testMessage),

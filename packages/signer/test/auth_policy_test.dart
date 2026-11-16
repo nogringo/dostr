@@ -2,12 +2,19 @@ import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 class _Signer implements NostrSigner {
+  _Signer(this.pubkey);
+
+  final String pubkey;
+
+  @override
+  String getPublicKey() => pubkey;
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 Account _account(String pubkey) =>
-    Account(type: AccountType.publicKey, pubkey: pubkey, signer: _Signer());
+    Account(type: AccountType.publicKey, signer: _Signer(pubkey));
 
 void main() {
   test('policies compare by kind and pubkey, not by account instance', () {

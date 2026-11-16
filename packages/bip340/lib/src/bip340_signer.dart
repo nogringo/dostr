@@ -57,15 +57,6 @@ class Bip340Signer implements NostrSigner {
   Bip340Signer({required this.privateKey, required this.publicKey});
 
   @override
-  bool get requiresInteractiveSigning => false;
-
-  @override
-  bool get requiresSignerNetwork => false;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
-  @override
   Future<Nip01Event> sign(Nip01Event event) async {
     if (privateKey?.trim().isNotEmpty ?? false) {
       return event.copyWith(sig: Bip340.sign(event.id, privateKey!));
@@ -79,22 +70,28 @@ class Bip340Signer implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) async {
-    return Nip04.decrypt(msg, privateKey!, destPubkey);
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) async {
+    return Nip04.decrypt(ciphertext, privateKey!, senderPubkey);
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) async {
-    return Nip04.encrypt(msg, privateKey!, destPubkey);
+  Future<String> encryptNip04({
+    required String plaintext,
+    required String recipientPubkey,
+  }) async {
+    return Nip04.encrypt(plaintext, privateKey!, recipientPubkey);
   }
 
   @override
-  bool canSign() {
+  bool get canSign {
     return privateKey?.trim().isNotEmpty ?? false;
   }
 
   @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {
@@ -102,7 +99,7 @@ class Bip340Signer implements NostrSigner {
   }
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) async {

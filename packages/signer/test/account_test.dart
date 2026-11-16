@@ -14,6 +14,9 @@ class _Signer implements NostrSigner {
   bool disposed = false;
 
   @override
+  String getPublicKey() => 'a';
+
+  @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>
       Stream.value(requests);
 
@@ -40,11 +43,11 @@ void main() {
 
     setUp(() {
       signer = _Signer();
-      account = Account(
-        type: AccountType.externalSigner,
-        pubkey: 'a',
-        signer: signer,
-      );
+      account = Account(type: AccountType.externalSigner, signer: signer);
+    });
+
+    test('pubkey is the one of its signer', () {
+      expect(account.pubkey, 'a');
     });
 
     test('pendingRequestsStream delegates to signer', () async {

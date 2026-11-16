@@ -85,7 +85,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       senderPubkey: event.pubkey,
     );
 
-    final response = jsonDecode(decryptedContent!);
+    final response = jsonDecode(decryptedContent);
 
     if (response["result"] == "auth_url") {
       if (authCallback != null) {
@@ -120,17 +120,19 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
   }
 
-  Future<String> remoteRequest({
-    required BunkerRequest request,
+  Future<String> remoteRequest(
+    SignerMethod method, {
+    List<String> params = const [],
     Nip01Event? event,
     String? plaintext,
     String? ciphertext,
     String? counterpartyPubkey,
   }) async {
+    final request = BunkerRequest(method: method.nip46Name, params: params);
     final completer = Completer<String>();
     final pendingRequest = PendingSignerRequest(
       id: request.id,
-      method: request.method,
+      method: method,
       createdAt: DateTime.now(),
       signerPubkey: cachedPublicKey ?? '',
       event: event,
@@ -162,7 +164,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
         tags: [
           ["p", connection.remotePubkey],
         ],
-        content: encryptedRequest!,
+        content: encryptedRequest,
       );
 
       final signedEvent = await localSigner.sign(requestEvent);
@@ -175,83 +177,60 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  bool canSign() {
+  bool get canSign {
     return true;
   }
 
   @override
-  bool get requiresInteractiveSigning => true;
-
-  @override
-  bool get requiresSignerNetwork => true;
-
-  @override
-  Iterable<RelayUrl> get signerTransportRelayUrls => connection.relays;
-
-  @override
-  Future<String?> decrypt(String msg, String destPubkey) async {
-    final request = BunkerRequest(
-      method: SignerMethod.nip04Decrypt,
-      params: [destPubkey, msg],
-    );
-
-    final decryptedText = await remoteRequest(
-      request: request,
-      ciphertext: msg,
-      counterpartyPubkey: destPubkey,
-    );
-    return decryptedText;
-  }
-
-  @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
-  }) async {
-    final request = BunkerRequest(
-      method: SignerMethod.nip44Decrypt,
+  }) {
+    return remoteRequest(
+      SignerMethod.nip04Decrypt,
       params: [senderPubkey, ciphertext],
-    );
-
-    final decryptedText = await remoteRequest(
-      request: request,
       ciphertext: ciphertext,
       counterpartyPubkey: senderPubkey,
     );
-    return decryptedText;
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) async {
-    final request = BunkerRequest(
-      method: SignerMethod.nip04Encrypt,
-      params: [destPubkey, msg],
+  Future<String> decryptNip44({
+    required String ciphertext,
+    required String senderPubkey,
+  }) {
+    return remoteRequest(
+      SignerMethod.nip44Decrypt,
+      params: [senderPubkey, ciphertext],
+      ciphertext: ciphertext,
+      counterpartyPubkey: senderPubkey,
     );
-
-    final encryptedText = await remoteRequest(
-      request: request,
-      plaintext: msg,
-      counterpartyPubkey: destPubkey,
-    );
-    return encryptedText;
   }
 
   @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
-  }) async {
-    final request = BunkerRequest(
-      method: SignerMethod.nip44Encrypt,
+  }) {
+    return remoteRequest(
+      SignerMethod.nip04Encrypt,
       params: [recipientPubkey, plaintext],
-    );
-
-    final encryptedText = await remoteRequest(
-      request: request,
       plaintext: plaintext,
       counterpartyPubkey: recipientPubkey,
     );
-    return encryptedText;
+  }
+
+  @override
+  Future<String> encryptNip44({
+    required String plaintext,
+    required String recipientPubkey,
+  }) {
+    return remoteRequest(
+      SignerMethod.nip44Encrypt,
+      params: [recipientPubkey, plaintext],
+      plaintext: plaintext,
+      counterpartyPubkey: recipientPubkey,
+    );
   }
 
   @override
@@ -261,9 +240,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   Future<String> getPublicKeyAsync() async {
-    final request = BunkerRequest(method: SignerMethod.getPublicKey);
-
-    final publicKey = await remoteRequest(request: request);
+    final publicKey = await remoteRequest(SignerMethod.getPublicKey);
 
     cachedPublicKey = publicKey;
 
@@ -279,12 +256,11 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       "created_at": event.createdAt,
     };
 
-    final request = BunkerRequest(
-      method: SignerMethod.signEvent,
+    final signedEventJson = await remoteRequest(
+      SignerMethod.signEvent,
       params: [jsonEncode(eventMap)],
+      event: event,
     );
-
-    final signedEventJson = await remoteRequest(request: request, event: event);
 
     final signedEvent = Nip01Event.tryFromJson(jsonDecode(signedEventJson));
     if (signedEvent == null) {
@@ -293,19 +269,12 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     return signedEvent;
   }
 
-  Future<String> ping() async {
-    final request = BunkerRequest(method: SignerMethod.ping);
-
-    final response = await remoteRequest(request: request);
-    return response;
-  }
+  Future<String> ping() => remoteRequest(SignerMethod.ping);
 
   /// Returns the relays the remote signer moved to, or null if it keeps the
   /// current ones.
   Future<List<RelayUrl>?> switchRelays() async {
-    final request = BunkerRequest(method: SignerMethod.switchRelays);
-
-    final response = await remoteRequest(request: request);
+    final response = await remoteRequest(SignerMethod.switchRelays);
 
     final decoded = jsonDecode(response);
     final relays = decoded is List
@@ -346,4 +315,17 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     await subscription?.close();
     await _pendingRequestsController.close();
   }
+}
+
+extension on SignerMethod {
+  String get nip46Name => switch (this) {
+    SignerMethod.signEvent => 'sign_event',
+    SignerMethod.getPublicKey => 'get_public_key',
+    SignerMethod.nip04Encrypt => 'nip04_encrypt',
+    SignerMethod.nip04Decrypt => 'nip04_decrypt',
+    SignerMethod.nip44Encrypt => 'nip44_encrypt',
+    SignerMethod.nip44Decrypt => 'nip44_decrypt',
+    SignerMethod.ping => 'ping',
+    SignerMethod.switchRelays => 'switch_relays',
+  };
 }

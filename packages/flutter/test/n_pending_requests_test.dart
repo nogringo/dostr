@@ -132,7 +132,7 @@ void main() {
   ) async {
     await tester.pumpWidget(pendingRequests(animationDuration: Duration.zero));
     track(signer.encryptNip44(plaintext: 'hi', recipientPubkey: bobPubkey));
-    track(signer.decrypt('cipher', bobPubkey));
+    track(signer.decryptNip04(ciphertext: 'cipher', senderPubkey: bobPubkey));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('requests waiting on signer app'));

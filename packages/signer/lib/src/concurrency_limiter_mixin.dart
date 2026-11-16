@@ -33,6 +33,14 @@ mixin ConcurrencyLimiterMixin {
   }
 
   Future<void> _acquireSlot() {
+    if (maxConcurrentRequests < 1) {
+      throw RangeError.range(
+        maxConcurrentRequests,
+        1,
+        null,
+        'maxConcurrentRequests',
+      );
+    }
     if (_inFlight < maxConcurrentRequests) {
       _inFlight++;
       return Future.value();

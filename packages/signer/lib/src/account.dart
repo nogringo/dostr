@@ -6,10 +6,13 @@ enum AccountType { privateKey, publicKey, externalSigner }
 /// Account entity
 class Account {
   final AccountType type;
-  final String pubkey;
   final NostrSigner signer;
 
-  Account({required this.type, required this.pubkey, required this.signer});
+  /// the pubkey of [signer], read once when the account is made
+  final String pubkey;
+
+  Account({required this.type, required this.signer})
+    : pubkey = signer.getPublicKey();
 
   /// Stream of pending signer requests waiting for user approval.
   ///

@@ -12,17 +12,6 @@ class MockSlowSigner implements NostrSigner {
       _delay = delay;
 
   @override
-  bool get requiresInteractiveSigning =>
-      _innerSigner.requiresInteractiveSigning;
-
-  @override
-  bool get requiresSignerNetwork => _innerSigner.requiresSignerNetwork;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls =>
-      _innerSigner.signerTransportRelayUrls;
-
-  @override
   Future<Nip01Event> sign(Nip01Event event) async {
     await Future.delayed(_delay);
     return _innerSigner.sign(event);
@@ -32,18 +21,22 @@ class MockSlowSigner implements NostrSigner {
   String getPublicKey() => _innerSigner.getPublicKey();
 
   @override
-  bool canSign() => _innerSigner.canSign();
+  bool get canSign => _innerSigner.canSign;
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) =>
-      throw UnimplementedError();
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) => throw UnimplementedError();
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) =>
-      throw UnimplementedError();
+  Future<String> encryptNip04({
+    required String plaintext,
+    required String recipientPubkey,
+  }) => throw UnimplementedError();
 
   @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {
@@ -55,7 +48,7 @@ class MockSlowSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) async {

@@ -442,10 +442,6 @@
   "@pendingMethodPing": {
     "description": "Signer method name shown on a pending request."
   },
-  "pendingMethodConnect": "Connect",
-  "@pendingMethodConnect": {
-    "description": "Signer method name shown on a pending request."
-  },
   "pendingMethodSwitchRelays": "Switch Relays",
   "@pendingMethodSwitchRelays": {
     "description": "Signer method name shown on a pending request."

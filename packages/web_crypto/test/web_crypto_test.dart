@@ -28,7 +28,7 @@ void main() {
     });
 
     test('canSign returns true when private key is present', () {
-      expect(signer.canSign(), isTrue);
+      expect(signer.canSign, isTrue);
     });
 
     test('canSign returns false when no private key', () {
@@ -36,7 +36,7 @@ void main() {
         privateKey: null,
         publicKey: keyPair.publicKey,
       );
-      expect(readOnlySigner.canSign(), isFalse);
+      expect(readOnlySigner.canSign, isFalse);
     });
 
     test('sign returns valid signature', () async {
@@ -93,13 +93,15 @@ void main() {
         );
 
         const message = 'Hello, NIP-04 from web!';
-        final encrypted = await signer.encrypt(message, otherKeyPair.publicKey);
-        expect(encrypted, isNotNull);
+        final encrypted = await signer.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
         expect(encrypted, isNot(equals(message)));
 
-        final decrypted = await dartSigner.decrypt(
-          encrypted!,
-          keyPair.publicKey,
+        final decrypted = await dartSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
 
@@ -113,12 +115,14 @@ void main() {
         );
 
         const message = 'Hello from Dart NIP-04!';
-        final encrypted = await dartSigner.encrypt(message, keyPair.publicKey);
-        expect(encrypted, isNotNull);
+        final encrypted = await dartSigner.encryptNip04(
+          plaintext: message,
+          recipientPubkey: keyPair.publicKey,
+        );
 
-        final decrypted = await signer.decrypt(
-          encrypted!,
-          otherKeyPair.publicKey,
+        final decrypted = await signer.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: otherKeyPair.publicKey,
         );
         expect(decrypted, equals(message));
 
@@ -144,11 +148,10 @@ void main() {
           plaintext: message,
           recipientPubkey: otherKeyPair.publicKey,
         );
-        expect(encrypted, isNotNull);
         expect(encrypted, isNot(equals(message)));
 
         final decrypted = await dartSigner.decryptNip44(
-          ciphertext: encrypted!,
+          ciphertext: encrypted,
           senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
@@ -167,10 +170,9 @@ void main() {
           plaintext: message,
           recipientPubkey: keyPair.publicKey,
         );
-        expect(encrypted, isNotNull);
 
         final decrypted = await signer.decryptNip44(
-          ciphertext: encrypted!,
+          ciphertext: encrypted,
           senderPubkey: otherKeyPair.publicKey,
         );
         expect(decrypted, equals(message));
@@ -192,7 +194,7 @@ void main() {
           );
           expect(
             await dartSigner.decryptNip44(
-              ciphertext: fromWeb!,
+              ciphertext: fromWeb,
               senderPubkey: keyPair.publicKey,
             ),
             message,
@@ -204,7 +206,7 @@ void main() {
           );
           expect(
             await signer.decryptNip44(
-              ciphertext: fromDart!,
+              ciphertext: fromDart,
               senderPubkey: otherKeyPair.publicKey,
             ),
             message,
@@ -233,7 +235,7 @@ void main() {
             );
             expect(
               await peer.decryptNip44(
-                ciphertext: sent!,
+                ciphertext: sent,
                 senderPubkey: keyPair.publicKey,
               ),
               message,
@@ -245,7 +247,7 @@ void main() {
             );
             expect(
               await signer.decryptNip44(
-                ciphertext: reply!,
+                ciphertext: reply,
                 senderPubkey: peer.publicKey,
               ),
               'reply $message',

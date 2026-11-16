@@ -152,57 +152,54 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) async {
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) async {
     return _trackRequest(
       SignerMethod.nip04Decrypt,
       (requestId) async {
         final map = await signerApp.nip04Decrypt(
-          ciphertext: msg,
+          ciphertext: ciphertext,
           currentUser: _currentUser,
-          pubkey: destPubkey,
+          pubkey: senderPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
-      ciphertext: msg,
-      counterpartyPubkey: destPubkey,
+      ciphertext: ciphertext,
+      counterpartyPubkey: senderPubkey,
     );
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) async {
+  Future<String> encryptNip04({
+    required String plaintext,
+    required String recipientPubkey,
+  }) async {
     return _trackRequest(
       SignerMethod.nip04Encrypt,
       (requestId) async {
         final map = await signerApp.nip04Encrypt(
-          plaintext: msg,
+          plaintext: plaintext,
           currentUser: _currentUser,
-          pubkey: destPubkey,
+          pubkey: recipientPubkey,
           id: requestId,
         );
         return _extractResult(map);
       },
-      plaintext: msg,
-      counterpartyPubkey: destPubkey,
+      plaintext: plaintext,
+      counterpartyPubkey: recipientPubkey,
     );
   }
 
   @override
-  bool canSign() {
+  bool get canSign {
     return publicKey.isNotEmpty;
   }
 
   @override
-  bool get requiresInteractiveSigning => true;
-
-  @override
-  bool get requiresSignerNetwork => false;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
-  @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {
@@ -223,7 +220,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) async {

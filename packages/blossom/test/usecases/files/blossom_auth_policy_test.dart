@@ -14,7 +14,6 @@ const int policyPort = 30040;
 
 Account _signable(KeyPair keyPair) => Account(
   type: AccountType.privateKey,
-  pubkey: keyPair.publicKey,
   signer: Bip340Signer(
     privateKey: keyPair.privateKey,
     publicKey: keyPair.publicKey,
@@ -23,7 +22,6 @@ Account _signable(KeyPair keyPair) => Account(
 
 Account _watchOnly(KeyPair keyPair) => Account(
   type: AccountType.publicKey,
-  pubkey: keyPair.publicKey,
   signer: Bip340Signer(privateKey: null, publicKey: keyPair.publicKey),
 );
 

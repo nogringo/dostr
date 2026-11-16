@@ -175,7 +175,6 @@ void main() {
     final key = Bip340.generatePrivateKey();
     final account = Account(
       type: AccountType.privateKey,
-      pubkey: key.publicKey,
       signer: Bip340Signer(
         privateKey: key.privateKey,
         publicKey: key.publicKey,

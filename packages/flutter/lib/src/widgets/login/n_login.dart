@@ -200,7 +200,7 @@ class _NLoginState extends State<NLogin> {
           FilledButton.icon(
             onPressed: loginWithNip07,
             label: Text(
-              Nip07Signer().canSign()
+              Nip07Signer().canSign
                   ? AppLocalizations.of(context)!.connect
                   : AppLocalizations.of(context)!.install,
             ),
@@ -348,7 +348,7 @@ class _NLoginState extends State<NLogin> {
   Future<void> loginWithNip07() async {
     final signer = Nip07Signer();
 
-    if (!signer.canSign()) {
+    if (!signer.canSign) {
       await launchUrl(
         Uri.parse(
           'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp',

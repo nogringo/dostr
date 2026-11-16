@@ -208,7 +208,7 @@ void main() {
       final account = dostr.accounts.getLoggedAccount()!;
       expect(account.pubkey, alicePubkey);
       expect(account.type, AccountType.privateKey);
-      expect(account.signer.canSign(), isTrue);
+      expect(account.signer.canSign, isTrue);
       expect(loggedIn, 1);
     });
 

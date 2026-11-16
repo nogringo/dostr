@@ -61,7 +61,7 @@ class Bunkers {
     final metadata = clientMetadata?.displayInfo ?? {};
 
     final request = BunkerRequest(
-      method: SignerMethod.connect,
+      method: 'connect',
       params: [
         remotePubkey,
         secret,
@@ -82,7 +82,7 @@ class Bunkers {
       tags: [
         ["p", remotePubkey],
       ],
-      content: encryptedRequest!,
+      content: encryptedRequest,
     );
 
     final signedEvent = await localSigner.sign(requestEvent);
@@ -108,7 +108,7 @@ class Bunkers {
           senderPubkey: remotePubkey,
         );
 
-        final response = jsonDecode(decryptedContent!);
+        final response = jsonDecode(decryptedContent);
 
         if (response["id"] != request.id) continue;
 
@@ -181,7 +181,7 @@ class Bunkers {
           senderPubkey: event.pubkey,
         );
 
-        final response = jsonDecode(decryptedContent!);
+        final response = jsonDecode(decryptedContent);
 
         if (response["result"] == secret) {
           return BunkerConnection(

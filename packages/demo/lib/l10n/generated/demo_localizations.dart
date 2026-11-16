@@ -722,12 +722,6 @@ abstract class DemoLocalizations {
   /// Signer method name shown on a pending request.
   ///
   /// In en, this message translates to:
-  /// **'Connect'**
-  String get pendingMethodConnect;
-
-  /// Signer method name shown on a pending request.
-  ///
-  /// In en, this message translates to:
   /// **'Switch Relays'**
   String get pendingMethodSwitchRelays;
 

@@ -135,7 +135,7 @@ class RelayAuth {
         return null;
       case AuthPolicyAllow(:final account):
       case AuthPolicyRequire(:final account):
-        return account.signer.canSign() ? account : null;
+        return account.signer.canSign ? account : null;
       case null:
         // a request that says nothing reveals nothing unless an AuthHandler is
         // there to agree to it
@@ -145,7 +145,7 @@ class RelayAuth {
 
   Account? _loggedSigner() {
     final logged = _accounts?.getLoggedAccount();
-    return logged != null && logged.signer.canSign() ? logged : null;
+    return logged != null && logged.signer.canSign ? logged : null;
   }
 
   /// Account a broadcast under [auth] authenticates as, null when it must stay
@@ -164,7 +164,7 @@ class RelayAuth {
     }
 
     final author = _accounts?.accounts[event.pubkey];
-    if (author != null && author.signer.canSign()) {
+    if (author != null && author.signer.canSign) {
       return author;
     }
     return _loggedSigner();

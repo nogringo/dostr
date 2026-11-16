@@ -5,7 +5,7 @@ import 'pending_signer_request.dart';
 ///
 /// If [LocalSignerFactory.create] is called without a `publicKey`,
 /// implementations must derive it from the `privateKey`.
-abstract class LocalSignerFactory {
+abstract interface class LocalSignerFactory {
   /// Creates a NostrSigner instance.
   ///
   /// If [publicKey] is null, implementations MUST derive it from [privateKey].
@@ -21,61 +21,39 @@ abstract class LocalSignerFactory {
   (String privateKey, String publicKey) generateKeyPair();
 
   /// Generates a new NostrSigner with a fresh keypair.
-  NostrSigner createWithNewKeyPair() {
-    final (privateKey, publicKey) = generateKeyPair();
-    return create(privateKey: privateKey, publicKey: publicKey);
-  }
+  NostrSigner createWithNewKeyPair();
 }
 
-abstract class NostrSigner {
-  /// Whether signing depends on an external or user-mediated signer workflow
-  /// instead of being completed locally and synchronously from key material
-  /// already available in-process.
-  ///
-  /// Interactive signers can still report [canSign] as `true`; this flag
-  /// exists so higher-level local-first queues can distinguish "needs a live
-  /// signer interaction/approval flow" from "can be signed locally on any
-  /// retry".
-  bool get requiresInteractiveSigning => false;
-
-  /// Whether the signer flow itself depends on network connectivity.
-  ///
-  /// This is narrower than [requiresInteractiveSigning]:
-  /// - NIP-46 bunker signers: `true`
-  /// - NIP-07 browser extensions: `false`
-  /// - NIP-55 external signer apps: `false`
-  /// - local private-key signers: `false`
-  ///
-  /// Local-first delivery should treat this as a scheduling hint, not as the
-  /// sole retry trigger.
-  bool get requiresSignerNetwork => false;
-
-  /// Relay URLs used as the transport path to reach this signer, if any.
-  ///
-  /// This is primarily relevant for networked interactive signers such as
-  /// NIP-46 bunkers, where relay connectivity can be used as a hint for when
-  /// retrying signing work makes sense.
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
+/// Every operation completes with its result or throws: a
+/// [SignerRequestRejectedException] when the user says no on the signer, a
+/// [SignerRequestCancelledException] after [cancelRequest].
+abstract interface class NostrSigner {
   /// Signs the given event and returns the signed event
   Future<Nip01Event> sign(Nip01Event event);
 
   String getPublicKey();
 
-  @Deprecated('Use nip44 decrypt instead. Deprecated by nostr spec. (nip04)')
-  Future<String?> decrypt(String msg, String destPubkey);
+  /// false for a read-only account
+  bool get canSign;
 
-  @Deprecated('Use nip44 encrypt instead. Deprecated by nostr spec. (nip04)')
-  Future<String?> encrypt(String msg, String destPubkey);
-
-  bool canSign();
-
-  Future<String?> encryptNip44({
+  @Deprecated('Use encryptNip44 instead. Deprecated by nostr spec. (nip04)')
+  Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
   });
 
-  Future<String?> decryptNip44({
+  @Deprecated('Use decryptNip44 instead. Deprecated by nostr spec. (nip04)')
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  });
+
+  Future<String> encryptNip44({
+    required String plaintext,
+    required String recipientPubkey,
+  });
+
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   });

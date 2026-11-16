@@ -100,21 +100,15 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  bool canSign() {
+  bool get canSign {
     return js.nostr != null;
   }
 
   @override
-  bool get requiresInteractiveSigning => true;
-
-  @override
-  bool get requiresSignerNetwork => false;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
-  @override
-  Future<String?> decrypt(String msg, String destPubkey) async {
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
     }
@@ -123,17 +117,17 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip04Decrypt,
       () async {
         final result = await js.nostr!.nip04!
-            .decrypt(destPubkey.toJS, msg.toJS)
+            .decrypt(senderPubkey.toJS, ciphertext.toJS)
             .toDart;
         return result.toDart;
       },
-      ciphertext: msg,
-      counterpartyPubkey: destPubkey,
+      ciphertext: ciphertext,
+      counterpartyPubkey: senderPubkey,
     );
   }
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) async {
@@ -155,7 +149,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) async {
+  Future<String> encryptNip04({
+    required String plaintext,
+    required String recipientPubkey,
+  }) async {
     if (js.nostr == null) {
       throw Exception('NIP-07 extension not available');
     }
@@ -164,17 +161,17 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       SignerMethod.nip04Encrypt,
       () async {
         final result = await js.nostr!.nip04!
-            .encrypt(destPubkey.toJS, msg.toJS)
+            .encrypt(recipientPubkey.toJS, plaintext.toJS)
             .toDart;
         return result.toDart;
       },
-      plaintext: msg,
-      counterpartyPubkey: destPubkey,
+      plaintext: plaintext,
+      counterpartyPubkey: recipientPubkey,
     );
   }
 
   @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {

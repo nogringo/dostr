@@ -41,15 +41,6 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  bool get requiresInteractiveSigning => false;
-
-  @override
-  bool get requiresSignerNetwork => false;
-
-  @override
-  Iterable<String> get signerTransportRelayUrls => const <String>[];
-
-  @override
   Future<Nip01Event> sign(Nip01Event event) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
@@ -60,22 +51,15 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) {
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) {
-    throw UnsupportedError('WebSigner is only available on web platforms.');
-  }
-
-  @override
-  bool canSign() {
-    throw UnsupportedError('WebSigner is only available on web platforms.');
-  }
-
-  @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
   }) {
@@ -83,7 +67,20 @@ class WebSigner implements NostrSigner {
   }
 
   @override
-  Future<String?> decryptNip44({
+  bool get canSign {
+    throw UnsupportedError('WebSigner is only available on web platforms.');
+  }
+
+  @override
+  Future<String> encryptNip44({
+    required String plaintext,
+    required String recipientPubkey,
+  }) {
+    throw UnsupportedError('WebSigner is only available on web platforms.');
+  }
+
+  @override
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) {

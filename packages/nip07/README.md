@@ -4,7 +4,7 @@
 
 It implements the `NostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so Dostr accounts can use it, and it does not depend on Flutter: any Dart web app can use it.
 It only signs on the web.
-Elsewhere `canSign()` returns `false` and the other methods throw an `UnsupportedError`, so shared code still compiles.
+Elsewhere `canSign` is `false` and the other methods throw an `UnsupportedError`, so shared code still compiles.
 
 ## Install
 
@@ -21,7 +21,7 @@ dependencies:
 import 'package:dostr_nip07/dostr_nip07.dart';
 
 final signer = Nip07Signer();
-if (signer.canSign()) {
+if (signer.canSign) {
   await signer.getPublicKeyAsync();
   accounts.loginExternalSigner(signer: signer);
 }

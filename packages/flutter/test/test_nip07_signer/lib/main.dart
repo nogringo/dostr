@@ -39,7 +39,7 @@ Future<bool> testGetPubkey(Nip07Signer nip07Signer) async {
 }
 
 bool testCanSign(Nip07Signer nip07Signer) {
-  return nip07Signer.canSign();
+  return nip07Signer.canSign;
 }
 
 Future<bool> testSendEncrypted(
@@ -48,14 +48,14 @@ Future<bool> testSendEncrypted(
 ) async {
   const message = 'Hello';
 
-  final encryptedMessage = await nip07Signer.encrypt(
-    message,
-    bip340Signer.publicKey,
+  final encryptedMessage = await nip07Signer.encryptNip04(
+    plaintext: message,
+    recipientPubkey: bip340Signer.publicKey,
   );
 
-  final decryptedMessage = await bip340Signer.decrypt(
-    encryptedMessage!,
-    await nip07Signer.getPublicKeyAsync(),
+  final decryptedMessage = await bip340Signer.decryptNip04(
+    ciphertext: encryptedMessage,
+    senderPubkey: await nip07Signer.getPublicKeyAsync(),
   );
 
   return message == decryptedMessage;
@@ -73,7 +73,7 @@ Future<bool> testSendEncryptedNip44(
   );
 
   final decryptedMessage = await bip340Signer.decryptNip44(
-    ciphertext: encryptedMessage!,
+    ciphertext: encryptedMessage,
     senderPubkey: await nip07Signer.getPublicKeyAsync(),
   );
 
@@ -86,14 +86,14 @@ Future<bool> testReceiveEncrypted(
 ) async {
   const message = 'Hello';
 
-  final encryptedMessage = await bip340Signer.encrypt(
-    message,
-    await nip07Signer.getPublicKeyAsync(),
+  final encryptedMessage = await bip340Signer.encryptNip04(
+    plaintext: message,
+    recipientPubkey: await nip07Signer.getPublicKeyAsync(),
   );
 
-  final decryptedMessage = await nip07Signer.decrypt(
-    encryptedMessage!,
-    bip340Signer.publicKey,
+  final decryptedMessage = await nip07Signer.decryptNip04(
+    ciphertext: encryptedMessage,
+    senderPubkey: bip340Signer.publicKey,
   );
 
   return message == decryptedMessage;
@@ -111,7 +111,7 @@ Future<bool> testReceiveEncryptedNip44(
   );
 
   final decryptedMessage = await nip07Signer.decryptNip44(
-    ciphertext: encryptedMessage!,
+    ciphertext: encryptedMessage,
     senderPubkey: bip340Signer.publicKey,
   );
 

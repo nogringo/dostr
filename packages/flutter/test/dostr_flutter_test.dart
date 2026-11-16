@@ -202,7 +202,7 @@ void main() {
         'com.example.signer',
       );
       expect(accounts[alicePubkey]!.type, AccountType.privateKey);
-      expect(accounts[alicePubkey]!.signer.canSign(), isTrue);
+      expect(accounts[alicePubkey]!.signer.canSign, isTrue);
       expect(restored.accounts.getPublicKey(), bobPubkey);
     });
 

@@ -40,7 +40,7 @@ class RelayConnectionKey {
   static RelayConnectionKey? forAuth(RelayUrl url, AuthPolicy? auth) =>
       switch (auth) {
         AuthPolicyRequire(:final account) =>
-          account.signer.canSign()
+          account.signer.canSign
               ? RelayConnectionKey.authenticated(url, account.pubkey)
               : null,
         null ||

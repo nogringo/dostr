@@ -63,7 +63,9 @@ class _NoConnections implements NostrTransportFactory {
 
 class _Signer implements NostrSigner {
   @override
-  bool canSign() => true;
+  bool get canSign => true;
+  @override
+  String getPublicKey() => 'a' * 64;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -290,12 +292,7 @@ void main() {
       connect(authenticated);
       await manager.openConnectionAs(
         anonymous.url,
-        Account(
-          type: AccountType.privateKey,
-          pubkey:
-              'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-          signer: _Signer(),
-        ),
+        Account(type: AccountType.privateKey, signer: _Signer()),
       );
       final attempt = manager.authenticateConnection(authenticated);
       await manager.closeIdleConnections();

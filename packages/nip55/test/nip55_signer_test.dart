@@ -203,8 +203,11 @@ void main() {
     test('describes each encryption request for the UI', () async {
       final signer = newSigner();
 
-      signer.encrypt('plain04', stalePublicKey);
-      signer.decrypt('cipher04', stalePublicKey);
+      signer.encryptNip04(
+        plaintext: 'plain04',
+        recipientPubkey: stalePublicKey,
+      );
+      signer.decryptNip04(ciphertext: 'cipher04', senderPubkey: stalePublicKey);
       signer.encryptNip44(plaintext: 'plain44', recipientPubkey: publicKey);
       signer.decryptNip44(ciphertext: 'cipher44', senderPubkey: publicKey);
       await pumpEventQueue();

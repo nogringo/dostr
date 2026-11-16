@@ -18,15 +18,17 @@ final class GiftWrapNoSignerException extends GiftWrapException {
 final class GiftWrapEncryptionException extends GiftWrapException {
   final String recipientPubkey;
 
-  /// What the signer threw, or null when it returned no ciphertext.
-  final Object? cause;
+  /// what the signer threw
+  final Object cause;
 
-  const GiftWrapEncryptionException(this.recipientPubkey, {this.cause});
+  const GiftWrapEncryptionException(
+    this.recipientPubkey, {
+    required this.cause,
+  });
 
   @override
   String toString() =>
-      'GiftWrapEncryptionException: cannot encrypt for $recipientPubkey'
-      '${cause == null ? '' : ': $cause'}';
+      'GiftWrapEncryptionException: cannot encrypt for $recipientPubkey: $cause';
 }
 
 /// Thrown when the signer cannot decrypt the wrap or the seal [eventId]: it
@@ -34,15 +36,14 @@ final class GiftWrapEncryptionException extends GiftWrapException {
 final class GiftWrapDecryptionException extends GiftWrapException {
   final String eventId;
 
-  /// What the signer threw, or null when it returned no plaintext.
-  final Object? cause;
+  /// what the signer threw
+  final Object cause;
 
-  const GiftWrapDecryptionException(this.eventId, {this.cause});
+  const GiftWrapDecryptionException(this.eventId, {required this.cause});
 
   @override
   String toString() =>
-      'GiftWrapDecryptionException: cannot decrypt $eventId'
-      '${cause == null ? '' : ': $cause'}';
+      'GiftWrapDecryptionException: cannot decrypt $eventId: $cause';
 }
 
 /// Thrown when a decrypted gift wrap does not hold a valid seal and rumor: a

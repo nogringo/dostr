@@ -113,7 +113,6 @@ void main() {
         final other = Bip340.generatePrivateKey();
         final account = Account(
           type: AccountType.privateKey,
-          pubkey: other.publicKey,
           signer: Bip340Signer(
             privateKey: other.privateKey,
             publicKey: other.publicKey,
@@ -151,7 +150,6 @@ void main() {
       final client = clientWith(handler: true);
       final account = Account(
         type: AccountType.privateKey,
-        pubkey: key.publicKey,
         signer: Bip340Signer(
           privateKey: key.privateKey,
           publicKey: key.publicKey,
@@ -175,7 +173,6 @@ void main() {
       final client = clientWith(handler: true);
       final account = Account(
         type: AccountType.privateKey,
-        pubkey: key.publicKey,
         signer: Bip340Signer(
           privateKey: key.privateKey,
           publicKey: key.publicKey,

@@ -179,7 +179,7 @@ class RelayBroadcasts {
     TimeoutPausable? pausing,
   }) async {
     if (auth is AuthPolicyRequire) {
-      if (!auth.account.signer.canSign()) {
+      if (!auth.account.signer.canSign) {
         Logger.log.w(
           () => "Broadcast requires ${auth.account.pubkey}, which cannot sign",
         );

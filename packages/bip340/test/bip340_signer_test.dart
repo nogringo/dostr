@@ -81,7 +81,7 @@ void main() {
 
     group('canSign', () {
       test('returns true when private key is present', () {
-        expect(signer.canSign(), isTrue);
+        expect(signer.canSign, isTrue);
       });
 
       test('returns false when no private key', () {
@@ -90,7 +90,7 @@ void main() {
           publicKey: keyPair.publicKey,
         );
 
-        expect(readOnlySigner.canSign(), isFalse);
+        expect(readOnlySigner.canSign, isFalse);
       });
     });
 
@@ -110,13 +110,15 @@ void main() {
 
         const message = 'Hello, world!';
 
-        final encrypted = await signer.encrypt(message, otherKeyPair.publicKey);
-        expect(encrypted, isNotNull);
+        final encrypted = await signer.encryptNip04(
+          plaintext: message,
+          recipientPubkey: otherKeyPair.publicKey,
+        );
         expect(encrypted, isNot(equals(message)));
 
-        final decrypted = await otherSigner.decrypt(
-          encrypted!,
-          keyPair.publicKey,
+        final decrypted = await otherSigner.decryptNip04(
+          ciphertext: encrypted,
+          senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
 
@@ -136,11 +138,10 @@ void main() {
           plaintext: message,
           recipientPubkey: otherKeyPair.publicKey,
         );
-        expect(encrypted, isNotNull);
         expect(encrypted, isNot(equals(message)));
 
         final decrypted = await otherSigner.decryptNip44(
-          ciphertext: encrypted!,
+          ciphertext: encrypted,
           senderPubkey: keyPair.publicKey,
         );
         expect(decrypted, equals(message));
@@ -167,7 +168,7 @@ void main() {
             );
             expect(
               await peer.decryptNip44(
-                ciphertext: sent!,
+                ciphertext: sent,
                 senderPubkey: keyPair.publicKey,
               ),
               equals(message),
@@ -179,7 +180,7 @@ void main() {
             );
             expect(
               await signer.decryptNip44(
-                ciphertext: reply!,
+                ciphertext: reply,
                 senderPubkey: peer.publicKey,
               ),
               equals('reply $message'),
@@ -251,7 +252,7 @@ void main() {
         );
 
         expect(signer.getPublicKey(), equals(keyPair.publicKey));
-        expect(signer.canSign(), isTrue);
+        expect(signer.canSign, isTrue);
 
         await signer.dispose();
       });
@@ -263,7 +264,7 @@ void main() {
           final signer = factory.create(privateKey: keyPair.privateKey);
 
           expect(signer.getPublicKey(), equals(keyPair.publicKey));
-          expect(signer.canSign(), isTrue);
+          expect(signer.canSign, isTrue);
 
           await signer.dispose();
         },
@@ -274,7 +275,7 @@ void main() {
         final signer = factory.create(publicKey: keyPair.publicKey);
 
         expect(signer.getPublicKey(), equals(keyPair.publicKey));
-        expect(signer.canSign(), isFalse);
+        expect(signer.canSign, isFalse);
 
         await signer.dispose();
       });
@@ -332,7 +333,7 @@ void main() {
         final signer = factory.createWithNewKeyPair();
 
         expect(signer.getPublicKey(), isNotEmpty);
-        expect(signer.canSign(), isTrue);
+        expect(signer.canSign, isTrue);
 
         await signer.dispose();
       });

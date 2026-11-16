@@ -406,8 +406,6 @@ class _NPendingRequestsState extends State<NPendingRequests> {
         return 'Decrypt';
       case SignerMethod.ping:
         return 'Ping';
-      case SignerMethod.connect:
-        return 'Connect';
       case SignerMethod.switchRelays:
         return 'Switch relays';
     }

@@ -11,9 +11,9 @@ abstract interface class GiftWrapCache {
 
   /// Cached plaintext of [event] for [viewerPubkey], otherwise the result of
   /// [decrypt], which is then cached.
-  Future<String?> loadOrDecrypt({
+  Future<String> loadOrDecrypt({
     required Nip01Event event,
     required String viewerPubkey,
-    required Future<String?> Function() decrypt,
+    required Future<String> Function() decrypt,
   });
 }

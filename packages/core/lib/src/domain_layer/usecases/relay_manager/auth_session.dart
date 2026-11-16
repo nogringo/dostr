@@ -83,7 +83,7 @@ class AuthSession {
       Logger.log.w(() => "Cannot authenticate $key, no account for its pubkey");
       return false;
     }
-    if (!account.signer.canSign()) {
+    if (!account.signer.canSign) {
       Logger.log.w(() => "Cannot authenticate $key, signer cannot sign");
       return false;
     }

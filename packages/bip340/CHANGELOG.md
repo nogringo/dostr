@@ -3,7 +3,8 @@
  - Initial release, moved out of the `ndk` package.
  - `Bip340EventSigner` is now `Bip340Signer`, and `Bip340EventSignerFactory` is now `Bip340SignerFactory`, after the `NostrSigner` they implement.
  - `encryptNip44` and `decryptNip44` take `recipientPubkey` and `senderPubkey`, as in `NostrSigner`, instead of `recipientPubKey` and `senderPubKey`.
- - `decrypt` throws a `FormatException` instead of returning an empty string for a NIP-04 payload without `?iv=`, and the NIP-44 methods throw the typed errors of `dostr_nip44`.
+ - As in `NostrSigner`, `encrypt` and `decrypt` are now `encryptNip04` and `decryptNip04`, with named parameters, the four encryption methods return a `Future<String>` instead of a `Future<String?>`, `canSign` is a getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
+ - `decryptNip04` throws a `FormatException` instead of returning an empty string for a NIP-04 payload without `?iv=`, and the NIP-44 methods throw the typed errors of `dostr_nip44`.
  - `Bip340Signer` keeps the NIP-44 conversation keys of its last 256 peers, so `encryptNip44` and `decryptNip44` run the key agreement once per peer instead of once per message.
  - **BREAKING** `privateKey` of `Bip340Signer` is final.
  - `Bip340` runs on the `Schnorr` signatures of `dostr_secp256k1` instead of the `bip340` package and the pointycastle curve: on native platforms, `verify` is about 12 times faster, and `sign`, `getPublicKey` and `generatePrivateKey` about 23 times.

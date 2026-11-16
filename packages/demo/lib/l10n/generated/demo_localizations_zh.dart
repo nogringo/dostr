@@ -352,9 +352,6 @@ class DemoLocalizationsZh extends DemoLocalizations {
   String get pendingMethodPing => 'Ping';
 
   @override
-  String get pendingMethodConnect => '连接';
-
-  @override
   String get pendingMethodSwitchRelays => '切换中继';
 
   @override

@@ -12,17 +12,15 @@ class MemoryGiftWrapCache implements GiftWrapCache {
   }) async => plaintexts['$eventId|$viewerPubkey'];
 
   @override
-  Future<String?> loadOrDecrypt({
+  Future<String> loadOrDecrypt({
     required Nip01Event event,
     required String viewerPubkey,
-    required Future<String?> Function() decrypt,
+    required Future<String> Function() decrypt,
   }) async {
     final key = '${event.id}|$viewerPubkey';
     final cached = plaintexts[key];
     if (cached != null) return cached;
     decryptions++;
-    final plaintext = await decrypt();
-    if (plaintext != null) plaintexts[key] = plaintext;
-    return plaintext;
+    return plaintexts[key] = await decrypt();
   }
 }

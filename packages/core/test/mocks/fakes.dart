@@ -11,7 +11,7 @@ final String alice = 'a' * 64;
 final String bob = 'b' * 64;
 
 /// Signs with [fakeSig], whatever the event.
-class FakeSigner extends NostrSigner {
+class FakeSigner implements NostrSigner {
   FakeSigner(this.publicKey, {this.signable = true});
 
   final String publicKey;
@@ -28,7 +28,7 @@ class FakeSigner extends NostrSigner {
   String getPublicKey() => publicKey;
 
   @override
-  bool canSign() => signable;
+  bool get canSign => signable;
 
   @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>
@@ -44,21 +44,25 @@ class FakeSigner extends NostrSigner {
   Future<void> dispose() async {}
 
   @override
-  Future<String?> decrypt(String msg, String destPubkey) =>
-      throw UnimplementedError();
+  Future<String> decryptNip04({
+    required String ciphertext,
+    required String senderPubkey,
+  }) => throw UnimplementedError();
 
   @override
-  Future<String?> encrypt(String msg, String destPubkey) =>
-      throw UnimplementedError();
-
-  @override
-  Future<String?> encryptNip44({
+  Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
   }) => throw UnimplementedError();
 
   @override
-  Future<String?> decryptNip44({
+  Future<String> encryptNip44({
+    required String plaintext,
+    required String recipientPubkey,
+  }) => throw UnimplementedError();
+
+  @override
+  Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
   }) => throw UnimplementedError();
@@ -97,7 +101,6 @@ class FakeAuthAccounts implements AuthAccounts {
 
 Account fakeAccount(String pubkey, {bool canSign = true}) => Account(
   type: AccountType.privateKey,
-  pubkey: pubkey,
   signer: FakeSigner(pubkey, signable: canSign),
 );
 

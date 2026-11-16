@@ -439,7 +439,7 @@ class RelayConnections {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) async {
-    if (!account.signer.canSign()) {
+    if (!account.signer.canSign) {
       Logger.log.w(() => "Cannot bind a connection to ${account.pubkey}");
       return null;
     }

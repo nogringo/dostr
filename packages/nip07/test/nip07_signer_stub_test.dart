@@ -13,8 +13,7 @@ void main() {
     tearDown(() => signer.dispose());
 
     test('cannot sign', () {
-      expect(signer.canSign(), isFalse);
-      expect(signer.requiresInteractiveSigning, isTrue);
+      expect(signer.canSign, isFalse);
       expect(signer.cachedPublicKey, 'pubkey');
     });
 
@@ -36,8 +35,14 @@ void main() {
 
       expect(signer.getPublicKeyAsync, throwsUnsupportedError);
       expect(signer.sign(event), throwsUnsupportedError);
-      expect(signer.encrypt('msg', 'pubkey'), throwsUnsupportedError);
-      expect(signer.decrypt('msg', 'pubkey'), throwsUnsupportedError);
+      expect(
+        signer.encryptNip04(plaintext: 'msg', recipientPubkey: 'pubkey'),
+        throwsUnsupportedError,
+      );
+      expect(
+        signer.decryptNip04(ciphertext: 'msg', senderPubkey: 'pubkey'),
+        throwsUnsupportedError,
+      );
       expect(
         signer.encryptNip44(plaintext: 'msg', recipientPubkey: 'pubkey'),
         throwsUnsupportedError,

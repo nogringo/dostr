@@ -44,6 +44,8 @@ Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
 }
 ```
 
+`encryptNip44` and `decryptNip44` work the same way: they complete with the text, or throw.
+
 An interactive signer lists what waits for the user in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops one.
 A local signer always has an empty list.
 `ConcurrencyLimiterMixin` caps how many requests an interactive signer sends at once and queues the rest.
@@ -69,7 +71,7 @@ Read what waits on the signer, or on the `Account` that holds it:
 ```dart
 signer.pendingRequestsStream.listen((requests) {
   for (final request in requests) {
-    print('${request.method.protocolString} (${request.id})');
+    print('${request.method.name} (${request.id})');
   }
 });
 
@@ -111,7 +113,7 @@ StreamBuilder<List<PendingSignerRequest>>(
       itemBuilder: (context, index) {
         final request = requests[index];
         return ListTile(
-          title: Text(request.method.protocolString),
+          title: Text(request.method.name),
           subtitle: Text('Created ${request.createdAt}'),
           trailing: IconButton(
             icon: Icon(Icons.cancel),
@@ -128,18 +130,14 @@ Dispose a signer, or the account that holds it, when done: `await account.dispos
 
 ## Accounts and authentication
 
-- `Account`: a pubkey and the `NostrSigner` that signs for it.
+- `Account`: a `NostrSigner`, and the pubkey it signs for.
 - `AuthAccounts`: where the logged-in account comes from, implemented by `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 - `AuthPolicy`: what one operation may reveal. `never()` stays anonymous, `allow(account)` authenticates when asked, `require(account)` authenticates upfront and fails if it cannot.
 - `AuthHandler`: asked before a pubkey is revealed on a url. Answering false keeps it from being revealed there.
 
 ```dart
 final policy = AuthPolicy.allow(
-  Account(
-    type: AccountType.privateKey,
-    pubkey: signer.getPublicKey(),
-    signer: signer,
-  ),
+  Account(type: AccountType.privateKey, signer: signer),
 );
 
 Future<bool> onlyMyRelay(String url, String pubkey) async =>
