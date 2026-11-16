@@ -51,7 +51,6 @@ class IdleConnections {
     if (_sweeping) return;
     _sweeping = true;
     final connections = _connections;
-    var changed = false;
     try {
       for (final key in connections.relays.keys.toList()) {
         final connection = connections.relays[key];
@@ -68,11 +67,9 @@ class IdleConnections {
           () => "closing $key, idle for ${connection.idleFor.elapsed}",
         );
         await connections.closeConnection(key);
-        changed = true;
       }
     } finally {
       _sweeping = false;
-      if (changed) connections.notifyChanged();
       if (connections.relays.isEmpty) stop();
     }
   }

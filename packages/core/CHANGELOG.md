@@ -94,6 +94,7 @@ It no longer takes an `authPubkey` and only opens the anonymous connection: open
 
 `isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays` and the `resetConnection` of a single connection are gone.
 A connection that is still connecting has `relay.connecting` set in `RelayManager.connectivities`.
+`relayConnectivityChanges` emits when a connection is added, starts connecting, opens, closes or is forgotten, and no longer each time a REQ is sent or ends.
 `authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and `nostrTransportFactory` are constructor parameters only, no longer fields.
 
 `RelayConnectivity`, `Relay` and `RelayStats` are read-only: only `RelayManager` changes them, and none has a public constructor anymore.
@@ -113,7 +114,7 @@ They used to escape as uncaught errors, which end a plain Dart process.
 The relay urls `dostr_core` takes and gives are `RelayUrl`s, from [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): normalized urls, as an extension type on `String`, so code that reads one as a `String` keeps working.
 Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
 
- - `RelayManager.isRelayConnected`, `reconnectRelay`, `resetConnectionsTo`, `closeConnectionsTo`, `getRelayConnectivity` and `openConnectionAs` take a `RelayUrl`. `connectRelay` still takes a `dirtyUrl`, which it normalizes.
+ - `RelayManager.connectRelay`, `isRelayConnected`, `reconnectRelay`, `resetConnectionsTo`, `closeConnectionsTo`, `getRelayConnectivity` and `openConnectionAs` take a `RelayUrl`, `connectRelay` as its first argument instead of a `dirtyUrl`.
  - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.
  - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
  - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.

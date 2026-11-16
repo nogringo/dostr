@@ -73,7 +73,6 @@ class RelayRevivals {
     if (!connections.isConnectionOpen(key) && !connections.hasWorkOn(key)) {
       Logger.log.i(() => "nothing left to reconnect $key for");
       await connections.closeConnection(key);
-      connections.notifyChanged();
       return false;
     }
     final connected = await connections
@@ -84,7 +83,6 @@ class RelayRevivals {
         });
     // closed or reset meanwhile, which settled what it carried
     if (!identical(_revivals[key], revival)) return connected;
-    connections.notifyChanged();
     if (connected) {
       _revivals.remove(key);
       _revived[key] = revival;

@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:convert';
 
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../config/relay_defaults.dart';
 import '../../../config/request_defaults.dart';
+import '../../../shared/helpers/utf8_length.dart';
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
@@ -41,9 +41,10 @@ class RelayManager {
   bool get allowReconnectRelays => _connections.allowReconnect;
   set allowReconnectRelays(bool allow) => _connections.allowReconnect = allow;
 
-  /// stream of connection updates, used to notify connectivity changes, latest
-  /// value is cached. A relay can hold several connections, so this cannot be
-  /// indexed by url; group by [RelayConnectivity.url] if you need to.
+  /// Every connection each time one is added, starts connecting, opens, closes
+  /// or is forgotten, the latest list cached. A relay can hold several
+  /// connections, so this cannot be indexed by url; group by
+  /// [RelayConnectivity.url] if you need to.
   Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
       _connections.changes;
 
@@ -81,7 +82,8 @@ class RelayManager {
   ///
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
-  /// a slot, and subscriptions leave a quarter of them to queries. No answer
+  /// a slot, and subscriptions leave a quarter of them to queries, at least
+  /// one when there are several. No answer
   /// within [subscriptionLimitTimeout], or none at all, gives
   /// [defaultMaxSubscriptionsPerConnection].
   ///
@@ -186,17 +188,14 @@ class RelayManager {
   bool isConnectionOpen(RelayConnectionKey key) =>
       _connections.isConnectionOpen(key);
 
-  /// Opens the anonymous connection to a relay. Returns whether it is
+  /// Opens the anonymous connection to [url]. Returns whether it is
   /// connected, and why if it is not. A refused connection is tried
   /// again until [connectTimeout] runs out. A connection bound to an
   /// identity is opened with [openConnectionAs].
-  Future<({bool connected, RelayFailure? failure})> connectRelay({
-    required String dirtyUrl,
+  Future<({bool connected, RelayFailure? failure})> connectRelay(
+    RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
-  }) => _connections.connectRelay(
-    dirtyUrl: dirtyUrl,
-    connectTimeout: connectTimeout,
-  );
+  }) => _connections.connectRelay(url, connectTimeout: connectTimeout);
 
   /// Reconnects the anonymous connection to a relay, if it is closed.
   Future<bool> reconnectRelay(RelayUrl url, {bool force = false}) =>
@@ -335,7 +334,7 @@ class RelayManager {
         _requests.handleEvent(
           nostrMsg,
           connection,
-          utf8.encode(message.toString()).length,
+          utf8Length(message.toString()),
         );
       case NostrMessageRawType.eose:
         final eventJson = nostrMsg.otherData;
@@ -396,17 +395,11 @@ class RelayManager {
   /// Broadcasts track relay URLs rather than identities, so both anonymous and
   /// authenticated connections at an in-flight broadcast's URL are retained.
   Future<void> closeIdleConnections() async {
-    var changed = false;
-    try {
-      for (final key in _connections.relays.keys.toList()) {
-        // Re-evaluate after each asynchronous close. Another operation may
-        // have claimed the next connection while the previous one was closing.
-        if (_connectionHasWork(key)) continue;
-        await closeConnection(key);
-        changed = true;
-      }
-    } finally {
-      if (changed) _connections.notifyChanged();
+    for (final key in _connections.relays.keys.toList()) {
+      // Re-evaluate after each asynchronous close. Another operation may
+      // have claimed the next connection while the previous one was closing.
+      if (_connectionHasWork(key)) continue;
+      await closeConnection(key);
     }
   }
 

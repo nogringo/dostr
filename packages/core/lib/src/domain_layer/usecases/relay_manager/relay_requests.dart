@@ -537,7 +537,6 @@ class RelayRequests implements ConnectionListener {
     /// received everything, close the network controller
     if (state.didAllRequestsFinish) {
       state.networkController.close();
-      _connections.notifyChanged();
       return;
     }
 
@@ -564,7 +563,6 @@ class RelayRequests implements ConnectionListener {
         if (!state.endedOn(request)) request.connectionGone = true;
       }
       state.networkController.close();
-      _connections.notifyChanged();
     }
   }
 

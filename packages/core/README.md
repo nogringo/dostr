@@ -198,7 +198,8 @@ The `RelayManager` opens, keeps and closes the relay connections.
 ### Connection changes
 
 ```dart
-// every connection, connected or not, each time one changes
+// every connection, connected or not, each time one is added, starts
+// connecting, opens, closes or is forgotten
 relays.relayConnectivityChanges.listen((connections) {
   for (final c in connections) {
     print('${c.url}: ${c.isConnected}');
@@ -243,7 +244,7 @@ final relays = RelayManager(
 
 `RelayManager` asks two callbacks each time a socket opens, and waits up to 2 seconds for them:
 
-- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries. No answer gives 20.
+- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries, at least one when there are several. No answer gives 20.
 - `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
 Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.

@@ -83,7 +83,7 @@ void main() {
   late RequestState subscription;
   Future<bool> connect([String relayUrl = url]) async =>
       (await manager.connectRelay(
-        dirtyUrl: relayUrl,
+        RelayUrl.parse(relayUrl),
         connectTimeout: const Duration(seconds: 1),
       )).connected;
   int replays(_Transport transport) => transport.sent

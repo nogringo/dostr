@@ -205,7 +205,7 @@ class RelayBroadcasts {
 
     if (!_connections.isRelayConnected(url)) {
       final result = await _connections.connectRelay(
-        dirtyUrl: url,
+        url,
         connectTimeout: connectTimeout,
       );
       if (!result.connected) {

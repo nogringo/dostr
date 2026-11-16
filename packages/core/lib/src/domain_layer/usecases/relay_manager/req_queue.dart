@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:math';
 
 import '../../../shared/logger/logger.dart';
 import '../../entities/relay_connection_key.dart';
@@ -44,10 +45,12 @@ class ReqQueue {
   /// Stops [request] from waiting, and says whether it was.
   bool remove(RelayRequestState request) => _queued.remove(request);
 
-  /// Most slots of [limit] that subscriptions may hold. strfry caps the
-  /// database query and the live subscription apart, so a connection full of
-  /// subscriptions still answers queries there: the rest stays theirs.
-  static int _subscriptionShare(int limit) => limit - limit ~/ 4;
+  /// Most slots of [limit] that subscriptions may hold: a quarter of them, and
+  /// at least one, stays with queries, unless there is a single slot. strfry
+  /// caps the database query and the live subscription apart, so a connection
+  /// full of subscriptions still answers queries there.
+  static int _subscriptionShare(int limit) =>
+      limit < 2 ? limit : limit - max(1, limit ~/ 4);
 
   int _subscriptionsIn(Set<String> slots) =>
       slots.where((id) => _inFlight[id]?.isSubscription ?? false).length;

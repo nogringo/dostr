@@ -142,7 +142,7 @@ class _RelaysPageState extends State<RelaysPage>
 
     if (list != null) {
       for (final url in list.keys) {
-        await relayManager.connectRelay(dirtyUrl: url);
+        await relayManager.connectRelay(url);
       }
     }
 

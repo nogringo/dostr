@@ -64,7 +64,7 @@ void main() {
   test('sends in the same tick never exceed the limit', () async {
     final relay = await startRelay(maxSubscriptions: 2);
     final reqs = open((_) => 2);
-    await manager!.connectRelay(dirtyUrl: relay.url);
+    await manager!.connectRelay(relay.url);
 
     final queries = [
       for (var i = 0; i < 10; i++) reqs.req(relays: {relay.url: notes}),
@@ -108,6 +108,31 @@ void main() {
 
     await subscriptions.first.close();
     await eventually(() => subscribed(relay, subscriptions[3]));
+    expect(relay.refusedRequests, 0);
+  });
+
+  test('a limit under 4 still leaves a slot to queries', () async {
+    final relay = await startRelay(maxSubscriptions: 3);
+    final reqs = open((_) => 3);
+
+    final subscriptions = [
+      for (var i = 0; i < 3; i++)
+        reqs.req(relays: {relay.url: notes}, closeOnEose: false),
+    ];
+    await eventually(
+      () => subscriptions
+          .take(2)
+          .every(
+            (s) => s.outcomes[relay.url]?.status == RelayRequestStatus.eose,
+          ),
+    );
+    await settle();
+    expect(subscribed(relay, subscriptions[2]), isFalse);
+
+    final query = reqs.req(relays: {relay.url: notes});
+    expect(await query.done, {
+      relay.url: const RelayRequestOutcome(RelayRequestStatus.eose),
+    });
     expect(relay.refusedRequests, 0);
   });
 
@@ -198,8 +223,8 @@ void main() {
 
   test('a socket that comes back replays up to the limit, then drains the '
       'rest', () async {
-    final relay = await startRelay(maxSubscriptions: 2);
-    final reqs = open((_) => 2);
+    final relay = await startRelay(maxSubscriptions: 3);
+    final reqs = open((_) => 3);
 
     final subscriptions = [
       for (var i = 0; i < 3; i++)

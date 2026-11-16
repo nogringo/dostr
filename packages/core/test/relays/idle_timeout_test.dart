@@ -28,7 +28,7 @@ void main() {
   test('a connection with nothing to do closes after its timeout', () async {
     final relay = await startRelay();
     final relays = manager(anonymous: const Duration(milliseconds: 300));
-    await relays.connectRelay(dirtyUrl: relay.url);
+    await relays.connectRelay(relay.url);
 
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(relays.isRelayConnected(relay.url), isTrue);
@@ -42,10 +42,10 @@ void main() {
     () async {
       final relay = await startRelay();
       final relays = manager(anonymous: const Duration(milliseconds: 200));
-      await relays.connectRelay(dirtyUrl: relay.url);
+      await relays.connectRelay(relay.url);
       await eventually(() => relays.connectivities.isEmpty);
 
-      await relays.connectRelay(dirtyUrl: relay.url);
+      await relays.connectRelay(relay.url);
       await eventually(() => relays.connectivities.isEmpty);
       expect(relay.clients, hasLength(2));
     },
@@ -94,7 +94,7 @@ void main() {
       authenticated: authenticated,
       accounts: accounts,
     );
-    await relays.connectRelay(dirtyUrl: relay.url);
+    await relays.connectRelay(relay.url);
     final bound = await relays.openConnectionAs(relay.url, account);
     return (relays, RelayConnectionKey.anonymous(relay.url), bound!.key);
   }

@@ -267,7 +267,7 @@ void main() {
     final key = RelayConnectionKey.anonymous(relay.url);
     final claim = ClaimConnections({key});
     manager.addProtocolHandler(claim);
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     factory.down = true;
     factory.created.last.dropConnection();
@@ -315,7 +315,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
 
   final factory = _FlakyTransportFactory();
   final manager = RelayManager(nostrTransportFactory: factory);
-  await manager.connectRelay(dirtyUrl: relay.url);
+  await manager.connectRelay(relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
   final connectivity = manager.connectivities[connectionKey]!;

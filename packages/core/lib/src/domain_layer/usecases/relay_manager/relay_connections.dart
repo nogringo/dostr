@@ -8,6 +8,7 @@ import 'package:rxdart/rxdart.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../../../config/relay_defaults.dart';
+import '../../../shared/helpers/utf8_length.dart';
 import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../../shared/nips/nip01/decode_nostr_msg.dart';
@@ -101,6 +102,8 @@ class RelayConnections {
 
   final _updates = BehaviorSubject<List<RelayConnection>>();
 
+  List<({RelayConnectionKey key, bool connected, bool connecting})>? _notified;
+
   RelayConnections({
     required this.nostrTransportFactory,
     required RelayAuth auth,
@@ -129,11 +132,31 @@ class RelayConnections {
     );
   }
 
-  /// every connection on each change, the latest one cached
+  /// every connection each time one is added, starts connecting, opens,
+  /// closes or is forgotten, the latest one cached
   Stream<List<RelayConnection>> get changes => _updates.stream;
 
+  /// Tells [changes], unless no connection changed since it last did.
   void notifyChanged() {
-    _updates.add(relays.values.toList());
+    final connections = relays.values.toList();
+    final states = [
+      for (final connection in connections)
+        (
+          key: connection.key,
+          connected: connection.isConnected,
+          connecting: connection.relay.connecting,
+        ),
+    ];
+    final notified = _notified;
+    if (notified != null &&
+        notified.length == states.length &&
+        Iterable<int>.generate(
+          states.length,
+        ).every((i) => notified[i] == states[i])) {
+      return;
+    }
+    _notified = states;
+    _updates.add(connections);
   }
 
   /// Every open connection, anonymous or bound, so a relay can show up more
@@ -199,21 +222,12 @@ class RelayConnections {
 
   /// Connects to a relay to the relay pool.
   /// Returns whether it is connected, and why if it is not.
-  Future<({bool connected, RelayFailure? failure})> connectRelay({
-    required String dirtyUrl,
+  Future<({bool connected, RelayFailure? failure})> connectRelay(
+    RelayUrl url, {
     String? authPubkey,
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
-    final url = RelayUrl.tryParse(dirtyUrl);
-    if (url == null) {
-      notifyChanged();
-      return (
-        connected: false,
-        failure: const RelayFailure(RelayFailureKind.invalidUrl),
-      );
-    }
     if (blockedRelays.contains(url)) {
-      notifyChanged();
       return (
         connected: false,
         failure: const RelayFailure(RelayFailureKind.blocked),
@@ -226,7 +240,6 @@ class RelayConnections {
 
     if (isConnectionOpen(connectionKey)) {
       Logger.log.t(() => "relay already connected: $connectionKey");
-      notifyChanged();
       return (connected: true, failure: null);
     }
 
@@ -235,11 +248,8 @@ class RelayConnections {
       Logger.log.t(() => "relay is already connecting: $connectionKey");
       final inFlightConnect = _connectReadyCompleters[connectionKey];
       if (inFlightConnect != null) {
-        final result = await inFlightConnect.future;
-        notifyChanged();
-        return result;
+        return inFlightConnect.future;
       }
-      notifyChanged();
       return (
         connected: false,
         failure: const RelayFailure(RelayFailureKind.stillConnecting),
@@ -260,10 +270,11 @@ class RelayConnections {
       }
 
       connection.relay.tryingToConnect();
+      notifyChanged();
       connection.idleFor.reset();
       _idle.watch();
 
-      Logger.log.i(() => "connecting to relay $dirtyUrl");
+      Logger.log.i(() => "connecting to relay $url");
 
       // a fresh socket for a key we may already know: nothing the previous one
       // authenticated carries over
@@ -374,9 +385,7 @@ class RelayConnections {
   }) async {
     final inFlightConnect = _connectReadyCompleters[key];
     if (inFlightConnect != null) {
-      final connected = (await inFlightConnect.future).connected;
-      notifyChanged();
-      return connected;
+      return (await inFlightConnect.future).connected;
     }
 
     RelayConnection? connection = relays[key];
@@ -384,7 +393,6 @@ class RelayConnections {
     if (transport != null &&
         await _whyNotOpen(transport, defaultWebSocketConnectTimeout) == null &&
         identical(connection!.relayTransport, transport)) {
-      notifyChanged();
       return true;
     }
     if (connection == null ||
@@ -396,7 +404,6 @@ class RelayConnections {
                 failRelayConnectTryAfterSeconds,
               ))) {
         // don't try too often
-        notifyChanged();
         return false;
       }
 
@@ -410,7 +417,7 @@ class RelayConnections {
             null;
       }
 
-      if (!(await connectRelay(dirtyUrl: key.url)).connected) {
+      if (!(await connectRelay(key.url)).connected) {
         // could not connect
         return false;
       }
@@ -455,7 +462,7 @@ class RelayConnections {
     }
 
     final result = await connectRelay(
-      dirtyUrl: url,
+      url,
       authPubkey: account.publicKey,
       connectTimeout: connectTimeout,
     );
@@ -505,7 +512,6 @@ class RelayConnections {
       return;
     }
     final connected = await reconnectConnection(connection.key, force: true);
-    notifyChanged();
     if (connected) listener.replayOn(connection);
   }
 
@@ -569,7 +575,7 @@ class RelayConnections {
         !transport.isOpen()) {
       throw StateError("transport closed before send: ${connection.url}");
     }
-    final length = utf8.encode(encodedMsg).length;
+    final length = utf8Length(encodedMsg);
     _limits.check(connection, length);
     if (_sendRaw(connection, transport, encodedMsg)) {
       connection.longestMessage = max(connection.longestMessage, length);
@@ -710,7 +716,6 @@ class RelayConnections {
     if (!hasWorkOn(key)) {
       Logger.log.i(() => "closed $key, nothing left on it");
       await closeConnection(key);
-      notifyChanged();
       return;
     }
     notifyChanged();
@@ -773,6 +778,7 @@ class RelayConnections {
     if (connection == null) {
       return;
     }
+    notifyChanged();
     Logger.log.d(() => "Disconnecting $key...");
     _revivals.stop(key);
     _auth.unbind(key);

@@ -47,7 +47,7 @@ void main() {
     final relay = await startRelay();
 
     final results = await Future.wait([
-      for (var i = 0; i < 3; i++) manager.connectRelay(dirtyUrl: relay.url),
+      for (var i = 0; i < 3; i++) manager.connectRelay(relay.url),
     ]);
 
     expect(results.map((r) => r.connected), [true, true, true]);
@@ -63,7 +63,7 @@ void main() {
     final results = await Future.wait([
       for (var i = 0; i < 2; i++)
         manager.connectRelay(
-          dirtyUrl: 'ws://127.0.0.1:$port',
+          RelayUrl.parse('ws://127.0.0.1:$port'),
           connectTimeout: const Duration(milliseconds: 500),
         ),
     ]);
@@ -75,24 +75,20 @@ void main() {
     }
   });
 
-  test('refuses unclean and blocked urls without opening anything', () async {
+  test('refuses a blocked url without opening anything', () async {
     manager.blockedRelays.add(RelayUrl.parse('wss://blocked.example'));
 
-    expect(await manager.connectRelay(dirtyUrl: 'https://not.a.relay'), (
-      connected: false,
-      failure: const RelayFailure(RelayFailureKind.invalidUrl),
-    ));
-    expect(await manager.connectRelay(dirtyUrl: 'wss://blocked.example/'), (
-      connected: false,
-      failure: const RelayFailure(RelayFailureKind.blocked),
-    ));
+    expect(
+      await manager.connectRelay(RelayUrl.parse('wss://blocked.example/')),
+      (connected: false, failure: const RelayFailure(RelayFailureKind.blocked)),
+    );
     expect(manager.connectivities, isEmpty);
   });
 
   test('connects to a relay with a null failure', () async {
     final relay = await startRelay();
 
-    expect(await manager.connectRelay(dirtyUrl: relay.url), (
+    expect(await manager.connectRelay(relay.url), (
       connected: true,
       failure: null,
     ));
@@ -100,7 +96,7 @@ void main() {
 
   test('remembers when it last tried to connect', () async {
     final relay = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     final connection =
         manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
@@ -111,9 +107,9 @@ void main() {
       'to one relay only', () async {
     final relay = await startRelay(challengeOnConnect: false);
     final other = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
     await manager.openConnectionAs(relay.url, fakeAccount(alice));
-    await manager.connectRelay(dirtyUrl: other.url);
+    await manager.connectRelay(other.url);
     expect(manager.connectivities, hasLength(3));
 
     await manager.closeConnectionsTo(relay.url);
@@ -128,7 +124,7 @@ void main() {
     final updates = <List<RelayConnectivity>>[];
     final subscription = manager.relayConnectivityChanges.listen(updates.add);
 
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     await eventually(
       () =>
@@ -138,9 +134,39 @@ void main() {
     await subscription.cancel();
   });
 
+  test('reports a connection as it connects, opens and goes, and REQs on it '
+      'leave its connectivity alone', () async {
+    final relay = await startRelay();
+    final reqs = RelayReqs(
+      relayManager: manager,
+      eventVerifier: FakeVerifier(),
+    );
+    final updates = <List<({bool connected, bool connecting})>>[];
+    final subscription = manager.relayConnectivityChanges.listen(
+      (connections) => updates.add([
+        for (final c in connections)
+          (connected: c.isConnected, connecting: c.relay.connecting),
+      ]),
+    );
+
+    await manager.connectRelay(relay.url);
+    for (var i = 0; i < 3; i++) {
+      await reqs.req(relays: {relay.url: notes}).done;
+    }
+    await manager.closeConnectionsTo(relay.url);
+    await pumpEventQueue();
+
+    expect(updates, [
+      [(connected: false, connecting: true)],
+      [(connected: true, connecting: false)],
+      isEmpty,
+    ]);
+    await subscription.cancel();
+  });
+
   test('closing forgets a connection whose transport was reset', () async {
     final relay = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     await manager.resetConnectionsTo(relay.url);
     await manager.closeAllTransports();
@@ -150,7 +176,7 @@ void main() {
 
   test('closeConnection forgets the connection for good', () async {
     final relay = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     await manager.closeConnection(RelayConnectionKey.anonymous(relay.url));
 
@@ -164,7 +190,7 @@ void main() {
     final relay = await startRelay();
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
     final stats = manager.connectivities[key]!.stats;
     expect(stats.connections, 1);
 
@@ -180,7 +206,7 @@ void main() {
 
   test('forgets a dropped socket nothing uses', () async {
     final relay = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     await relay.dropConnections();
 
@@ -224,7 +250,7 @@ void main() {
     final forgotten = reqs.req();
     final publishes = RelayPublishes(relayManager: manager);
     final unsigned = publishes.open(signedEvent(content: 'never signed'));
-    await manager.connectRelay(dirtyUrl: idle.url);
+    await manager.connectRelay(idle.url);
 
     await manager.closeIdleConnections();
 
@@ -238,7 +264,7 @@ void main() {
     final relay = await startRelay();
     final recorder = _Recorder();
     manager.addProtocolHandler(recorder);
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
     await eventually(() => relay.openClients.isNotEmpty);
 
     relay.sendToAll(['NEG-MSG', 'neg-1', 'abcd']);
@@ -261,7 +287,7 @@ void main() {
 
   test('sends a raw message on the connection of a key', () async {
     final relay = await startRelay();
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     manager.send(RelayConnectionKey.anonymous(relay.url), [
       'NEG-OPEN',

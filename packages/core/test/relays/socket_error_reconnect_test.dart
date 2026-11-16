@@ -80,7 +80,7 @@ void main() {
     addTearDown(manager.closeAllTransports);
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
-    await manager.connectRelay(dirtyUrl: relay.url);
+    await manager.connectRelay(relay.url);
 
     final connectivity = manager.connectivities[key]!;
     expect(connectivity.stats.connections, 1);

@@ -2,9 +2,6 @@
 /// REQ or an EVENT to it. A refusal of the relay itself is not one: it comes as
 /// the message of its CLOSED or OK.
 enum RelayFailureKind {
-  /// the url is not a relay url
-  invalidUrl,
-
   /// the relay is one of `RelayManager.blockedRelays`
   blocked,
 

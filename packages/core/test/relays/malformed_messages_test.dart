@@ -57,7 +57,7 @@ void main() {
   setUp(() async {
     factory = _Factory();
     manager = RelayManager(nostrTransportFactory: factory);
-    await manager.connectRelay(dirtyUrl: url);
+    await manager.connectRelay(url);
   });
 
   tearDown(() => manager.closeAllTransports());
