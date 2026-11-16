@@ -69,6 +69,8 @@ dependency_overrides:
     path: ../bip340
   dostr_blossom:
     path: ../blossom
+  dostr_blossom_url:
+    path: ../blossom_url
   dostr_core:
     path: ../core
   dostr_fetchers:

@@ -158,6 +158,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  dostr_blossom_url:
+    dependency: "direct overridden"
+    description:
+      path: "../blossom_url"
+      relative: true
+    source: path
+    version: "0.1.0"
   dostr_core:
     dependency: "direct main"
     description:

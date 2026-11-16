@@ -6,6 +6,7 @@
 /// ```
 library;
 
+export 'package:dostr_blossom_url/dostr_blossom_url.dart';
 export 'src/data_layer/http/blossom_http.dart' show HttpRequestException;
 export 'src/domain_layer/entities/blob_upload_progress.dart';
 export 'src/domain_layer/entities/blossom_authorization.dart';

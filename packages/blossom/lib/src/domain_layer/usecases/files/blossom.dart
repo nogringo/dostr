@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:http/http.dart' as http;
@@ -28,11 +29,11 @@ typedef _AuthEventBuilder = Nip01Event Function(String pubkey);
 /// [servers] less those an [AuthHandler] keeps an upfront authorization from
 typedef _ServerFilter = Future<List<String>> Function(List<String> servers);
 
-/// [servers] less those [seen] already names, a trailing slash aside. The ones
-/// it keeps join [seen].
+/// [servers] less those [seen] already names once [cleanBlossomServerUrl]
+/// normalized them. The ones it keeps join [seen], and are kept as given.
 List<String> _distinctServers(Iterable<String> servers, Set<String> seen) => [
   for (final server in servers)
-    if (seen.add(server.replaceFirst(RegExp(r'/+$'), ''))) server,
+    if (seen.add(cleanBlossomServerUrl(server) ?? server)) server,
 ];
 
 /// What one blossom operation does about its authorization, and the servers

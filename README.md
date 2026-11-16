@@ -126,6 +126,11 @@ Pure Dart, no Flutter needed.
 
 `dostr_blossom`: Blossom file storage, to upload, download, mirror and delete blobs on a user's servers.
 
+#### [🔗 Blossom URLs](./packages/blossom_url/)
+
+`dostr_blossom_url`: Blossom server url normalization, so two spellings of one server compare equal, in pure Dart.
+`dostr_blossom` exports it.
+
 ### Other
 
 #### [🔗 String Color](./packages/string_color/)

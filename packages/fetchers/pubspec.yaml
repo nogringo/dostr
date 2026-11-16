@@ -16,6 +16,7 @@ environment:
 resolution: workspace
 
 dependencies:
+  dostr_blossom_url: ^0.1.0
   dostr_core: ^0.1.0
   dostr_home_relays: ^0.1.0
   dostr_url_set: ^0.1.0

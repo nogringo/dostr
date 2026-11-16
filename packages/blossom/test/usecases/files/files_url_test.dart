@@ -94,6 +94,17 @@ void main() {
     expect(servers.requests, ['GET a.example/$_hash', 'GET b.example/$_hash']);
   });
 
+  test('two spellings of one server are one server', () async {
+    final servers = _Servers({'b.example'});
+
+    await filesOn(servers).download(
+      url: 'https://a.example/$_hash',
+      serverUrls: ['HTTPS://A.example:443', 'https://b.example'],
+    );
+
+    expect(servers.requests, ['GET a.example/$_hash', 'GET b.example/$_hash']);
+  });
+
   test('the author list is read once the url server failed', () async {
     final servers = _Servers({'b.example'});
     final asked = <String>[];

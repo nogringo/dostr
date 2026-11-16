@@ -37,4 +37,5 @@ workspace:
   - packages/home_relays
   - packages/url_set
   - packages/relay_url
+  - packages/blossom_url
   - packages/string_color

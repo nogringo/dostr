@@ -1,3 +1,4 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_core/dostr_core.dart';
 
 import 'outbox_fetcher.dart';
@@ -17,21 +18,9 @@ class BlossomServersFetcher extends OutboxFetcher {
   }) : super(kind: 10063, name: 'blossom-servers');
 }
 
-/// The normalized servers of [serverList], a `kind:10063`: its http(s)
-/// `server` tags, each once, most trusted first.
-List<String> blossomServersOf(Nip01Event serverList) => {
+/// The servers of [serverList], a `kind:10063`: its `server` tags that
+/// [cleanBlossomServerUrl] accepts, normalized, each once, most trusted first.
+List<BlossomServerUrl> blossomServersOf(Nip01Event serverList) => {
   for (final tag in serverList.tags)
-    if (tag.length > 1 && tag[0] == 'server') ?_cleanServerUrl(tag[1]),
+    if (tag.length > 1 && tag[0] == 'server') ?cleanBlossomServerUrl(tag[1]),
 }.toList();
-
-final _trailingSlashes = RegExp(r'/+$');
-
-String? _cleanServerUrl(String url) {
-  final uri = Uri.tryParse(url.trim());
-  if (uri == null ||
-      !(uri.isScheme('https') || uri.isScheme('http')) ||
-      uri.host.isEmpty) {
-    return null;
-  }
-  return uri.normalizePath().toString().replaceFirst(_trailingSlashes, '');
-}
