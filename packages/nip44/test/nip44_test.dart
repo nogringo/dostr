@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:convert/convert.dart';
 import 'package:dostr_nip44/dostr_nip44.dart';
+import 'package:dostr_nip44/src/ecdh.dart';
 import 'package:dostr_nip44/src/utils.dart';
 import 'package:pointycastle/digests/sha256.dart';
 import 'package:pointycastle/ecc/api.dart';
@@ -69,6 +71,41 @@ void main() {
       for (final compressed in [true, false]) {
         final encoded = hex.encode(_point(peer).getEncoded(compressed));
         expect(Nip44.conversationKey(privateKey, encoded), expected);
+      }
+    });
+
+    test('matches the pointycastle point multiplication', () {
+      final n = ECCurve_secp256k1().n;
+      final random = Random(44);
+      BigInt randomScalar() =>
+          BigInt.parse(
+                List.generate(
+                  64,
+                  (_) => random.nextInt(16).toRadixString(16),
+                ).join(),
+                radix: 16,
+              ) %
+              (n - BigInt.one) +
+          BigInt.one;
+
+      final peer = _point(randomScalar().toRadixString(16).padLeft(64, '0'));
+      final peerPublicKey = hex.encode(peer.getEncoded(true));
+      for (final scalar in [
+        for (final small in [1, 2, 15, 16, 17, 255, 256]) BigInt.from(small),
+        BigInt.one << 255,
+        n - BigInt.two,
+        n - BigInt.one,
+        for (var i = 0; i < 20; i++) randomScalar(),
+      ]) {
+        final privateKey = scalar.toRadixString(16).padLeft(64, '0');
+        expect(
+          hex.encode(sharedSecret(privateKey, peerPublicKey)),
+          (peer * scalar)!.x!
+              .toBigInteger()!
+              .toRadixString(16)
+              .padLeft(64, '0'),
+          reason: 'scalar $privateKey',
+        );
       }
     });
 

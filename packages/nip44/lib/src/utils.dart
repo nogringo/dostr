@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:pointycastle/api.dart';
-import 'package:pointycastle/digests/sha256.dart';
-import 'package:pointycastle/macs/hmac.dart';
+import 'package:convert/convert.dart';
+import 'package:crypto/crypto.dart';
+import 'package:pointycastle/api.dart' show KeyParameter, ParametersWithIV;
 import 'package:pointycastle/stream/chacha7539.dart';
 
 typedef MessageKeys = ({
@@ -93,13 +93,11 @@ Uint8List chaCha20(Uint8List key, Uint8List nonce, Uint8List input) {
 }
 
 Uint8List _hmacSha256(Uint8List key, List<Uint8List> parts) {
-  final hmac = HMac(SHA256Digest(), 64)..init(KeyParameter(key));
-  for (final part in parts) {
-    hmac.update(part, 0, part.length);
-  }
-  final mac = Uint8List(hmac.macSize);
-  hmac.doFinal(mac, 0);
-  return mac;
+  final output = AccumulatorSink<Digest>();
+  final input = Hmac(sha256, key).startChunkedConversion(output);
+  parts.forEach(input.add);
+  input.close();
+  return Uint8List.fromList(output.events.single.bytes);
 }
 
 Uint8List hkdfExtract({required Uint8List ikm, required Uint8List salt}) {
