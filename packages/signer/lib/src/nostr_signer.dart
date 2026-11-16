@@ -40,23 +40,27 @@ abstract interface class NostrSigner {
   /// false for a read-only account, or a signer that is not available here
   bool get canSign;
 
+  /// Encrypts [plaintext] for [recipientPubkey] with NIP-04.
   @Deprecated('Use encryptNip44 instead. Deprecated by nostr spec. (nip04)')
   Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
   });
 
+  /// Decrypts a NIP-04 [ciphertext] that [senderPubkey] sent.
   @Deprecated('Use decryptNip44 instead. Deprecated by nostr spec. (nip04)')
   Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
   });
 
+  /// Encrypts [plaintext] for [recipientPubkey] with NIP-44.
   Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   });
 
+  /// Decrypts a NIP-44 [ciphertext] that [senderPubkey] sent.
   Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
@@ -80,9 +84,9 @@ abstract interface class NostrSigner {
   /// Returns true if the request was found and cancelled.
   /// The caller waiting on that request will receive a [SignerRequestCancelledException].
   ///
-  /// Note: This is a "soft cancel" - the remote signer (bunker, browser extension, etc.)
-  /// may still have the request pending. If the user approves on the remote side
-  /// after cancellation, the result will be ignored.
+  /// This is a "soft cancel": the remote signer (bunker, browser extension,
+  /// etc.) may still have the request pending. If the user approves it there
+  /// after the cancellation, the result is ignored.
   bool cancelRequest(String requestId);
 
   /// Dispose of resources used by the signer.
