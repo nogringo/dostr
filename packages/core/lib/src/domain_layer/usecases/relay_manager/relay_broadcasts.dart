@@ -221,15 +221,15 @@ class RelayBroadcasts {
   /// event, so it answers all of them; a refusal answers a single EVENT.
   void routeOk(
     String eventId,
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     bool success,
     String msg,
   ) {
-    final waiting = _broadcastsWaitingOn(eventId, relayConnectivity.url);
+    final waiting = _broadcastsWaitingOn(eventId, connection.url);
     if (waiting.isEmpty) {
       Logger.log.w(
         () =>
-            "Received OK for broadcast $eventId from ${relayConnectivity.url} but no broadcast is waiting for it",
+            "Received OK for broadcast $eventId from ${connection.url} but no broadcast is waiting for it",
       );
       return;
     }
@@ -238,9 +238,9 @@ class RelayBroadcasts {
     // unless the relay refused the identity this connection already proved
     if (!success &&
         msg.startsWith("auth-required") &&
-        !_auth.isAuthenticated(relayConnectivity.key)) {
+        !_auth.isAuthenticated(connection.key)) {
       for (final broadcastState in waiting) {
-        _handleBroadcastAuthRequired(broadcastState, relayConnectivity, msg);
+        _handleBroadcastAuthRequired(broadcastState, connection, msg);
       }
       return;
     }
@@ -248,7 +248,7 @@ class RelayBroadcasts {
     for (final broadcastState in success ? waiting : waiting.take(1)) {
       broadcastState.networkController.add(
         RelayBroadcastResponse(
-          relayUrl: relayConnectivity.url,
+          relayUrl: connection.url,
           okReceived: true,
           broadcastSuccessful: success,
           msg: msg,
@@ -282,10 +282,10 @@ class RelayBroadcasts {
   /// callbacks.
   void _handleBroadcastAuthRequired(
     BroadcastState broadcastState,
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     String refusal,
   ) {
-    final relayUrl = relayConnectivity.url;
+    final relayUrl = connection.url;
     // the refusal of another broadcast of the same event reaches this one too
     if (broadcastState.retryingAuth.contains(relayUrl)) {
       return;
@@ -347,8 +347,7 @@ class RelayBroadcasts {
         // Some relays challenge immediately; others only after seeing EVENT on
         // the bound socket. Trigger the latter, then the next auth-required OK
         // enters this method with the bound key and authenticates below.
-        if (relayConnectivity.key != boundKey &&
-            !_auth.isAuthenticated(boundKey)) {
+        if (connection.key != boundKey && !_auth.isAuthenticated(boundKey)) {
           await _connections.sendOrThrow(
             bound,
             ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),

@@ -39,17 +39,17 @@ class RelayRequests implements ConnectionListener {
   }) : _connections = connections,
        _auth = auth;
 
-  /// Puts back on [relayConnectivity] what the socket it replaces still owed us:
+  /// Puts back on [connection] what the socket it replaces still owed us:
   /// its subscriptions, and the queries that never got their EOSE.
   @override
-  void replayOn(RelayConnection relayConnectivity) {
-    final transport = relayConnectivity.relayTransport;
+  void replayOn(RelayConnection connection) {
+    final transport = connection.relayTransport;
     if (transport == null || !transport.isOpen()) {
       return;
     }
 
     // what waited on the previous socket waits again below, in order
-    _queue.drop(relayConnectivity.key);
+    _queue.drop(connection.key);
     inFlight.forEach((key, state) {
       state.requests.values
           // by connection, not by relay: replaying a bound request on the
@@ -59,14 +59,14 @@ class RelayRequests implements ConnectionListener {
           // unless it was refused for an authentication that never landed.
           .where(
             (req) =>
-                req.key == relayConnectivity.key &&
+                req.key == connection.key &&
                 (!req.receivedClosed || req.retryingAuth) &&
                 req.notSentFailure?.kind != RelayFailureKind.messageTooLong &&
                 // a query is over once this connection answered EOSE, while a
                 // subscription outlives its EOSE and has to go back up
                 (state.isSubscription || !req.receivedEOSE),
           )
-          .forEach((req) => unawaited(_admit(relayConnectivity, state, req)));
+          .forEach((req) => unawaited(_admit(connection, state, req)));
     });
   }
 
@@ -105,7 +105,7 @@ class RelayRequests implements ConnectionListener {
 
   void handleEvent(
     NostrMessageRaw nostrMsgRaw,
-    RelayConnection connectivity,
+    RelayConnection connection,
     int messageSize,
   ) {
     final requestId = nostrMsgRaw.requestId!;
@@ -114,18 +114,26 @@ class RelayRequests implements ConnectionListener {
     if (inFlight[requestId] == null) {
       Logger.log.w(
         () =>
-            "RECEIVED EVENT from ${connectivity.url} for id $requestId, not in flight. Likely data after EOSE on a query",
+            "RECEIVED EVENT from ${connection.url} for id $requestId, not in flight. Likely data after EOSE on a query",
       );
       return;
     }
 
-    connectivity.stats.incStatsByNewEvent(event, messageSize);
+    connection.stats.incStatsByNewEvent(event, messageSize);
 
     RequestState? state = inFlight[requestId];
     if (state != null) {
-      RelayRequestState? request = state.requests[connectivity.key];
+      RelayRequestState? request = state.requests[connection.key];
       if (request == null) {
         Logger.log.w(() => "No RelayRequestState found for id $requestId");
+        return;
+      }
+
+      if (!request.filters.any((filter) => filter.matches(event))) {
+        Logger.log.w(
+          () =>
+              "Dropping event ${event.id} from ${connection.url}: no filter of REQ $requestId matches it",
+        );
         return;
       }
 
@@ -135,37 +143,33 @@ class RelayRequests implements ConnectionListener {
           () => "tried to add event to an already closed STREAM ${state.id}",
         );
       } else {
-        state.networkController.add(RelayReqEvent(event, connectivity.url));
+        state.networkController.add(RelayReqEvent(event, connection.url));
       }
     }
   }
 
   /// handles EOSE messages
-  void handleEose(List<dynamic> eventJson, RelayConnection relayConnectivity) {
+  void handleEose(List<dynamic> eventJson, RelayConnection connection) {
     String id = eventJson[1];
     RequestState? state = inFlight[id];
     if (state == null) return;
     Logger.log.t(
       () =>
-          "⛁ received EOSE from ${relayConnectivity.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
+          "⛁ received EOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
     );
-    state.requests[relayConnectivity.key]?.receivedEOSE = true;
+    state.requests[connection.key]?.receivedEOSE = true;
     if (!state.closeOnEose) return;
 
-    _sendCloseToRelay(relayConnectivity, state.id);
+    _sendCloseToRelay(connection, state.id);
     _checkNetworkClose(state);
     logActive();
   }
 
   /// handles CLOSED messages for REQ [id]
-  void handleClosed(
-    String id,
-    String? message,
-    RelayConnection relayConnectivity,
-  ) {
+  void handleClosed(String id, String? message, RelayConnection connection) {
     // Check if this is an auth-required CLOSED message
     if (message != null && message.startsWith("auth-required")) {
-      _handleClosedAuthRequired(id, relayConnectivity, message);
+      _handleClosedAuthRequired(id, connection, message);
       return;
     }
 
@@ -173,11 +177,11 @@ class RelayRequests implements ConnectionListener {
     if (state != null) {
       Logger.log.t(
         () =>
-            "⛁ received CLOSE from ${relayConnectivity.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
+            "⛁ received CLOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
       );
-      RelayRequestState? request = state.requests[relayConnectivity.key];
+      RelayRequestState? request = state.requests[connection.key];
       if (request != null) {
-        _endRequestOnRelay(relayConnectivity, id, request, message);
+        _endRequestOnRelay(connection, id, request, message);
       }
 
       _checkNetworkClose(state);
@@ -185,36 +189,36 @@ class RelayRequests implements ConnectionListener {
     }
   }
 
-  /// Writes [request] on [connectivity] when a slot is free there, otherwise
+  /// Writes [request] on [connection] when a slot is free there, otherwise
   /// queues it until one is. Completes with what kept it from being written
   /// right away.
   Future<RelayFailure?> _admit(
-    RelayConnection connectivity,
+    RelayConnection connection,
     RequestState state,
     RelayRequestState request,
   ) {
     // a REQ open there already is not sent twice, nor queued twice
-    if (connectivity.holdsSlot(state.id) || _queue.contains(request)) {
+    if (connection.holdsSlot(state.id) || _queue.contains(request)) {
       return Future.value();
     }
     // before queueing too: a CLOSED auth-required it still carried would make
     // it look ended while it waits, and dropped from its queue
     request.forgetAnswers();
-    if (_queue.holdBack(connectivity, state, request)) return Future.value();
-    return _write(connectivity, state, request);
+    if (_queue.holdBack(connection, state, request)) return Future.value();
+    return _write(connection, state, request);
   }
 
-  /// Writes [request] on [connectivity], where it holds a slot from now on.
+  /// Writes [request] on [connection], where it holds a slot from now on.
   Future<RelayFailure?> _write(
-    RelayConnection connectivity,
+    RelayConnection connection,
     RequestState state,
     RelayRequestState request,
   ) async {
     final write = Object();
-    connectivity.reservedRequestIds[state.id] = write;
+    connection.reservedRequestIds[state.id] = write;
     try {
       await _connections.sendOrThrow(
-        connectivity,
+        connection,
         ClientMsg(
           ClientMsgType.kReq,
           id: state.id,
@@ -231,31 +235,31 @@ class RelayRequests implements ConnectionListener {
       Logger.log.w(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
       return RelayFailure(RelayFailureKind.connectionLost, "$e");
     } finally {
-      if (identical(connectivity.reservedRequestIds[state.id], write)) {
-        connectivity.reservedRequestIds.remove(state.id);
+      if (identical(connection.reservedRequestIds[state.id], write)) {
+        connection.reservedRequestIds.remove(state.id);
       }
       // a write that did not land frees its slot
-      if (!connectivity.holdsSlot(state.id)) admitQueuedOn(connectivity);
+      if (!connection.holdsSlot(state.id)) admitQueuedOn(connection);
     }
   }
 
   @override
-  void admitQueuedOn(RelayConnection connectivity) => _queue.admit(
-    connectivity,
-    (state, request) => unawaited(_write(connectivity, state, request)),
+  void admitQueuedOn(RelayConnection connection) => _queue.admit(
+    connection,
+    (state, request) => unawaited(_write(connection, state, request)),
   );
 
   /// Marks what the relay itself ended with a CLOSED. It stops counting as open
   /// on that connection, and there is no CLOSE left for us to send.
   void _endRequestOnRelay(
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     String reqId,
     RelayRequestState request,
     String? message,
   ) {
     request.markClosed(message);
-    if (relayConnectivity.stats.openRequestIds.remove(reqId)) {
-      admitQueuedOn(relayConnectivity);
+    if (connection.stats.openRequestIds.remove(reqId)) {
+      admitQueuedOn(connection);
     }
   }
 
@@ -306,8 +310,8 @@ class RelayRequests implements ConnectionListener {
     RelayUrl url,
     List<Filter> filters,
   ) async {
-    // a relay an engine handed over late, once the request is over, must not
-    // revive it: nothing would ever CLOSE that REQ
+    // a relay handed over late, once the request is over, must not revive it:
+    // nothing would ever CLOSE that REQ
     if (!isStillInFlight(state) || state.networkController.isClosed) return;
     final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
@@ -423,7 +427,7 @@ class RelayRequests implements ConnectionListener {
   /// bound one, while a bound connection answers the challenge itself.
   void _handleClosedAuthRequired(
     String reqId,
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     String message,
   ) {
     final state = inFlight[reqId];
@@ -434,7 +438,7 @@ class RelayRequests implements ConnectionListener {
       return;
     }
 
-    final key = relayConnectivity.key;
+    final key = connection.key;
     final request = state.requests[key];
     if (request == null) {
       Logger.log.w(
@@ -444,7 +448,7 @@ class RelayRequests implements ConnectionListener {
     }
 
     // whatever we do next, the relay just closed this one on this connection
-    _endRequestOnRelay(relayConnectivity, reqId, request, message);
+    _endRequestOnRelay(connection, reqId, request, message);
 
     if (!key.isAnonymous) {
       final session = _auth.sessionOf(key);
@@ -471,7 +475,7 @@ class RelayRequests implements ConnectionListener {
           _checkNetworkClose(state);
           return;
         }
-        unawaited(_admit(relayConnectivity, state, request));
+        unawaited(_admit(connection, state, request));
       });
       return;
     }
@@ -566,16 +570,16 @@ class RelayRequests implements ConnectionListener {
 
   /// sends a close message on the connection the subscription was sent on
   void _sendCloseToConnection(RelayConnectionKey key, String id) {
-    RelayConnection? connectivity = _connections.relays[key];
-    if (connectivity != null) {
-      _sendCloseToRelay(connectivity, id);
+    RelayConnection? connection = _connections.relays[key];
+    if (connection != null) {
+      _sendCloseToRelay(connection, id);
     }
   }
 
-  void _sendCloseToRelay(RelayConnection relayConnectivity, String id) {
+  void _sendCloseToRelay(RelayConnection connection, String id) {
     try {
       _connections.sendTo(
-        relayConnectivity,
+        connection,
         ClientMsg(ClientMsgType.kClose, id: id).toJson(),
       );
     } catch (e) {

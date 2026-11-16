@@ -14,8 +14,7 @@ import '../relay_manager/relay_manager_parts.dart';
 
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).
 ///
-/// This is the layer below `Broadcast`: no signing, no cache, no outbox
-/// routing and no retry.
+/// No signing, no cache, no outbox routing and no retry.
 class RelayPublishes {
   final RelayBroadcasts _broadcasts;
 

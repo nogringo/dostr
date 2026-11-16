@@ -1,10 +1,11 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:rxdart/rxdart.dart';
 
+import '../../../shared/logger/logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
@@ -23,8 +24,8 @@ Map<String, RelayReq> _openOn(RelayRequests requests) =>
 
 /// Opens [RelayReq]s: NIP-01 REQs on relays the caller picks.
 ///
-/// This is the layer below `Requests`: no cache, no outbox routing, no merging
-/// of identical requests and no pagination.
+/// No cache, no outbox routing, no merging of identical requests and no
+/// pagination.
 class RelayReqs {
   final RelayRequests _requests;
   final EventVerifier _eventVerifier;
@@ -142,33 +143,56 @@ class RelayReq {
     open[id] = this;
     _done = _state.ended.then((_) => _state.relayOutcomes);
 
-    _state.networkController.stream
-        .flatMap(
-          (received) => Stream.fromFuture(
-            verifyEvent(
-              received.event,
-              eventVerifier: eventVerifier,
-              cache: verifiedEventCache,
-            ).then(
-              (verified) => verified == null
-                  ? null
-                  : RelayReqEvent(verified, received.relayUrl),
-            ),
-          ),
-          maxConcurrent: 100,
-        )
-        .whereType<RelayReqEvent>()
-        .listen(
-          (event) {
-            if (!_events.isClosed) _events.add(event);
-          },
-          onDone: () {
-            unawaited(_events.close());
-            _state.end();
-            if (identical(inFlight[id], _state)) inFlight.remove(id);
-            if (identical(open[id], this)) open.remove(id);
-          },
+    final deliveries = Queue<Future<void>>();
+    Future<void> delivered = Future.value();
+    _state.networkController.stream.listen(
+      (received) {
+        // starts once the event _maxVerifying places earlier is handed over,
+        // so that at most that many are checked at once
+        final slot = deliveries.length < _maxVerifying
+            ? Future<void>.value()
+            : deliveries.removeFirst();
+        final verified = slot.then(
+          (_) => _verify(received, eventVerifier, verifiedEventCache),
         );
+        delivered = delivered.then((_) => verified).then((event) {
+          if (event != null && !_events.isClosed) _events.add(event);
+        });
+        deliveries.add(delivered);
+      },
+      onDone: () => delivered.then((_) {
+        unawaited(_events.close());
+        _state.end();
+        if (identical(inFlight[id], _state)) inFlight.remove(id);
+        if (identical(open[id], this)) open.remove(id);
+      }),
+    );
+  }
+
+  static const _maxVerifying = 100;
+
+  /// [received], or null when its id or signature is wrong, or its verifier
+  /// failed.
+  static Future<RelayReqEvent?> _verify(
+    RelayReqEvent received,
+    EventVerifier eventVerifier,
+    VerifiedEventMemCache cache,
+  ) async {
+    try {
+      final verified = await verifyEvent(
+        received.event,
+        eventVerifier: eventVerifier,
+        cache: cache,
+      );
+      return verified == null ? null : received;
+    } catch (error, stackTrace) {
+      Logger.log.w(
+        () => "Could not verify ${received.event.id}",
+        error: error,
+        stackTrace: stackTrace,
+      );
+      return null;
+    }
   }
 
   /// NIP-01 subscription id

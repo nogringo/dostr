@@ -1,6 +1,6 @@
 name: dostr_nip01
 description: The NIP-01 Nostr event with its JSON form and its id, the Filter of a REQ, the kind ranges, and the EventVerifier interface that signature verifiers implement.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
 

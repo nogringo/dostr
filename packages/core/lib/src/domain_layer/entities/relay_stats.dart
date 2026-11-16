@@ -12,7 +12,7 @@ abstract interface class RelayStats {
   /// kind as keys, count as values
   Map<int, int> get eventsRead;
 
-  /// kind as keys, bytes amount as values
+  /// kind as keys, UTF-8 bytes of the EVENT messages read as values
   Map<int, int> get dataReadBytes;
 
   /// Get total number of read events in this relay

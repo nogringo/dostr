@@ -110,7 +110,9 @@ A relay can still be added after `seal()` while the request runs: it then has to
 ### What you get
 
 - Events are signature-checked, and invalid ones are dropped.
+- An event that matches none of the filters sent to its relay is dropped too, its `search` aside, since each relay reads that one its own way.
 - Each event comes as a `RelayReqEvent`: the `event`, and the `relayUrl` that sent it.
+- The events of a relay come in the order it sent them, even when the `EventVerifier` checks several at once.
 - Events are not deduplicated: an event two relays hold arrives twice, once from each. `events.map((e) => e.event).distinctUnique()` from rxdart keeps each one once.
 - `events` is a single-subscription stream.
 - `auth` takes an `AuthPolicy`, see [NIP-42 authentication](#nip-42-authentication).

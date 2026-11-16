@@ -63,6 +63,7 @@ When the JSON has no id, they compute it.
 `toJson` leaves `sig` out of an unsigned event, such as a NIP-59 rumor.
 
 `Filter` reads its JSON form the same way: `Filter.fromJson` throws a `FormatException` where `Filter.tryFromJson` returns null.
+`filter.matches(event)` tells whether an event meets every condition of the filter, so a client can drop what a relay sent outside of it.
 
 To write a verifier, implement `EventVerifier`:
 

@@ -9,7 +9,7 @@ import 'relay_connections.dart';
 
 /// A connection whose socket dropped, while it is being brought back.
 class _Revival {
-  final RelayConnection connectivity;
+  final RelayConnection connection;
   final BinaryExponentialBackoff backoff;
   final Stopwatch since = Stopwatch()..start();
 
@@ -18,7 +18,7 @@ class _Revival {
   Timer? next;
   Future<bool>? attempt;
 
-  _Revival(this.connectivity, int maximumStep)
+  _Revival(this.connection, int maximumStep)
     : backoff = BinaryExponentialBackoff(
         initial: reconnectInitialDelay,
         maximumStep: maximumStep,
@@ -50,13 +50,13 @@ class RelayRevivals {
     return revival != null && revival.attempt == null;
   }
 
-  /// Brings [connectivity] back after its socket dropped: one attempt now, then
+  /// Brings [connection] back after its socket dropped: one attempt now, then
   /// one after each wait of its backoff, until it is back or given up.
-  Future<bool> revive(RelayConnection connectivity) {
-    final key = connectivity.key;
+  Future<bool> revive(RelayConnection connection) {
+    final key = connection.key;
     var revival = _revivals[key];
-    if (revival == null || !identical(revival.connectivity, connectivity)) {
-      revival = _revivals[key] = _Revival(connectivity, _maximumStep);
+    if (revival == null || !identical(revival.connection, connection)) {
+      revival = _revivals[key] = _Revival(connection, _maximumStep);
     }
     revival.next?.cancel();
     final current = revival;
@@ -66,8 +66,8 @@ class RelayRevivals {
   }
 
   Future<bool> _attempt(_Revival revival) async {
-    final connectivity = revival.connectivity;
-    final key = connectivity.key;
+    final connection = revival.connection;
+    final key = connection.key;
     final connections = _connections;
     // an open one was just opened by a caller that has yet to use it
     if (!connections.isConnectionOpen(key) && !connections.hasWorkOn(key)) {
@@ -92,7 +92,7 @@ class RelayRevivals {
       revival.up
         ..reset()
         ..start();
-      connections.listener.replayOn(connectivity);
+      connections.listener.replayOn(connection);
       connections.listener.endAuthRetriesOn(key);
       return true;
     }
@@ -103,7 +103,7 @@ class RelayRevivals {
       connections.listener.endRequestsOn(key);
       return false;
     }
-    revival.next = Timer(revival.backoff.next(), () => revive(connectivity));
+    revival.next = Timer(revival.backoff.next(), () => revive(connection));
     return false;
   }
 
@@ -117,20 +117,20 @@ class RelayRevivals {
   /// dropped and nothing will bring it back again.
   void forgetRevived(RelayConnectionKey key) => _revived.remove(key);
 
-  /// Takes up again the revival that brought [connectivity] back, when its
+  /// Takes up again the revival that brought [connection] back, when its
   /// socket dropped before [reconnectStableAfter]: the next attempt waits
   /// the next step of its backoff, so a relay that drops every socket it gets
   /// is not reconnected in a loop. Says whether it did.
-  bool resume(RelayConnection connectivity) {
-    final key = connectivity.key;
+  bool resume(RelayConnection connection) {
+    final key = connection.key;
     final revival = _revived.remove(key);
     if (revival == null ||
-        !identical(revival.connectivity, connectivity) ||
+        !identical(revival.connection, connection) ||
         revival.up.elapsed >= reconnectStableAfter) {
       return false;
     }
     _revivals[key] = revival;
-    revival.next = Timer(revival.backoff.next(), () => revive(connectivity));
+    revival.next = Timer(revival.backoff.next(), () => revive(connection));
     return true;
   }
 }

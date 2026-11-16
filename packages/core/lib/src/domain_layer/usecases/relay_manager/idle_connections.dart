@@ -54,18 +54,18 @@ class IdleConnections {
     var changed = false;
     try {
       for (final key in connections.relays.keys.toList()) {
-        final connectivity = connections.relays[key];
+        final connection = connections.relays[key];
         final timeout = key.isAnonymous
             ? _anonymousTimeout
             : _authenticatedTimeout;
-        if (connectivity == null || timeout == null) continue;
+        if (connection == null || timeout == null) continue;
         if (connections.hasWorkOn(key)) {
-          connectivity.idleFor.reset();
+          connection.idleFor.reset();
           continue;
         }
-        if (connectivity.idleFor.elapsed < timeout) continue;
+        if (connection.idleFor.elapsed < timeout) continue;
         Logger.log.d(
-          () => "closing $key, idle for ${connectivity.idleFor.elapsed}",
+          () => "closing $key, idle for ${connection.idleFor.elapsed}",
         );
         await connections.closeConnection(key);
         changed = true;

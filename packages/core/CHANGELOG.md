@@ -100,6 +100,7 @@ A connection that is still connecting has `relay.connecting` set in `RelayManage
 `Relay` loses its setters, `tryingToConnect`, `succeededToConnect` and `failedToConnect`.
 `RelayStats` loses its setters, `openRequestIds` and `incStatsByNewEvent`, and its maps are unmodifiable.
 `eventsWritten` and `dataWrittenBytes` are gone: nothing ever filled them.
+`dataReadBytes` counts the UTF-8 bytes of the EVENT messages, where it used to count their UTF-16 code units.
 
 A relay message that misses a field or carries one of the wrong type, and a binary frame, are logged and dropped, and so is an exception a `RelayProtocolHandler` throws.
 They used to escape as uncaught errors, which end a plain Dart process.
@@ -158,6 +159,10 @@ Close one with `RelayReq.close`, by its id with `RelayReqs.close`, or all of the
 `RelayReq.events` gives each event as a `RelayReqEvent`, with the relay that sent it in `relayUrl`.
 The deprecated `Nip01Event.sources` is gone.
 
+`RelayReq.events` drops an event that matches none of the filters sent to its relay, its `search` aside.
+It hands out the events in the order the relays sent them, where they used to come in the order their signatures were checked.
+An event whose `EventVerifier` throws is logged and dropped, where the error used to escape as an uncaught error.
+
 `EventFilter` is gone, since no request takes one any more: filter `RelayReq.events` with `where`.
 
 A subscription now reports `RelayRequestStatus.eose` on each relay that sent its EOSE, instead of staying `pending` until it is closed.
@@ -184,7 +189,7 @@ What `dostr_core` itself failed at comes as a `RelayFailure`, whose `RelayFailur
 
 An empty list in a `Filter` matches nothing, as NIP-01 requires, instead of standing for an absent one.
 `toJson`, `fromJson` and `clone` keep `authors: []`, where they used to drop it and leave a filter with no author constraint at all.
-`Filter.matchesNothing` tells whether a filter can match any event.
+`Filter.matchesNothing` tells whether a filter can match any event, and `Filter.matches` whether an event meets every condition of a filter.
 
 `Filter.toMap` and `Filter.fromMap` are now `toJson` and `fromJson`, as in `Nip01Event`.
 `fromJson` is strict: a field of the wrong type throws a `FormatException` instead of a `TypeError`, and `Filter.tryFromJson` returns null where it throws.

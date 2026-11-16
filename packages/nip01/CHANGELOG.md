@@ -1,3 +1,7 @@
+## 0.1.1
+
+ - `Filter.matches`, which tells whether an event meets every condition of a filter, its `search` aside, for a client to check what a relay sent.
+
 ## 0.1.0
 
  - Initial release, moved out of the `ndk` package.

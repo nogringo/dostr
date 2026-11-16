@@ -1,5 +1,7 @@
 import 'dart:collection';
 
+import 'nip_01_event.dart';
+
 /// The NIP-01 filter of a REQ: an event matches it when it meets every
 /// condition the filter sets. Its fields can change: [clone] gives an
 /// independent copy.
@@ -142,6 +144,24 @@ class Filter {
       (authors?.isEmpty ?? false) ||
       (kinds?.isEmpty ?? false) ||
       (_tags?.values.any((values) => values.isEmpty) ?? false);
+
+  /// Whether [event] meets every condition of this filter, as NIP-01 says a
+  /// relay checks it. [search] is not checked: each relay reads it its own way.
+  bool matches(Nip01Event event) =>
+      (ids?.contains(event.id) ?? true) &&
+      (authors?.contains(event.pubkey) ?? true) &&
+      (kinds?.contains(event.kind) ?? true) &&
+      (since == null || event.createdAt >= since!) &&
+      (until == null || event.createdAt <= until!) &&
+      (_tags?.entries.every(
+            (wanted) => event.tags.any(
+              (tag) =>
+                  tag.length > 1 &&
+                  tag[0] == wanted.key &&
+                  wanted.value.contains(tag[1]),
+            ),
+          ) ??
+          true);
 
   /// The NIP-01 JSON object of this filter, ready for `jsonEncode`.
   Map<String, dynamic> toJson() {

@@ -46,7 +46,7 @@ class BroadcastState implements TimeoutPausable {
   /// completes when all relays have responded or timed out
   /// first string is the relay url, second is the response
   bool get publishDone {
-    // If no relays were registered and the engine closed the controller, it's done
+    // sealed without a relay
     if (broadcasts.isEmpty) {
       return networkController.isClosed;
     }

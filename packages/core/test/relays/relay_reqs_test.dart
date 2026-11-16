@@ -434,6 +434,97 @@ void main() {
     });
   });
 
+  group('the events a relay sends', () {
+    Future<(MockRelay, RelayReq, List<Nip01Event>)> subscribe(
+      RelayReqs reqs, [
+      List<Filter>? filters,
+    ]) async {
+      final relay = await startRelay();
+      final req = reqs.req(
+        relays: {relay.url: filters ?? notes},
+        closeOnEose: false,
+      );
+      final received = <Nip01Event>[];
+      req.events.listen((e) => received.add(e.event));
+      await eventually(() => subscribed(relay, req));
+      return (relay, req, received);
+    }
+
+    void send(MockRelay relay, RelayReq req, Iterable<Nip01Event> events) {
+      for (final event in events) {
+        relay.sendToAll(['EVENT', req.id, event.toJson()]);
+      }
+    }
+
+    test('are dropped when they match none of its filters', () async {
+      final (relay, req, received) = await subscribe(reqs, [
+        Filter(kinds: [1], authors: [alice]),
+        Filter(kinds: [7]),
+      ]);
+      final byBob = signedEvent(pubkey: bob, content: 'not asked for');
+      final reaction = signedEvent(pubkey: bob, kind: 7);
+      final byAlice = signedEvent(content: 'asked for');
+
+      send(relay, req, [byBob, reaction, byAlice]);
+      await eventually(() => received.any((e) => e.id == byAlice.id));
+
+      expect(received.map((e) => e.id), [reaction.id, byAlice.id]);
+      await req.close();
+    });
+
+    test('come in the order it sent them, whatever their verification '
+        'takes', () async {
+      final slow = signedEvent(content: 'slow');
+      final fast = signedEvent(content: 'fast');
+      final verifier = _ScriptedVerifier(held: {slow.id});
+      final (relay, req, received) = await subscribe(
+        RelayReqs(relayManager: manager, eventVerifier: verifier),
+      );
+
+      send(relay, req, [slow, fast]);
+      await eventually(() => verifier.verifying.length == 2);
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      expect(received, isEmpty);
+
+      verifier.release.complete();
+      await eventually(() => received.length == 2);
+      expect(received.map((e) => e.id), [slow.id, fast.id]);
+      await req.close();
+    });
+
+    test('are dropped when their verifier throws, and the next ones still '
+        'come', () async {
+      final failing = signedEvent(content: 'failing');
+      final next = signedEvent(content: 'next');
+      final (relay, req, received) = await subscribe(
+        RelayReqs(
+          relayManager: manager,
+          eventVerifier: _ScriptedVerifier(throwing: {failing.id}),
+        ),
+      );
+
+      send(relay, req, [failing, next]);
+      await eventually(() => received.isNotEmpty);
+
+      expect(received.map((e) => e.id), [next.id]);
+      await req.close();
+    });
+
+    test('count in the relay stats by their UTF-8 bytes', () async {
+      final (relay, req, received) = await subscribe(reqs);
+      final note = signedEvent(content: 'héllo 🌍');
+      final message = ['EVENT', req.id, note.toJson()];
+
+      relay.sendToAll(message);
+      await eventually(() => received.isNotEmpty);
+
+      expect(manager.getRelayConnectivity(relay.url)!.stats.dataReadBytes, {
+        1: utf8.encode(jsonEncode(message)).length,
+      });
+      await req.close();
+    });
+  });
+
   for (final closeOnEose in [true, false]) {
     test('a ${closeOnEose ? 'query' : 'subscription'} ends as disconnected '
         'once its connection is closed', () async {
@@ -491,4 +582,23 @@ void main() {
       expect(await reqs.close(second.id), isFalse);
     });
   });
+}
+
+/// Accepts [fakeSig], once [release] completes for the events in [held], and
+/// throws for those in [throwing].
+class _ScriptedVerifier implements EventVerifier {
+  _ScriptedVerifier({this.held = const {}, this.throwing = const {}});
+
+  final Set<String> held;
+  final Set<String> throwing;
+  final release = Completer<void>();
+  final verifying = <String>[];
+
+  @override
+  Future<bool> verify(Nip01Event event) async {
+    verifying.add(event.id);
+    if (held.contains(event.id)) await release.future;
+    if (throwing.contains(event.id)) throw StateError('verifier bug');
+    return event.sig == fakeSig;
+  }
 }

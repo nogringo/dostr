@@ -52,17 +52,17 @@ class ReqQueue {
   int _subscriptionsIn(Set<String> slots) =>
       slots.where((id) => _inFlight[id]?.isSubscription ?? false).length;
 
-  /// Queues [request] when [connectivity] has no slot for it right now, and
+  /// Queues [request] when [connection] has no slot for it right now, and
   /// says whether it did.
   bool holdBack(
-    RelayConnection connectivity,
+    RelayConnection connection,
     RequestState state,
     RelayRequestState request,
   ) {
-    final limit = connectivity.subscriptionLimit;
+    final limit = connection.subscriptionLimit;
     var heldByShare = false;
-    if (limit != null && connectivity.isConnected) {
-      final slots = connectivity.heldSlots;
+    if (limit != null && connection.isConnected) {
+      final slots = connection.heldSlots;
       heldByShare =
           state.isSubscription &&
           _subscriptionsIn(slots) >= _subscriptionShare(limit);
@@ -71,15 +71,15 @@ class ReqQueue {
     if (heldByShare) {
       Logger.log.w(
         () =>
-            "REQ ${state.id} waits on ${connectivity.key}: subscriptions hold "
+            "REQ ${state.id} waits on ${connection.key}: subscriptions hold "
             "${_subscriptionShare(limit!)} of its $limit slots",
       );
     } else {
       Logger.log.d(
-        () => "REQ ${state.id} waits for a slot on ${connectivity.key}",
+        () => "REQ ${state.id} waits for a slot on ${connection.key}",
       );
     }
-    _waiting.putIfAbsent(connectivity.key, _Waiting.new).of(state).add((
+    _waiting.putIfAbsent(connection.key, _Waiting.new).of(state).add((
       order: _queuedSoFar++,
       state: state,
       request: request,
@@ -88,16 +88,16 @@ class ReqQueue {
     return true;
   }
 
-  /// Hands to [write], oldest first, the requests waiting on [connectivity]
+  /// Hands to [write], oldest first, the requests waiting on [connection]
   /// that now fit there.
   void admit(
-    RelayConnection connectivity,
+    RelayConnection connection,
     void Function(RequestState state, RelayRequestState request) write,
   ) {
-    final waiting = _waiting[connectivity.key];
-    final limit = connectivity.subscriptionLimit;
-    if (waiting == null || limit == null || !connectivity.isConnected) return;
-    final slots = connectivity.heldSlots;
+    final waiting = _waiting[connection.key];
+    final limit = connection.subscriptionLimit;
+    if (waiting == null || limit == null || !connection.isConnected) return;
+    final slots = connection.heldSlots;
     final share = _subscriptionShare(limit);
     var held = slots.length;
     var subscriptions = _subscriptionsIn(slots);
@@ -114,13 +114,13 @@ class ReqQueue {
       if (next == null) break;
       waiting.of(next.state).removeFirst();
       _queued.remove(next.request);
-      if (connectivity.holdsSlot(next.state.id)) continue;
+      if (connection.holdsSlot(next.state.id)) continue;
       held++;
       if (next.state.isSubscription) subscriptions++;
       write(next.state, next.request);
     }
-    if (waiting.isEmpty && identical(_waiting[connectivity.key], waiting)) {
-      _waiting.remove(connectivity.key);
+    if (waiting.isEmpty && identical(_waiting[connection.key], waiting)) {
+      _waiting.remove(connection.key);
     }
   }
 

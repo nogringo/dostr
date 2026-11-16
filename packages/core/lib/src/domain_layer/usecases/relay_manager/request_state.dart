@@ -137,7 +137,7 @@ class RelayRequestState {
 
 /// State per request for multiple relays
 class RequestState implements TimeoutPausable {
-  /// [networkController] used by engines to write their response
+  /// what the relays send for this request, before it is verified
   StreamController<RelayReqEvent> networkController =
       StreamController<RelayReqEvent>();
 
@@ -412,19 +412,6 @@ class RequestState implements TimeoutPausable {
     requests[request.key] = request;
     _requestsByUrl.putIfAbsent(request.url, () => []).add(request);
     _onRelayRequestChanged(request.url);
-  }
-
-  /// Closes the network stream if the request was not sent to any relay.
-  /// Engines call this once they are done dispatching: without a relay to
-  /// answer, nothing would end the request but its timeout. A send path that
-  /// is still working out its connection still counts, it may yet register one.
-  void closeIfNoRelays() {
-    if (requests.isNotEmpty ||
-        pendingConnections > 0 ||
-        networkController.isClosed) {
-      return;
-    }
-    networkController.close();
   }
 
   /// Stops the timeout and closes [relayOutcomesStream]. A query ends here

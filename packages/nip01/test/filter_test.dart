@@ -232,4 +232,83 @@ void main() {
       isFalse,
     );
   });
+
+  group('matches', () {
+    final alice = 'a' * 64;
+    final bob = 'b' * 64;
+    final note = Nip01Event(
+      pubkey: alice,
+      kind: 1,
+      tags: [
+        ['p', bob],
+        ['t', 'nostr'],
+        ['e'],
+      ],
+      content: 'hello',
+      createdAt: 1000,
+    );
+
+    test('an event, when the filter sets nothing', () {
+      expect(Filter().matches(note), isTrue);
+      expect(Filter(limit: 1, search: 'goodbye').matches(note), isTrue);
+    });
+
+    test('an event listed in ids, authors and kinds', () {
+      expect(Filter(ids: ['x', note.id]).matches(note), isTrue);
+      expect(Filter(ids: ['x']).matches(note), isFalse);
+      expect(Filter(authors: [bob, alice]).matches(note), isTrue);
+      expect(Filter(authors: [bob]).matches(note), isFalse);
+      expect(Filter(kinds: [7, 1]).matches(note), isTrue);
+      expect(Filter(kinds: [7]).matches(note), isFalse);
+    });
+
+    test('an event between since and until, both included', () {
+      expect(Filter(since: 1000, until: 1000).matches(note), isTrue);
+      expect(Filter(since: 1001).matches(note), isFalse);
+      expect(Filter(until: 999).matches(note), isFalse);
+    });
+
+    test('an event with a tag of each name, holding a listed value', () {
+      expect(Filter(pTags: [alice, bob]).matches(note), isTrue);
+      expect(Filter(pTags: [alice]).matches(note), isFalse);
+      expect(
+        Filter(
+          tags: {
+            'p': [bob],
+            't': ['nostr'],
+          },
+        ).matches(note),
+        isTrue,
+      );
+      expect(
+        Filter(
+          tags: {
+            'p': [bob],
+            't': ['bitcoin'],
+          },
+        ).matches(note),
+        isFalse,
+      );
+      expect(Filter(eTags: ['e']).matches(note), isFalse);
+    });
+
+    test('an event only when it meets every condition', () {
+      expect(Filter(authors: [alice], kinds: [7]).matches(note), isFalse);
+      expect(
+        Filter(authors: [alice], kinds: [1], pTags: [bob]).matches(note),
+        isTrue,
+      );
+    });
+
+    test('nothing, with an empty list', () {
+      for (final filter in [
+        Filter(ids: []),
+        Filter(authors: []),
+        Filter(kinds: []),
+        Filter(pTags: []),
+      ]) {
+        expect(filter.matches(note), isFalse, reason: '$filter');
+      }
+    });
+  });
 }

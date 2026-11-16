@@ -28,8 +28,8 @@ import 'relay_revivals.dart';
 /// What the work riding on the connections of [RelayConnections] has to do
 /// when a socket comes back or goes away.
 abstract interface class ConnectionListener {
-  /// Puts back on [connectivity] what the socket it replaces still owed.
-  void replayOn(RelayConnection connectivity);
+  /// Puts back on [connection] what the socket it replaces still owed.
+  void replayOn(RelayConnection connection);
 
   /// Gives up on what was waiting for [key] to replay it after an
   /// authentication.
@@ -38,16 +38,16 @@ abstract interface class ConnectionListener {
   /// Gives up on what [key] still owed, once nothing will bring it back.
   void endRequestsOn(RelayConnectionKey key);
 
-  /// Writes the queued REQs that now fit on [connectivity]: a slot was freed
+  /// Writes the queued REQs that now fit on [connection]: a slot was freed
   /// there, or its limit became known.
-  void admitQueuedOn(RelayConnection connectivity);
+  void admitQueuedOn(RelayConnection connection);
 }
 
 /// A decoded relay message, in the order its relay sent it.
 typedef RelayMessageHandler =
     Future<void> Function(
       NostrMessageRaw message,
-      RelayConnection connectivity,
+      RelayConnection connection,
       dynamic raw,
     );
 
@@ -79,7 +79,7 @@ class RelayConnections {
 
   /// touched relays - connected, connecting, disconnected
   /// key: relay url and identity bound to the connection
-  /// value: relay connectivity
+  /// value: relay connection
   final Map<RelayConnectionKey, RelayConnection> relays = {};
 
   /// relays that are blocked
@@ -117,7 +117,7 @@ class RelayConnections {
        _onMessage = onMessage,
        _reconnectMaximumStep = reconnectMaximumStep {
     _limits = RelayLimits(
-      onKnown: (connectivity) => listener.admitQueuedOn(connectivity),
+      onKnown: (connection) => listener.admitQueuedOn(connection),
       subscriptionLimit: subscriptionLimit,
       messageLengthLimit: messageLengthLimit,
       onMessageLengthLearned: onMessageLengthLearned,
@@ -139,17 +139,17 @@ class RelayConnections {
   /// Every open connection, anonymous or bound, so a relay can show up more
   /// than once. [isRelayConnected] checks a single relay.
   List<RelayConnection> get connectedRelays =>
-      relays.values.where((connectivity) => connectivity.isConnected).toList();
+      relays.values.where((connection) => connection.isConnected).toList();
 
   /// Connected connections bound to nobody, one per relay at most.
   ///
-  /// Engines pick relays, not identities: sending on every connection of a
+  /// Callers pick relays, not identities: sending on every connection of a
   /// relay would duplicate the request, and sending on a bound one would make
   /// it attributable. An identity is added later, by the re-route, and only on
   /// the relays that ask for one.
   List<RelayConnection> get connectedAnonymousRelays => relays.values
-      .where((connectivity) => connectivity.key.isAnonymous)
-      .where((connectivity) => connectivity.isConnected)
+      .where((connection) => connection.key.isAnonymous)
+      .where((connection) => connection.isConnected)
       .toList();
 
   /// Whether the anonymous connection to [url] is open.
@@ -168,10 +168,10 @@ class RelayConnections {
 
   /// Whether a socket for [key] is still being opened.
   bool isOpening(RelayConnectionKey key) {
-    final connectivity = relays[key];
+    final connection = relays[key];
     return _connectReadyCompleters.containsKey(key) ||
-        (connectivity?.relay.connecting ?? false) ||
-        (connectivity?.relayTransport?.isConnecting() ?? false);
+        (connection?.relay.connecting ?? false) ||
+        (connection?.relayTransport?.isConnecting() ?? false);
   }
 
   /// The anonymous connection to [url], if there is one.
@@ -245,22 +245,22 @@ class RelayConnections {
         failure: const RelayFailure(RelayFailureKind.stillConnecting),
       );
     }
-    RelayConnection? relayConnectivity = relays[connectionKey];
+    RelayConnection? connection = relays[connectionKey];
     final connectCompleter =
         Completer<({bool connected, RelayFailure? failure})>();
     _connectReadyCompleters[connectionKey] = connectCompleter;
     NostrTransport? transport;
-    bool ownsTransport() => _isCurrent(relayConnectivity, transport);
+    bool ownsTransport() => _isCurrent(connection, transport);
     Object? failure;
 
     try {
-      if (relayConnectivity == null) {
-        relayConnectivity = RelayConnection(connectionKey);
-        relays[connectionKey] = relayConnectivity;
+      if (connection == null) {
+        connection = RelayConnection(connectionKey);
+        relays[connectionKey] = connection;
       }
 
-      relayConnectivity.relay.tryingToConnect();
-      relayConnectivity.idleFor.reset();
+      connection.relay.tryingToConnect();
+      connection.idleFor.reset();
       _idle.watch();
 
       Logger.log.i(() => "connecting to relay $dirtyUrl");
@@ -270,13 +270,13 @@ class RelayConnections {
       _auth.forget(connectionKey);
       // A disconnected transport may still own reconnect timers and listeners.
       // Retire it before replacement or it can later open an untracked socket.
-      await relayConnectivity.close();
-      if (!identical(relays[connectionKey], relayConnectivity)) {
+      await connection.close();
+      if (!identical(relays[connectionKey], connection)) {
         throw StateError(
           'Connection was removed while replacing its transport',
         );
       }
-      _limits.ask(relayConnectivity);
+      _limits.ask(connection);
       final elapsed = Stopwatch()..start();
       final backoff = BinaryExponentialBackoff(
         initial: reconnectInitialDelay,
@@ -284,11 +284,11 @@ class RelayConnections {
       );
       while (true) {
         transport = nostrTransportFactory(url);
-        relayConnectivity.relayTransport = transport;
+        connection.relayTransport = transport;
         // Start listening immediately so we don't miss early frames such as
         // relay AUTH challenges that may arrive before the transport reports
         // itself fully open.
-        _startListeningToSocket(relayConnectivity);
+        _startListeningToSocket(connection);
         final notOpen = await _whyNotOpen(
           transport,
           connectTimeout - elapsed.elapsed,
@@ -300,16 +300,16 @@ class RelayConnections {
         // a refusal is tried again until connectTimeout runs out
         final wait = backoff.next();
         if (elapsed.elapsed + wait >= connectTimeout) throw notOpen;
-        await relayConnectivity.close();
+        await connection.close();
         await Future<void>.delayed(wait);
-        if (!identical(relays[connectionKey], relayConnectivity)) {
+        if (!identical(relays[connectionKey], connection)) {
           throw StateError('Connection was removed while connecting');
         }
       }
 
       Logger.log.i(() => "connected to relay: $url");
-      relayConnectivity.relay.succeededToConnect();
-      relayConnectivity.stats.connections++;
+      connection.relay.succeededToConnect();
+      connection.stats.connections++;
       final connected = (connected: true, failure: null);
       if (!connectCompleter.isCompleted) {
         connectCompleter.complete(connected);
@@ -320,7 +320,7 @@ class RelayConnections {
       notifyChanged();
       // opened by someone else while waiting for its next attempt: replay now
       if (_revivals.isWaiting(connectionKey)) {
-        unawaited(_revivals.revive(relayConnectivity));
+        unawaited(_revivals.revive(connection));
       }
       return connected;
     } catch (e) {
@@ -328,8 +328,8 @@ class RelayConnections {
       Logger.log.e(() => "!! could not connect to $url -> $failure");
       try {
         if (transport == null ||
-            identical(relayConnectivity!.relayTransport, transport)) {
-          await relayConnectivity!.close();
+            identical(connection!.relayTransport, transport)) {
+          await connection!.close();
         } else {
           await transport.close();
         }
@@ -337,10 +337,10 @@ class RelayConnections {
         Logger.log.w(() => "Error retiring transport for $url: $closeError");
       }
     }
-    final failedConnectivity = relayConnectivity;
-    if (failedConnectivity != null) {
-      failedConnectivity.relay.failedToConnect();
-      failedConnectivity.stats.connectionErrors++;
+    final failedConnection = connection;
+    if (failedConnection != null) {
+      failedConnection.relay.failedToConnect();
+      failedConnection.stats.connectionErrors++;
     }
     final failed = (
       connected: false,
@@ -379,20 +379,20 @@ class RelayConnections {
       return connected;
     }
 
-    RelayConnection? relayConnectivity = relays[key];
-    final transport = relayConnectivity?.relayTransport;
+    RelayConnection? connection = relays[key];
+    final transport = connection?.relayTransport;
     if (transport != null &&
         await _whyNotOpen(transport, defaultWebSocketConnectTimeout) == null &&
-        identical(relayConnectivity!.relayTransport, transport)) {
+        identical(connection!.relayTransport, transport)) {
       notifyChanged();
       return true;
     }
-    if (relayConnectivity == null ||
-        relayConnectivity.relayTransport == null ||
-        !relayConnectivity.relayTransport!.isOpen()) {
+    if (connection == null ||
+        connection.relayTransport == null ||
+        !connection.relayTransport!.isOpen()) {
       if (!force &&
-          (relayConnectivity != null &&
-              !relayConnectivity.relay.wasLastConnectTryLongerThanSeconds(
+          (connection != null &&
+              !connection.relay.wasLastConnectTryLongerThanSeconds(
                 failRelayConnectTryAfterSeconds,
               ))) {
         // don't try too often
@@ -414,10 +414,10 @@ class RelayConnections {
         // could not connect
         return false;
       }
-      relayConnectivity = relays[key];
-      if (relayConnectivity == null ||
-          relayConnectivity.relayTransport == null ||
-          !relayConnectivity.relayTransport!.isOpen()) {
+      connection = relays[key];
+      if (connection == null ||
+          connection.relayTransport == null ||
+          !connection.relayTransport!.isOpen()) {
         // web socket is not open
         return false;
       }
@@ -459,34 +459,34 @@ class RelayConnections {
       authPubkey: account.publicKey,
       connectTimeout: connectTimeout,
     );
-    final connectivity = relays[key];
-    if (!result.connected || connectivity == null) {
+    final connection = relays[key];
+    if (!result.connected || connection == null) {
       Logger.log.w(() => "Could not open $key: ${result.failure}");
       return null;
     }
-    return connectivity;
+    return connection;
   }
 
   /// Answers the challenge for [key] and completes once the relay accepted the
   /// AUTH event. Concurrent callers share a single AUTH.
   Future<bool> authenticate(RelayConnectionKey key) {
-    final connectivity = relays[key];
-    if (key.isAnonymous || connectivity == null) {
+    final connection = relays[key];
+    if (key.isAnonymous || connection == null) {
       return Future.value(false);
     }
-    return _auth.authenticate(key, (message) => sendTo(connectivity, message));
+    return _auth.authenticate(key, (message) => sendTo(connection, message));
   }
 
   /// Closes and clears only transport-scoped state of one connection, while
   /// keeping its entry and relay-scoped metadata in memory.
   Future<void> resetConnection(RelayConnectionKey key) async {
-    final connectivity = relays[key];
-    if (connectivity != null) {
+    final connection = relays[key];
+    if (connection != null) {
       Logger.log.d(() => "Resetting transport for $key...");
       _revivals.stop(key);
-      connectivity.relay.failedToConnect();
+      connection.relay.failedToConnect();
       _auth.forget(key);
-      await connectivity.close();
+      await connection.close();
       listener.endAuthRetriesOn(key);
       notifyChanged();
     }
@@ -495,107 +495,101 @@ class RelayConnections {
   /// Reconnects every connection that is not connected, all at once, even one
   /// that just failed to, and replays the requests it was carrying.
   Future<void> reconnectClosedConnections() => Future.wait([
-    for (final connectivity in relays.values.toList())
-      if (!connectivity.isConnected) _reconnectNow(connectivity),
+    for (final connection in relays.values.toList())
+      if (!connection.isConnected) _reconnectNow(connection),
   ]);
 
-  Future<void> _reconnectNow(RelayConnection connectivity) async {
-    if (_revivals.isReviving(connectivity.key)) {
-      await _revivals.revive(connectivity);
+  Future<void> _reconnectNow(RelayConnection connection) async {
+    if (_revivals.isReviving(connection.key)) {
+      await _revivals.revive(connection);
       return;
     }
-    final connected = await reconnectConnection(connectivity.key, force: true);
+    final connected = await reconnectConnection(connection.key, force: true);
     notifyChanged();
-    if (connected) listener.replayOn(connectivity);
+    if (connected) listener.replayOn(connection);
   }
 
   /// Writes [data] and tells whether it reached the transport
   bool _sendRaw(
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     NostrTransport transport,
     dynamic data,
   ) {
-    if (!identical(relayConnectivity.relayTransport, transport) ||
+    if (!identical(connection.relayTransport, transport) ||
         !transport.isOpen()) {
       Logger.log.t(
-        () =>
-            "skip send to ${relayConnectivity.url}: transport changed or closed",
+        () => "skip send to ${connection.url}: transport changed or closed",
       );
       return false;
     }
     transport.send(data);
-    relayConnectivity.idleFor.reset();
-    Logger.log.d(() => "send message to ${relayConnectivity.url}: $data");
+    connection.idleFor.reset();
+    Logger.log.d(() => "send message to ${connection.url}: $data");
     return true;
   }
 
   /// Sends [message] and surfaces transport churn/closed-socket failures to
   /// the caller instead of silently dropping the write.
   Future<void> sendOrThrow(
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     List<dynamic> message,
   ) async {
-    NostrTransport? transport = relayConnectivity.relayTransport;
+    NostrTransport? transport = connection.relayTransport;
     if (transport == null) {
-      throw StateError("relay not connected: ${relayConnectivity.url}");
+      throw StateError("relay not connected: ${connection.url}");
     }
 
     await transport.ready;
 
-    if (!identical(relayConnectivity.relayTransport, transport) ||
+    if (!identical(connection.relayTransport, transport) ||
         !transport.isOpen()) {
-      transport = relayConnectivity.relayTransport;
+      transport = connection.relayTransport;
       if (transport == null) {
         throw StateError(
-          "transport changed while waiting for ${relayConnectivity.url}",
+          "transport changed while waiting for ${connection.url}",
         );
       }
 
       await transport.ready;
 
-      if (!identical(relayConnectivity.relayTransport, transport) ||
+      if (!identical(connection.relayTransport, transport) ||
           !transport.isOpen()) {
         throw StateError(
-          "transport changed while waiting for ${relayConnectivity.url}",
+          "transport changed while waiting for ${connection.url}",
         );
       }
     }
 
     // a REQ already waited for them in its queue
     if (message.first == ClientMsgType.kEvent) {
-      await relayConnectivity.limitsKnown.future;
+      await connection.limitsKnown.future;
     }
     final String encodedMsg = jsonEncode(message);
-    if (!identical(relayConnectivity.relayTransport, transport) ||
+    if (!identical(connection.relayTransport, transport) ||
         !transport.isOpen()) {
-      throw StateError(
-        "transport closed before send: ${relayConnectivity.url}",
-      );
+      throw StateError("transport closed before send: ${connection.url}");
     }
     final length = utf8.encode(encodedMsg).length;
-    _limits.check(relayConnectivity, length);
-    if (_sendRaw(relayConnectivity, transport, encodedMsg)) {
-      relayConnectivity.longestMessage = max(
-        relayConnectivity.longestMessage,
-        length,
-      );
-      _countRequest(relayConnectivity, message);
+    _limits.check(connection, length);
+    if (_sendRaw(connection, transport, encodedMsg)) {
+      connection.longestMessage = max(connection.longestMessage, length);
+      _countRequest(connection, message);
     }
   }
 
   /// Keeps the open requests of a connection on the connection that carries
   /// them: a REQ re-routed to another one is not accounted here.
-  void _countRequest(RelayConnection relayConnectivity, List<dynamic> message) {
+  void _countRequest(RelayConnection connection, List<dynamic> message) {
     switch (message) {
       case [ClientMsgType.kReq, final String id, ...]:
-        relayConnectivity.stats.openRequestIds.add(id);
+        connection.stats.openRequestIds.add(id);
         for (final waiter
             in _requestSentWaiters.remove(id) ?? <Completer<void>>{}) {
           waiter.complete();
         }
       case [ClientMsgType.kClose, final String id, ...]:
-        if (relayConnectivity.stats.openRequestIds.remove(id)) {
-          listener.admitQueuedOn(relayConnectivity);
+        if (connection.stats.openRequestIds.remove(id)) {
+          listener.admitQueuedOn(connection);
         }
     }
   }
@@ -625,55 +619,55 @@ class RelayConnections {
   /// Sends [message] on the connection behind [key] once its socket is ready,
   /// see [sendTo].
   void send(RelayConnectionKey key, List<dynamic> message) {
-    final relayConnectivity = relays[key];
-    if (relayConnectivity == null) {
+    final connection = relays[key];
+    if (connection == null) {
       Logger.log.t(() => "skip send to $key: no such connection");
       return;
     }
-    sendTo(relayConnectivity, message);
+    sendTo(connection, message);
   }
 
-  /// Sends [message] on [relayConnectivity] once its socket is ready. It is
+  /// Sends [message] on [connection] once its socket is ready. It is
   /// dropped, and logged, when that socket goes away first.
-  void sendTo(RelayConnection relayConnectivity, List<dynamic> message) {
+  void sendTo(RelayConnection connection, List<dynamic> message) {
     unawaited(
-      sendOrThrow(relayConnectivity, message).catchError((Object error) {
+      sendOrThrow(connection, message).catchError((Object error) {
         if (error is MessageTooLong) {
-          Logger.log.w(() => "skip send to ${relayConnectivity.url}: $error");
+          Logger.log.w(() => "skip send to ${connection.url}: $error");
         } else {
-          Logger.log.t(() => "skip send to ${relayConnectivity.url}: $error");
+          Logger.log.t(() => "skip send to ${connection.url}: $error");
         }
       }),
     );
   }
 
-  /// Whether [connectivity] is still the connection tracked under its key, and
+  /// Whether [connection] is still the connection tracked under its key, and
   /// [transport] still the one it runs on: anything a replaced one reports is
   /// stale.
-  bool _isCurrent(RelayConnection? connectivity, NostrTransport? transport) =>
-      connectivity != null &&
+  bool _isCurrent(RelayConnection? connection, NostrTransport? transport) =>
+      connection != null &&
       transport != null &&
-      identical(relays[connectivity.key], connectivity) &&
-      identical(connectivity.relayTransport, transport);
+      identical(relays[connection.key], connection) &&
+      identical(connection.relayTransport, transport);
 
-  void _startListeningToSocket(RelayConnection relayConnectivity) {
-    final transport = relayConnectivity.relayTransport;
-    relayConnectivity.listen(
+  void _startListeningToSocket(RelayConnection connection) {
+    final transport = connection.relayTransport;
+    connection.listen(
       (message) {
-        if (!_isCurrent(relayConnectivity, transport)) return;
-        _handleIncomingMessage(message, relayConnectivity);
+        if (!_isCurrent(connection, transport)) return;
+        _handleIncomingMessage(message, connection);
       },
       onError: (error) {
-        if (!_isCurrent(relayConnectivity, transport)) return;
-        Logger.log.e(() => "onError ${relayConnectivity.url} on listen $error");
-        _handleTransportGone(relayConnectivity, transport);
+        if (!_isCurrent(connection, transport)) return;
+        Logger.log.e(() => "onError ${connection.url} on listen $error");
+        _handleTransportGone(connection, transport);
       },
       onDone: () {
         Logger.log.t(
           () =>
-              "onDone ${relayConnectivity.url} on listen (close: ${relayConnectivity.relayTransport?.closeCode()} ${relayConnectivity.relayTransport?.closeReason()})",
+              "onDone ${connection.url} on listen (close: ${connection.relayTransport?.closeCode()} ${connection.relayTransport?.closeReason()})",
         );
-        _handleTransportGone(relayConnectivity, transport);
+        _handleTransportGone(connection, transport);
       },
     );
   }
@@ -686,31 +680,31 @@ class RelayConnections {
   /// Runs once per transport, so a late event from a socket that was already
   /// replaced leaves the current one alone.
   Future<void> _handleTransportGone(
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     NostrTransport? transport,
   ) async {
-    if (!_isCurrent(relayConnectivity, transport)) return;
-    final key = relayConnectivity.key;
+    if (!_isCurrent(connection, transport)) return;
+    final key = connection.key;
     // a socket that ends while it opens is a failed connect, which connectRelay
     // reports and the backoff retries: reviving it here would skip that wait
     if (_connectReadyCompleters.containsKey(key)) return;
-    relayConnectivity.stats.connectionErrors++;
+    connection.stats.connectionErrors++;
     if (transport?.closeCode() == ws_status.messageTooBig) {
-      _limits.learnFrom(relayConnectivity);
+      _limits.learnFrom(connection);
     }
     // the AUTH the relay accepted died with the socket, and so did any still
     // waiting for its OK
     _auth.forget(key);
 
     try {
-      await relayConnectivity.close();
+      await connection.close();
     } catch (e) {
-      Logger.log.w(() => "Error closing relay ${relayConnectivity.url}: $e");
+      Logger.log.w(() => "Error closing relay ${connection.url}: $e");
     }
     // Closing can yield while a new owner or transport takes over. Its AUTH
     // and subscriptions belong to the replacement, not this retired socket.
-    if (!identical(relays[key], relayConnectivity) ||
-        relayConnectivity.relayTransport != null) {
+    if (!identical(relays[key], connection) ||
+        connection.relayTransport != null) {
       return;
     }
     if (!hasWorkOn(key)) {
@@ -722,9 +716,9 @@ class RelayConnections {
     notifyChanged();
     // deliberate closes cancel the stream subscription first and never get here
     if (allowReconnect) {
-      Logger.log.i(() => "closed ${relayConnectivity.url}. Reconnecting");
-      if (!_revivals.resume(relayConnectivity)) {
-        unawaited(_revivals.revive(relayConnectivity));
+      Logger.log.i(() => "closed ${connection.url}. Reconnecting");
+      if (!_revivals.resume(connection)) {
+        unawaited(_revivals.revive(connection));
       }
       return;
     }
@@ -735,10 +729,10 @@ class RelayConnections {
 
   Future<void> _handleIncomingMessage(
     dynamic message,
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
   ) async {
-    final relayUrl = relayConnectivity.url;
-    relayConnectivity.idleFor.reset();
+    final relayUrl = connection.url;
+    connection.idleFor.reset();
     final previousMessage = _lastMessageCompleters[relayUrl];
 
     final myCompleter = Completer<void>();
@@ -754,7 +748,7 @@ class RelayConnections {
         Logger.log.w(() => "Ignoring a non-text frame from $relayUrl");
         return;
       }
-      await _onMessage(nostrMsg, relayConnectivity, message);
+      await _onMessage(nostrMsg, connection, message);
     } catch (error, stackTrace) {
       Logger.log.e(
         () => "Could not handle a message from $relayUrl: $message",
@@ -775,8 +769,8 @@ class RelayConnections {
   /// a reset or to a failed connection attempt, is forgotten just the same:
   /// leaving it behind keeps its auth state alive and makes it reconnect.
   Future<void> closeConnection(RelayConnectionKey key) async {
-    final connectivity = relays.remove(key);
-    if (connectivity == null) {
+    final connection = relays.remove(key);
+    if (connection == null) {
       return;
     }
     Logger.log.d(() => "Disconnecting $key...");
@@ -785,7 +779,7 @@ class RelayConnections {
     _auth.forget(key);
     listener.endAuthRetriesOn(key);
     listener.endRequestsOn(key);
-    return connectivity.close();
+    return connection.close();
   }
 
   /// Closes all transports

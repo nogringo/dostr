@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:collection';
+import 'dart:convert';
 
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
@@ -171,7 +172,7 @@ class RelayManager {
 
   /// Connected connections bound to nobody, one per relay at most.
   ///
-  /// Engines pick relays, not identities: sending on every connection of a
+  /// Callers pick relays, not identities: sending on every connection of a
   /// relay would duplicate the request, and sending on a bound one would make
   /// it attributable. An identity is added later, by the re-route, and only on
   /// the relays that ask for one.
@@ -275,13 +276,13 @@ class RelayManager {
   /// Account [auth] authenticates as, null when it must stay unattributable.
   NostrSigner? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
 
-  /// Routes a message from [relayConnectivity] to whatever it answers.
+  /// Routes a message from [connection] to whatever it answers.
   Future<void> _dispatch(
     NostrMessageRaw nostrMsg,
-    RelayConnection relayConnectivity,
+    RelayConnection connection,
     dynamic message,
   ) {
-    final key = relayConnectivity.key;
+    final key = connection.key;
     switch (nostrMsg.type) {
       case NostrMessageRawType.unknown:
         final data = nostrMsg.otherData;
@@ -293,12 +294,12 @@ class RelayManager {
         }
         Logger.log.w(
           () =>
-              "Received unhandled message from ${relayConnectivity.url}: ${nostrMsg.otherData}",
+              "Received unhandled message from ${connection.url}: ${nostrMsg.otherData}",
         );
       case NostrMessageRawType.invalid:
         Logger.log.w(
           () =>
-              "Received invalid message from ${relayConnectivity.url}: ${nostrMsg.otherData}",
+              "Received invalid message from ${connection.url}: ${nostrMsg.otherData}",
         );
       case NostrMessageRawType.ok:
         final eventJson = nostrMsg.otherData;
@@ -319,15 +320,13 @@ class RelayManager {
 
         //nip 20 used to notify clients if an EVENT was successful
         if (!success) {
-          Logger.log.e(
-            () => "NOT OK from ${relayConnectivity.url}: $eventJson",
-          );
+          Logger.log.e(() => "NOT OK from ${connection.url}: $eventJson");
         }
-        _broadcasts.routeOk(eventId, relayConnectivity, success, msg ?? '');
+        _broadcasts.routeOk(eventId, connection, success, msg ?? '');
       case NostrMessageRawType.notice:
         final eventJson = nostrMsg.otherData;
         final String noticeMsg = eventJson[1];
-        Logger.log.w(() => "NOTICE from ${relayConnectivity.url}: $noticeMsg");
+        Logger.log.w(() => "NOTICE from ${connection.url}: $noticeMsg");
         _requests.logActive();
         for (final handler in List.of(_protocolHandlers)) {
           handler.onNotice(key, noticeMsg);
@@ -335,29 +334,27 @@ class RelayManager {
       case NostrMessageRawType.event:
         _requests.handleEvent(
           nostrMsg,
-          relayConnectivity,
-          message.toString().codeUnits.length,
+          connection,
+          utf8.encode(message.toString()).length,
         );
       case NostrMessageRawType.eose:
         final eventJson = nostrMsg.otherData;
-        Logger.log.d(
-          () => "EOSE from ${relayConnectivity.url}: ${eventJson[1]}",
-        );
-        _requests.handleEose(eventJson, relayConnectivity);
+        Logger.log.d(() => "EOSE from ${connection.url}: ${eventJson[1]}");
+        _requests.handleEose(eventJson, connection);
       case NostrMessageRawType.closed:
         final eventJson = nostrMsg.otherData;
         final String id = eventJson[1];
         final closedMsg = _stringAt(eventJson, 2);
         Logger.log.w(
           () =>
-              " CLOSED subscription url: ${relayConnectivity.url} id: $id msg: ${closedMsg ?? ''}",
+              " CLOSED subscription url: ${connection.url} id: $id msg: ${closedMsg ?? ''}",
         );
         // a protocol session is not a REQ: it owns its own retry and never has
         // a RequestState for the auth-required branch to find
         for (final handler in List.of(_protocolHandlers)) {
           if (handler.onClosed(key, id, closedMsg)) return Future.value();
         }
-        _requests.handleClosed(id, closedMsg, relayConnectivity);
+        _requests.handleClosed(id, closedMsg, connection);
       case NostrMessageRawType.auth:
         final eventJson = nostrMsg.otherData;
         // nip 42 used to send authentication challenges
