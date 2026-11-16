@@ -317,6 +317,61 @@ void main() {
     );
   });
 
+  group('a request that waits for its turn', () {
+    late MockRelay silentRelay;
+    late Nip46Signer signer;
+
+    Nip01Event note(String content) => Nip01Event(
+      pubkey: MockRemoteSigner.publicKey,
+      kind: 1,
+      content: content,
+    );
+
+    setUp(() async {
+      silentRelay = MockRelay();
+      await silentRelay.start();
+      signer = Nip46Signer(
+        connection: connectionTo([silentRelay.url]),
+        publicKey: MockRemoteSigner.publicKey,
+        relayReqs: relayReqs,
+        relayPublishes: relayPublishes,
+        signerFactory: signerFactory,
+        maxConcurrentRequests: 1,
+      );
+    });
+
+    tearDown(() => silentRelay.stop());
+
+    test('fails at once when cancelRequest drops it', () async {
+      addTearDown(signer.dispose);
+      final first = signer.sign(note('first'));
+      final second = signer.sign(note('second'));
+      final [firstId, secondId] = [
+        for (final request in signer.pendingRequests) request.id,
+      ];
+
+      expect(signer.cancelRequest(secondId), isTrue);
+      await expectLater(
+        second,
+        throwsA(isA<SignerRequestCancelledException>()),
+      );
+      expect(signer.cancelRequest(firstId), isTrue);
+      await expectLater(first, throwsA(isA<SignerRequestCancelledException>()));
+    });
+
+    test('fails when the signer is disposed', () async {
+      signer.sign(note('first')).ignore();
+      final second = expectLater(
+        signer.sign(note('second')),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+
+      await signer.dispose();
+
+      await second;
+    });
+  });
+
   test('response is not held back by a slow transport relay', () async {
     final fastRelay = MockRelay();
     final slowRelay = MockRelay(answerEvents: false);

@@ -31,4 +31,5 @@ dev_dependencies:
   lints: ^6.1.0
   dostr_mock_relay: ^0.1.0
   dostr_bip340: ^0.1.0
+  dostr_signer_test_suite: ^0.1.0
   test: ^1.31.1

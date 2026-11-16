@@ -10,3 +10,4 @@
  - The pending requests are the `PendingSignRequest`, `PendingEncryptRequest` and `PendingDecryptRequest` of `dostr_signer`: a ping, `switchRelays` and the request for the user's pubkey are no longer in `pendingRequests`.
  - The relays of `BunkerConnection`, `NostrConnect`, `Bunkers.createNostrConnect` and `Nip46Signer.switchRelays` are `RelayUrl`s, from `dostr_core`. The relays of a `bunker://` url and of `BunkerConnection.fromJson` are normalized, and a url that is not a relay's is dropped.
  - `Nip46Signer.switchRelays` keeps the current relays when the remote signer sends none that is a relay url.
+ - `cancelRequest` fails a request at once, also one that waits for its turn behind `maxConcurrentRequests`, whose caller waited for that turn, and leaves no uncaught `SignerRequestCancelledException` behind. A request that cannot be sent, such as one the local signer fails to encrypt, leaves `pendingRequests`.

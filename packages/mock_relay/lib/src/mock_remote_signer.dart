@@ -42,11 +42,16 @@ class MockRemoteSigner {
     final request = jsonDecode(
       await Nip44.decryptMessage(event.content, privateKey, event.pubkey),
     );
-    final response = await _answer(
-      relay,
-      request['method'] as String,
-      request['params'] as List<dynamic>,
-    );
+    Map<String, dynamic> response;
+    try {
+      response = await _answer(
+        relay,
+        request['method'] as String,
+        request['params'] as List<dynamic>,
+      );
+    } catch (error) {
+      response = {'error': '$error'};
+    }
     response['id'] = request['id'];
     await _respond(relay, event.pubkey, response);
   }

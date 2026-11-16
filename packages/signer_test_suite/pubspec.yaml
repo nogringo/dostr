@@ -1,0 +1,18 @@
+name: dostr_signer_test_suite
+description: Shared test suite for NostrSigner and LocalSignerFactory implementations, so every signer keeps the contract of dostr_signer.
+version: 0.1.0
+homepage: https://github.com/nogringo/dostr
+publish_to: 'none'
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  dostr_nip01: ^0.1.0
+  dostr_signer: ^0.1.0
+  test: ^1.31.1
+
+dev_dependencies:
+  lints: ^6.1.0

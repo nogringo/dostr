@@ -190,6 +190,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   void _notifyPendingRequestsChange() {
+    if (_pendingRequestsController.isClosed) return;
     _pendingRequestsController.add(pendingRequests);
   }
 
@@ -200,12 +201,9 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     _requests[request.id] = entry;
     if (pending != null) _notifyPendingRequestsChange();
 
-    return runThrottled(() async {
-      // If the request was cancelled while queued, bail out before touching
-      // the relay so we don't broadcast an event the caller no longer wants.
-      if (!_requests.containsKey(request.id)) {
-        throw SignerRequestCancelledException(request.id);
-      }
+    runThrottled(() async {
+      // cancelled while queued: don't broadcast what the caller no longer wants
+      if (!_requests.containsKey(request.id)) return;
 
       final encryptedRequest = await localSigner.encryptNip44(
         plaintext: jsonEncode(request),
@@ -226,8 +224,16 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       // response already received through a faster one
       relayPublishes.publish(signedEvent, relays: connection.relays);
 
-      return entry.completer.future;
+      // holds the slot until the bunker answers
+      await entry.completer.future;
+    }).catchError((Object error, StackTrace stackTrace) {
+      if (entry.completer.isCompleted) return;
+      _requests.remove(request.id);
+      if (pending != null) _notifyPendingRequestsChange();
+      entry.completer.completeError(error, stackTrace);
     });
+
+    return entry.completer.future;
   }
 
   @override

@@ -1,121 +1,18 @@
 @TestOn('browser')
 library;
 
-import 'dart:js_interop';
-
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip07/dostr_nip07.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-@JS()
-external void eval(String code);
-
-@JS('setupNostrExtensionAsync')
-external JSPromise<JSAny?> _setupNostrExtensionAsync();
-
-Future<void> setupNostrExtension() async {
-  await _setupNostrExtensionAsync().toDart;
-}
-
-const _extensionPrivateKey =
-    '0a47414ecfcdda1fe8374ec28629883cdd95287e353b3fd1a536c03d953f6cc2';
-
-void injectSetupCode() {
-  eval('''
-    window.setupNostrExtensionAsync = async function() {
-      const nostrTools = await import('https://esm.sh/nostr-tools@2.23.0');
-      const { nip04, nip44, getPublicKey, finalizeEvent } = nostrTools;
-
-      const privateKeyHex = '$_extensionPrivateKey';
-
-      function hexToBytes(hex) {
-        const bytes = new Uint8Array(hex.length / 2);
-        for (let i = 0; i < hex.length; i += 2) {
-          bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
-        }
-        return bytes;
-      }
-
-      const privateKeyBytes = hexToBytes(privateKeyHex);
-      const publicKeyHex = getPublicKey(privateKeyBytes);
-
-      window.nostr = {
-        _privkey: privateKeyBytes,
-        _privkeyHex: privateKeyHex,
-        _pubkey: publicKeyHex,
-        _hang: false,
-        _stripClientTag: false,
-
-        setHang: function(hang) {
-          this._hang = hang;
-        },
-
-        setStripClientTag: function(strip) {
-          this._stripClientTag = strip;
-        },
-
-        setAccount: function(privkeyHex) {
-          this._privkeyHex = privkeyHex;
-          this._privkey = hexToBytes(privkeyHex);
-          this._pubkey = getPublicKey(this._privkey);
-        },
-
-        getPublicKey: function() {
-          if (this._hang) {
-            return new Promise(() => {});
-          }
-          return Promise.resolve(this._pubkey);
-        },
-
-        signEvent: async function(event) {
-          if (this._hang) {
-            return new Promise(() => {});
-          }
-          const tags = this._stripClientTag
-            ? event.tags.filter(function(tag) { return tag[0] !== 'client'; })
-            : event.tags;
-          const eventToSign = {
-            kind: event.kind,
-            created_at: event.created_at,
-            tags: tags,
-            content: event.content,
-            pubkey: event.pubkey,
-          };
-          return finalizeEvent(eventToSign, this._privkey);
-        },
-
-        nip04: {
-          encrypt: async function(recipientPubkey, plaintext) {
-            return nip04.encrypt(window.nostr._privkeyHex, recipientPubkey, plaintext);
-          },
-
-          decrypt: async function(senderPubkey, ciphertext) {
-            return nip04.decrypt(window.nostr._privkeyHex, senderPubkey, ciphertext);
-          }
-        },
-
-        nip44: {
-          encrypt: async function(recipientPubkey, plaintext) {
-            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, recipientPubkey);
-            return nip44.v2.encrypt(plaintext, conversationKey);
-          },
-
-          decrypt: async function(senderPubkey, ciphertext) {
-            const conversationKey = nip44.v2.utils.getConversationKey(window.nostr._privkey, senderPubkey);
-            return nip44.v2.decrypt(ciphertext, conversationKey);
-          }
-        }
-      };
-    };
-  ''');
-}
+import 'fake_nostr_extension.dart';
 
 void main() {
   injectSetupCode();
 
-  final extensionPubkey = Bip340.getPublicKey(_extensionPrivateKey);
+  final extensionPubkey = Bip340.getPublicKey(extensionPrivateKey);
 
   group('Nip07Signer', () {
     late Nip07Signer nip07Signer;
