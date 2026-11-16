@@ -117,7 +117,7 @@ class EventFetch {
   }
 
   void _receive(Nip01Event event) {
-    if (_done.isCompleted || !_matches(_filter, event) || !_ids.add(event.id)) {
+    if (_done.isCompleted || !_ids.add(event.id)) {
       return;
     }
     _received.add(event);
@@ -181,27 +181,4 @@ final class EventFetchResult {
     required this.unavailable,
     required this.complete,
   });
-}
-
-/// Whether [event] matches [filter], its `search` aside: a relay may send
-/// events that do not.
-bool _matches(Filter filter, Nip01Event event) {
-  if (filter.since case final since? when event.createdAt < since) {
-    return false;
-  }
-  if (filter.until case final until? when event.createdAt > until) {
-    return false;
-  }
-  return (filter.ids?.contains(event.id) ?? true) &&
-      (filter.authors?.contains(event.pubkey) ?? true) &&
-      (filter.kinds?.contains(event.kind) ?? true) &&
-      (filter.tags?.entries.every(
-            (wanted) => event.tags.any(
-              (tag) =>
-                  tag.length > 1 &&
-                  tag[0] == wanted.key &&
-                  wanted.value.contains(tag[1]),
-            ),
-          ) ??
-          true);
 }

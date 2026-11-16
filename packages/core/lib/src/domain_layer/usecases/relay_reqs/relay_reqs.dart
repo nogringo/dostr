@@ -14,7 +14,7 @@ import '../relay_manager/relay_manager_parts.dart';
 import '../relay_manager/relay_requests.dart';
 import '../relay_manager/request_state.dart';
 import '../requests/verified_event_cache.dart';
-import '../requests/verify_event_stream.dart';
+import '../requests/verify_event.dart';
 
 final _openReqs = Expando<Map<String, RelayReq>>();
 
@@ -29,15 +29,13 @@ Map<String, RelayReq> _openOn(RelayRequests requests) =>
 class RelayReqs {
   final RelayRequests _requests;
   final EventVerifier _eventVerifier;
-  final VerifiedEventMemCache _verifiedEventCache;
+  final VerifiedEventMemCache _verifiedEventCache = VerifiedEventMemCache();
 
   RelayReqs({
     required RelayManager relayManager,
     required EventVerifier eventVerifier,
-    VerifiedEventMemCache? verifiedEventCache,
   }) : _requests = relayManagerParts(relayManager).requests,
-       _eventVerifier = eventVerifier,
-       _verifiedEventCache = verifiedEventCache ?? VerifiedEventMemCache();
+       _eventVerifier = eventVerifier;
 
   /// Forgets which signatures were already checked.
   void clearVerifiedEventCache() => _verifiedEventCache.clear();

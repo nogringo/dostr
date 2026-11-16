@@ -199,7 +199,7 @@ packages:
       path: "../nip01"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   dostr_nip05:
     dependency: "direct overridden"
     description:

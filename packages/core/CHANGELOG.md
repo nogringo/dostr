@@ -8,7 +8,8 @@
 
 These files used to live in `ndk`.
 Every file of `dostr_core` is under `lib/src` and can no longer be imported on its own: a deep import such as `package:ndk/domain_layer/entities/relay.dart` or `package:ndk/config/request_defaults.dart` is now `package:dostr_core/dostr_core.dart`.
-What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `ClientMsg`, `VerifyEventStream`, `verifyEvent` and `VerifiedEventMemCache`.
+What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `ClientMsg`, `verifyEvent` and `VerifiedEventMemCache`.
+`VerifyEventStream` is gone: `RelayReq.events` verifies its events itself.
 `domain_layer/usecases/nip42/auth_event.dart` is gone: `RelayManager` builds the AUTH event itself.
 
 `IsolateManager` and its pool are gone: relay messages are decoded on the main isolate, and `Isolate.run` replaces `runInComputeIsolate` for your own work.

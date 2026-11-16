@@ -1,37 +1,7 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:rxdart/rxdart.dart';
 
 import '../../../shared/logger/logger.dart';
 import 'verified_event_cache.dart';
-
-class VerifyEventStream {
-  final Stream<Nip01Event> unverifiedStreamInput;
-  final EventVerifier eventVerifier;
-  final int maxConcurrent;
-
-  /// ids already checked. Defaults to a stream-local cache so duplicates
-  /// delivered within this stream are deduped even without a shared one.
-  final VerifiedEventMemCache _cache;
-
-  VerifyEventStream({
-    required this.unverifiedStreamInput,
-    required this.eventVerifier,
-    this.maxConcurrent = 100,
-    VerifiedEventMemCache? verifiedEventCache,
-  }) : _cache = verifiedEventCache ?? VerifiedEventMemCache();
-
-  Stream<Nip01Event> call() {
-    return unverifiedStreamInput
-        .flatMap(
-          (event) => Stream.fromFuture(
-            verifyEvent(event, eventVerifier: eventVerifier, cache: _cache),
-          ),
-          maxConcurrent: maxConcurrent,
-        )
-        .whereType<Nip01Event>()
-        .shareReplay(maxSize: 1);
-  }
-}
 
 /// [data], or null when its id or signature is wrong. [cache] spares checking
 /// the same id and signature twice.

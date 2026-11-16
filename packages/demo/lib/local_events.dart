@@ -16,8 +16,7 @@ class LocalEvents {
   ) async =>
       [
         for (final event in _events.values)
-          if (_matches(filter, event))
-            (id: event.id, createdAt: event.createdAt),
+          if (filter.matches(event)) (id: event.id, createdAt: event.createdAt),
       ];
 
   Future<Nip01Event?> loadEvent(String id) async => _events[id];
@@ -27,11 +26,3 @@ class LocalEvents {
           if (_events[id] case final event?) event,
       ];
 }
-
-/// the fields of the filters this demo builds: ids, authors, kinds and time
-bool _matches(Filter filter, Nip01Event event) =>
-    (filter.ids?.contains(event.id) ?? true) &&
-    (filter.authors?.contains(event.pubkey) ?? true) &&
-    (filter.kinds?.contains(event.kind) ?? true) &&
-    (filter.since == null || event.createdAt >= filter.since!) &&
-    (filter.until == null || event.createdAt <= filter.until!);

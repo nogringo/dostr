@@ -221,7 +221,7 @@ class MockRelay {
 
   /// stored events that match [filter], without its limit
   List<Nip01Event> matchingEvents(Filter filter) =>
-      events.where((event) => _matches(filter, event)).toList();
+      events.where(filter.matches).toList();
 
   /// Stores [events] and listens. [delayResponse] holds every message the
   /// relay receives and [delayConnection] every handshake, until the next
@@ -286,7 +286,7 @@ class MockRelay {
     if (!_store(event)) return;
     for (final client in openClients) {
       for (final subscription in client.subscriptions.entries) {
-        if (subscription.value.any((filter) => _matches(filter, event))) {
+        if (subscription.value.any((filter) => filter.matches(event))) {
           client.send(['EVENT', subscription.key, event.toJson()]);
         }
       }
@@ -541,29 +541,6 @@ class MockRelay {
     if (max == null || matching.length <= max) return matching;
     matching.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     return matching.take(max).toList();
-  }
-
-  static bool _matches(Filter filter, Nip01Event event) {
-    if (filter.ids != null && !filter.ids!.contains(event.id)) return false;
-    if (filter.authors != null && !filter.authors!.contains(event.pubkey)) {
-      return false;
-    }
-    if (filter.kinds != null && !filter.kinds!.contains(event.kind)) {
-      return false;
-    }
-    if (filter.since != null && event.createdAt < filter.since!) return false;
-    if (filter.until != null && event.createdAt > filter.until!) return false;
-    final tags = filter.tags ?? const <String, List<String>>{};
-    for (final entry in tags.entries) {
-      final hasTag = event.tags.any(
-        (tag) =>
-            tag.length > 1 &&
-            tag[0] == entry.key &&
-            entry.value.contains(tag[1]),
-      );
-      if (!hasTag) return false;
-    }
-    return true;
   }
 
   @override

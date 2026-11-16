@@ -47,7 +47,7 @@ dependencies:
   dostr_core: ^0.1.0
   dostr_fetchers: ^0.1.0
   dostr_flutter: ^0.1.0
-  dostr_nip01: ^0.1.0
+  dostr_nip01: ^0.1.1
   dostr_nip19: ^0.1.0
   dostr_nip46: ^0.1.0
   dostr_nip49: ^0.1.0
