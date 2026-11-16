@@ -147,6 +147,50 @@ void main() {
 
         await otherSigner.dispose();
       });
+
+      test('NIP-44 keeps each peer apart across repeated messages', () async {
+        final peers = [Bip340.generatePrivateKey(), Bip340.generatePrivateKey()]
+            .map(
+              (k) => Bip340Signer(
+                privateKey: k.privateKey,
+                publicKey: k.publicKey,
+              ),
+            )
+            .toList();
+
+        for (var round = 0; round < 3; round++) {
+          for (final peer in peers) {
+            final message = 'round $round to ${peer.publicKey}';
+            final sent = await signer.encryptNip44(
+              plaintext: message,
+              recipientPubkey: peer.publicKey,
+            );
+            expect(
+              await peer.decryptNip44(
+                ciphertext: sent!,
+                senderPubkey: keyPair.publicKey,
+              ),
+              equals(message),
+            );
+
+            final reply = await peer.encryptNip44(
+              plaintext: 'reply $message',
+              recipientPubkey: keyPair.publicKey,
+            );
+            expect(
+              await signer.decryptNip44(
+                ciphertext: reply!,
+                senderPubkey: peer.publicKey,
+              ),
+              equals('reply $message'),
+            );
+          }
+        }
+
+        for (final peer in peers) {
+          await peer.dispose();
+        }
+      });
     });
   });
 

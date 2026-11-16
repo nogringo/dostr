@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip44/dostr_nip44.dart';
 import 'package:dostr_signer/dostr_signer.dart';
@@ -42,10 +44,14 @@ class Bip340SignerFactory implements LocalSignerFactory {
 /// Pure Dart signer
 class Bip340Signer implements NostrSigner {
   /// hex private key
-  String? privateKey;
+  final String? privateKey;
 
   /// hex public key
   String publicKey;
+
+  // Bounded: each gift wrap comes from a one-off key that never comes back.
+  static const _maxConversationKeys = 256;
+  final _conversationKeys = <String, Uint8List>{};
 
   /// Get a new signer with the given keys
   Bip340Signer({required this.privateKey, required this.publicKey});
@@ -91,16 +97,26 @@ class Bip340Signer implements NostrSigner {
   Future<String?> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
-  }) {
-    return Nip44.encryptMessage(plaintext, privateKey!, recipientPubkey);
+  }) async {
+    return Nip44.encrypt(plaintext, _conversationKey(recipientPubkey));
   }
 
   @override
   Future<String?> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
-  }) {
-    return Nip44.decryptMessage(ciphertext, privateKey!, senderPubkey);
+  }) async {
+    return Nip44.decrypt(ciphertext, _conversationKey(senderPubkey));
+  }
+
+  Uint8List _conversationKey(String pubkey) {
+    final key =
+        _conversationKeys.remove(pubkey) ??
+        Nip44.conversationKey(privateKey!, pubkey);
+    if (_conversationKeys.length >= _maxConversationKeys) {
+      _conversationKeys.remove(_conversationKeys.keys.first);
+    }
+    return _conversationKeys[pubkey] = key;
   }
 
   // Local signer - no pending requests (operations are instant)
@@ -119,6 +135,7 @@ class Bip340Signer implements NostrSigner {
 
   @override
   Future<void> dispose() async {
+    _conversationKeys.clear();
     await _pendingRequestsController.close();
   }
 }
