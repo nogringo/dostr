@@ -63,6 +63,7 @@ if (resolution case UrlsResolved(:final urls)) {
 ```
 
 `UrlsUnavailable` means a relay list could not be read: keep the event and try again later rather than publishing to fewer relays than intended.
+Its `lists` say which, and its `urls` where the event can already go meanwhile.
 A `UrlSet` serializes to JSON for that.
 
 ## A new account

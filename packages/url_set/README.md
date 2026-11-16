@@ -32,11 +32,14 @@ dependencies:
 | `UrlSet.first(count, set)` | the first `count` URLs of `set` |
 
 Every leaf reads the list of one account.
-Combine several with `union`:
+Combine several with `union`, such as for a reply, which goes to the write relays of its author and the read relays of everyone it tags:
 
 ```dart
-UrlSet.union([for (final p in recipients) UrlSet.dm(p)])
+UrlSet.union([UrlSet.outbox(me), for (final p in tagged) UrlSet.inbox(p)])
 ```
+
+A union flattens its URLs and forgets which account named each.
+A gift wrap belongs on the DM relays of its own recipient only, so resolve one `UrlSet.dm` per recipient, never a union of them: the relays of the others would hold a wrap they have no use for.
 
 Relays and Blossom servers share one type.
 A consumer checks `set.kinds` and rejects the leaves it cannot use: a broadcast queue has no use for Blossom servers, and a blob upload queue none for DM relays.
@@ -65,8 +68,8 @@ final resolution = await resolveUrlSet(
 switch (resolution) {
   case UrlsResolved(:final urls):
     print('send to $urls');
-  case UrlsUnavailable(:final reason):
-    print('try again later: $reason');
+  case UrlsUnavailable(:final lists, :final urls):
+    print('send to $urls, try $lists again later');
 }
 ```
 
@@ -83,7 +86,10 @@ Resolution follows from that:
 - Each `(pubkey, kind)` pair is looked up once per resolution.
 - DM, private and Blossom lists are published on their owner's NIP-65 write relays, so their NIP-65 is looked up first and its write relays are passed to the lookup as `outboxRelays`.
 
-`UrlsResolved.urls` keeps tree order and is not deduplicated or normalized: that is up to the consumer.
+`UrlsUnavailable.lists` names each unavailable list as an `UnavailableUrlList`, with its pubkey, kind and reason.
+`UrlsUnavailable.urls` is what the set resolves to with those lists counted as empty, a fallback still stopping at them: where to send now, while the rest waits.
+
+`urls` keeps tree order and is not deduplicated or normalized: that is up to the consumer.
 
 ## Watching
 
@@ -101,28 +107,24 @@ await for (final snapshot in watchUrlSet(UrlSet.dm(pubkey), watch)) {
 }
 ```
 
-Each `UrlSetSnapshot` holds the URLs known so far and the lookups found unavailable.
+Each `UrlSetSnapshot` holds the URLs known so far and the lists found unavailable.
 A later one may drop URLs: a newer version of a list replaces the one before, and a fallback moves past a set whose list turns out empty.
 The last one is `done`, and its `resolution` is what `resolveUrlSet` gives with the lists as they ended.
 
 A DM, private or Blossom list is watched along with the NIP-65 of its owner, whose write relays come later as the `outboxRelays` future, so a lookup that finds them itself starts right away.
-
-## Remembering when a list was checked
-
-A `UrlListCheck` says when the relays last answered a query for one list of an account, and whether they held it.
-Addressable lists are told apart by their `dTag`.
-A lookup keeps them in a `UrlListCheckStore`, so a list checked recently is not asked again, and a list known to be absent stays `notFound` instead of `unavailable` while offline.
-
-`MemoryUrlListCheckStore` forgets everything on restart.
-To keep the checks, implement `UrlListCheckStore` on your database, one check per pubkey, kind and `dTag`: `UrlListCheck.toMap()` gives a JSON-compatible record.
 
 ## Storage
 
 `toMap()` gives a JSON-compatible map and `UrlSet.fromMap()` reads it back.
 The format is the one `RelaySet` used in `broadcast_queue_shim_for_ndk` 0.7.0, so queues stored by that version keep loading.
 `UrlSet.first` is new: older readers reject a set that uses it.
+`fromMap` throws a `FormatException` on any map it did not write, so a queue can skip a corrupt record.
+
+Two sets are equal when they describe the same tree, so a queue can spot two records with the same target.
 
 ## Coming from `url_set_for_ndk`
 
-`UrlSet`, `resolveUrlSet`, the lookup types and `UrlListCheckStore` moved here unchanged, except for the `dTag` of `UrlListCheckStore.read` and `UrlListCheck`.
+`UrlSet`, `resolveUrlSet` and the lookup types moved here.
+`UrlsUnavailable` held only a `reason` string: it now names the unavailable lists in `lists` and keeps the URLs found in `urls`, and `reason` joins the lists.
+`UrlListCheck` and `UrlListCheckStore` moved to [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers), next to the lookups that keep them.
 `ndkUrlListFn` and `defaultIndexerRelays` are not here: [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) has `fetcherUrlListFn`, which builds the lookup from its fetchers, and `defaultIndexerRelays`.

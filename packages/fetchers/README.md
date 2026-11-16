@@ -84,8 +84,14 @@ An `OutboxFetcher` sends those for the relay lists the same way, while the write
 Without a cache, a cold start asks the relays for every list again.
 Give the fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds, then stores each newer one.
 
-Give them a `UrlListCheckStore` from `dostr_url_set` too, and a lookup a relay answered less than `maxAge` ago is answered from the cache alone, an absent event included.
+Give them a `UrlListCheckStore` too, and a lookup a relay answered less than `maxAge` ago is answered from the cache alone, an absent event included.
 Past `maxAge` the relays are asked again, and while none answers the last known state holds.
+
+A `UrlListCheck` says when the relays last answered a query for one replaceable event of an account, and whether they held it.
+Addressable events are told apart by their `dTag`.
+
+`MemoryUrlListCheckStore` forgets everything on restart.
+To keep the checks, implement `UrlListCheckStore` on your database, one check per pubkey, kind and `dTag`: `UrlListCheck.toMap()` gives a JSON-compatible record.
 
 ## Resolving a `UrlSet`
 

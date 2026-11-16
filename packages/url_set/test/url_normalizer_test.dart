@@ -50,24 +50,32 @@ void main() {
       );
     });
 
-    test('preserves fragment', () {
+    test('drops the fragment, which RFC 6455 forbids', () {
       expect(
         cleanRelayUrl('wss://relay.primal.net/path#section'),
-        'wss://relay.primal.net/path#section',
+        'wss://relay.primal.net/path',
       );
-    });
-
-    test('preserves query and fragment together', () {
+      expect(
+        cleanRelayUrl('wss://relay.primal.net#section'),
+        'wss://relay.primal.net',
+      );
       expect(
         cleanRelayUrl('wss://relay.primal.net/path?query=value#section'),
-        'wss://relay.primal.net/path?query=value#section',
+        'wss://relay.primal.net/path?query=value',
       );
     });
 
-    test('normalizes host while preserving query and fragment', () {
+    test('drops an empty query', () {
       expect(
-        cleanRelayUrl('wss://RELAY.PRIMAL.NET/path?query=value#section'),
-        'wss://relay.primal.net/path?query=value#section',
+        cleanRelayUrl('wss://relay.primal.net/?'),
+        'wss://relay.primal.net',
+      );
+    });
+
+    test('normalizes host while preserving query', () {
+      expect(
+        cleanRelayUrl('WSS://RELAY.PRIMAL.NET/path?query=value'),
+        'wss://relay.primal.net/path?query=value',
       );
     });
 
@@ -81,19 +89,6 @@ void main() {
       expect(
         cleanRelayUrl('wss://relay.primal.net/path?key=%2fvalue'),
         'wss://relay.primal.net/path?key=%2Fvalue',
-      );
-    });
-
-    test('normalizes percent-encoding in fragment (RFC 3986)', () {
-      // %7E = '~' (unreserved) should be decoded
-      expect(
-        cleanRelayUrl('wss://relay.primal.net/path#section%7E'),
-        'wss://relay.primal.net/path#section~',
-      );
-      // %23 = '#' (reserved) should stay encoded but uppercase
-      expect(
-        cleanRelayUrl('wss://relay.primal.net/path#section%2f'),
-        'wss://relay.primal.net/path#section%2F',
       );
     });
 

@@ -130,7 +130,9 @@ void main() {
       final w = await watching(const UrlSet.outbox('p'), lists);
       await lists.end('outbox|p');
       expect(w.last.done, isTrue);
-      expect(w.last.unavailable, ['outbox list of p unavailable']);
+      expect(w.last.unavailable, [
+        const UnavailableUrlList('p', UrlListKind.outbox),
+      ]);
     });
 
     test('a not found list ends before its stream does', () async {
@@ -157,11 +159,12 @@ void main() {
       await lists.end('outbox|p2');
       expect(w.last.done, isTrue);
       expect(w.last.urls, ['wss://b']);
-      expect(w.last.unavailable, ['outbox list of p1 unavailable: offline']);
-      expect(
-        (w.last.resolution as UrlsUnavailable).reason,
-        'outbox list of p1 unavailable: offline',
-      );
+      expect(w.last.unavailable, [
+        const UnavailableUrlList('p1', UrlListKind.outbox, 'offline'),
+      ]);
+      final resolution = w.last.resolution as UrlsUnavailable;
+      expect(resolution.lists, w.last.unavailable);
+      expect(resolution.urls, ['wss://b']);
     });
 
     test('a fallback waits for a set to end empty before the next', () async {
@@ -307,7 +310,7 @@ void main() {
         expect(w.last.done, isTrue);
         expect(w.last.urls, ['wss://dm']);
         expect(w.last.unavailable, [
-          'dm list of p unavailable: NIP-65 offline',
+          const UnavailableUrlList('p', UrlListKind.dm, 'NIP-65 offline'),
         ]);
       },
     );
@@ -377,10 +380,9 @@ void main() {
 
       expect(w.last.done, isTrue);
       expect(w.last.urls, ['wss://d', 'wss://r1']);
-      expect(
-        (w.last.resolution as UrlsUnavailable).reason,
-        (resolved as UrlsUnavailable).reason,
-      );
+      final watched = w.last.resolution as UrlsUnavailable;
+      expect(watched.lists, (resolved as UrlsUnavailable).lists);
+      expect(watched.urls, resolved.urls);
     });
   });
 }

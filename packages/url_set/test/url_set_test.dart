@@ -82,6 +82,62 @@ void main() {
       );
     });
 
+    test('rejects a missing or mistyped field', () {
+      for (final map in [
+        {'type': 'dm'},
+        {'type': 'outbox', 'pubkey': 1},
+        {'type': 'explicit', 'relays': 'wss://a'},
+        {
+          'type': 'explicit',
+          'relays': ['wss://a', 2],
+        },
+        {
+          'type': 'inbox',
+          'pubkeys': [null],
+        },
+        {
+          'type': 'union',
+          'sets': ['outbox'],
+        },
+        {'type': 'first', 'count': 1},
+        {
+          'type': 'first',
+          'count': '1',
+          'set': const UrlSet.explicit([]).toMap(),
+        },
+      ]) {
+        expect(
+          () => UrlSet.fromMap(map),
+          throwsFormatException,
+          reason: '$map',
+        );
+      }
+    });
+
+    test('sets describing the same tree are equal', () {
+      UrlSet build(String pubkey) => UrlSet.fallback([
+        UrlSet.union([
+          UrlSet.explicit(['wss://a']),
+          UrlSet.dm(pubkey),
+        ]),
+        UrlSet.first(2, UrlSet.inbox(pubkey)),
+      ]);
+
+      expect(build('p'), build('p'));
+      expect(build('p').hashCode, build('p').hashCode);
+      expect(UrlSet.fromMap(build('p').toMap()), build('p'));
+      expect(build('p'), isNot(build('q')));
+      expect(const UrlSet.dm('p'), isNot(const UrlSet.inbox('p')));
+      expect(
+        const UrlSet.union([UrlSet.outbox('p')]),
+        isNot(const UrlSet.fallback([UrlSet.outbox('p')])),
+      );
+      expect(
+        const UrlSet.first(1, UrlSet.outbox('p')),
+        isNot(const UrlSet.first(2, UrlSet.outbox('p'))),
+      );
+    });
+
     test('only lookups need a list function', () {
       expect(const UrlSet.explicit(['wss://a']).needsLookup, isFalse);
       expect(
@@ -133,16 +189,43 @@ void main() {
       expect(resolvedUrls(r), ['wss://w', 'wss://r', 'wss://x']);
     });
 
-    test('union is unavailable if any lookup is', () async {
-      final lists = FakeUrlLists()
-        ..set('p1', UrlListKind.outbox, const UrlListLookup.found(['wss://w']));
-      final r = await resolveUrlSet(
-        const UrlSet.union([UrlSet.outbox('p1'), UrlSet.dm('p2')]),
-        lists.fn,
-      );
-      expect(r, isA<UrlsUnavailable>());
-      expect((r as UrlsUnavailable).reason, contains('dm list of p2'));
-    });
+    test(
+      'union is unavailable if any lookup is, with the urls found',
+      () async {
+        final lists = FakeUrlLists()
+          ..set(
+            'p1',
+            UrlListKind.outbox,
+            const UrlListLookup.found(['wss://w']),
+          )
+          ..set(
+            'p3',
+            UrlListKind.inbox,
+            const UrlListLookup.found(['wss://r']),
+          );
+        final r = await resolveUrlSet(
+          const UrlSet.union([
+            UrlSet.outbox('p1'),
+            UrlSet.dm('p2'),
+            UrlSet.inbox('p3'),
+            UrlSet.inbox('p4'),
+          ]),
+          lists.fn,
+        );
+        expect(r, isA<UrlsUnavailable>());
+        final unavailable = r as UrlsUnavailable;
+        expect(unavailable.lists, [
+          const UnavailableUrlList('p2', UrlListKind.dm, 'NIP-65 offline'),
+          const UnavailableUrlList('p4', UrlListKind.inbox, 'offline'),
+        ]);
+        expect(unavailable.urls, ['wss://w', 'wss://r']);
+        expect(
+          unavailable.reason,
+          'dm list of p2 unavailable: NIP-65 offline; '
+          'inbox list of p4 unavailable: offline',
+        );
+      },
+    );
 
     test('first keeps the first urls of its set', () async {
       final lists = FakeUrlLists()
@@ -162,11 +245,21 @@ void main() {
     });
 
     test('first is unavailable when its set is', () async {
+      final lists = FakeUrlLists()
+        ..set(
+          'p2',
+          UrlListKind.inbox,
+          const UrlListLookup.found(['wss://a', 'wss://b', 'wss://c']),
+        );
       final r = await resolveUrlSet(
-        const UrlSet.first(2, UrlSet.inbox('p1')),
-        FakeUrlLists().fn,
+        const UrlSet.first(
+          2,
+          UrlSet.union([UrlSet.inbox('p1'), UrlSet.inbox('p2')]),
+        ),
+        lists.fn,
       );
       expect(r, isA<UrlsUnavailable>());
+      expect((r as UrlsUnavailable).urls, ['wss://a', 'wss://b']);
     });
 
     test('first of none needs no lookup, even of an unavailable set', () async {
@@ -314,6 +407,7 @@ void main() {
           lists.fn,
         );
         expect(r, isA<UrlsUnavailable>());
+        expect((r as UrlsUnavailable).urls, isEmpty);
       },
     );
 

@@ -1676,7 +1676,7 @@ void main() {
 
       expect(contents(result.events), ['hello']);
       expect(result.unavailable, [
-        'outbox list of $alice unavailable: offline',
+        const UnavailableUrlList(alice, UrlListKind.outbox, 'offline'),
       ]);
       expect(result.complete, isFalse);
     });

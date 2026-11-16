@@ -1,10 +1,10 @@
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_home_relays/dostr_home_relays.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 
 import 'replaceable_asks.dart';
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
+import 'url_list_checks.dart';
 
 const int _kind = 10002;
 

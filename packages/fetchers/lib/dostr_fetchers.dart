@@ -19,4 +19,5 @@ export 'src/replaceable_lookup.dart'
         EventNotFound,
         EventUnavailable,
         ReplaceableEventCache;
+export 'src/url_list_checks.dart';
 export 'src/url_lists.dart';

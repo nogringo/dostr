@@ -1,13 +1,13 @@
 import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'nip65_fetcher.dart';
 import 'replaceable_asks.dart';
 import 'replaceable_events.dart';
 import 'replaceable_lookup.dart';
+import 'url_list_checks.dart';
 
 /// Fetches users' [kind] replaceable events, or addressable ones named
 /// [dTag], from their write relays, which [nip65Fetcher] finds, and from

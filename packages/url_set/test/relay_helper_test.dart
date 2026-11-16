@@ -1,4 +1,4 @@
-import 'package:dostr_url_set/src/relay_helper.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -53,6 +53,25 @@ void main() {
 
       test('accepts localhost with port', () {
         expect(cleanRelayUrl('ws://localhost:7777'), 'ws://localhost:7777');
+      });
+
+      test('accepts IPv6 addresses', () {
+        expect(cleanRelayUrl('ws://[::1]:7777'), 'ws://[::1]:7777');
+        expect(
+          cleanRelayUrl('wss://[2001:DB8::1]:443/'),
+          'wss://[2001:db8::1]',
+        );
+      });
+
+      test('accepts a query without a path', () {
+        expect(
+          cleanRelayUrl('wss://relay.example.com/?token=abc'),
+          'wss://relay.example.com?token=abc',
+        );
+        expect(
+          cleanRelayUrl('wss://relay.example.com?token=abc'),
+          'wss://relay.example.com?token=abc',
+        );
       });
     });
 
@@ -129,6 +148,14 @@ void main() {
       test('returns null for host ending with hyphen', () {
         expect(cleanRelayUrl('wss://relay-.com'), null);
       });
+
+      test('returns null for an invalid IPv6 address', () {
+        expect(cleanRelayUrl('wss://[zz::1]'), null);
+      });
+
+      test('returns null for a port out of range', () {
+        expect(cleanRelayUrl('wss://relay.example.com:65536'), null);
+      });
     });
   });
 
@@ -181,21 +208,6 @@ void main() {
         'wss://relay.ditto.pub',
         'ws://localhost',
       ]);
-    });
-  });
-
-  group('RELAY_URL_REGEX', () {
-    test('matches valid relay URL pattern', () {
-      expect(relayUrlRegex.hasMatch('wss://relay.primal.net'), true);
-      expect(relayUrlRegex.hasMatch('ws://localhost'), true);
-      expect(relayUrlRegex.hasMatch('wss://192.168.1.1'), true);
-      expect(relayUrlRegex.hasMatch('wss://relay.example.com:8080'), true);
-    });
-
-    test('does not match invalid patterns', () {
-      expect(relayUrlRegex.hasMatch('http://example.com'), false);
-      expect(relayUrlRegex.hasMatch('wss://'), false);
-      expect(relayUrlRegex.hasMatch('wss:///example.com'), false);
     });
   });
 }

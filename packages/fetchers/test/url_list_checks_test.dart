@@ -1,6 +1,6 @@
 import 'dart:convert';
 
-import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:test/test.dart';
 
 void main() {

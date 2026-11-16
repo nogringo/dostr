@@ -1,5 +1,6 @@
-/// When the relays were last asked for one list of an account, and whether
-/// they held it. The list itself stays in the event cache.
+/// When the relays were last asked for one replaceable event of an account,
+/// such as a relay list, and whether they held it. The event itself stays in
+/// the [ReplaceableEventCache].
 class UrlListCheck {
   /// Account whose list was asked for.
   final String pubkey;

@@ -4,5 +4,4 @@
 library;
 
 export 'src/relay_helper.dart' show cleanRelayUrl, cleanRelayUrls;
-export 'src/url_list_checks.dart';
 export 'src/url_set.dart';

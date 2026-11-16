@@ -167,9 +167,8 @@ final class EventFetchResult {
   /// What each relay asked did with its REQ, by relay url.
   final Map<String, RelayRequestOutcome> outcomes;
 
-  /// Why each unavailable list of the set is: the relays it names were not
-  /// asked.
-  final List<String> unavailable;
+  /// Each unavailable list of the set: the relays it names were not asked.
+  final List<UnavailableUrlList> unavailable;
 
   /// Whether [events] are all that the relays of the set hold: it resolved
   /// with every list available, and each of its relays sent an EOSE. A closed

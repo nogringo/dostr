@@ -134,35 +134,46 @@ sealed class UrlSet {
   /// Serializes the set for storage.
   Map<String, Object?> toMap();
 
-  /// Inverse of [toMap].
+  /// Inverse of [toMap]. Throws a [FormatException] on a map it did not
+  /// write.
   static UrlSet fromMap(Map map) {
-    List<String> strings(String field) => (map[field] as List).cast<String>();
-    List<UrlSet> sets() => (map['sets'] as List)
-        .map((s) => UrlSet.fromMap(s as Map))
-        .toList(growable: false);
+    Never invalid(String field) =>
+        throw FormatException('invalid $field of url set', map);
+    T field<T>(String name) => switch (map[name]) {
+      final T value => value,
+      _ => invalid(name),
+    };
+    List<String> strings(String name) => [
+      for (final item in field<List>(name))
+        if (item is String) item else invalid(name),
+    ];
+    List<UrlSet> sets() => [
+      for (final item in field<List>('sets'))
+        if (item is Map) UrlSet.fromMap(item) else invalid('sets'),
+    ];
     // RelaySet stored inbox and dm leaves with several pubkeys.
     UrlSet perPubkey(UrlSet Function(String pubkey) leaf) =>
         map.containsKey('pubkeys')
         ? UnionUrls([for (final p in strings('pubkeys')) leaf(p)])
-        : leaf(map['pubkey'] as String);
+        : leaf(field('pubkey'));
     return switch (map['type']) {
       'explicit' => ExplicitUrls(strings('relays')),
-      'outbox' => OutboxUrls(map['pubkey'] as String),
-      'nip65' => Nip65Urls(map['pubkey'] as String),
+      'outbox' => OutboxUrls(field('pubkey')),
+      'nip65' => Nip65Urls(field('pubkey')),
       'inbox' => perPubkey(InboxUrls.new),
       'dm' => perPubkey(DmUrls.new),
-      'private' => PrivateUrls(map['pubkey'] as String),
-      'blossom' => BlossomUrls(map['pubkey'] as String),
+      'private' => PrivateUrls(field('pubkey')),
+      'blossom' => BlossomUrls(field('pubkey')),
       'union' => UnionUrls(sets()),
       'fallback' => FallbackUrls(sets()),
-      'first' => switch (map['count']) {
-        final int count when count >= 0 => FirstUrls(
+      'first' => switch (field<int>('count')) {
+        final count when count >= 0 => FirstUrls(
           count,
-          UrlSet.fromMap(map['set'] as Map),
+          UrlSet.fromMap(field<Map>('set')),
         ),
-        final count => throw FormatException('invalid first count: $count'),
+        _ => invalid('count'),
       },
-      final type => throw FormatException('unknown url set type: $type'),
+      final type => throw FormatException('unknown url set type: $type', map),
     };
   }
 }
@@ -184,6 +195,13 @@ final class ExplicitUrls extends UrlSet {
   // The `relays` key predates Blossom support: stored sets must keep loading.
   @override
   Map<String, Object?> toMap() => {'type': 'explicit', 'relays': urls};
+
+  @override
+  bool operator ==(Object other) =>
+      other is ExplicitUrls && _listEquals(urls, other.urls);
+
+  @override
+  int get hashCode => Object.hashAll(urls);
 }
 
 /// A leaf that reads one list of one account.
@@ -203,6 +221,13 @@ sealed class _ListUrls extends UrlSet {
 
   @override
   Map<String, Object?> toMap() => {'type': _kind.name, 'pubkey': pubkey};
+
+  @override
+  bool operator ==(Object other) =>
+      other is _ListUrls && other._kind == _kind && other.pubkey == pubkey;
+
+  @override
+  int get hashCode => Object.hash(_kind, pubkey);
 }
 
 /// See [UrlSet.outbox].
@@ -278,6 +303,13 @@ final class UnionUrls extends UrlSet {
     'type': 'union',
     'sets': [for (final s in sets) s.toMap()],
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is UnionUrls && _listEquals(sets, other.sets);
+
+  @override
+  int get hashCode => Object.hash(UnionUrls, Object.hashAll(sets));
 }
 
 /// See [UrlSet.fallback].
@@ -299,6 +331,13 @@ final class FallbackUrls extends UrlSet {
     'type': 'fallback',
     'sets': [for (final s in sets) s.toMap()],
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is FallbackUrls && _listEquals(sets, other.sets);
+
+  @override
+  int get hashCode => Object.hash(FallbackUrls, Object.hashAll(sets));
 }
 
 /// See [UrlSet.first].
@@ -326,6 +365,13 @@ final class FirstUrls extends UrlSet {
     'count': count,
     'set': set.toMap(),
   };
+
+  @override
+  bool operator ==(Object other) =>
+      other is FirstUrls && other.count == count && other.set == set;
+
+  @override
+  int get hashCode => Object.hash(count, set);
 }
 
 /// Result of resolving a whole [UrlSet] tree.
@@ -344,11 +390,50 @@ final class UrlsResolved extends UrlResolution {
 
 /// At least one lookup that the result depends on was unavailable.
 final class UrlsUnavailable extends UrlResolution {
-  /// Every unavailable lookup, joined.
-  final String reason;
+  /// Each unavailable list the result depends on, in tree order.
+  final List<UnavailableUrlList> lists;
+
+  /// What the set resolves to with each of [lists] counted as empty, a
+  /// fallback still stopping at it: where to send now while [lists] are
+  /// retried. In tree order, not deduplicated.
+  final List<String> urls;
 
   /// Creates an unavailable result.
-  const UrlsUnavailable(this.reason);
+  const UrlsUnavailable(this.lists, {this.urls = const []});
+
+  /// [lists], joined for a log.
+  String get reason => lists.join('; ');
+}
+
+/// A list a [UrlSet] depends on that could not be looked up.
+final class UnavailableUrlList {
+  /// Account whose list it is.
+  final String pubkey;
+
+  /// Which list of [pubkey] it is.
+  final UrlListKind kind;
+
+  /// Why, if known. It starts with `NIP-65` when the list is published on the
+  /// outbox and the NIP-65 of [pubkey] was the unavailable one.
+  final String? reason;
+
+  /// Creates an unavailable list.
+  const UnavailableUrlList(this.pubkey, this.kind, [this.reason]);
+
+  @override
+  bool operator ==(Object other) =>
+      other is UnavailableUrlList &&
+      other.pubkey == pubkey &&
+      other.kind == kind &&
+      other.reason == reason;
+
+  @override
+  int get hashCode => Object.hash(pubkey, kind, reason);
+
+  @override
+  String toString() =>
+      '${kind.name} list of $pubkey unavailable'
+      '${reason == null ? '' : ': $reason'}';
 }
 
 /// Resolves [set] with [lookup]. Each `(pubkey, kind)` pair is looked up at
@@ -389,7 +474,10 @@ Future<UrlResolution> _resolve(UrlSet set, UrlListFn lookup) async {
     case FirstUrls(:final count, :final set):
       return switch (await _resolve(set, lookup)) {
         UrlsResolved(:final urls) => UrlsResolved(urls.take(count).toList()),
-        final UrlsUnavailable unavailable => unavailable,
+        UrlsUnavailable(:final lists, :final urls) => UrlsUnavailable(
+          lists,
+          urls: urls.take(count).toList(),
+        ),
       };
   }
 }
@@ -400,7 +488,7 @@ Future<UrlResolution> _resolveList(
   UrlListFn lookup,
 ) async {
   UrlResolution unavailable(String? reason) =>
-      UrlsUnavailable(_unavailableReason(pubkey, kind, reason));
+      UrlsUnavailable([UnavailableUrlList(pubkey, kind, reason)]);
 
   var outboxRelays = const <String>[];
   if (kind.onOutbox) {
@@ -410,7 +498,7 @@ Future<UrlResolution> _resolveList(
       case UrlListNotFound():
         break;
       case UrlListUnavailable(:final reason):
-        return unavailable('NIP-65 ${reason ?? 'unavailable'}');
+        return unavailable(_nip65Reason(reason));
     }
   }
 
@@ -421,16 +509,30 @@ Future<UrlResolution> _resolveList(
   };
 }
 
-String _unavailableReason(String pubkey, UrlListKind kind, String? reason) =>
-    '${kind.name} list of $pubkey unavailable'
-    '${reason == null ? '' : ': $reason'}';
+String _nip65Reason(String? reason) => 'NIP-65 ${reason ?? 'unavailable'}';
 
 UrlResolution _merge(List<UrlResolution> parts) {
-  final unavailable = parts.whereType<UrlsUnavailable>();
-  if (unavailable.isNotEmpty) {
-    return UrlsUnavailable(unavailable.map((u) => u.reason).join('; '));
+  final urls = [
+    for (final part in parts)
+      ...switch (part) {
+        UrlsResolved(:final urls) => urls,
+        UrlsUnavailable(:final urls) => urls,
+      },
+  ];
+  final lists = [
+    for (final part in parts)
+      if (part is UrlsUnavailable) ...part.lists,
+  ];
+  return lists.isEmpty
+      ? UrlsResolved(urls)
+      : UrlsUnavailable(lists, urls: urls);
+}
+
+bool _listEquals(List<Object?> a, List<Object?> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var i = 0; i < a.length; i++) {
+    if (a[i] != b[i]) return false;
   }
-  return UrlsResolved([
-    for (final part in parts.cast<UrlsResolved>()) ...part.urls,
-  ]);
+  return true;
 }

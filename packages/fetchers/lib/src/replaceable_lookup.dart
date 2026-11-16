@@ -2,10 +2,10 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:dostr_core/dostr_core.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 
 import 'replaceable_events.dart';
+import 'url_list_checks.dart';
 
 /// Where the fetchers keep the events they found, so a cold start does not
 /// ask the relays for each of them again.

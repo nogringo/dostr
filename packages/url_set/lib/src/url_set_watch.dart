@@ -29,8 +29,8 @@ final class UrlSetSnapshot {
   /// [UrlSet.first] keeps the first URLs of the lists known at the time.
   final List<String> urls;
 
-  /// Why each unavailable lookup the set depends on is.
-  final List<String> unavailable;
+  /// Each unavailable list the set depends on, in tree order.
+  final List<UnavailableUrlList> unavailable;
 
   /// Whether every lookup the set depends on ended. Only the last snapshot
   /// is.
@@ -43,16 +43,18 @@ final class UrlSetSnapshot {
     required this.done,
   });
 
-  /// [urls], or [unavailable] when there is one. Once [done], it is what
-  /// [resolveUrlSet] gives with the lists as they ended.
+  /// [urls], or [unavailable] with them when there is one. Once [done], it is
+  /// what [resolveUrlSet] gives with the lists as they ended, except that its
+  /// [UrlsUnavailable.urls] keep a list found while the NIP-65 of its owner
+  /// was unavailable.
   UrlResolution get resolution => unavailable.isEmpty
       ? UrlsResolved(urls)
-      : UrlsUnavailable(unavailable.join('; '));
+      : UrlsUnavailable(unavailable, urls: urls);
 
   bool _sameAs(UrlSetSnapshot other) =>
       done == other.done &&
-      _sameList(urls, other.urls) &&
-      _sameList(unavailable, other.unavailable);
+      _listEquals(urls, other.urls) &&
+      _listEquals(unavailable, other.unavailable);
 }
 
 /// Resolves [set] with [watch] as its lists arrive, where [resolveUrlSet]
@@ -183,16 +185,14 @@ class _UrlSetWatch {
     if (outbox?.latest case UrlListUnavailable(:final reason)) {
       return UrlSetSnapshot(
         urls: urls,
-        unavailable: [
-          _unavailableReason(pubkey, kind, 'NIP-65 ${reason ?? 'unavailable'}'),
-        ],
+        unavailable: [UnavailableUrlList(pubkey, kind, _nip65Reason(reason))],
         done: true,
       );
     }
     if (latest case UrlListUnavailable(:final reason)) {
       return UrlSetSnapshot(
         urls: const [],
-        unavailable: [_unavailableReason(pubkey, kind, reason)],
+        unavailable: [UnavailableUrlList(pubkey, kind, reason)],
         done: true,
       );
     }
@@ -244,12 +244,4 @@ class _ListWatch {
   void end() {
     if (!ended) _result.complete(latest ??= const UrlListLookup.unavailable());
   }
-}
-
-bool _sameList(List<String> a, List<String> b) {
-  if (a.length != b.length) return false;
-  for (var i = 0; i < a.length; i++) {
-    if (a[i] != b[i]) return false;
-  }
-  return true;
 }
