@@ -1,7 +1,8 @@
 import 'dart:typed_data';
 
+import 'package:crypto/crypto.dart';
 import 'package:dostr_cashu_protocol/dostr_cashu_protocol.dart';
-import 'package:pointycastle/export.dart' show HMac, KeyParameter, SHA256Digest;
+import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 import 'package:test/test.dart';
 
 import 'tools/simple_profiler.dart';
@@ -509,8 +510,9 @@ void main() {
               (timings['allocate'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();
-          final hmac = HMac(SHA256Digest(), 64)..init(KeyParameter(cachedSeed));
-          final result = hmac.process(message);
+          final result = Uint8List.fromList(
+            Hmac(sha256, cachedSeed).convert(message).bytes,
+          );
           timings['hmac'] = (timings['hmac'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();
@@ -519,7 +521,7 @@ void main() {
               (timings['bigint_parse'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();
-          final r = x % DartCashuKeyDerivation.secp256k1N;
+          final r = x % secp256k1Order;
           timings['modulo'] = (timings['modulo'] ?? 0) + sw.elapsedMicroseconds;
 
           sw = Stopwatch()..start();

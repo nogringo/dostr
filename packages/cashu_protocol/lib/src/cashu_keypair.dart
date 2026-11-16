@@ -1,4 +1,4 @@
-import 'package:pointycastle/export.dart';
+import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 
 import 'cashu_tools.dart';
 
@@ -25,16 +25,8 @@ class CashuKeypair {
     return CashuKeypair(privateKey: privKey, publicKey: pubkeyHex);
   }
 
-  static ECPoint derivePublicKey(String privateKeyHex) {
-    // hex private key to BigInt
-    final privateKeyInt = BigInt.parse(privateKeyHex, radix: 16);
-
-    final G = CashuTools.getG();
-
-    // calculate public key: pubkey = privKey * G
-    final publicKeyPoint = G * privateKeyInt;
-
-    return publicKeyPoint!;
+  static Secp256k1Point derivePublicKey(String privateKeyHex) {
+    return Secp256k1Point.generator * BigInt.parse(privateKeyHex, radix: 16);
   }
 
   factory CashuKeypair.fromJson(Map<String, dynamic> json) {

@@ -154,6 +154,56 @@ void main() {
     });
   });
 
+  group('subtraction', () {
+    test('matches the addition of the negation', () {
+      final a = g * randomScalar();
+      final b = g * randomScalar();
+      expect(a - b + b, a);
+      expect((a - a).isInfinity, isTrue);
+      expect(-(-a), a);
+      expect(-a, a * (n - BigInt.one));
+    });
+  });
+
+  group('SEC1', () {
+    test('round trips compressed and uncompressed points', () {
+      for (var i = 0; i < 10; i++) {
+        final point = g * randomScalar();
+        for (final compressed in [true, false]) {
+          final encoded = point.toSec1(compressed: compressed);
+          expect(encoded.length, compressed ? 33 : 65);
+          expect(Secp256k1Point.fromSec1(encoded), point);
+        }
+      }
+    });
+
+    test('matches pointycastle', () {
+      final k = randomScalar();
+      final referencePoint = (reference.G * k)!;
+      for (final compressed in [true, false]) {
+        expect(
+          (g * k).toSec1(compressed: compressed),
+          referencePoint.getEncoded(compressed),
+        );
+      }
+    });
+
+    test('rejects a prefix, a length or a point it does not know', () {
+      final compressed = g.toSec1();
+      expect(Secp256k1Point.fromSec1(compressed.sublist(1)), isNull);
+      expect(Secp256k1Point.fromSec1([5, ...compressed.sublist(1)]), isNull);
+      final uncompressed = g.toSec1(compressed: false);
+      expect(
+        Secp256k1Point.fromSec1([...uncompressed.sublist(0, 64), 0]),
+        isNull,
+      );
+    });
+
+    test('has no encoding for the point at infinity', () {
+      expect(() => Secp256k1Point.infinity.toSec1(), throwsStateError);
+    });
+  });
+
   test('the point at infinity has no coordinates', () {
     expect(() => Secp256k1Point.infinity.x, throwsStateError);
     expect(() => Secp256k1Point.infinity.y, throwsStateError);

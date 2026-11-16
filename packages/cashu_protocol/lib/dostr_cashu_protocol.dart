@@ -12,6 +12,8 @@
 /// ```
 library;
 
+export 'package:dostr_secp256k1/dostr_secp256k1.dart' show Secp256k1Point;
+
 export 'src/cashu_bdhke.dart';
 export 'src/cashu_key_derivation.dart';
 export 'src/cashu_keypair.dart';

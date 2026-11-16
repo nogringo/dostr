@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+
+import 'bytes.dart';
+
 /// The field prime p of secp256k1: every coordinate is below it.
 final secp256k1FieldPrime = BigInt.parse(
   'fffffffffffffffffffffffffffffffffffffffffffffffffffffffefffffc2f',
@@ -73,6 +77,21 @@ final class Secp256k1Point {
     return Secp256k1Point._(x, y, BigInt.one);
   }
 
+  /// The point that [bytes] encode in SEC1, compressed in 33 bytes or not in
+  /// 65, or null when they encode no point of the curve.
+  static Secp256k1Point? fromSec1(List<int> bytes) {
+    if (bytes.length == 33 && (bytes[0] == 2 || bytes[0] == 3)) {
+      return fromX(bytesToBigInt(bytes.sublist(1)), oddY: bytes[0] == 3);
+    }
+    if (bytes.length == 65 && bytes[0] == 4) {
+      return fromXY(
+        bytesToBigInt(bytes.sublist(1, 33)),
+        bytesToBigInt(bytes.sublist(33)),
+      );
+    }
+    return null;
+  }
+
   /// Whether this is the point at infinity, which has no coordinates.
   bool get isInfinity => _z == BigInt.zero;
 
@@ -99,7 +118,20 @@ final class Secp256k1Point {
     );
   }
 
+  /// This point in SEC1, compressed in 33 bytes unless [compressed] is false.
+  /// Throws a [StateError] on the point at infinity.
+  Uint8List toSec1({bool compressed = true}) => Uint8List.fromList([
+    if (compressed) y.isOdd ? 3 : 2 else 4,
+    ...bigIntTo32Bytes(x),
+    if (!compressed) ...bigIntTo32Bytes(y),
+  ]);
+
   Secp256k1Point operator +(Secp256k1Point other) => _add(this, other);
+
+  Secp256k1Point operator -(Secp256k1Point other) => _add(this, -other);
+
+  Secp256k1Point operator -() =>
+      isInfinity ? this : Secp256k1Point._(_x, _subMod(BigInt.zero, _y), _z);
 
   /// This point times [scalar], taken modulo [secp256k1Order].
   Secp256k1Point operator *(BigInt scalar) {

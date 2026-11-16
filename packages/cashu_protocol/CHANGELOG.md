@@ -6,6 +6,9 @@
  - `CashuBdhke.blindMessage` generates a uniformly random blinding factor. It was a number below one million, which a mint can guess to link a proof to the blinded message it signed.
  - `CashuBdhke.unblindSignatures` pairs each signature with the output at its position and takes the amount from the signature. It sorted both lists by amount, which mixed up outputs of the same amount past 32 of them, and it could not unblind NUT-08 change: fewer signatures than blank outputs, with amounts the mint imprinted.
  - `CashuRepo` is now `CashuRepository`, and `CashuRepoImpl` is now `HttpCashuRepository`.
+ - secp256k1 points are `Secp256k1Point` from `dostr_secp256k1`, which this package exports, instead of the `ECPoint` of pointycastle: in `CashuTools.hashToCurve`, `pointFromHexString` and `ecPointToHex`, `CashuKeypair.derivePublicKey` and `CashuBdhke.unblindingSignature`, which no longer returns null. The package no longer depends on `bip340` and `pointycastle`.
+ - `CashuTools.getG` and `CashuTools.fastGMultiply` are gone: multiply `Secp256k1Point.generator`, which goes through a table of its multiples. `DartCashuKeyDerivation.secp256k1N` is gone too: use `secp256k1Order`.
+ - `CashuTools.pointFromHexString` throws a `FormatException` for hex that encodes no secp256k1 point.
  - `CahsuKeyset`, `CahsuMintKeyPair`, `CahsuKeysetResponse` and `CahsuKeysResponse` are now spelled `CashuKeyset`, `CashuMintKeyPair`, `CashuKeysetResponse` and `CashuKeysResponse`.
  - `HttpCashuRepository.swap` sends the outputs in the order it gets them instead of sorting the caller's list in place.
  - `CashuTokenUrEncoder` (NUT-16 animated QR codes) moved here from the `ur` package, and so did the Uniform Resources encoding of that package, a copy of dart-bc-ur under the MIT license (`lib/src/ur/LICENSE`). There is no `ur` package to depend on anymore: `URDecoder` and `UREncoder` are exported from here, the rest is internal.

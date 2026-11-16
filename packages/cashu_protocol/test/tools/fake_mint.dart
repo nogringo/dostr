@@ -18,7 +18,9 @@ class FakeMint {
       for (final amount in [1, 2, 4, 8, 128])
         CashuMintKeyPair(
           amount: amount,
-          pubkey: CashuTools.ecPointToHex((CashuTools.getG() * key(amount))!),
+          pubkey: CashuTools.ecPointToHex(
+            Secp256k1Point.generator * key(amount),
+          ),
         ),
     },
   );
@@ -42,13 +44,13 @@ class FakeMint {
         id: keyset.id,
         amount: amount,
         blindedSignature: CashuTools.ecPointToHex(
-          (CashuTools.pointFromHexString(output.blindedMessage) * key(amount))!,
+          CashuTools.pointFromHexString(output.blindedMessage) * key(amount),
         ),
       );
 
   /// the C a valid proof of [secret] holds
   String expectedC(String secret, int amount) =>
-      CashuTools.ecPointToHex((CashuTools.hashToCurve(secret) * key(amount))!);
+      CashuTools.ecPointToHex(CashuTools.hashToCurve(secret) * key(amount));
 
   /// signs a swap's outputs in the order it gets them
   http.Client get client => MockClient((request) async {

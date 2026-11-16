@@ -1,6 +1,6 @@
 import 'dart:typed_data';
 
-import 'package:pointycastle/export.dart';
+import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 
 import 'cashu_key_derivation.dart';
 import 'cashu_seed.dart';
@@ -63,10 +63,8 @@ class CashuBdhke {
 
     r ??= CashuTools.randomScalar();
 
-    final rG = CashuTools.fastGMultiply(r);
-    final ECPoint? blindedMessage = Y + rG;
-
-    if (blindedMessage == null) {
+    final blindedMessage = Y + Secp256k1Point.generator * r;
+    if (blindedMessage.isInfinity) {
       throw Exception('Failed to compute blinded message');
     }
 
@@ -74,16 +72,14 @@ class CashuBdhke {
     return (blindedMessageHex, r);
   }
 
-  static ECPoint? unblindingSignature({
+  static Secp256k1Point unblindingSignature({
     required String cHex,
     required String kHex,
     required BigInt r,
   }) {
     final cPoint = CashuTools.pointFromHexString(cHex);
     final K = CashuTools.pointFromHexString(kHex);
-    final rK = K * r;
-    if (rK == null) return null;
-    return cPoint - rK;
+    return cPoint - K * r;
   }
 
   /// The mint returns [mintSignatures] in the order it got the outputs, so the
@@ -132,7 +128,7 @@ class CashuBdhke {
       kHex: mintPubkey,
       r: message.r,
     );
-    if (unblindedSig == null) {
+    if (unblindedSig.isInfinity) {
       throw Exception('Failed to unblind signature');
     }
 

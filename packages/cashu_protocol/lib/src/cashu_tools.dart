@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'package:bip340/bip340.dart' as bip340;
-import 'package:pointycastle/export.dart';
+import 'package:crypto/crypto.dart';
+import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 
 import 'entities/cashu_blinded_message.dart';
 import 'entities/cashu_keyset.dart';
@@ -26,43 +26,6 @@ class CashuTools {
     return '$mintUrl/$version$path';
   }
 
-  static final List<ECPoint> _gPowersOf2 = _precomputeGPowersOf2();
-
-  static List<ECPoint> _precomputeGPowersOf2() {
-    final powers = <ECPoint>[];
-    var current = getG();
-
-    for (var i = 0; i < 256; i++) {
-      powers.add(current);
-      current = (current + current)!; // Double the point
-    }
-
-    return powers;
-  }
-
-  /// Fast G multiplication using pre-computed table
-  static ECPoint fastGMultiply(BigInt scalar) {
-    ECPoint? result;
-
-    // Binary method: iterate through bits of scalar
-    var tempScalar = scalar;
-    var bitIndex = 0;
-
-    while (tempScalar > BigInt.zero) {
-      // Check if least significant bit is 1
-      if ((tempScalar & BigInt.one) == BigInt.one) {
-        result = result == null
-            ? _gPowersOf2[bitIndex]
-            : (result + _gPowersOf2[bitIndex])!;
-      }
-
-      tempScalar = tempScalar >> 1; // Right shift (divide by 2)
-      bitIndex++;
-    }
-
-    return result ?? getG();
-  }
-
   /// Splits an amount into a list of powers of two.
   /// eg, 5 will be split into [1, 4]
   static List<int> splitAmount(int value) {
@@ -72,50 +35,37 @@ class CashuTools {
     ];
   }
 
-  static ECPoint getG() {
-    return ECCurve_secp256k1().G;
-  }
-
-  static ECPoint hashToCurve(String hash) {
+  static Secp256k1Point hashToCurve(String hash) {
     const maxAttempt = 65536;
 
-    final hashBytes = Uint8List.fromList(utf8.encode(hash));
-    Uint8List msgToHash = Uint8List.fromList([
-      ...hashToCurveDomainSeparator.codeUnits,
-      ...hashBytes,
-    ]);
-
-    var digest = SHA256Digest();
-    Uint8List msgHash = digest.process(msgToHash);
+    final msgHash = sha256.convert([
+      ...utf8.encode(hashToCurveDomainSeparator),
+      ...utf8.encode(hash),
+    ]).bytes;
 
     for (int counter = 0; counter < maxAttempt; counter++) {
-      Uint8List counterBytes = Uint8List(4)
+      final counterBytes = Uint8List(4)
         ..buffer.asByteData().setUint32(0, counter, Endian.little);
-      Uint8List bytesToHash = Uint8List.fromList([...msgHash, ...counterBytes]);
+      final x = sha256.convert([...msgHash, ...counterBytes]).bytes;
 
-      Uint8List hash = digest.process(bytesToHash);
-
-      try {
-        String pointXHex = '02${bytesToHex(hash)}';
-        ECPoint point = pointFromHexString(pointXHex);
+      final point = Secp256k1Point.fromSec1([2, ...x]);
+      if (point != null) {
         return point;
-      } catch (_) {
-        continue;
       }
     }
 
     throw Exception('Failed to find a valid point after $maxAttempt attempts');
   }
 
-  static ECPoint pointFromHexString(String hexString) {
-    final curve = ECCurve_secp256k1();
-    final bytes = hexToBytes(hexString);
-
-    return curve.curve.decodePoint(bytes)!;
+  /// The point that [hexString] encodes in SEC1. Throws a [FormatException]
+  /// when it encodes no point of secp256k1.
+  static Secp256k1Point pointFromHexString(String hexString) {
+    return Secp256k1Point.fromSec1(hexToBytes(hexString)) ??
+        (throw FormatException('Not a secp256k1 point', hexString));
   }
 
-  static String ecPointToHex(ECPoint point, {bool compressed = true}) {
-    return bytesToHex(point.getEncoded(compressed));
+  static String ecPointToHex(Secp256k1Point point, {bool compressed = true}) {
+    return bytesToHex(point.toSec1(compressed: compressed));
   }
 
   static String createMintSignature({
@@ -135,17 +85,8 @@ class CashuTools {
 
     final String messageToSign = messageBuffer.toString();
 
-    // hash the message
-    final Uint8List messageBytes = utf8.encode(messageToSign);
-    final String messageHashHex = bytesToHex(
-      SHA256Digest().process(messageBytes),
-    );
-
-    return bip340.sign(
-      privateKeyHex,
-      messageHashHex,
-      bytesToHex(randomBytes(32)),
-    );
+    final messageHash = sha256.convert(utf8.encode(messageToSign)).bytes;
+    return bytesToHex(Schnorr.sign(messageHash, hexToBytes(privateKeyHex)));
   }
 
   static Uint8List randomBytes(int length) =>
@@ -153,10 +94,9 @@ class CashuTools {
 
   /// A uniformly random secp256k1 scalar in `[1, n - 1]`.
   static BigInt randomScalar() {
-    final n = ECCurve_secp256k1().n;
     while (true) {
       final scalar = BigInt.parse(bytesToHex(randomBytes(32)), radix: 16);
-      if (scalar > BigInt.zero && scalar < n) return scalar;
+      if (scalar > BigInt.zero && scalar < secp256k1Order) return scalar;
     }
   }
 

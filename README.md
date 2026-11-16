@@ -51,7 +51,7 @@ Start here.
 
 #### [🔗 secp256k1](./packages/secp256k1/)
 
-`dostr_secp256k1`: the secp256k1 curve arithmetic under BIP-340 signatures and NIP-44 encryption, in pure Dart.
+`dostr_secp256k1`: the secp256k1 curve arithmetic and BIP-340 Schnorr signatures under the BIP-340, NIP-44 and Cashu packages, without Nostr, in pure Dart.
 
 #### [🔗 BIP-340](./packages/bip340/)
 

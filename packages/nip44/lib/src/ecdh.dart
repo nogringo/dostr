@@ -26,19 +26,9 @@ Uint8List sharedSecret(String privateKey, String publicKey) {
 
 Secp256k1Point _decodePublicKey(String publicKey) {
   final encoded = publicKey.length == 64 ? '02$publicKey' : publicKey;
-  if (!_publicKeyPattern.hasMatch(encoded)) {
-    throw FormatException('Not a valid public key', publicKey);
-  }
-  final x = BigInt.parse(encoded.substring(2, 66), radix: 16);
-  if (x >= secp256k1FieldPrime) {
-    throw FormatException(
-      'Public key x is not below the field prime',
-      publicKey,
-    );
-  }
-  final point = encoded.startsWith('04')
-      ? Secp256k1Point.fromXY(x, BigInt.parse(encoded.substring(66), radix: 16))
-      : Secp256k1Point.fromX(x, oddY: encoded.startsWith('03'));
+  final point = _publicKeyPattern.hasMatch(encoded)
+      ? Secp256k1Point.fromSec1(hex.decode(encoded))
+      : null;
   return point ??
-      (throw FormatException('Public key is not on secp256k1', publicKey));
+      (throw FormatException('Not a valid secp256k1 public key', publicKey));
 }

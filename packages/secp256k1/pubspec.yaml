@@ -1,5 +1,5 @@
 name: dostr_secp256k1
-description: Pure Dart secp256k1 point arithmetic for Nostr, the curve under BIP-340 signatures and NIP-44 encryption.
+description: Pure Dart secp256k1 for Nostr and Cashu, the curve arithmetic and BIP-340 Schnorr signatures under dostr_bip340, dostr_nip44 and dostr_cashu_protocol.
 version: 0.1.0
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
@@ -14,6 +14,9 @@ environment:
   sdk: ">=3.9.0 <4.0.0"
 
 resolution: workspace
+
+dependencies:
+  crypto: ^3.0.7
 
 dev_dependencies:
   lints: ^6.1.0

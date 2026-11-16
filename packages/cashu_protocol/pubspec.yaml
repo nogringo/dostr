@@ -16,13 +16,12 @@ resolution: workspace
 
 dependencies:
   bip32_keys: ^3.1.4
-  bip340: ">=0.3.0 <0.4.0"
   bip39_mnemonic: ^4.1.0
   cbor: ^6.5.1
   collection: ^1.19.1
   crypto: ^3.0.7
+  dostr_secp256k1: ^0.1.0
   http: ^1.6.0
-  pointycastle: ">=3.0.0 <5.0.0"
 
 dev_dependencies:
   lints: ^6.1.0

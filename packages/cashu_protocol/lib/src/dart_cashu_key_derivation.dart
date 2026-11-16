@@ -2,7 +2,8 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:bip32_keys/bip32_keys.dart';
-import 'package:pointycastle/export.dart' show HMac, KeyParameter, SHA256Digest;
+import 'package:crypto/crypto.dart';
+import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 
 import 'cashu_key_derivation.dart';
 import 'cashu_keypair.dart';
@@ -26,11 +27,6 @@ enum DerivationType {
 class DartCashuKeyDerivation implements CashuKeyDerivation {
   static const int derivationPurpose = 129372;
   static const int derivationCoinType = 0;
-
-  static final BigInt secp256k1N = BigInt.parse(
-    'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141',
-    radix: 16,
-  );
 
   DartCashuKeyDerivation();
 
@@ -167,8 +163,9 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
     final message = messageBuilder.toBytes();
 
     // Compute HMAC-SHA256
-    final hmacSha256 = HMac(SHA256Digest(), 64)..init(KeyParameter(seed));
-    final hmacDigest = hmacSha256.process(message);
+    final hmacDigest = Uint8List.fromList(
+      Hmac(sha256, seed).convert(message).bytes,
+    );
 
     // For blinding factor, ensure it's a valid secp256k1 scalar
     if (derivationType == DerivationType.blindingFactor) {
@@ -176,8 +173,8 @@ class DartCashuKeyDerivation implements CashuKeyDerivation {
 
       // Optimization: single subtraction instead of modulo
       // Probability of HMAC >= SECP256K1_N is ~2^-128
-      if (x >= secp256k1N) {
-        return _bigIntToBytes(x - secp256k1N);
+      if (x >= secp256k1Order) {
+        return _bigIntToBytes(x - secp256k1Order);
       }
 
       if (x == BigInt.zero) {
