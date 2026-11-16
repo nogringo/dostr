@@ -1,9 +1,11 @@
-import 'account.dart';
+import 'nostr_signer.dart';
 
-/// The accounts relays may be authenticated as (NIP-42).
+/// The accounts relays (NIP-42) and Blossom servers may be authenticated as,
+/// each one the [NostrSigner] of its pubkey.
 abstract interface class AuthAccounts {
-  /// registered accounts, by pubkey, for reading only
-  Map<String, Account> get accounts;
+  /// null when nobody is logged in
+  NostrSigner? getLoggedAccount();
 
-  Account? getLoggedAccount();
+  /// the account of [pubkey], null when [pubkey] is not one
+  NostrSigner? getAccount(String pubkey);
 }

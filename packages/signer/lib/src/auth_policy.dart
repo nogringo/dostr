@@ -1,23 +1,23 @@
-import 'account.dart';
+import 'nostr_signer.dart';
 
 /// Which identity a request may be attributed to, and from when.
 sealed class AuthPolicy {
   const AuthPolicy();
 
-  /// Stays on the anonymous connection and never sends AUTH. A relay that
-  /// refuses the request without an identity simply does not serve it.
+  /// Never authenticates. A relay or server that refuses the request without
+  /// an identity does not serve it.
   const factory AuthPolicy.never() = AuthPolicyNever;
 
-  /// Starts anonymous and moves to a connection bound to [account] only once a
-  /// relay refused the request without an identity.
-  const factory AuthPolicy.allow(Account account) = AuthPolicyAllow;
+  /// Starts anonymous, and authenticates as [signer] only once a relay or
+  /// server refused the request without an identity.
+  const factory AuthPolicy.allow(NostrSigner signer) = AuthPolicyAllow;
 
-  /// Goes out on a connection bound to [account] from the start; it is never
-  /// sent on the anonymous one.
-  const factory AuthPolicy.require(Account account) = AuthPolicyRequire;
+  /// Authenticates as [signer] from the start, and never sends the request
+  /// anonymously.
+  const factory AuthPolicy.require(NostrSigner signer) = AuthPolicyRequire;
 
   /// identity this may authenticate as, null when it never authenticates
-  Account? get account;
+  NostrSigner? get signer;
 }
 
 /// Never authenticates, see [AuthPolicy.never].
@@ -26,32 +26,32 @@ class AuthPolicyNever extends AuthPolicy {
   const AuthPolicyNever();
 
   @override
-  Account? get account => null;
+  NostrSigner? get signer => null;
 
   @override
   String toString() => 'never';
 }
 
-/// Authenticates as [account] once refused, see [AuthPolicy.allow].
+/// Authenticates as [signer] once refused, see [AuthPolicy.allow].
 class AuthPolicyAllow extends AuthPolicy {
   @override
-  final Account account;
+  final NostrSigner signer;
 
-  /// authenticates as [account] once refused
-  const AuthPolicyAllow(this.account);
+  /// authenticates as [signer] once refused
+  const AuthPolicyAllow(this.signer);
 
   @override
-  String toString() => 'allow:${account.pubkey}';
+  String toString() => 'allow:${signer.publicKey}';
 }
 
-/// Authenticates as [account] from the start, see [AuthPolicy.require].
+/// Authenticates as [signer] from the start, see [AuthPolicy.require].
 class AuthPolicyRequire extends AuthPolicy {
   @override
-  final Account account;
+  final NostrSigner signer;
 
-  /// authenticates as [account] from the start
-  const AuthPolicyRequire(this.account);
+  /// authenticates as [signer] from the start
+  const AuthPolicyRequire(this.signer);
 
   @override
-  String toString() => 'require:${account.pubkey}';
+  String toString() => 'require:${signer.publicKey}';
 }

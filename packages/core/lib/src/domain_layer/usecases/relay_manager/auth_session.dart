@@ -65,7 +65,7 @@ class AuthSession {
   /// completes with whether the relay accepted it. Concurrent callers share a
   /// single AUTH.
   Future<bool> authenticate(
-    Account? account,
+    NostrSigner? account,
     void Function(List<dynamic> message) send,
   ) {
     if (_authenticated) return Future.value(true);
@@ -76,14 +76,14 @@ class AuthSession {
   }
 
   Future<bool> _authenticate(
-    Account? account,
+    NostrSigner? account,
     void Function(List<dynamic> message) send,
   ) async {
     if (account == null) {
       Logger.log.w(() => "Cannot authenticate $key, no account for its pubkey");
       return false;
     }
-    if (!account.signer.canSign) {
+    if (!account.canSign) {
       Logger.log.w(() => "Cannot authenticate $key, signer cannot sign");
       return false;
     }
@@ -98,9 +98,9 @@ class AuthSession {
     // resume that timeout if the error escaped here
     final Nip01Event signedAuth;
     try {
-      signedAuth = await account.signer.sign(
+      signedAuth = await account.sign(
         Nip01Event(
-          pubkey: account.pubkey,
+          pubkey: account.publicKey,
           kind: _kAuthKind,
           tags: [
             ["relay", key.url],

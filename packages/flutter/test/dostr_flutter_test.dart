@@ -191,12 +191,12 @@ void main() {
       final accounts = restored.accounts.accounts;
 
       expect(accounts.keys, [carolPubkey, bobPubkey, alicePubkey]);
-      expect(accounts[carolPubkey]!.signer, isA<Nip07Signer>());
+      expect(accounts[carolPubkey], isA<Nip07Signer>());
       expect(
-        (accounts[bobPubkey]!.signer as Nip55Signer).signerApp.package,
+        (accounts[bobPubkey]! as Nip55Signer).signerApp.package,
         'com.example.signer',
       );
-      expect(accounts[alicePubkey]!.signer.canSign, isTrue);
+      expect(accounts[alicePubkey]!.canSign, isTrue);
       expect(restored.accounts.loggedPubkey, bobPubkey);
     });
 
@@ -220,11 +220,8 @@ void main() {
       await restored.dostrFlutter.restoreAccountsState();
 
       final account = restored.accounts.getLoggedAccount()!;
-      expect(account.pubkey, bobPubkey);
-      expect(
-        (account.signer as Nip55Signer).signerApp.package,
-        'com.example.signer',
-      );
+      expect(account.publicKey, bobPubkey);
+      expect((account as Nip55Signer).signerApp.package, 'com.example.signer');
     });
 
     test('derives the pubkey of a private key account from the key', () async {

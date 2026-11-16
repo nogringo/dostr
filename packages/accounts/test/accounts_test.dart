@@ -45,7 +45,7 @@ void main() async {
       expect(accounts.isLoggedIn, true);
       expect(accounts.cannotSign, true);
       expect(accounts.loggedPubkey, key0.publicKey);
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key0.publicKey);
       expect(accounts.hasAccount(key0.publicKey), true);
       await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
@@ -81,7 +81,7 @@ void main() async {
     test('loginPrivateKey derives the pubkey', () async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginPrivateKey(privkey: key0.privateKey!);
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key0.publicKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
       await accounts.logout();
@@ -117,14 +117,14 @@ void main() async {
     });
 
     test('addAccount takes the pubkey of the signer, without logging in', () {
-      final account = accounts.addAccount(
-        signer: Bip340Signer(
-          privateKey: key0.privateKey,
-          publicKey: key0.publicKey,
-        ),
+      final signer = Bip340Signer(
+        privateKey: key0.privateKey,
+        publicKey: key0.publicKey,
       );
-      expect(account.pubkey, key0.publicKey);
-      expect(accounts.accounts, {key0.publicKey: account});
+      accounts.addAccount(signer: signer);
+      expect(accounts.accounts, {key0.publicKey: signer});
+      expect(accounts.getAccount(key0.publicKey), same(signer));
+      expect(accounts.getAccount(key1.publicKey), isNull);
       expect(accounts.isNotLoggedIn, true);
     });
 
@@ -169,16 +169,16 @@ void main() async {
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
       expect(accounts.hasAccount(key0.publicKey), true);
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key0.publicKey);
 
       accounts.loginPrivateKey(privkey: key1.privateKey!);
       expect(accounts.hasAccount(key1.publicKey), true);
-      expect(accounts.getLoggedAccount()!.pubkey, key1.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key1.publicKey);
 
       accounts.switchAccount(pubkey: key0.publicKey);
       expect(accounts.hasAccount(key0.publicKey), true);
       expect(accounts.hasAccount(key1.publicKey), true);
-      expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key0.publicKey);
 
       await accounts.logout();
       expect(accounts.hasAccount(key0.publicKey), false);
@@ -189,7 +189,7 @@ void main() async {
 
       accounts.switchAccount(pubkey: key1.publicKey);
       expect(accounts.hasAccount(key1.publicKey), true);
-      expect(accounts.getLoggedAccount()!.pubkey, key1.publicKey);
+      expect(accounts.getLoggedAccount()!.publicKey, key1.publicKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
 
@@ -218,9 +218,15 @@ void main() async {
         stream,
         emitsInOrder([
           isNull,
-          predicate<Account?>((a) => a?.pubkey == firstAccount.publicKey),
-          predicate<Account?>((a) => a?.pubkey == secondAccount.publicKey),
-          predicate<Account?>((a) => a?.pubkey == firstAccount.publicKey),
+          predicate<NostrSigner?>(
+            (a) => a?.publicKey == firstAccount.publicKey,
+          ),
+          predicate<NostrSigner?>(
+            (a) => a?.publicKey == secondAccount.publicKey,
+          ),
+          predicate<NostrSigner?>(
+            (a) => a?.publicKey == firstAccount.publicKey,
+          ),
           isNull,
         ]),
       );
@@ -237,7 +243,7 @@ void main() async {
     });
 
     test('authStateChanges does not repeat the logged account', () async {
-      final emitted = <Account?>[];
+      final emitted = <NostrSigner?>[];
       final sub = accounts.authStateChanges.listen(emitted.add);
 
       accounts.loginPublicKey(pubkey: key0.publicKey);
@@ -270,7 +276,7 @@ void main() async {
     });
 
     test('accountsStream does not emit when nothing changed', () async {
-      final emitted = <Map<String, Account>>[];
+      final emitted = <Map<String, NostrSigner>>[];
       final sub = accounts.accountsStream.listen(emitted.add);
 
       accounts.loginPublicKey(pubkey: key0.publicKey);

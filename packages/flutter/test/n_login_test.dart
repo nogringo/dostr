@@ -155,8 +155,8 @@ void main() {
       await tester.pump();
 
       final account = dostr.accounts.getLoggedAccount()!;
-      expect(account.pubkey, bobPubkey);
-      expect(account.signer.canSign, isFalse);
+      expect(account.publicKey, bobPubkey);
+      expect(account.canSign, isFalse);
       expect(loggedIn, 1);
       expect(dostr.savedState!['loggedAccount'], bobPubkey);
     });
@@ -206,8 +206,8 @@ void main() {
       await tester.pump();
 
       final account = dostr.accounts.getLoggedAccount()!;
-      expect(account.pubkey, alicePubkey);
-      expect(account.signer.canSign, isTrue);
+      expect(account.publicKey, alicePubkey);
+      expect(account.canSign, isTrue);
       expect(loggedIn, 1);
     });
 
@@ -275,8 +275,8 @@ void main() {
       );
 
       final account = dostr.accounts.getLoggedAccount()!;
-      expect(account.pubkey, bobPubkey);
-      expect(account.signer.canSign, isFalse);
+      expect(account.publicKey, bobPubkey);
+      expect(account.canSign, isFalse);
       expect(loggedIn, 1);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });

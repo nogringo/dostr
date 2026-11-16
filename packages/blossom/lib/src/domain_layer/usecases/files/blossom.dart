@@ -158,14 +158,12 @@ class Blossom {
 
   /// The logged-in account when an [AuthHandler] may agree to revealing it.
   /// Without one, an operation that names nobody reveals nobody.
-  Account? _defaultAccount() {
+  NostrSigner? _defaultAccount() {
     final account = _accounts.getLoggedAccount();
-    return _authHandler != null && account != null && account.signer.canSign
+    return _authHandler != null && account != null && account.canSign
         ? account
         : null;
   }
-
-  Account _throwawayAccount() => Account(_throwawaySigner());
 
   /// Whether [serverUrl] may see [pubkey]. A failing [AuthHandler] says no.
   Future<bool> _consent(String serverUrl, String pubkey) async {
@@ -206,7 +204,7 @@ class Blossom {
     final policy =
         auth ??
         (authorisesByDefault
-            ? AuthPolicy.require(fallback ?? _throwawayAccount())
+            ? AuthPolicy.require(fallback ?? _throwawaySigner())
             : const AuthPolicy.never());
 
     var resolveNext = resolveNextServers;
@@ -218,12 +216,12 @@ class Blossom {
         servers = await resolveServers();
         authorize = (_) async => const BlossomAuthorization.none();
 
-      case AuthPolicyRequire(:final account):
-        if (!account.signer.canSign) {
-          throw BlossomAuthUnavailableException(account.pubkey, operation);
+      case AuthPolicyRequire(signer: final account):
+        if (!account.canSign) {
+          throw BlossomAuthUnavailableException(account.publicKey, operation);
         }
         if (!throwaway) {
-          admit = (servers) => _serversAllowing(servers, account.pubkey);
+          admit = (servers) => _serversAllowing(servers, account.publicKey);
         }
         var admitted = await admit(await resolveServers());
         final next = resolveNext;
@@ -232,26 +230,26 @@ class Blossom {
           resolveNext = null;
         }
         if (admitted.isEmpty) {
-          throw BlossomAuthUnavailableException(account.pubkey, operation);
+          throw BlossomAuthUnavailableException(account.publicKey, operation);
         }
         servers = admitted;
         Future<Nip01Event> sign(_AuthEventBuilder build) =>
-            account.signer.sign(build(account.pubkey));
+            account.sign(build(account.publicKey));
         authorize = (build) async => BlossomAuthorization.upfront(
           await sign(build),
           renew: () => sign(build),
         );
 
-      case AuthPolicyAllow(:final account):
+      case AuthPolicyAllow(signer: final account):
         servers = await resolveServers();
         // allow never promised a signature, so an account that cannot give one
         // behaves as never() rather than failing the operation
-        authorize = (build) async => account.signer.canSign
+        authorize = (build) async => account.canSign
             ? BlossomAuthorization.onRefusal(
-                () => account.signer.sign(build(account.pubkey)),
+                () => account.sign(build(account.publicKey)),
                 consent: _authHandler == null
                     ? null
-                    : (serverUrl) => _consent(serverUrl, account.pubkey),
+                    : (serverUrl) => _consent(serverUrl, account.publicKey),
               )
             : const BlossomAuthorization.none();
     }
@@ -372,7 +370,7 @@ class Blossom {
       resolveServers: () => _resolveWriteServers(
         serverUrls: serverUrls,
         explicitPubkey: pubkeyToFetchUserServerList,
-        listOwner: auth?.account?.pubkey,
+        listOwner: auth?.signer?.publicKey,
       ),
     );
   }
@@ -402,7 +400,7 @@ class Blossom {
     if (serverUrls != null) return _distinctServers(serverUrls);
 
     final owner =
-        explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.pubkey;
+        explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.publicKey;
     if (owner == null) throw const BlossomNoServerListException();
     return _distinctServers(await _userServerList(owner));
   }
@@ -832,7 +830,7 @@ class Blossom {
       resolveServers: () => _resolveWriteServers(
         serverUrls: serverUrls,
         explicitPubkey: pubkeyToFetchUserServerList,
-        listOwner: auth?.account?.pubkey,
+        listOwner: auth?.signer?.publicKey,
       ),
     );
 
@@ -890,28 +888,26 @@ class Blossom {
         final account = _defaultAccount();
         if (account == null) {
           signer = _throwawaySigner();
-        } else if (await _consent(serverUrl, account.pubkey)) {
-          signer = account.signer;
+        } else if (await _consent(serverUrl, account.publicKey)) {
+          signer = account;
         } else {
-          throw BlossomAuthUnavailableException(account.pubkey, "report");
+          throw BlossomAuthUnavailableException(account.publicKey, "report");
         }
 
       case AuthPolicyNever():
         signer = _throwawaySigner();
 
-      case AuthPolicyRequire(:final account):
-        if (!account.signer.canSign ||
-            !await _consent(serverUrl, account.pubkey)) {
-          throw BlossomAuthUnavailableException(account.pubkey, "report");
+      case AuthPolicyRequire(signer: final account):
+        if (!account.canSign || !await _consent(serverUrl, account.publicKey)) {
+          throw BlossomAuthUnavailableException(account.publicKey, "report");
         }
-        signer = account.signer;
+        signer = account;
 
-      case AuthPolicyAllow(:final account):
+      case AuthPolicyAllow(signer: final account):
         // allow never promised a signature, so an account that cannot give one
         // reports anonymously rather than as whoever happens to be logged in
-        signer =
-            account.signer.canSign && await _consent(serverUrl, account.pubkey)
-            ? account.signer
+        signer = account.canSign && await _consent(serverUrl, account.publicKey)
+            ? account
             : _throwawaySigner();
     }
 

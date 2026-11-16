@@ -119,7 +119,7 @@ class _FlakyTransportFactory implements NostrTransportFactory {
 }
 
 void main() {
-  late Account account;
+  late NostrSigner account;
   late FakeAuthAccounts accounts;
 
   setUp(() {

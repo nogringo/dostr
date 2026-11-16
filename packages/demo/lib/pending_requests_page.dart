@@ -284,8 +284,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final loggedInAccount = accounts.getLoggedAccount();
-    final signer = loggedInAccount?.signer;
+    final signer = accounts.getLoggedAccount();
 
     if (signer == null) {
       return Center(
@@ -492,46 +491,31 @@ class _PendingRequestCard extends StatelessWidget {
 
   const _PendingRequestCard({required this.request, required this.onCancel});
 
-  IconData _getIconForMethod(SignerMethod method) {
-    switch (method) {
-      case SignerMethod.signEvent:
-        return Icons.edit;
-      case SignerMethod.nip04Encrypt:
-      case SignerMethod.nip44Encrypt:
-        return Icons.lock;
-      case SignerMethod.nip04Decrypt:
-      case SignerMethod.nip44Decrypt:
-        return Icons.lock_open;
-    }
-  }
+  IconData get _icon => switch (request) {
+        PendingSignRequest() => Icons.edit,
+        PendingEncryptRequest() => Icons.lock,
+        PendingDecryptRequest() => Icons.lock_open,
+      };
 
-  Color _getColorForMethod(SignerMethod method) {
-    switch (method) {
-      case SignerMethod.signEvent:
-        return Colors.blue;
-      case SignerMethod.nip04Encrypt:
-      case SignerMethod.nip44Encrypt:
-        return Colors.green;
-      case SignerMethod.nip04Decrypt:
-      case SignerMethod.nip44Decrypt:
-        return Colors.orange;
-    }
-  }
+  Color get _color => switch (request) {
+        PendingSignRequest() => Colors.blue,
+        PendingEncryptRequest() => Colors.green,
+        PendingDecryptRequest() => Colors.orange,
+      };
 
-  String _getMethodDisplayName(BuildContext context, SignerMethod method) {
+  String _displayName(BuildContext context) {
     final l10n = context.l10n;
-    switch (method) {
-      case SignerMethod.signEvent:
-        return l10n.pendingMethodSignEvent;
-      case SignerMethod.nip04Encrypt:
-        return l10n.pendingMethodNip04Encrypt;
-      case SignerMethod.nip04Decrypt:
-        return l10n.pendingMethodNip04Decrypt;
-      case SignerMethod.nip44Encrypt:
-        return l10n.pendingMethodNip44Encrypt;
-      case SignerMethod.nip44Decrypt:
-        return l10n.pendingMethodNip44Decrypt;
-    }
+    return switch (request) {
+      PendingSignRequest() => l10n.pendingMethodSignEvent,
+      PendingEncryptRequest(scheme: EncryptionScheme.nip04) =>
+        l10n.pendingMethodNip04Encrypt,
+      PendingEncryptRequest(scheme: EncryptionScheme.nip44) =>
+        l10n.pendingMethodNip44Encrypt,
+      PendingDecryptRequest(scheme: EncryptionScheme.nip04) =>
+        l10n.pendingMethodNip04Decrypt,
+      PendingDecryptRequest(scheme: EncryptionScheme.nip44) =>
+        l10n.pendingMethodNip44Decrypt,
+    };
   }
 
   String _formatDuration(BuildContext context, Duration duration) {
@@ -547,7 +531,6 @@ class _PendingRequestCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final method = request.method;
     final duration = DateTime.now().difference(request.createdAt);
     final details = switch (request) {
       PendingEncryptRequest(:final recipientPubkey, :final plaintext) => (
@@ -571,11 +554,10 @@ class _PendingRequestCard extends StatelessWidget {
             Row(
               children: [
                 CircleAvatar(
-                  backgroundColor:
-                      _getColorForMethod(method).withValues(alpha: 0.2),
+                  backgroundColor: _color.withValues(alpha: 0.2),
                   child: Icon(
-                    _getIconForMethod(method),
-                    color: _getColorForMethod(method),
+                    _icon,
+                    color: _color,
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -584,7 +566,7 @@ class _PendingRequestCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        _getMethodDisplayName(context, method),
+                        _displayName(context),
                         style: const TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,

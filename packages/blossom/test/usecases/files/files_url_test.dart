@@ -173,8 +173,9 @@ void main() {
     final servers = _Servers({'b.example'});
     final asked = <String>[];
     final key = Bip340.generatePrivateKey();
-    final account = Account(
-      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
+    final account = Bip340Signer(
+      privateKey: key.privateKey,
+      publicKey: key.publicKey,
     );
 
     final blob =

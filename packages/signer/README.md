@@ -5,7 +5,7 @@ It comes with `LocalSignerFactory`, the `PendingSignerRequest` that interactive 
 
 It also holds the accounts the Dostr packages may authenticate as, and what decides when one is revealed: to a relay that asks for NIP-42 authentication, or to a Blossom server.
 
-Pure Dart, interfaces only.
+Pure Dart: interfaces, and the `ConcurrencyLimiterMixin` that interactive signers share.
 A signer such as [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) needs this package and [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), not `dostr_core`.
 So does a package that authenticates on behalf of Dostr accounts, such as [`dostr_blossom`](https://pub.dev/packages/dostr_blossom).
 
@@ -69,43 +69,43 @@ To keep several accounts and switch between them, see [`dostr_accounts`](https:/
 ## Pending requests
 
 External signers (NIP-46, NIP-07, NIP-55) wait for the user to approve each operation.
-Read what waits on the signer, or on the `Account` that holds it:
+Read what waits on the signer:
 
 ```dart
 signer.pendingRequestsStream.listen((requests) {
   for (final request in requests) {
-    print('${request.method.name} (${request.id})');
+    print('${request.id} waits since ${request.createdAt}');
   }
 });
 
 // synchronous snapshot
-final current = account.pendingRequests;
+final current = signer.pendingRequests;
 ```
 
-A `PendingSignerRequest` has an `id`, a `createdAt`, the `signerPubkey` it waits on and its `method`, a `SignerMethod`.
+A `PendingSignerRequest` has an `id`, a `createdAt` and the `signerPubkey` it waits on.
 It is a sealed class, with what each request waits for:
 
 ```dart
 final details = switch (request) {
   PendingSignRequest(:final event) => 'kind ${event.kind}',
-  PendingEncryptRequest(:final plaintext, :final recipientPubkey) =>
-    'encrypt for $recipientPubkey: $plaintext',
-  PendingDecryptRequest(:final ciphertext, :final senderPubkey) =>
-    'decrypt from $senderPubkey: $ciphertext',
+  PendingEncryptRequest(:final scheme, :final plaintext, :final recipientPubkey) =>
+    '${scheme.name} encrypt for $recipientPubkey: $plaintext',
+  PendingDecryptRequest(:final scheme, :final ciphertext, :final senderPubkey) =>
+    '${scheme.name} decrypt from $senderPubkey: $ciphertext',
 };
 ```
 
-`request.method` tells NIP-04 from NIP-44.
+The `scheme` of an encryption or a decryption, an `EncryptionScheme`, tells NIP-04 from NIP-44.
 Only what the user approves waits there: a NIP-46 ping, for example, does not.
 
-`account.cancelRequest(requestId)` drops one, and the caller receives a `SignerRequestCancelledException`.
+`signer.cancelRequest(requestId)` drops one, and the caller receives a `SignerRequestCancelledException`.
 When the user rejects a request on the remote signer, the caller receives a `SignerRequestRejectedException`.
 
 A Flutter list of the pending requests, with a cancel button on each:
 
 ```dart
 StreamBuilder<List<PendingSignerRequest>>(
-  stream: account.pendingRequestsStream,
+  stream: signer.pendingRequestsStream,
   builder: (context, snapshot) {
     final requests = snapshot.data ?? [];
     if (requests.isEmpty) return Text('No pending requests');
@@ -115,11 +115,15 @@ StreamBuilder<List<PendingSignerRequest>>(
       itemBuilder: (context, index) {
         final request = requests[index];
         return ListTile(
-          title: Text(request.method.name),
+          title: Text(switch (request) {
+            PendingSignRequest() => 'Sign',
+            PendingEncryptRequest() => 'Encrypt',
+            PendingDecryptRequest() => 'Decrypt',
+          }),
           subtitle: Text('Created ${request.createdAt}'),
           trailing: IconButton(
             icon: Icon(Icons.cancel),
-            onPressed: () => account.cancelRequest(request.id),
+            onPressed: () => signer.cancelRequest(request.id),
           ),
         );
       },
@@ -128,17 +132,16 @@ StreamBuilder<List<PendingSignerRequest>>(
 )
 ```
 
-Dispose a signer, or the account that holds it, when done: `await account.dispose()`.
+Dispose a signer when done: `await signer.dispose()`.
 
 ## Accounts and authentication
 
-- `Account`: a `NostrSigner`, and the pubkey it signs for.
-- `AuthAccounts`: where the logged-in account comes from, implemented by `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
-- `AuthPolicy`: what one operation may reveal. `never()` stays anonymous, `allow(account)` authenticates when asked, `require(account)` authenticates upfront and fails if it cannot.
+- `AuthAccounts`: the accounts a request may authenticate as, each one the `NostrSigner` of its pubkey, and the logged-in one. `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts) implements it.
+- `AuthPolicy`: what one operation may reveal. `never()` stays anonymous, `allow(signer)` authenticates when asked, `require(signer)` authenticates upfront and fails if it cannot.
 - `AuthHandler`: asked before a pubkey is revealed on a url. Answering false keeps it from being revealed there.
 
 ```dart
-final policy = AuthPolicy.allow(Account(signer));
+final policy = AuthPolicy.allow(signer);
 
 Future<bool> onlyMyRelay(String url, String pubkey) async =>
     url == 'wss://relay.example.com';
@@ -149,5 +152,6 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 `PendingSignerRequest`, the `SignerRequestRejectedException` and `SignerRequestCancelledException` and `ConcurrencyLimiterMixin` used to be in `ndk`, and so did `NostrSigner` and `LocalSignerFactory`, as `EventSigner` and `LocalEventSignerFactory`.
 What changed is in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 
-`package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`, `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports too.
+`package:ndk/domain_layer/entities/auth_policy.dart`, `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports too.
+`Account`, from `account.dart`, is gone: an account is its `NostrSigner`, which `AuthPolicy` takes and `AuthAccounts` returns.
 `TimeoutPausable`, which was in `auth_handler.dart`, is in `package:dostr_core/dostr_core.dart` instead.

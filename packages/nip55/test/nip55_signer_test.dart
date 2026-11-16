@@ -202,7 +202,6 @@ void main() {
       await pumpEventQueue();
 
       final pending = signer.pendingRequests.single as PendingSignRequest;
-      expect(pending.method, SignerMethod.signEvent);
       expect(pending.event.id, event.id);
       expect(pending.signerPubkey, publicKey);
       expect(argumentsOf(calls.single)['id'], pending.id);
@@ -232,21 +231,26 @@ void main() {
         [
           for (final request in signer.pendingRequests)
             switch (request) {
-              PendingEncryptRequest(:final plaintext, :final recipientPubkey) =>
-                (request.method, plaintext, recipientPubkey),
-              PendingDecryptRequest(:final ciphertext, :final senderPubkey) => (
-                request.method,
-                ciphertext,
-                senderPubkey,
-              ),
+              PendingEncryptRequest(
+                :final scheme,
+                :final plaintext,
+                :final recipientPubkey,
+              ) =>
+                ('encrypt', scheme, plaintext, recipientPubkey),
+              PendingDecryptRequest(
+                :final scheme,
+                :final ciphertext,
+                :final senderPubkey,
+              ) =>
+                ('decrypt', scheme, ciphertext, senderPubkey),
               PendingSignRequest() => throw StateError('nothing was signed'),
             },
         ],
         [
-          (SignerMethod.nip04Encrypt, 'plain04', stalePublicKey),
-          (SignerMethod.nip04Decrypt, 'cipher04', stalePublicKey),
-          (SignerMethod.nip44Encrypt, 'plain44', publicKey),
-          (SignerMethod.nip44Decrypt, 'cipher44', publicKey),
+          ('encrypt', EncryptionScheme.nip04, 'plain04', stalePublicKey),
+          ('decrypt', EncryptionScheme.nip04, 'cipher04', stalePublicKey),
+          ('encrypt', EncryptionScheme.nip44, 'plain44', publicKey),
+          ('decrypt', EncryptionScheme.nip44, 'cipher44', publicKey),
         ],
       );
       expect(

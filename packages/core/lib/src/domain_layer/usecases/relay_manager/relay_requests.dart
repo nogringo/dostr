@@ -312,10 +312,10 @@ class RelayRequests implements ConnectionListener {
     final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
-      final account = (auth as AuthPolicyRequire).account;
+      final account = (auth as AuthPolicyRequire).signer;
       _failRelayRequest(
         state,
-        RelayConnectionKey.authenticated(url, account.pubkey),
+        RelayConnectionKey.authenticated(url, account.publicKey),
         filters,
         const RelayFailure(RelayFailureKind.cannotSign),
       );
@@ -363,7 +363,7 @@ class RelayRequests implements ConnectionListener {
     final connected = await _connections.reconnectConnection(
       request.key,
       force: false,
-      as: state.auth?.account,
+      as: state.auth?.signer,
       pausing: state,
     );
     // a timeout or a close may have ended the request while the connection
@@ -483,7 +483,7 @@ class RelayRequests implements ConnectionListener {
       return;
     }
 
-    final target = RelayConnectionKey.authenticated(key.url, account.pubkey);
+    final target = RelayConnectionKey.authenticated(key.url, account.publicKey);
     state.addRequest(target, request.filters);
 
     Logger.log.d(
@@ -519,7 +519,7 @@ class RelayRequests implements ConnectionListener {
   }
 
   /// Account a request authenticates as, null when it must stay unattributable.
-  Account? _accountForRequest(RequestState state) =>
+  NostrSigner? _accountForRequest(RequestState state) =>
       _auth.accountForAuth(state.auth);
 
   void _checkNetworkClose(RequestState state) {

@@ -18,7 +18,7 @@ const int rangeServerPort = 30011;
 void main() {
   late MockBlossomServer server;
   late Blossom client;
-  late Account loggedAccount;
+  late NostrSigner loggedAccount;
   late String serverUrl;
 
   Future<Blossom> startWith(MockBlossomServer s) async {

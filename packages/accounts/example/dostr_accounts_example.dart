@@ -5,7 +5,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 Future<void> main() async {
   final accounts = Accounts(const Bip340SignerFactory());
   accounts.authStateChanges.listen(
-    (account) => print('logged in: ${account?.pubkey}'),
+    (account) => print('logged in: ${account?.publicKey}'),
   );
 
   final writer = Bip340.generatePrivateKey();

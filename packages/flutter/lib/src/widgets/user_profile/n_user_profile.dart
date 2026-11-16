@@ -93,8 +93,7 @@ class NUserProfile extends StatelessWidget {
                           _accounts.logout();
 
                           if (_accounts.accounts.isNotEmpty) {
-                            final pubkey =
-                                _accounts.accounts.values.first.pubkey;
+                            final pubkey = _accounts.accounts.keys.first;
                             _accounts.switchAccount(pubkey: pubkey);
                           }
 

@@ -210,7 +210,7 @@ class RelayManager {
   Future<bool> reconnectConnection(
     RelayConnectionKey key, {
     bool force = false,
-    Account? as,
+    NostrSigner? as,
     TimeoutPausable? pausing,
   }) => _connections.reconnectConnection(
     key,
@@ -254,7 +254,7 @@ class RelayManager {
   /// was first opened, so reconnecting it does not ask again.
   Future<RelayConnectivity?> openConnectionAs(
     RelayUrl url,
-    Account account, {
+    NostrSigner account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) => _connections.openConnectionAs(
@@ -273,7 +273,7 @@ class RelayManager {
       : Future.value(false);
 
   /// Account [auth] authenticates as, null when it must stay unattributable.
-  Account? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
+  NostrSigner? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
 
   /// Routes a message from [relayConnectivity] to whatever it answers.
   Future<void> _dispatch(

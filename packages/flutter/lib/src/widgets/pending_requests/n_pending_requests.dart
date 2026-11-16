@@ -68,7 +68,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   NPendingRequestsState _state = NPendingRequestsState.hidden;
 
   StreamSubscription<List<PendingSignerRequest>>? _requestsSubscription;
-  StreamSubscription<Account?>? _authSubscription;
+  StreamSubscription<NostrSigner?>? _authSubscription;
 
   Accounts get _accounts => widget.dostrFlutter.accounts;
 
@@ -94,8 +94,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
       return;
     }
 
-    final signer = account.signer;
-    _requestsSubscription = signer.pendingRequestsStream.listen((requests) {
+    _requestsSubscription = account.pendingRequestsStream.listen((requests) {
       setState(() {
         _pendingRequests = requests;
         _updateState();
@@ -115,7 +114,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     final account = _accounts.getLoggedAccount();
     if (account == null) return 'signer';
 
-    return switch (account.signer) {
+    return switch (account) {
       Nip55Signer() => 'signer app',
       Nip46Signer() => 'bunker',
       Nip07Signer() => 'extension',
@@ -137,7 +136,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     final account = _accounts.getLoggedAccount();
     if (account == null) return;
 
-    account.signer.cancelRequest(requestId);
+    account.cancelRequest(requestId);
   }
 
   @override
@@ -332,7 +331,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
                 Row(
                   children: [
                     Text(
-                      _formatMethod(request.method),
+                      _formatRequest(request),
                       style: TextStyle(
                         color: colorScheme.onSurface,
                         fontSize: 13,
@@ -345,9 +344,9 @@ class _NPendingRequestsState extends State<NPendingRequests> {
                         NostrKinds.getDescription(context, event.kind),
                       ),
                     ],
-                    if (_getNipProtocol(request.method) != null) ...[
+                    if (_getNipProtocol(request) != null) ...[
                       const SizedBox(width: 6),
-                      _buildChip(context, _getNipProtocol(request.method)!),
+                      _buildChip(context, _getNipProtocol(request)!),
                     ],
                   ],
                 ),
@@ -391,31 +390,20 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     );
   }
 
-  String _formatMethod(SignerMethod method) {
-    switch (method) {
-      case SignerMethod.signEvent:
-        return 'Sign event';
-      case SignerMethod.nip04Encrypt:
-      case SignerMethod.nip44Encrypt:
-        return 'Encrypt';
-      case SignerMethod.nip04Decrypt:
-      case SignerMethod.nip44Decrypt:
-        return 'Decrypt';
-    }
-  }
+  String _formatRequest(PendingSignerRequest request) => switch (request) {
+    PendingSignRequest() => 'Sign event',
+    PendingEncryptRequest() => 'Encrypt',
+    PendingDecryptRequest() => 'Decrypt',
+  };
 
-  String? _getNipProtocol(SignerMethod method) {
-    switch (method) {
-      case SignerMethod.nip04Encrypt:
-      case SignerMethod.nip04Decrypt:
-        return 'NIP-04';
-      case SignerMethod.nip44Encrypt:
-      case SignerMethod.nip44Decrypt:
-        return 'NIP-44';
-      case SignerMethod.signEvent:
-        return null;
-    }
-  }
+  String? _getNipProtocol(PendingSignerRequest request) => switch (request) {
+    PendingSignRequest() => null,
+    PendingEncryptRequest(:final scheme) ||
+    PendingDecryptRequest(:final scheme) => switch (scheme) {
+      EncryptionScheme.nip04 => 'NIP-04',
+      EncryptionScheme.nip44 => 'NIP-44',
+    },
+  };
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();

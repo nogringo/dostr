@@ -39,9 +39,9 @@ class RelayConnectionKey {
   /// out. A null [auth] keeps the historical default.
   static RelayConnectionKey? forAuth(RelayUrl url, AuthPolicy? auth) =>
       switch (auth) {
-        AuthPolicyRequire(:final account) =>
-          account.signer.canSign
-              ? RelayConnectionKey.authenticated(url, account.pubkey)
+        AuthPolicyRequire(:final signer) =>
+          signer.canSign
+              ? RelayConnectionKey.authenticated(url, signer.publicKey)
               : null,
         null ||
         AuthPolicyNever() ||

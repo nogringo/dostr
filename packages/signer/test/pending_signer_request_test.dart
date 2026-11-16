@@ -15,7 +15,6 @@ void main() {
         event: event,
       );
 
-      expect(request.method, SignerMethod.signEvent);
       expect(request.event, same(event));
     });
 
@@ -35,8 +34,8 @@ void main() {
         recipientPubkey: 'b',
       );
 
-      expect(nip04.method, SignerMethod.nip04Encrypt);
-      expect(nip44.method, SignerMethod.nip44Encrypt);
+      expect(nip04.scheme, EncryptionScheme.nip04);
+      expect(nip44.scheme, EncryptionScheme.nip44);
       expect(nip44.plaintext, 'hello');
       expect(nip44.recipientPubkey, 'b');
     });
@@ -57,22 +56,33 @@ void main() {
         senderPubkey: 'b',
       );
 
-      expect(nip04.method, SignerMethod.nip04Decrypt);
-      expect(nip44.method, SignerMethod.nip44Decrypt);
+      expect(nip04.scheme, EncryptionScheme.nip04);
+      expect(nip44.scheme, EncryptionScheme.nip44);
       expect(nip44.ciphertext, 'encrypted');
       expect(nip44.senderPubkey, 'b');
     });
 
-    test('toString names the request and its method', () {
-      final request = PendingSignRequest(
+    test('toString names the request and what it waits for', () {
+      final sign = PendingSignRequest(
         id: 'req-006',
         createdAt: createdAt,
         signerPubkey: 'a',
         event: Nip01Event(pubkey: 'a', kind: 1, content: ''),
       );
+      final decrypt = PendingDecryptRequest.nip44(
+        id: 'req-007',
+        createdAt: createdAt,
+        signerPubkey: 'a',
+        ciphertext: 'encrypted',
+        senderPubkey: 'b',
+      );
 
-      expect(request.toString(), contains('req-006'));
-      expect(request.toString(), contains('signEvent'));
+      expect(sign.toString(), startsWith('PendingSignRequest(id: req-006'));
+      expect(sign.toString(), contains('kind: 1'));
+      expect(
+        decrypt.toString(),
+        startsWith('PendingDecryptRequest(id: req-007, nip44'),
+      );
     });
   });
 }

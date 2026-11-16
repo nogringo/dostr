@@ -111,11 +111,9 @@ void main() {
         answer = (url) => url == urlB;
         final client = clientWith(handler: true);
         final other = Bip340.generatePrivateKey();
-        final account = Account(
-          Bip340Signer(
-            privateKey: other.privateKey,
-            publicKey: other.publicKey,
-          ),
+        final account = Bip340Signer(
+          privateKey: other.privateKey,
+          publicKey: other.publicKey,
         );
 
         final results = await client.mirrorToServers(
@@ -147,8 +145,9 @@ void main() {
     test('reveals nothing once the handler says no', () async {
       answer = (_) => false;
       final client = clientWith(handler: true);
-      final account = Account(
-        Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
+      final account = Bip340Signer(
+        privateKey: key.privateKey,
+        publicKey: key.publicKey,
       );
 
       await expectLater(
@@ -166,8 +165,9 @@ void main() {
 
     test('asks once per server for a whole stream', () async {
       final client = clientWith(handler: true);
-      final account = Account(
-        Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
+      final account = Bip340Signer(
+        privateKey: key.privateKey,
+        publicKey: key.publicKey,
       );
 
       final stream = await client.getBlobStream(

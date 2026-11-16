@@ -12,15 +12,14 @@ import '../../mocks/mock_blossom_server.dart';
 
 const int filesAuthPort = 30050;
 
-Account _signable(KeyPair keyPair) => Account(
-  Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey),
-);
+NostrSigner _signable(KeyPair keyPair) =>
+    Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey);
 
 /// The facade owns no policy of its own, it only has to hand one down.
 void main() {
   late MockBlossomServer server;
   late Files files;
-  late Account other;
+  late NostrSigner other;
   late String serverUrl;
 
   setUp(() async {
@@ -49,7 +48,7 @@ void main() {
     );
 
     final puts = server.requests.where((r) => r.method == 'PUT').toList();
-    expect(puts.single.authPubkey, other.pubkey);
+    expect(puts.single.authPubkey, other.publicKey);
   });
 
   test('download authorises only once the server asks', () async {
@@ -75,7 +74,7 @@ void main() {
     final gets = server.requests.where((r) => r.method == 'GET').toList();
     expect(gets, hasLength(2));
     expect(gets.first.hasAuth, false);
-    expect(gets.last.authPubkey, other.pubkey);
+    expect(gets.last.authPubkey, other.publicKey);
   });
 
   test('a plain url is fetched directly and never carries a policy', () async {

@@ -84,7 +84,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     // listen to yet
     final connectionKey = RelayConnectionKey.forAuth(relayUrl, auth);
     if (connectionKey == null) {
-      throw Nip77AuthUnavailableException(relayUrl, auth!.account!.pubkey);
+      throw Nip77AuthUnavailableException(relayUrl, auth!.signer!.publicKey);
     }
 
     // Generate subscription ID
@@ -158,7 +158,7 @@ class _Nip77Internal extends RelayProtocolHandler {
   Future<RelayConnectivity?> _openConnection(Nip77State state) async {
     final connected = await _relayManager.reconnectConnection(
       state.connectionKey,
-      as: state.auth?.account,
+      as: state.auth?.signer,
       pausing: state,
     );
     if (!connected) {
@@ -436,7 +436,7 @@ class _Nip77Internal extends RelayProtocolHandler {
   /// connection is not the relay being silent.
   Future<void> _moveToBoundConnection(
     Nip77State state,
-    Account account,
+    NostrSigner account,
     String message,
   ) async {
     final url = state.connectionKey.url;
@@ -445,7 +445,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     Logger.log.d(
       () =>
           'AUTH required for negotiation ${state.subscriptionId} on $url, '
-          'retrying as ${account.pubkey}',
+          'retrying as ${account.publicKey}',
     );
 
     state.cancelTimeout();

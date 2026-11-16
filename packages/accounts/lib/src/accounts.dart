@@ -7,37 +7,38 @@ import 'package:rxdart/rxdart.dart';
 
 import 'accounts_exceptions.dart';
 
-/// The accounts of an app, and the one logged in among them.
+/// The accounts of an app, each one the [NostrSigner] of its pubkey, and the
+/// one logged in among them.
 ///
-/// Each account owns its signer: removing the account, or disposing of
-/// [Accounts], disposes of the signer.
+/// Each account belongs to [Accounts]: removing it, or disposing of
+/// [Accounts], disposes of its signer.
 class Accounts implements AuthAccounts {
   /// Builds the signers of [loginPrivateKey] and [loginPublicKey].
   final LocalSignerFactory signerFactory;
 
-  final Map<String, Account> _accounts = {};
+  final Map<String, NostrSigner> _accounts = {};
   String? _loggedPubkey;
 
-  final _stateController = BehaviorSubject<Account?>.seeded(null);
+  final _stateController = BehaviorSubject<NostrSigner?>.seeded(null);
 
-  final _accountsController = BehaviorSubject<Map<String, Account>>.seeded(
-    UnmodifiableMapView(<String, Account>{}),
+  final _accountsController = BehaviorSubject<Map<String, NostrSigner>>.seeded(
+    UnmodifiableMapView(<String, NostrSigner>{}),
   );
 
   Accounts(this.signerFactory);
 
   /// The accounts by pubkey: an unmodifiable snapshot, the last one
   /// [accountsStream] emitted.
-  @override
-  Map<String, Account> get accounts => _accountsController.value;
+  Map<String, NostrSigner> get accounts => _accountsController.value;
 
   /// The logged account on subscription, then each time it changes. Null
   /// when nobody is logged in.
-  Stream<Account?> get authStateChanges => _stateController.stream;
+  Stream<NostrSigner?> get authStateChanges => _stateController.stream;
 
   /// The accounts by pubkey on subscription, then a new snapshot each time
   /// one is added or removed.
-  Stream<Map<String, Account>> get accountsStream => _accountsController.stream;
+  Stream<Map<String, NostrSigner>> get accountsStream =>
+      _accountsController.stream;
 
   /// Adds an account that signs with [privkey], whose pubkey it derives, and
   /// logs it in.
@@ -50,7 +51,7 @@ class Accounts implements AuthAccounts {
 
   /// Adds an account that signs with [signer] and logs it in.
   ///
-  /// [signer] belongs to the account from then on, unless this throws.
+  /// [signer] belongs to [Accounts] from then on, unless this throws.
   void loginExternalSigner({required NostrSigner signer}) => _login(signer);
 
   bool hasAccount(String pubkey) => _accounts.containsKey(pubkey);
@@ -71,14 +72,12 @@ class Accounts implements AuthAccounts {
   /// Adds an account for the pubkey of [signer], without logging it in.
   ///
   /// Throws an [AccountExistsException] when that pubkey is already an
-  /// account. Otherwise [signer] belongs to the account from then on.
-  Account addAccount({required NostrSigner signer}) {
+  /// account. Otherwise [signer] belongs to [Accounts] from then on.
+  void addAccount({required NostrSigner signer}) {
     final pubkey = signer.publicKey;
     _checkNew(pubkey);
-    final account = Account(signer);
-    _accounts[pubkey] = account;
+    _accounts[pubkey] = signer;
     _notifyAccountsChange();
-    return account;
   }
 
   /// Removes the account of [pubkey], if any, logs it out if it was logged
@@ -101,24 +100,27 @@ class Accounts implements AuthAccounts {
   /// the logged account's.
   Future<Nip01Event> sign(Nip01Event event) async {
     final account = getLoggedAccount();
-    if (account == null || !account.signer.canSign) {
-      throw AccountCannotSignException(account?.pubkey);
+    if (account == null || !account.canSign) {
+      throw AccountCannotSignException(account?.publicKey);
     }
-    if (event.pubkey != account.pubkey) {
+    if (event.pubkey != account.publicKey) {
       throw ArgumentError.value(
         event.pubkey,
         'event.pubkey',
-        'is not the logged account ${account.pubkey}',
+        'is not the logged account ${account.publicKey}',
       );
     }
-    return account.signer.sign(event);
+    return account.sign(event);
   }
 
   @override
-  Account? getLoggedAccount() => _accounts[_loggedPubkey];
+  NostrSigner? getLoggedAccount() => _accounts[_loggedPubkey];
+
+  @override
+  NostrSigner? getAccount(String pubkey) => _accounts[pubkey];
 
   /// Whether the logged account can sign events.
-  bool get canSign => getLoggedAccount()?.signer.canSign ?? false;
+  bool get canSign => getLoggedAccount()?.canSign ?? false;
 
   bool get cannotSign => !canSign;
 
@@ -140,8 +142,8 @@ class Accounts implements AuthAccounts {
   }
 
   void _login(NostrSigner signer) {
-    final account = addAccount(signer: signer);
-    switchAccount(pubkey: account.pubkey);
+    addAccount(signer: signer);
+    switchAccount(pubkey: signer.publicKey);
   }
 
   void _checkNew(String pubkey) {

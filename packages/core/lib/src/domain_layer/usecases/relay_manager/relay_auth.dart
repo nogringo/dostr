@@ -29,7 +29,7 @@ class RelayAuth {
   /// the account a connection was opened as, for identities the caller handed
   /// over instead of registering. A challenge can arrive long after whatever
   /// asked for that identity is gone, so the connection has to keep it
-  final Map<RelayConnectionKey, Account> _boundAccounts = {};
+  final Map<RelayConnectionKey, NostrSigner> _boundAccounts = {};
 
   /// in flight [authHandler] questions, so concurrent openings ask once
   final Map<RelayConnectionKey, Future<bool>> _consents = {};
@@ -66,7 +66,7 @@ class RelayAuth {
   void forget(RelayConnectionKey key) => _sessions.remove(key)?.end();
 
   /// Keeps [account] as the identity the connection behind [key] signs as.
-  void bind(RelayConnectionKey key, Account account) =>
+  void bind(RelayConnectionKey key, NostrSigner account) =>
       _boundAccounts[key] = account;
 
   void unbind(RelayConnectionKey key) => _boundAccounts.remove(key);
@@ -76,8 +76,11 @@ class RelayAuth {
   /// caller handed to [AuthPolicy], which never had to be registered. Both
   /// carry [RelayConnectionKey.pubkey], so this only picks a signer, never an
   /// identity.
-  Account? accountFor(RelayConnectionKey key) =>
-      _accounts?.accounts[key.pubkey] ?? _boundAccounts[key];
+  NostrSigner? accountFor(RelayConnectionKey key) {
+    final pubkey = key.pubkey;
+    if (pubkey == null) return null;
+    return _accounts?.getAccount(pubkey) ?? _boundAccounts[key];
+  }
 
   /// Answers the challenge for [key] with an AUTH handed to [send], and
   /// completes once the relay accepted it. Concurrent callers share a single
@@ -129,13 +132,13 @@ class RelayAuth {
   }
 
   /// Account [auth] authenticates as, null when it must stay unattributable.
-  Account? accountForAuth(AuthPolicy? auth) {
+  NostrSigner? accountForAuth(AuthPolicy? auth) {
     switch (auth) {
       case AuthPolicyNever():
         return null;
-      case AuthPolicyAllow(:final account):
-      case AuthPolicyRequire(:final account):
-        return account.signer.canSign ? account : null;
+      case AuthPolicyAllow(:final signer):
+      case AuthPolicyRequire(:final signer):
+        return signer.canSign ? signer : null;
       case null:
         // a request that says nothing reveals nothing unless an AuthHandler is
         // there to agree to it
@@ -143,9 +146,9 @@ class RelayAuth {
     }
   }
 
-  Account? _loggedSigner() {
+  NostrSigner? _loggedSigner() {
     final logged = _accounts?.getLoggedAccount();
-    return logged != null && logged.signer.canSign ? logged : null;
+    return logged != null && logged.canSign ? logged : null;
   }
 
   /// Account a broadcast under [auth] authenticates as, null when it must stay
@@ -155,7 +158,7 @@ class RelayAuth {
   /// broadcast that said nothing prefers the event author, because gift wraps
   /// and other ephemeral-author events have no matching account, and only once
   /// an [AuthHandler] is there to agree to it.
-  Account? accountForBroadcast(AuthPolicy? auth, Nip01Event event) {
+  NostrSigner? accountForBroadcast(AuthPolicy? auth, Nip01Event event) {
     if (auth != null) {
       return accountForAuth(auth);
     }
@@ -163,8 +166,8 @@ class RelayAuth {
       return null;
     }
 
-    final author = _accounts?.accounts[event.pubkey];
-    if (author != null && author.signer.canSign) {
+    final author = _accounts?.getAccount(event.pubkey);
+    if (author != null && author.canSign) {
       return author;
     }
     return _loggedSigner();

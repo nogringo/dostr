@@ -228,9 +228,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  bool get canSign {
-    return publicKey.isNotEmpty;
-  }
+  bool get canSign => true;
 
   @override
   Future<String> encryptNip44({

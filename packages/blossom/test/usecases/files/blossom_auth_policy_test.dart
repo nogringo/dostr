@@ -12,18 +12,17 @@ import '../../mocks/mock_blossom_server.dart';
 
 const int policyPort = 30040;
 
-Account _signable(KeyPair keyPair) => Account(
-  Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey),
-);
+NostrSigner _signable(KeyPair keyPair) =>
+    Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey);
 
-Account _watchOnly(KeyPair keyPair) =>
-    Account(Bip340Signer(privateKey: null, publicKey: keyPair.publicKey));
+NostrSigner _watchOnly(KeyPair keyPair) =>
+    Bip340Signer(privateKey: null, publicKey: keyPair.publicKey);
 
 void main() {
   late MockBlossomServer server;
   late Blossom client;
-  late Account loggedIn;
-  late Account other;
+  late NostrSigner loggedIn;
+  late NostrSigner other;
   late String serverUrl;
 
   setUp(() async {
@@ -85,7 +84,7 @@ void main() {
       final gets = server.requests.where((r) => r.method == 'GET').toList();
       expect(gets, hasLength(2));
       expect(gets.first.hasAuth, false);
-      expect(gets.last.authPubkey, other.pubkey);
+      expect(gets.last.authPubkey, other.publicKey);
     });
 
     test('require() reveals it from the start', () async {
@@ -97,7 +96,7 @@ void main() {
 
       final gets = server.requests.where((r) => r.method == 'GET').toList();
       expect(gets, hasLength(1));
-      expect(gets.single.authPubkey, other.pubkey);
+      expect(gets.single.authPubkey, other.publicKey);
     });
 
     test('the authorization it signs is short lived', () async {
@@ -202,8 +201,8 @@ void main() {
         );
 
         final puts = server.requests.where((r) => r.method == 'PUT').toList();
-        expect(puts.single.authPubkey, other.pubkey);
-        expect(puts.single.authPubkey, isNot(loggedIn.pubkey));
+        expect(puts.single.authPubkey, other.publicKey);
+        expect(puts.single.authPubkey, isNot(loggedIn.publicKey));
       },
     );
 
@@ -223,7 +222,7 @@ void main() {
   group('a streamed download', () {
     late MockBlossomServer ranged;
     late Blossom rangedClient;
-    late Account rangedOther;
+    late NostrSigner rangedOther;
 
     setUp(() async {
       ranged = MockBlossomServer(
@@ -289,14 +288,14 @@ void main() {
     test('names the account auth points at', () async {
       await report(auth: AuthPolicy.require(other));
 
-      expect(server.reports.single['pubkey'], other.pubkey);
+      expect(server.reports.single['pubkey'], other.publicKey);
     });
 
     test('under never() is signed by a throwaway key', () async {
       await report(auth: const AuthPolicy.never());
 
-      expect(server.reports.single['pubkey'], isNot(loggedIn.pubkey));
-      expect(server.reports.single['pubkey'], isNot(other.pubkey));
+      expect(server.reports.single['pubkey'], isNot(loggedIn.publicKey));
+      expect(server.reports.single['pubkey'], isNot(other.publicKey));
     });
 
     test(
@@ -320,15 +319,15 @@ void main() {
 
         await report(auth: AuthPolicy.allow(watcher));
 
-        expect(server.reports.single['pubkey'], isNot(loggedIn.pubkey));
-        expect(server.reports.single['pubkey'], isNot(watcher.pubkey));
+        expect(server.reports.single['pubkey'], isNot(loggedIn.publicKey));
+        expect(server.reports.single['pubkey'], isNot(watcher.publicKey));
       },
     );
 
     test('without auth or handler signs with a throwaway key', () async {
       await report();
 
-      expect(server.reports.single['pubkey'], isNot(loggedIn.pubkey));
+      expect(server.reports.single['pubkey'], isNot(loggedIn.publicKey));
     });
   });
 }

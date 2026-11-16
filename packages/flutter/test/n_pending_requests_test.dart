@@ -148,7 +148,14 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(errors.single, isA<SignerRequestCancelledException>());
-    expect(signer.pendingRequests.single.method, SignerMethod.nip04Decrypt);
+    expect(
+      signer.pendingRequests.single,
+      isA<PendingDecryptRequest>().having(
+        (request) => request.scheme,
+        'scheme',
+        EncryptionScheme.nip04,
+      ),
+    );
     expect(find.text('Encrypt'), findsNothing);
     expect(find.text('Cancel'), findsOneWidget);
 
@@ -203,7 +210,12 @@ void main() {
         expandedBuilder: (context, requests, signerName, onCancel) =>
             TextButton(
               onPressed: () => onCancel(requests.single.id),
-              child: Text('cancel ${requests.single.method.name}'),
+              child: switch (requests.single) {
+                PendingSignRequest(:final event) => Text(
+                  'cancel kind ${event.kind}',
+                ),
+                _ => const Text('cancel'),
+              },
             ),
       ),
     );
@@ -212,7 +224,7 @@ void main() {
 
     await tester.tap(find.text('1 on signer app'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('cancel signEvent'));
+    await tester.tap(find.text('cancel kind 1'));
     await tester.pumpAndSettle();
 
     expect(errors.single, isA<SignerRequestCancelledException>());

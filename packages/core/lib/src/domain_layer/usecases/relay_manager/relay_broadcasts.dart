@@ -179,9 +179,10 @@ class RelayBroadcasts {
     TimeoutPausable? pausing,
   }) async {
     if (auth is AuthPolicyRequire) {
-      if (!auth.account.signer.canSign) {
+      if (!auth.signer.canSign) {
         Logger.log.w(
-          () => "Broadcast requires ${auth.account.pubkey}, which cannot sign",
+          () =>
+              "Broadcast requires ${auth.signer.publicKey}, which cannot sign",
         );
         return (
           relay: null,
@@ -190,7 +191,7 @@ class RelayBroadcasts {
       }
       final bound = await _connections.openConnectionAs(
         url,
-        auth.account,
+        auth.signer,
         connectTimeout: connectTimeout,
         pausing: pausing,
       );
@@ -319,7 +320,10 @@ class RelayBroadcasts {
     }
     final account = resolved;
 
-    final boundKey = RelayConnectionKey.authenticated(relayUrl, account.pubkey);
+    final boundKey = RelayConnectionKey.authenticated(
+      relayUrl,
+      account.publicKey,
+    );
 
     Future<void> retryOnBoundConnection() async {
       try {

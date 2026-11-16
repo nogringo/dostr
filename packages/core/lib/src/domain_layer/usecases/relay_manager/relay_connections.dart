@@ -369,7 +369,7 @@ class RelayConnections {
   Future<bool> reconnectConnection(
     RelayConnectionKey key, {
     bool force = false,
-    Account? as,
+    NostrSigner? as,
     TimeoutPausable? pausing,
   }) async {
     final inFlightConnect = _connectReadyCompleters[key];
@@ -435,15 +435,15 @@ class RelayConnections {
   /// was first opened, so reconnecting it does not ask again.
   Future<RelayConnection?> openConnectionAs(
     RelayUrl url,
-    Account account, {
+    NostrSigner account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) async {
-    if (!account.signer.canSign) {
-      Logger.log.w(() => "Cannot bind a connection to ${account.pubkey}");
+    if (!account.canSign) {
+      Logger.log.w(() => "Cannot bind a connection to ${account.publicKey}");
       return null;
     }
-    final key = RelayConnectionKey.authenticated(url, account.pubkey);
+    final key = RelayConnectionKey.authenticated(url, account.publicKey);
     if (relays[key] == null && !await _auth.consent(key, pausing: pausing)) {
       Logger.log.d(() => "Not allowed to open $key");
       return null;
@@ -456,7 +456,7 @@ class RelayConnections {
 
     final result = await connectRelay(
       dirtyUrl: url,
-      authPubkey: account.pubkey,
+      authPubkey: account.publicKey,
       connectTimeout: connectTimeout,
     );
     final connectivity = relays[key];

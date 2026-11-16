@@ -32,48 +32,49 @@ class AccountsStorage {
     final stored = NostrWidgetsAccounts(accounts: []);
 
     for (var account in accounts.accounts.values) {
-      if (account.signer is Nip07Signer) {
+      if (account is Nip07Signer) {
         stored.accounts.add(
-          NostrAccount(kind: AccountKinds.nip07, pubkey: account.pubkey),
+          NostrAccount(kind: AccountKinds.nip07, pubkey: account.publicKey),
         );
         continue;
       }
 
-      if (account.signer is Nip55Signer) {
+      if (account is Nip55Signer) {
         // `signerSeed` holds the signer app package so
         // silent signing keeps working after restart.
-        final signer = account.signer as Nip55Signer;
         stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.nip55,
-            pubkey: account.pubkey,
-            signerSeed: signer.signerApp.package,
+            pubkey: account.publicKey,
+            signerSeed: account.signerApp.package,
           ),
         );
         continue;
       }
 
-      if (account.signer is Nip46Signer) {
-        final signer = account.signer as Nip46Signer;
+      if (account is Nip46Signer) {
         stored.accounts.add(
           NostrAccount(
             kind: AccountKinds.bunker,
-            pubkey: account.pubkey,
-            signerSeed: jsonEncode(signer.connection),
+            pubkey: account.publicKey,
+            signerSeed: jsonEncode(account.connection),
           ),
         );
         continue;
       }
 
-      if (account.signer
+      if (account
           case Bip340Signer(:final privateKey) ||
               WebSigner(:final privateKey)) {
         stored.accounts.add(
           privateKey == null
-              ? NostrAccount(kind: AccountKinds.pubkey, pubkey: account.pubkey)
+              ? NostrAccount(
+                  kind: AccountKinds.pubkey,
+                  pubkey: account.publicKey,
+                )
               : NostrAccount(
                   kind: AccountKinds.privkey,
-                  pubkey: account.pubkey,
+                  pubkey: account.publicKey,
                   signerSeed: privateKey,
                 ),
         );

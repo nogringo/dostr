@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  StreamSubscription<Account?>? _authSub;
+  StreamSubscription<NostrSigner?>? _authSub;
 
   @override
   void initState() {

@@ -24,7 +24,7 @@ void main() {
   late MockBlossomServer server;
   late MockBlossomServer server2;
   late Blossom client;
-  late Account loggedAccount;
+  late NostrSigner loggedAccount;
 
   setUp(() async {
     server = MockBlossomServer(port: primaryServerPort);

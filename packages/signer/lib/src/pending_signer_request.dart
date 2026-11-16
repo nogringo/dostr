@@ -1,13 +1,7 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// What a [PendingSignerRequest] asks the signer to do.
-enum SignerMethod {
-  signEvent,
-  nip04Encrypt,
-  nip04Decrypt,
-  nip44Encrypt,
-  nip44Decrypt,
-}
+/// The encryption of a [PendingEncryptRequest] or a [PendingDecryptRequest].
+enum EncryptionScheme { nip04, nip44 }
 
 /// A request waiting for the user to approve it on an interactive signer
 /// (NIP-46 bunker, NIP-07 extension, NIP-55 signer app).
@@ -26,11 +20,15 @@ sealed class PendingSignerRequest {
     required this.signerPubkey,
   });
 
-  SignerMethod get method;
-
   @override
-  String toString() =>
-      'PendingSignerRequest(id: $id, method: $method, createdAt: $createdAt)';
+  String toString() => switch (this) {
+    PendingSignRequest(:final event) =>
+      'PendingSignRequest(id: $id, kind: ${event.kind}, createdAt: $createdAt)',
+    PendingEncryptRequest(:final scheme) =>
+      'PendingEncryptRequest(id: $id, ${scheme.name}, createdAt: $createdAt)',
+    PendingDecryptRequest(:final scheme) =>
+      'PendingDecryptRequest(id: $id, ${scheme.name}, createdAt: $createdAt)',
+  };
 }
 
 /// A signature waiting for the user.
@@ -43,15 +41,11 @@ class PendingSignRequest extends PendingSignerRequest {
     required super.signerPubkey,
     required this.event,
   });
-
-  @override
-  SignerMethod get method => SignerMethod.signEvent;
 }
 
 /// A NIP-04 or NIP-44 encryption waiting for the user.
 class PendingEncryptRequest extends PendingSignerRequest {
-  @override
-  final SignerMethod method;
+  final EncryptionScheme scheme;
 
   final String plaintext;
   final String recipientPubkey;
@@ -62,7 +56,7 @@ class PendingEncryptRequest extends PendingSignerRequest {
     required super.signerPubkey,
     required this.plaintext,
     required this.recipientPubkey,
-  }) : method = SignerMethod.nip04Encrypt;
+  }) : scheme = EncryptionScheme.nip04;
 
   PendingEncryptRequest.nip44({
     required super.id,
@@ -70,13 +64,12 @@ class PendingEncryptRequest extends PendingSignerRequest {
     required super.signerPubkey,
     required this.plaintext,
     required this.recipientPubkey,
-  }) : method = SignerMethod.nip44Encrypt;
+  }) : scheme = EncryptionScheme.nip44;
 }
 
 /// A NIP-04 or NIP-44 decryption waiting for the user.
 class PendingDecryptRequest extends PendingSignerRequest {
-  @override
-  final SignerMethod method;
+  final EncryptionScheme scheme;
 
   final String ciphertext;
   final String senderPubkey;
@@ -87,7 +80,7 @@ class PendingDecryptRequest extends PendingSignerRequest {
     required super.signerPubkey,
     required this.ciphertext,
     required this.senderPubkey,
-  }) : method = SignerMethod.nip04Decrypt;
+  }) : scheme = EncryptionScheme.nip04;
 
   PendingDecryptRequest.nip44({
     required super.id,
@@ -95,5 +88,5 @@ class PendingDecryptRequest extends PendingSignerRequest {
     required super.signerPubkey,
     required this.ciphertext,
     required this.senderPubkey,
-  }) : method = SignerMethod.nip44Decrypt;
+  }) : scheme = EncryptionScheme.nip44;
 }

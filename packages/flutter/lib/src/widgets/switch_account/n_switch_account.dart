@@ -32,10 +32,10 @@ class NSwitchAccount extends StatefulWidget {
 class _NSwitchAccountState extends State<NSwitchAccount> {
   Accounts get _accounts => widget.dostrFlutter.accounts;
 
-  Widget _signerChip(BuildContext context, Account account) {
+  Widget _signerChip(BuildContext context, NostrSigner account) {
     final l10n = AppLocalizations.of(context)!;
 
-    final (label, backgroundColor) = switch (account.signer) {
+    final (label, backgroundColor) = switch (account) {
       Nip07Signer() => (l10n.extension, Colors.orange),
       Nip55Signer() => (l10n.signerApp, Colors.purple),
       Nip46Signer() => (l10n.bunker, Colors.green),
@@ -61,7 +61,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         ...accounts.map((account) {
-          final pubkey = account.pubkey;
+          final pubkey = account.publicKey;
           final isLoggedAccount = loggedPubkey == pubkey;
 
           Widget? subtitle;

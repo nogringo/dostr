@@ -290,7 +290,7 @@ void main() {
     () async {
       connect(anonymous);
       connect(authenticated);
-      await manager.openConnectionAs(anonymous.url, Account(_Signer()));
+      await manager.openConnectionAs(anonymous.url, _Signer());
       final attempt = manager.authenticateConnection(authenticated);
       await manager.closeIdleConnections();
       expect(parts.connections.relays.keys, [authenticated]);

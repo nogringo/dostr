@@ -88,17 +88,19 @@ class ClaimConnections extends RelayProtocolHandler {
 }
 
 class FakeAuthAccounts implements AuthAccounts {
-  @override
-  final Map<String, Account> accounts = {};
+  final Map<String, NostrSigner> accounts = {};
 
   String? loggedPubkey;
 
   @override
-  Account? getLoggedAccount() => accounts[loggedPubkey];
+  NostrSigner? getLoggedAccount() => accounts[loggedPubkey];
+
+  @override
+  NostrSigner? getAccount(String pubkey) => accounts[pubkey];
 }
 
-Account fakeAccount(String pubkey, {bool canSign = true}) =>
-    Account(FakeSigner(pubkey, signable: canSign));
+NostrSigner fakeAccount(String pubkey, {bool canSign = true}) =>
+    FakeSigner(pubkey, signable: canSign);
 
 Nip01Event signedEvent({
   String? pubkey,

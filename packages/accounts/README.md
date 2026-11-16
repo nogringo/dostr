@@ -61,7 +61,7 @@ accounts.authStateChanges.listen((account) {
 });
 
 accounts.accountsStream.listen((accounts) {
-  // pubkey -> Account, emitted on every add and remove
+  // pubkey -> NostrSigner, emitted on every add and remove
 });
 ```
 
@@ -69,7 +69,8 @@ Both emit their current value on subscription, `null` for `authStateChanges` whe
 `accountsStream` then emits an unmodifiable snapshot each time an account is added or removed.
 `switchAccount` changes the logged account but not the list, so it only fires `authStateChanges`, and not at all when that account is already the logged one.
 
-`accounts.accounts` is a read-only view of the same data, for a synchronous read.
+Each account is the `NostrSigner` of its pubkey.
+`accounts.accounts` is a read-only view of the same data, for a synchronous read, and `getAccount(pubkey)` gives one account, or null.
 `getLoggedAccount()`, `isLoggedIn` and `canSign` tell who is logged and whether they can sign.
 
 ## Relay authentication
@@ -104,3 +105,4 @@ What changed:
 | `authStateChanges` emitted nothing until the first login | emits `null` on subscription when nobody is logged in |
 | a bare `Exception` | `AccountExistsException`, `UnknownAccountException`, `AccountCannotSignException` |
 | `sign` signed an event of any pubkey | throws an `ArgumentError` when the event is not the logged account's |
+| `getLoggedAccount()`, `accounts` and the streams gave an `Account`, with its `pubkey` and `signer` | give the `NostrSigner` itself, whose pubkey is `publicKey` |

@@ -84,7 +84,7 @@ class BlossomUserServerList<R> {
 
     final Nip01Event myServerList = Nip01Event(
       content: "",
-      pubkey: account.pubkey,
+      pubkey: account.publicKey,
       kind: kBlossomUserServerList,
       createdAt: now,
       tags: [

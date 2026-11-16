@@ -25,7 +25,7 @@ final wrap = await giftWrap.toGiftWrap(rumor: rumor, recipientPubkey: pubkey);
 final received = await giftWrap.fromGiftWrap(giftWrap: wrap);
 ```
 
-`signer` is read on each call, so it can follow whoever is logged in, for example `() => accounts.getLoggedAccount()?.signer` with [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
+`signer` is read on each call, so it can follow whoever is logged in, for example `() => accounts.getLoggedAccount()` with [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 Every method also takes a `customSigner`.
 
 The wrap is a signed kind `1059` event: publish it with the `RelayPublishes` of [`dostr_core`](https://pub.dev/packages/dostr_core), for example to the recipient's DM relays that `UrlSet.dm` of [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) resolves to.
