@@ -60,7 +60,7 @@ The signer's `encrypt` and `decrypt` are the deprecated NIP-04 ones.
 ## NIP-04
 
 `Nip04.encrypt(privateKey, publicKey, text)` and `Nip04.decrypt(privateKey, publicKey, text)` are synchronous and take the text last, unlike `Nip44`.
-The public key must be x-only.
+Keys are hex strings, as for `Nip44`.
 NIP-04 is AES-CBC with no MAC, so an altered payload is not detected: use it only for peers that do not support NIP-44.
 `decrypt` returns an empty string for a payload without `?iv=`.
 

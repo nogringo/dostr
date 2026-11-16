@@ -90,34 +90,6 @@ Future<void> assertCryptPriv(
   );
 }
 
-Future<String> decryptMessageWithConversationKey(
-  String payload,
-  Uint8List conversationKey,
-) async {
-  final parsed = parsePayload(payload);
-  final nonce = parsed['nonce'];
-  final ciphertext = parsed['ciphertext'];
-  final mac = parsed['mac'];
-  final version = parsed['version'];
-
-  if (version != 2) {
-    throw FormatException('Unsupported version: $version');
-  }
-
-  final keys = deriveMessageKeys(conversationKey, nonce);
-  final chachaKey = keys['chachaKey']!;
-  final chachaNonce = keys['chachaNonce']!;
-  final hmacKey = keys['hmacKey']!;
-
-  verifyMac(hmacKey, nonce, ciphertext, mac);
-
-  final paddedPlaintext = decryptChaCha20(chachaKey, chachaNonce, ciphertext);
-
-  final plaintextBytes = unpad(paddedPlaintext);
-
-  return utf8.decode(plaintextBytes);
-}
-
 Future<void> assertDecryptFail(
   String conversationKeyHex,
   String unused, // Placeholder to match function signature
@@ -128,8 +100,13 @@ Future<void> assertDecryptFail(
   final conversationKey = hexToBytes(conversationKeyHex);
 
   try {
-    // Attempt to decrypt the message using the conversation key
-    await decryptMessageWithConversationKey(ciphertext, conversationKey);
+    // The keys are ignored when a conversation key is given
+    await Nip44.decryptMessage(
+      ciphertext,
+      '',
+      '',
+      customConversationKey: conversationKey,
+    );
     // If no exception is thrown, the test should fail
     fail('Expected decryption to fail, but it succeeded');
   } catch (e) {
@@ -558,7 +535,7 @@ void main() {
       'cff7bd6a3e29a450fd27f6c125d5edeb0987c475fd1e8d97591e0d4d8a89763c',
       '¯\\_(ツ)_/¯',
       'Agn/l3ULCEAS4V7LhGFM6IGA17jsDUaFCKhrbXDANholyySBfeh+EN8wNB9gaLlg4j6wdBYh+3oK+mnxWu3NKRbSvQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
-      'Unsupported version: null',
+      'Invalid MAC',
     );
   });
 
@@ -567,7 +544,7 @@ void main() {
       'cfcc9cf682dfb00b11357f65bdc45e29156b69db424d20b3596919074f5bf957',
       '🥎',
       'AmWxSwuUmqp9UsQX63U7OQ6K1thLI69L7G2b+j4DoIr0oRWQ8avl4OLqWZiTJ10vIgKrNqjoaX+fNhE9RqmR5g0f6BtUg1ijFMz71MO1D4lQLQfW7+UHva8PGYgQ1QpHlKgR',
-      'Unsupported version: null',
+      'Invalid MAC',
     );
   });
 
@@ -576,7 +553,7 @@ void main() {
       '5254827d29177622d40a7b67cad014fe7137700c3c523903ebbe3e1b74d40214',
       'elliptic-curve cryptography',
       'Anq2XbuLvCuONcr7V0UxTh8FAyWoZNEdBHXvdbNmDZHB573MI7R7rrTYftpqmvUpahmBC2sngmI14/L0HjOZ7lWGJlzdh6luiOnGPc46cGxf08MRC4CIuxx3i2Lm0KqgJ7vA',
-      'Unsupported version: null',
+      'Invalid padding',
     );
   });
 
@@ -585,7 +562,7 @@ void main() {
       'fea39aca9aa8340c3a78ae1f0902aa7e726946e4efcd7783379df8096029c496',
       'noble',
       'An1Cg+O1TIhdav7ogfSOYvCj9dep4ctxzKtZSniCw5MwRrrPJFyAQYZh5VpjC2QYzny5LIQ9v9lhqmZR4WBYRNJ0ognHVNMwiFV1SHpvUFT8HHZN/m/QarflbvDHAtO6pY16',
-      'Unsupported version: null',
+      'Invalid padding',
     );
   });
 
@@ -594,7 +571,7 @@ void main() {
       '0c4cffb7a6f7e706ec94b2e879f1fc54ff8de38d8db87e11787694d5392d5b3f',
       'censorship-resistant and global social network',
       'Am+f1yZnwnOs0jymZTcRpwhDRHTdnrFcPtsBzpqVdD6b2NZDaNm/TPkZGr75kbB6tCSoq7YRcbPiNfJXNch3Tf+o9+zZTMxwjgX/nm3yDKR2kHQMBhVleCB9uPuljl40AJ8kXRD0gjw+aYRJFUMK9gCETZAjjmrsCM+nGRZ1FfNsHr6Z',
-      'Unsupported version: null',
+      'Invalid padding',
     );
   });
 

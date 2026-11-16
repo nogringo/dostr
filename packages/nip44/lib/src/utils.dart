@@ -116,7 +116,7 @@ Uint8List hkdfExpand({
 
 Uint8List unpad(Uint8List padded) {
   int unpaddedLen = (padded[0] << 8) + padded[1];
-  if (unpaddedLen == 0 || unpaddedLen > padded.length - 2) {
+  if (unpaddedLen == 0 || padded.length != 2 + calcPaddedLen(unpaddedLen)) {
     throw Exception('Invalid padding');
   }
   return padded.sublist(2, 2 + unpaddedLen);
