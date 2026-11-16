@@ -157,6 +157,14 @@ void main() {
         expect(cleanRelayUrl('wss://relay.example.com:65536'), null);
       });
 
+      test('returns null for a port that overflows an int', () {
+        const overflow = 'wss://relay.example.com:99999999999999999999';
+        expect(cleanRelayUrl(overflow), null);
+        expect(cleanRelayUrls(['wss://relay.primal.net', overflow]), [
+          'wss://relay.primal.net',
+        ]);
+      });
+
       test('returns null for port 0', () {
         expect(cleanRelayUrl('wss://relay.example.com:0'), null);
         expect(cleanRelayUrl('ws://relay.example.com:00'), null);

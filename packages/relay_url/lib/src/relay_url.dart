@@ -35,6 +35,8 @@ RelayUrl? cleanRelayUrl(String url) {
     uri = Uri.parse(
       '${secure ? 'https' : 'http'}://${trimmed.substring(scheme.end)}',
     );
+    // Uri.parse may defer parsing the port, which throws if it overflows
+    if (uri.port == 0 || uri.port > 65535) return null;
   } on FormatException {
     return null;
   }
@@ -42,7 +44,6 @@ RelayUrl? cleanRelayUrl(String url) {
   // a host name cannot hold ':', so this is an IPv6 literal Uri.parse checked
   final ipv6 = uri.host.contains(':');
   if (!ipv6 && !_hostname.hasMatch(uri.host)) return null;
-  if (uri.port == 0 || uri.port > 65535) return null;
 
   final host = ipv6 ? '[${uri.host}]' : uri.host;
   final port = uri.hasPort ? ':${uri.port}' : '';
