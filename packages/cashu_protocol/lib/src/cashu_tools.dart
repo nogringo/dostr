@@ -15,6 +15,8 @@ class CashuTools {
   static const String apiVersion = 'v1';
   static const String hashToCurveDomainSeparator =
       'Secp256k1_HashToCurve_Cashu_';
+  static const String _mintQuoteSignatureDomainSeparator =
+      'Cashu_MintQuoteSig_v1';
 
   static final Random _random = Random.secure();
 
@@ -68,25 +70,39 @@ class CashuTools {
     return bytesToHex(point.toSec1(compressed: compressed));
   }
 
+  /// The NUT-20 signature of a mint request for [quote] and its
+  /// [blindedMessagesOutputs], in their request order, with the private key
+  /// the quote is locked to.
   static String createMintSignature({
     required String quote,
     required List<CashuBlindedMessage> blindedMessagesOutputs,
     required String privateKeyHex,
   }) {
-    final StringBuffer messageBuffer = StringBuffer();
-
-    // add quote id
-    messageBuffer.write(quote);
-
-    // add each B_ field(hex strings)
-    for (final output in blindedMessagesOutputs) {
-      messageBuffer.write(output.blindedMessage);
+    final message = BytesBuilder(copy: false)
+      ..add(utf8.encode(_mintQuoteSignatureDomainSeparator));
+    void addWithLength(List<int> bytes) {
+      message
+        ..add(Uint8List(4)..buffer.asByteData().setUint32(0, bytes.length))
+        ..add(bytes);
     }
 
-    final String messageToSign = messageBuffer.toString();
+    addWithLength(utf8.encode(quote));
+    for (final output in blindedMessagesOutputs) {
+      addWithLength(_minimalBigEndian(output.amount));
+      addWithLength(hexToBytes(output.blindedMessage));
+    }
 
-    final messageHash = sha256.convert(utf8.encode(messageToSign)).bytes;
+    final messageHash = sha256.convert(message.takeBytes()).bytes;
     return bytesToHex(Schnorr.sign(messageHash, hexToBytes(privateKeyHex)));
+  }
+
+  // Division, not shifts: shifts are 32-bit on the web.
+  static List<int> _minimalBigEndian(int value) {
+    final bytes = <int>[];
+    for (var rest = value; rest > 0; rest ~/= 256) {
+      bytes.insert(0, rest % 256);
+    }
+    return bytes;
   }
 
   static Uint8List randomBytes(int length) =>
