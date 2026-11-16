@@ -22,6 +22,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 cleanRelayUrl('WSS://Relay.Primal.NET:443/'); // wss://relay.primal.net
 cleanRelayUrl('https://relay.primal.net'); // null
 cleanRelayUrls(['wss://relay.ditto.pub/', 'not a url']); // [wss://relay.ditto.pub]
+RelayUrl.tryParse('https://relay.primal.net'); // null
 RelayUrl.parse('https://relay.primal.net'); // throws a FormatException
 ```
 
@@ -31,6 +32,7 @@ RelayUrl.parse('https://relay.primal.net'); // throws a FormatException
 - The default port (443 for `wss`, 80 for `ws`) is dropped.
 - Trailing slashes are dropped, as Nostr clients do, although RFC 3986 does not make `/path/` and `/path` equivalent.
 - The user info and the fragment, which RFC 6455 forbids in WebSocket urls, are dropped.
+- The trailing dot of a fully qualified host, as in `wss://relay.primal.net.`, is dropped.
 - Extra slashes after the scheme, as in `wss:///relay.primal.net`, are fixed.
 - IPv6 addresses and queries are kept.
 
@@ -40,7 +42,8 @@ It does not deduplicate them.
 ## The `RelayUrl` type
 
 `cleanRelayUrl` returns a `RelayUrl`, an extension type on `String`.
-It goes wherever a `String` does, but a `String` becomes one only through `cleanRelayUrl` or `RelayUrl.parse`.
+`RelayUrl.tryParse` does what `cleanRelayUrl` does, and `RelayUrl.parse` throws a `FormatException` where they return null.
+A `RelayUrl` goes wherever a `String` does, but a `String` becomes one only through these three.
 An API that takes a `RelayUrl` thus never needs to normalize it again.
 
 ```dart
@@ -60,5 +63,4 @@ Some spellings of one relay still give two urls:
 
 Some urls are rejected although a client could reach them:
 
-- A host ending with a dot, as in `wss://relay.primal.net.`.
 - A host with non-ASCII characters: give its punycode form, starting with `xn--`.

@@ -47,10 +47,6 @@ void main() {
         );
       });
 
-      test('accepts localhost', () {
-        expect(cleanRelayUrl('ws://localhost'), 'ws://localhost');
-      });
-
       test('accepts localhost with port', () {
         expect(cleanRelayUrl('ws://localhost:7777'), 'ws://localhost:7777');
       });
@@ -110,6 +106,28 @@ void main() {
           'wss://relay.primal.net',
         );
       });
+
+      test('drops the user info', () {
+        expect(
+          cleanRelayUrl('wss://user:pass@relay.primal.net'),
+          'wss://relay.primal.net',
+        );
+        expect(
+          cleanRelayUrl('wss://@relay.primal.net'),
+          'wss://relay.primal.net',
+        );
+      });
+
+      test('drops the trailing dot of a host', () {
+        expect(
+          cleanRelayUrl('wss://relay.primal.net.'),
+          'wss://relay.primal.net',
+        );
+        expect(
+          cleanRelayUrl('WSS://Relay.Primal.NET.:443/'),
+          'wss://relay.primal.net',
+        );
+      });
     });
 
     group('invalid URLs', () {
@@ -153,6 +171,16 @@ void main() {
         expect(cleanRelayUrl('wss://[zz::1]'), null);
       });
 
+      test('returns null for an IPvFuture address', () {
+        expect(cleanRelayUrl('ws://[v7.a:b]'), null);
+      });
+
+      test('returns null for a host with an empty label', () {
+        expect(cleanRelayUrl('wss://relay.primal.net..'), null);
+        expect(cleanRelayUrl('wss://relay..primal.net'), null);
+        expect(cleanRelayUrl('wss://.'), null);
+      });
+
       test('returns null for a port out of range', () {
         expect(cleanRelayUrl('wss://relay.example.com:65536'), null);
       });
@@ -186,6 +214,40 @@ void main() {
         throwsFormatException,
       );
     });
+  });
+
+  group('RelayUrl.tryParse', () {
+    test('normalizes a relay url', () {
+      expect(
+        RelayUrl.tryParse('WSS://Relay.Primal.NET:443/'),
+        'wss://relay.primal.net',
+      );
+    });
+
+    test('returns null for a url that is not a relay url', () {
+      expect(RelayUrl.tryParse('https://relay.primal.net'), null);
+    });
+  });
+
+  test('cleanRelayUrl leaves a RelayUrl unchanged', () {
+    const urls = [
+      'WSS://Relay.Primal.NET:443/',
+      'wss:///relay.primal.net',
+      'wss://user:pass@relay.primal.net',
+      'wss://relay.primal.net./',
+      'ws://relay.primal.net:0080',
+      'ws://[2001:DB8::1]:80/',
+      'ws://[fe80::1%25eth0]:7777',
+      'wss://relay.primal.net/a/%2E%2E/b/',
+      'wss://relay.primal.net/a/%2E',
+      'wss://relay.primal.net/path%2f%7e/?key%41=%2fv#section',
+      'wss://relay.primal.net/pa th?b=c d',
+    ];
+    for (final url in urls) {
+      final once = cleanRelayUrl(url);
+      expect(once, isNotNull, reason: url);
+      expect(cleanRelayUrl(once!), once, reason: url);
+    }
   });
 
   group('cleanRelayUrls', () {

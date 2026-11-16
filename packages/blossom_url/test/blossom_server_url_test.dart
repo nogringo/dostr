@@ -109,6 +109,17 @@ void main() {
         );
       });
 
+      test('drops the trailing dot of a host', () {
+        expect(
+          cleanBlossomServerUrl('https://cdn.example.com.'),
+          'https://cdn.example.com',
+        );
+        expect(
+          cleanBlossomServerUrl('HTTPS://CDN.Example.COM.:443/'),
+          'https://cdn.example.com',
+        );
+      });
+
       test('fixes extra slashes after the scheme', () {
         expect(
           cleanBlossomServerUrl('https:///cdn.example.com'),
@@ -153,9 +164,27 @@ void main() {
         expect(cleanBlossomServerUrl('https://[zz::1]'), null);
       });
 
+      test('returns null for an IPvFuture address', () {
+        expect(cleanBlossomServerUrl('https://[v7.a:b]'), null);
+      });
+
+      test('returns null for a host with an empty label', () {
+        expect(cleanBlossomServerUrl('https://cdn.example.com..'), null);
+        expect(cleanBlossomServerUrl('https://cdn..example.com'), null);
+        expect(cleanBlossomServerUrl('https://.'), null);
+      });
+
       test('returns null for a port out of range', () {
         expect(cleanBlossomServerUrl('https://cdn.example.com:0'), null);
         expect(cleanBlossomServerUrl('https://cdn.example.com:65536'), null);
+      });
+
+      test('returns null for a port that overflows an int', () {
+        const overflow = 'https://cdn.example.com:99999999999999999999';
+        expect(cleanBlossomServerUrl(overflow), null);
+        expect(cleanBlossomServerUrls(['https://cdn.example.com', overflow]), [
+          'https://cdn.example.com',
+        ]);
       });
 
       test('returns null for a url with user info', () {
@@ -211,5 +240,25 @@ void main() {
         ['https://a.example.com', 'https://a.example.com'],
       );
     });
+  });
+
+  test('cleanBlossomServerUrl leaves a BlossomServerUrl unchanged', () {
+    const urls = [
+      'HTTPS://Blossom.Primal.NET:443/',
+      'https:///cdn.example.com',
+      'https://cdn.example.com./',
+      'http://cdn.example.com:0080',
+      'http://[2001:DB8::1]:80/',
+      'http://[fe80::1%25eth0]:3000',
+      'https://cdn.example.com/a/%2E%2E/b/',
+      'https://cdn.example.com/a/%2E',
+      'https://cdn.example.com/path%2f%7e/#top',
+      'https://cdn.example.com/pa th',
+    ];
+    for (final url in urls) {
+      final once = cleanBlossomServerUrl(url);
+      expect(once, isNotNull, reason: url);
+      expect(cleanBlossomServerUrl(once!), once, reason: url);
+    }
   });
 }

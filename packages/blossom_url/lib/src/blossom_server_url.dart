@@ -24,9 +24,10 @@ extension type const BlossomServerUrl._(String _url) implements String {
 ///
 /// The scheme and host are lowercased, dot segments removed and
 /// percent-encodings normalized, as RFC 3986 section 6 describes. The default
-/// port, the fragment and trailing slashes are dropped. A url with user info,
-/// which RFC 9110 section 4.2.4 deprecates, or with a query, which the
-/// endpoint paths could not follow, is not a server url.
+/// port, the fragment, trailing slashes and the trailing dot of a fully
+/// qualified host name are dropped. A url with user info, which RFC 9110
+/// section 4.2.4 deprecates, or with a query, which the endpoint paths could
+/// not follow, is not a server url.
 BlossomServerUrl? cleanBlossomServerUrl(String url) {
   final trimmed = url.trim();
   final match = _httpScheme.matchAsPrefix(trimmed);
@@ -36,17 +37,23 @@ BlossomServerUrl? cleanBlossomServerUrl(String url) {
   final Uri uri;
   try {
     uri = Uri.parse('$scheme://${trimmed.substring(match.end)}');
+    // Uri.parse may defer parsing the port, which throws if it overflows
+    if (uri.port == 0 || uri.port > 65535) return null;
   } on FormatException {
     return null;
   }
   if (uri.userInfo.isNotEmpty || uri.query.isNotEmpty) return null;
 
+  // Uri.host keeps the brackets of an IPvFuture literal, never of an IPv6 one
+  if (uri.host.startsWith('[')) return null;
   // a host name cannot hold ':', so this is an IPv6 literal Uri.parse checked
   final ipv6 = uri.host.contains(':');
-  if (!ipv6 && !_hostname.hasMatch(uri.host)) return null;
-  if (uri.port == 0 || uri.port > 65535) return null;
+  final name = uri.host.endsWith('.')
+      ? uri.host.substring(0, uri.host.length - 1)
+      : uri.host;
+  if (!ipv6 && !_hostname.hasMatch(name)) return null;
 
-  final host = ipv6 ? '[${uri.host}]' : uri.host;
+  final host = ipv6 ? '[${uri.host}]' : name;
   final port = uri.hasPort ? ':${uri.port}' : '';
   final path = uri.path.replaceFirst(_trailingSlashes, '');
   return BlossomServerUrl._('$scheme://$host$port$path');

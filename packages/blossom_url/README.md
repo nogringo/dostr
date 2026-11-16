@@ -31,6 +31,7 @@ BlossomServerUrl.parse('wss://relay.primal.net'); // throws a FormatException
 - The default port (443 for `https`, 80 for `http`) is dropped.
 - Trailing slashes are dropped, since a client puts its own slash before an endpoint: `https://cdn.example.com/` serves its uploads at `https://cdn.example.com/upload`.
 - The fragment, which a client never sends to the server, is dropped.
+- The trailing dot of a fully qualified host, as in `https://cdn.example.com.`, is dropped.
 - Extra slashes after the scheme, as in `https:///cdn.example.com`, are fixed.
 - IPv6 addresses and paths are kept, although BUD-01 serves every endpoint from the root of the domain.
 
@@ -64,5 +65,4 @@ Some spellings of one server still give two urls:
 
 Some urls are rejected although a client could reach them:
 
-- A host ending with a dot, as in `https://cdn.example.com.`.
 - A host with non-ASCII characters: give its punycode form, starting with `xn--`.
