@@ -15,9 +15,10 @@ environment:
 resolution: workspace
 
 dependencies:
-  bip340: ">=0.3.0 <0.4.0"
+  crypto: ^3.0.7
   dostr_nip01: ^0.1.0
   dostr_nip44: ^0.1.0
+  dostr_secp256k1: ^0.1.0
   dostr_signer: ^0.1.0
   rxdart: ^0.28.0
 

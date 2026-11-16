@@ -49,6 +49,10 @@ Start here.
 
 `dostr_signer`: the `NostrSigner` interface that signers implement, with their pending requests and errors, and the accounts a request may authenticate as, with the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server, in pure Dart.
 
+#### [🔗 secp256k1](./packages/secp256k1/)
+
+`dostr_secp256k1`: the secp256k1 curve arithmetic under BIP-340 signatures and NIP-44 encryption, in pure Dart.
+
 #### [🔗 BIP-340](./packages/bip340/)
 
 `dostr_bip340`: BIP-340 Schnorr signing and verification for Nostr events (signer and event verifier), in pure Dart.

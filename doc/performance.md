@@ -10,6 +10,6 @@ They batch the pubkeys looked up together into one REQ per relay, share lookups 
 **compute**\
 The most compute intensive operation is verifying signatures.
 `RelayReqs` remembers the signatures it already checked, so an event several relays send is verified once.
-`Bip340EventVerifier` from `dostr_bip340` runs in an isolate, in pure Dart.
+`Bip340EventVerifier` from `dostr_bip340` verifies on the calling isolate, in pure Dart.
 On native platforms, `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) is much faster.
 On the web, `WebEventVerifier` from [`dostr_web_crypto`](https://pub.dev/packages/dostr_web_crypto) is too.

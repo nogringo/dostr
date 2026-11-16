@@ -15,6 +15,7 @@ workspace:
   - packages/zaps
   - packages/nip11
   - packages/nip19
+  - packages/secp256k1
   - packages/bip340
   - packages/nip44
   - packages/nip49

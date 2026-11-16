@@ -1,9 +1,9 @@
-import 'package:bip340/bip340.dart' as bip340;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip01/hex.dart';
 
-/// Pure dart event verifier using https://pub.dev/packages/bip340
-/// can be slow on mobile devices
+import 'bip340.dart';
+
+/// Pure Dart event verifier, on the calling isolate.
 class Bip340EventVerifier implements EventVerifier {
   @override
   Future<bool> verify(Nip01Event event) async {
@@ -14,11 +14,6 @@ class Bip340EventVerifier implements EventVerifier {
         !event.hasValidId) {
       return false;
     }
-    // the bip340 package throws on some malformed input instead of returning false
-    try {
-      return bip340.verify(event.pubkey, event.id, sig);
-    } catch (_) {
-      return false;
-    }
+    return Bip340.verify(event.id, sig, event.pubkey);
   }
 }
