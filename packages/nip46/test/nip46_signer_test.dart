@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
@@ -317,7 +319,7 @@ void main() {
     );
   });
 
-  group('a request that waits for its turn', () {
+  group('with a bunker that does not answer', () {
     late MockRelay silentRelay;
     late Nip46Signer signer;
 
@@ -342,33 +344,47 @@ void main() {
 
     tearDown(() => silentRelay.stop());
 
-    test('fails at once when cancelRequest drops it', () async {
-      addTearDown(signer.dispose);
-      final first = signer.sign(note('first'));
-      final second = signer.sign(note('second'));
-      final [firstId, secondId] = [
-        for (final request in signer.pendingRequests) request.id,
+    test(
+      'cancelRequest fails at once a request that waits for its turn',
+      () async {
+        addTearDown(signer.dispose);
+        final first = signer.sign(note('first'));
+        final second = signer.sign(note('second'));
+        final [firstId, secondId] = [
+          for (final request in signer.pendingRequests) request.id,
+        ];
+
+        expect(signer.cancelRequest(secondId), isTrue);
+        await expectLater(
+          second,
+          throwsA(isA<SignerRequestCancelledException>()),
+        );
+        expect(signer.cancelRequest(firstId), isTrue);
+        await expectLater(
+          first,
+          throwsA(isA<SignerRequestCancelledException>()),
+        );
+      },
+    );
+
+    test('dispose fails the request it sent and the one that waits', () async {
+      final sent = Completer<void>();
+      silentRelay.onEvent = (_) {
+        if (!sent.isCompleted) sent.complete();
+      };
+      final requests = [
+        for (final content in ['sent', 'waiting'])
+          expectLater(
+            signer.sign(note(content)),
+            throwsA(isA<SignerRequestFailedException>()),
+          ),
       ];
-
-      expect(signer.cancelRequest(secondId), isTrue);
-      await expectLater(
-        second,
-        throwsA(isA<SignerRequestCancelledException>()),
-      );
-      expect(signer.cancelRequest(firstId), isTrue);
-      await expectLater(first, throwsA(isA<SignerRequestCancelledException>()));
-    });
-
-    test('fails when the signer is disposed', () async {
-      signer.sign(note('first')).ignore();
-      final second = expectLater(
-        signer.sign(note('second')),
-        throwsA(isA<SignerRequestFailedException>()),
-      );
+      await sent.future;
 
       await signer.dispose();
 
-      await second;
+      await Future.wait(requests);
+      expect(signer.pendingRequests, isEmpty);
     });
   });
 

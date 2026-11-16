@@ -202,9 +202,6 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     if (pending != null) _notifyPendingRequestsChange();
 
     runThrottled(() async {
-      // cancelled while queued: don't broadcast what the caller no longer wants
-      if (!_requests.containsKey(request.id)) return;
-
       final encryptedRequest = await localSigner.encryptNip44(
         plaintext: jsonEncode(request),
         recipientPubkey: connection.remotePubkey,
@@ -220,20 +217,28 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       );
 
       final signedEvent = await localSigner.sign(requestEvent);
+      // cancelled or disposed meanwhile: don't broadcast what nobody waits for
+      if (!_requests.containsKey(request.id)) return;
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
       relayPublishes.publish(signedEvent, relays: connection.relays);
 
       // holds the slot until the bunker answers
       await entry.completer.future;
-    }).catchError((Object error, StackTrace stackTrace) {
-      if (entry.completer.isCompleted) return;
-      _requests.remove(request.id);
-      if (pending != null) _notifyPendingRequestsChange();
-      entry.completer.completeError(error, stackTrace);
-    });
+    }).catchError(
+      (Object error, StackTrace stackTrace) =>
+          _fail(request.id, error, stackTrace),
+    );
 
     return entry.completer.future;
+  }
+
+  /// Fails [requestId] with [error], unless it already completed.
+  void _fail(String requestId, Object error, [StackTrace? stackTrace]) {
+    final entry = _requests.remove(requestId);
+    if (entry == null) return;
+    if (entry.pending != null) _notifyPendingRequestsChange();
+    entry.completer.completeError(error, stackTrace);
   }
 
   @override
@@ -418,17 +423,24 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   bool cancelRequest(String requestId) {
-    final entry = _requests[requestId];
-    if (entry == null || entry.pending == null) return false;
+    if (_requests[requestId]?.pending == null) return false;
 
-    _requests.remove(requestId);
-    entry.completer.completeError(SignerRequestCancelledException(requestId));
-    _notifyPendingRequestsChange();
+    _fail(requestId, SignerRequestCancelledException(requestId));
     return true;
   }
 
   @override
   Future<void> dispose() async {
+    // the subscription closes, so no answer can come for them anymore
+    for (final requestId in _requests.keys.toList()) {
+      _fail(
+        requestId,
+        SignerRequestFailedException(
+          'The signer was disposed before the bunker answered',
+          requestId: requestId,
+        ),
+      );
+    }
     cancelAllQueued();
     await subscription?.close();
     await _pendingRequestsController.close();
