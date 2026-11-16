@@ -1,6 +1,6 @@
 import { schnorr, secp256k1 } from '@noble/curves/secp256k1.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex } from '@noble/hashes/utils.js';
+import { bytesToHex, concatBytes } from '@noble/hashes/utils.js';
 import { chacha20 } from '@noble/ciphers/chacha.js';
 
 /**
@@ -102,6 +102,8 @@ function getPublicKey(privateKeyHex) {
 // ---------------------------------------------------------------------------
 // Crypto helpers
 // ---------------------------------------------------------------------------
+
+const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
 
 function hexToBytes(hex) {
   const bytes = new Uint8Array(hex.length / 2);
@@ -228,35 +230,49 @@ async function nip04Decrypt(privateKeyHex, publicKeyHex, ciphertext) {
   const decrypted = await crypto.subtle.decrypt(
     { name: 'AES-CBC', iv }, key, data
   );
-  return new TextDecoder().decode(decrypted);
+  return utf8Decoder.decode(decrypted);
 }
 
 // ---------------------------------------------------------------------------
 // NIP-44 helpers
 // ---------------------------------------------------------------------------
 
+const MAX_PLAINTEXT_LENGTH = 0xffffffff;
+const EXTENDED_PREFIX_THRESHOLD = 0x10000;
+
 function calcPaddedLen(unpaddedLen) {
-  if (unpaddedLen < 1 || unpaddedLen > 65535) throw new Error('Invalid plaintext length');
+  if (unpaddedLen <= 32) return 32;
   const nextPower = 2 ** ((unpaddedLen - 1).toString(2).length);
   const chunk = nextPower <= 256 ? 32 : nextPower / 8;
-  if (unpaddedLen <= 32) return 32;
   return chunk * Math.ceil(unpaddedLen / chunk);
 }
 
 function pad(plaintext) {
   const unpaddedLen = plaintext.length;
-  const paddedLen = calcPaddedLen(unpaddedLen);
-  const padded = new Uint8Array(paddedLen + 2);
-  padded[0] = (unpaddedLen >> 8) & 0xFF;
-  padded[1] = unpaddedLen & 0xFF;
-  padded.set(plaintext, 2);
+  if (unpaddedLen < 1 || unpaddedLen > MAX_PLAINTEXT_LENGTH) throw new Error('Invalid plaintext length');
+  const extended = unpaddedLen >= EXTENDED_PREFIX_THRESHOLD;
+  const prefixLen = extended ? 6 : 2;
+  const padded = new Uint8Array(prefixLen + calcPaddedLen(unpaddedLen));
+  const view = new DataView(padded.buffer);
+  if (extended) {
+    view.setUint32(2, unpaddedLen);
+  } else {
+    view.setUint16(0, unpaddedLen);
+  }
+  padded.set(plaintext, prefixLen);
   return padded;
 }
 
 function unpad(padded) {
-  const unpaddedLen = (padded[0] << 8) + padded[1];
-  if (unpaddedLen === 0 || unpaddedLen > padded.length - 2) throw new Error('Invalid padding');
-  return padded.slice(2, 2 + unpaddedLen);
+  const view = new DataView(padded.buffer, padded.byteOffset, padded.byteLength);
+  const extended = view.getUint16(0) === 0;
+  const prefixLen = extended ? 6 : 2;
+  const unpaddedLen = extended ? view.getUint32(2) : view.getUint16(0);
+  if ((extended && unpaddedLen < EXTENDED_PREFIX_THRESHOLD) ||
+      padded.length !== prefixLen + calcPaddedLen(unpaddedLen)) {
+    throw new Error('Invalid padding');
+  }
+  return padded.subarray(prefixLen, prefixLen + unpaddedLen);
 }
 
 // ---------------------------------------------------------------------------
@@ -284,10 +300,7 @@ async function nip44Encrypt(privateKeyHex, publicKeyHex, plaintext) {
   const encoder = new TextEncoder();
   const paddedPlaintext = pad(encoder.encode(plaintext));
   const ciphertext = chacha20(chachaKey, chachaNonce, paddedPlaintext);
-  const mac = await hmacSha256(
-    hmacKey,
-    new Uint8Array([...nonce, ...ciphertext])
-  );
+  const mac = await hmacSha256(hmacKey, concatBytes(nonce, ciphertext));
 
   const payload = new Uint8Array(1 + 32 + ciphertext.length + 32);
   payload[0] = 0x02;
@@ -306,13 +319,15 @@ async function nip44Encrypt(privateKeyHex, publicKeyHex, plaintext) {
  * @returns {Promise<string>}
  */
 async function nip44Decrypt(privateKeyHex, publicKeyHex, payloadB64) {
+  if (payloadB64.startsWith('#')) throw new Error('Unsupported version');
+  if (payloadB64.length < 132) throw new Error('Invalid payload size');
   const payload = base64ToBytes(payloadB64);
-  if (payload.length < 65 || payload.length > 87472) throw new Error('Invalid payload size');
+  if (payload.length < 99) throw new Error('Invalid data size');
   if (payload[0] !== 0x02) throw new Error('Unsupported version');
 
-  const nonce = payload.slice(1, 33);
-  const mac = payload.slice(payload.length - 32);
-  const ciphertext = payload.slice(33, payload.length - 32);
+  const nonce = payload.subarray(1, 33);
+  const mac = payload.subarray(payload.length - 32);
+  const ciphertext = payload.subarray(33, payload.length - 32);
 
   const sharedSecret = getSharedSecret(privateKeyHex, publicKeyHex);
   const salt = new TextEncoder().encode('nip44-v2');
@@ -323,15 +338,12 @@ async function nip44Decrypt(privateKeyHex, publicKeyHex, payloadB64) {
   const chachaNonce = hkdfOutput.slice(32, 44);
   const hmacKey = hkdfOutput.slice(44, 76);
 
-  const calculatedMac = await hmacSha256(
-    hmacKey,
-    new Uint8Array([...nonce, ...ciphertext])
-  );
+  const calculatedMac = await hmacSha256(hmacKey, concatBytes(nonce, ciphertext));
   if (!equalBytes(calculatedMac, mac)) throw new Error('Invalid MAC');
 
   const paddedPlaintext = chacha20(chachaKey, chachaNonce, ciphertext);
   const plaintext = unpad(paddedPlaintext);
-  return new TextDecoder().decode(plaintext);
+  return utf8Decoder.decode(plaintext);
 }
 
 // Expose to global scope for Dart JS interop

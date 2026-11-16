@@ -177,6 +177,42 @@ void main() {
 
         await dartSigner.dispose();
       });
+
+      for (final length in [65535, 65536, 100000]) {
+        test('a message of $length bytes goes both ways', () async {
+          final dartSigner = Bip340Signer(
+            privateKey: otherKeyPair.privateKey,
+            publicKey: otherKeyPair.publicKey,
+          );
+          final message = 'a' * length;
+
+          final fromWeb = await signer.encryptNip44(
+            plaintext: message,
+            recipientPubkey: otherKeyPair.publicKey,
+          );
+          expect(
+            await dartSigner.decryptNip44(
+              ciphertext: fromWeb!,
+              senderPubkey: keyPair.publicKey,
+            ),
+            message,
+          );
+
+          final fromDart = await dartSigner.encryptNip44(
+            plaintext: message,
+            recipientPubkey: keyPair.publicKey,
+          );
+          expect(
+            await signer.decryptNip44(
+              ciphertext: fromDart!,
+              senderPubkey: otherKeyPair.publicKey,
+            ),
+            message,
+          );
+
+          await dartSigner.dispose();
+        });
+      }
     });
 
     group('pending requests (local signer)', () {
