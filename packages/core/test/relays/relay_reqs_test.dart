@@ -208,12 +208,10 @@ void main() {
 
       final req = reqs.req(relays: {nobody: notes});
 
-      expect(await req.done, {
-        nobody: const RelayRequestOutcome(
-          RelayRequestStatus.notSent,
-          failure: RelayFailure(RelayFailureKind.unreachable),
-        ),
-      });
+      final outcome = (await req.done)[nobody]!;
+      expect(outcome.status, RelayRequestStatus.notSent);
+      expect(outcome.failure?.kind, RelayFailureKind.unreachable);
+      expect(outcome.failure?.detail, isNotNull);
     });
   });
 

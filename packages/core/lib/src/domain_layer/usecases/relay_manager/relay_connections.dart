@@ -44,6 +44,30 @@ abstract interface class ConnectionListener {
   void admitQueuedOn(RelayConnection connection);
 }
 
+/// What [RelayConnections.ensureOpen] came to for a connection.
+sealed class Opening {
+  const Opening();
+}
+
+/// The connection is open.
+final class Opened extends Opening {
+  final RelayConnection connection;
+
+  const Opened(this.connection);
+}
+
+/// The connection dropped and is being brought back, on its own backoff.
+final class ComingBack extends Opening {
+  const ComingBack();
+}
+
+/// The connection could not be opened.
+final class NotOpened extends Opening {
+  final RelayFailure failure;
+
+  const NotOpened(this.failure);
+}
+
 /// A decoded relay message, in the order its relay sent it.
 typedef RelayMessageHandler =
     Future<void> Function(
@@ -96,7 +120,7 @@ class RelayConnections {
 
   /// connections whose socket just died, until it is settled whether they come
   /// back
-  final Set<RelayConnectionKey> _dropping = {};
+  final Map<RelayConnectionKey, Completer<void>> _dropping = {};
 
   // Track processing order per relay so EVENT/EOSE/AUTH/CLOSED ordering stays
   // correct without introducing cross-relay head-of-line blocking.
@@ -176,7 +200,7 @@ class RelayConnections {
 
   /// Whether the connection behind [key] dropped and is being brought back.
   bool isComingBack(RelayConnectionKey key) =>
-      _dropping.contains(key) || _revivals.isReviving(key);
+      _dropping.containsKey(key) || _revivals.isReviving(key);
 
   /// Whether nothing will open the connection behind [key] again.
   bool isGone(RelayConnectionKey key) =>
@@ -366,65 +390,113 @@ class RelayConnections {
     return failed;
   }
 
-  /// Reconnects the connection identified by [key], if it is closed. An
-  /// authenticated connection comes back authenticated or not at all.
+  /// Opens the connection behind [key] unless it is open already, and says
+  /// what came of it. A bound one comes back bound or not at all.
+  ///
+  /// One that dropped and is being brought back is left to its backoff. One
+  /// tried less than [failRelayConnectTryAfterSeconds] ago is not tried again,
+  /// unless [retryUnreachable].
   ///
   /// [as] is the identity to open a bound connection as, for a caller that has
   /// it in hand. Without it the account is looked up, which only works for a
   /// registered one.
-  Future<bool> reconnectConnection(
+  Future<Opening> ensureOpen(
     RelayConnectionKey key, {
-    bool force = false,
     NostrSigner? as,
     TimeoutPausable? pausing,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
+    bool retryUnreachable = false,
   }) async {
-    final inFlightConnect = _connectReadyCompleters[key];
-    if (inFlightConnect != null) {
-      return (await inFlightConnect.future).connected;
+    if (blockedRelays.contains(key.url)) {
+      return const NotOpened(RelayFailure(RelayFailureKind.blocked));
     }
-
-    RelayConnection? connection = relays[key];
-    final transport = connection?.relayTransport;
-    if (transport != null &&
-        await _whyNotOpen(transport, defaultWebSocketConnectTimeout) == null &&
-        identical(connection!.relayTransport, transport)) {
-      return true;
+    final inFlight = _connectReadyCompleters[key];
+    if (inFlight != null) {
+      final (connected: _, :failure) = await inFlight.future;
+      return _openingNow(key) ??
+          NotOpened(
+            failure ?? const RelayFailure(RelayFailureKind.connectionLost),
+          );
     }
-    if (connection == null ||
-        connection.relayTransport == null ||
-        !connection.relayTransport!.isOpen()) {
-      if (!force &&
-          (connection != null &&
-              !connection.relay.wasLastConnectTryLongerThanSeconds(
-                failRelayConnectTryAfterSeconds,
-              ))) {
-        // don't try too often
-        return false;
-      }
-
-      if (!key.isAnonymous) {
-        final account = as ?? _auth.accountFor(key);
-        if (account == null) {
-          Logger.log.w(() => "No account left to reconnect $key");
-          return false;
-        }
-        return await openConnectionAs(key.url, account, pausing: pausing) !=
-            null;
-      }
-
-      if (!(await connectRelay(key.url)).connected) {
-        // could not connect
-        return false;
-      }
-      connection = relays[key];
-      if (connection == null ||
-          connection.relayTransport == null ||
-          !connection.relayTransport!.isOpen()) {
-        // web socket is not open
-        return false;
-      }
+    final current = _openingNow(key);
+    if (current != null) return current;
+    final tried = relays[key]?.relay;
+    if (!retryUnreachable &&
+        tried != null &&
+        !tried.wasLastConnectTryLongerThanSeconds(
+          failRelayConnectTryAfterSeconds,
+        )) {
+      return const NotOpened(
+        RelayFailure(
+          RelayFailureKind.unreachable,
+          "tried less than $failRelayConnectTryAfterSeconds seconds ago",
+        ),
+      );
     }
-    return true;
+    final failure = await openNow(
+      key,
+      as: as,
+      pausing: pausing,
+      connectTimeout: connectTimeout,
+    );
+    return _openingNow(key) ??
+        NotOpened(
+          failure ?? const RelayFailure(RelayFailureKind.connectionLost),
+        );
+  }
+
+  Opening? _openingNow(RelayConnectionKey key) {
+    final connection = relays[key];
+    if (connection != null && connection.isConnected) {
+      return Opened(connection);
+    }
+    return isComingBack(key) ? const ComingBack() : null;
+  }
+
+  /// Opens the connection behind [key] now, whatever its last attempt, and
+  /// says why it could not. Only what brings connections back skips
+  /// [ensureOpen] this way.
+  Future<RelayFailure?> openNow(
+    RelayConnectionKey key, {
+    NostrSigner? as,
+    TimeoutPausable? pausing,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
+  }) async {
+    if (key.isAnonymous) {
+      return (await connectRelay(
+        key.url,
+        connectTimeout: connectTimeout,
+      )).failure;
+    }
+    final account = as ?? _auth.accountFor(key);
+    if (account == null) {
+      Logger.log.w(() => "No account left to open $key");
+      return const RelayFailure(RelayFailureKind.noBoundConnection);
+    }
+    final bound = await openConnectionAs(
+      key.url,
+      account,
+      connectTimeout: connectTimeout,
+      pausing: pausing,
+    );
+    return bound == null
+        ? const RelayFailure(RelayFailureKind.noBoundConnection)
+        : null;
+  }
+
+  /// Waits until the connection behind [key] is back from its drop, or given
+  /// up, and says whether it is open.
+  Future<bool> whenBack(RelayConnectionKey key) async {
+    while (true) {
+      final dropping = _dropping[key];
+      if (dropping != null) {
+        await dropping.future;
+        continue;
+      }
+      final settled = _revivals.settled(key);
+      if (settled == null) return isConnectionOpen(key);
+      await settled;
+    }
   }
 
   /// Opens the connection towards [url] bound to [account]. The binding says
@@ -491,8 +563,7 @@ class RelayConnections {
       await _revivals.revive(connection);
       return;
     }
-    final connected = await reconnectConnection(connection.key, force: true);
-    if (connected) listener.replayOn(connection);
+    if (await openNow(connection.key) == null) listener.replayOn(connection);
   }
 
   /// Writes [data] and tells whether it reached the transport
@@ -656,13 +727,14 @@ class RelayConnections {
     // waiting for its OK
     _auth.forget(key);
 
-    _dropping.add(key);
+    final dropped = _dropping[key] = Completer();
     try {
       await connection.close();
     } catch (e) {
       Logger.log.w(() => "Error closing relay ${connection.url}: $e");
     } finally {
-      _dropping.remove(key);
+      if (identical(_dropping[key], dropped)) _dropping.remove(key);
+      dropped.complete();
     }
     // Closing can yield while a new owner or transport takes over. Its AUTH
     // and subscriptions belong to the replacement, not this retired socket.

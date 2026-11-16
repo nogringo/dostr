@@ -18,6 +18,9 @@ class _Revival {
   Timer? next;
   Future<bool>? attempt;
 
+  /// completes once the connection is back, given up or no longer revived
+  Completer<void> settled = Completer();
+
   _Revival(this.connection, int maximumStep)
     : backoff = BinaryExponentialBackoff(
         initial: reconnectInitialDelay,
@@ -43,6 +46,15 @@ class RelayRevivals {
   /// Whether the connection behind [key] dropped and is being brought back.
   bool isReviving(RelayConnectionKey key) => _revivals.containsKey(key);
 
+  /// Completes once the connection behind [key] is back, given up or no
+  /// longer revived, null when it is not being brought back.
+  Future<void>? settled(RelayConnectionKey key) =>
+      _revivals[key]?.settled.future;
+
+  static void _settle(_Revival revival) {
+    if (!revival.settled.isCompleted) revival.settled.complete();
+  }
+
   /// Whether the connection behind [key] is being brought back and waits for
   /// its next attempt.
   bool isWaiting(RelayConnectionKey key) {
@@ -56,6 +68,7 @@ class RelayRevivals {
     final key = connection.key;
     var revival = _revivals[key];
     if (revival == null || !identical(revival.connection, connection)) {
+      if (revival != null) _settle(revival);
       revival = _revivals[key] = _Revival(connection, _maximumStep);
     }
     revival.next?.cancel();
@@ -76,7 +89,8 @@ class RelayRevivals {
       return false;
     }
     final connected = await connections
-        .reconnectConnection(key, force: true)
+        .openNow(key)
+        .then((failure) => failure == null)
         .catchError((Object error) {
           Logger.log.e(() => "Could not reconnect $key", error: error);
           return false;
@@ -85,6 +99,7 @@ class RelayRevivals {
     if (!identical(_revivals[key], revival)) return connected;
     if (connected) {
       _revivals.remove(key);
+      _settle(revival);
       _revived[key] = revival;
       revival.since.reset();
       revival.up
@@ -97,6 +112,7 @@ class RelayRevivals {
     if (!connections.allowReconnect ||
         revival.since.elapsed >= reconnectGiveUpAfter) {
       _revivals.remove(key);
+      _settle(revival);
       connections.listener.endAuthRetriesOn(key);
       connections.listener.endRequestsOn(key);
       return false;
@@ -108,7 +124,10 @@ class RelayRevivals {
   /// Stops bringing back the connection behind [key], and forgets that it was.
   void stop(RelayConnectionKey key) {
     _revived.remove(key);
-    _revivals.remove(key)?.next?.cancel();
+    final revival = _revivals.remove(key);
+    if (revival == null) return;
+    revival.next?.cancel();
+    _settle(revival);
   }
 
   /// Forgets that the connection behind [key] was brought back: its socket
@@ -128,6 +147,7 @@ class RelayRevivals {
       return false;
     }
     _revivals[key] = revival;
+    revival.settled = Completer();
     revival.next = Timer(revival.backoff.next(), () => revive(connection));
     return true;
   }

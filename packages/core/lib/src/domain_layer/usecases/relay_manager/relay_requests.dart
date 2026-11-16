@@ -184,9 +184,8 @@ class RelayRequests implements ConnectionListener {
   }
 
   /// Writes [request] on [connection] when a slot is free there, otherwise
-  /// queues it until one is. Completes with what kept it from being written
-  /// right away.
-  Future<RelayFailure?> _admit(
+  /// queues it until one is.
+  Future<void> _admit(
     RelayConnection connection,
     RequestState state,
     RelayRequestState request,
@@ -203,7 +202,10 @@ class RelayRequests implements ConnectionListener {
   }
 
   /// Writes [request] on [connection], where it holds a slot from now on.
-  Future<RelayFailure?> _write(
+  ///
+  /// A write the socket went away under is left to the connection: it replays
+  /// the request once it is back, or gives it up as disconnected.
+  Future<void> _write(
     RelayConnection connection,
     RequestState state,
     RelayRequestState request,
@@ -219,15 +221,11 @@ class RelayRequests implements ConnectionListener {
           filters: request.filters,
         ).toJson(),
       );
-      return null;
     } on MessageTooLong catch (e) {
       Logger.log.w(() => "REQ ${state.id} not sent to ${request.url}: $e");
-      // a replay or a queued REQ has nobody else to report it
       _failRelayRequest(state, request.key, request.filters, e.failure);
-      return e.failure;
     } catch (e) {
       Logger.log.w(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
-      return RelayFailure(RelayFailureKind.connectionLost, "$e");
     } finally {
       if (identical(connection.reservedRequestIds[state.id], write)) {
         connection.reservedRequestIds.remove(state.id);
@@ -338,7 +336,7 @@ class RelayRequests implements ConnectionListener {
     beginPendingConnection(state);
     try {
       final failure = await _sendTrackedRequest(state, request);
-      if (failure != null && !_carriedAnyway(state, request, failure)) {
+      if (failure != null) {
         _failRelayRequest(state, request.key, request.filters, failure);
       }
     } finally {
@@ -346,39 +344,14 @@ class RelayRequests implements ConnectionListener {
     }
   }
 
-  /// Whether [request] still reaches its relay although its send path failed
-  /// on [failure]: its connection is coming back and replays it, or already
-  /// took it back.
-  bool _carriedAnyway(
-    RequestState state,
-    RelayRequestState request,
-    RelayFailure failure,
-  ) {
-    if (failure.kind != RelayFailureKind.unreachable &&
-        failure.kind != RelayFailureKind.connectionLost) {
-      return false;
-    }
-    final connection = _connections.relays[request.key];
-    return _connections.isComingBack(request.key) ||
-        _queue.contains(request) ||
-        (connection?.holdsSlot(state.id) ?? false);
-  }
-
-  /// Null once sent, otherwise what kept [request] from being sent.
+  /// What kept [request] from being sent, null once it is on its way: written,
+  /// queued for a slot, or left to a connection that replays it once back.
   Future<RelayFailure?> _sendTrackedRequest(
     RequestState state,
     RelayRequestState request,
   ) async {
-    if (_connections.blockedRelays.contains(request.url)) {
-      Logger.log.w(
-        () => "COULD NOT SEND REQUEST TO ${request.url} since relay is blocked",
-      );
-      return const RelayFailure(RelayFailureKind.blocked);
-    }
-
-    final connected = await _connections.reconnectConnection(
+    final opening = await _connections.ensureOpen(
       request.key,
-      force: false,
       as: state.auth?.signer,
       pausing: state,
     );
@@ -388,22 +361,18 @@ class RelayRequests implements ConnectionListener {
     if (!isStillInFlight(state)) {
       return const RelayFailure(RelayFailureKind.requestEnded);
     }
-    if (!connected) {
-      Logger.log.e(
-        () =>
-            "COULD NOT SEND REQUEST TO ${request.url} since socket seems to be not open",
-      );
-      return const RelayFailure(RelayFailureKind.unreachable);
+    switch (opening) {
+      case Opened(:final connection):
+        await _admit(connection, state, request);
+      case ComingBack():
+        break;
+      case NotOpened(:final failure):
+        Logger.log.w(
+          () => "COULD NOT SEND REQUEST TO ${request.url}: $failure",
+        );
+        return failure;
     }
-    final relay = _connections.relays[request.key];
-    if (relay == null) {
-      Logger.log.w(
-        () =>
-            "COULD NOT SEND REQUEST TO ${request.url}, ${request.key} is gone",
-      );
-      return const RelayFailure(RelayFailureKind.connectionLost);
-    }
-    return _admit(relay, state, request);
+    return null;
   }
 
   /// Sends a CLOSE wherever [state] is still open on a relay, then ends it.
@@ -510,7 +479,7 @@ class RelayRequests implements ConnectionListener {
 
     state.pauseTimeout();
     beginPendingConnection(state);
-    _connections.openConnectionAs(key.url, account).then((bound) {
+    _connections.ensureOpen(target, as: account).then((opening) {
       try {
         if (!isStillInFlight(state)) {
           return;
@@ -520,16 +489,19 @@ class RelayRequests implements ConnectionListener {
         if (retry == null) {
           return;
         }
-        if (bound == null) {
-          retry.markClosed(
-            "auth-required: no authenticated connection could be opened",
-          );
-          return;
+        switch (opening) {
+          case Opened(:final connection):
+            // sent without waiting for the AUTH: a relay that only challenges
+            // on demand needs this request as the trigger, and the refusal
+            // that may follow lands on the branch above
+            unawaited(_admit(connection, state, retry));
+          case ComingBack():
+            break;
+          case NotOpened():
+            retry.markClosed(
+              "auth-required: no authenticated connection could be opened",
+            );
         }
-        // sent without waiting for the AUTH: a relay that only challenges on
-        // demand needs this request as the trigger, and the refusal that may
-        // follow lands on the branch above
-        unawaited(_admit(bound, state, retry));
       } finally {
         endPendingConnection(state);
       }

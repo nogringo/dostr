@@ -336,6 +336,68 @@ void main() {
     await subscribed.tearDown();
   }, timeout: const Timeout(Duration(seconds: 60)));
 
+  test('a publish sent while its connection comes back waits for it', () async {
+    final subscribed = await _subscribeOnFlakyRelay();
+    final connectivity = subscribed.connectivity;
+    final url = connectivity.url;
+
+    subscribed.factory.down = true;
+    subscribed.transport.dropConnection();
+    await _waitUntil(
+      () =>
+          connectivity.stats.connectionErrors >= 2 &&
+          !connectivity.relay.connecting,
+    );
+
+    final event = signedEvent(content: 'while it comes back');
+    final publish = RelayPublishes(
+      relayManager: subscribed.manager,
+    ).publish(event, relays: [url], timeout: const Duration(seconds: 20));
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(publish.outcomes[url]?.failure, isNull);
+
+    subscribed.factory.down = false;
+    final response = (await publish.done)[url]!;
+    expect(response.broadcastSuccessful, isTrue);
+    expect(subscribed.relayReceivedEvent(event.id), isTrue);
+
+    await subscribed.tearDown();
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
+  test(
+    'a publish over before its connection is back is not sent there',
+    () async {
+      final subscribed = await _subscribeOnFlakyRelay();
+      final connectivity = subscribed.connectivity;
+      final url = connectivity.url;
+
+      subscribed.factory.down = true;
+      subscribed.transport.dropConnection();
+      await _waitUntil(
+        () =>
+            connectivity.stats.connectionErrors >= 2 &&
+            !connectivity.relay.connecting,
+      );
+
+      final event = signedEvent(content: 'too late');
+      final publish = RelayPublishes(relayManager: subscribed.manager).publish(
+        event,
+        relays: [url],
+        timeout: const Duration(milliseconds: 300),
+      );
+      final response = (await publish.done)[url]!;
+      expect(response.okReceived, isFalse);
+
+      subscribed.factory.down = false;
+      await _waitUntil(() => connectivity.isConnected);
+      await Future<void>.delayed(const Duration(milliseconds: 300));
+      expect(subscribed.relayReceivedEvent(event.id), isFalse);
+
+      await subscribed.tearDown();
+    },
+    timeout: const Timeout(Duration(seconds: 60)),
+  );
+
   test('a connection whose work ended during an outage is forgotten', () async {
     final relay = await startRelay();
     final factory = _FlakyTransportFactory();
@@ -381,6 +443,9 @@ class _SubscribedOnFlakyRelay {
 
   bool relayReceivedReq(String id) =>
       _relay.received('REQ').any((message) => message[1] == id);
+
+  bool relayReceivedEvent(String id) =>
+      _relay.events.any((event) => event.id == id);
 
   Future<void> tearDown() async {
     await manager.closeAllTransports();

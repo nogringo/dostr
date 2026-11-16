@@ -134,6 +134,7 @@ The end of `listen` means the socket is gone.
 A connection that drops is retried at once, then after a wait that doubles from 500 milliseconds, for an hour.
 Its requests are replayed once it is back, and given up as `disconnected` after that hour.
 The REQs sent to it meanwhile wait for it the same way, so a query does not end without it.
+A publish sent to it meanwhile waits for it as long as the publish lasts.
 `allowReconnect` set to false now stops these retries: the transport used to retry on its own regardless.
 A connection that drops within a minute of opening comes back too.
 One that carries nothing `closeIdleConnections` would keep is forgotten instead, when it drops or before an attempt to bring it back: a relay that closes idle sockets used to get them reopened forever.

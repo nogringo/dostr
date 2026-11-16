@@ -10,7 +10,6 @@ import '../../../shared/nips/nip01/client_msg.dart';
 import '../../entities/relay_broadcast_response.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
-import '../../entities/timeout_pausable.dart';
 import 'broadcast_state.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
@@ -118,10 +117,9 @@ class RelayBroadcasts {
     );
     try {
       final (:relay, :failure) = await _connectionForBroadcast(
+        state,
         url,
-        state.auth,
         connectTimeout: connectTimeout,
-        pausing: state,
       );
       if (relay == null) {
         _failBroadcast(
@@ -165,55 +163,73 @@ class RelayBroadcasts {
     }
   }
 
-  /// The connection a broadcast under [auth] must go out on towards [url],
-  /// opening it when it is not there yet, or why nothing may be sent.
+  /// The connection [state] must go out on towards [url], opening it when it
+  /// is not there yet, or why nothing may be sent.
   ///
   /// Owns the connecting too: a broadcast that requires an identity must not
   /// even open the anonymous connection, because a socket we opened is one the
   /// relay saw, whether or not anything was sent on it.
   Future<({RelayConnection? relay, RelayFailure? failure})>
   _connectionForBroadcast(
-    RelayUrl url,
-    AuthPolicy? auth, {
+    BroadcastState state,
+    RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
-    TimeoutPausable? pausing,
   }) async {
-    if (auth is AuthPolicyRequire) {
-      if (!auth.signer.canSign) {
-        Logger.log.w(
-          () =>
-              "Broadcast requires ${auth.signer.publicKey}, which cannot sign",
-        );
-        return (
-          relay: null,
-          failure: const RelayFailure(RelayFailureKind.cannotSign),
-        );
-      }
-      final bound = await _connections.openConnectionAs(
-        url,
-        auth.signer,
-        connectTimeout: connectTimeout,
-        pausing: pausing,
+    final auth = state.auth;
+    final key = RelayConnectionKey.forAuth(url, auth);
+    if (key == null) {
+      Logger.log.w(
+        () =>
+            "Broadcast requires ${auth?.signer?.publicKey}, which cannot sign",
       );
       return (
-        relay: bound,
-        failure: bound == null
-            ? const RelayFailure(RelayFailureKind.noBoundConnection)
-            : null,
+        relay: null,
+        failure: const RelayFailure(RelayFailureKind.cannotSign),
       );
     }
+    return _open(state, key, as: auth?.signer, connectTimeout: connectTimeout);
+  }
 
-    if (!_connections.isRelayConnected(url)) {
-      final result = await _connections.connectRelay(
-        url,
-        connectTimeout: connectTimeout,
-      );
-      if (!result.connected) {
-        Logger.log.w(() => "Could not connect to $url: ${result.failure}");
-        return (relay: null, failure: result.failure);
-      }
+  /// The connection behind [key] once it is open, or why [state] cannot go
+  /// out on it. One that is coming back is waited for while [state] lasts.
+  ///
+  /// A relay tried a moment ago is tried again: an EVENT is worth the wait a
+  /// REQ is spared.
+  Future<({RelayConnection? relay, RelayFailure? failure})> _open(
+    BroadcastState state,
+    RelayConnectionKey key, {
+    NostrSigner? as,
+    Duration connectTimeout = defaultWebSocketConnectTimeout,
+  }) async {
+    final opening = await _connections.ensureOpen(
+      key,
+      as: as,
+      pausing: state,
+      connectTimeout: connectTimeout,
+      retryUnreachable: true,
+    );
+    switch (opening) {
+      case Opened(:final connection):
+        return (relay: connection, failure: null);
+      case NotOpened(:final failure):
+        return (relay: null, failure: failure);
+      case ComingBack():
+        final back = await Future.any([
+          _connections.whenBack(key),
+          state.publishDoneFuture.then((_) => false, onError: (_, _) => false),
+        ]);
+        final connection = _connections.relays[key];
+        if (back && connection != null && connection.isConnected) {
+          return (relay: connection, failure: null);
+        }
+        return (
+          relay: null,
+          failure: const RelayFailure(
+            RelayFailureKind.unreachable,
+            "did not come back",
+          ),
+        );
     }
-    return (relay: _connections.getRelayConnectivity(url), failure: null);
   }
 
   /// A relay answers every EVENT it receives, and the same event can be in
@@ -327,10 +343,10 @@ class RelayBroadcasts {
 
     Future<void> retryOnBoundConnection() async {
       try {
-        final bound = await _connections.openConnectionAs(
-          relayUrl,
-          account,
-          pausing: broadcastState,
+        final (relay: bound, :failure) = await _open(
+          broadcastState,
+          boundKey,
+          as: account,
         );
         if (broadcastState.networkController.isClosed) {
           return;
@@ -339,7 +355,7 @@ class RelayBroadcasts {
           _failBroadcast(
             broadcastState,
             relayUrl,
-            const RelayFailure(RelayFailureKind.noBoundConnection),
+            failure ?? const RelayFailure(RelayFailureKind.noBoundConnection),
           );
           return;
         }
