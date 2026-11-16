@@ -97,6 +97,8 @@ dependency_overrides:
     path: ../nip77
   dostr_rust_verifier:
     path: ../rust_verifier
+  dostr_relay_url:
+    path: ../relay_url
   dostr_signer:
     path: ../signer
   dostr_string_color:

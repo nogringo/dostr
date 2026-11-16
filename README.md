@@ -31,6 +31,11 @@ Start here.
 
 `dostr_url_set`: relay and Blossom server sets described rather than listed, stored offline and resolved later, in pure Dart.
 
+#### [🔗 Relay URLs](./packages/relay_url/)
+
+`dostr_relay_url`: relay url normalization, so two spellings of one relay compare equal, in pure Dart.
+`dostr_core` exports it.
+
 #### [🔗 Home relays](./packages/home_relays/)
 
 `dostr_home_relays`: the home relays every client computes from a pubkey to find its NIP-65 relay list (Computed Home Relays NIP), in pure Dart.

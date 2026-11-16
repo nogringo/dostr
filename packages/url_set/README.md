@@ -7,7 +7,6 @@ A `UrlSet` stores that intent as a small tree that serializes to JSON, so it can
 
 This package holds the type and its resolver, in pure Dart with no dependency.
 It does not read lists from relays: you pass the lookup.
-It also normalizes relay urls, with `cleanRelayUrl` and `cleanRelayUrls`.
 
 ## Install
 

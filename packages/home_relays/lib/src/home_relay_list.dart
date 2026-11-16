@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:http/http.dart' as http;
 
 /// Where nmail.li serves its `home-relays` list.

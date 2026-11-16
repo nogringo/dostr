@@ -2,8 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:web_socket_channel/status.dart' as ws_status;
 

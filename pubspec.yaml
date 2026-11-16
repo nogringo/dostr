@@ -36,4 +36,5 @@ workspace:
   - packages/fetchers
   - packages/home_relays
   - packages/url_set
+  - packages/relay_url
   - packages/string_color

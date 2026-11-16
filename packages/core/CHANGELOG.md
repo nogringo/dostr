@@ -19,7 +19,7 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 `Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `TimeoutPausable` moved from `auth_handler.dart` to `package:dostr_core/dostr_core.dart`.
 
-`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core connects with, are in [`dostr_url_set`](https://pub.dev/packages/dostr_url_set): `package:ndk/shared/helpers/relay_helper.dart` is now `package:dostr_url_set/dostr_url_set.dart`, and `package:dostr_core/dostr_core.dart` exports them.
+`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core connects with, are in [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): `package:ndk/shared/helpers/relay_helper.dart` is now `package:dostr_relay_url/dostr_relay_url.dart`, and `package:dostr_core/dostr_core.dart` exports them.
 `relayUrlRegex` and the url normalizer behind them are gone: `cleanRelayUrl` builds on `Uri.parse`.
 
 `Bip340`, `Bip340EventVerifier` and `KeyPair` are in [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and so are `Bip340EventSigner` and `Bip340EventSignerFactory`, now `Bip340Signer` and `Bip340SignerFactory`.

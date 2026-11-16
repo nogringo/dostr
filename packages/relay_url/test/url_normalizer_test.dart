@@ -1,4 +1,4 @@
-import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 void main() {

@@ -1,5 +1,5 @@
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 
 final _hexPubkeyRegex = RegExp(r'^[0-9a-fA-F]{64}$');
 

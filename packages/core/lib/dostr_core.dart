@@ -3,9 +3,8 @@
 library;
 
 export 'package:dostr_nip01/dostr_nip01.dart';
+export 'package:dostr_relay_url/dostr_relay_url.dart';
 export 'package:dostr_signer/dostr_signer.dart';
-export 'package:dostr_url_set/dostr_url_set.dart'
-    show cleanRelayUrl, cleanRelayUrls;
 export 'src/config/broadcast_defaults.dart';
 export 'src/config/relay_defaults.dart';
 export 'src/config/request_defaults.dart';

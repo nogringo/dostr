@@ -1,4 +1,4 @@
-import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 
 import '../../../domain_layer/repositories/nostr_transport.dart';
 import 'web_socket_connect.dart'

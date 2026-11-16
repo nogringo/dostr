@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_url_set/dostr_url_set.dart';
 
 import '../../../config/broadcast_defaults.dart';
 import '../../../config/relay_defaults.dart';
