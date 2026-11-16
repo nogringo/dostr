@@ -1,4 +1,3 @@
-import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:material_ui/material_ui.dart';
@@ -17,7 +16,6 @@ void main() {
     dostr.addProfile(carolPubkey, {'name': 'carol'});
     dostr.accounts.loginPublicKey(pubkey: bobPubkey);
     dostr.accounts.addAccount(
-      type: AccountType.externalSigner,
       signer: Nip07Signer(cachedPublicKey: carolPubkey),
     );
     dostr.accounts.loginPrivateKey(privkey: alicePrivateKey);
@@ -63,7 +61,6 @@ void main() {
   ) async {
     dostr.accounts.removeAccount(pubkey: carolPubkey);
     dostr.accounts.addAccount(
-      type: AccountType.externalSigner,
       signer: Nip55Signer(
         publicKey: carolPubkey,
         signerApp: const Nip55SignerApp(),

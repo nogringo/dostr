@@ -1,10 +1,12 @@
 import 'dart:convert';
 
 import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip07/dostr_nip07.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
+import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'config.dart';
@@ -63,24 +65,18 @@ class AccountsStorage {
         continue;
       }
 
-      if (account.type == AccountType.privateKey) {
-        final privateKey = (account.signer as dynamic).privateKey as String?;
-        if (privateKey == null) continue;
+      if (account.signer
+          case Bip340Signer(:final privateKey) ||
+              WebSigner(:final privateKey)) {
         stored.accounts.add(
-          NostrAccount(
-            kind: AccountKinds.privkey,
-            pubkey: account.pubkey,
-            signerSeed: privateKey,
-          ),
+          privateKey == null
+              ? NostrAccount(kind: AccountKinds.pubkey, pubkey: account.pubkey)
+              : NostrAccount(
+                  kind: AccountKinds.privkey,
+                  pubkey: account.pubkey,
+                  signerSeed: privateKey,
+                ),
         );
-        continue;
-      }
-
-      if (account.type == AccountType.publicKey) {
-        stored.accounts.add(
-          NostrAccount(kind: AccountKinds.pubkey, pubkey: account.pubkey),
-        );
-        continue;
       }
     }
 
@@ -101,13 +97,12 @@ class AccountsStorage {
 
       if (account.kind == AccountKinds.nip07) {
         final signer = Nip07Signer(cachedPublicKey: account.pubkey);
-        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
+        accounts.addAccount(signer: signer);
         continue;
       }
 
       if (account.kind == AccountKinds.nip55) {
         accounts.addAccount(
-          type: AccountType.externalSigner,
           signer: Nip55Signer(
             publicKey: account.pubkey,
             // restore the signer app package captured at login (null for
@@ -128,27 +123,20 @@ class AccountsStorage {
           signerFactory: accounts.signerFactory,
           cachedPublicKey: account.pubkey,
         );
-        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
+        accounts.addAccount(signer: signer);
         continue;
       }
 
       if (account.kind == AccountKinds.pubkey) {
         accounts.addAccount(
-          type: AccountType.publicKey,
-          signer: accounts.signerFactory.create(
-            privateKey: null,
-            publicKey: account.pubkey,
-          ),
+          signer: accounts.signerFactory.readOnly(account.pubkey),
         );
         continue;
       }
 
       if (account.kind == AccountKinds.privkey) {
         accounts.addAccount(
-          type: AccountType.privateKey,
-          signer: accounts.signerFactory.create(
-            privateKey: account.signerSeed!,
-          ),
+          signer: accounts.signerFactory.create(account.signerSeed!),
         );
         continue;
       }

@@ -13,40 +13,13 @@ class _Signer implements NostrSigner {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-Account _account(String pubkey) =>
-    Account(type: AccountType.publicKey, signer: _Signer(pubkey));
+Account _account(String pubkey) => Account(_Signer(pubkey));
 
 void main() {
-  test('policies compare by kind and pubkey, not by account instance', () {
-    expect(AuthPolicy.allow(_account('a')), AuthPolicy.allow(_account('a')));
-    expect(
-      AuthPolicy.allow(_account('a')).hashCode,
-      AuthPolicy.allow(_account('a')).hashCode,
-    );
-    expect(
-      AuthPolicy.allow(_account('a')),
-      isNot(AuthPolicy.allow(_account('b'))),
-    );
-    expect(
-      AuthPolicy.require(_account('a')),
-      isNot(AuthPolicy.require(_account('b'))),
-    );
-    expect(
-      AuthPolicy.allow(_account('a')),
-      isNot(AuthPolicy.require(_account('a'))),
-    );
-    expect(AuthPolicy.allow(_account('a')), isNot(const AuthPolicy.never()));
-    expect(const AuthPolicy.never(), const AuthPolicy.never());
-  });
-
-  test('canonical names the kind and the pubkey', () {
-    expect(const AuthPolicy.never().canonical, 'never');
-    expect(AuthPolicy.allow(_account('a')).canonical, 'allow:a');
-    expect(AuthPolicy.require(_account('a')).canonical, 'require:a');
-    expect(
-      AuthPolicy.require(_account('a')).toString(),
-      AuthPolicy.require(_account('a')).canonical,
-    );
+  test('toString names the kind and the pubkey', () {
+    expect(const AuthPolicy.never().toString(), 'never');
+    expect(AuthPolicy.allow(_account('a')).toString(), 'allow:a');
+    expect(AuthPolicy.require(_account('a')).toString(), 'require:a');
   });
 
   test('account is null only for never', () {

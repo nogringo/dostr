@@ -99,10 +99,8 @@ class FakeAuthAccounts implements AuthAccounts {
   Account? getLoggedAccount() => accounts[loggedPubkey];
 }
 
-Account fakeAccount(String pubkey, {bool canSign = true}) => Account(
-  type: AccountType.privateKey,
-  signer: FakeSigner(pubkey, signable: canSign),
-);
+Account fakeAccount(String pubkey, {bool canSign = true}) =>
+    Account(FakeSigner(pubkey, signable: canSign));
 
 Nip01Event signedEvent({
   String? pubkey,

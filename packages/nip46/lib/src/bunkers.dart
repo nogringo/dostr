@@ -50,12 +50,9 @@ class Bunkers {
       throw ArgumentError('Secret parameter is required in bunker URL');
     }
 
-    final keyPair = _signerFactory.generateKeyPair();
+    final (privateKey, _) = _signerFactory.generateKeyPair();
 
-    final localSigner = _signerFactory.create(
-      privateKey: keyPair.$1,
-      publicKey: keyPair.$2,
-    );
+    final localSigner = _signerFactory.create(privateKey);
 
     final requestedPerms = clientMetadata?.perms?.join(',') ?? '';
     final metadata = clientMetadata?.displayInfo ?? {};
@@ -121,7 +118,7 @@ class Bunkers {
 
         if (response["result"] == "ack") {
           return BunkerConnection(
-            privateKey: keyPair.$1,
+            privateKey: privateKey,
             remotePubkey: remotePubkey,
             relays: relays,
           );
@@ -160,10 +157,7 @@ class Bunkers {
       throw ArgumentError('At least one relay is required in bunker URL');
     }
 
-    final localSigner = _signerFactory.create(
-      privateKey: nostrConnect.privateKey,
-      publicKey: nostrConnect.publicKey,
-    );
+    final localSigner = _signerFactory.create(nostrConnect.privateKey);
 
     final subscription = _subscribe(
       relays,

@@ -16,8 +16,9 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart` are now `package:dostr_core/dostr_core.dart`.
 `NdkLogger` became `DostrLogger`, and `LogColor` is internal.
 
-`Account`, `AccountType`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
+`Account`, `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `TimeoutPausable` moved from `auth_handler.dart` to `package:dostr_core/dostr_core.dart`.
+`AuthPolicy` no longer has `canonical`, `==` or `hashCode`.
 
 `cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core connects with, are in [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): `package:ndk/shared/helpers/relay_helper.dart` is now `package:dostr_relay_url/dostr_relay_url.dart`, and `package:dostr_core/dostr_core.dart` exports them.
 `relayUrlRegex` and the url normalizer behind them are gone: `cleanRelayUrl` builds on `Uri.parse`.
@@ -35,7 +36,9 @@ They are in [`dostr_signer`](https://pub.dev/packages/dostr_signer) with `Pendin
 `encrypt` and `decrypt` are now `encryptNip04` and `decryptNip04`, with the named parameters of the NIP-44 methods, and the four of them return a `Future<String>` instead of a `Future<String?>`: a signer that cannot encrypt or decrypt throws.
 `canSign` is a getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
 `NostrSigner` and `LocalSignerFactory` are interface classes: a signer implements them and inherits nothing.
-`Account` reads its pubkey from its signer, so its constructor no longer takes `pubkey`.
+`Account(signer)` takes only its signer and reads its pubkey from it: its constructor no longer takes `pubkey` or `type`, and `AccountType` is gone.
+`LocalSignerFactory.create` takes the private key alone, `readOnly` takes a public key, and `derivePublicKey` is gone.
+`SignerRequestRejectedException` and `SignerRequestCancelledException` are both a `SignerRequestException`.
 `SignerMethod` no longer has `connect` or `protocolString`.
 
 NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with `NegentropyEncoder` and `Nip77Result`.

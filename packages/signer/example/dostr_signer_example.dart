@@ -12,9 +12,7 @@ Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
         content: text,
       ),
     );
-  } on SignerRequestRejectedException {
-    return null;
-  } on SignerRequestCancelledException {
+  } on SignerRequestException {
     return null;
   }
 }

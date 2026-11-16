@@ -156,7 +156,7 @@ void main() {
 
       final account = dostr.accounts.getLoggedAccount()!;
       expect(account.pubkey, bobPubkey);
-      expect(account.type, AccountType.publicKey);
+      expect(account.signer.canSign, isFalse);
       expect(loggedIn, 1);
       expect(dostr.savedState!['loggedAccount'], bobPubkey);
     });
@@ -207,7 +207,6 @@ void main() {
 
       final account = dostr.accounts.getLoggedAccount()!;
       expect(account.pubkey, alicePubkey);
-      expect(account.type, AccountType.privateKey);
       expect(account.signer.canSign, isTrue);
       expect(loggedIn, 1);
     });
@@ -277,7 +276,7 @@ void main() {
 
       final account = dostr.accounts.getLoggedAccount()!;
       expect(account.pubkey, bobPubkey);
-      expect(account.type, AccountType.publicKey);
+      expect(account.signer.canSign, isFalse);
       expect(loggedIn, 1);
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });

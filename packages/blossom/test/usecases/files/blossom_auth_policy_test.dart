@@ -13,17 +13,11 @@ import '../../mocks/mock_blossom_server.dart';
 const int policyPort = 30040;
 
 Account _signable(KeyPair keyPair) => Account(
-  type: AccountType.privateKey,
-  signer: Bip340Signer(
-    privateKey: keyPair.privateKey,
-    publicKey: keyPair.publicKey,
-  ),
+  Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey),
 );
 
-Account _watchOnly(KeyPair keyPair) => Account(
-  type: AccountType.publicKey,
-  signer: Bip340Signer(privateKey: null, publicKey: keyPair.publicKey),
-);
+Account _watchOnly(KeyPair keyPair) =>
+    Account(Bip340Signer(privateKey: null, publicKey: keyPair.publicKey));
 
 void main() {
   late MockBlossomServer server;

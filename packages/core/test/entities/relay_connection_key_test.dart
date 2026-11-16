@@ -78,23 +78,4 @@ void main() {
       );
     });
   });
-
-  group('AuthPolicy', () {
-    test('compares by kind and pubkey', () {
-      expect(
-        AuthPolicy.allow(fakeAccount(alice)),
-        AuthPolicy.allow(fakeAccount(alice)),
-      );
-      expect(
-        AuthPolicy.allow(fakeAccount(alice)),
-        isNot(AuthPolicy.require(fakeAccount(alice))),
-      );
-      expect(
-        AuthPolicy.allow(fakeAccount(alice)),
-        isNot(AuthPolicy.allow(fakeAccount(bob))),
-      );
-      expect(const AuthPolicy.never().canonical, 'never');
-      expect(AuthPolicy.require(fakeAccount(bob)).canonical, 'require:$bob');
-    });
-  });
 }

@@ -10,22 +10,16 @@ import 'bip340.dart';
 /// Default factory for creating Bip340Signer instances
 class Bip340SignerFactory implements LocalSignerFactory {
   const Bip340SignerFactory();
-  @override
-  NostrSigner create({String? privateKey, String? publicKey}) {
-    final derivedPublicKey =
-        publicKey ?? (privateKey != null ? derivePublicKey(privateKey) : null);
-
-    if (derivedPublicKey == null) {
-      throw ArgumentError('Either publicKey or privateKey must be provided');
-    }
-
-    return Bip340Signer(privateKey: privateKey, publicKey: derivedPublicKey);
-  }
 
   @override
-  String derivePublicKey(String privateKey) {
-    return Bip340.getPublicKey(privateKey);
-  }
+  NostrSigner create(String privateKey) => Bip340Signer(
+    privateKey: privateKey,
+    publicKey: Bip340.getPublicKey(privateKey),
+  );
+
+  @override
+  NostrSigner readOnly(String publicKey) =>
+      Bip340Signer(privateKey: null, publicKey: publicKey);
 
   @override
   (String, String) generateKeyPair() {
@@ -37,7 +31,7 @@ class Bip340SignerFactory implements LocalSignerFactory {
   @override
   NostrSigner createWithNewKeyPair() {
     final (privateKey, publicKey) = generateKeyPair();
-    return create(privateKey: privateKey, publicKey: publicKey);
+    return Bip340Signer(privateKey: privateKey, publicKey: publicKey);
   }
 }
 

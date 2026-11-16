@@ -18,7 +18,7 @@ final signed = await signer.sign(
 );
 ```
 
-External signers expose `pendingRequests`, `pendingRequestsStream` and `cancelRequest(id)`, and throw `SignerRequestRejectedException` or `SignerRequestCancelledException`.
+External signers expose `pendingRequests`, `pendingRequestsStream` and `cancelRequest(id)`, and throw `SignerRequestRejectedException` or `SignerRequestCancelledException`, both a `SignerRequestException`.
 
 ## Accounts (`dostr_accounts`)
 

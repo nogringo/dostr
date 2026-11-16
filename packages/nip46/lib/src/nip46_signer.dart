@@ -52,10 +52,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required this.signerFactory,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
-    localSigner = signerFactory.create(
-      privateKey: connection.privateKey,
-      publicKey: signerFactory.derivePublicKey(connection.privateKey),
-    );
+    localSigner = signerFactory.create(connection.privateKey);
 
     listenRelays();
   }

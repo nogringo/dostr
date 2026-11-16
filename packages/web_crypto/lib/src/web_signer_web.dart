@@ -15,22 +15,12 @@ class WebSignerFactory implements LocalSignerFactory {
   const WebSignerFactory();
 
   @override
-  NostrSigner create({String? privateKey, String? publicKey}) {
-    final derivedPublicKey =
-        publicKey ?? (privateKey != null ? derivePublicKey(privateKey) : null);
-
-    if (derivedPublicKey == null) {
-      throw ArgumentError('Either publicKey or privateKey must be provided');
-    }
-
-    return WebSigner(privateKey: privateKey, publicKey: derivedPublicKey);
-  }
+  NostrSigner create(String privateKey) =>
+      WebSigner(privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
 
   @override
-  String derivePublicKey(String privateKey) {
-    WebSigner._injectJS();
-    return WebSigner._requireNostrCrypto().getPublicKey(privateKey.toJS).toDart;
-  }
+  NostrSigner readOnly(String publicKey) =>
+      WebSigner(privateKey: null, publicKey: publicKey);
 
   @override
   (String, String) generateKeyPair() {
@@ -39,13 +29,18 @@ class WebSignerFactory implements LocalSignerFactory {
       32,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    return (privateKey, derivePublicKey(privateKey));
+    return (privateKey, _publicKeyOf(privateKey));
   }
 
   @override
   NostrSigner createWithNewKeyPair() {
     final (privateKey, publicKey) = generateKeyPair();
-    return create(privateKey: privateKey, publicKey: publicKey);
+    return WebSigner(privateKey: privateKey, publicKey: publicKey);
+  }
+
+  String _publicKeyOf(String privateKey) {
+    WebSigner._injectJS();
+    return WebSigner._requireNostrCrypto().getPublicKey(privateKey.toJS).toDart;
   }
 }
 

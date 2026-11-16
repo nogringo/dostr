@@ -41,21 +41,18 @@ class Accounts implements AuthAccounts {
 
   /// Adds an account that signs with [privkey], whose pubkey it derives, and
   /// logs it in.
-  void loginPrivateKey({required String privkey}) {
-    final pubkey = signerFactory.derivePublicKey(privkey);
-    _loginLocal(AccountType.privateKey, pubkey: pubkey, privkey: privkey);
-  }
+  void loginPrivateKey({required String privkey}) =>
+      _loginLocal(signerFactory.create(privkey));
 
   /// Adds a read-only account and logs it in.
   void loginPublicKey({required String pubkey}) =>
-      _loginLocal(AccountType.publicKey, pubkey: pubkey);
+      _loginLocal(signerFactory.readOnly(pubkey));
 
   /// Adds an account that signs with [signer] and logs it in. A NIP-46
   /// signer must know its pubkey first, from `getPublicKeyAsync`.
   ///
   /// [signer] belongs to the account from then on, unless this throws.
-  void loginExternalSigner({required NostrSigner signer}) =>
-      _login(AccountType.externalSigner, signer);
+  void loginExternalSigner({required NostrSigner signer}) => _login(signer);
 
   bool hasAccount(String pubkey) => _accounts.containsKey(pubkey);
 
@@ -76,10 +73,10 @@ class Accounts implements AuthAccounts {
   ///
   /// Throws an [AccountExistsException] when that pubkey is already an
   /// account. Otherwise [signer] belongs to the account from then on.
-  Account addAccount({required AccountType type, required NostrSigner signer}) {
+  Account addAccount({required NostrSigner signer}) {
     final pubkey = signer.getPublicKey();
     _checkNew(pubkey);
-    final account = Account(type: type, signer: signer);
+    final account = Account(signer);
     _accounts[pubkey] = account;
     _notifyAccountsChange();
     return account;
@@ -133,17 +130,18 @@ class Accounts implements AuthAccounts {
   /// The pubkey of the logged account, null when nobody is logged in.
   String? getPublicKey() => _loggedPubkey;
 
-  void _loginLocal(
-    AccountType type, {
-    required String pubkey,
-    String? privkey,
-  }) {
-    _checkNew(pubkey);
-    _login(type, signerFactory.create(privateKey: privkey, publicKey: pubkey));
+  /// Logs in [signer], which this made, and disposes of it if that throws.
+  void _loginLocal(NostrSigner signer) {
+    try {
+      _login(signer);
+    } catch (_) {
+      unawaited(signer.dispose());
+      rethrow;
+    }
   }
 
-  void _login(AccountType type, NostrSigner signer) {
-    final account = addAccount(type: type, signer: signer);
+  void _login(NostrSigner signer) {
+    final account = addAccount(signer: signer);
     switchAccount(pubkey: account.pubkey);
   }
 

@@ -99,7 +99,7 @@ What changed:
 |-------|------------------|
 | `eventSignerFactory` | `signerFactory` |
 | `loginPrivateKey(pubkey: ..., privkey: ...)` | `loginPrivateKey(privkey: ...)`, the pubkey is derived |
-| `addAccount(pubkey: ..., type: ..., signer: ...)`, replaced an existing account | `addAccount(type: ..., signer: ...)`, takes the pubkey of the signer and throws `AccountExistsException` for an existing one |
+| `addAccount(pubkey: ..., type: ..., signer: ...)`, replaced an existing account | `addAccount(signer: ...)`, takes the pubkey of the signer and throws `AccountExistsException` for an existing one |
 | `logout()` and `removeAccount()` returned `void` and left the signer open | return a `Future` that completes once the signer is disposed of |
 | `dispose()` left the signers open | disposes of every signer |
 | `authStateChanges` emitted nothing until the first login | emits `null` on subscription when nobody is logged in |

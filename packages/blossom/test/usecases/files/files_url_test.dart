@@ -174,11 +174,7 @@ void main() {
     final asked = <String>[];
     final key = Bip340.generatePrivateKey();
     final account = Account(
-      type: AccountType.privateKey,
-      signer: Bip340Signer(
-        privateKey: key.privateKey,
-        publicKey: key.publicKey,
-      ),
+      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
     );
 
     final blob =

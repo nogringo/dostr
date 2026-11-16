@@ -289,12 +289,18 @@ void main() {
   group('WebSignerFactory', () {
     const factory = WebSignerFactory();
 
-    test('derivePublicKey matches Bip340', () {
+    test('create derives the public key as Bip340 does', () {
       final keyPair = Bip340.generatePrivateKey();
-      expect(
-        factory.derivePublicKey(keyPair.privateKey!),
-        equals(keyPair.publicKey),
-      );
+      final signer = factory.create(keyPair.privateKey!);
+      expect(signer.getPublicKey(), equals(keyPair.publicKey));
+      expect(signer.canSign, isTrue);
+    });
+
+    test('readOnly cannot sign', () {
+      final keyPair = Bip340.generatePrivateKey();
+      final signer = factory.readOnly(keyPair.publicKey);
+      expect(signer.getPublicKey(), equals(keyPair.publicKey));
+      expect(signer.canSign, isFalse);
     });
 
     test('generateKeyPair returns a matching key pair', () {

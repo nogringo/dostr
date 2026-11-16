@@ -165,8 +165,7 @@ class Blossom {
         : null;
   }
 
-  Account _throwawayAccount() =>
-      Account(type: AccountType.privateKey, signer: _throwawaySigner());
+  Account _throwawayAccount() => Account(_throwawaySigner());
 
   /// Whether [serverUrl] may see [pubkey]. A failing [AuthHandler] says no.
   Future<bool> _consent(String serverUrl, String pubkey) async {

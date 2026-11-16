@@ -46,7 +46,6 @@ void main() async {
       expect(accounts.cannotSign, true);
       expect(accounts.getPublicKey(), key0.publicKey);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
-      expect(accounts.getLoggedAccount()!.type, AccountType.publicKey);
       expect(accounts.hasAccount(key0.publicKey), true);
       await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
@@ -83,7 +82,6 @@ void main() async {
       expect(accounts.isNotLoggedIn, true);
       accounts.loginPrivateKey(privkey: key0.privateKey!);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
-      expect(accounts.getLoggedAccount()!.type, AccountType.privateKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
       await accounts.logout();
@@ -114,14 +112,12 @@ void main() async {
       );
       expect(accounts.isLoggedIn, true);
       expect(accounts.canSign, true);
-      expect(accounts.getLoggedAccount()!.type, AccountType.externalSigner);
       await accounts.logout();
       expect(accounts.isNotLoggedIn, true);
     });
 
     test('addAccount takes the pubkey of the signer, without logging in', () {
       final account = accounts.addAccount(
-        type: AccountType.externalSigner,
         signer: Bip340Signer(
           privateKey: key0.privateKey,
           publicKey: key0.publicKey,
@@ -161,13 +157,7 @@ void main() async {
       expect(() => accounts.loginPrivateKey(privkey: key0.privateKey!), exists);
       expect(() => accounts.loginPublicKey(pubkey: key0.publicKey), exists);
       expect(() => accounts.loginExternalSigner(signer: duplicate), exists);
-      expect(
-        () => accounts.addAccount(
-          type: AccountType.externalSigner,
-          signer: duplicate,
-        ),
-        exists,
-      );
+      expect(() => accounts.addAccount(signer: duplicate), exists);
 
       expect(accounts.getLoggedAccount(), same(logged));
       expect(duplicate.disposed, isFalse);
@@ -319,7 +309,7 @@ void main() async {
     test('removing an account disposes of its signer', () async {
       final logged = _TrackedSigner(key0);
       final other = _TrackedSigner(key1);
-      accounts.addAccount(type: AccountType.externalSigner, signer: other);
+      accounts.addAccount(signer: other);
       accounts.loginExternalSigner(signer: logged);
 
       await accounts.logout();
@@ -333,7 +323,7 @@ void main() async {
     test('dispose disposes of every signer', () async {
       final signers = [_TrackedSigner(key0), _TrackedSigner(key1)];
       for (final signer in signers) {
-        accounts.addAccount(type: AccountType.externalSigner, signer: signer);
+        accounts.addAccount(signer: signer);
       }
 
       await accounts.dispose();

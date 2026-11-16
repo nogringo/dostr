@@ -1,18 +1,14 @@
 import 'nostr_signer.dart';
 import 'pending_signer_request.dart';
 
-enum AccountType { privateKey, publicKey, externalSigner }
-
-/// Account entity
+/// A [NostrSigner], and the pubkey it signs for.
 class Account {
-  final AccountType type;
   final NostrSigner signer;
 
   /// the pubkey of [signer], read once when the account is made
   final String pubkey;
 
-  Account({required this.type, required this.signer})
-    : pubkey = signer.getPublicKey();
+  Account(this.signer) : pubkey = signer.getPublicKey();
 
   /// Stream of pending signer requests waiting for user approval.
   ///

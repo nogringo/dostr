@@ -1,26 +1,19 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'pending_signer_request.dart';
 
-/// Factory for creating [NostrSigner] instances.
-///
-/// If [LocalSignerFactory.create] is called without a `publicKey`,
-/// implementations must derive it from the `privateKey`.
+/// Makes the [NostrSigner]s that hold their key, with the crypto of one
+/// platform.
 abstract interface class LocalSignerFactory {
-  /// Creates a NostrSigner instance.
-  ///
-  /// If [publicKey] is null, implementations MUST derive it from [privateKey].
-  /// At least one of [privateKey] or [publicKey] must be provided!
-  NostrSigner create({String? privateKey, String? publicKey});
+  /// A signer for [privateKey], whose public key it derives.
+  NostrSigner create(String privateKey);
 
-  /// Derives a public key from a private key.
-  /// Implementations MUST provide the derivation logic.
-  String derivePublicKey(String privateKey);
+  /// A read-only signer for [publicKey], whose [NostrSigner.canSign] is false.
+  NostrSigner readOnly(String publicKey);
 
-  /// Generates a new keypair.
-  /// Returns a record with (privateKey, publicKey).
+  /// A new random key pair, for a caller that keeps the private key.
   (String privateKey, String publicKey) generateKeyPair();
 
-  /// Generates a new NostrSigner with a fresh keypair.
+  /// A signer for a new random key pair.
   NostrSigner createWithNewKeyPair();
 }
 

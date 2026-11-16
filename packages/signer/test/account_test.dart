@@ -43,7 +43,7 @@ void main() {
 
     setUp(() {
       signer = _Signer();
-      account = Account(type: AccountType.externalSigner, signer: signer);
+      account = Account(signer);
     });
 
     test('pubkey is the one of its signer', () {

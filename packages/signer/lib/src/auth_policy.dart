@@ -18,9 +18,6 @@ sealed class AuthPolicy {
 
   /// identity this may authenticate as, null when it never authenticates
   Account? get account;
-
-  /// stable representation, for logs and for telling two requests apart
-  String get canonical;
 }
 
 /// Never authenticates, see [AuthPolicy.never].
@@ -32,16 +29,7 @@ class AuthPolicyNever extends AuthPolicy {
   Account? get account => null;
 
   @override
-  String get canonical => 'never';
-
-  @override
-  bool operator ==(Object other) => other is AuthPolicyNever;
-
-  @override
-  int get hashCode => canonical.hashCode;
-
-  @override
-  String toString() => canonical;
+  String toString() => 'never';
 }
 
 /// Authenticates as [account] once refused, see [AuthPolicy.allow].
@@ -53,17 +41,7 @@ class AuthPolicyAllow extends AuthPolicy {
   const AuthPolicyAllow(this.account);
 
   @override
-  String get canonical => 'allow:${account.pubkey}';
-
-  @override
-  bool operator ==(Object other) =>
-      other is AuthPolicyAllow && other.account.pubkey == account.pubkey;
-
-  @override
-  int get hashCode => canonical.hashCode;
-
-  @override
-  String toString() => canonical;
+  String toString() => 'allow:${account.pubkey}';
 }
 
 /// Authenticates as [account] from the start, see [AuthPolicy.require].
@@ -75,15 +53,5 @@ class AuthPolicyRequire extends AuthPolicy {
   const AuthPolicyRequire(this.account);
 
   @override
-  String get canonical => 'require:${account.pubkey}';
-
-  @override
-  bool operator ==(Object other) =>
-      other is AuthPolicyRequire && other.account.pubkey == account.pubkey;
-
-  @override
-  int get hashCode => canonical.hashCode;
-
-  @override
-  String toString() => canonical;
+  String toString() => 'require:${account.pubkey}';
 }

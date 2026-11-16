@@ -1,4 +1,5 @@
 import 'package:dostr_accounts/dostr_accounts.dart';
+import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:material_ui/material_ui.dart';
@@ -31,29 +32,17 @@ class NSwitchAccount extends StatefulWidget {
 class _NSwitchAccountState extends State<NSwitchAccount> {
   Accounts get _accounts => widget.dostrFlutter.accounts;
 
-  Widget _getAccountTypeChip(BuildContext context, Account account) {
-    String label;
-    Color backgroundColor;
+  Widget _signerChip(BuildContext context, Account account) {
     final l10n = AppLocalizations.of(context)!;
 
-    switch (account.type) {
-      case AccountType.publicKey:
-        label = l10n.readOnly;
-        backgroundColor = Colors.blue;
-        break;
-      case AccountType.privateKey:
-        label = l10n.nsec;
-        backgroundColor = Colors.red;
-        break;
-      case AccountType.externalSigner:
-        (label, backgroundColor) = switch (account.signer) {
-          Nip07Signer() => (l10n.extension, Colors.orange),
-          Nip55Signer() => (l10n.signerApp, Colors.purple),
-          Nip46Signer() => (l10n.bunker, Colors.green),
-          _ => (l10n.signer, Colors.grey),
-        };
-        break;
-    }
+    final (label, backgroundColor) = switch (account.signer) {
+      Nip07Signer() => (l10n.extension, Colors.orange),
+      Nip55Signer() => (l10n.signerApp, Colors.purple),
+      Nip46Signer() => (l10n.bunker, Colors.green),
+      NostrSigner(canSign: false) => (l10n.readOnly, Colors.blue),
+      Bip340Signer() || WebSigner() => (l10n.nsec, Colors.red),
+      _ => (l10n.signer, Colors.grey),
+    };
 
     return Chip(
       label: Text(label),
@@ -111,7 +100,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _getAccountTypeChip(context, account),
+                _signerChip(context, account),
                 SizedBox(width: 8),
                 Opacity(
                   opacity: isLoggedAccount ? 1 : 0,

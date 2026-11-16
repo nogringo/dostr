@@ -12,10 +12,10 @@ class WebSignerFactory implements LocalSignerFactory {
   );
 
   @override
-  NostrSigner create({String? privateKey, String? publicKey}) => _unsupported();
+  NostrSigner create(String privateKey) => _unsupported();
 
   @override
-  String derivePublicKey(String privateKey) => _unsupported();
+  NostrSigner readOnly(String publicKey) => _unsupported();
 
   @override
   (String, String) generateKeyPair() => _unsupported();

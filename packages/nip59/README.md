@@ -50,7 +50,7 @@ What cannot be wrapped or opened throws a `GiftWrapException`:
 - `GiftWrapEncryptionException`: the signer cannot encrypt for the recipient.
 - `GiftWrapNoSignerException`: the call has no `customSigner` (or `customPubkey` for `createRumor`), and `signer` returns null.
 
-A `SignerRequestRejectedException` or `SignerRequestCancelledException` of the signer passes through unchanged.
+A `SignerRequestException` of the signer, rejected or cancelled, passes through unchanged.
 An event that is not a kind `1059` throws an `ArgumentError`.
 
 ## Fetching the wraps

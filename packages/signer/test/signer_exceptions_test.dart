@@ -34,4 +34,17 @@ void main() {
       expect(e.toString(), contains('req789'));
     });
   });
+
+  test('both are a SignerRequestException with their requestId', () {
+    final SignerRequestException rejected = SignerRequestRejectedException(
+      requestId: 'req1',
+    );
+    final SignerRequestException cancelled = SignerRequestCancelledException(
+      'req2',
+    );
+
+    expect(rejected.requestId, 'req1');
+    expect(cancelled.requestId, 'req2');
+    expect(SignerRequestRejectedException().requestId, isNull);
+  });
 }

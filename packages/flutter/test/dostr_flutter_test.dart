@@ -146,7 +146,6 @@ void main() {
       final accounts = saved.accounts;
       accounts.loginPublicKey(pubkey: bobPubkey);
       accounts.addAccount(
-        type: AccountType.externalSigner,
         signer: Nip55Signer(
           publicKey: carolPubkey,
           signerApp: const Nip55SignerApp(package: 'com.example.signer'),
@@ -176,11 +175,9 @@ void main() {
 
     test('restores what it saved', () async {
       saved.accounts.addAccount(
-        type: AccountType.externalSigner,
         signer: Nip07Signer(cachedPublicKey: carolPubkey),
       );
       saved.accounts.addAccount(
-        type: AccountType.externalSigner,
         signer: Nip55Signer(
           publicKey: bobPubkey,
           signerApp: const Nip55SignerApp(package: 'com.example.signer'),
@@ -201,7 +198,6 @@ void main() {
         (accounts[bobPubkey]!.signer as Nip55Signer).signerApp.package,
         'com.example.signer',
       );
-      expect(accounts[alicePubkey]!.type, AccountType.privateKey);
       expect(accounts[alicePubkey]!.signer.canSign, isTrue);
       expect(restored.accounts.getPublicKey(), bobPubkey);
     });
@@ -227,7 +223,6 @@ void main() {
 
       final account = restored.accounts.getLoggedAccount()!;
       expect(account.pubkey, bobPubkey);
-      expect(account.type, AccountType.externalSigner);
       expect(
         (account.signer as Nip55Signer).signerApp.package,
         'com.example.signer',

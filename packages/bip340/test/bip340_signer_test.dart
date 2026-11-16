@@ -202,23 +202,6 @@ void main() {
       factory = const Bip340SignerFactory();
     });
 
-    group('derivePublicKey', () {
-      test('derives correct public key from private key', () {
-        final keyPair = Bip340.generatePrivateKey();
-        final derivedPubkey = factory.derivePublicKey(keyPair.privateKey!);
-
-        expect(derivedPubkey, equals(keyPair.publicKey));
-      });
-
-      test('derived public key is consistent', () {
-        final keyPair = Bip340.generatePrivateKey();
-        final derivedPubkey1 = factory.derivePublicKey(keyPair.privateKey!);
-        final derivedPubkey2 = factory.derivePublicKey(keyPair.privateKey!);
-
-        expect(derivedPubkey1, equals(derivedPubkey2));
-      });
-    });
-
     group('generateKeyPair', () {
       test('generates valid keypair', () {
         final (privateKey, publicKey) = factory.generateKeyPair();
@@ -227,11 +210,10 @@ void main() {
         expect(publicKey, isNotEmpty);
       });
 
-      test('generated public key matches derived public key', () {
+      test('generated public key is the one of the private key', () {
         final (privateKey, publicKey) = factory.generateKeyPair();
-        final derivedPubkey = factory.derivePublicKey(privateKey);
 
-        expect(publicKey, equals(derivedPubkey));
+        expect(publicKey, equals(Bip340.getPublicKey(privateKey)));
       });
 
       test('generates unique keypairs', () {
@@ -244,12 +226,9 @@ void main() {
     });
 
     group('create', () {
-      test('creates signer with both keys provided', () async {
+      test('derives the public key of the private key', () async {
         final keyPair = Bip340.generatePrivateKey();
-        final signer = factory.create(
-          privateKey: keyPair.privateKey,
-          publicKey: keyPair.publicKey,
-        );
+        final signer = factory.create(keyPair.privateKey!);
 
         expect(signer.getPublicKey(), equals(keyPair.publicKey));
         expect(signer.canSign, isTrue);
@@ -257,39 +236,9 @@ void main() {
         await signer.dispose();
       });
 
-      test(
-        'creates signer with only private key (derives public key)',
-        () async {
-          final keyPair = Bip340.generatePrivateKey();
-          final signer = factory.create(privateKey: keyPair.privateKey);
-
-          expect(signer.getPublicKey(), equals(keyPair.publicKey));
-          expect(signer.canSign, isTrue);
-
-          await signer.dispose();
-        },
-      );
-
-      test('creates read-only signer with only public key', () async {
+      test('signs valid events', () async {
         final keyPair = Bip340.generatePrivateKey();
-        final signer = factory.create(publicKey: keyPair.publicKey);
-
-        expect(signer.getPublicKey(), equals(keyPair.publicKey));
-        expect(signer.canSign, isFalse);
-
-        await signer.dispose();
-      });
-
-      test('throws ArgumentError when neither key is provided', () {
-        expect(() => factory.create(), throwsArgumentError);
-      });
-
-      test('derived public key can sign valid events', () async {
-        final keyPair = Bip340.generatePrivateKey();
-        final signer = factory.create(
-          privateKey: keyPair.privateKey,
-          // publicKey NOT provided - should be derived
-        );
+        final signer = factory.create(keyPair.privateKey!);
 
         final event = Nip01Event(
           pubkey: signer.getPublicKey(),
@@ -306,26 +255,18 @@ void main() {
 
         await signer.dispose();
       });
+    });
 
-      test(
-        'uses provided public key even if derivation would differ',
-        () async {
-          final keyPair1 = Bip340.generatePrivateKey();
-          final keyPair2 = Bip340.generatePrivateKey();
+    group('readOnly', () {
+      test('signs for the public key but cannot sign', () async {
+        final keyPair = Bip340.generatePrivateKey();
+        final signer = factory.readOnly(keyPair.publicKey);
 
-          // Intentionally mismatched keys
-          final signer = factory.create(
-            privateKey: keyPair1.privateKey,
-            publicKey: keyPair2.publicKey, // Different public key
-          );
+        expect(signer.getPublicKey(), equals(keyPair.publicKey));
+        expect(signer.canSign, isFalse);
 
-          // Should use the provided public key, not derived
-          expect(signer.getPublicKey(), equals(keyPair2.publicKey));
-          expect(signer.getPublicKey(), isNot(equals(keyPair1.publicKey)));
-
-          await signer.dispose();
-        },
-      );
+        await signer.dispose();
+      });
     });
 
     group('createWithNewKeyPair', () {

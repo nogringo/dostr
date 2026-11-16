@@ -22,7 +22,7 @@ void main() {
   );
 
   test('DostrSignerFactory derives the BIP-340 public key', () {
-    expect(signerFactory.derivePublicKey(alicePrivateKey), alicePubkey);
+    expect(signerFactory.create(alicePrivateKey).getPublicKey(), alicePubkey);
 
     final (privateKey, publicKey) = signerFactory.generateKeyPair();
     expect(Bip340.getPublicKey(privateKey), publicKey);
@@ -30,7 +30,7 @@ void main() {
 
   test('DostrEventVerifier accepts what either signer signed', () async {
     final platformSigned = await signNote(
-      signerFactory.create(privateKey: alicePrivateKey),
+      signerFactory.create(alicePrivateKey),
     );
     final bip340Signed = await signNote(
       Bip340Signer(privateKey: alicePrivateKey, publicKey: alicePubkey),
@@ -42,12 +42,8 @@ void main() {
   });
 
   test('DostrEventVerifier rejects a changed or unsigned event', () async {
-    final signed = await signNote(
-      signerFactory.create(privateKey: alicePrivateKey),
-    );
-    final otherSigned = await signNote(
-      signerFactory.create(privateKey: 'ab' * 32),
-    );
+    final signed = await signNote(signerFactory.create(alicePrivateKey));
+    final otherSigned = await signNote(signerFactory.create('ab' * 32));
 
     expect(
       await verifier.verify(

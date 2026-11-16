@@ -112,8 +112,7 @@ void main() {
         final client = clientWith(handler: true);
         final other = Bip340.generatePrivateKey();
         final account = Account(
-          type: AccountType.privateKey,
-          signer: Bip340Signer(
+          Bip340Signer(
             privateKey: other.privateKey,
             publicKey: other.publicKey,
           ),
@@ -149,11 +148,7 @@ void main() {
       answer = (_) => false;
       final client = clientWith(handler: true);
       final account = Account(
-        type: AccountType.privateKey,
-        signer: Bip340Signer(
-          privateKey: key.privateKey,
-          publicKey: key.publicKey,
-        ),
+        Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
       );
 
       await expectLater(
@@ -172,11 +167,7 @@ void main() {
     test('asks once per server for a whole stream', () async {
       final client = clientWith(handler: true);
       final account = Account(
-        type: AccountType.privateKey,
-        signer: Bip340Signer(
-          privateKey: key.privateKey,
-          publicKey: key.publicKey,
-        ),
+        Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
       );
 
       final stream = await client.getBlobStream(

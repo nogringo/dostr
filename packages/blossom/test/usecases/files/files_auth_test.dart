@@ -13,11 +13,7 @@ import '../../mocks/mock_blossom_server.dart';
 const int filesAuthPort = 30050;
 
 Account _signable(KeyPair keyPair) => Account(
-  type: AccountType.privateKey,
-  signer: Bip340Signer(
-    privateKey: keyPair.privateKey,
-    publicKey: keyPair.publicKey,
-  ),
+  Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey),
 );
 
 /// The facade owns no policy of its own, it only has to hand one down.
