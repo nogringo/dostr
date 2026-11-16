@@ -57,7 +57,7 @@ final resolution = await resolveUrlSet(
 
 if (resolution case UrlsResolved(:final urls)) {
   await RelayPublishes(relayManager: relays)
-      .publish(signed, relays: cleanRelayUrls(urls))
+      .publish(signed, relays: urls.map(RelayUrl.tryParse).nonNulls)
       .done;
 }
 ```
@@ -88,7 +88,7 @@ final relayList = await signer.sign(
 await RelayPublishes(relayManager: relays).publish(
   relayList,
   relays: [
-    ...cleanRelayUrls(['wss://relay.example.com', 'wss://outbox.example.com']),
+    ...['wss://relay.example.com', 'wss://outbox.example.com'].map(RelayUrl.parse),
     ...defaultIndexerRelays,
     ...homeRelayList.homeRelaysOf(publicKey),
   ],

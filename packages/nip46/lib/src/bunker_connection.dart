@@ -21,7 +21,11 @@ class BunkerConnection {
     return BunkerConnection(
       privateKey: json['privateKey'] as String,
       remotePubkey: json['remotePubkey'] as String,
-      relays: cleanRelayUrls((json['relays'] as List).cast<String>()),
+      relays: (json['relays'] as List)
+          .cast<String>()
+          .map(RelayUrl.tryParse)
+          .nonNulls
+          .toList(),
     );
   }
 }

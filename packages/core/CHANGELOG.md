@@ -22,8 +22,9 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 `TimeoutPausable` moved from `auth_handler.dart` to `package:dostr_core/dostr_core.dart`.
 `AuthPolicy` no longer has `canonical`, `==` or `hashCode`.
 
-`cleanRelayUrl` and `cleanRelayUrls`, the relay url normalization dostr_core connects with, are in [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): `package:ndk/shared/helpers/relay_helper.dart` is now `package:dostr_relay_url/dostr_relay_url.dart`, and `package:dostr_core/dostr_core.dart` exports them.
-`relayUrlRegex` and the url normalizer behind them are gone: `cleanRelayUrl` builds on `Uri.parse`.
+The relay url normalization dostr_core connects with is in [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): `package:ndk/shared/helpers/relay_helper.dart` is now `package:dostr_relay_url/dostr_relay_url.dart`, which `package:dostr_core/dostr_core.dart` exports.
+`cleanRelayUrl(url)` is now `RelayUrl.tryParse(url)`, and `cleanRelayUrls(urls)` is gone: `urls.map(RelayUrl.tryParse).nonNulls` replaces it.
+`relayUrlRegex` and the url normalizer behind them are gone: `RelayUrl.tryParse` builds on `Uri.parse`.
 
 `Bip340`, `Bip340EventVerifier` and `KeyPair` are in [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and so are `Bip340EventSigner` and `Bip340EventSignerFactory`, now `Bip340Signer` and `Bip340SignerFactory`.
 `Nip01Utils.signWithPrivateKey` is now `Bip340.signEvent`.
@@ -108,7 +109,7 @@ They used to escape as uncaught errors, which end a plain Dart process.
 #### Relay urls
 
 The relay urls `dostr_core` takes and gives are `RelayUrl`s, from [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): normalized urls, as an extension type on `String`, so code that reads one as a `String` keeps working.
-Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `cleanRelayUrl`, which returns null.
+Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
 
  - `RelayManager.isRelayConnected`, `reconnectRelay`, `resetConnectionsTo`, `closeConnectionsTo`, `getRelayConnectivity` and `openConnectionAs` take a `RelayUrl`. `connectRelay` still takes a `dirtyUrl`, which it normalizes.
  - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.

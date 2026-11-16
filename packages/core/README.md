@@ -51,7 +51,7 @@ final outcomes = await publishes
 Keep one `RelayManager` for the whole app: it holds the connections, which every `RelayReqs` and `RelayPublishes` built on it shares.
 
 Relays are named by `RelayUrl`s, the normalized urls of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which `dostr_core` exports.
-Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `cleanRelayUrl`, which returns null.
+Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
 A `RelayUrl` is a `String`, so the urls `dostr_core` gives back read as strings.
 
 ## Relay REQs
@@ -128,7 +128,7 @@ final signed = await signer.sign(event);
 final outcomes = await publishes
     .publish(
       signed,
-      relays: cleanRelayUrls(['wss://relay.example.com', 'wss://other.example.com']),
+      relays: ['wss://relay.example.com', 'wss://other.example.com'].map(RelayUrl.parse),
       timeout: Duration(seconds: 5),
     )
     .done;

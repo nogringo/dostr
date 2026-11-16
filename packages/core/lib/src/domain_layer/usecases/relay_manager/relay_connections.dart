@@ -204,7 +204,7 @@ class RelayConnections {
     String? authPubkey,
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
-    final url = cleanRelayUrl(dirtyUrl);
+    final url = RelayUrl.tryParse(dirtyUrl);
     if (url == null) {
       notifyChanged();
       return (

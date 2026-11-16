@@ -39,7 +39,10 @@ class Bunkers {
     }
 
     final remotePubkey = uri.host;
-    final relays = cleanRelayUrls(uri.queryParametersAll['relay'] ?? []);
+    final relays = (uri.queryParametersAll['relay'] ?? [])
+        .map(RelayUrl.tryParse)
+        .nonNulls
+        .toList();
     final secret = uri.queryParameters['secret'];
 
     if (relays.isEmpty) {

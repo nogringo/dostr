@@ -24,7 +24,9 @@ class HomeRelayList {
   final List<List<int>> _hashes;
 
   HomeRelayList(Iterable<String> relays)
-    : this._(List.unmodifiable({...cleanRelayUrls(relays)}));
+    : this._(
+        List.unmodifiable({for (final url in relays) ?RelayUrl.tryParse(url)}),
+      );
 
   HomeRelayList._(this.candidates)
     : _hashes = [for (final url in candidates) _sha256(url)];

@@ -95,7 +95,7 @@ class EventFetch {
   void _ask(UrlSetSnapshot snapshot) {
     _last = snapshot;
     for (final url in snapshot.urls) {
-      final relay = cleanRelayUrl(url);
+      final relay = RelayUrl.tryParse(url);
       if (relay == null || !_asked.add(relay)) continue;
       final req = _fetcher._reqs.req(
         relays: {
@@ -128,7 +128,7 @@ class EventFetch {
     if (!_resolved || _running.isNotEmpty || _done.isCompleted) return;
     final last = _last;
     final relays = {
-      for (final url in last?.urls ?? const <String>[]) ?cleanRelayUrl(url),
+      for (final url in last?.urls ?? const <String>[]) ?RelayUrl.tryParse(url),
     };
     _done.complete(
       EventFetchResult(

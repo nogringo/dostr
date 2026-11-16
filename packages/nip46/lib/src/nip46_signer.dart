@@ -400,7 +400,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
     final decoded = jsonDecode(response);
     final relays = decoded is List
-        ? cleanRelayUrls(decoded.whereType<String>())
+        ? decoded.whereType<String>().map(RelayUrl.tryParse).nonNulls.toList()
         : const <RelayUrl>[];
     if (relays.isEmpty) return null;
 

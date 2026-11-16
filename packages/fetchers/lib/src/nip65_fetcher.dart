@@ -117,11 +117,10 @@ List<RelayUrl> readRelaysOf(Nip01Event relayList) =>
 /// Every normalized relay of [relayList], a `kind:10002`, whatever its marker.
 List<RelayUrl> allRelaysOf(Nip01Event relayList) => _relaysOf(relayList);
 
-List<RelayUrl> _relaysOf(Nip01Event relayList, {String? except}) =>
-    cleanRelayUrls([
-      for (final tag in relayList.tags)
-        if (tag.length > 1 &&
-            tag[0] == 'r' &&
-            (except == null || tag.length < 3 || tag[2] != except))
-          tag[1],
-    ]).toSet().toList();
+List<RelayUrl> _relaysOf(Nip01Event relayList, {String? except}) => {
+  for (final tag in relayList.tags)
+    if (tag.length > 1 &&
+        tag[0] == 'r' &&
+        (except == null || tag.length < 3 || tag[2] != except))
+      ?RelayUrl.tryParse(tag[1]),
+}.toList();

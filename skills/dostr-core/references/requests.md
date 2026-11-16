@@ -18,7 +18,7 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 ```
 
 - `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.
-- Relays are `RelayUrl`s: `RelayUrl.parse(url)` throws on a url that is not a relay's, `cleanRelayUrl(url)` returns null, `cleanRelayUrls(urls)` drops them. A `RelayUrl` is a `String`.
+- Relays are `RelayUrl`s: `RelayUrl.parse(url)` throws on a url that is not a relay's, `RelayUrl.tryParse(url)` returns null, and `urls.map(RelayUrl.tryParse).nonNulls` drops them. A `RelayUrl` is a `String`.
 - Without `relays`, call `req.send(url, filters)` per relay, then `req.seal()`.
 - `auth: AuthPolicy.never() / allow(account) / require(account)` picks the identity (NIP-42).
 - Events are verified; an event two relays hold arrives twice.
@@ -64,7 +64,7 @@ final resolution = await resolveUrlSet(
   fetcherUrlListFn(nip65: nip65, dmRelays: dmRelays, blossomServers: blossomServers),
 );
 if (resolution case UrlsResolved(:final urls)) {
-  await publishes.publish(signed, relays: cleanRelayUrls(urls)).done;
+  await publishes.publish(signed, relays: urls.map(RelayUrl.tryParse).nonNulls).done;
 }
 ```
 

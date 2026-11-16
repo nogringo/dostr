@@ -19,9 +19,7 @@ dependencies:
 ```dart
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 
-cleanRelayUrl('WSS://Relay.Primal.NET:443/'); // wss://relay.primal.net
-cleanRelayUrl('https://relay.primal.net'); // null
-cleanRelayUrls(['wss://relay.ditto.pub/', 'not a url']); // [wss://relay.ditto.pub]
+RelayUrl.tryParse('WSS://Relay.Primal.NET:443/'); // wss://relay.primal.net
 RelayUrl.tryParse('https://relay.primal.net'); // null
 RelayUrl.parse('https://relay.primal.net'); // throws a FormatException
 RelayUrl.fromUserInput('relay.primal.net'); // wss://relay.primal.net
@@ -29,7 +27,7 @@ RelayUrl.fromUserInput('https://relay.primal.net'); // wss://relay.primal.net
 RelayUrl.fromUserInput('npub1abc'); // null
 ```
 
-`cleanRelayUrl` normalizes a `ws` or `wss` url, or returns null if it is not one:
+`RelayUrl.tryParse` normalizes a `ws` or `wss` url, or returns null if it is not one:
 
 - The scheme and host are lowercased, dot segments removed and percent-encodings normalized, as RFC 3986 section 6 describes.
 - The default port (443 for `wss`, 80 for `ws`) is dropped.
@@ -40,15 +38,15 @@ RelayUrl.fromUserInput('npub1abc'); // null
 - IPv6 addresses and queries are kept.
 - A host name may hold `_`, as browsers allow, although RFC 1123 forbids it.
 
-`cleanRelayUrls` keeps the urls of a list that `cleanRelayUrl` accepts, normalized, in their order.
-It does not deduplicate them.
+`RelayUrl.parse` does the same, but throws a `FormatException` where `RelayUrl.tryParse` returns null.
+
+For a list, `urls.map(RelayUrl.tryParse).nonNulls` keeps the relay urls, normalized, in their order.
+It does not deduplicate them: `toSet()` does.
 
 ## The `RelayUrl` type
 
-`cleanRelayUrl` returns a `RelayUrl`, an extension type on `String`.
-`RelayUrl.tryParse` is `cleanRelayUrl` under the name Dart gives it, as in `Uri.tryParse`.
-`RelayUrl.parse` does what `cleanRelayUrl` does, but throws a `FormatException` where it returns null.
-A `RelayUrl` goes wherever a `String` does, but a `String` becomes one only through `cleanRelayUrl`, `RelayUrl.tryParse`, `RelayUrl.parse` and `RelayUrl.fromUserInput`.
+`RelayUrl.tryParse` and `RelayUrl.parse` return a `RelayUrl`, an extension type on `String`.
+A `RelayUrl` goes wherever a `String` does, but a `String` becomes one only through `RelayUrl.tryParse`, `RelayUrl.parse` and `RelayUrl.fromUserInput`.
 An API that takes a `RelayUrl` thus never needs to normalize it again.
 
 ```dart
@@ -63,7 +61,7 @@ A cast is the one way around it, and nothing checks it, since an extension type 
 ## Text a person typed
 
 `RelayUrl.fromUserInput` is for a relay url a person typed in a text field.
-It reads a url without a scheme as a `wss` url, and an `http` or `https` url as a `ws` or `wss` one, as Nostr clients do, then normalizes it as `cleanRelayUrl` does.
+It reads a url without a scheme as a `wss` url, and an `http` or `https` url as a `ws` or `wss` one, as Nostr clients do, then normalizes it as `RelayUrl.tryParse` does.
 Do not use it on urls from events or other programs: there, an `https` url is not a relay url.
 
 Without a scheme, the host must be `localhost`, an IP address or a name holding a dot.

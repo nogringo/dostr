@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show RelayUrl, cleanRelayUrl;
+import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -275,7 +275,7 @@ Map<RelayUrl, ({bool isRead, bool isWrite})> _relaysOf(Nip01Event relayList) =>
     {
       for (final tag in relayList.tags)
         if (tag.length > 1 && tag[0] == 'r')
-          if (cleanRelayUrl(tag[1]) case final url?)
+          if (RelayUrl.tryParse(tag[1]) case final url?)
             url: (
               isRead: tag.length < 3 || tag[2] == 'read',
               isWrite: tag.length < 3 || tag[2] == 'write',
