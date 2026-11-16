@@ -55,7 +55,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
   @override
   Widget build(BuildContext context) {
     final accounts = _accounts.accounts.values.toList();
-    final loggedPubkey = _accounts.getPublicKey();
+    final loggedPubkey = _accounts.loggedPubkey;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

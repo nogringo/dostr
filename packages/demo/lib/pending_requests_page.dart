@@ -40,7 +40,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     final l10n = context.l10n;
     try {
       final event = Nip01Event(
-        pubkey: signer.getPublicKey(),
+        pubkey: signer.publicKey,
         kind: 1,
         tags: [],
         content: 'Test event from pending requests demo - ${DateTime.now()}',
@@ -56,7 +56,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     if (_isBulkSigning) return;
 
     final l10n = context.l10n;
-    final pubkey = signer.getPublicKey();
+    final pubkey = signer.publicKey;
     final startedAt = DateTime.now();
     final createdAt = startedAt.millisecondsSinceEpoch ~/ 1000;
     final stopwatch = Stopwatch()..start();
@@ -126,7 +126,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     if (_isDuplicateSigning) return;
 
     final l10n = context.l10n;
-    final pubkey = signer.getPublicKey();
+    final pubkey = signer.publicKey;
     final startedAt = DateTime.now();
     final event = Nip01Event(
       pubkey: pubkey,
@@ -188,7 +188,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
   Future<void> _encryptNip44(NostrSigner signer) async {
     final l10n = context.l10n;
     try {
-      final pubkey = signer.getPublicKey();
+      final pubkey = signer.publicKey;
       final result = await signer.encryptNip44(
         plaintext: 'Hello from pending requests demo!',
         recipientPubkey: pubkey,
@@ -206,7 +206,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
     if (_isBulkEncrypting) return;
 
     final l10n = context.l10n;
-    final pubkey = signer.getPublicKey();
+    final pubkey = signer.publicKey;
     final startedAt = DateTime.now();
     final stopwatch = Stopwatch()..start();
 
@@ -270,7 +270,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
       return;
     }
     try {
-      final pubkey = signer.getPublicKey();
+      final pubkey = signer.publicKey;
       final result = await signer.decryptNip44(
         ciphertext: _ciphertext!,
         senderPubkey: pubkey,
@@ -496,18 +496,12 @@ class _PendingRequestCard extends StatelessWidget {
     switch (method) {
       case SignerMethod.signEvent:
         return Icons.edit;
-      case SignerMethod.getPublicKey:
-        return Icons.key;
       case SignerMethod.nip04Encrypt:
       case SignerMethod.nip44Encrypt:
         return Icons.lock;
       case SignerMethod.nip04Decrypt:
       case SignerMethod.nip44Decrypt:
         return Icons.lock_open;
-      case SignerMethod.ping:
-        return Icons.network_ping;
-      case SignerMethod.switchRelays:
-        return Icons.swap_horiz;
     }
   }
 
@@ -515,18 +509,12 @@ class _PendingRequestCard extends StatelessWidget {
     switch (method) {
       case SignerMethod.signEvent:
         return Colors.blue;
-      case SignerMethod.getPublicKey:
-        return Colors.purple;
       case SignerMethod.nip04Encrypt:
       case SignerMethod.nip44Encrypt:
         return Colors.green;
       case SignerMethod.nip04Decrypt:
       case SignerMethod.nip44Decrypt:
         return Colors.orange;
-      case SignerMethod.ping:
-        return Colors.grey;
-      case SignerMethod.switchRelays:
-        return Colors.blueGrey;
     }
   }
 
@@ -535,8 +523,6 @@ class _PendingRequestCard extends StatelessWidget {
     switch (method) {
       case SignerMethod.signEvent:
         return l10n.pendingMethodSignEvent;
-      case SignerMethod.getPublicKey:
-        return l10n.pendingMethodGetPublicKey;
       case SignerMethod.nip04Encrypt:
         return l10n.pendingMethodNip04Encrypt;
       case SignerMethod.nip04Decrypt:
@@ -545,10 +531,6 @@ class _PendingRequestCard extends StatelessWidget {
         return l10n.pendingMethodNip44Encrypt;
       case SignerMethod.nip44Decrypt:
         return l10n.pendingMethodNip44Decrypt;
-      case SignerMethod.ping:
-        return l10n.pendingMethodPing;
-      case SignerMethod.switchRelays:
-        return l10n.pendingMethodSwitchRelays;
     }
   }
 
@@ -567,6 +549,17 @@ class _PendingRequestCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final method = request.method;
     final duration = DateTime.now().difference(request.createdAt);
+    final details = switch (request) {
+      PendingEncryptRequest(:final recipientPubkey, :final plaintext) => (
+          recipientPubkey,
+          context.l10n.pendingPlaintext(_truncate(plaintext, 100)),
+        ),
+      PendingDecryptRequest(:final senderPubkey, :final ciphertext) => (
+          senderPubkey,
+          context.l10n.pendingCiphertext(_truncate(ciphertext, 50)),
+        ),
+      PendingSignRequest() => null,
+    };
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -612,7 +605,7 @@ class _PendingRequestCard extends StatelessWidget {
                 ),
               ],
             ),
-            if (request.event != null) ...[
+            if (request case PendingSignRequest(:final event)) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -624,15 +617,13 @@ class _PendingRequestCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      context.l10n.pendingEventKind(
-                        request.event!.kind.toString(),
-                      ),
+                      context.l10n.pendingEventKind(event.kind.toString()),
                       style: const TextStyle(fontFamily: 'monospace'),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       context.l10n.pendingContent(
-                        _truncate(request.event!.content, 100),
+                        _truncate(event.content, 100),
                       ),
                       style: const TextStyle(fontFamily: 'monospace'),
                     ),
@@ -640,7 +631,7 @@ class _PendingRequestCard extends StatelessWidget {
                 ),
               ),
             ],
-            if (request.content != null) ...[
+            if (details case (final counterparty, final text)) ...[
               const SizedBox(height: 12),
               Container(
                 padding: const EdgeInsets.all(8),
@@ -651,22 +642,15 @@ class _PendingRequestCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (request.counterpartyPubkey != null)
-                      Text(
-                        context.l10n.pendingCounterparty(
-                          _truncate(request.counterpartyPubkey!, 20),
-                        ),
-                        style: const TextStyle(fontFamily: 'monospace'),
+                    Text(
+                      context.l10n.pendingCounterparty(
+                        _truncate(counterparty, 20),
                       ),
+                      style: const TextStyle(fontFamily: 'monospace'),
+                    ),
                     const SizedBox(height: 4),
                     Text(
-                      request.plaintext != null
-                          ? context.l10n.pendingPlaintext(
-                              _truncate(request.content!, 100),
-                            )
-                          : context.l10n.pendingCiphertext(
-                              _truncate(request.content!, 50),
-                            ),
+                      text,
                       style: const TextStyle(fontFamily: 'monospace'),
                     ),
                   ],

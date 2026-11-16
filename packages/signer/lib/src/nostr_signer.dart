@@ -17,16 +17,27 @@ abstract interface class LocalSignerFactory {
   NostrSigner createWithNewKeyPair();
 }
 
-/// Every operation completes with its result or throws: a
-/// [SignerRequestRejectedException] when the user says no on the signer, a
-/// [SignerRequestCancelledException] after [cancelRequest].
+/// Every operation completes with its result or throws a
+/// [SignerRequestException]: a [SignerRequestRejectedException] when the
+/// signer turns it down, a [SignerRequestCancelledException] after
+/// [cancelRequest], a [SignerRequestFailedException] when no valid result came
+/// back.
+///
+/// Misusing a signer throws an [Error] instead: [sign] with an event of another
+/// pubkey, or any operation while [canSign] is false.
 abstract interface class NostrSigner {
-  /// Signs the given event and returns the signed event
+  /// Signs [event], which must have the pubkey of [publicKey], or this
+  /// throws an [ArgumentError].
+  ///
+  /// The signed event has that pubkey. An interactive signer may change other
+  /// fields before it signs, such as `created_at`.
   Future<Nip01Event> sign(Nip01Event event);
 
-  String getPublicKey();
+  /// The hex pubkey this signer signs as. A signer knows it from the moment it
+  /// exists, so this never throws.
+  String get publicKey;
 
-  /// false for a read-only account
+  /// false for a read-only account, or a signer that is not available here
   bool get canSign;
 
   @Deprecated('Use encryptNip44 instead. Deprecated by nostr spec. (nip04)')
@@ -56,7 +67,7 @@ abstract interface class NostrSigner {
   ///
   /// For local signers (like Bip340Signer), this will always emit an
   /// empty list. For interactive signers (NIP-46, NIP-07, NIP-55), this emits
-  /// requests currently waiting for user approval or external completion.
+  /// the signatures, encryptions and decryptions waiting for the user.
   Stream<List<PendingSignerRequest>> get pendingRequestsStream;
 
   /// Current list of pending requests (synchronous snapshot).

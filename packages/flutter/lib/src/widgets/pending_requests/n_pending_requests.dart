@@ -338,12 +338,11 @@ class _NPendingRequestsState extends State<NPendingRequests> {
                         fontSize: 13,
                       ),
                     ),
-                    if (request.method == SignerMethod.signEvent &&
-                        request.event != null) ...[
+                    if (request case PendingSignRequest(:final event)) ...[
                       const SizedBox(width: 6),
                       _buildChip(
                         context,
-                        NostrKinds.getDescription(context, request.event!.kind),
+                        NostrKinds.getDescription(context, event.kind),
                       ),
                     ],
                     if (_getNipProtocol(request.method) != null) ...[
@@ -396,18 +395,12 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     switch (method) {
       case SignerMethod.signEvent:
         return 'Sign event';
-      case SignerMethod.getPublicKey:
-        return 'Get public key';
       case SignerMethod.nip04Encrypt:
       case SignerMethod.nip44Encrypt:
         return 'Encrypt';
       case SignerMethod.nip04Decrypt:
       case SignerMethod.nip44Decrypt:
         return 'Decrypt';
-      case SignerMethod.ping:
-        return 'Ping';
-      case SignerMethod.switchRelays:
-        return 'Switch relays';
     }
   }
 
@@ -419,7 +412,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
       case SignerMethod.nip44Encrypt:
       case SignerMethod.nip44Decrypt:
         return 'NIP-44';
-      default:
+      case SignerMethod.signEvent:
         return null;
     }
   }

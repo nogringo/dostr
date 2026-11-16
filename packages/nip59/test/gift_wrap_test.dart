@@ -54,7 +54,7 @@ void main() {
     loggedSigner = signerOf(bob);
     return ephemeral.sign(
       Nip01Event(
-        pubkey: ephemeral.getPublicKey(),
+        pubkey: ephemeral.publicKey,
         kind: GiftWrap.kGiftWrapEventKind,
         tags: [
           ['p', bob.publicKey],

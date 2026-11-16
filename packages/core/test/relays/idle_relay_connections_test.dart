@@ -65,7 +65,7 @@ class _Signer implements NostrSigner {
   @override
   bool get canSign => true;
   @override
-  String getPublicKey() => 'a' * 64;
+  String get publicKey => 'a' * 64;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

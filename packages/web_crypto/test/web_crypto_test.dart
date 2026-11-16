@@ -3,6 +3,7 @@ library;
 
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:test/test.dart';
 
@@ -23,8 +24,8 @@ void main() {
       await signer.dispose();
     });
 
-    test('getPublicKey returns the public key', () {
-      expect(signer.getPublicKey(), equals(keyPair.publicKey));
+    test('publicKey is the public key', () {
+      expect(signer.publicKey, equals(keyPair.publicKey));
     });
 
     test('canSign returns true when private key is present', () {
@@ -75,8 +76,29 @@ void main() {
         content: 'Test content',
       );
 
-      expect(() => readOnlySigner.sign(event), throwsException);
+      expect(() => readOnlySigner.sign(event), throwsStateError);
       await readOnlySigner.dispose();
+    });
+
+    test('sign throws for an event of another pubkey', () async {
+      final event = Nip01Event(
+        pubkey: Bip340.generatePrivateKey().publicKey,
+        kind: 1,
+        tags: [],
+        content: 'Test content',
+      );
+
+      expect(() => signer.sign(event), throwsArgumentError);
+    });
+
+    test('a ciphertext that does not decrypt fails the request', () async {
+      expect(
+        () => signer.decryptNip44(
+          ciphertext: 'not a nip44 payload',
+          senderPubkey: keyPair.publicKey,
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
     });
 
     group('NIP-04 interop with Bip340Signer', () {
@@ -292,14 +314,14 @@ void main() {
     test('create derives the public key as Bip340 does', () {
       final keyPair = Bip340.generatePrivateKey();
       final signer = factory.create(keyPair.privateKey!);
-      expect(signer.getPublicKey(), equals(keyPair.publicKey));
+      expect(signer.publicKey, equals(keyPair.publicKey));
       expect(signer.canSign, isTrue);
     });
 
     test('readOnly cannot sign', () {
       final keyPair = Bip340.generatePrivateKey();
       final signer = factory.readOnly(keyPair.publicKey);
-      expect(signer.getPublicKey(), equals(keyPair.publicKey));
+      expect(signer.publicKey, equals(keyPair.publicKey));
       expect(signer.canSign, isFalse);
     });
 

@@ -102,7 +102,7 @@ class GiftWrap {
     if (cache == null) {
       return null;
     }
-    final viewerPubkey = _getSigner(customSigner: customSigner).getPublicKey();
+    final viewerPubkey = _getSigner(customSigner: customSigner).publicKey;
 
     final cachedSealJson = await cache.loadCachedPlaintext(
       eventId: giftWrap.id,
@@ -169,7 +169,7 @@ class GiftWrap {
     required int kind,
     required List<List<String>> tags,
   }) => Nip01Event(
-    pubkey: customPubkey ?? _getSigner().getPublicKey(),
+    pubkey: customPubkey ?? _getSigner().publicKey,
     kind: kind,
     tags: tags,
     content: content,
@@ -188,7 +188,7 @@ class GiftWrap {
   }) async {
     final signer = _getSigner(customSigner: customSigner);
     final seal = Nip01Event(
-      pubkey: signer.getPublicKey(),
+      pubkey: signer.publicKey,
       kind: kSealEventKind,
       tags: const [],
       content: await _encrypt(
@@ -235,7 +235,7 @@ class GiftWrap {
   }) async {
     final ephemeralSigner = signerFactory.createWithNewKeyPair();
     final giftWrap = Nip01Event(
-      pubkey: ephemeralSigner.getPublicKey(),
+      pubkey: ephemeralSigner.publicKey,
       kind: kGiftWrapEventKind,
       tags: [
         ['p', recipientPubkey],
@@ -288,7 +288,7 @@ class GiftWrap {
     if (cache == null) return decrypt();
     return cache.loadOrDecrypt(
       event: event,
-      viewerPubkey: signer.getPublicKey(),
+      viewerPubkey: signer.publicKey,
       decrypt: decrypt,
     );
   }

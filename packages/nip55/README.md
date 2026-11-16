@@ -44,7 +44,7 @@ To restore the account in a later session, store `login.pubkey` and `login.packa
 
 The signer app may ask the user to approve each request.
 While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
-A refusal throws a `SignerRequestRejectedException`.
+A refusal throws a `SignerRequestRejectedException`, and an answer the signer cannot use, such as an event signed by another account, a `SignerRequestFailedException`.
 At most `maxConcurrentRequests` requests (100 by default) go out at once.
 The rest wait in a queue.
 

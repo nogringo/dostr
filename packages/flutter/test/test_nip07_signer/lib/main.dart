@@ -3,7 +3,6 @@ import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 void test() async {
-  final nip07Signer = Nip07Signer();
   final bip340Signer = Bip340Signer(
     privateKey:
         'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127',
@@ -12,8 +11,9 @@ void test() async {
   );
 
   try {
-    print('can sign passed : ${testCanSign(nip07Signer)}');
-    print('pubkey passed : ${await testGetPubkey(nip07Signer)}');
+    print('can sign passed : ${Nip07Signer.isAvailable}');
+    final nip07Signer = await Nip07Signer.connect();
+    print('pubkey passed : ${nip07Signer.publicKey.isNotEmpty}');
     print(
       'send encrypted passed : ${await testSendEncrypted(nip07Signer, bip340Signer)}',
     );
@@ -32,16 +32,6 @@ void test() async {
   }
 }
 
-Future<bool> testGetPubkey(Nip07Signer nip07Signer) async {
-  final pubkey = await nip07Signer.getPublicKeyAsync();
-  print(pubkey);
-  return pubkey.isNotEmpty;
-}
-
-bool testCanSign(Nip07Signer nip07Signer) {
-  return nip07Signer.canSign;
-}
-
 Future<bool> testSendEncrypted(
   Nip07Signer nip07Signer,
   Bip340Signer bip340Signer,
@@ -55,7 +45,7 @@ Future<bool> testSendEncrypted(
 
   final decryptedMessage = await bip340Signer.decryptNip04(
     ciphertext: encryptedMessage,
-    senderPubkey: await nip07Signer.getPublicKeyAsync(),
+    senderPubkey: nip07Signer.publicKey,
   );
 
   return message == decryptedMessage;
@@ -74,7 +64,7 @@ Future<bool> testSendEncryptedNip44(
 
   final decryptedMessage = await bip340Signer.decryptNip44(
     ciphertext: encryptedMessage,
-    senderPubkey: await nip07Signer.getPublicKeyAsync(),
+    senderPubkey: nip07Signer.publicKey,
   );
 
   return message == decryptedMessage;
@@ -88,7 +78,7 @@ Future<bool> testReceiveEncrypted(
 
   final encryptedMessage = await bip340Signer.encryptNip04(
     plaintext: message,
-    recipientPubkey: await nip07Signer.getPublicKeyAsync(),
+    recipientPubkey: nip07Signer.publicKey,
   );
 
   final decryptedMessage = await nip07Signer.decryptNip04(
@@ -107,7 +97,7 @@ Future<bool> testReceiveEncryptedNip44(
 
   final encryptedMessage = await bip340Signer.encryptNip44(
     plaintext: message,
-    recipientPubkey: await nip07Signer.getPublicKeyAsync(),
+    recipientPubkey: nip07Signer.publicKey,
   );
 
   final decryptedMessage = await nip07Signer.decryptNip44(
@@ -119,7 +109,7 @@ Future<bool> testReceiveEncryptedNip44(
 }
 
 Future<bool> testSign(Nip07Signer nip07Signer) async {
-  final pubkey = await nip07Signer.getPublicKeyAsync();
+  final pubkey = nip07Signer.publicKey;
   final event = Nip01Event(
     pubkey: pubkey,
     kind: 1,

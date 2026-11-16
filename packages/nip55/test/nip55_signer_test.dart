@@ -34,51 +34,66 @@ void main() {
       'e247d5da03bab4206b4d6ef5d9db0e175e0dbf51585fa16345dd53abdd2d9259';
 
   group('Nip55Signer', () {
-    test(
-      'sign returns the event the external signer actually signed',
-      () async {
-        final externalSigner = Bip340Signer(
-          privateKey: privateKey,
-          publicKey: publicKey,
-        );
-        final actuallySigned = await externalSigner.sign(
-          Nip01Event(
-            pubkey: publicKey,
-            kind: 1,
-            tags: [
-              ['t', 'nostr'],
-            ],
-            content: 'test content',
-            createdAt: 1234567890,
-          ),
-        );
-
-        final signer = Nip55Signer(
-          publicKey: stalePublicKey,
-          signerApp: _FakeNip55SignerApp({
-            'signature': actuallySigned.sig,
-            'event': actuallySigned.toJsonString(),
-          }),
-        );
-        addTearDown(signer.dispose);
-
-        final signedEvent = await signer.sign(
-          Nip01Event(
-            pubkey: stalePublicKey,
-            kind: 1,
-            tags: [
-              ['t', 'nostr'],
-            ],
-            content: 'test content',
-            createdAt: 1234567890,
-          ),
-        );
-
-        expect(signedEvent.pubkey, equals(publicKey));
-        expect(signedEvent.id, equals(actuallySigned.id));
-        expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
-      },
+    Nip01Event note(String pubkey) => Nip01Event(
+      pubkey: pubkey,
+      kind: 1,
+      tags: [
+        ['t', 'nostr'],
+      ],
+      content: 'test content',
+      createdAt: 1234567890,
     );
+
+    Future<Nip01Event> signedByTheApp() => Bip340Signer(
+      privateKey: privateKey,
+      publicKey: publicKey,
+    ).sign(note(publicKey).copyWith(content: 'changed by the app'));
+
+    test('sign returns the event the signer app actually signed', () async {
+      final actuallySigned = await signedByTheApp();
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: _FakeNip55SignerApp({
+          'signature': actuallySigned.sig,
+          'event': actuallySigned.toJsonString(),
+        }),
+      );
+      addTearDown(signer.dispose);
+
+      final signedEvent = await signer.sign(note(publicKey));
+
+      expect(signedEvent.id, equals(actuallySigned.id));
+      expect(signedEvent.content, 'changed by the app');
+      expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
+    });
+
+    test('sign fails when the signer app signs as another account', () async {
+      final actuallySigned = await signedByTheApp();
+      final signer = Nip55Signer(
+        publicKey: stalePublicKey,
+        signerApp: _FakeNip55SignerApp({
+          'signature': actuallySigned.sig,
+          'event': actuallySigned.toJsonString(),
+        }),
+      );
+      addTearDown(signer.dispose);
+
+      await expectLater(
+        signer.sign(note(stalePublicKey)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('sign throws for an event of another pubkey', () async {
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: _FakeNip55SignerApp({'signature': 'ab12'}),
+      );
+      addTearDown(signer.dispose);
+
+      await expectLater(signer.sign(note(stalePublicKey)), throwsArgumentError);
+      expect(signer.pendingRequests, isEmpty);
+    });
 
     test(
       'sign keeps the local event when the signer returns no event',
@@ -152,6 +167,7 @@ void main() {
 
     test('sends the hex pubkey as current_user for an npub login', () async {
       final signer = newSigner(publicKey: Npub(publicKey).encode());
+      expect(signer.publicKey, publicKey);
 
       final result = encrypt(signer, 'hello');
       await pumpEventQueue();
@@ -185,9 +201,9 @@ void main() {
       final signed = signer.sign(event);
       await pumpEventQueue();
 
-      final pending = signer.pendingRequests.single;
+      final pending = signer.pendingRequests.single as PendingSignRequest;
       expect(pending.method, SignerMethod.signEvent);
-      expect(pending.event!.id, event.id);
+      expect(pending.event.id, event.id);
       expect(pending.signerPubkey, publicKey);
       expect(argumentsOf(calls.single)['id'], pending.id);
       expect(argumentsOf(calls.single)['uri_data'], event.toJsonString());
@@ -215,18 +231,22 @@ void main() {
       expect(
         [
           for (final request in signer.pendingRequests)
-            (
-              request.method,
-              request.plaintext,
-              request.ciphertext,
-              request.counterpartyPubkey,
-            ),
+            switch (request) {
+              PendingEncryptRequest(:final plaintext, :final recipientPubkey) =>
+                (request.method, plaintext, recipientPubkey),
+              PendingDecryptRequest(:final ciphertext, :final senderPubkey) => (
+                request.method,
+                ciphertext,
+                senderPubkey,
+              ),
+              PendingSignRequest() => throw StateError('nothing was signed'),
+            },
         ],
         [
-          (SignerMethod.nip04Encrypt, 'plain04', null, stalePublicKey),
-          (SignerMethod.nip04Decrypt, null, 'cipher04', stalePublicKey),
-          (SignerMethod.nip44Encrypt, 'plain44', null, publicKey),
-          (SignerMethod.nip44Decrypt, null, 'cipher44', publicKey),
+          (SignerMethod.nip04Encrypt, 'plain04', stalePublicKey),
+          (SignerMethod.nip04Decrypt, 'cipher04', stalePublicKey),
+          (SignerMethod.nip44Encrypt, 'plain44', publicKey),
+          (SignerMethod.nip44Decrypt, 'cipher44', publicKey),
         ],
       );
       expect(
@@ -278,7 +298,7 @@ void main() {
       }
     });
 
-    test('rejects a signed event that is not JSON', () async {
+    test('fails on a signed event that is not JSON', () async {
       final signer = newSigner();
 
       final signed = signer.sign(
@@ -287,7 +307,7 @@ void main() {
       await pumpEventQueue();
       answers.single.complete({'signature': 'sig', 'event': 'not json'});
 
-      await expectLater(signed, throwsA(isA<SignerRequestRejectedException>()));
+      await expectLater(signed, throwsA(isA<SignerRequestFailedException>()));
     });
 
     test('cancelRequest fails the caller and drops the late answer', () async {
@@ -364,7 +384,7 @@ void main() {
     });
 
     test(
-      'dispose rejects the queued requests and lets the running one finish',
+      'dispose fails the queued requests and lets the running one finish',
       () async {
         final signer = Nip55Signer(
           publicKey: publicKey,
@@ -377,10 +397,7 @@ void main() {
         await pumpEventQueue();
         await signer.dispose();
 
-        await expectLater(
-          queued,
-          throwsA(isA<SignerRequestRejectedException>()),
-        );
+        await expectLater(queued, throwsA(isA<SignerRequestFailedException>()));
         answers.single.complete({'signature': '1'});
         expect(await first, '1');
         await pumpEventQueue();

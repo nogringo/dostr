@@ -7,3 +7,4 @@
  - Each account owns its signer: `logout`, `removeAccount` and `dispose` dispose of it, so a NIP-46 bunker no longer keeps its relay subscription open. `logout` and `removeAccount` return a `Future` that completes once the signer is disposed of.
  - `authStateChanges` emits `null` on subscription when nobody is logged in, and no longer emits again when `switchAccount` picks the logged account.
  - `sign` throws an `AccountCannotSignException` when nobody logged in can sign, and an `ArgumentError` for an event of another pubkey. `switchAccount` throws an `UnknownAccountException`. In `ndk`, they all threw a bare `Exception`.
+ - `getPublicKey()` is now the `loggedPubkey` getter, since it gives the pubkey of the logged account, or null, and not a signer's.

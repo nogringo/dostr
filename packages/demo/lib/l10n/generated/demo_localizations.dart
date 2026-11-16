@@ -683,12 +683,6 @@ abstract class DemoLocalizations {
   /// **'Sign Event'**
   String get pendingMethodSignEvent;
 
-  /// Signer method name shown on a pending request.
-  ///
-  /// In en, this message translates to:
-  /// **'Get Public Key'**
-  String get pendingMethodGetPublicKey;
-
   /// Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is.
   ///
   /// In en, this message translates to:
@@ -712,18 +706,6 @@ abstract class DemoLocalizations {
   /// In en, this message translates to:
   /// **'NIP-44 Decrypt'**
   String get pendingMethodNip44Decrypt;
-
-  /// Signer method name shown on a pending request.
-  ///
-  /// In en, this message translates to:
-  /// **'Ping'**
-  String get pendingMethodPing;
-
-  /// Signer method name shown on a pending request.
-  ///
-  /// In en, this message translates to:
-  /// **'Switch Relays'**
-  String get pendingMethodSwitchRelays;
 
   /// No description provided for @pendingSecondsAgo.
   ///

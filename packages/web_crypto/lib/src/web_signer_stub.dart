@@ -31,7 +31,8 @@ class WebSigner implements NostrSigner {
   String? privateKey;
 
   /// hex public key
-  String publicKey;
+  @override
+  final String publicKey;
 
   WebSigner({required this.privateKey, required this.publicKey}) {
     throw UnsupportedError(
@@ -42,11 +43,6 @@ class WebSigner implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) {
-    throw UnsupportedError('WebSigner is only available on web platforms.');
-  }
-
-  @override
-  String getPublicKey() {
     throw UnsupportedError('WebSigner is only available on web platforms.');
   }
 

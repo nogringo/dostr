@@ -23,6 +23,8 @@ class _PendingRequestEntry {
 class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final Nip55SignerApp signerApp;
 
+  /// in hex, also when the signer was given an npub
+  @override
   final String publicKey;
 
   final _pendingRequests = <String, _PendingRequestEntry>{};
@@ -38,23 +40,21 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   /// prompts the user via Android intents for every request.
   static const int defaultMaxConcurrentRequests = 100;
 
-  /// get a NIP-55 external signer
+  /// get a NIP-55 external signer for [publicKey], in hex or as an npub
   Nip55Signer({
-    required this.publicKey,
+    required String publicKey,
     required this.signerApp,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
-  }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+  }) : publicKey = publicKey.startsWith(Npub.prefix)
+           ? Npub.decode(publicKey).pubkey
+           : publicKey,
+       assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
 
-  /// NIP-55 expects pubkeys in hex format ("All pubkeys in this NIP are in hex
-  /// format"), so `current_user` is always sent as hex.
-  String get _currentUser => publicKey.startsWith(Npub.prefix)
-      ? Npub.decode(publicKey).pubkey
-      : publicKey;
-
-  String _extractResult(Map<dynamic, dynamic> map) {
+  /// The signer app answers a refusal with no result (NIP-55).
+  static String _extractResult(Map<dynamic, dynamic> map, String requestId) {
     final result = map['signature'] as String?;
     if (result == null || result.isEmpty) {
-      throw Exception('Empty result from external signer');
+      throw SignerRequestRejectedException(requestId: requestId);
     }
     return result;
   }
@@ -70,31 +70,18 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
   }
 
-  /// Wraps an async operation to track it as a pending request
+  /// Runs [operation] while [describe] waits in [pendingRequests]. An error of
+  /// the signer app means it turned the request down.
   Future<T> _trackRequest<T>(
-    SignerMethod method,
-    Future<T> Function(String requestId) operation, {
-    Nip01Event? event,
-    String? plaintext,
-    String? ciphertext,
-    String? counterpartyPubkey,
-  }) {
+    PendingSignerRequest Function(String requestId) describe,
+    Future<T> Function(String requestId) operation,
+  ) {
     final requestId = _generateRequestId();
     final completer = Completer<T>();
-    final pendingRequest = PendingSignerRequest(
-      id: requestId,
-      method: method,
-      createdAt: DateTime.now(),
-      signerPubkey: publicKey,
-      event: event,
-      plaintext: plaintext,
-      ciphertext: ciphertext,
-      counterpartyPubkey: counterpartyPubkey,
-    );
 
     _pendingRequests[requestId] = _PendingRequestEntry(
       completer as Completer<dynamic>,
-      pendingRequest,
+      describe(requestId),
     );
     _notifyPendingRequestsChange();
 
@@ -112,10 +99,16 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
             completer.complete(result);
           }
         })
-        .catchError((e) {
+        .catchError((error) {
           if (!completer.isCompleted) {
-            final error = SignerRequestRejectedException(requestId: requestId);
-            completer.completeError(error);
+            completer.completeError(
+              error is SignerRequestException
+                  ? error
+                  : SignerRequestRejectedException(
+                      requestId: requestId,
+                      originalMessage: error.toString(),
+                    ),
+            );
           }
         })
         .whenComplete(() {
@@ -128,27 +121,60 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    return _trackRequest(SignerMethod.signEvent, (requestId) async {
-      final map = await signerApp.signEvent(
-        currentUser: _currentUser,
-        eventJson: event.toJsonString(),
-        id: requestId,
+    if (event.pubkey != publicKey) {
+      throw ArgumentError.value(
+        event.pubkey,
+        'event.pubkey',
+        'is not the pubkey of the signer, $publicKey',
       );
-      final signature = _extractResult(map);
+    }
 
-      // Prefer the event the signer actually signed, when it returns one.
-      final signedEventJson = map['event'] as String?;
-      if (signedEventJson == null || signedEventJson.isEmpty) {
-        return event.copyWith(sig: signature);
-      }
-      return Nip01Event.tryFromJson(jsonDecode(signedEventJson)) ??
-          (throw Exception('The signer app returned an invalid event'));
-    }, event: event);
+    return _trackRequest(
+      (id) => PendingSignRequest(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        event: event,
+      ),
+      (requestId) async {
+        final map = await signerApp.signEvent(
+          currentUser: publicKey,
+          eventJson: event.toJsonString(),
+          id: requestId,
+        );
+        final signature = _extractResult(map, requestId);
+
+        // Prefer the event the signer actually signed, when it returns one.
+        final signedEventJson = map['event'] as String?;
+        if (signedEventJson == null || signedEventJson.isEmpty) {
+          return event.copyWith(sig: signature);
+        }
+        return _checkSigned(signedEventJson, requestId);
+      },
+    );
   }
 
-  @override
-  String getPublicKey() {
-    return publicKey;
+  Nip01Event _checkSigned(String json, String requestId) {
+    Nip01Event? signed;
+    try {
+      signed = Nip01Event.tryFromJson(jsonDecode(json));
+    } on FormatException {
+      signed = null;
+    }
+    if (signed == null || signed.sig == null || !signed.hasValidId) {
+      throw SignerRequestFailedException(
+        'The signer app returned an invalid event',
+        requestId: requestId,
+        cause: json,
+      );
+    }
+    if (signed.pubkey != publicKey) {
+      throw SignerRequestFailedException(
+        'The signer app signed as ${signed.pubkey} instead of $publicKey',
+        requestId: requestId,
+      );
+    }
+    return signed;
   }
 
   @override
@@ -157,18 +183,22 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String senderPubkey,
   }) async {
     return _trackRequest(
-      SignerMethod.nip04Decrypt,
+      (id) => PendingDecryptRequest.nip04(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        ciphertext: ciphertext,
+        senderPubkey: senderPubkey,
+      ),
       (requestId) async {
         final map = await signerApp.nip04Decrypt(
           ciphertext: ciphertext,
-          currentUser: _currentUser,
+          currentUser: publicKey,
           pubkey: senderPubkey,
           id: requestId,
         );
-        return _extractResult(map);
+        return _extractResult(map, requestId);
       },
-      ciphertext: ciphertext,
-      counterpartyPubkey: senderPubkey,
     );
   }
 
@@ -178,18 +208,22 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String recipientPubkey,
   }) async {
     return _trackRequest(
-      SignerMethod.nip04Encrypt,
+      (id) => PendingEncryptRequest.nip04(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        plaintext: plaintext,
+        recipientPubkey: recipientPubkey,
+      ),
       (requestId) async {
         final map = await signerApp.nip04Encrypt(
           plaintext: plaintext,
-          currentUser: _currentUser,
+          currentUser: publicKey,
           pubkey: recipientPubkey,
           id: requestId,
         );
-        return _extractResult(map);
+        return _extractResult(map, requestId);
       },
-      plaintext: plaintext,
-      counterpartyPubkey: recipientPubkey,
     );
   }
 
@@ -204,18 +238,22 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String recipientPubkey,
   }) async {
     return _trackRequest(
-      SignerMethod.nip44Encrypt,
+      (id) => PendingEncryptRequest.nip44(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        plaintext: plaintext,
+        recipientPubkey: recipientPubkey,
+      ),
       (requestId) async {
         final map = await signerApp.nip44Encrypt(
           plaintext: plaintext,
-          currentUser: _currentUser,
+          currentUser: publicKey,
           pubkey: recipientPubkey,
           id: requestId,
         );
-        return _extractResult(map);
+        return _extractResult(map, requestId);
       },
-      plaintext: plaintext,
-      counterpartyPubkey: recipientPubkey,
     );
   }
 
@@ -225,18 +263,22 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String senderPubkey,
   }) async {
     return _trackRequest(
-      SignerMethod.nip44Decrypt,
+      (id) => PendingDecryptRequest.nip44(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        ciphertext: ciphertext,
+        senderPubkey: senderPubkey,
+      ),
       (requestId) async {
         final map = await signerApp.nip44Decrypt(
           ciphertext: ciphertext,
-          currentUser: _currentUser,
+          currentUser: publicKey,
           pubkey: senderPubkey,
           id: requestId,
         );
-        return _extractResult(map);
+        return _extractResult(map, requestId);
       },
-      ciphertext: ciphertext,
-      counterpartyPubkey: senderPubkey,
     );
   }
 

@@ -32,12 +32,11 @@ final bunkers = Bunkers(
 );
 
 final connection = await bunkers.connectWithBunkerUrl('bunker://...');
-final signer = bunkers.createSigner(connection!);
-await signer.getPublicKeyAsync();
+final signer = await bunkers.createSigner(connection!);
 ```
 
 Log the signer in with `accounts.loginExternalSigner(signer: signer)`, where `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
-`getPublicKey()` is synchronous and throws until the public key is known: call `getPublicKeyAsync()` once, or pass a known key as `cachedPublicKey`.
+`createSigner` asks the bunker for the user's pubkey, which the bunker may ask the user to approve first, and completes once it has it: `publicKey` never throws.
 
 ## Nostr Connect
 
@@ -77,10 +76,11 @@ Store the `BunkerConnection` to re-establish the connection in future sessions: 
 Without it, users have to connect again each time.
 
 ```dart
-final signer = bunkers.createSigner(BunkerConnection.fromJson(stored));
-await signer.getPublicKeyAsync();
+final signer = await bunkers.createSigner(BunkerConnection.fromJson(stored));
 accounts.loginExternalSigner(signer: signer);
 ```
+
+Store the user's pubkey too, and `Nip46Signer(connection: ..., publicKey: ...)` restores the signer without asking the bunker again.
 
 NIP-46 lets the remote signer pick the relays.
 Call `switchRelays()` right after connecting, before other requests, and store the connection again when it returns relays:
@@ -96,7 +96,7 @@ if (relays != null) {
 
 The remote signer may ask the user to approve each request.
 While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
-A refusal throws a `SignerRequestRejectedException`.
+A refusal throws a `SignerRequestRejectedException`, and an answer the signer cannot use, such as an event signed by another pubkey, a `SignerRequestFailedException`.
 At most `maxConcurrentRequests` requests (100 by default) go out at once.
 The rest wait in a queue.
 

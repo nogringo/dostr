@@ -917,7 +917,7 @@ class Blossom {
 
     final Nip01Event reportEvent = Nip01Event(
       content: reportMsg,
-      pubkey: signer.getPublicKey(),
+      pubkey: signer.publicKey,
       kind: kReport,
       createdAt: now,
       tags: [

@@ -197,8 +197,14 @@ void main() {
 
         limiter.cancelAllQueued();
 
-        await expectLater(queued1, throwsA(isA<StateError>()));
-        await expectLater(queued2, throwsA(isA<StateError>()));
+        await expectLater(
+          queued1,
+          throwsA(isA<SignerRequestFailedException>()),
+        );
+        await expectLater(
+          queued2,
+          throwsA(isA<SignerRequestFailedException>()),
+        );
         expect(limiter.queuedRequests, 0);
 
         running.complete();

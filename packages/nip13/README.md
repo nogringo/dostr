@@ -19,7 +19,7 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip13/dostr_nip13.dart';
 
 final event = Nip01Event(
-  pubkey: signer.getPublicKey(),
+  pubkey: signer.publicKey,
   kind: 1,
   content: 'hello nostr',
 );

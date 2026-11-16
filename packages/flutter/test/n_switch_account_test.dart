@@ -15,9 +15,7 @@ void main() {
     dostr.addProfile(bobPubkey, {'name': 'bob'});
     dostr.addProfile(carolPubkey, {'name': 'carol'});
     dostr.accounts.loginPublicKey(pubkey: bobPubkey);
-    dostr.accounts.addAccount(
-      signer: Nip07Signer(cachedPublicKey: carolPubkey),
-    );
+    dostr.accounts.addAccount(signer: Nip07Signer(publicKey: carolPubkey));
     dostr.accounts.loginPrivateKey(privkey: alicePrivateKey);
   });
 
@@ -114,7 +112,7 @@ void main() {
     await tester.tap(find.text('bob'));
     await tester.pump();
 
-    expect(dostr.accounts.getPublicKey(), bobPubkey);
+    expect(dostr.accounts.loggedPubkey, bobPubkey);
     expect(events, ['before switch $bobPubkey', 'switch $bobPubkey']);
     expect(dostr.savedState!['loggedAccount'], bobPubkey);
     expect(tester.widget<ListTile>(tileOf('bob')).onTap, isNull);
@@ -131,7 +129,7 @@ void main() {
     await tester.pump();
 
     expect(dostr.accounts.hasAccount(carolPubkey), isFalse);
-    expect(dostr.accounts.getPublicKey(), alicePubkey);
+    expect(dostr.accounts.loggedPubkey, alicePubkey);
     expect(events, ['before remove $carolPubkey', 'remove $carolPubkey']);
     expect(find.byType(ListTile), findsNWidgets(2));
     expect(

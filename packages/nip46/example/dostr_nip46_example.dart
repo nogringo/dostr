@@ -22,10 +22,9 @@ Future<void> main(List<String> args) async {
     authCallback: (url) => print('approve the connection at $url'),
   );
   if (connection != null) {
-    final signer = bunkers.createSigner(connection);
-    final pubkey = await signer.getPublicKeyAsync();
+    final signer = await bunkers.createSigner(connection);
     final note = await signer.sign(
-      Nip01Event(pubkey: pubkey, kind: 1, tags: [], content: 'hello'),
+      Nip01Event(pubkey: signer.publicKey, kind: 1, tags: [], content: 'hello'),
     );
     print(note.toJsonString());
     await signer.dispose();

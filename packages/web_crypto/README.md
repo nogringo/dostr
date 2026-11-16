@@ -25,7 +25,7 @@ import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 final signer = const WebSignerFactory().createWithNewKeyPair();
 final event = await signer.sign(
   Nip01Event(
-    pubkey: signer.getPublicKey(),
+    pubkey: signer.publicKey,
     kind: 1,
     tags: [],
     content: 'hello nostr',

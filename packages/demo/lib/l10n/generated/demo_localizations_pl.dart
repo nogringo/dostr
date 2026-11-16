@@ -357,9 +357,6 @@ class DemoLocalizationsPl extends DemoLocalizations {
   String get pendingMethodSignEvent => 'Podpisz wydarzenie';
 
   @override
-  String get pendingMethodGetPublicKey => 'Pobierz klucz publiczny';
-
-  @override
   String get pendingMethodNip04Encrypt => 'Szyfruj NIP-04';
 
   @override
@@ -370,12 +367,6 @@ class DemoLocalizationsPl extends DemoLocalizations {
 
   @override
   String get pendingMethodNip44Decrypt => 'Deszyfruj NIP-44';
-
-  @override
-  String get pendingMethodPing => 'Ping';
-
-  @override
-  String get pendingMethodSwitchRelays => 'Zmień relaye';
 
   @override
   String pendingSecondsAgo(int count) {

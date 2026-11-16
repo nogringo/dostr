@@ -48,8 +48,7 @@ class Accounts implements AuthAccounts {
   void loginPublicKey({required String pubkey}) =>
       _loginLocal(signerFactory.readOnly(pubkey));
 
-  /// Adds an account that signs with [signer] and logs it in. A NIP-46
-  /// signer must know its pubkey first, from `getPublicKeyAsync`.
+  /// Adds an account that signs with [signer] and logs it in.
   ///
   /// [signer] belongs to the account from then on, unless this throws.
   void loginExternalSigner({required NostrSigner signer}) => _login(signer);
@@ -74,7 +73,7 @@ class Accounts implements AuthAccounts {
   /// Throws an [AccountExistsException] when that pubkey is already an
   /// account. Otherwise [signer] belongs to the account from then on.
   Account addAccount({required NostrSigner signer}) {
-    final pubkey = signer.getPublicKey();
+    final pubkey = signer.publicKey;
     _checkNew(pubkey);
     final account = Account(signer);
     _accounts[pubkey] = account;
@@ -128,7 +127,7 @@ class Accounts implements AuthAccounts {
   bool get isNotLoggedIn => !isLoggedIn;
 
   /// The pubkey of the logged account, null when nobody is logged in.
-  String? getPublicKey() => _loggedPubkey;
+  String? get loggedPubkey => _loggedPubkey;
 
   /// Logs in [signer], which this made, and disposes of it if that throws.
   void _loginLocal(NostrSigner signer) {

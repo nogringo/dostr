@@ -1,5 +1,6 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -73,9 +74,70 @@ void main() {
           content: 'Test content',
         );
 
-        expect(() => readOnlySigner.sign(event), throwsException);
+        expect(() => readOnlySigner.sign(event), throwsStateError);
 
         await readOnlySigner.dispose();
+      });
+
+      test('sign throws for an event of another pubkey', () async {
+        final other = Bip340.generatePrivateKey().publicKey;
+        final event = Nip01Event(
+          pubkey: other,
+          kind: 1,
+          tags: [],
+          content: 'Test content',
+        );
+
+        expect(() => signer.sign(event), throwsArgumentError);
+      });
+    });
+
+    group('errors', () {
+      test('a read-only signer cannot encrypt or decrypt', () async {
+        final readOnlySigner = Bip340Signer(
+          privateKey: null,
+          publicKey: keyPair.publicKey,
+        );
+
+        expect(
+          () => readOnlySigner.encryptNip44(
+            plaintext: 'hi',
+            recipientPubkey: keyPair.publicKey,
+          ),
+          throwsStateError,
+        );
+        expect(
+          () => readOnlySigner.decryptNip04(
+            ciphertext: 'abc?iv=def',
+            senderPubkey: keyPair.publicKey,
+          ),
+          throwsStateError,
+        );
+
+        await readOnlySigner.dispose();
+      });
+
+      test('a ciphertext that does not decrypt fails the request', () async {
+        expect(
+          () => signer.decryptNip44(
+            ciphertext: 'not a nip44 payload',
+            senderPubkey: keyPair.publicKey,
+          ),
+          throwsA(
+            isA<SignerRequestFailedException>().having(
+              (e) => e.cause,
+              'cause',
+              isNotNull,
+            ),
+          ),
+        );
+        expect(
+          () => signer.decryptNip04(
+            ciphertext: 'no iv here',
+            senderPubkey: keyPair.publicKey,
+          ),
+          throwsA(isA<SignerRequestFailedException>()),
+        );
       });
     });
 
@@ -94,9 +156,9 @@ void main() {
       });
     });
 
-    group('getPublicKey', () {
+    group('publicKey', () {
       test('returns the public key', () {
-        expect(signer.getPublicKey(), equals(keyPair.publicKey));
+        expect(signer.publicKey, equals(keyPair.publicKey));
       });
     });
 
@@ -230,7 +292,7 @@ void main() {
         final keyPair = Bip340.generatePrivateKey();
         final signer = factory.create(keyPair.privateKey!);
 
-        expect(signer.getPublicKey(), equals(keyPair.publicKey));
+        expect(signer.publicKey, equals(keyPair.publicKey));
         expect(signer.canSign, isTrue);
 
         await signer.dispose();
@@ -241,7 +303,7 @@ void main() {
         final signer = factory.create(keyPair.privateKey!);
 
         final event = Nip01Event(
-          pubkey: signer.getPublicKey(),
+          pubkey: signer.publicKey,
           kind: 1,
           tags: [],
           content: 'Test with derived public key',
@@ -262,7 +324,7 @@ void main() {
         final keyPair = Bip340.generatePrivateKey();
         final signer = factory.readOnly(keyPair.publicKey);
 
-        expect(signer.getPublicKey(), equals(keyPair.publicKey));
+        expect(signer.publicKey, equals(keyPair.publicKey));
         expect(signer.canSign, isFalse);
 
         await signer.dispose();
@@ -273,7 +335,7 @@ void main() {
       test('creates signer with fresh keypair', () async {
         final signer = factory.createWithNewKeyPair();
 
-        expect(signer.getPublicKey(), isNotEmpty);
+        expect(signer.publicKey, isNotEmpty);
         expect(signer.canSign, isTrue);
 
         await signer.dispose();
@@ -283,7 +345,7 @@ void main() {
         final signer1 = factory.createWithNewKeyPair();
         final signer2 = factory.createWithNewKeyPair();
 
-        expect(signer1.getPublicKey(), isNot(equals(signer2.getPublicKey())));
+        expect(signer1.publicKey, isNot(equals(signer2.publicKey)));
 
         await signer1.dispose();
         await signer2.dispose();
@@ -293,7 +355,7 @@ void main() {
         final signer = factory.createWithNewKeyPair();
 
         final event = Nip01Event(
-          pubkey: signer.getPublicKey(),
+          pubkey: signer.publicKey,
           kind: 1,
           tags: [],
           content: 'Test with new keypair',

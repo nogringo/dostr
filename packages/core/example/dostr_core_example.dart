@@ -15,7 +15,7 @@ Future<void> main() async {
 
   final event = await signer.sign(
     Nip01Event(
-      pubkey: signer.getPublicKey(),
+      pubkey: signer.publicKey,
       kind: 1,
       tags: [],
       content: 'hello nostr',
@@ -29,7 +29,7 @@ Future<void> main() async {
   final req = reqs.req(
     relays: {
       relay: [
-        Filter(kinds: [1], authors: [signer.getPublicKey()], limit: 10),
+        Filter(kinds: [1], authors: [signer.publicKey], limit: 10),
       ],
     },
   );

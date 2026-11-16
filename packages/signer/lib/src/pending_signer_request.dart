@@ -1,67 +1,99 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// Methods that can be called on a signer
+/// What a [PendingSignerRequest] asks the signer to do.
 enum SignerMethod {
   signEvent,
-  getPublicKey,
   nip04Encrypt,
   nip04Decrypt,
   nip44Encrypt,
   nip44Decrypt,
-
-  /// NIP-46 bunkers only
-  ping,
-
-  /// NIP-46 bunkers only
-  switchRelays,
 }
 
-/// Represents a pending request waiting for user approval on a signer.
-///
-/// This is used by signers that require human approval (NIP-46 bunkers,
-/// NIP-07 browser extensions, NIP-55 signer apps, etc.) to expose their pending
-/// operations to the UI.
-class PendingSignerRequest {
-  /// Unique identifier for this request
+/// A request waiting for the user to approve it on an interactive signer
+/// (NIP-46 bunker, NIP-07 extension, NIP-55 signer app).
+sealed class PendingSignerRequest {
+  /// what `cancelRequest` takes
   final String id;
 
-  /// The method being called
-  final SignerMethod method;
-
-  /// When this request was created
   final DateTime createdAt;
 
-  /// The public key of the signer (the account making the request)
+  /// the pubkey of the signer the request waits on
   final String signerPubkey;
-
-  /// The event being signed (only for [SignerMethod.signEvent])
-  final Nip01Event? event;
-
-  /// The plaintext being encrypted (only for encrypt methods)
-  final String? plaintext;
-
-  /// The ciphertext being decrypted (only for decrypt methods)
-  final String? ciphertext;
-
-  /// The counterparty public key (for encrypt/decrypt operations)
-  final String? counterpartyPubkey;
 
   PendingSignerRequest({
     required this.id,
-    required this.method,
     required this.createdAt,
     required this.signerPubkey,
-    this.event,
-    this.plaintext,
-    this.ciphertext,
-    this.counterpartyPubkey,
   });
 
-  /// Returns plaintext or ciphertext depending on the method.
-  /// For encrypt methods, returns plaintext. For decrypt methods, returns ciphertext.
-  String? get content => plaintext ?? ciphertext;
+  SignerMethod get method;
 
   @override
   String toString() =>
       'PendingSignerRequest(id: $id, method: $method, createdAt: $createdAt)';
+}
+
+/// A signature waiting for the user.
+class PendingSignRequest extends PendingSignerRequest {
+  final Nip01Event event;
+
+  PendingSignRequest({
+    required super.id,
+    required super.createdAt,
+    required super.signerPubkey,
+    required this.event,
+  });
+
+  @override
+  SignerMethod get method => SignerMethod.signEvent;
+}
+
+/// A NIP-04 or NIP-44 encryption waiting for the user.
+class PendingEncryptRequest extends PendingSignerRequest {
+  @override
+  final SignerMethod method;
+
+  final String plaintext;
+  final String recipientPubkey;
+
+  PendingEncryptRequest.nip04({
+    required super.id,
+    required super.createdAt,
+    required super.signerPubkey,
+    required this.plaintext,
+    required this.recipientPubkey,
+  }) : method = SignerMethod.nip04Encrypt;
+
+  PendingEncryptRequest.nip44({
+    required super.id,
+    required super.createdAt,
+    required super.signerPubkey,
+    required this.plaintext,
+    required this.recipientPubkey,
+  }) : method = SignerMethod.nip44Encrypt;
+}
+
+/// A NIP-04 or NIP-44 decryption waiting for the user.
+class PendingDecryptRequest extends PendingSignerRequest {
+  @override
+  final SignerMethod method;
+
+  final String ciphertext;
+  final String senderPubkey;
+
+  PendingDecryptRequest.nip04({
+    required super.id,
+    required super.createdAt,
+    required super.signerPubkey,
+    required this.ciphertext,
+    required this.senderPubkey,
+  }) : method = SignerMethod.nip04Decrypt;
+
+  PendingDecryptRequest.nip44({
+    required super.id,
+    required super.createdAt,
+    required super.signerPubkey,
+    required this.ciphertext,
+    required this.senderPubkey,
+  }) : method = SignerMethod.nip44Decrypt;
 }

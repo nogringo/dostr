@@ -20,7 +20,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 final signer = Bip340SignerFactory().createWithNewKeyPair();
 final event = await signer.sign(
   Nip01Event(
-    pubkey: signer.getPublicKey(),
+    pubkey: signer.publicKey,
     kind: 1,
     tags: [],
     content: 'hello nostr',

@@ -1,11 +1,10 @@
 import 'package:dostr_flutter/dostr_flutter.dart';
 
 void main() async {
-  final signer = Nip07Signer();
-  if (!signer.canSign) {
+  if (!Nip07Signer.isAvailable) {
     return;
   }
 
-  final pubkey = await signer.getPublicKeyAsync();
-  print(pubkey);
+  final signer = await Nip07Signer.connect();
+  print(signer.publicKey);
 }

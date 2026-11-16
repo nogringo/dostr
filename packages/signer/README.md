@@ -1,7 +1,7 @@
 # dostr_signer
 
 The `NostrSigner` interface that Dostr signers implement, whether they hold the key (`Bip340Signer`), ask a remote bunker (NIP-46), a browser extension (NIP-07) or a signer app (NIP-55).
-It comes with `LocalSignerFactory`, the `PendingSignerRequest` that interactive signers expose while they wait for the user, and the `SignerRequestRejectedException` and `SignerRequestCancelledException` they throw, both a `SignerRequestException`.
+It comes with `LocalSignerFactory`, the `PendingSignerRequest` that interactive signers expose while they wait for the user, and the `SignerRequestRejectedException`, `SignerRequestCancelledException` and `SignerRequestFailedException` they throw, all a `SignerRequestException`.
 
 It also holds the accounts the Dostr packages may authenticate as, and what decides when one is revealed: to a relay that asks for NIP-42 authentication, or to a Blossom server.
 
@@ -30,19 +30,24 @@ Future<Nip01Event?> signNote(NostrSigner signer, String text) async {
   try {
     return await signer.sign(
       Nip01Event(
-        pubkey: signer.getPublicKey(),
+        pubkey: signer.publicKey,
         kind: Nip01Event.kTextNoteKind,
         tags: [],
         content: text,
       ),
     );
   } on SignerRequestException {
-    return null; // rejected on the signer, or cancelled with cancelRequest
+    return null; // rejected, cancelled, or no valid result came back
   }
 }
 ```
 
 `encryptNip44` and `decryptNip44` work the same way: they complete with the text, or throw.
+A `SignerRequestRejectedException` means the signer turned the request down, a `SignerRequestCancelledException` that `cancelRequest` dropped it, and a `SignerRequestFailedException` that no valid result came back, such as a ciphertext that does not decrypt or an event signed by another pubkey.
+
+A signer knows its pubkey from the moment it exists, so `publicKey` never throws: an interactive signer asks for it before it is created, as `Nip07Signer.connect()` does.
+`sign` takes an event of that pubkey, and the event it returns has that pubkey too, although an interactive signer may change other fields before it signs.
+Misusing a signer throws an `Error` instead of a `SignerRequestException`: `sign` with an event of another pubkey throws an `ArgumentError`, and a signer whose `canSign` is false throws from every operation.
 
 An interactive signer lists what waits for the user in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops one.
 A local signer always has an empty list.
@@ -77,22 +82,21 @@ signer.pendingRequestsStream.listen((requests) {
 final current = account.pendingRequests;
 ```
 
-A `PendingSignerRequest` holds:
+A `PendingSignerRequest` has an `id`, a `createdAt`, the `signerPubkey` it waits on and its `method`, a `SignerMethod`.
+It is a sealed class, with what each request waits for:
 
 ```dart
-class PendingSignerRequest {
-  final String id;
-  final SignerMethod method;          // signEvent, nip44Encrypt, etc.
-  final DateTime createdAt;
-  final String signerPubkey;
-  final Nip01Event? event;            // for signEvent
-  final String? plaintext;            // for encrypt
-  final String? ciphertext;           // for decrypt
-  final String? counterpartyPubkey;   // for encrypt and decrypt
-
-  String? get content;                // plaintext or ciphertext
-}
+final details = switch (request) {
+  PendingSignRequest(:final event) => 'kind ${event.kind}',
+  PendingEncryptRequest(:final plaintext, :final recipientPubkey) =>
+    'encrypt for $recipientPubkey: $plaintext',
+  PendingDecryptRequest(:final ciphertext, :final senderPubkey) =>
+    'decrypt from $senderPubkey: $ciphertext',
+};
 ```
+
+`request.method` tells NIP-04 from NIP-44.
+Only what the user approves waits there: a NIP-46 ping, for example, does not.
 
 `account.cancelRequest(requestId)` drops one, and the caller receives a `SignerRequestCancelledException`.
 When the user rejects a request on the remote signer, the caller receives a `SignerRequestRejectedException`.
@@ -142,7 +146,7 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 
 ## Coming from `ndk`
 
-`PendingSignerRequest`, the two exceptions and `ConcurrencyLimiterMixin` used to be in `ndk`, and so did `NostrSigner` and `LocalSignerFactory`, as `EventSigner` and `LocalEventSignerFactory`.
+`PendingSignerRequest`, the `SignerRequestRejectedException` and `SignerRequestCancelledException` and `ConcurrencyLimiterMixin` used to be in `ndk`, and so did `NostrSigner` and `LocalSignerFactory`, as `EventSigner` and `LocalEventSignerFactory`.
 What changed is in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
 
 `package:ndk/domain_layer/entities/account.dart`, `auth_policy.dart`, `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports too.

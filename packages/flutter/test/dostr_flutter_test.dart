@@ -174,9 +174,7 @@ void main() {
     });
 
     test('restores what it saved', () async {
-      saved.accounts.addAccount(
-        signer: Nip07Signer(cachedPublicKey: carolPubkey),
-      );
+      saved.accounts.addAccount(signer: Nip07Signer(publicKey: carolPubkey));
       saved.accounts.addAccount(
         signer: Nip55Signer(
           publicKey: bobPubkey,
@@ -199,7 +197,7 @@ void main() {
         'com.example.signer',
       );
       expect(accounts[alicePubkey]!.signer.canSign, isTrue);
-      expect(restored.accounts.getPublicKey(), bobPubkey);
+      expect(restored.accounts.loggedPubkey, bobPubkey);
     });
 
     test('restores a legacy amber account as a NIP-55 one', () async {
@@ -249,7 +247,7 @@ void main() {
       await restored.dostrFlutter.restoreAccountsState();
 
       expect(restored.accounts.accounts.keys, [alicePubkey]);
-      expect(restored.accounts.getPublicKey(), alicePubkey);
+      expect(restored.accounts.loggedPubkey, alicePubkey);
     });
 
     test('stays logged out when the logged account is not saved', () async {

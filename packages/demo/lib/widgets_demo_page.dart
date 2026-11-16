@@ -30,7 +30,7 @@ class _WidgetsDemoPageState extends State<WidgetsDemoPage> {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-    final loggedPubkey = accounts.getPublicKey();
+    final loggedPubkey = accounts.loggedPubkey;
     final isLoggedIn = loggedPubkey != null;
 
     return Scaffold(

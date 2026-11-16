@@ -38,14 +38,13 @@ void runEventVerifierTestSuite({
     tearDown(() => signer.dispose());
 
     Future<Nip01Event> sign({
-      String? pubkey,
       int kind = 1,
       int createdAt = 1726215220,
       List<List<String>> tags = const [],
       String content = 'hello',
     }) => signer.sign(
       Nip01Event(
-        pubkey: pubkey ?? signer.getPublicKey(),
+        pubkey: signer.publicKey,
         createdAt: createdAt,
         kind: kind,
         tags: tags,
@@ -185,10 +184,7 @@ void runEventVerifierTestSuite({
       test('with the pubkey of another key', () async {
         final other = createSigner();
         addTearDown(other.dispose);
-        final forged = event.copyWith(
-          id: event.id,
-          pubkey: other.getPublicKey(),
-        );
+        final forged = event.copyWith(id: event.id, pubkey: other.publicKey);
 
         expect(await verifier.verify(forged), isFalse);
       });
@@ -283,13 +279,10 @@ void runEventVerifierTestSuite({
         expect(await verifier.verify(malformed), isFalse);
       });
 
+      // a signer refuses an event whose pubkey differs from its own, even by
+      // case, so this one was signed once with Bip340
       test('pubkey is uppercase, signed as such', () async {
-        final uppercase = signer.getPublicKey().toUpperCase();
-        final signed = await sign(pubkey: uppercase);
-        if (signed.pubkey != uppercase) {
-          markTestSkipped('the signer replaces the pubkey of what it signs');
-          return;
-        }
+        final signed = Nip01Event.fromJson(_uppercasePubkeyEvent);
 
         expect(await verifier.verify(signed), isFalse);
       });
@@ -303,6 +296,19 @@ int _zeroHighNibbleIndex(String hex) {
   }
   return -1;
 }
+
+/// A BIP-340 signature over the id of this payload, with the pubkey in
+/// uppercase hex: it verifies against the lowercase pubkey.
+const _uppercasePubkeyEvent = <String, Object>{
+  'id': '27eedb26a639e341f9691fde80131914348c95efe9002849ff11b43b08fb5b6b',
+  'pubkey': '87D3561F19B74ADBE8BF840682992466068830A9D8C36B4A0C99D36F826CB6CB',
+  'created_at': 1726215220,
+  'kind': 1,
+  'tags': <List<String>>[],
+  'content': 'hello',
+  'sig':
+      '9e87f4f29eae4627c3a2514215cfac25d11eb690909bbd3f17a322f92e10b6cf75690b19804a76480a3d1b274f17d952516520d67d61abf4aab8e79dcf965784',
+};
 
 String _flipLastHexDigit(String hex) {
   final last = int.parse(hex[hex.length - 1], radix: 16) ^ 1;

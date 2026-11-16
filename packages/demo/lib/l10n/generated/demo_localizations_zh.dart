@@ -334,9 +334,6 @@ class DemoLocalizationsZh extends DemoLocalizations {
   String get pendingMethodSignEvent => '签名事件';
 
   @override
-  String get pendingMethodGetPublicKey => '获取公钥';
-
-  @override
   String get pendingMethodNip04Encrypt => 'NIP-04 加密';
 
   @override
@@ -347,12 +344,6 @@ class DemoLocalizationsZh extends DemoLocalizations {
 
   @override
   String get pendingMethodNip44Decrypt => 'NIP-44 解密';
-
-  @override
-  String get pendingMethodPing => 'Ping';
-
-  @override
-  String get pendingMethodSwitchRelays => '切换中继';
 
   @override
   String pendingSecondsAgo(int count) {

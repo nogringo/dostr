@@ -338,9 +338,6 @@ class DemoLocalizationsJa extends DemoLocalizations {
   String get pendingMethodSignEvent => 'イベントに署名';
 
   @override
-  String get pendingMethodGetPublicKey => '公開鍵を取得';
-
-  @override
   String get pendingMethodNip04Encrypt => 'NIP-04 で暗号化';
 
   @override
@@ -351,12 +348,6 @@ class DemoLocalizationsJa extends DemoLocalizations {
 
   @override
   String get pendingMethodNip44Decrypt => 'NIP-44 を復号';
-
-  @override
-  String get pendingMethodPing => 'Ping';
-
-  @override
-  String get pendingMethodSwitchRelays => 'リレーを切り替え';
 
   @override
   String pendingSecondsAgo(int count) {

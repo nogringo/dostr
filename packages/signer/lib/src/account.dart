@@ -8,7 +8,7 @@ class Account {
   /// the pubkey of [signer], read once when the account is made
   final String pubkey;
 
-  Account(this.signer) : pubkey = signer.getPublicKey();
+  Account(this.signer) : pubkey = signer.publicKey;
 
   /// Stream of pending signer requests waiting for user approval.
   ///

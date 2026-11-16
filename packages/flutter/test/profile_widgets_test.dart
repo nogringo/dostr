@@ -363,7 +363,7 @@ void main() {
 
       expect(loggedOut, isTrue);
       expect(dostr.accounts.hasAccount(alicePubkey), isFalse);
-      expect(dostr.accounts.getPublicKey(), bobPubkey);
+      expect(dostr.accounts.loggedPubkey, bobPubkey);
       expect(dostr.savedState!['loggedAccount'], bobPubkey);
     });
   });

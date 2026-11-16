@@ -17,7 +17,7 @@ class NUserProfile extends StatelessWidget {
   Accounts get _accounts => dostrFlutter.accounts;
 
   String? get profilePubkey =>
-      metadata?.pubkey ?? pubkey ?? _accounts.getPublicKey();
+      metadata?.pubkey ?? pubkey ?? _accounts.loggedPubkey;
 
   const NUserProfile({
     super.key,
@@ -55,7 +55,7 @@ class NUserProfile extends StatelessWidget {
     final nip05 = metadata?.cleanNip05;
 
     // Check if this is the logged account
-    final isLoggedAccount = profilePubkey == _accounts.getPublicKey();
+    final isLoggedAccount = profilePubkey == _accounts.loggedPubkey;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,

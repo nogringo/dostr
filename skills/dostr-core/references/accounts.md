@@ -14,7 +14,7 @@ Every signer implements `NostrSigner` from `dostr_signer`.
 ```dart
 final signer = Bip340SignerFactory().createWithNewKeyPair();
 final signed = await signer.sign(
-  Nip01Event(pubkey: signer.getPublicKey(), kind: 1, tags: [], content: 'hi'),
+  Nip01Event(pubkey: signer.publicKey, kind: 1, tags: [], content: 'hi'),
 );
 ```
 

@@ -1,20 +1,21 @@
+import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
 class _Signer implements NostrSigner {
-  final requests = [
-    PendingSignerRequest(
+  final List<PendingSignerRequest> requests = [
+    PendingSignRequest(
       id: 'req-001',
-      method: SignerMethod.signEvent,
       createdAt: DateTime(2024, 1, 1),
       signerPubkey: 'a',
+      event: Nip01Event(pubkey: 'a', kind: 1, content: ''),
     ),
   ];
   final cancelled = <String>[];
   bool disposed = false;
 
   @override
-  String getPublicKey() => 'a';
+  String get publicKey => 'a';
 
   @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>

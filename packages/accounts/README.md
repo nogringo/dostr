@@ -33,8 +33,7 @@ The `LocalSignerFactory` given to `Accounts` builds the signers of `loginPrivate
 `loginExternalSigner` takes any `NostrSigner`, a [NIP-46](https://github.com/nostr-protocol/nips/blob/master/46.md) bunker included, through the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46):
 
 ```dart
-final signer = bunkers.createSigner(connection);
-await signer.getPublicKeyAsync();
+final signer = await bunkers.createSigner(connection);
 accounts.loginExternalSigner(signer: signer);
 ```
 

@@ -44,7 +44,7 @@ void main() async {
       accounts.loginPublicKey(pubkey: key0.publicKey);
       expect(accounts.isLoggedIn, true);
       expect(accounts.cannotSign, true);
-      expect(accounts.getPublicKey(), key0.publicKey);
+      expect(accounts.loggedPubkey, key0.publicKey);
       expect(accounts.getLoggedAccount()!.pubkey, key0.publicKey);
       expect(accounts.hasAccount(key0.publicKey), true);
       await accounts.logout();

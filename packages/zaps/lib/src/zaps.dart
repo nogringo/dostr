@@ -95,7 +95,7 @@ class Zaps {
       tags.add(["poll_option", pollOption]);
     }
     final zapRequestEvent = ZapRequest(
-      pubkey: signer.getPublicKey(),
+      pubkey: signer.publicKey,
       tags: tags,
       content: comment ?? '',
     );

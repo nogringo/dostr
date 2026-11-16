@@ -979,7 +979,7 @@ void main() {
     accounts.loginPrivateKey(privkey: keyPair.privateKey!);
 
     await blossomFor(accounts).listBlobs(
-      pubkey: accounts.getPublicKey()!,
+      pubkey: accounts.loggedPubkey!,
       serverUrls: ["http://localhost:${server.port}"],
     );
   });

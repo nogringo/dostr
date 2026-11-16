@@ -15,7 +15,9 @@ class _PendingRequestEntry {
 }
 
 class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
-  String? cachedPublicKey;
+  /// the pubkey of the extension account this signer signs as
+  @override
+  final String publicKey;
 
   final _pendingRequests = <String, _PendingRequestEntry>{};
   final _pendingRequestsController =
@@ -28,10 +30,45 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   static const int defaultMaxConcurrentRequests = 100;
 
+  /// A signer for the extension account [publicKey], such as one restored
+  /// from storage. [connect] asks the extension for it.
   Nip07Signer({
-    this.cachedPublicKey,
+    required this.publicKey,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+
+  /// Whether the browser has a NIP-07 extension, in `window.nostr`.
+  static bool get isAvailable => js.nostr != null;
+
+  /// Asks the extension for the user's pubkey, which it may ask the user to
+  /// approve first, and completes with a signer for it.
+  ///
+  /// Throws a [StateError] without an extension, see [isAvailable], and a
+  /// [SignerRequestRejectedException] when the extension refuses.
+  static Future<Nip07Signer> connect({
+    int maxConcurrentRequests = defaultMaxConcurrentRequests,
+  }) async {
+    final nostr = _extension();
+    final String publicKey;
+    try {
+      publicKey = (await nostr.getPublicKey().toDart).toDart;
+    } catch (error) {
+      throw SignerRequestRejectedException(originalMessage: error.toString());
+    }
+    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(publicKey)) {
+      throw SignerRequestFailedException(
+        'The extension sent an invalid pubkey',
+        cause: publicKey,
+      );
+    }
+    return Nip07Signer(
+      publicKey: publicKey,
+      maxConcurrentRequests: maxConcurrentRequests,
+    );
+  }
+
+  static js.Nostr _extension() =>
+      js.nostr ?? (throw StateError('No NIP-07 extension in window.nostr'));
 
   String _generateRequestId() {
     return 'nip07_${DateTime.now().millisecondsSinceEpoch}_${_requestCounter++}';
@@ -43,30 +80,18 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
   }
 
+  /// Runs [operation] while [describe] waits in [pendingRequests]. An error of
+  /// the extension means it turned the request down.
   Future<T> _trackRequest<T>(
-    SignerMethod method,
-    Future<T> Function() operation, {
-    Nip01Event? event,
-    String? plaintext,
-    String? ciphertext,
-    String? counterpartyPubkey,
-  }) {
+    PendingSignerRequest Function(String requestId) describe,
+    Future<T> Function(String requestId) operation,
+  ) {
     final requestId = _generateRequestId();
     final completer = Completer<T>();
-    final pendingRequest = PendingSignerRequest(
-      id: requestId,
-      method: method,
-      createdAt: DateTime.now(),
-      signerPubkey: cachedPublicKey ?? '',
-      event: event,
-      plaintext: plaintext,
-      ciphertext: ciphertext,
-      counterpartyPubkey: counterpartyPubkey,
-    );
 
     _pendingRequests[requestId] = _PendingRequestEntry(
       completer as Completer<dynamic>,
-      pendingRequest,
+      describe(requestId),
     );
     _notifyPendingRequestsChange();
 
@@ -74,7 +99,7 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
           if (!_pendingRequests.containsKey(requestId)) {
             throw SignerRequestCancelledException(requestId);
           }
-          return operation();
+          return operation(requestId);
         })
         .then((result) {
           if (!completer.isCompleted) {
@@ -84,10 +109,12 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         .catchError((error) {
           if (!completer.isCompleted) {
             completer.completeError(
-              SignerRequestRejectedException(
-                requestId: requestId,
-                originalMessage: error.toString(),
-              ),
+              error is SignerRequestException
+                  ? error
+                  : SignerRequestRejectedException(
+                      requestId: requestId,
+                      originalMessage: error.toString(),
+                    ),
             );
           }
         })
@@ -100,29 +127,25 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   @override
-  bool get canSign {
-    return js.nostr != null;
-  }
+  bool get canSign => isAvailable;
 
   @override
   Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
   }) async {
-    if (js.nostr == null) {
-      throw Exception('NIP-07 extension not available');
-    }
-
+    final nip04 = _scheme(_extension().nip04, 'NIP-04');
     return _trackRequest(
-      SignerMethod.nip04Decrypt,
-      () async {
-        final result = await js.nostr!.nip04!
-            .decrypt(senderPubkey.toJS, ciphertext.toJS)
-            .toDart;
-        return result.toDart;
-      },
-      ciphertext: ciphertext,
-      counterpartyPubkey: senderPubkey,
+      (id) => PendingDecryptRequest.nip04(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        ciphertext: ciphertext,
+        senderPubkey: senderPubkey,
+      ),
+      (_) async =>
+          (await nip04.decrypt(senderPubkey.toJS, ciphertext.toJS).toDart)
+              .toDart,
     );
   }
 
@@ -131,20 +154,18 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String ciphertext,
     required String senderPubkey,
   }) async {
-    if (js.nostr == null) {
-      throw Exception('NIP-07 extension not available');
-    }
-
+    final nip44 = _scheme(_extension().nip44, 'NIP-44');
     return _trackRequest(
-      SignerMethod.nip44Decrypt,
-      () async {
-        final result = await js.nostr!.nip44!
-            .decrypt(senderPubkey.toJS, ciphertext.toJS)
-            .toDart;
-        return result.toDart;
-      },
-      ciphertext: ciphertext,
-      counterpartyPubkey: senderPubkey,
+      (id) => PendingDecryptRequest.nip44(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        ciphertext: ciphertext,
+        senderPubkey: senderPubkey,
+      ),
+      (_) async =>
+          (await nip44.decrypt(senderPubkey.toJS, ciphertext.toJS).toDart)
+              .toDart,
     );
   }
 
@@ -153,20 +174,18 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String plaintext,
     required String recipientPubkey,
   }) async {
-    if (js.nostr == null) {
-      throw Exception('NIP-07 extension not available');
-    }
-
+    final nip04 = _scheme(_extension().nip04, 'NIP-04');
     return _trackRequest(
-      SignerMethod.nip04Encrypt,
-      () async {
-        final result = await js.nostr!.nip04!
-            .encrypt(recipientPubkey.toJS, plaintext.toJS)
-            .toDart;
-        return result.toDart;
-      },
-      plaintext: plaintext,
-      counterpartyPubkey: recipientPubkey,
+      (id) => PendingEncryptRequest.nip04(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        plaintext: plaintext,
+        recipientPubkey: recipientPubkey,
+      ),
+      (_) async =>
+          (await nip04.encrypt(recipientPubkey.toJS, plaintext.toJS).toDart)
+              .toDart,
     );
   }
 
@@ -175,73 +194,84 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String plaintext,
     required String recipientPubkey,
   }) async {
-    if (js.nostr == null) {
-      throw Exception('NIP-07 extension not available');
-    }
-
+    final nip44 = _scheme(_extension().nip44, 'NIP-44');
     return _trackRequest(
-      SignerMethod.nip44Encrypt,
-      () async {
-        final result = await js.nostr!.nip44!
-            .encrypt(recipientPubkey.toJS, plaintext.toJS)
-            .toDart;
-        return result.toDart;
-      },
-      plaintext: plaintext,
-      counterpartyPubkey: recipientPubkey,
+      (id) => PendingEncryptRequest.nip44(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        plaintext: plaintext,
+        recipientPubkey: recipientPubkey,
+      ),
+      (_) async =>
+          (await nip44.encrypt(recipientPubkey.toJS, plaintext.toJS).toDart)
+              .toDart,
     );
   }
 
-  @override
-  String getPublicKey() {
-    if (cachedPublicKey != null) {
-      return cachedPublicKey!;
-    }
-
-    js.nostr!.getPublicKey().toDart.then((pubkey) {
-      cachedPublicKey = pubkey.toDart;
-    });
-
-    throw Exception('Use getPublicKeyAsync with Nip07Signer');
-  }
-
-  Future<String> getPublicKeyAsync() async {
-    return _trackRequest(SignerMethod.getPublicKey, () async {
-      final pubkey = (await js.nostr!.getPublicKey().toDart).toDart;
-      cachedPublicKey = pubkey;
-      return pubkey;
-    });
-  }
+  static T _scheme<T>(T? scheme, String name) =>
+      scheme ??
+      (throw SignerRequestFailedException('The extension has no $name'));
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    if (js.nostr == null) {
-      throw Exception('NIP-07 extension not available');
+    final nostr = _extension();
+    if (event.pubkey != publicKey) {
+      throw ArgumentError.value(
+        event.pubkey,
+        'event.pubkey',
+        'is not the pubkey of the signer, $publicKey',
+      );
     }
 
-    return _trackRequest(SignerMethod.signEvent, () async {
-      final jsEvent = js.NostrEvent()
-        ..pubkey = event.pubkey
-        ..createdAt = event.createdAt
-        ..kind = event.kind
-        ..content = event.content
-        ..tags = event.tags
-            .map((tag) => tag.map((item) => item.toJS).toList().toJS)
-            .toList()
-            .toJS;
+    return _trackRequest(
+      (id) => PendingSignRequest(
+        id: id,
+        createdAt: DateTime.now(),
+        signerPubkey: publicKey,
+        event: event,
+      ),
+      (requestId) async {
+        final jsEvent = js.NostrEvent()
+          ..pubkey = event.pubkey
+          ..createdAt = event.createdAt
+          ..kind = event.kind
+          ..content = event.content
+          ..tags = event.tags
+              .map((tag) => tag.map((item) => item.toJS).toList().toJS)
+              .toList()
+              .toJS;
 
-      final signedEvent = await js.nostr!.signEvent(jsEvent).toDart;
-
-      return event.copyWith(
-        id: signedEvent.id!,
-        sig: signedEvent.sig!,
-        pubkey: signedEvent.pubkey,
-        createdAt: signedEvent.createdAt,
-        kind: signedEvent.kind,
-        content: signedEvent.content,
-        tags: signedEvent.tagsList,
-      );
-    }, event: event);
+        final signed = await nostr.signEvent(jsEvent).toDart;
+        final id = signed.id;
+        final sig = signed.sig;
+        final signedEvent = id == null || sig == null
+            ? null
+            : event.copyWith(
+                id: id,
+                sig: sig,
+                pubkey: signed.pubkey,
+                createdAt: signed.createdAt,
+                kind: signed.kind,
+                content: signed.content,
+                tags: signed.tagsList,
+              );
+        if (signedEvent == null || !signedEvent.hasValidId) {
+          throw SignerRequestFailedException(
+            'The extension returned an invalid event',
+            requestId: requestId,
+          );
+        }
+        if (signedEvent.pubkey != publicKey) {
+          throw SignerRequestFailedException(
+            'The extension signed as ${signedEvent.pubkey} instead of '
+            '$publicKey',
+            requestId: requestId,
+          );
+        }
+        return signedEvent;
+      },
+    );
   }
 
   @override

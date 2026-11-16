@@ -19,7 +19,7 @@ class Nip77Page extends StatefulWidget {
 class _Nip77PageState extends State<Nip77Page> {
   final _relayController = TextEditingController(text: 'wss://relay.ditto.pub');
   final _authorController = TextEditingController(
-    text: accounts.getPublicKey() ?? '',
+    text: accounts.loggedPubkey ?? '',
   );
   final _kindsController = TextEditingController();
 

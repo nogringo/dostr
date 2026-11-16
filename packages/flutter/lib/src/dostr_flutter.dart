@@ -107,8 +107,10 @@ class DostrFlutter {
     BunkerConnection connection, {
     void Function(String url)? authCallback,
   }) async {
-    final signer = bunkers.createSigner(connection, authCallback: authCallback);
-    await signer.getPublicKeyAsync();
+    final signer = await bunkers.createSigner(
+      connection,
+      authCallback: authCallback,
+    );
     accounts.loginExternalSigner(signer: signer);
   }
 

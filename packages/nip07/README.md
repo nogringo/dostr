@@ -4,7 +4,7 @@
 
 It implements the `NostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), so Dostr accounts can use it, and it does not depend on Flutter: any Dart web app can use it.
 It only signs on the web.
-Elsewhere `canSign` is `false` and the other methods throw an `UnsupportedError`, so shared code still compiles.
+Elsewhere `isAvailable` and `canSign` are `false` and the other methods throw an `UnsupportedError`, so shared code still compiles.
 
 ## Install
 
@@ -20,9 +20,8 @@ dependencies:
 ```dart
 import 'package:dostr_nip07/dostr_nip07.dart';
 
-final signer = Nip07Signer();
-if (signer.canSign) {
-  await signer.getPublicKeyAsync();
+if (Nip07Signer.isAvailable) {
+  final signer = await Nip07Signer.connect();
   accounts.loginExternalSigner(signer: signer);
 }
 ```
@@ -32,9 +31,11 @@ if (signer.canSign) {
 The extension asks the user to approve each request.
 While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
 A refusal throws a `SignerRequestRejectedException`.
+An answer the signer cannot use, such as an event signed by another account after the user switched accounts in the extension, throws a `SignerRequestFailedException`.
+Without an extension, every request throws a `StateError`.
 
-`getPublicKey()` is synchronous and throws until the public key is known, because the extension only answers asynchronously.
-Call `getPublicKeyAsync()` once, or pass a known key to `Nip07Signer(cachedPublicKey: pubkey)` when restoring an account.
+`connect` asks the extension for the user's pubkey, which the extension may ask the user to approve first, and completes once it has it: `publicKey` never throws.
+Pass a known key to `Nip07Signer(publicKey: pubkey)` when restoring an account.
 
 At most `maxConcurrentRequests` requests (100 by default) go to the extension at once.
 The rest wait in a queue.

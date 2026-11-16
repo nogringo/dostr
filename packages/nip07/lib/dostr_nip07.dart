@@ -1,9 +1,8 @@
 /// NIP-07 signer: sign and encrypt with the user's browser extension.
 ///
 /// ```dart
-/// final signer = Nip07Signer();
-/// if (signer.canSign) {
-///   final pubkey = await signer.getPublicKeyAsync();
+/// if (Nip07Signer.isAvailable) {
+///   final signer = await Nip07Signer.connect();
 /// }
 /// ```
 library;

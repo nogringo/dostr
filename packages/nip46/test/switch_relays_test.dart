@@ -35,6 +35,7 @@ void main() {
         remotePubkey: MockRemoteSigner.publicKey,
         relays: [relayA.url],
       ),
+      publicKey: MockRemoteSigner.publicKey,
       relayReqs: RelayReqs(
         relayManager: relayManager,
         eventVerifier: Bip340EventVerifier(),

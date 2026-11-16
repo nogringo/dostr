@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:collection';
 
+import 'signer_request_exception.dart';
+
 /// Limits how many operations can be in flight at once.
 ///
 /// Wrap each operation with [runThrottled]: up to [maxConcurrentRequests]
@@ -59,11 +61,15 @@ mixin ConcurrencyLimiterMixin {
     }
   }
 
-  /// Rejects every queued (not-yet-started) operation. In-flight tasks
-  /// keep running. Call from `dispose()` to drain pending work.
+  /// Rejects every queued (not-yet-started) operation, with [error] or else a
+  /// [SignerRequestFailedException]. In-flight tasks keep running. Call from
+  /// `dispose()` to drain pending work.
   void cancelAllQueued([Object? error]) {
     final reason =
-        error ?? StateError('This instance is no longer accepting requests');
+        error ??
+        SignerRequestFailedException(
+          'The signer was disposed before it sent the request',
+        );
     while (_waitQueue.isNotEmpty) {
       final waiter = _waitQueue.removeFirst();
       if (!waiter.isCompleted) {

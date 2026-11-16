@@ -18,7 +18,7 @@ class MockSlowSigner implements NostrSigner {
   }
 
   @override
-  String getPublicKey() => _innerSigner.getPublicKey();
+  String get publicKey => _innerSigner.publicKey;
 
   @override
   bool get canSign => _innerSigner.canSign;

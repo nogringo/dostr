@@ -41,7 +41,8 @@ class Bip340Signer implements NostrSigner {
   final String? privateKey;
 
   /// hex public key
-  String publicKey;
+  @override
+  final String publicKey;
 
   // Bounded: each gift wrap comes from a one-off key that never comes back.
   static const _maxConversationKeys = 256;
@@ -52,32 +53,34 @@ class Bip340Signer implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    if (privateKey?.trim().isNotEmpty ?? false) {
-      return event.copyWith(sig: Bip340.sign(event.id, privateKey!));
+    final key = _privateKey();
+    if (event.pubkey != publicKey) {
+      throw ArgumentError.value(
+        event.pubkey,
+        'event.pubkey',
+        'is not the pubkey of the signer, $publicKey',
+      );
     }
-    throw Exception('Private key is required for signing');
-  }
-
-  @override
-  String getPublicKey() {
-    return publicKey;
+    return event.copyWith(sig: Bip340.sign(event.id, key));
   }
 
   @override
   Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
-  }) async {
-    return Nip04.decrypt(ciphertext, privateKey!, senderPubkey);
-  }
+  }) async => _crypto(
+    'NIP-04 decryption failed',
+    (key) => Nip04.decrypt(ciphertext, key, senderPubkey),
+  );
 
   @override
   Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
-  }) async {
-    return Nip04.encrypt(plaintext, privateKey!, recipientPubkey);
-  }
+  }) async => _crypto(
+    'NIP-04 encryption failed',
+    (key) => Nip04.encrypt(plaintext, key, recipientPubkey),
+  );
 
   @override
   bool get canSign {
@@ -88,22 +91,42 @@ class Bip340Signer implements NostrSigner {
   Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
-  }) async {
-    return Nip44.encrypt(plaintext, _conversationKey(recipientPubkey));
-  }
+  }) async => _crypto(
+    'NIP-44 encryption failed',
+    (key) => Nip44.encrypt(plaintext, _conversationKey(key, recipientPubkey)),
+  );
 
   @override
   Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
-  }) async {
-    return Nip44.decrypt(ciphertext, _conversationKey(senderPubkey));
+  }) async => _crypto(
+    'NIP-44 decryption failed',
+    (key) => Nip44.decrypt(ciphertext, _conversationKey(key, senderPubkey)),
+  );
+
+  String _privateKey() {
+    final key = privateKey;
+    if (key == null || key.trim().isEmpty) {
+      throw StateError('A read-only signer cannot sign, encrypt or decrypt');
+    }
+    return key;
   }
 
-  Uint8List _conversationKey(String pubkey) {
+  // the input comes from others, such as a ciphertext a relay served
+  String _crypto(String failure, String Function(String privateKey) run) {
+    final key = _privateKey();
+    try {
+      return run(key);
+    } catch (error) {
+      throw SignerRequestFailedException(failure, cause: error);
+    }
+  }
+
+  Uint8List _conversationKey(String privateKey, String pubkey) {
     final key =
         _conversationKeys.remove(pubkey) ??
-        Nip44.conversationKey(privateKey!, pubkey);
+        Nip44.conversationKey(privateKey, pubkey);
     if (_conversationKeys.length >= _maxConversationKeys) {
       _conversationKeys.remove(_conversationKeys.keys.first);
     }

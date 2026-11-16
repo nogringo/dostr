@@ -34,12 +34,13 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 They are in [`dostr_signer`](https://pub.dev/packages/dostr_signer) with `PendingSignerRequest`, `SignerMethod`, `SignerRequestRejectedException` and `SignerRequestCancelledException`: `package:ndk/domain_layer/repositories/event_signer.dart`, `package:ndk/domain_layer/entities/pending_signer_request.dart`, `package:ndk/domain_layer/entities/signer_request_rejected_exception.dart` and `package:ndk/domain_layer/entities/signer_request_cancelled_exception.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `encryptNip44` and `decryptNip44` take `recipientPubkey` and `senderPubkey` instead of `recipientPubKey` and `senderPubKey`.
 `encrypt` and `decrypt` are now `encryptNip04` and `decryptNip04`, with the named parameters of the NIP-44 methods, and the four of them return a `Future<String>` instead of a `Future<String?>`: a signer that cannot encrypt or decrypt throws.
-`canSign` is a getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
+`canSign` is a getter, `getPublicKey()` is the `publicKey` getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
 `NostrSigner` and `LocalSignerFactory` are interface classes: a signer implements them and inherits nothing.
 `Account(signer)` takes only its signer and reads its pubkey from it: its constructor no longer takes `pubkey` or `type`, and `AccountType` is gone.
 `LocalSignerFactory.create` takes the private key alone, `readOnly` takes a public key, and `derivePublicKey` is gone.
-`SignerRequestRejectedException` and `SignerRequestCancelledException` are both a `SignerRequestException`.
-`SignerMethod` no longer has `connect` or `protocolString`.
+`SignerRequestRejectedException`, `SignerRequestCancelledException` and the new `SignerRequestFailedException` are all a `SignerRequestException`.
+`NostrSigner` says what a signer throws, and that `publicKey` never throws: the [`dostr_signer` changelog](https://pub.dev/packages/dostr_signer/changelog) has the details.
+`PendingSignerRequest` is a sealed class, a `PendingSignRequest`, `PendingEncryptRequest` or `PendingDecryptRequest`, and `SignerMethod` no longer has `connect`, `protocolString`, `getPublicKey`, `ping` or `switchRelays`.
 
 NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with `NegentropyEncoder` and `Nip77Result`.
 `GlobalState` no longer has `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or `onNegClosed`.

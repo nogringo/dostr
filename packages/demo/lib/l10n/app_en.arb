@@ -418,10 +418,6 @@
   "@pendingMethodSignEvent": {
     "description": "Signer method name shown on a pending request."
   },
-  "pendingMethodGetPublicKey": "Get Public Key",
-  "@pendingMethodGetPublicKey": {
-    "description": "Signer method name shown on a pending request."
-  },
   "pendingMethodNip04Encrypt": "NIP-04 Encrypt",
   "@pendingMethodNip04Encrypt": {
     "description": "Signer method name shown on a pending request. NIP-04 is a spec name, keep it as is."
@@ -437,14 +433,6 @@
   "pendingMethodNip44Decrypt": "NIP-44 Decrypt",
   "@pendingMethodNip44Decrypt": {
     "description": "Signer method name shown on a pending request. NIP-44 is a spec name, keep it as is."
-  },
-  "pendingMethodPing": "Ping",
-  "@pendingMethodPing": {
-    "description": "Signer method name shown on a pending request."
-  },
-  "pendingMethodSwitchRelays": "Switch Relays",
-  "@pendingMethodSwitchRelays": {
-    "description": "Signer method name shown on a pending request."
   },
   "pendingSecondsAgo": "{count}s ago",
   "@pendingSecondsAgo": {

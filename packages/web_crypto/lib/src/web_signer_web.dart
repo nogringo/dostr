@@ -51,7 +51,8 @@ class WebSigner implements NostrSigner {
   final String? privateKey;
 
   /// hex public key
-  String publicKey;
+  @override
+  final String publicKey;
 
   final Completer<bool> _isInitialized = Completer<bool>();
   static bool _jsInjected = false;
@@ -99,52 +100,40 @@ class WebSigner implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    if (privateKey == null || privateKey!.isEmpty) {
-      throw Exception('Private key is required for signing');
+    final key = _privateKey();
+    if (event.pubkey != publicKey) {
+      throw ArgumentError.value(
+        event.pubkey,
+        'event.pubkey',
+        'is not the pubkey of the signer, $publicKey',
+      );
     }
 
     final crypto = await _getCrypto();
-    final signature = await crypto
-        .signEvent(privateKey!.toJS, event.id.toJS)
-        .toDart;
+    final signature = await crypto.signEvent(key.toJS, event.id.toJS).toDart;
 
     return event.copyWith(sig: signature.toDart);
-  }
-
-  @override
-  String getPublicKey() {
-    return publicKey;
   }
 
   @override
   Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
-  }) async {
-    if (privateKey == null || privateKey!.isEmpty) {
-      throw Exception('Private key is required for decryption');
-    }
-    final crypto = await _getCrypto();
-    final result = await crypto
-        .nip04Decrypt(privateKey!.toJS, senderPubkey.toJS, ciphertext.toJS)
-        .toDart;
-    return result.toDart;
-  }
+  }) => _crypto(
+    'NIP-04 decryption failed',
+    (crypto, key) =>
+        crypto.nip04Decrypt(key.toJS, senderPubkey.toJS, ciphertext.toJS),
+  );
 
   @override
   Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
-  }) async {
-    if (privateKey == null || privateKey!.isEmpty) {
-      throw Exception('Private key is required for encryption');
-    }
-    final crypto = await _getCrypto();
-    final result = await crypto
-        .nip04Encrypt(privateKey!.toJS, recipientPubkey.toJS, plaintext.toJS)
-        .toDart;
-    return result.toDart;
-  }
+  }) => _crypto(
+    'NIP-04 encryption failed',
+    (crypto, key) =>
+        crypto.nip04Encrypt(key.toJS, recipientPubkey.toJS, plaintext.toJS),
+  );
 
   @override
   bool get canSign {
@@ -155,36 +144,56 @@ class WebSigner implements NostrSigner {
   Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
-  }) async {
-    if (privateKey == null || privateKey!.isEmpty) {
-      throw Exception('Private key is required for encryption');
-    }
-    final crypto = await _getCrypto();
-    final result = await crypto
-        .nip44Encrypt(_conversationKey(crypto, recipientPubkey), plaintext.toJS)
-        .toDart;
-    return result.toDart;
-  }
+  }) => _crypto(
+    'NIP-44 encryption failed',
+    (crypto, key) => crypto.nip44Encrypt(
+      _conversationKey(crypto, key, recipientPubkey),
+      plaintext.toJS,
+    ),
+  );
 
   @override
   Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
-  }) async {
-    if (privateKey == null || privateKey!.isEmpty) {
-      throw Exception('Private key is required for decryption');
+  }) => _crypto(
+    'NIP-44 decryption failed',
+    (crypto, key) => crypto.nip44Decrypt(
+      _conversationKey(crypto, key, senderPubkey),
+      ciphertext.toJS,
+    ),
+  );
+
+  String _privateKey() {
+    final key = privateKey;
+    if (key == null || key.isEmpty) {
+      throw StateError('A read-only signer cannot sign, encrypt or decrypt');
     }
-    final crypto = await _getCrypto();
-    final result = await crypto
-        .nip44Decrypt(_conversationKey(crypto, senderPubkey), ciphertext.toJS)
-        .toDart;
-    return result.toDart;
+    return key;
   }
 
-  JSUint8Array _conversationKey(NostrCrypto crypto, String pubkey) {
+  // the input comes from others, such as a ciphertext a relay served
+  Future<String> _crypto(
+    String failure,
+    JSPromise<JSString> Function(NostrCrypto crypto, String privateKey) run,
+  ) async {
+    final key = _privateKey();
+    final crypto = await _getCrypto();
+    try {
+      return (await run(crypto, key).toDart).toDart;
+    } catch (error) {
+      throw SignerRequestFailedException(failure, cause: error);
+    }
+  }
+
+  JSUint8Array _conversationKey(
+    NostrCrypto crypto,
+    String privateKey,
+    String pubkey,
+  ) {
     final key =
         _conversationKeys.remove(pubkey) ??
-        crypto.nip44ConversationKey(privateKey!.toJS, pubkey.toJS);
+        crypto.nip44ConversationKey(privateKey.toJS, pubkey.toJS);
     if (_conversationKeys.length >= _maxConversationKeys) {
       _conversationKeys.remove(_conversationKeys.keys.first);
     }

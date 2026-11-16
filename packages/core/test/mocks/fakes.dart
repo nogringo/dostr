@@ -14,6 +14,7 @@ final String bob = 'b' * 64;
 class FakeSigner implements NostrSigner {
   FakeSigner(this.publicKey, {this.signable = true});
 
+  @override
   final String publicKey;
   bool signable;
   int signatures = 0;
@@ -23,9 +24,6 @@ class FakeSigner implements NostrSigner {
     signatures++;
     return event.copyWith(sig: fakeSig);
   }
-
-  @override
-  String getPublicKey() => publicKey;
 
   @override
   bool get canSign => signable;

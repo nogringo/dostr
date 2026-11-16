@@ -6,7 +6,7 @@ Future<void> main() async {
 
   final event = await signer.sign(
     Nip01Event(
-      pubkey: signer.getPublicKey(),
+      pubkey: signer.publicKey,
       kind: 1,
       tags: [],
       content: 'hello nostr',

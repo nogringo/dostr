@@ -29,12 +29,18 @@ void main() {
 
   tearDown(() => relayManager.closeAllTransports());
 
-  Nip46Signer newSigner(List<RelayUrl> relays) => Nip46Signer(
-    connection: BunkerConnection(
-      privateKey: _clientPrivateKey,
-      remotePubkey: MockRemoteSigner.publicKey,
-      relays: relays,
-    ),
+  BunkerConnection connectionTo(List<RelayUrl> relays) => BunkerConnection(
+    privateKey: _clientPrivateKey,
+    remotePubkey: MockRemoteSigner.publicKey,
+    relays: relays,
+  );
+
+  Nip46Signer newSigner(
+    List<RelayUrl> relays, {
+    String publicKey = MockRemoteSigner.publicKey,
+  }) => Nip46Signer(
+    connection: connectionTo(relays),
+    publicKey: publicKey,
     relayReqs: relayReqs,
     relayPublishes: relayPublishes,
     signerFactory: signerFactory,
@@ -98,15 +104,64 @@ void main() {
       expect(await Bip340EventVerifier().verify(signedEvent), isTrue);
     });
 
-    test('getPublicKey should throw when not cached', () {
-      expect(() => signer.getPublicKey(), throwsException);
+    test('sign throws for an event of another pubkey', () async {
+      final event = Nip01Event(
+        pubkey: Bip340.generatePrivateKey().publicKey,
+        kind: 1,
+        content: 'not mine',
+      );
+
+      await expectLater(signer.sign(event), throwsArgumentError);
+      expect(relay.received('EVENT'), isEmpty);
     });
 
-    test('getPublicKeyAsync should fetch and cache public key', () async {
-      final publicKey = await signer.getPublicKeyAsync();
+    test('sign fails when the bunker signs as another pubkey', () async {
+      final otherUser = Bip340.generatePrivateKey().publicKey;
+      final wrongSigner = newSigner([relay.url], publicKey: otherUser);
+      addTearDown(wrongSigner.dispose);
 
-      expect(publicKey, equals(MockRemoteSigner.publicKey));
-      expect(signer.getPublicKey(), equals(publicKey));
+      await expectLater(
+        wrongSigner.sign(
+          Nip01Event(pubkey: otherUser, kind: 1, content: 'hello'),
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('a signature waits as a PendingSignRequest', () async {
+      final event = Nip01Event(
+        pubkey: MockRemoteSigner.publicKey,
+        kind: 1,
+        content: 'pending',
+      );
+
+      final signing = signer.sign(event);
+      final pending = signer.pendingRequests.single;
+
+      expect(pending, isA<PendingSignRequest>());
+      expect((pending as PendingSignRequest).event, same(event));
+      expect(pending.signerPubkey, MockRemoteSigner.publicKey);
+      await signing;
+      expect(signer.pendingRequests, isEmpty);
+    });
+
+    test('a ping does not wait for the user', () async {
+      final pinging = signer.ping();
+
+      expect(signer.pendingRequests, isEmpty);
+      expect(await pinging, 'pong');
+    });
+
+    test('connect asks the bunker for the user pubkey', () async {
+      final connected = await Nip46Signer.connect(
+        connection: connectionTo([relay.url]),
+        relayReqs: relayReqs,
+        relayPublishes: relayPublishes,
+        signerFactory: signerFactory,
+      );
+      addTearDown(connected.dispose);
+
+      expect(connected.publicKey, MockRemoteSigner.publicKey);
     });
 
     test('connects with a bunker URL and signs through it', () async {
@@ -129,7 +184,8 @@ void main() {
       );
       expect(bunkerConnection.relays, contains(relay.url));
 
-      final bunkerSigner = bunkers.createSigner(bunkerConnection);
+      final bunkerSigner = await bunkers.createSigner(bunkerConnection);
+      expect(bunkerSigner.publicKey, MockRemoteSigner.publicKey);
       final signedTestEvent = await bunkerSigner.sign(
         Nip01Event(
           pubkey: MockRemoteSigner.publicKey,
@@ -185,7 +241,7 @@ void main() {
         expect(
           await localSigner.decryptNip04(
             ciphertext: encryptedMessage,
-            senderPubkey: await signer.getPublicKeyAsync(),
+            senderPubkey: signer.publicKey,
           ),
           equals(testMessage),
         );
@@ -232,7 +288,7 @@ void main() {
         expect(
           await localSigner.decryptNip44(
             ciphertext: encryptedMessage,
-            senderPubkey: await signer.getPublicKeyAsync(),
+            senderPubkey: signer.publicKey,
           ),
           equals(testMessage),
         );
@@ -242,6 +298,23 @@ void main() {
     test('ping should return pong', () async {
       expect(await signer.ping(), equals('pong'));
     });
+  });
+
+  test('connect fails when the bunker sends no pubkey in time', () async {
+    final silentRelay = MockRelay();
+    await silentRelay.start();
+    addTearDown(silentRelay.stop);
+
+    await expectLater(
+      Nip46Signer.connect(
+        connection: connectionTo([silentRelay.url]),
+        relayReqs: relayReqs,
+        relayPublishes: relayPublishes,
+        signerFactory: signerFactory,
+        timeout: const Duration(milliseconds: 200),
+      ),
+      throwsA(isA<SignerRequestFailedException>()),
+    );
   });
 
   test('response is not held back by a slow transport relay', () async {

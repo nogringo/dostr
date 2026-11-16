@@ -10,7 +10,7 @@ class NBanner extends StatelessWidget {
 
   Accounts get _accounts => dostrFlutter.accounts;
 
-  String? get _pubkey => metadata?.pubkey ?? pubkey ?? _accounts.getPublicKey();
+  String? get _pubkey => metadata?.pubkey ?? pubkey ?? _accounts.loggedPubkey;
 
   const NBanner({
     super.key,

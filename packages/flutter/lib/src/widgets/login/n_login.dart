@@ -200,7 +200,7 @@ class _NLoginState extends State<NLogin> {
           FilledButton.icon(
             onPressed: loginWithNip07,
             label: Text(
-              Nip07Signer().canSign
+              Nip07Signer.isAvailable
                   ? AppLocalizations.of(context)!.connect
                   : AppLocalizations.of(context)!.install,
             ),
@@ -346,9 +346,7 @@ class _NLoginState extends State<NLogin> {
   }
 
   Future<void> loginWithNip07() async {
-    final signer = Nip07Signer();
-
-    if (!signer.canSign) {
+    if (!Nip07Signer.isAvailable) {
       await launchUrl(
         Uri.parse(
           'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp',
@@ -357,9 +355,11 @@ class _NLoginState extends State<NLogin> {
       return;
     }
 
-    final pubkey = await signer.getPublicKeyAsync();
+    final signer = await Nip07Signer.connect();
+    final pubkey = signer.publicKey;
 
     if (_accounts.hasAccount(pubkey)) {
+      await signer.dispose();
       _accounts.switchAccount(pubkey: pubkey);
     } else {
       _accounts.loginExternalSigner(signer: signer);

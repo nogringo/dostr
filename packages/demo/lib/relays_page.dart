@@ -127,7 +127,7 @@ class _RelaysPageState extends State<RelaysPage>
   }
 
   Future<void> _loadRelayList() async {
-    final pubkey = accounts.getPublicKey();
+    final pubkey = accounts.loggedPubkey;
     if (pubkey == null) {
       if (!mounted) return;
       setState(() {
@@ -188,7 +188,7 @@ class _RelaysPageState extends State<RelaysPage>
       );
     }
 
-    if (accounts.getPublicKey() == null) {
+    if (accounts.loggedPubkey == null) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(20),

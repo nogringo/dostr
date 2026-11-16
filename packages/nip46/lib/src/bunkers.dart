@@ -74,7 +74,7 @@ class Bunkers {
     );
 
     final requestEvent = Nip01Event(
-      pubkey: localSigner.getPublicKey(),
+      pubkey: localSigner.publicKey,
       kind: BunkerRequest.kKind,
       tags: [
         ["p", remotePubkey],
@@ -91,7 +91,7 @@ class Bunkers {
       Filter(
         authors: [remotePubkey],
         kinds: [BunkerRequest.kKind],
-        pTags: [localSigner.getPublicKey()],
+        pTags: [localSigner.publicKey],
         since: someTimeAgo(),
       ),
     );
@@ -163,7 +163,7 @@ class Bunkers {
       relays,
       Filter(
         kinds: [BunkerRequest.kKind],
-        pTags: [localSigner.getPublicKey()],
+        pTags: [localSigner.publicKey],
         since: someTimeAgo(),
       ),
     );
@@ -208,17 +208,18 @@ class Bunkers {
     return (DateTime.now().millisecondsSinceEpoch ~/ 1000) - duration.inSeconds;
   }
 
-  /// Creates a simple signer that delegates to this bunker instance
-  Nip46Signer createSigner(
+  /// A signer for [connection], once the bunker sent the user's pubkey, see
+  /// [Nip46Signer.connect].
+  Future<Nip46Signer> createSigner(
     BunkerConnection connection, {
     Function(String)? authCallback,
-  }) {
-    return Nip46Signer(
-      connection: connection,
-      relayReqs: _relayReqs,
-      relayPublishes: _relayPublishes,
-      authCallback: authCallback,
-      signerFactory: _signerFactory,
-    );
-  }
+    Duration timeout = Nip46Signer.defaultPublicKeyTimeout,
+  }) => Nip46Signer.connect(
+    connection: connection,
+    relayReqs: _relayReqs,
+    relayPublishes: _relayPublishes,
+    authCallback: authCallback,
+    signerFactory: _signerFactory,
+    timeout: timeout,
+  );
 }

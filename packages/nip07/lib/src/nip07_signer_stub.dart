@@ -3,13 +3,28 @@ import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
 class Nip07Signer implements NostrSigner {
-  String? cachedPublicKey;
+  /// the pubkey of the extension account this signer signs as
+  @override
+  final String publicKey;
 
   final _pendingRequestsController =
       BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
 
-  Nip07Signer({this.cachedPublicKey, int maxConcurrentRequests = 100})
-    : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+  static const int defaultMaxConcurrentRequests = 100;
+
+  Nip07Signer({
+    required this.publicKey,
+    int maxConcurrentRequests = defaultMaxConcurrentRequests,
+  }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+
+  /// false: NIP-07 only exists in a browser
+  static bool get isAvailable => false;
+
+  static Future<Nip07Signer> connect({
+    int maxConcurrentRequests = defaultMaxConcurrentRequests,
+  }) async {
+    throw UnsupportedError('NIP-07 is not available on this platform');
+  }
 
   @override
   bool get canSign {
@@ -45,16 +60,6 @@ class Nip07Signer implements NostrSigner {
     required String plaintext,
     required String recipientPubkey,
   }) async {
-    throw UnsupportedError('NIP-07 is not available on this platform');
-  }
-
-  @override
-  String getPublicKey() {
-    if (cachedPublicKey != null) return cachedPublicKey!;
-    throw UnsupportedError('NIP-07 is not available on this platform');
-  }
-
-  Future<String> getPublicKeyAsync() {
     throw UnsupportedError('NIP-07 is not available on this platform');
   }
 

@@ -7,7 +7,7 @@ class _Signer implements NostrSigner {
   final String pubkey;
 
   @override
-  String getPublicKey() => pubkey;
+  String get publicKey => pubkey;
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);

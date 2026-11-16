@@ -9,20 +9,16 @@ void main() {
   group('Nip07Signer outside the browser', () {
     late Nip07Signer signer;
 
-    setUp(() => signer = Nip07Signer(cachedPublicKey: 'pubkey'));
+    setUp(() => signer = Nip07Signer(publicKey: 'pubkey'));
     tearDown(() => signer.dispose());
 
     test('cannot sign', () {
+      expect(Nip07Signer.isAvailable, isFalse);
       expect(signer.canSign, isFalse);
-      expect(signer.cachedPublicKey, 'pubkey');
     });
 
-    test('gives the cached public key, as in the browser', () {
-      expect(signer.getPublicKey(), 'pubkey');
-
-      final uncached = Nip07Signer();
-      addTearDown(uncached.dispose);
-      expect(uncached.getPublicKey, throwsUnsupportedError);
+    test('gives the public key it was given, as in the browser', () {
+      expect(signer.publicKey, 'pubkey');
     });
 
     test('throws UnsupportedError for every request', () {
@@ -33,7 +29,7 @@ void main() {
         content: '',
       );
 
-      expect(signer.getPublicKeyAsync, throwsUnsupportedError);
+      expect(Nip07Signer.connect(), throwsUnsupportedError);
       expect(signer.sign(event), throwsUnsupportedError);
       expect(
         signer.encryptNip04(plaintext: 'msg', recipientPubkey: 'pubkey'),

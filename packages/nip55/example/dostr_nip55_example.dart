@@ -17,5 +17,5 @@ Future<void> main() async {
     publicKey: login.pubkey,
     signerApp: Nip55SignerApp(package: login.package),
   );
-  debugPrint(signer.getPublicKey());
+  debugPrint(signer.publicKey);
 }

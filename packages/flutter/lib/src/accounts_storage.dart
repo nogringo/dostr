@@ -80,7 +80,7 @@ class AccountsStorage {
       }
     }
 
-    stored.loggedAccount = accounts.getPublicKey();
+    stored.loggedAccount = accounts.loggedPubkey;
 
     await storage.write(key: accountsKey, value: jsonEncode(stored));
   }
@@ -96,7 +96,7 @@ class AccountsStorage {
       if (accounts.hasAccount(account.pubkey)) continue;
 
       if (account.kind == AccountKinds.nip07) {
-        final signer = Nip07Signer(cachedPublicKey: account.pubkey);
+        final signer = Nip07Signer(publicKey: account.pubkey);
         accounts.addAccount(signer: signer);
         continue;
       }
@@ -118,10 +118,10 @@ class AccountsStorage {
           connection: BunkerConnection.fromJson(
             jsonDecode(account.signerSeed!),
           ),
+          publicKey: account.pubkey,
           relayReqs: relayReqs,
           relayPublishes: relayPublishes,
           signerFactory: accounts.signerFactory,
-          cachedPublicKey: account.pubkey,
         );
         accounts.addAccount(signer: signer);
         continue;
