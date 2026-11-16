@@ -29,12 +29,16 @@ typedef _AuthEventBuilder = Nip01Event Function(String pubkey);
 /// [servers] less those an [AuthHandler] keeps an upfront authorization from
 typedef _ServerFilter = Future<List<String>> Function(List<String> servers);
 
-/// [servers] less those [seen] already names once [cleanBlossomServerUrl]
-/// normalized them. The ones it keeps join [seen], and are kept as given.
-List<String> _distinctServers(Iterable<String> servers, Set<String> seen) => [
-  for (final server in servers)
-    if (seen.add(cleanBlossomServerUrl(server) ?? server)) server,
-];
+/// [servers] less those [seen] or an earlier one already names once
+/// [cleanBlossomServerUrl] normalized them. The ones it keeps join [seen], and
+/// are kept as given.
+List<String> _distinctServers(Iterable<String> servers, [Set<String>? seen]) {
+  final named = seen ?? {};
+  return [
+    for (final server in servers)
+      if (named.add(cleanBlossomServerUrl(server) ?? server)) server,
+  ];
+}
 
 /// What one blossom operation does about its authorization, and the servers
 /// it may talk to.
@@ -389,9 +393,9 @@ class Blossom {
   }) =>
       media ? (sha256) => plan.authorize(_writeEvent("upload", sha256)) : null;
 
-  /// The servers a write talks to: an explicit list, else an explicit pubkey's
-  /// kind 10063 list, else the identity the policy names, else the logged-in
-  /// account's.
+  /// The servers a write talks to, each once: an explicit list, else an
+  /// explicit pubkey's kind 10063 list, else the identity the policy names,
+  /// else the logged-in account's.
   ///
   /// That last fallback applies even under [AuthPolicy.never]. Reading a
   /// public kind 10063 from relays tells the blossom servers nothing, and
@@ -402,12 +406,12 @@ class Blossom {
     required String? explicitPubkey,
     required String? listOwner,
   }) async {
-    if (serverUrls != null) return serverUrls;
+    if (serverUrls != null) return _distinctServers(serverUrls);
 
     final owner =
         explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.pubkey;
     if (owner == null) throw const BlossomNoServerListException();
-    return _userServerList(owner);
+    return _distinctServers(await _userServerList(owner));
   }
 
   /// [pubkey]'s servers, or a [BlossomNoServerListException] when it has none
@@ -544,7 +548,7 @@ class Blossom {
         UploadPhase.hashing,
         UploadPhase.uploading,
         if (strategy == UploadStrategy.mirrorAfterSuccess &&
-            (serverUrls == null || serverUrls.length > 1))
+            (serverUrls == null || _distinctServers(serverUrls).length > 1))
           UploadPhase.mirroring,
       ];
       // Compute file hash without loading entire file into memory
@@ -629,7 +633,7 @@ class Blossom {
       authorisesByDefault: true,
       operation: "upload",
       buildEvent: _writeEvent("upload", sha256),
-      resolveServers: () async => targetServerUrls,
+      resolveServers: () async => _distinctServers(targetServerUrls),
     );
 
     // Mirror to all target servers
@@ -796,7 +800,8 @@ class Blossom {
       operation: "list",
       buildEvent: (owner) =>
           _blossomAuthEvent(content: "List Blobs", pubkey: owner, type: "list"),
-      resolveServers: () async => serverUrls ?? await _userServerList(pubkey),
+      resolveServers: () async =>
+          _distinctServers(serverUrls ?? await _userServerList(pubkey)),
     );
 
     return _blossomImpl.listBlobs(
