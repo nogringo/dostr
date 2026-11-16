@@ -8,6 +8,8 @@ topics:
   - nostr
   - dostr
   - encryption
+  - nip44
+  - nip04
 
 environment:
   sdk: ">=3.9.0 <4.0.0"
