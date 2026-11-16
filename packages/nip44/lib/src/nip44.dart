@@ -34,8 +34,8 @@ class Nip44 {
     );
   }
 
-  /// Encrypts [plaintext], 1 to 65535 bytes in UTF-8, with [conversationKey]
-  /// into a base64 NIP-44 payload.
+  /// Encrypts [plaintext], 1 to 4294967295 bytes in UTF-8, with
+  /// [conversationKey] into a base64 NIP-44 payload.
   ///
   /// Throws an [ArgumentError] when [plaintext] is empty or too long.
   /// [nonce] is for test vectors only: a nonce must never be reused.
@@ -63,6 +63,9 @@ class Nip44 {
   /// Throws [Nip44InvalidMacException] when the payload was altered or the
   /// keys do not match, and a [FormatException] when [payload] is not a valid
   /// NIP-44 v2 payload.
+  ///
+  /// It decodes the whole [payload] in memory, with no size limit of its own:
+  /// bound the size of a payload from an untrusted source before calling it.
   static String decrypt(String payload, Uint8List conversationKey) {
     final (:nonce, :ciphertext, :mac) = parsePayload(payload);
     final keys = deriveMessageKeys(conversationKey, nonce);

@@ -32,7 +32,8 @@ final plaintext = await Nip44.decryptMessage(
 
 - Keys are hex strings. A public key is x-only (64 characters, as in Nostr events) or SEC1 encoded.
 - `encryptMessage` and `decryptMessage` return futures but do the work on the calling isolate, on every platform.
-- The plaintext must be 1 to 65535 bytes in UTF-8: an empty string throws.
+- The plaintext must be 1 to 4294967295 bytes in UTF-8: an empty string throws.
+- `decrypt` and `decryptMessage` decode the whole payload in memory, with no size limit of their own: bound the size of a payload from an untrusted source before you decrypt it.
 
 ## Many messages with the same peer
 
@@ -53,7 +54,7 @@ The `nonce` of `encrypt` is for test vectors: a nonce must never be reused.
 
 - `Nip44InvalidMacException`: the payload was altered, or the keys do not match.
 - `FormatException`: a key is not valid on secp256k1, or the payload is not a valid NIP-44 v2 payload (version, base64, size, padding or UTF-8). It never holds the private key.
-- `ArgumentError`: the plaintext is empty or longer than 65535 bytes, or a conversation key or a nonce is not 32 bytes.
+- `ArgumentError`: the plaintext is empty or longer than 4294967295 bytes, or a conversation key or a nonce is not 32 bytes.
 
 ## Through a signer
 

@@ -112,6 +112,20 @@ void main() {
         expect(calcPaddedLen(unpadded), padded);
       });
     }
+
+    test('pads the longest plaintext to 2^32 bytes', () {
+      expect(calcPaddedLen(0xffffffff), 0x100000000);
+    });
+  });
+
+  group('unpad', () {
+    test('rejects an extended prefix for fewer than 65536 bytes', () {
+      final padded = Uint8List(6 + calcPaddedLen(65535))
+        ..[4] = 0xff
+        ..[5] = 0xff;
+
+      expect(() => unpad(padded), throwsFormatException);
+    });
   });
 
   group('encrypt and decrypt', () {
@@ -163,7 +177,45 @@ void main() {
       });
     }
 
-    for (final length in invalid['encrypt_msg_lengths'] as List) {
+    // https://github.com/nostr-protocol/nips/blob/master/44.md#extended-length-prefix-test-vectors
+    for (final (length, plaintextSha256, payloadSha256) in [
+      (
+        65535,
+        '6e1bebca6a8229364a162a72ef064826c4cd7457bf54f190ef782bd9deff3e42',
+        '6d8c2810d1e870fbaa1f0a0937126cca837a15f9260e27060c331d70a3c0bc84',
+      ),
+      (
+        65536,
+        'bf718b6f653bebc184e1479f1935b8da974d701b893afcf49e701f3e2f9f9c5a',
+        'b7b4edb36ba92e267d322d56d9aebc22e7fa96ff52e3c12adc07f07a43cbc616',
+      ),
+      (
+        65537,
+        '008ffc88d3c96a9f307524eb361e47c5222a887fc45fa0c1fb8d429c5c23b430',
+        'eeb7c7c5373894ea2c1547cfd3ccb15d5a0b2d619da852e5c79df792dcc9e435',
+      ),
+    ]) {
+      test('message of $length bytes around the extended prefix', () {
+        final conversationKey = _bytes(
+          'c41c775356fd92eadc63ff5a0dc1da211b268cbea22316767095b2871ea1412d',
+        );
+        final plaintext = 'a' * length;
+        final payload = Nip44.encrypt(
+          plaintext,
+          conversationKey,
+          nonce: _bytes('${'0' * 63}1'),
+        );
+
+        expect(_sha256(utf8.encode(plaintext)), plaintextSha256);
+        expect(_sha256(utf8.encode(payload)), payloadSha256);
+        expect(Nip44.decrypt(payload, conversationKey), plaintext);
+      });
+    }
+
+    // These vectors predate nostr-protocol/nips#1907, which made 65536 bytes and more valid.
+    for (final length in (invalid['encrypt_msg_lengths'] as List).where(
+      (length) => length < 65536,
+    )) {
       test('rejects a plaintext of $length bytes', () {
         expect(
           () => Nip44.encrypt('a' * (length as int), Uint8List(32)),
