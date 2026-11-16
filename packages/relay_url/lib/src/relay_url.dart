@@ -1,14 +1,22 @@
 final _wsScheme = RegExp(r'^ws(s?):/{2,}', caseSensitive: false);
 
+final _httpScheme = RegExp(r'^http(s?)://', caseSensitive: false);
+
+final _anyScheme = RegExp(r'^[a-z][a-z0-9+.-]*:/', caseSensitive: false);
+
+// browsers accept '_', although RFC 1123 host names forbid it
 final _hostname = RegExp(
-  r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$',
+  r'^[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?(\.[a-z0-9_]([a-z0-9_-]*[a-z0-9_])?)*$',
 );
+
+final _repeatedSlashes = RegExp('/{2,}');
 
 /// A ws or wss relay url as [cleanRelayUrl] normalizes it, so two relay urls
 /// name one relay exactly when they are equal.
 ///
 /// It is a [String], so it goes wherever one does. A [String] becomes one
-/// only through [cleanRelayUrl], [RelayUrl.parse] or [RelayUrl.tryParse].
+/// only through [cleanRelayUrl], [RelayUrl.parse] or [RelayUrl.fromUserInput],
+/// or through a cast, which nothing checks since the type is gone at run time.
 extension type const RelayUrl._(String _url) implements String {
   /// Normalizes [url] as [cleanRelayUrl] does, or throws a [FormatException]
   /// if it is not a ws or wss url.
@@ -16,9 +24,21 @@ extension type const RelayUrl._(String _url) implements String {
       cleanRelayUrl(url) ??
       (throw FormatException('Not a ws or wss relay url', url));
 
-  /// Normalizes [url] as [cleanRelayUrl] does, or returns null if it is not a
-  /// ws or wss url.
-  static RelayUrl? tryParse(String url) => cleanRelayUrl(url);
+  /// Normalizes [input], a relay url a person typed, or returns null if it is
+  /// not one.
+  ///
+  /// Unlike [cleanRelayUrl], it reads a url without a scheme as a wss url,
+  /// and an http or https url as a ws or wss one, as Nostr clients do.
+  static RelayUrl? fromUserInput(String input) {
+    final trimmed = input.trim();
+    final http = _httpScheme.matchAsPrefix(trimmed);
+    if (http != null) {
+      return cleanRelayUrl('ws${http[1]}://${trimmed.substring(http.end)}');
+    }
+    return cleanRelayUrl(
+      _anyScheme.hasMatch(trimmed) ? trimmed : 'wss://$trimmed',
+    );
+  }
 }
 
 /// Normalizes a ws or wss relay url, or returns null if it is not one.
@@ -26,8 +46,9 @@ extension type const RelayUrl._(String _url) implements String {
 /// The scheme and host are lowercased, dot segments removed and
 /// percent-encodings normalized, as RFC 3986 section 6 describes. The default
 /// port, the user info and the fragment, which RFC 6455 forbids in WebSocket
-/// urls, are dropped, and so are trailing slashes, as Nostr clients do. A fully
-/// qualified host name loses its trailing dot.
+/// urls, are dropped. Repeated slashes in the path are merged and a trailing
+/// one dropped, as Nostr clients do. A fully qualified host name loses its
+/// trailing dot.
 RelayUrl? cleanRelayUrl(String url) {
   final trimmed = url.trim();
   final scheme = _wsScheme.matchAsPrefix(trimmed);
@@ -57,10 +78,8 @@ RelayUrl? cleanRelayUrl(String url) {
 
   final host = ipv6 ? '[${uri.host}]' : name;
   final port = uri.hasPort ? ':${uri.port}' : '';
-  var path = uri.path;
-  while (path.endsWith('/')) {
-    path = path.substring(0, path.length - 1);
-  }
+  var path = uri.path.replaceAll(_repeatedSlashes, '/');
+  if (path.endsWith('/')) path = path.substring(0, path.length - 1);
   final query = uri.query.isEmpty ? '' : '?${uri.query}';
   return RelayUrl._('${secure ? 'wss' : 'ws'}://$host$port$path$query');
 }

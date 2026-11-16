@@ -69,6 +69,17 @@ void main() {
           'wss://relay.example.com?token=abc',
         );
       });
+
+      test('accepts a host name holding _', () {
+        expect(
+          cleanRelayUrl('wss://My_Relay.Example.com'),
+          'wss://my_relay.example.com',
+        );
+        expect(
+          cleanRelayUrl('wss://_relay.example.com'),
+          'wss://_relay.example.com',
+        );
+      });
     });
 
     group('URL cleaning', () {
@@ -76,6 +87,21 @@ void main() {
         expect(
           cleanRelayUrl('wss://relay.primal.net/'),
           'wss://relay.primal.net',
+        );
+      });
+
+      test('merges repeated slashes in the path', () {
+        expect(
+          cleanRelayUrl('wss://relay.example.com//nostr'),
+          'wss://relay.example.com/nostr',
+        );
+        expect(
+          cleanRelayUrl('wss://relay.example.com/a//b///c//'),
+          'wss://relay.example.com/a/b/c',
+        );
+        expect(
+          cleanRelayUrl('wss://relay.example.com//?a=1'),
+          'wss://relay.example.com?a=1',
         );
       });
 
@@ -216,16 +242,45 @@ void main() {
     });
   });
 
-  group('RelayUrl.tryParse', () {
-    test('normalizes a relay url', () {
+  group('RelayUrl.fromUserInput', () {
+    test('reads a url without a scheme as a wss url', () {
       expect(
-        RelayUrl.tryParse('WSS://Relay.Primal.NET:443/'),
+        RelayUrl.fromUserInput('  Relay.Primal.NET/  '),
+        'wss://relay.primal.net',
+      );
+      expect(RelayUrl.fromUserInput('localhost:7777'), 'wss://localhost:7777');
+      expect(RelayUrl.fromUserInput('[::1]:7777'), 'wss://[::1]:7777');
+    });
+
+    test('reads an http or https url as a ws or wss url', () {
+      expect(
+        RelayUrl.fromUserInput('https://relay.primal.net:443/'),
+        'wss://relay.primal.net',
+      );
+      expect(RelayUrl.fromUserInput('HTTP://localhost:80'), 'ws://localhost');
+      expect(
+        RelayUrl.fromUserInput('https:///relay.primal.net'),
         'wss://relay.primal.net',
       );
     });
 
-    test('returns null for a url that is not a relay url', () {
-      expect(RelayUrl.tryParse('https://relay.primal.net'), null);
+    test('normalizes a ws or wss url as cleanRelayUrl does', () {
+      expect(
+        RelayUrl.fromUserInput('WSS://Relay.Primal.NET:443/'),
+        'wss://relay.primal.net',
+      );
+      expect(
+        RelayUrl.fromUserInput('ws://localhost:7777'),
+        'ws://localhost:7777',
+      );
+    });
+
+    test('returns null for another scheme or a broken one', () {
+      expect(RelayUrl.fromUserInput('ftp://relay.primal.net'), null);
+      expect(RelayUrl.fromUserInput('wss:/relay.primal.net'), null);
+      expect(RelayUrl.fromUserInput('https:/relay.primal.net'), null);
+      expect(RelayUrl.fromUserInput('not a url'), null);
+      expect(RelayUrl.fromUserInput(''), null);
     });
   });
 
@@ -242,6 +297,8 @@ void main() {
       'wss://relay.primal.net/a/%2E',
       'wss://relay.primal.net/path%2f%7e/?key%41=%2fv#section',
       'wss://relay.primal.net/pa th?b=c d',
+      'wss://relay.primal.net//a//../b//',
+      'wss://My_Relay.Example.com',
     ];
     for (final url in urls) {
       final once = cleanRelayUrl(url);
