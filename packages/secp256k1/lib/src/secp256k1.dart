@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'bytes.dart';
@@ -15,10 +16,21 @@ final secp256k1Order = BigInt.parse(
 );
 
 final _p = secp256k1FieldPrime;
+final _n = secp256k1Order;
 final _low256Bits = (BigInt.one << 256) - BigInt.one;
 final _foldFactor = BigInt.parse('1000003d1', radix: 16);
 final _three = BigInt.from(3);
 final _seven = BigInt.from(7);
+
+// GLV (Gallant, Lambert and Vanstone, 2001): lambda * (x, y) = (beta * x, y),
+// and a1, b1, a2 split a scalar into two of about 128 bits.
+final _beta = BigInt.parse(
+  '7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee',
+  radix: 16,
+);
+final _glvA1 = BigInt.parse('3086d221a7d46bcde86c90e49284eb15', radix: 16);
+final _glvMinusB1 = BigInt.parse('e4437ed6010e88286f547fa90abfe4c3', radix: 16);
+final _glvA2 = BigInt.parse('114ca50f7a8e2f3f657c1108d9d44cfd8', radix: 16);
 
 /// A point of secp256k1, or the point at infinity.
 ///
@@ -110,12 +122,8 @@ final class Secp256k1Point {
     if (_z == BigInt.one) {
       return (x: _x, y: _y);
     }
-    final zInverse = _z.modInverse(_p);
-    final zInverse2 = _reduce(zInverse * zInverse);
-    return (
-      x: _reduce(_x * zInverse2),
-      y: _reduce(_reduce(_y * zInverse2) * zInverse),
-    );
+    final normalized = _normalized(this, _z.modInverse(_p));
+    return (x: normalized._x, y: normalized._y);
   }
 
   /// This point in SEC1, compressed in 33 bytes unless [compressed] is false.
@@ -135,7 +143,7 @@ final class Secp256k1Point {
 
   /// This point times [scalar], taken modulo [secp256k1Order].
   Secp256k1Point operator *(BigInt scalar) {
-    final reduced = scalar % secp256k1Order;
+    final reduced = scalar % _n;
     if (reduced == BigInt.zero || isInfinity) {
       return infinity;
     }
@@ -164,41 +172,103 @@ bool _isFieldElement(BigInt value) => !value.isNegative && value < _p;
 
 BigInt _ySquared(BigInt x) => _addMod(_reduce(_reduce(x * x) * x), _seven);
 
-/// The hex digits of [scalar], most significant first.
-List<int> _nibbles(BigInt scalar) => [
-  for (final unit in scalar.toRadixString(16).codeUnits)
+/// The hex digits of [scalar], at least [length] of them, most significant
+/// first.
+List<int> _nibbles(BigInt scalar, [int length = 0]) => [
+  for (final unit in scalar.toRadixString(16).padLeft(length, '0').codeUnits)
     unit <= 0x39 ? unit - 0x30 : unit - 0x57,
 ];
 
+/// k1 and k2 with k = k1 + k2 * lambda modulo n.
+(BigInt, BigInt) _splitScalar(BigInt scalar) {
+  final half = _n >> 1;
+  final c1 = (_glvA1 * scalar + half) ~/ _n;
+  final c2 = (_glvMinusB1 * scalar + half) ~/ _n;
+  return (scalar - c1 * _glvA1 - c2 * _glvA2, c1 * _glvMinusB1 - c2 * _glvA1);
+}
+
+Secp256k1Point _endomorphism(Secp256k1Point point) =>
+    Secp256k1Point._(_reduce(point._x * _beta), point._y, point._z);
+
 Secp256k1Point _multiply(Secp256k1Point point, BigInt scalar) {
+  final (k1, k2) = _splitScalar(scalar);
   final multiples = [point, _double(point)];
   while (multiples.length < 15) {
     multiples.add(_add(multiples.last, point));
   }
+  final firstMultiples = [
+    for (final multiple in multiples) k1.isNegative ? -multiple : multiple,
+  ];
+  final secondMultiples = [
+    for (final multiple in multiples)
+      k2.isNegative ? -_endomorphism(multiple) : _endomorphism(multiple),
+  ];
+  final length = max(
+    k1.abs().toRadixString(16).length,
+    k2.abs().toRadixString(16).length,
+  );
+  final firstDigits = _nibbles(k1.abs(), length);
+  final secondDigits = _nibbles(k2.abs(), length);
+
   var result = Secp256k1Point.infinity;
-  for (final digit in _nibbles(scalar)) {
+  for (var i = 0; i < length; i++) {
     result = _double(_double(_double(_double(result))));
-    if (digit != 0) {
-      result = _add(result, multiples[digit - 1]);
+    if (firstDigits[i] != 0) {
+      result = _add(result, firstMultiples[firstDigits[i] - 1]);
+    }
+    if (secondDigits[i] != 0) {
+      result = _add(result, secondMultiples[secondDigits[i] - 1]);
     }
   }
   return result;
 }
 
-// _generatorTable[i][j - 1] is j * 16^i * G, so k * G needs no doubling.
+// _generatorTable[i][j - 1] is j * 16^i * G, in affine coordinates so that
+// every addition is a mixed one, and k * G needs no doubling.
 final _generatorTable = () {
-  final table = <List<Secp256k1Point>>[];
+  final multiples = <Secp256k1Point>[];
   var base = Secp256k1Point.generator;
   for (var i = 0; i < 64; i++) {
     final row = [base];
     while (row.length < 15) {
       row.add(_add(row.last, base));
     }
-    table.add(row);
+    multiples.addAll(row);
     base = _double(row[7]);
   }
-  return table;
+  final affine = _toAffineAll(multiples);
+  return [for (var i = 0; i < 64; i++) affine.sublist(i * 15, i * 15 + 15)];
 }();
+
+/// [points], none of them the point at infinity, with z = 1, for a single
+/// inversion (Montgomery's trick).
+List<Secp256k1Point> _toAffineAll(List<Secp256k1Point> points) {
+  final products = <BigInt>[];
+  var product = BigInt.one;
+  for (final point in points) {
+    product = _reduce(product * point._z);
+    products.add(product);
+  }
+  var inverse = product.modInverse(_p);
+  final zInverses = List.filled(points.length, BigInt.zero);
+  for (var i = points.length - 1; i >= 0; i--) {
+    zInverses[i] = i == 0 ? inverse : _reduce(inverse * products[i - 1]);
+    inverse = _reduce(inverse * points[i]._z);
+  }
+  return [
+    for (final (i, point) in points.indexed) _normalized(point, zInverses[i]),
+  ];
+}
+
+/// [point] with z = 1, given the inverse of its z.
+Secp256k1Point _normalized(Secp256k1Point point, BigInt zInverse) {
+  final zInverse2 = _reduce(zInverse * zInverse);
+  return Secp256k1Point._(
+    _reduce(point._x * zInverse2),
+    _reduce(_reduce(point._y * zInverse2) * zInverse),
+    BigInt.one,
+  );
+}
 
 Secp256k1Point _multiplyGenerator(BigInt scalar) {
   final digits = _nibbles(scalar);
@@ -240,6 +310,12 @@ Secp256k1Point _add(Secp256k1Point p1, Secp256k1Point p2) {
   if (p2.isInfinity) {
     return p1;
   }
+  if (p2._z == BigInt.one) {
+    return _addAffine(p1, p2);
+  }
+  if (p1._z == BigInt.one) {
+    return _addAffine(p2, p1);
+  }
   final z1z1 = _reduce(p1._z * p1._z);
   final z2z2 = _reduce(p2._z * p2._z);
   final u1 = _reduce(p1._x * z2z2);
@@ -260,6 +336,29 @@ Secp256k1Point _add(Secp256k1Point p1, Secp256k1Point p2) {
     x3,
     _subMod(_reduce(r * _subMod(v, x3)), _reduce((s1 * j) << 1)),
     _reduce(_subMod(_reduce(zz * zz), _addMod(z1z1, z2z2)) * h),
+  );
+}
+
+// madd-2007-bl, https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html
+Secp256k1Point _addAffine(Secp256k1Point p1, Secp256k1Point affine) {
+  final z1z1 = _reduce(p1._z * p1._z);
+  final u2 = _reduce(affine._x * z1z1);
+  final s2 = _reduce(_reduce(affine._y * p1._z) * z1z1);
+  final h = _subMod(u2, p1._x);
+  final r = _reduce(_subMod(s2, p1._y) << 1);
+  if (h == BigInt.zero) {
+    return r == BigInt.zero ? _double(affine) : Secp256k1Point.infinity;
+  }
+  final hh = _reduce(h * h);
+  final i = _reduce(hh << 2);
+  final j = _reduce(h * i);
+  final v = _reduce(p1._x * i);
+  final x3 = _subMod(_reduce(r * r), _addMod(j, _addMod(v, v)));
+  final zh = p1._z + h;
+  return Secp256k1Point._(
+    x3,
+    _subMod(_reduce(r * _subMod(v, x3)), _reduce((p1._y * j) << 1)),
+    _subMod(_reduce(zh * zh), _addMod(z1z1, hh)),
   );
 }
 

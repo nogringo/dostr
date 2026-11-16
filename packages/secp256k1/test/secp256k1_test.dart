@@ -60,13 +60,31 @@ void main() {
   });
 
   group('multiplication', () {
+    final lambda = _hex(
+      '5363ad4cc05c30e0a5261c028812645a122e22ea20816678df02967c1b23bd72',
+    );
     final scalars = [
       for (final small in [1, 2, 15, 16, 17, 255, 256]) BigInt.from(small),
+      BigInt.one << 128,
       BigInt.one << 255,
+      lambda,
+      lambda + BigInt.one,
+      n - lambda,
       n - BigInt.two,
       n - BigInt.one,
-      for (var i = 0; i < 20; i++) randomScalar(),
+      for (var i = 0; i < 40; i++) randomScalar(),
     ];
+
+    test('by lambda multiplies x by beta, the GLV endomorphism', () {
+      final beta = _hex(
+        '7ae96a2b657c07106e64479eac3434e99cf0497512f58995c1396c28719501ee',
+      );
+      final point = g * randomScalar();
+      expect(
+        point * lambda,
+        Secp256k1Point.fromXY(point.x * beta % p, point.y),
+      );
+    });
 
     test('of the generator matches pointycastle', () {
       for (final k in scalars) {

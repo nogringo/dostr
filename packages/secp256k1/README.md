@@ -47,9 +47,10 @@ They return null for a point that is not on the curve.
 ## Performance
 
 The arithmetic runs in Jacobian coordinates, so a multiplication inverts only once: `x` and `y` are computed on first read.
-Multiplying `Secp256k1Point.generator` goes through a table of 960 of its multiples, built on first use in a few milliseconds.
+Multiplying `Secp256k1Point.generator` goes through a table of 960 of its multiples in affine coordinates, built on first use in a few milliseconds.
+Multiplying any other point splits the scalar in two halves of 128 bits with the GLV endomorphism of the curve, which halves the doublings.
 
-On an Apple Silicon laptop, compiled ahead of time, `generator * k` takes about 0.13 ms and `point * k` about 0.42 ms, against about 2.7 ms for the pointycastle curve.
-A Schnorr signature takes about 0.3 ms and a verification about 0.65 ms.
+On an Apple Silicon laptop, compiled ahead of time, `generator * k` takes about 0.1 ms and `point * k` about 0.29 ms, against about 2.7 ms for the pointycastle curve.
+A Schnorr signature takes about 0.23 ms and a verification about 0.45 ms.
 
 None of it runs in constant time.

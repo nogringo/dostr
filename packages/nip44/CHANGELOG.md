@@ -9,5 +9,5 @@
  - An invalid private key no longer ends up in the error message.
  - `Nip44.decryptMessage` rejects a payload whose padding is not the one NIP-44 requires.
  - `Nip44` encrypts and decrypts messages longer than 65535 bytes, up to 4294967295, with the 6-byte length prefix that NIP-44 added in nostr-protocol/nips#1907.
- - `Nip44.conversationKey` is 3 to 5 times faster: the secp256k1 key agreement no longer goes through the pointycastle curve.
+ - `Nip44.conversationKey` is 4 to 8 times faster: the secp256k1 key agreement runs on `dostr_secp256k1` instead of the pointycastle curve.
  - `Nip44.encrypt` and `Nip44.decrypt` are 2 to 4 times faster, with HMAC-SHA256 from `package:crypto`.
