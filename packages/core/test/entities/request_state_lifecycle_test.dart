@@ -26,10 +26,10 @@ void main() {
       state.addRequest(fast, _filters);
       state.addRequest(slow, _filters);
 
-      state.requests[fast]!.receivedEOSE = true;
+      state.requests[fast]!.markCaughtUp();
       expect(state.didAllRequestsFinish, isFalse);
 
-      state.requests[slow]!.receivedEOSE = true;
+      state.requests[slow]!.markCaughtUp();
       expect(state.didAllRequestsFinish, isTrue);
     });
 
@@ -43,7 +43,7 @@ void main() {
       // entry yet. The relay that answered must not look like the only one
       state.pendingConnections++;
       state.addRequest(fast, _filters);
-      state.requests[fast]!.receivedEOSE = true;
+      state.requests[fast]!.markCaughtUp();
 
       expect(state.didAllRequestsFinish, isFalse);
 
@@ -58,11 +58,11 @@ void main() {
       );
       state.addRequest(key, _filters);
 
-      state.requests[key]!.receivedClosed = true;
-      state.requests[key]!.retryingAuth = true;
+      state.requests[key]!.markClosed(null);
+      state.requests[key]!.markRetryingAuth();
       expect(state.didAllRequestsFinish, isFalse);
 
-      state.requests[key]!.retryingAuth = false;
+      state.requests[key]!.endAuthRetry();
       expect(state.didAllRequestsFinish, isTrue);
     });
   });

@@ -156,15 +156,14 @@ class _Nip77Internal extends RelayProtocolHandler {
   /// Opens the connection the session is bound to, handing over the account so
   /// a bound connection works for an identity that was never registered.
   Future<RelayConnectivity?> _openConnection(Nip77State state) async {
-    final connected = await _relayManager.reconnectConnection(
-      state.connectionKey,
-      as: state.auth?.signer,
-      pausing: state,
-    );
-    if (!connected) {
-      return null;
+    final key = state.connectionKey;
+    if (!key.isAnonymous) {
+      final account = state.auth?.signer;
+      if (account == null) return null;
+      return _relayManager.openConnectionAs(key.url, account, pausing: state);
     }
-    return _relayManager.getConnectivity(state.connectionKey);
+    final opened = await _relayManager.connectRelay(key.url);
+    return opened.connected ? _relayManager.connectivities[key] : null;
   }
 
   /// Sends NEG-OPEN on the connection the session currently holds. The initial

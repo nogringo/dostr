@@ -212,7 +212,8 @@ A relay can hold several connections, one anonymous and one per identity it auth
 ### Reconnecting
 
 A connection that drops is retried right away, then after a wait that starts at 500 milliseconds and doubles, up to `reconnectMaximumStep` (4 seconds by default), for an hour.
-Its requests are replayed once it is back.
+Its requests are replayed once it is back, and so are the REQs sent to it meanwhile.
+A query waits for it too, until its timeout, or until that hour gives the relay up as `disconnected`.
 A socket that drops again within 10 seconds of coming back is not retried right away, so a relay that drops every socket is not reconnected in a loop.
 
 When the app learns that the network is back, or comes back to the foreground, it does not have to wait for the backoff:

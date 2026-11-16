@@ -15,7 +15,7 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!.connectionGone = true;
+      state.requests[key]!.markGone();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.disconnected),
@@ -28,10 +28,10 @@ void main() {
       final authenticated = RelayConnectionKey.authenticated(url, "a" * 64);
       state.addRequest(anonymous, [filter]);
       state.addRequest(authenticated, [filter]);
-      state.requests[anonymous]!
-        ..receivedClosed = true
-        ..closedMessage = "auth-required: we only serve authenticated users";
-      state.requests[authenticated]!.receivedEOSE = true;
+      state.requests[anonymous]!.markClosed(
+        "auth-required: we only serve authenticated users",
+      );
+      state.requests[authenticated]!.markCaughtUp();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.eose),
@@ -74,7 +74,7 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!.connectionGone = true;
+      state.requests[key]!.markGone();
 
       // what a subscription replayed on a replacement socket goes through
       state.requests[key]!.forgetAnswers();
@@ -93,8 +93,8 @@ void main() {
       final subscription = state.relayOutcomesStream.listen(seen.add);
       await Future.delayed(Duration.zero);
 
-      state.requests[key]!.receivedEOSE = true;
-      state.requests[key]!.receivedEOSE = true;
+      state.requests[key]!.markCaughtUp();
+      state.requests[key]!.markCaughtUp();
       await Future.delayed(Duration.zero);
       await subscription.cancel();
 
@@ -108,7 +108,7 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!.receivedEOSE = true;
+      state.requests[key]!.markCaughtUp();
 
       expect(await state.relayOutcomesStream.first, {
         url: RelayRequestOutcome(RelayRequestStatus.eose),
@@ -120,8 +120,8 @@ void main() {
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
       state.requests[key]!
-        ..receivedClosed = true
-        ..retryingAuth = true;
+        ..markClosed(null)
+        ..markRetryingAuth();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.pending),
@@ -137,7 +137,7 @@ void main() {
     RequestState caughtUp() {
       final state = RequestState.subscription("caught-up")
         ..addRequest(key, [filter]);
-      state.requests[key]!.receivedEOSE = true;
+      state.requests[key]!.markCaughtUp();
       return state;
     }
 
@@ -147,7 +147,7 @@ void main() {
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.eose),
       });
-      expect(state.endedOn(state.requests[key]!), isFalse);
+      expect(state.requests[key]!.isDone, isFalse);
       expect(state.didAllRequestsFinish, isFalse);
     });
 
@@ -166,7 +166,7 @@ void main() {
 
     test('reports a connection that went away', () {
       final state = caughtUp();
-      state.requests[key]!.connectionGone = true;
+      state.requests[key]!.markGone();
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.disconnected),
@@ -184,7 +184,7 @@ void main() {
 
     test('a query keeps its eose over a later timeout', () {
       final state = RequestState.query("query")..addRequest(key, [filter]);
-      state.requests[key]!.receivedEOSE = true;
+      state.requests[key]!.markCaughtUp();
       state.timedOut = true;
 
       expect(state.relayOutcomes, {

@@ -12,7 +12,4 @@ abstract interface class Relay {
 
   /// last successful connection
   int? get lastSuccessfulConnect;
-
-  /// was last connection try longer than given seconds
-  bool wasLastConnectTryLongerThanSeconds(int seconds);
 }

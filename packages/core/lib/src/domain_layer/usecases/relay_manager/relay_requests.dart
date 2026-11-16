@@ -51,22 +51,13 @@ class RelayRequests implements ConnectionListener {
     // what waited on the previous socket waits again below, in order
     _queue.drop(connection.key);
     inFlight.forEach((key, state) {
-      state.requests.values
-          // by connection, not by relay: replaying a bound request on the
-          // anonymous socket gets it refused, and replaying an anonymous one on
-          // a bound socket makes it attributable. An entry the relay already
-          // refused stays refused, replaying it only retriggers the re-route,
-          // unless it was refused for an authentication that never landed.
-          .where(
-            (req) =>
-                req.key == connection.key &&
-                (!req.receivedClosed || req.retryingAuth) &&
-                req.notSentFailure?.kind != RelayFailureKind.messageTooLong &&
-                // a query is over once this connection answered EOSE, while a
-                // subscription outlives its EOSE and has to go back up
-                (state.isSubscription || !req.receivedEOSE),
-          )
-          .forEach((req) => unawaited(_admit(connection, state, req)));
+      // by connection, not by relay: replaying a bound request on the
+      // anonymous socket gets it refused, and replaying an anonymous one on a
+      // bound socket makes it attributable
+      final request = state.requests[connection.key];
+      if (request != null && request.isReplayable) {
+        unawaited(_admit(connection, state, request));
+      }
     });
   }
 
@@ -77,10 +68,11 @@ class RelayRequests implements ConnectionListener {
   void endAuthRetriesOn(RelayConnectionKey key) {
     for (final state in inFlight.values.toList()) {
       final request = state.requests[key];
-      if (request == null || !request.retryingAuth) {
+      if (request == null ||
+          request.progress != RelayReqProgress.retryingAuth) {
         continue;
       }
-      request.retryingAuth = false;
+      request.endAuthRetry();
       _checkNetworkClose(state);
     }
   }
@@ -95,10 +87,12 @@ class RelayRequests implements ConnectionListener {
     _queue.drop(key);
     for (final state in inFlight.values.toList()) {
       final request = state.requests[key];
-      if (request == null || request.retryingAuth || state.endedOn(request)) {
+      if (request == null ||
+          request.isDone ||
+          request.progress == RelayReqProgress.retryingAuth) {
         continue;
       }
-      request.connectionGone = true;
+      request.markGone();
       _checkNetworkClose(state);
     }
   }
@@ -157,7 +151,7 @@ class RelayRequests implements ConnectionListener {
       () =>
           "⛁ received EOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
     );
-    state.requests[connection.key]?.receivedEOSE = true;
+    state.requests[connection.key]?.markCaughtUp();
     if (!state.closeOnEose) return;
 
     _sendCloseToRelay(connection, state.id);
@@ -344,12 +338,30 @@ class RelayRequests implements ConnectionListener {
     beginPendingConnection(state);
     try {
       final failure = await _sendTrackedRequest(state, request);
-      if (failure != null) {
+      if (failure != null && !_carriedAnyway(state, request, failure)) {
         _failRelayRequest(state, request.key, request.filters, failure);
       }
     } finally {
       endPendingConnection(state);
     }
+  }
+
+  /// Whether [request] still reaches its relay although its send path failed
+  /// on [failure]: its connection is coming back and replays it, or already
+  /// took it back.
+  bool _carriedAnyway(
+    RequestState state,
+    RelayRequestState request,
+    RelayFailure failure,
+  ) {
+    if (failure.kind != RelayFailureKind.unreachable &&
+        failure.kind != RelayFailureKind.connectionLost) {
+      return false;
+    }
+    final connection = _connections.relays[request.key];
+    return _connections.isComingBack(request.key) ||
+        _queue.contains(request) ||
+        (connection?.holdsSlot(state.id) ?? false);
   }
 
   /// Null once sent, otherwise what kept [request] from being sent.
@@ -406,9 +418,7 @@ class RelayRequests implements ConnectionListener {
     for (final relay in _connections.connectedRelays) {
       final request = state.requests[relay.key];
       // a request the relay ended itself, or never got, needs no CLOSE
-      if (request == null ||
-          state.endedOn(request) ||
-          !relay.holdsSlot(state.id)) {
+      if (request == null || request.isDone || !relay.holdsSlot(state.id)) {
         continue;
       }
       _sendCloseToConnection(relay.key, state.id);
@@ -449,6 +459,10 @@ class RelayRequests implements ConnectionListener {
 
     // whatever we do next, the relay just closed this one on this connection
     _endRequestOnRelay(connection, reqId, request, message);
+    if (request.progress != RelayReqProgress.closed) {
+      _checkNetworkClose(state);
+      return;
+    }
 
     if (!key.isAnonymous) {
       final session = _auth.sessionOf(key);
@@ -462,7 +476,7 @@ class RelayRequests implements ConnectionListener {
 
       Logger.log.d(() => "Authenticating $key to satisfy REQ $reqId");
       state.pauseTimeout();
-      request.retryingAuth = true;
+      request.markRetryingAuth();
       _connections.authenticate(key).then((authenticated) {
         if (!isStillInFlight(state)) {
           return;
@@ -471,7 +485,7 @@ class RelayRequests implements ConnectionListener {
         if (!authenticated) {
           // an authentication that died with its socket is not a refusal: stay
           // on the retry so the replacement replays the request
-          request.retryingAuth = session.ended;
+          if (!session.ended) request.endAuthRetry();
           _checkNetworkClose(state);
           return;
         }
@@ -528,42 +542,30 @@ class RelayRequests implements ConnectionListener {
 
   void _checkNetworkClose(RequestState state) {
     // a send path is still working out which connection to use, so the relays
-    // registered so far are not all this request will ever have. Both branches
-    // below would read that as finished
+    // registered so far are not all this request will ever have
     if (state.pendingConnections > 0) {
       return;
     }
-
-    /// received everything, close the network controller
     if (state.didAllRequestsFinish) {
       state.networkController.close();
       return;
     }
 
-    /// check if relays for this request are still connected
-    /// if not ignore it and wait for the ones still alive to finish. A
-    /// connection that was dropped entirely counts as gone too, otherwise a
-    /// request left on it would wait for a socket nobody will reopen. One that
-    /// is retrying its authentication is the exception: its replacement is on
-    /// its way and owes it a replay.
-    final myNotConnectedRelays = state.requests.keys
-        .where((key) => !_connections.isConnectionOpen(key))
-        .toList();
-
-    final bool didAllRelaysFinish = state.requests.values.every(
-      (element) =>
-          !element.retryingAuth &&
-          (state.endedOn(element) ||
-              myNotConnectedRelays.contains(element.key)),
-    );
-
-    if (didAllRelaysFinish) {
-      for (final key in myNotConnectedRelays) {
-        final request = state.requests[key]!;
-        if (!state.endedOn(request)) request.connectionGone = true;
-      }
-      state.networkController.close();
+    // a connection nobody will bring back owes nothing more, so the request
+    // does not wait for it. One retrying its authentication or coming back
+    // still owes a replay.
+    final owed = state.requests.values.where((request) => !request.isDone);
+    if (owed.any(
+      (request) =>
+          request.progress == RelayReqProgress.retryingAuth ||
+          !_connections.isGone(request.key),
+    )) {
+      return;
     }
+    for (final request in owed.toList()) {
+      request.markGone();
+    }
+    state.networkController.close();
   }
 
   /// sends a close message on the connection the subscription was sent on
@@ -600,12 +602,7 @@ class RelayRequests implements ConnectionListener {
     for (final state in inFlight.values) {
       if (state.networkController.isClosed) continue;
       final request = state.requests[key];
-      if (request != null &&
-          (request.retryingAuth ||
-              (!request.receivedClosed &&
-                  (state.isSubscription || !request.receivedEOSE)))) {
-        return true;
-      }
+      if (request != null && !request.isDone) return true;
     }
     return false;
   }

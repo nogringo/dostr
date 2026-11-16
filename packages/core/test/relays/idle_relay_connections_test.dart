@@ -162,31 +162,11 @@ void main() {
     expect(authTransport.closed, isTrue);
   });
 
-  test(
-    'request-sent waiter completes on exact REQ and supports late waiters',
-    () async {
-      connect(anonymous);
-      final pending = manager.waitForRequestSent(
-        'wanted',
-        const Duration(seconds: 1),
-      );
-      final notes = Filter(kinds: [1]).toJson();
-      manager.send(anonymous, ['REQ', 'other', notes]);
-      manager.send(anonymous, ['REQ', 'wanted', notes]);
-      await pending;
-      await manager.waitForRequestSent('wanted', const Duration(seconds: 1));
-      await expectLater(
-        manager.waitForRequestSent('missing', const Duration(milliseconds: 1)),
-        throwsA(isA<TimeoutException>()),
-      );
-    },
-  );
-
   test('live subscription retains exact key after EOSE', () async {
     final anonTransport = connect(anonymous);
     final authTransport = connect(authenticated);
     final subscription = request('subscription', key: authenticated);
-    subscription.requests[authenticated]!.receivedEOSE = true;
+    subscription.requests[authenticated]!.markCaughtUp();
     await manager.closeIdleConnections();
     expect(anonTransport.closed, isTrue);
     expect(authTransport.closed, isFalse);
@@ -216,7 +196,7 @@ void main() {
         Filter(kinds: [1]),
       ]);
       subscription.requests[authenticated]!.markClosed('auth-required');
-      subscription.requests[authenticated]!.retryingAuth = true;
+      subscription.requests[authenticated]!.markRetryingAuth();
       await manager.closeIdleConnections();
       expect(anonTransport.closed, isTrue);
       expect(authTransport.closed, isFalse);
@@ -228,7 +208,7 @@ void main() {
     connect(authenticated);
     request('pending-query', key: anonymous, query: true);
     final done = request('done-query', key: authenticated, query: true);
-    done.requests[authenticated]!.receivedEOSE = true;
+    done.requests[authenticated]!.markCaughtUp();
     await manager.closeIdleConnections();
     expect(parts.connections.relays.keys, [anonymous]);
   });

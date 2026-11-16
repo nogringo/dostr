@@ -259,6 +259,83 @@ void main() {
     await subscribed.tearDown();
   }, timeout: const Timeout(Duration(seconds: 60)));
 
+  for (final closeOnEose in [false, true]) {
+    final kind = closeOnEose ? 'query' : 'subscription';
+    test(
+      'a $kind opened while its connection comes back goes out once it is back',
+      () async {
+        final subscribed = await _subscribeOnFlakyRelay();
+        final connectivity = subscribed.connectivity;
+        final url = connectivity.url;
+
+        subscribed.factory.down = true;
+        subscribed.transport.dropConnection();
+        await _waitUntil(
+          () =>
+              connectivity.stats.connectionErrors >= 2 &&
+              !connectivity.relay.connecting,
+        );
+
+        final opened =
+            RelayReqs(
+              relayManager: subscribed.manager,
+              eventVerifier: FakeVerifier(),
+            ).req(
+              relays: {
+                url: [
+                  Filter(kinds: [Nip01Event.kTextNoteKind]),
+                ],
+              },
+              closeOnEose: closeOnEose,
+            );
+        opened.events.listen((_) {});
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+        expect(opened.outcomes[url]?.status, RelayRequestStatus.pending);
+
+        subscribed.factory.down = false;
+        await _waitUntil(
+          () => opened.outcomes[url]?.status == RelayRequestStatus.eose,
+        );
+        expect(subscribed.relayReceivedReq(opened.id), isTrue);
+
+        await opened.close();
+        await subscribed.tearDown();
+      },
+      timeout: const Timeout(Duration(seconds: 60)),
+    );
+  }
+
+  test('a query does not end without a relay that comes back', () async {
+    final subscribed = await _subscribeOnFlakyRelay();
+    final flaky = subscribed.connectivity;
+    final flakyTransport = subscribed.transport;
+    final steady = await startRelay();
+    await subscribed.manager.connectRelay(steady.url);
+
+    subscribed.factory.down = true;
+    flakyTransport.dropConnection();
+    await _waitUntil(() => flaky.stats.connectionErrors >= 1);
+
+    final notes = [
+      Filter(kinds: [Nip01Event.kTextNoteKind]),
+    ];
+    final query = RelayReqs(
+      relayManager: subscribed.manager,
+      eventVerifier: FakeVerifier(),
+    ).req(relays: {flaky.url: notes, steady.url: notes});
+    query.events.listen((_) {});
+    await _waitUntil(
+      () => query.outcomes[steady.url]?.status == RelayRequestStatus.eose,
+    );
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    expect(query.outcomes[flaky.url]?.status, RelayRequestStatus.pending);
+
+    subscribed.factory.down = false;
+    expect((await query.done)[flaky.url]?.status, RelayRequestStatus.eose);
+
+    await subscribed.tearDown();
+  }, timeout: const Timeout(Duration(seconds: 60)));
+
   test('a connection whose work ended during an outage is forgotten', () async {
     final relay = await startRelay();
     final factory = _FlakyTransportFactory();
@@ -301,6 +378,9 @@ class _SubscribedOnFlakyRelay {
   final RelayReq req;
 
   _FlakyTransport get transport => factory.created.last;
+
+  bool relayReceivedReq(String id) =>
+      _relay.received('REQ').any((message) => message[1] == id);
 
   Future<void> tearDown() async {
     await manager.closeAllTransports();

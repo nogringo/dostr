@@ -168,23 +168,7 @@ class RelayManager {
     _protocolHandlers.remove(handler);
   }
 
-  /// Every open connection, anonymous or bound, so a relay can show up more
-  /// than once. [isRelayConnected] checks a single relay.
-  List<RelayConnectivity> get connectedRelays => _connections.connectedRelays;
-
-  /// Connected connections bound to nobody, one per relay at most.
-  ///
-  /// Callers pick relays, not identities: sending on every connection of a
-  /// relay would duplicate the request, and sending on a bound one would make
-  /// it attributable. An identity is added later, by the re-route, and only on
-  /// the relays that ask for one.
-  List<RelayConnectivity> get connectedAnonymousRelays =>
-      _connections.connectedAnonymousRelays;
-
-  /// Whether the anonymous connection to [url] is open.
-  bool isRelayConnected(RelayUrl url) => _connections.isRelayConnected(url);
-
-  /// checks if the connection identified by [key] is open
+  /// Whether the connection behind [key] is open.
   bool isConnectionOpen(RelayConnectionKey key) =>
       _connections.isConnectionOpen(key);
 
@@ -197,46 +181,11 @@ class RelayManager {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) => _connections.connectRelay(url, connectTimeout: connectTimeout);
 
-  /// Reconnects the anonymous connection to a relay, if it is closed.
-  Future<bool> reconnectRelay(RelayUrl url, {bool force = false}) =>
-      _connections.reconnectRelay(url, force: force);
-
-  /// Reconnects the connection identified by [key], if it is closed. An
-  /// authenticated connection comes back authenticated or not at all.
-  ///
-  /// [as] is the identity to open a bound connection as, for a caller that has
-  /// it in hand. Without it the account is looked up, which only works for a
-  /// registered one.
-  Future<bool> reconnectConnection(
-    RelayConnectionKey key, {
-    bool force = false,
-    NostrSigner? as,
-    TimeoutPausable? pausing,
-  }) => _connections.reconnectConnection(
-    key,
-    force: force,
-    as: as,
-    pausing: pausing,
-  );
-
-  /// Closes and clears only transport-scoped state of every connection to
-  /// [url], anonymous or bound, while keeping the entries and relay-scoped
-  /// metadata in memory.
-  Future<void> resetConnectionsTo(RelayUrl url) async {
-    await Future.wait(
-      _connections.keysFor(url).map(_connections.resetConnection),
-    );
-  }
-
   /// Reconnects every connection that is not connected, even one that just
   /// failed to, and replays the requests it was carrying. Call this when the
   /// app learns that the network is back.
   Future<void> reconnectClosedConnections() =>
       _connections.reconnectClosedConnections();
-
-  /// Waits until a REQ with [id] is sent on a connected relay.
-  Future<void> waitForRequestSent(String id, Duration timeout) =>
-      _connections.waitForRequestSent(id, timeout);
 
   /// Sends [message], a JSON array such as `["NEG-CLOSE", subscriptionId]`, on
   /// the connection behind [key] once its socket is ready. It is dropped, and
@@ -420,12 +369,4 @@ class RelayManager {
 
   /// Closes all transports
   Future<void> closeAllTransports() => _connections.closeAll();
-
-  /// The anonymous connection to [url], if there is one.
-  RelayConnectivity? getRelayConnectivity(RelayUrl url) =>
-      _connections.getRelayConnectivity(url);
-
-  /// return [RelayConnectivity] of one connection, anonymous or bound
-  RelayConnectivity? getConnectivity(RelayConnectionKey key) =>
-      _connections.relays[key];
 }

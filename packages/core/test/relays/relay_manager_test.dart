@@ -52,7 +52,10 @@ void main() {
 
     expect(results.map((r) => r.connected), [true, true, true]);
     expect(relay.clients, hasLength(1));
-    expect(manager.isRelayConnected(relay.url), isTrue);
+    expect(
+      manager.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      isTrue,
+    );
   });
 
   test('every caller of a failed connect learns why it failed', () async {
@@ -100,7 +103,8 @@ void main() {
 
     final connection =
         manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
-    expect(connection.relay.wasLastConnectTryLongerThanSeconds(120), isFalse);
+    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    expect(connection.relay.lastConnectTry, closeTo(now, 120));
   });
 
   test('closeConnectionsTo closes the anonymous and bound connections '
@@ -164,16 +168,6 @@ void main() {
     await subscription.cancel();
   });
 
-  test('closing forgets a connection whose transport was reset', () async {
-    final relay = await startRelay();
-    await manager.connectRelay(relay.url);
-
-    await manager.resetConnectionsTo(relay.url);
-    await manager.closeAllTransports();
-
-    expect(manager.connectivities, isEmpty);
-  });
-
   test('closeConnection forgets the connection for good', () async {
     final relay = await startRelay();
     await manager.connectRelay(relay.url);
@@ -200,7 +194,9 @@ void main() {
       () => relay.openClients.length == 1 && relay.clients.length == 2,
       timeout: const Duration(seconds: 10),
     );
-    await eventually(() => manager.isRelayConnected(relay.url));
+    await eventually(
+      () => manager.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+    );
     expect(stats.connections, 2);
   });
 
@@ -236,8 +232,14 @@ void main() {
 
     await manager.closeIdleConnections();
 
-    expect(manager.isRelayConnected(busy.url), isTrue);
-    expect(manager.isRelayConnected(idle.url), isFalse);
+    expect(
+      manager.isConnectionOpen(RelayConnectionKey.anonymous(busy.url)),
+      isTrue,
+    );
+    expect(
+      manager.isConnectionOpen(RelayConnectionKey.anonymous(idle.url)),
+      isFalse,
+    );
     await subscription.close();
   });
 
@@ -254,7 +256,10 @@ void main() {
 
     await manager.closeIdleConnections();
 
-    expect(manager.isRelayConnected(idle.url), isFalse);
+    expect(
+      manager.isConnectionOpen(RelayConnectionKey.anonymous(idle.url)),
+      isFalse,
+    );
     await forgotten.close();
     unsigned.fail(StateError('test over'));
     await unsigned.done.catchError((_) => <RelayUrl, RelayBroadcastResponse>{});

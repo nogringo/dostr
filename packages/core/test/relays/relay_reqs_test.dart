@@ -518,9 +518,13 @@ void main() {
       relay.sendToAll(message);
       await eventually(() => received.isNotEmpty);
 
-      expect(manager.getRelayConnectivity(relay.url)!.stats.dataReadBytes, {
-        1: utf8.encode(jsonEncode(message)).length,
-      });
+      expect(
+        manager
+            .connectivities[RelayConnectionKey.anonymous(relay.url)]!
+            .stats
+            .dataReadBytes,
+        {1: utf8.encode(jsonEncode(message)).length},
+      );
       await req.close();
     });
   });

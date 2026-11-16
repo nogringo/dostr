@@ -94,7 +94,9 @@ class RelayConnections {
   >
   _connectReadyCompleters = {};
 
-  final Map<String, Set<Completer<void>>> _requestSentWaiters = {};
+  /// connections whose socket just died, until it is settled whether they come
+  /// back
+  final Set<RelayConnectionKey> _dropping = {};
 
   // Track processing order per relay so EVENT/EOSE/AUTH/CLOSED ordering stays
   // correct without introducing cross-relay head-of-line blocking.
@@ -160,20 +162,9 @@ class RelayConnections {
   }
 
   /// Every open connection, anonymous or bound, so a relay can show up more
-  /// than once. [isRelayConnected] checks a single relay.
+  /// than once.
   List<RelayConnection> get connectedRelays =>
       relays.values.where((connection) => connection.isConnected).toList();
-
-  /// Connected connections bound to nobody, one per relay at most.
-  ///
-  /// Callers pick relays, not identities: sending on every connection of a
-  /// relay would duplicate the request, and sending on a bound one would make
-  /// it attributable. An identity is added later, by the re-route, and only on
-  /// the relays that ask for one.
-  List<RelayConnection> get connectedAnonymousRelays => relays.values
-      .where((connection) => connection.key.isAnonymous)
-      .where((connection) => connection.isConnected)
-      .toList();
 
   /// Whether the anonymous connection to [url] is open.
   bool isRelayConnected(RelayUrl url) =>
@@ -182,6 +173,14 @@ class RelayConnections {
   /// checks if the connection identified by [key] is open
   bool isConnectionOpen(RelayConnectionKey key) =>
       relays[key]?.relayTransport?.isOpen() ?? false;
+
+  /// Whether the connection behind [key] dropped and is being brought back.
+  bool isComingBack(RelayConnectionKey key) =>
+      _dropping.contains(key) || _revivals.isReviving(key);
+
+  /// Whether nothing will open the connection behind [key] again.
+  bool isGone(RelayConnectionKey key) =>
+      !isConnectionOpen(key) && !isComingBack(key);
 
   /// checks if the connection identified by [key] is connecting
   bool isConnectionConnecting(RelayConnectionKey key) {
@@ -367,10 +366,6 @@ class RelayConnections {
     return failed;
   }
 
-  /// Reconnects the anonymous connection to a relay, if it is closed.
-  Future<bool> reconnectRelay(RelayUrl url, {bool force = false}) =>
-      reconnectConnection(RelayConnectionKey.anonymous(url), force: force);
-
   /// Reconnects the connection identified by [key], if it is closed. An
   /// authenticated connection comes back authenticated or not at all.
   ///
@@ -484,21 +479,6 @@ class RelayConnections {
     return _auth.authenticate(key, (message) => sendTo(connection, message));
   }
 
-  /// Closes and clears only transport-scoped state of one connection, while
-  /// keeping its entry and relay-scoped metadata in memory.
-  Future<void> resetConnection(RelayConnectionKey key) async {
-    final connection = relays[key];
-    if (connection != null) {
-      Logger.log.d(() => "Resetting transport for $key...");
-      _revivals.stop(key);
-      connection.relay.failedToConnect();
-      _auth.forget(key);
-      await connection.close();
-      listener.endAuthRetriesOn(key);
-      notifyChanged();
-    }
-  }
-
   /// Reconnects every connection that is not connected, all at once, even one
   /// that just failed to, and replays the requests it was carrying.
   Future<void> reconnectClosedConnections() => Future.wait([
@@ -589,36 +569,10 @@ class RelayConnections {
     switch (message) {
       case [ClientMsgType.kReq, final String id, ...]:
         connection.stats.openRequestIds.add(id);
-        for (final waiter
-            in _requestSentWaiters.remove(id) ?? <Completer<void>>{}) {
-          waiter.complete();
-        }
       case [ClientMsgType.kClose, final String id, ...]:
         if (connection.stats.openRequestIds.remove(id)) {
           listener.admitQueuedOn(connection);
         }
-    }
-  }
-
-  /// Waits until a REQ with [id] is sent on a connected relay.
-  Future<void> waitForRequestSent(String id, Duration timeout) async {
-    if (relays.values.any(
-      (relay) => relay.isConnected && relay.stats.openRequestIds.contains(id),
-    )) {
-      return;
-    }
-    final waiter = Completer<void>();
-    _requestSentWaiters.putIfAbsent(id, () => {}).add(waiter);
-    try {
-      await waiter.future.timeout(
-        timeout,
-        onTimeout: () =>
-            throw TimeoutException('REQ $id was not sent', timeout),
-      );
-    } finally {
-      final waiters = _requestSentWaiters[id];
-      waiters?.remove(waiter);
-      if (waiters != null && waiters.isEmpty) _requestSentWaiters.remove(id);
     }
   }
 
@@ -702,10 +656,13 @@ class RelayConnections {
     // waiting for its OK
     _auth.forget(key);
 
+    _dropping.add(key);
     try {
       await connection.close();
     } catch (e) {
       Logger.log.w(() => "Error closing relay ${connection.url}: $e");
+    } finally {
+      _dropping.remove(key);
     }
     // Closing can yield while a new owner or transport takes over. Its AUTH
     // and subscriptions belong to the replacement, not this retired socket.

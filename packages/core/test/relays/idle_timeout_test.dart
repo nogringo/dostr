@@ -31,7 +31,10 @@ void main() {
     await relays.connectRelay(relay.url);
 
     await Future<void>.delayed(const Duration(milliseconds: 100));
-    expect(relays.isRelayConnected(relay.url), isTrue);
+    expect(
+      relays.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      isTrue,
+    );
 
     await eventually(() => relays.connectivities.isEmpty);
     await eventually(() => relay.openClients.isEmpty);
@@ -62,7 +65,10 @@ void main() {
     await eventually(() => relay.activeSubscriptionCount == 1);
 
     await Future<void>.delayed(const Duration(milliseconds: 800));
-    expect(relays.isRelayConnected(relay.url), isTrue);
+    expect(
+      relays.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      isTrue,
+    );
 
     await subscription.close();
     await eventually(() => relays.connectivities.isEmpty);

@@ -146,7 +146,7 @@ class MutableRelay implements Relay {
     connecting = false;
   }
 
-  @override
+  /// was last connection try longer than given seconds
   bool wasLastConnectTryLongerThanSeconds(int seconds) {
     return lastConnectTry == null ||
         lastConnectTry! <

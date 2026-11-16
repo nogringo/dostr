@@ -135,7 +135,7 @@ class ReqQueue {
       if (_queued.contains(entry.request) &&
           identical(_inFlight[entry.state.id], entry.state) &&
           !entry.state.networkController.isClosed &&
-          !entry.state.endedOn(entry.request)) {
+          !entry.request.isDone) {
         return entry;
       }
       queue.removeFirst();

@@ -11,7 +11,29 @@ import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
 import '../../entities/timeout_pausable.dart';
 
-/// Single relay request state
+/// Where a REQ stands on one connection.
+enum RelayReqProgress {
+  /// not answered yet: waiting for its connection or a slot, or written
+  pending,
+
+  /// the relay sent its EOSE
+  caughtUp,
+
+  /// the relay asked for an authentication that is under way, and gets the
+  /// REQ again once it lands
+  retryingAuth,
+
+  /// the relay ended it with a CLOSED
+  closed,
+
+  /// it could not be sent on this connection
+  notSent,
+
+  /// the connection went away for good before the relay ended it
+  gone,
+}
+
+/// A REQ on one connection.
 class RelayRequestState {
   /// connection this request was sent on
   final RelayConnectionKey key;
@@ -19,120 +41,136 @@ class RelayRequestState {
   /// the relay this request was sent to
   RelayUrl get url => key.url;
 
-  /// called by the owning [RequestState] whenever a field the outcome is
-  /// derived from changes, so the outcome never has to be derived on read
+  /// whether the request ends on its EOSE
+  final bool isQuery;
+
+  final List<Filter> filters;
+
+  /// called by the owning [RequestState] whenever the outcome may have moved,
+  /// so the outcome never has to be derived on read
   void Function()? onOutcomeChanged;
 
-  bool _receivedEOSE = false;
-
-  /// did the relay give everything it stored
-  bool get receivedEOSE => _receivedEOSE;
-
-  set receivedEOSE(bool value) {
-    if (_receivedEOSE == value) return;
-    _receivedEOSE = value;
-    onOutcomeChanged?.call();
-  }
-
-  bool _receivedClosed = false;
-
-  /// did the relay end the request itself
-  bool get receivedClosed => _receivedClosed;
-
-  set receivedClosed(bool value) {
-    if (_receivedClosed == value) return;
-    _receivedClosed = value;
-    onOutcomeChanged?.call();
-  }
-
+  RelayReqProgress _progress = RelayReqProgress.pending;
   String? _closedMessage;
+  RelayFailure? _failure;
 
-  /// message the relay sent with its CLOSED, null when it sent none
+  RelayRequestState(this.key, this.filters, {required this.isQuery});
+
+  RelayReqProgress get progress => _progress;
+
+  /// message the relay sent with its CLOSED, kept while [retryingAuth]
   String? get closedMessage => _closedMessage;
 
-  set closedMessage(String? value) {
-    if (_closedMessage == value) return;
-    _closedMessage = value;
+  /// what kept the request from being sent, while [RelayReqProgress.notSent]
+  RelayFailure? get failure => _failure;
+
+  /// Whether the relay is done with the request: it ended it, never got it, or
+  /// sent the EOSE of a query. A subscription outlives its EOSE.
+  bool get isDone => switch (_progress) {
+    RelayReqProgress.pending || RelayReqProgress.retryingAuth => false,
+    RelayReqProgress.caughtUp => isQuery,
+    RelayReqProgress.closed ||
+    RelayReqProgress.notSent ||
+    RelayReqProgress.gone => true,
+  };
+
+  /// Whether a socket that comes back owes the request again: a CLOSED stands,
+  /// unless it asked for an authentication that never landed, and a message
+  /// too long for the relay stays too long.
+  bool get isReplayable => switch (_progress) {
+    RelayReqProgress.pending ||
+    RelayReqProgress.retryingAuth ||
+    RelayReqProgress.gone => true,
+    RelayReqProgress.caughtUp => !isQuery,
+    RelayReqProgress.closed => false,
+    RelayReqProgress.notSent =>
+      _failure?.kind != RelayFailureKind.messageTooLong,
+  };
+
+  RelayRequestOutcome outcome({required bool timedOut}) => switch (_progress) {
+    RelayReqProgress.retryingAuth => const RelayRequestOutcome(
+      RelayRequestStatus.pending,
+    ),
+    RelayReqProgress.caughtUp when isQuery => const RelayRequestOutcome(
+      RelayRequestStatus.eose,
+    ),
+    RelayReqProgress.closed => RelayRequestOutcome(
+      RelayRequestStatus.closed,
+      message: _closedMessage,
+    ),
+    RelayReqProgress.notSent => RelayRequestOutcome(
+      RelayRequestStatus.notSent,
+      failure: _failure,
+    ),
+    RelayReqProgress.gone => const RelayRequestOutcome(
+      RelayRequestStatus.disconnected,
+    ),
+    _ when timedOut => const RelayRequestOutcome(RelayRequestStatus.timedOut),
+    RelayReqProgress.caughtUp => const RelayRequestOutcome(
+      RelayRequestStatus.eose,
+    ),
+    RelayReqProgress.pending => const RelayRequestOutcome(
+      RelayRequestStatus.pending,
+    ),
+  };
+
+  void _moveTo(
+    RelayReqProgress progress, {
+    String? closedMessage,
+    RelayFailure? failure,
+  }) {
+    if (_progress == progress &&
+        _closedMessage == closedMessage &&
+        _failure == failure) {
+      return;
+    }
+    _progress = progress;
+    _closedMessage = closedMessage;
+    _failure = failure;
     onOutcomeChanged?.call();
   }
 
-  bool _connectionGone = false;
-
-  /// set when the connection was gone before the relay ended the request
-  bool get connectionGone => _connectionGone;
-
-  set connectionGone(bool value) {
-    if (_connectionGone == value) return;
-    _connectionGone = value;
-    onOutcomeChanged?.call();
+  /// The relay sent its EOSE.
+  void markCaughtUp() {
+    if (_progress == RelayReqProgress.pending) {
+      _moveTo(RelayReqProgress.caughtUp);
+    }
   }
-
-  bool _notSent = false;
-
-  /// set when the request could not be sent on this connection
-  bool get notSent => _notSent;
-
-  RelayFailure? _notSentFailure;
-
-  /// what kept the request from being sent, see [markNotSent]
-  RelayFailure? get notSentFailure => _notSentFailure;
-
-  bool _retryingAuth = false;
-
-  /// set while this connection authenticates to satisfy the request: the relay
-  /// closed it, but it is on its way back and must not count as finished
-  bool get retryingAuth => _retryingAuth;
-
-  set retryingAuth(bool value) {
-    if (_retryingAuth == value) return;
-    _retryingAuth = value;
-    onOutcomeChanged?.call();
-  }
-
-  List<Filter> filters;
-
-  /// default const
-  RelayRequestState(this.key, this.filters);
 
   /// The relay ended the request with a CLOSED carrying [message].
-  ///
-  /// Both at once, so the outcome is never observed as a CLOSED stripped of
-  /// the reason the relay gave for it.
   void markClosed(String? message) {
-    if (_receivedClosed && _closedMessage == message) return;
-    _receivedClosed = true;
-    _closedMessage = message;
-    onOutcomeChanged?.call();
+    if (!isDone) _moveTo(RelayReqProgress.closed, closedMessage: message);
+  }
+
+  /// The relay closed the request for want of an authentication, which is
+  /// now under way.
+  void markRetryingAuth() {
+    if (_progress == RelayReqProgress.closed) {
+      _moveTo(RelayReqProgress.retryingAuth, closedMessage: _closedMessage);
+    }
+  }
+
+  /// The authentication will not land: the CLOSED that asked for it stands.
+  void endAuthRetry() {
+    if (_progress == RelayReqProgress.retryingAuth) {
+      _moveTo(RelayReqProgress.closed, closedMessage: _closedMessage);
+    }
   }
 
   /// The request could not be sent on this connection, because of [failure].
-  void markNotSent(RelayFailure failure) {
-    if (_notSent && _notSentFailure == failure) return;
-    _notSent = true;
-    _notSentFailure = failure;
-    onOutcomeChanged?.call();
+  void markNotSent(RelayFailure failure) =>
+      _moveTo(RelayReqProgress.notSent, failure: failure);
+
+  /// The connection went away for good while the relay still owed an answer.
+  void markGone() {
+    if (!isDone && _progress != RelayReqProgress.retryingAuth) {
+      _moveTo(RelayReqProgress.gone);
+    }
   }
 
   /// The request goes to the relay again, written now or queued for a slot,
   /// so nothing the relay answered the last time holds anymore.
-  void forgetAnswers() {
-    if (!_receivedEOSE &&
-        !_receivedClosed &&
-        _closedMessage == null &&
-        !_connectionGone &&
-        !_notSent &&
-        !_retryingAuth) {
-      return;
-    }
-    _receivedEOSE = false;
-    _receivedClosed = false;
-    _closedMessage = null;
-    _connectionGone = false;
-    _notSent = false;
-    _notSentFailure = null;
-    _retryingAuth = false;
-    onOutcomeChanged?.call();
-  }
+  void forgetAnswers() => _moveTo(RelayReqProgress.pending);
 }
 
 /// State per request for multiple relays
@@ -273,20 +311,11 @@ class RequestState implements TimeoutPausable {
     _startTimeout(remaining);
   }
 
-  /// Whether the relay behind [request] is done with it: it ended it with a
-  /// CLOSED, never got it, or sent the EOSE of a query. A subscription
-  /// outlives its EOSE.
-  bool endedOn(RelayRequestState request) =>
-      (closeOnEose && request.receivedEOSE) ||
-      request.receivedClosed ||
-      request.notSent;
-
-  /// checks if all requests finished on their relays, see [endedOn]
+  /// Whether every relay is done with the request, see
+  /// [RelayRequestState.isDone].
   bool get didAllRequestsFinish =>
       pendingConnections == 0 &&
-      requests.values.every(
-        (element) => endedOn(element) && !element.retryingAuth,
-      );
+      requests.values.every((request) => request.isDone);
 
   final Map<RelayUrl, RelayRequestOutcome> _relayOutcomes = {};
 
@@ -346,7 +375,7 @@ class RequestState implements TimeoutPausable {
   bool _recomputeRelayOutcome(RelayUrl url) {
     RelayRequestOutcome? collapsed;
     for (final request in _requestsByUrl[url] ?? const <RelayRequestState>[]) {
-      final outcome = _outcomeOf(request);
+      final outcome = request.outcome(timedOut: timedOut);
       if (collapsed == null || outcome.status.index < collapsed.status.index) {
         collapsed = outcome;
       }
@@ -369,42 +398,10 @@ class RequestState implements TimeoutPausable {
     }
   }
 
-  RelayRequestOutcome _outcomeOf(RelayRequestState request) {
-    if (request.retryingAuth) {
-      return const RelayRequestOutcome(RelayRequestStatus.pending);
-    }
-    if (closeOnEose && request.receivedEOSE) {
-      return const RelayRequestOutcome(RelayRequestStatus.eose);
-    }
-    if (request.receivedClosed) {
-      return RelayRequestOutcome(
-        RelayRequestStatus.closed,
-        message: request.closedMessage,
-      );
-    }
-    if (request.notSent) {
-      return RelayRequestOutcome(
-        RelayRequestStatus.notSent,
-        failure: request.notSentFailure,
-      );
-    }
-    if (request.connectionGone) {
-      return const RelayRequestOutcome(RelayRequestStatus.disconnected);
-    }
-    if (timedOut) {
-      return const RelayRequestOutcome(RelayRequestStatus.timedOut);
-    }
-    // a subscription that caught up, still open for new events
-    if (request.receivedEOSE) {
-      return const RelayRequestOutcome(RelayRequestStatus.eose);
-    }
-    return const RelayRequestOutcome(RelayRequestStatus.pending);
-  }
-
   /// Adds single relay request to the state
   void addRequest(RelayConnectionKey key, List<Filter> filters) {
     if (requests.containsKey(key)) return;
-    _trackRequest(RelayRequestState(key, filters));
+    _trackRequest(RelayRequestState(key, filters, isQuery: closeOnEose));
   }
 
   void _trackRequest(RelayRequestState request) {

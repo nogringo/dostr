@@ -353,7 +353,12 @@ void main() {
     await reconnecting;
 
     expect(manager.isConnectionOpen(key), isTrue);
-    expect(manager.isRelayConnected(RelayUrl.parse(other)), isTrue);
+    expect(
+      manager.isConnectionOpen(
+        RelayConnectionKey.anonymous(RelayUrl.parse(other)),
+      ),
+      isTrue,
+    );
   });
 
   test('a replay skips the requests the socket already carries', () async {

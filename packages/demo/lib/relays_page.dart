@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show RelayUrl;
+import 'package:dostr_core/dostr_core.dart' show RelayConnectionKey, RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -242,7 +242,8 @@ class _RelaysPageState extends State<RelaysPage>
         }
 
         final entry = entries[index - 1];
-        final connectivity = relayManager.getRelayConnectivity(entry.key);
+        final connectivity = relayManager
+            .connectivities[RelayConnectionKey.anonymous(entry.key)];
         final stateColor = connectivity != null
             ? connectivity.relay.connecting
                 ? Colors.orange

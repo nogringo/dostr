@@ -19,7 +19,7 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 
 `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `Account`, from `package:ndk/domain_layer/entities/account.dart`, is gone: an account is its `NostrSigner`. `AuthPolicy.allow` and `AuthPolicy.require` take the signer, `AuthPolicy.account` is now `signer`, and `AuthAccounts` gives signers, with `getAccount(pubkey)` instead of the `accounts` map.
-`RelayManager.openConnectionAs`, `reconnectConnection` and `accountForAuth` take or return a `NostrSigner` too.
+`RelayManager.openConnectionAs` and `accountForAuth` take or return a `NostrSigner` too.
 `TimeoutPausable` moved from `auth_handler.dart` to `package:dostr_core/dostr_core.dart`.
 `AuthPolicy` no longer has `canonical`, `==` or `hashCode`.
 
@@ -92,14 +92,16 @@ Send any message other than a REQ or an EVENT with `RelayManager.send`, which no
 `RelayManager.connectRelay` returns a `({bool connected, RelayFailure? failure})` record, with a null `failure` once connected.
 It no longer takes an `authPubkey` and only opens the anonymous connection: open one bound to an identity with `RelayManager.openConnectionAs`, which asks the `AuthHandler` first.
 
-`isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays` and the `resetConnection` of a single connection are gone.
+`isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays`, `reconnectRelay`, `reconnectConnection`, `resetTransport`, the `resetConnection` of a single connection and `waitForRequestSent` are gone.
+Open a connection with `connectRelay` or `openConnectionAs`, and close one with `closeConnection` or `closeConnectionsTo`.
+`connectedRelays`, `connectedAnonymousRelays`, `isRelayConnected`, `getRelayConnectivity` and `getConnectivity` are gone too: read `RelayManager.connectivities`, keyed by `RelayConnectionKey`, or ask `isConnectionOpen`.
 A connection that is still connecting has `relay.connecting` set in `RelayManager.connectivities`.
 `relayConnectivityChanges` emits when a connection is added, starts connecting, opens, closes or is forgotten, and no longer each time a REQ is sent or ends.
 `authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and `nostrTransportFactory` are constructor parameters only, no longer fields.
 
 `RelayConnectivity`, `Relay` and `RelayStats` are read-only: only `RelayManager` changes them, and none has a public constructor anymore.
 `RelayConnectivity` no longer has `relayTransport`, `listen` or `close`: read `isConnected`, and close a connection with `RelayManager.closeConnection`.
-`Relay` loses its setters, `tryingToConnect`, `succeededToConnect` and `failedToConnect`.
+`Relay` loses its setters, `tryingToConnect`, `succeededToConnect`, `failedToConnect` and `wasLastConnectTryLongerThanSeconds`.
 `RelayStats` loses its setters, `openRequestIds` and `incStatsByNewEvent`, and its maps are unmodifiable.
 `eventsWritten` and `dataWrittenBytes` are gone: nothing ever filled them.
 `dataReadBytes` counts the UTF-8 bytes of the EVENT messages, where it used to count their UTF-16 code units.
@@ -107,14 +109,14 @@ A connection that is still connecting has `relay.connecting` set in `RelayManage
 A relay message that misses a field or carries one of the wrong type, and a binary frame, are logged and dropped, and so is an exception a `RelayProtocolHandler` throws.
 They used to escape as uncaught errors, which end a plain Dart process.
 
-`RelayManager.resetTransport` and `RelayManager.closeTransport` are now `resetConnectionsTo` and `closeConnectionsTo`: they act on every connection to the relay, anonymous or bound, where `isRelayConnected`, `reconnectRelay` and `getRelayConnectivity` only look at the anonymous one.
+`RelayManager.closeTransport` is now `closeConnectionsTo`: it acts on every connection to the relay, anonymous or bound.
 
 #### Relay urls
 
 The relay urls `dostr_core` takes and gives are `RelayUrl`s, from [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url): normalized urls, as an extension type on `String`, so code that reads one as a `String` keeps working.
 Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
 
- - `RelayManager.connectRelay`, `isRelayConnected`, `reconnectRelay`, `resetConnectionsTo`, `closeConnectionsTo`, `getRelayConnectivity` and `openConnectionAs` take a `RelayUrl`, `connectRelay` as its first argument instead of a `dirtyUrl`.
+ - `RelayManager.connectRelay`, `closeConnectionsTo` and `openConnectionAs` take a `RelayUrl`, `connectRelay` as its first argument instead of a `dirtyUrl`.
  - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.
  - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
  - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
@@ -131,6 +133,7 @@ The end of `listen` means the socket is gone.
 
 A connection that drops is retried at once, then after a wait that doubles from 500 milliseconds, for an hour.
 Its requests are replayed once it is back, and given up as `disconnected` after that hour.
+The REQs sent to it meanwhile wait for it the same way, so a query does not end without it.
 `allowReconnect` set to false now stops these retries: the transport used to retry on its own regardless.
 A connection that drops within a minute of opening comes back too.
 One that carries nothing `closeIdleConnections` would keep is forgotten instead, when it drops or before an attempt to bring it back: a relay that closes idle sockets used to get them reopened forever.

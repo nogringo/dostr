@@ -35,7 +35,7 @@ void main() {
     state.addRequest(bound, notes);
     expect(statusOf(url), RelayRequestStatus.pending);
 
-    state.requests[bound]!.receivedEOSE = true;
+    state.requests[bound]!.markCaughtUp();
     expect(statusOf(url), RelayRequestStatus.eose);
   });
 
@@ -67,7 +67,7 @@ void main() {
     state.addRequest(bound, notes);
     state.requests[bound]!
       ..markClosed('auth-required: x')
-      ..retryingAuth = true;
+      ..markRetryingAuth();
 
     expect(statusOf(url), RelayRequestStatus.pending);
     expect(state.didAllRequestsFinish, isFalse);
@@ -75,7 +75,7 @@ void main() {
 
   test('outcomesStream replays what it holds to a late listener', () async {
     state.addRequest(anonymous, notes);
-    state.requests[anonymous]!.receivedEOSE = true;
+    state.requests[anonymous]!.markCaughtUp();
 
     final first = await state.relayOutcomesStream.first;
 
