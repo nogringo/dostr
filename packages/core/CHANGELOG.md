@@ -17,6 +17,8 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 The logger of `ndk` is gone, with `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`.
 `dostr_core` logs with [`logging`](https://pub.dev/packages/logging), under the name `dostr_core`, and prints nothing until the app listens to `Logger.root.onRecord`.
 `Logger.setLogLevel(level)` is now `Logger.root.level = level`, with the levels of `logging`.
+A relay that cannot be reached, a socket error, an OK false, a CLOSED and a NOTICE are no longer logged as errors: they are part of talking to relays, and the outcomes report them.
+`severe` is left to a bug of `dostr_core` or of the app, and `warning` to a relay that misbehaves or a callback of the app that throws.
 
 `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `Account`, from `package:ndk/domain_layer/entities/account.dart`, is gone: an account is its `NostrSigner`. `AuthPolicy.allow` and `AuthPolicy.require` take the signer, `AuthPolicy.account` is now `signer`, and `AuthAccounts` gives signers, with `getAccount(pubkey)` instead of the `accounts` map.
@@ -157,6 +159,8 @@ A connection is closed once it went without work, as `closeIdleConnections` coun
 Connections used to stay open until they were closed explicitly.
 Null keeps them open.
 
+A publish keeps open only the connection it goes out on, where it kept every connection to its relay, the anonymous one and the bound ones.
+
 `WebSocketNostrTransportFactory`, `WebSocketNostrTransport` and `WebsocketDS` are gone: they reported a socket open before its handshake, which skipped the connect timeout and kept `closeIdleConnections` from closing anything.
 Use `WebSocketClientNostrTransportFactory`.
 
@@ -192,13 +196,17 @@ Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllC
 #### Publishes
 
 `BroadcastState` is no longer public, and `RelayBroadcastResponse` is now `RelayPublishOutcome`, in `package:dostr_core/dostr_core.dart`.
-Its fields are final, `broadcastSuccessful` is now `accepted` and `msg` is now `message`.
+Its `status`, a `RelayPublishStatus`, says what the relay did: `pending`, `accepted`, `refused`, `failed` or `timedOut`.
+`broadcastSuccessful` is now the `accepted` getter, `msg` is now `message`, and `okReceived` is gone: a relay answered once its status is `accepted` or `refused`.
+Its fields are final and its constructor is private: build one with `RelayPublishOutcome.pending`, `accepted`, `refused`, `failed` or `timedOut`, so that no outcome is answered and failed at once.
 It no longer has `relayUrl`, since the outcomes are keyed by relay url, and two outcomes are equal when all their fields are, where two responses were equal when they came from the same relay.
 Publish a signed event with `RelayPublishes.publish`.
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
 `considerDonePercent` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` are gone: a publish is done once every relay answered, or after its `timeout`.
+A relay that has not answered by then is `timedOut`, where it stayed without an answer.
+The first answer of a relay stands: a failure that comes after its OK no longer replaces it.
 Ending a publish early also stopped sending the event again to the relays that had not answered, after an `auth-required` or a dropped connection.
 To move on once enough relays accepted the event, wait on `outcomesStream`: the publish goes on for the others.
 

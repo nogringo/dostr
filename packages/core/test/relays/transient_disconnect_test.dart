@@ -387,7 +387,7 @@ void main() {
         timeout: const Duration(milliseconds: 300),
       );
       final response = (await publish.done)[url]!;
-      expect(response.okReceived, isFalse);
+      expect(response.status, RelayPublishStatus.timedOut);
 
       subscribed.factory.down = false;
       await _waitUntil(() => subscribed.connectivity.isConnected);

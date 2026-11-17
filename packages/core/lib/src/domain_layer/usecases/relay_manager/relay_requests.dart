@@ -100,9 +100,9 @@ class RelayRequests {
     final event = nostrMsgRaw.nip01Event!;
 
     if (inFlight[requestId] == null) {
-      logger.warning(
+      logger.fine(
         () =>
-            "RECEIVED EVENT from ${connection.url} for id $requestId, not in flight. Likely data after EOSE on a query",
+            "EVENT from ${connection.url} for $requestId, which is not in flight",
       );
       return;
     }
@@ -111,7 +111,10 @@ class RelayRequests {
     if (state != null) {
       RelayRequestState? request = state.requests[connection.key];
       if (request == null) {
-        logger.warning(() => "No RelayRequestState found for id $requestId");
+        logger.fine(
+          () =>
+              "EVENT from ${connection.url} for $requestId, which was not sent on ${connection.key}",
+        );
         return;
       }
 
@@ -124,9 +127,9 @@ class RelayRequests {
       }
 
       if (state.isOver) {
-        // this might happen because relays even after we send a CLOSE subscription.id, they'll still send more events
+        // relays keep sending for a while after our CLOSE
         logger.finest(
-          () => "tried to add event to an already closed STREAM ${state.id}",
+          () => "EVENT from ${connection.url} for $requestId, which is over",
         );
       } else {
         state.deliver(RelayReqEvent(event, connection.url));
@@ -139,10 +142,6 @@ class RelayRequests {
     String id = eventJson[1];
     RequestState? state = inFlight[id];
     if (state == null) return;
-    logger.finest(
-      () =>
-          "⛁ received EOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
-    );
     state.requests[connection.key]?.markCaughtUp();
     if (!state.closeOnEose) return;
 
@@ -161,10 +160,6 @@ class RelayRequests {
 
     RequestState? state = inFlight[id];
     if (state != null) {
-      logger.finest(
-        () =>
-            "⛁ received CLOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
-      );
       RelayRequestState? request = state.requests[connection.key];
       if (request != null) {
         _endRequestOnRelay(connection, id, request, message);
@@ -217,7 +212,7 @@ class RelayRequests {
       logger.warning(() => "REQ ${state.id} not sent to ${request.url}: $e");
       _failRelayRequest(state, request.key, request.filters, e.failure);
     } catch (e) {
-      logger.warning(() => "COULD NOT SEND REQUEST TO ${request.url}:", e);
+      logger.fine(() => "REQ ${state.id} not sent to ${request.url}", e);
     } finally {
       if (identical(connection.reservedRequestIds[state.id], write)) {
         connection.reservedRequestIds.remove(state.id);
@@ -356,8 +351,8 @@ class RelayRequests {
       case ComingBack():
         break;
       case NotOpened(:final failure):
-        logger.warning(
-          () => "COULD NOT SEND REQUEST TO ${request.url}: $failure",
+        logger.fine(
+          () => "REQ ${state.id} not sent to ${request.url}: $failure",
         );
         return failure;
     }
@@ -407,8 +402,8 @@ class RelayRequests {
   ) {
     final state = inFlight[reqId];
     if (state == null) {
-      logger.warning(
-        () => "Received CLOSED auth-required for unknown request $reqId",
+      logger.fine(
+        () => "CLOSED auth-required for $reqId, which is not in flight",
       );
       return;
     }
@@ -416,8 +411,8 @@ class RelayRequests {
     final key = connection.key;
     final request = state.requests[key];
     if (request == null) {
-      logger.warning(
-        () => "Received CLOSED auth-required but no request state for $key",
+      logger.fine(
+        () => "CLOSED auth-required for $reqId, which was not sent on $key",
       );
       return;
     }
@@ -434,7 +429,7 @@ class RelayRequests {
       if (session.authenticated) {
         // the relay refused us while we were authenticated as the only identity
         // this connection may ever assume, so there is nothing left to try
-        logger.warning(() => "REQ $reqId refused on authenticated $key");
+        logger.fine(() => "REQ $reqId refused on authenticated $key");
         _checkNetworkClose(state);
         return;
       }
@@ -447,8 +442,8 @@ class RelayRequests {
 
     final account = _accountForRequest(state);
     if (account == null) {
-      logger.warning(
-        () => "Cannot satisfy auth-required for REQ $reqId on $key",
+      logger.fine(
+        () => "No identity to answer auth-required for REQ $reqId on $key",
       );
       _checkNetworkClose(state);
       return;
@@ -563,25 +558,15 @@ class RelayRequests {
     }
   }
 
-  void _sendCloseToRelay(RelayConnection connection, String id) {
-    try {
-      _connections.sendTo(
-        connection,
-        ClientMsg(ClientMsgType.kClose, id: id).toJson(),
-      );
-    } catch (e) {
-      logger.severe(() => e);
-    }
-  }
+  void _sendCloseToRelay(RelayConnection connection, String id) => _connections
+      .sendTo(connection, ClientMsg(ClientMsgType.kClose, id: id).toJson());
 
   void logActive() {
     Map<String?, int> namesMap = {};
     inFlight.forEach((key, state) {
       namesMap[state.name] = (namesMap[state.name] ?? 0) + 1;
     });
-    logger.fine(
-      () => "------------ IN FLIGHT REQUESTS: ${inFlight.length} || $namesMap",
-    );
+    logger.fine(() => "${inFlight.length} REQs in flight, by name: $namesMap");
   }
 
   /// Whether a request still needs the connection behind [key].

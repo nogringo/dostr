@@ -12,4 +12,5 @@ export 'src/domain_layer/entities/relay_info.dart';
 export 'src/domain_layer/entities/relay_info_record.dart';
 export 'src/domain_layer/repositories/cached_relay_info_repository.dart';
 export 'src/domain_layer/repositories/relay_info_cache.dart';
+export 'src/domain_layer/repositories/relay_info_limits.dart';
 export 'src/domain_layer/repositories/relay_info_repository.dart';

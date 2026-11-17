@@ -14,6 +14,19 @@ import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'relay_limits.dart';
 
+/// A publish waiting on one of its relays.
+typedef _Waiting = ({PublishState state, RelayPublishState relay});
+
+/// Why a publish cannot go out on a connection.
+class _NotOpened implements Exception {
+  final RelayFailure failure;
+
+  const _NotOpened(this.failure);
+
+  @override
+  String toString() => "$failure";
+}
+
 /// The EVENTs in flight on a `RelayManager`: sending them, routing each OK to
 /// the publishes waiting on it and moving them to a bound connection when a
 /// relay asks for authentication. Internal to dostr_core.
@@ -38,27 +51,26 @@ class PublishesInFlight {
   /// Ends every publish in flight, failing with [failure] the relays that still
   /// owe an answer.
   void endAll(RelayFailure failure) {
-    final states = {for (final states in inFlight.values) ...states};
-    for (final state in states) {
-      for (final url in state.outcomes.keys.toList()) {
-        if (state.owesAnswer(url)) _failRelay(state, url, failure);
+    for (final state in {for (final states in inFlight.values) ...states}) {
+      for (final url in state.relays.keys) {
+        state.end(url, RelayPublishOutcome.failed(failure));
       }
     }
   }
 
-  void _failRelay(PublishState state, RelayUrl relay, RelayFailure failure) {
-    if (state.isOver) {
-      logger.warning(
-        () =>
-            "Ignoring a late failure of ${state.event.id} on $relay: the publish is over",
-      );
-      return;
-    }
-    state.report(relay, RelayPublishOutcome(failure: failure));
-  }
+  void _fail(
+    PublishState state,
+    RelayPublishState relay,
+    RelayFailure failure,
+  ) => state.end(relay.url, RelayPublishOutcome.failed(failure));
+
+  static RelayFailure _failureOf(Object error) => switch (error) {
+    MessageTooLong(:final failure) || _NotOpened(:final failure) => failure,
+    _ => RelayFailure(RelayFailureKind.connectionLost, "$error"),
+  };
 
   /// Sends the event of [state] to each of its relays, and tracks [state]
-  /// until it is done, so the OK of the relays reach it.
+  /// until it is over, so the OK of the relays reach it.
   void start(PublishState state) {
     final eventId = state.event.id;
     inFlight.putIfAbsent(eventId, () => []).add(state);
@@ -68,121 +80,59 @@ class PublishesInFlight {
       states.remove(state);
       if (states.isEmpty) inFlight.remove(eventId);
     });
-    for (final url in state.outcomes.keys.toList()) {
-      unawaited(_publishToRelay(state, url));
+    for (final relay in state.relays.values) {
+      unawaited(_publishTo(state, relay));
     }
   }
 
-  /// Sends the event of [state] to [url], on the connection its [AuthPolicy]
-  /// allows, and reports the relay as failed when the EVENT cannot go out.
-  Future<void> _publishToRelay(PublishState state, RelayUrl url) async {
-    try {
-      final (:relay, :failure) = await _connectionFor(state, url);
-      if (relay == null) {
-        _failRelay(
-          state,
-          url,
-          failure ?? const RelayFailure(RelayFailureKind.unreachable),
-        );
-        return;
-      }
-      await _connections.sendOrThrow(
-        relay,
-        ClientMsg(ClientMsgType.kEvent, event: state.event).toJson(),
-      );
-      state.writtenOn[url] = relay.key;
-    } on MessageTooLong catch (error) {
-      _failRelay(state, url, error.failure);
-    } catch (error) {
-      _failRelay(
-        state,
-        url,
-        RelayFailure(RelayFailureKind.connectionLost, "$error"),
-      );
-    }
-  }
-
-  /// Sends again on [connection] the EVENTs the socket it replaces took
-  /// without the relay answering them.
-  void replayOn(RelayConnection connection) {
-    for (final state in _owedOn(connection.key)) {
-      unawaited(_resend(state, connection));
-    }
-  }
-
-  /// Fails the relays that took an EVENT on [key] without answering it, once
-  /// nothing will bring that connection back.
-  void endPublishesOn(RelayConnectionKey key) {
-    for (final state in _owedOn(key)) {
-      _failRelay(
-        state,
-        key.url,
-        const RelayFailure(
-          RelayFailureKind.connectionLost,
-          "the connection went away before the relay answered",
-        ),
-      );
-    }
-  }
-
-  /// The publishes whose EVENT was written on [key] and is still unanswered
-  /// there.
-  Set<PublishState> _owedOn(RelayConnectionKey key) => {
-    for (final states in inFlight.values)
-      for (final state in states)
-        if (state.writtenOn[key.url] == key &&
-            state.owesAnswer(key.url) &&
-            !state.retryingAuth.contains(key.url))
-          state,
-  };
-
-  Future<void> _resend(PublishState state, RelayConnection connection) async {
-    final event = state.event;
-    try {
-      await _connections.sendOrThrow(
-        connection,
-        ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
-      );
-    } on MessageTooLong catch (error) {
-      _failRelay(state, connection.url, error.failure);
-    } catch (error) {
-      // gone again: its next comeback sends it, or endPublishesOn fails it
-      logger.fine(
-        () => "EVENT ${event.id} not sent again to ${connection.url}: $error",
-      );
-    }
-  }
-
-  /// The connection [state] must go out on towards [url], opening it when it
-  /// is not there yet, or why nothing may be sent.
+  /// Sends the event of [state] to [relay], on the connection its
+  /// [AuthPolicy] allows, and fails the relay when the EVENT cannot go out.
   ///
-  /// Owns the connecting too: a publish that requires an identity must not
-  /// even open the anonymous connection, because a socket we opened is one the
-  /// relay saw, whether or not anything was sent on it.
-  Future<({RelayConnection? relay, RelayFailure? failure})> _connectionFor(
-    PublishState state,
-    RelayUrl url,
-  ) async {
-    final auth = state.auth;
-    final key = RelayConnectionKey.forAuth(url, auth);
+  /// A publish that requires an identity must not even open the anonymous
+  /// connection: a socket we opened is one the relay saw, whether or not
+  /// anything was sent on it.
+  Future<void> _publishTo(PublishState state, RelayPublishState relay) async {
+    final key = relay.key;
     if (key == null) {
       logger.warning(
-        () => "Publish requires ${auth?.signer?.publicKey}, which cannot sign",
+        () =>
+            "Publish requires ${state.auth?.signer?.publicKey}, which cannot sign",
       );
-      return (
-        relay: null,
-        failure: const RelayFailure(RelayFailureKind.cannotSign),
-      );
+      _fail(state, relay, const RelayFailure(RelayFailureKind.cannotSign));
+      return;
     }
-    return _open(state, key, as: auth?.signer);
+    try {
+      final connection = await _open(state, key, as: state.auth?.signer);
+      await _write(state, relay, connection);
+    } catch (error) {
+      _fail(state, relay, _failureOf(error));
+    }
   }
 
-  /// The connection behind [key] once it is open, or why [state] cannot go
-  /// out on it. One that is coming back is waited for while [state] lasts.
+  /// Writes the event of [state] on [connection], where [relay] then waits for
+  /// its OK, unless it moved to a bound connection meanwhile. Throws when the
+  /// socket went away first.
+  Future<void> _write(
+    PublishState state,
+    RelayPublishState relay,
+    RelayConnection connection,
+  ) async {
+    await _connections.sendOrThrow(
+      connection,
+      ClientMsg(ClientMsgType.kEvent, event: state.event).toJson(),
+    );
+    if (relay.key == connection.key) {
+      relay.progress = RelayPublishProgress.written;
+    }
+  }
+
+  /// The connection behind [key] once it is open. One that is coming back is
+  /// waited for while [state] lasts. Throws a [_NotOpened] that says why
+  /// [state] cannot go out on it.
   ///
   /// A relay tried a moment ago is tried again: an EVENT is worth the wait a
   /// REQ is spared.
-  Future<({RelayConnection? relay, RelayFailure? failure})> _open(
+  Future<RelayConnection> _open(
     PublishState state,
     RelayConnectionKey key, {
     NostrSigner? as,
@@ -195,9 +145,9 @@ class PublishesInFlight {
     );
     switch (opening) {
       case Opened(:final connection):
-        return (relay: connection, failure: null);
+        return connection;
       case NotOpened(:final failure):
-        return (relay: null, failure: failure);
+        throw _NotOpened(failure);
       case ComingBack():
         final back = await Future.any([
           _connections.whenBack(key),
@@ -205,32 +155,79 @@ class PublishesInFlight {
         ]);
         final connection = _connections.relays[key];
         if (back && connection != null && connection.isConnected) {
-          return (relay: connection, failure: null);
+          return connection;
         }
-        return (
-          relay: null,
-          failure: const RelayFailure(
-            RelayFailureKind.unreachable,
-            "did not come back",
-          ),
+        throw const _NotOpened(
+          RelayFailure(RelayFailureKind.unreachable, "did not come back"),
         );
+    }
+  }
+
+  /// Sends again on [connection] the EVENTs the socket it replaces took
+  /// without the relay answering them.
+  void replayOn(RelayConnection connection) {
+    for (final (:state, :relay) in _owedOn(connection.key)) {
+      unawaited(_resend(state, relay, connection));
+    }
+  }
+
+  /// Fails the relays that took an EVENT on [key] without answering it, once
+  /// nothing will bring that connection back.
+  void endPublishesOn(RelayConnectionKey key) {
+    for (final (:state, :relay) in _owedOn(key)) {
+      _fail(
+        state,
+        relay,
+        const RelayFailure(
+          RelayFailureKind.connectionLost,
+          "the connection went away before the relay answered",
+        ),
+      );
+    }
+  }
+
+  /// The publishes whose EVENT was written on [key] and is still unanswered
+  /// there.
+  List<_Waiting> _owedOn(RelayConnectionKey key) => [
+    for (final states in inFlight.values)
+      for (final state in states)
+        if (state.relays[key.url] case final relay? when relay.isOwedOn(key))
+          if (!state.isOver) (state: state, relay: relay),
+  ];
+
+  Future<void> _resend(
+    PublishState state,
+    RelayPublishState relay,
+    RelayConnection connection,
+  ) async {
+    try {
+      await _write(state, relay, connection);
+    } on MessageTooLong catch (error) {
+      _fail(state, relay, error.failure);
+    } catch (error) {
+      // gone again: its next comeback sends it, or endPublishesOn fails it
+      logger.fine(
+        () =>
+            "EVENT ${state.event.id} not sent again to ${connection.url}: $error",
+      );
     }
   }
 
   /// A relay answers every EVENT it receives, and the same event can be in
   /// flight in several publishes. An acceptance means the relay holds the
-  /// event, so it answers all of them; a refusal answers a single EVENT.
+  /// event, so it answers all of them; a refusal answers a single EVENT, the
+  /// one written on [connection] when there is one.
   void routeOk(
     String eventId,
     RelayConnection connection,
     bool success,
-    String msg,
+    String message,
   ) {
     final waiting = _waitingOn(eventId, connection.url);
     if (waiting.isEmpty) {
-      logger.warning(
+      logger.fine(
         () =>
-            "Received OK for $eventId from ${connection.url} but no publish is waiting for it",
+            "OK for $eventId from ${connection.url}, which no publish waits for",
       );
       return;
     }
@@ -238,142 +235,116 @@ class PublishesInFlight {
     // not an answer yet: each publish retries under its own auth policy,
     // unless the relay refused the identity this connection already proved
     if (!success &&
-        msg.startsWith("auth-required") &&
+        message.startsWith("auth-required") &&
         !connection.isAuthenticated) {
-      for (final state in waiting) {
-        _handleAuthRequired(state, connection, msg);
+      for (final (:state, :relay) in waiting) {
+        _handleAuthRequired(state, relay, connection, message);
       }
       return;
     }
 
-    for (final state in success ? waiting : waiting.take(1)) {
-      state.report(
-        connection.url,
-        RelayPublishOutcome(okReceived: true, accepted: success, message: msg),
-      );
+    if (success) {
+      for (final (:state, :relay) in waiting) {
+        state.end(relay.url, RelayPublishOutcome.accepted(message));
+      }
+      return;
     }
+    final (:state, :relay) = waiting.firstWhere(
+      (waiting) => waiting.relay.isOwedOn(connection.key),
+      orElse: () => waiting.first,
+    );
+    state.end(relay.url, RelayPublishOutcome.refused(message));
   }
 
-  /// In-flight publishes of [eventId] sent to [relayUrl] that have no answer
-  /// from it yet.
-  List<PublishState> _waitingOn(String eventId, RelayUrl relayUrl) {
-    final states = inFlight[eventId] ?? const [];
-    return states.where((state) => state.owesAnswer(relayUrl)).toList();
-  }
+  /// The publishes of [eventId] that have yet to hear from [url].
+  List<_Waiting> _waitingOn(String eventId, RelayUrl url) => [
+    for (final state in inFlight[eventId] ?? const <PublishState>[])
+      if (state.relays[url] case final relay? when relay.isPending)
+        if (!state.isOver) (state: state, relay: relay),
+  ];
 
-  /// Handles OK auth-required for a publish by moving the retry onto an
-  /// account-bound connection, authenticating it once, and re-sending EVENT.
-  /// Concurrent publishes share [RelayConnections.authenticate], avoiding
-  /// duplicate AUTH events whose identical ids used to overwrite each other's
-  /// callbacks.
+  /// Moves [relay] to the connection bound to the identity the [AuthPolicy]
+  /// of [state] allows, after [connection] refused it with [refusal].
   void _handleAuthRequired(
     PublishState state,
+    RelayPublishState relay,
     RelayConnection connection,
     String refusal,
   ) {
-    final relayUrl = connection.url;
     // the refusal of another publish of the same event reaches this one too
-    if (state.retryingAuth.contains(relayUrl)) {
-      return;
-    }
+    if (relay.progress == RelayPublishProgress.retryingAuth) return;
 
-    final eventToResend = state.event;
-    final eventId = eventToResend.id;
-
-    final account = _auth.accountForPublish(state.auth, eventToResend);
+    final account = _auth.accountForPublish(state.auth, state.event);
     if (account == null) {
-      logger.warning(
-        () => "Cannot satisfy auth-required for publish $eventId on $relayUrl",
+      logger.fine(
+        () =>
+            "Cannot satisfy auth-required for publish ${state.event.id} on ${relay.url}",
       );
-      _failRelay(
+      _fail(
         state,
-        relayUrl,
+        relay,
         RelayFailure(RelayFailureKind.identityNotAllowed, refusal),
       );
       return;
     }
-
-    final boundKey = RelayConnectionKey.authenticated(
-      relayUrl,
-      account.publicKey,
-    );
-
-    Future<void> retryOnBoundConnection() async {
-      try {
-        final (relay: bound, :failure) = await _open(
-          state,
-          boundKey,
-          as: account,
-        );
-        if (state.isOver) {
-          return;
-        }
-        if (bound == null) {
-          _failRelay(
-            state,
-            relayUrl,
-            failure ?? const RelayFailure(RelayFailureKind.noBoundConnection),
-          );
-          return;
-        }
-
-        // Some relays challenge immediately; others only after seeing EVENT on
-        // the bound socket. Trigger the latter, then the next auth-required OK
-        // enters this method with the bound key and authenticates below.
-        if (connection.key != boundKey && !bound.isAuthenticated) {
-          await _connections.sendOrThrow(
-            bound,
-            ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
-          );
-          state.writtenOn[relayUrl] = boundKey;
-          return;
-        }
-
-        final accepted = await _connections.authenticate(boundKey);
-        if (state.isOver) {
-          return;
-        }
-        if (!accepted) {
-          _failRelay(
-            state,
-            relayUrl,
-            const RelayFailure(RelayFailureKind.authenticationFailed),
-          );
-          return;
-        }
-        await _connections.sendOrThrow(
-          bound,
-          ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
-        );
-        state.writtenOn[relayUrl] = boundKey;
-      } catch (error, stackTrace) {
-        logger.severe(
-          () => "Publish auth retry failed for $eventId",
-          error,
-          stackTrace,
-        );
-        if (!state.isOver) {
-          _failRelay(
-            state,
-            relayUrl,
-            error is MessageTooLong
-                ? error.failure
-                : RelayFailure(RelayFailureKind.connectionLost, "$error"),
-          );
-        }
-      } finally {
-        state.retryingAuth.remove(relayUrl);
-      }
-    }
-
-    state.retryingAuth.add(relayUrl);
-    unawaited(retryOnBoundConnection());
+    relay
+      ..key = RelayConnectionKey.authenticated(relay.url, account.publicKey)
+      ..progress = RelayPublishProgress.retryingAuth;
+    unawaited(_retryOnBound(state, relay, account, refusedOn: connection.key));
   }
 
-  /// Whether a publish still waits on the relay behind [key]. Publishes track
-  /// relay urls rather than identities, so every connection to that relay
-  /// counts.
-  bool hasWorkOn(RelayConnectionKey key) => inFlight.values
-      .expand((states) => states)
-      .any((state) => !state.isOver && state.outcomes.containsKey(key.url));
+  /// Sends the event of [state] again on the bound connection of [relay],
+  /// authenticated as [account] unless the refusal came from another
+  /// connection.
+  ///
+  /// Some relays challenge right away, others only once they see an EVENT on
+  /// the bound socket: that EVENT is the trigger, and the auth-required it may
+  /// get comes back to [_handleAuthRequired] from the bound connection.
+  /// Concurrent publishes share [RelayConnections.authenticate], so they send
+  /// a single AUTH.
+  Future<void> _retryOnBound(
+    PublishState state,
+    RelayPublishState relay,
+    NostrSigner account, {
+    required RelayConnectionKey refusedOn,
+  }) async {
+    final bound = relay.key!;
+    try {
+      final connection = await _open(state, bound, as: account);
+      if (state.isOver) return;
+      if (refusedOn != bound && !connection.isAuthenticated) {
+        await _write(state, relay, connection);
+        return;
+      }
+      final accepted = await _connections.authenticate(bound);
+      if (state.isOver) return;
+      if (!accepted) {
+        _fail(
+          state,
+          relay,
+          const RelayFailure(RelayFailureKind.authenticationFailed),
+        );
+        return;
+      }
+      await _write(state, relay, connection);
+    } on _NotOpened catch (error) {
+      _fail(state, relay, error.failure);
+    } catch (error, stackTrace) {
+      logger.warning(
+        () => "Could not publish ${state.event.id} on $bound",
+        error,
+        stackTrace,
+      );
+      _fail(state, relay, _failureOf(error));
+    }
+  }
+
+  /// Whether a publish still waits on the connection behind [key]: for it to
+  /// open or come back, for an OK, or for an authentication.
+  bool hasWorkOn(RelayConnectionKey key) => inFlight.values.any(
+    (states) => states.any(
+      (state) =>
+          !state.isOver && (state.relays[key.url]?.isPendingOn(key) ?? false),
+    ),
+  );
 }

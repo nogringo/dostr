@@ -209,9 +209,12 @@ void main() {
           .done;
 
       final response = responses.values.single;
-      expect(response.okReceived, isTrue);
-      expect(response.accepted, isFalse);
-      expect(response.message, 'auth-required: not on the whitelist');
+      expect(
+        response,
+        const RelayPublishOutcome.refused(
+          'auth-required: not on the whitelist',
+        ),
+      );
       // anonymous, bound, and one resend if the bound EVENT raced the AUTH
       expect(relay.received('EVENT').length, lessThanOrEqualTo(3));
     });

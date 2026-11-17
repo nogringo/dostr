@@ -126,14 +126,15 @@ final outcomes = await publishes
     .done;
 
 outcomes.forEach((url, outcome) {
-  print('$url: ${outcome.accepted} ${outcome.message}');
+  print('$url: ${outcome.status.name} ${outcome.message}');
 });
 ```
 
 - Each relay gets the event once, whatever the list holds twice.
+- The `RelayPublishOutcome` of a relay is `pending` until it answers, then `accepted` or `refused` with the `message` of its OK, `failed` with the reason in `failure`, or `timedOut`.
 - A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
 - A relay whose connection goes away after it took the event, before its OK, gets the event again once the connection is back. It fails with `RelayFailureKind.connectionLost` once nothing will bring that connection back, see [Reconnecting](#reconnecting).
-- `done` completes once every relay answered, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`. To move on once one relay accepted the event, wait on `outcomesStream` instead: the publish goes on for the others.
+- `done` completes once every relay answered, or after `timeout`, which leaves the others `timedOut`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`. To move on once one relay accepted the event, wait on `outcomesStream` instead: the publish goes on for the others.
 - `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
 
@@ -258,7 +259,7 @@ Opening a connection, a REQ or a publish on a disposed manager throws a `StateEr
 - `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
 Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.
-`CachedRelayInfoRepository` fetches it once per relay and refreshes it in the background:
+`CachedRelayInfoRepository` fetches it once per relay and refreshes it in the background, and `maxSubscriptions` and `maxMessageLength` read the limits from it, null for a relay that could not be reached:
 
 ```dart
 import 'package:http/http.dart' as http;
@@ -272,10 +273,8 @@ final relayInfo = CachedRelayInfoRepository(
 
 final relays = RelayManager(
   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
-  subscriptionLimit: (url) async =>
-      (await relayInfo.getRelayInfo(url))?.limitation?.maxSubscriptions,
-  messageLengthLimit: (url) async =>
-      (await relayInfo.getRelayInfo(url))?.limitation?.maxMessageLength,
+  subscriptionLimit: relayInfo.maxSubscriptions,
+  messageLengthLimit: relayInfo.maxMessageLength,
 );
 ```
 

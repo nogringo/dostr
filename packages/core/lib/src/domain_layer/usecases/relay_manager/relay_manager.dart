@@ -234,7 +234,7 @@ final class RelayManager {
       connectTimeout: connectTimeout,
     );
     if (failure != null) {
-      logger.warning(() => "Could not open $key: $failure");
+      logger.info(() => "Could not open $key: $failure");
       return null;
     }
     return _connections.relays[key]?.snapshot();
@@ -282,22 +282,21 @@ final class RelayManager {
         final session = connection.authSession;
         if (session != null && session.receiveOk(eventId, success)) {
           if (success) {
-            logger.fine(() => "AUTH OK for $eventId");
+            logger.fine(() => "AUTH accepted on $key");
           } else {
-            logger.severe(() => "AUTH failed for $eventId: $msg");
+            logger.warning(() => "AUTH refused on $key: $msg");
           }
           break;
         }
 
-        //nip 20 used to notify clients if an EVENT was successful
-        if (!success) {
-          logger.severe(() => "NOT OK from ${connection.url}: $eventJson");
-        }
+        logger.fine(
+          () => "OK $success from ${connection.url} for $eventId: ${msg ?? ''}",
+        );
         _publishes.routeOk(eventId, connection, success, msg ?? '');
       case NostrMessageRawType.notice:
         final eventJson = nostrMsg.otherData;
         final String noticeMsg = eventJson[1];
-        logger.warning(() => "NOTICE from ${connection.url}: $noticeMsg");
+        logger.info(() => "NOTICE from ${connection.url}: $noticeMsg");
         _requests.logActive();
         for (final handler in List.of(_protocolHandlers)) {
           handler.onNotice(key, noticeMsg);
@@ -312,9 +311,8 @@ final class RelayManager {
         final eventJson = nostrMsg.otherData;
         final String id = eventJson[1];
         final closedMsg = _stringAt(eventJson, 2);
-        logger.warning(
-          () =>
-              " CLOSED subscription url: ${connection.url} id: $id msg: ${closedMsg ?? ''}",
+        logger.fine(
+          () => "CLOSED from ${connection.url} for $id: ${closedMsg ?? ''}",
         );
         // a protocol session is not a REQ: it owns its own retry and never has
         // a RequestState for the auth-required branch to find
@@ -356,9 +354,6 @@ final class RelayManager {
   /// given to the constructor. A live subscription keeps its connection even
   /// after EOSE, and authentication/reconnect work keeps the exact connection
   /// it is preparing to use.
-  ///
-  /// Publishes track relay URLs rather than identities, so both anonymous and
-  /// authenticated connections at an in-flight publish's URL are retained.
   Future<void> closeIdleConnections() async {
     for (final key in _connections.relays.keys.toList()) {
       // Re-evaluate after each asynchronous close. Another operation may

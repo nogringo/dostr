@@ -23,7 +23,8 @@ class RelayPublishes {
   /// the [RelayManager] was disposed.
   ///
   /// It is done once every relay answered or failed, or after [timeout], not
-  /// counting NIP-42 authentication.
+  /// counting NIP-42 authentication: a relay that has not answered by then is
+  /// [RelayPublishStatus.timedOut].
   RelayPublish publish(
     Nip01Event event, {
     required Iterable<RelayUrl> relays,
@@ -52,22 +53,17 @@ class RelayPublishes {
 class RelayPublish {
   final PublishState _state;
 
-  /// The OK of each relay so far, keyed by relay url. A relay that did not
-  /// answer yet has neither [RelayPublishOutcome.okReceived] nor a
-  /// [RelayPublishOutcome.failure].
-  Map<RelayUrl, RelayPublishOutcome> get outcomes => _outcomesOf(_state);
+  RelayPublish._(this._state);
+
+  /// The outcome on each relay so far, keyed by relay url.
+  Map<RelayUrl, RelayPublishOutcome> get outcomes => _state.outcomes;
 
   /// [outcomes] each time a relay answers, closed once the publish is done.
   Stream<Map<RelayUrl, RelayPublishOutcome>> get outcomesStream =>
-      _state.stateUpdates.map(_outcomesOf);
+      _state.outcomesStream;
 
   /// [outcomes] once the publish is done, see [RelayPublishes.publish].
-  final Future<Map<RelayUrl, RelayPublishOutcome>> done;
-
-  static Map<RelayUrl, RelayPublishOutcome> _outcomesOf(PublishState state) =>
-      Map.unmodifiable(state.outcomes);
-
-  RelayPublish._(this._state) : done = _state.done.then(_outcomesOf);
+  Future<Map<RelayUrl, RelayPublishOutcome>> get done => _state.done;
 
   /// the event being published
   Nip01Event get event => _state.event;

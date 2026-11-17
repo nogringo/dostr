@@ -354,7 +354,7 @@ class RelayConnections {
     notifyChanged();
     connection.idleFor.reset();
     _idle.watch();
-    logger.info(() => "connecting to relay $url");
+    logger.info(() => "Connecting to $url");
     try {
       // A disconnected transport may still own reconnect timers and listeners.
       // Retire it before replacement or it can later open an untracked socket.
@@ -395,7 +395,7 @@ class RelayConnections {
         }
       }
     } catch (error) {
-      logger.severe(() => "!! could not connect to $url -> $error");
+      logger.info(() => "Could not connect to $url: $error");
       if (transport == null ||
           identical(connection.relayTransport, transport)) {
         await connection.close();
@@ -410,7 +410,7 @@ class RelayConnections {
       notifyChanged();
       return RelayFailure(RelayFailureKind.unreachable, "$error");
     }
-    logger.info(() => "connected to relay: $url");
+    logger.info(() => "Connected to $url");
     connection.attempts.succeededToConnect();
     notifyChanged();
     return null;
@@ -464,13 +464,13 @@ class RelayConnections {
     if (!identical(connection.relayTransport, transport) ||
         !transport.isOpen()) {
       logger.finest(
-        () => "skip send to ${connection.url}: transport changed or closed",
+        () => "Not sent to ${connection.url}: its socket changed or closed",
       );
       return false;
     }
     transport.send(data);
     connection.idleFor.reset();
-    logger.fine(() => "send message to ${connection.url}: $data");
+    logger.fine(() => "Sent to ${connection.url}: $data");
     return true;
   }
 
@@ -541,7 +541,7 @@ class RelayConnections {
   void send(RelayConnectionKey key, List<dynamic> message) {
     final connection = relays[key];
     if (connection == null) {
-      logger.finest(() => "skip send to $key: no such connection");
+      logger.finest(() => "Not sent to $key: no such connection");
       return;
     }
     sendTo(connection, message);
@@ -553,9 +553,9 @@ class RelayConnections {
     unawaited(
       sendOrThrow(connection, message).catchError((Object error) {
         if (error is MessageTooLong) {
-          logger.warning(() => "skip send to ${connection.url}: $error");
+          logger.warning(() => "Not sent to ${connection.url}: $error");
         } else {
-          logger.finest(() => "skip send to ${connection.url}: $error");
+          logger.finest(() => "Not sent to ${connection.url}: $error");
         }
       }),
     );
@@ -579,13 +579,13 @@ class RelayConnections {
       },
       onError: (error) {
         if (!_isCurrent(connection, transport)) return;
-        logger.severe(() => "onError ${connection.url} on listen $error");
+        logger.info(() => "Socket error on ${connection.url}: $error");
         _handleTransportGone(connection, transport);
       },
       onDone: () {
         logger.finest(
           () =>
-              "onDone ${connection.url} on listen (close: ${connection.relayTransport?.closeCode()} ${connection.relayTransport?.closeReason()})",
+              "Socket of ${connection.url} closed: ${connection.relayTransport?.closeCode()} ${connection.relayTransport?.closeReason()}",
         );
         _handleTransportGone(connection, transport);
       },
@@ -616,14 +616,14 @@ class RelayConnections {
     // waiting for its OK
     final retired = connection.close();
     if (!hasWorkOn(key)) {
-      logger.info(() => "closed $key, nothing left on it");
+      logger.info(() => "Lost $key, nothing left on it");
       unawaited(closeConnection(key));
       return;
     }
     notifyChanged();
     // deliberate closes cancel the stream subscription first and never get here
     if (allowReconnect) {
-      logger.info(() => "closed ${connection.url}. Reconnecting");
+      logger.info(() => "Lost $key, reconnecting");
       _revivals.comeBack(connection, retired);
       return;
     }
@@ -658,7 +658,7 @@ class RelayConnections {
     final connection = relays.remove(key);
     if (connection == null) return Future.value();
     notifyChanged();
-    logger.fine(() => "Disconnecting $key...");
+    logger.fine(() => "Closing $key");
     _revivals.stop(connection);
     final closing = connection.close();
     listener.endAuthRetriesOn(key);
@@ -679,8 +679,12 @@ class RelayConnections {
     final keys = relays.keys.toList();
     try {
       await Future.wait(keys.map(closeConnection));
-    } catch (e) {
-      logger.severe(() => e);
+    } catch (error, stackTrace) {
+      logger.severe(
+        () => "Could not close every connection",
+        error,
+        stackTrace,
+      );
     }
   }
 }

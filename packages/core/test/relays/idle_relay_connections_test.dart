@@ -131,11 +131,8 @@ void main() {
     }
     requests.clear();
     for (final publish in publishes) {
-      for (final url in publish.outcomes.keys.toList()) {
-        publish.report(
-          url,
-          const RelayPublishOutcome(okReceived: true, accepted: true),
-        );
+      for (final url in publish.relays.keys) {
+        publish.end(url, const RelayPublishOutcome.accepted());
       }
       await publish.done;
     }
@@ -203,18 +200,29 @@ void main() {
     expect(parts.connections.relays.keys, [anonymous]);
   });
 
-  test('publish conservatively keeps both identities at target URL', () async {
+  test('a publish keeps only the connection it goes out on', () async {
     connect(anonymous);
-    connect(authenticated);
+    final bound = connect(authenticated);
     final unrelated = connect(other);
     publish('event', url: anonymous.url);
     await manager.closeIdleConnections();
-    expect(
-      parts.connections.relays.keys,
-      unorderedEquals([anonymous, authenticated]),
-    );
+    expect(parts.connections.relays.keys, [anonymous]);
+    expect(bound.closed, isTrue);
     expect(unrelated.closed, isTrue);
   });
+
+  test(
+    'a publish moving to a bound connection frees the anonymous one',
+    () async {
+      connect(anonymous);
+      connect(authenticated);
+      publish('event', url: anonymous.url).relays[anonymous.url]!
+        ..key = authenticated
+        ..progress = RelayPublishProgress.retryingAuth;
+      await manager.closeIdleConnections();
+      expect(parts.connections.relays.keys, [authenticated]);
+    },
+  );
 
   test('a request that has not picked a relay keeps nothing open', () async {
     connect(anonymous);

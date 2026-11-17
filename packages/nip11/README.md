@@ -77,8 +77,18 @@ final info = RelayInfo(
 );
 ```
 
+`maxSubscriptions(url)` and `maxMessageLength(url)` read `max_subscriptions` and `max_message_length` from any `RelayInfoRepository`, and give null for a relay that publishes none or could not be reached.
+They fit the `subscriptionLimit` and `messageLengthLimit` of a [`dostr_core`](https://pub.dev/packages/dostr_core#relay-limits) `RelayManager` as they are:
+
+```dart
+final relays = RelayManager(
+  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  subscriptionLimit: cached.maxSubscriptions,
+  messageLengthLimit: cached.maxMessageLength,
+);
+```
+
 More in [example/](example/).
-The relay limits of [`dostr_core`](https://pub.dev/packages/dostr_core#relay-limits) show how a `RelayManager` reads `max_subscriptions` and `max_message_length` from it.
 
 ## Coming from `ndk`
 

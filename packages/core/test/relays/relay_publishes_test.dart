@@ -15,14 +15,9 @@ void main() {
 
   tearDown(() => manager.dispose());
 
-  (String, bool, bool, String) summary(
+  (String, RelayPublishStatus, String) summary(
     MapEntry<RelayUrl, RelayPublishOutcome> response,
-  ) => (
-    response.key,
-    response.value.okReceived,
-    response.value.accepted,
-    response.value.message,
-  );
+  ) => (response.key, response.value.status, response.value.message);
 
   test('collects the OK of every relay', () async {
     final first = await startRelay();
@@ -36,8 +31,8 @@ void main() {
     expect(
       responses.entries.map(summary),
       unorderedEquals([
-        (first.url, true, true, ''),
-        (second.url, true, true, ''),
+        (first.url, RelayPublishStatus.accepted, ''),
+        (second.url, RelayPublishStatus.accepted, ''),
       ]),
     );
     expect(first.events.single.id, event.id);
@@ -52,7 +47,7 @@ void main() {
         .done;
 
     expect(responses.entries.map(summary), [
-      (relay.url, true, false, 'blocked: spam'),
+      (relay.url, RelayPublishStatus.refused, 'blocked: spam'),
     ]);
   });
 
@@ -64,7 +59,9 @@ void main() {
         .publish(signedEvent(), relays: [blocked])
         .done;
 
-    expect(responses.entries.map(summary), [(blocked, false, false, '')]);
+    expect(responses.entries.map(summary), [
+      (blocked, RelayPublishStatus.failed, ''),
+    ]);
     expect(
       responses.values.single.failure,
       const RelayFailure(RelayFailureKind.blocked),
@@ -203,7 +200,7 @@ void main() {
     final publish = publishes.publish(signedEvent(), relays: [relay.url]);
     final updates = publish.outcomesStream.toList();
 
-    expect(publish.outcomes[relay.url]!.okReceived, isFalse);
+    expect(publish.outcomes[relay.url]!.isPending, isTrue);
     final outcomes = await publish.done;
 
     expect(outcomes[relay.url]!.accepted, isTrue);
@@ -222,7 +219,7 @@ void main() {
         )
         .done;
 
-    expect(responses.values.single.okReceived, isFalse);
+    expect(responses.values.single, const RelayPublishOutcome.timedOut());
     expect(silent.events, hasLength(1));
   });
 

@@ -10,6 +10,47 @@ import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_publish_outcome.dart';
 import '../../entities/timeout_pausable.dart';
 
+/// Where a publish stands on a relay that has yet to answer it.
+enum RelayPublishProgress {
+  /// waiting for its connection to open or come back
+  connecting,
+
+  /// written on its connection, waiting for the OK
+  written,
+
+  /// refused for want of an identity, moving to a connection bound to one
+  retryingAuth,
+}
+
+/// A publish on one relay. Internal to dostr_core.
+class RelayPublishState {
+  final RelayUrl url;
+
+  /// the connection the EVENT goes out on, bound once the relay asked for an
+  /// identity, null when the identity its `AuthPolicy` requires cannot sign
+  RelayConnectionKey? key;
+
+  /// where it stands while [isPending]
+  RelayPublishProgress progress = RelayPublishProgress.connecting;
+
+  RelayPublishOutcome _outcome = const RelayPublishOutcome.pending();
+
+  RelayPublishState(this.url, this.key);
+
+  RelayPublishOutcome get outcome => _outcome;
+
+  /// Whether the relay has yet to answer.
+  bool get isPending => _outcome.isPending;
+
+  /// Whether the publish still needs the connection behind [connection].
+  bool isPendingOn(RelayConnectionKey connection) =>
+      isPending && key == connection;
+
+  /// Whether the EVENT was written on [connection] and is unanswered there.
+  bool isOwedOn(RelayConnectionKey connection) =>
+      isPendingOn(connection) && progress == RelayPublishProgress.written;
+}
+
 /// State of one publish. Internal to dostr_core.
 class PublishState implements TimeoutPausable {
   /// the event being published, kept to send it again after an auth-required
@@ -19,60 +60,16 @@ class PublishState implements TimeoutPausable {
   /// which identity this publish may be attributed to on the relays (NIP-42)
   final AuthPolicy? auth;
 
-  /// relay urls this publish is sending again to after an auth-required
-  /// refusal
-  final Set<RelayUrl> retryingAuth = {};
+  /// each relay the event goes to, by url
+  final Map<RelayUrl, RelayPublishState> relays;
 
-  /// the connection the EVENT was last written on towards each relay
-  final Map<RelayUrl, RelayConnectionKey> writtenOn = {};
+  final _outcomesStream = BehaviorSubject<Map<RelayUrl, RelayPublishOutcome>>();
 
-  final BehaviorSubject<PublishState> _stateUpdatesController =
-      BehaviorSubject<PublishState>();
+  final _done = Completer<Map<RelayUrl, RelayPublishOutcome>>();
 
-  final StreamController<({RelayUrl url, RelayPublishOutcome outcome})>
-  _answers = StreamController();
+  Map<RelayUrl, RelayPublishOutcome>? _outcomes;
 
-  /// the whole state each time a relay answers, the latest one replayed to a
-  /// new listener
-  Stream<PublishState> get stateUpdates => _stateUpdatesController.stream;
-
-  /// the outcome on each relay the event is sent to
-  final Map<RelayUrl, RelayPublishOutcome> outcomes;
-
-  /// Whether the publish is over: done or timed out.
-  bool get isOver => _answers.isClosed;
-
-  /// Records what [url] did with the event, unless the publish is over.
-  void report(RelayUrl url, RelayPublishOutcome outcome) {
-    if (!isOver) _answers.add((url: url, outcome: outcome));
-  }
-
-  /// Whether [url] was sent the event and has neither answered nor failed.
-  bool owesAnswer(RelayUrl url) {
-    final outcome = outcomes[url];
-    return !isOver &&
-        outcome != null &&
-        !outcome.okReceived &&
-        outcome.failure == null;
-  }
-
-  /// Whether every relay answered or failed.
-  bool get isDone => outcomes.values.every(
-    (outcome) => outcome.okReceived || outcome.failure != null,
-  );
-
-  /// completes once the publish is done or timed out
-  Future<PublishState> get done => _done.future;
-
-  late final StreamSubscription _answersSubscription;
-  late final PausableTimer _timeout = PausableTimer(() {
-    if (!isDone) {
-      _stateUpdatesController.add(this);
-      _dispose();
-    }
-  });
-  bool _isDisposed = false;
-  final Completer<PublishState> _done = Completer();
+  late final PausableTimer _timeout = PausableTimer(_timeOut);
 
   /// Starts the publish of [event] to [relays], done right away without any.
   PublishState(
@@ -80,14 +77,12 @@ class PublishState implements TimeoutPausable {
     required Iterable<RelayUrl> relays,
     required Duration timeout,
     this.auth,
-  }) : outcomes = {for (final url in relays) url: const RelayPublishOutcome()} {
-    _answersSubscription = _answers.stream.listen((response) {
-      outcomes[response.url] = response.outcome;
-      _stateUpdatesController.add(this);
-      _checkDone();
-    });
+  }) : relays = {
+         for (final url in relays)
+           url: RelayPublishState(url, RelayConnectionKey.forAuth(url, auth)),
+       } {
     _timeout.start(timeout);
-    _checkDone();
+    _finishIfAnswered();
   }
 
   @override
@@ -96,24 +91,55 @@ class PublishState implements TimeoutPausable {
   @override
   void resumeTimeout() => _timeout.resume();
 
-  void _checkDone() {
-    if (!isOver && isDone) {
-      _stateUpdatesController.add(this);
-      _dispose();
-    }
+  /// Whether the publish is over: every relay answered, or it timed out.
+  bool get isOver => _done.isCompleted;
+
+  /// the outcome on each relay, as it stands now
+  Map<RelayUrl, RelayPublishOutcome> get outcomes =>
+      _outcomes ??= Map.unmodifiable({
+        for (final relay in relays.values) relay.url: relay.outcome,
+      });
+
+  /// [outcomes] each time a relay answers, the latest one replayed to a new
+  /// listener, closed once the publish is over
+  Stream<Map<RelayUrl, RelayPublishOutcome>> get outcomesStream =>
+      _outcomesStream.stream;
+
+  /// [outcomes] once the publish is over
+  Future<Map<RelayUrl, RelayPublishOutcome>> get done => _done.future;
+
+  /// Ends the publish on [url] with [outcome], unless the relay already
+  /// answered or the publish is over: the first answer stands.
+  void end(RelayUrl url, RelayPublishOutcome outcome) {
+    final relay = relays[url];
+    if (isOver || relay == null || !relay.isPending) return;
+    relay._outcome = outcome;
+    _changed();
+    _finishIfAnswered();
   }
 
-  void _dispose() {
-    if (_isDisposed) {
-      return;
+  void _changed() {
+    _outcomes = null;
+    _outcomesStream.add(outcomes);
+  }
+
+  void _finishIfAnswered() {
+    if (!relays.values.any((relay) => relay.isPending)) _finish();
+  }
+
+  void _timeOut() {
+    if (isOver) return;
+    for (final relay in relays.values.where((relay) => relay.isPending)) {
+      relay._outcome = const RelayPublishOutcome.timedOut();
     }
-    _isDisposed = true;
+    _changed();
+    _finish();
+  }
+
+  void _finish() {
+    if (isOver) return;
     _timeout.cancel();
-    _answersSubscription.cancel();
-    if (!_done.isCompleted) {
-      _done.complete(this);
-    }
-    _stateUpdatesController.close();
-    _answers.close();
+    _done.complete(outcomes);
+    unawaited(_outcomesStream.close());
   }
 }
