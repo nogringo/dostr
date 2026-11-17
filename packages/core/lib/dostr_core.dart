@@ -13,7 +13,7 @@ export 'src/config/relay_defaults.dart'
         defaultReconnectMaximumStep,
         defaultWebSocketConnectTimeout;
 export 'src/config/request_defaults.dart';
-export 'src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+export 'src/data_layer/repositories/nostr_transport/web_socket_transport_factory.dart';
 export 'src/domain_layer/entities/message_length_limit.dart';
 export 'src/domain_layer/entities/relay_connection_key.dart';
 export 'src/domain_layer/entities/relay_connectivity.dart';

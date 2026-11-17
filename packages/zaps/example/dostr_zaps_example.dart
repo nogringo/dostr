@@ -11,7 +11,7 @@ Future<void> main(List<String> args) async {
   final relay = RelayUrl.parse(args[0]);
   final recipient = args[1];
   final relayManager = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
   final relayReqs = RelayReqs(
     relayManager: relayManager,

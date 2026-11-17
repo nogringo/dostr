@@ -12,13 +12,13 @@ import 'relay_connection.dart';
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and
 /// the session on its current socket. Internal to dostr_core.
 class RelayAuth {
-  /// signer for nip-42 AUTH challenges from relays
+  /// the registered accounts, which own the signers of their pubkeys
   final AuthAccounts? _accounts;
 
   /// asked before a connection bound to an identity is opened, see [AuthHandler]
   final AuthHandler? authHandler;
 
-  /// timeout for AUTH callbacks (how long to wait for AUTH OK)
+  /// how long an AUTH waits for its OK
   final Duration okTimeout;
 
   /// how long to wait for a NIP-42 challenge once authentication was asked for

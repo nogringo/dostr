@@ -67,9 +67,7 @@ class TestDostrFlutter {
   final Map<String, String> storage;
   http.Response nip05Response = http.Response('', 404);
   final _relayManager = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(
-      pingInterval: null,
-    ),
+    nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
   );
   late final FakeMetadataFetcher metadata;
   late final DostrFlutter dostrFlutter;

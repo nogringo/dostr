@@ -4,7 +4,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger.dart';
-import '../../../shared/nips/nip01/client_msg.dart';
+import '../../../shared/nips/nip01/client_messages.dart';
 import '../../entities/relay_connection_key.dart';
 
 /// NIP-42 on one socket of a connection: the challenge the relay sent on it,
@@ -119,7 +119,7 @@ class AuthSession {
 
     final ok = Completer<bool>();
     _pendingAuth = (eventId: signedAuth.id, ok: ok);
-    send(ClientMsg(ClientMsgType.kAuth, event: signedAuth).toJson());
+    send(authMessage(signedAuth));
     logger.fine(() => "AUTH sent on $key");
 
     final accepted = await ok.future.timeout(

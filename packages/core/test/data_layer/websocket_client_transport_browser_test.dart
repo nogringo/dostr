@@ -4,14 +4,14 @@ library;
 import 'dart:async';
 import 'dart:typed_data';
 
-import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_core/src/data_layer/repositories/nostr_transport/web_socket_transport_factory.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 const _wait = Duration(seconds: 5);
 
 void main() {
-  final factory = WebSocketClientNostrTransportFactory();
+  final factory = webSocketTransportFactory();
 
   /// Starts browser_relay.dart in [mode], and returns its URL and what it says
   /// after that.
@@ -86,9 +86,9 @@ void main() {
     transport.send('close me');
     await ended.future.timeout(_wait);
 
-    expect(transport.closeCode(), 1009);
-    expect(transport.closeReason(), 'too big');
-    expect(transport.isOpen(), isFalse);
+    expect(transport.closeCode, 1009);
+    expect(transport.closeReason, 'too big');
+    expect(transport.isOpen, isFalse);
   });
 
   test('closing an open transport hangs up and ends its listeners', () async {
@@ -102,7 +102,7 @@ void main() {
 
     await ended.future.timeout(_wait);
     await hangUp(events);
-    expect(transport.isOpen(), isFalse);
+    expect(transport.isOpen, isFalse);
   });
 
   test('a connection that fails after it opened just ends', () async {
@@ -114,6 +114,6 @@ void main() {
     await transport.ready.timeout(_wait);
 
     await ended.future.timeout(_wait);
-    expect(transport.isOpen(), isFalse);
+    expect(transport.isOpen, isFalse);
   });
 }

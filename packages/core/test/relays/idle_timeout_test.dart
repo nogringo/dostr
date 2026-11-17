@@ -14,9 +14,7 @@ void main() {
     AuthAccounts? accounts,
   }) {
     final manager = RelayManager(
-      nostrTransportFactory: WebSocketClientNostrTransportFactory(
-        pingInterval: null,
-      ),
+      nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
       accounts: accounts,
       anonymousIdleTimeout: anonymous,
       authenticatedIdleTimeout: authenticated,
@@ -133,7 +131,7 @@ void main() {
   test('rejects a timeout that is not positive', () {
     expect(
       () => RelayManager(
-        nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+        nostrTransportFactory: webSocketTransportFactory(),
         anonymousIdleTimeout: Duration.zero,
       ),
       throwsArgumentError,

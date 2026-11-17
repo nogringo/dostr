@@ -12,7 +12,7 @@ import '../relay_manager/relay_manager_parts.dart';
 /// Publishes signed events to relays the caller picks (NIP-01 EVENT).
 ///
 /// No signing, no cache, no outbox routing and no retry.
-class RelayPublishes {
+final class RelayPublishes {
   final PublishesInFlight _publishes;
 
   RelayPublishes({required RelayManager relayManager})
@@ -50,7 +50,7 @@ class RelayPublishes {
 
 /// One EVENT on the relays its caller picked, opened by
 /// [RelayPublishes.publish].
-class RelayPublish {
+final class RelayPublish {
   final PublishState _state;
 
   RelayPublish._(this._state);

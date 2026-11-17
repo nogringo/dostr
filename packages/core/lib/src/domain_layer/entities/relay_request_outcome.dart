@@ -40,7 +40,6 @@ class RelayRequestOutcome {
   /// what kept the request from being sent, for [RelayRequestStatus.notSent]
   final RelayFailure? failure;
 
-  /// creates a new [RelayRequestOutcome]
   const RelayRequestOutcome(this.status, {this.message, this.failure});
 
   @override

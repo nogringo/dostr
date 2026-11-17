@@ -50,18 +50,18 @@ class _FlakyTransport implements NostrTransport {
   Future<void> get ready => _inner.ready;
 
   @override
-  bool isOpen() => !_dropped && _inner.isOpen();
+  bool get isOpen => !_dropped && _inner.isOpen;
 
   @override
-  void send(data) {
+  void send(dynamic data) {
     if (!_dropped) _inner.send(data);
   }
 
   @override
-  int? closeCode() => _dropped ? 1006 : _inner.closeCode();
+  int? get closeCode => _dropped ? 1006 : _inner.closeCode;
 
   @override
-  String? closeReason() => _dropped ? "connection lost" : _inner.closeReason();
+  String? get closeReason => _dropped ? "connection lost" : _inner.closeReason;
 }
 
 /// What a socket opened during an outage gets: a refusal.
@@ -73,7 +73,7 @@ class _RefusedTransport implements NostrTransport {
       Future.error(const SocketException("network is down"));
 
   @override
-  bool isOpen() => false;
+  bool get isOpen => false;
 
   @override
   Future<void> close() async {
@@ -88,17 +88,17 @@ class _RefusedTransport implements NostrTransport {
   }) => _out.stream.listen(onData, onError: onError, onDone: onDone);
 
   @override
-  void send(data) {}
+  void send(dynamic data) {}
 
   @override
-  int? closeCode() => null;
+  int? get closeCode => null;
 
   @override
-  String? closeReason() => null;
+  String? get closeReason => null;
 }
 
-class _FlakyTransportFactory implements NostrTransportFactory {
-  final _inner = WebSocketClientNostrTransportFactory();
+class _FlakyTransportFactory {
+  final _inner = webSocketTransportFactory();
   final List<_FlakyTransport> created = [];
 
   /// refuses new sockets while set
@@ -107,7 +107,6 @@ class _FlakyTransportFactory implements NostrTransportFactory {
   /// sockets refused so far
   int refused = 0;
 
-  @override
   NostrTransport call(RelayUrl url) {
     if (down) {
       refused++;
@@ -138,7 +137,7 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = newRelayManager(
-      transportFactory: factory,
+      transportFactory: factory.call,
       accounts: accounts,
     );
     addTearDown(manager.dispose);
@@ -183,7 +182,7 @@ void main() {
 
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(
-      nostrTransportFactory: factory,
+      nostrTransportFactory: factory.call,
       accounts: accounts,
       authCallbackTimeout: const Duration(seconds: 10),
     );
@@ -402,7 +401,7 @@ void main() {
   test('a connection whose work ended during an outage is forgotten', () async {
     final relay = await startRelay();
     final factory = _FlakyTransportFactory();
-    final manager = RelayManager(nostrTransportFactory: factory);
+    final manager = RelayManager(nostrTransportFactory: factory.call);
     addTearDown(manager.dispose);
     final key = RelayConnectionKey.anonymous(relay.url);
     final claim = ClaimConnections({key});
@@ -462,7 +461,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   await relay.start();
 
   final factory = _FlakyTransportFactory();
-  final manager = RelayManager(nostrTransportFactory: factory);
+  final manager = RelayManager(nostrTransportFactory: factory.call);
   await manager.connectRelay(relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
@@ -480,7 +479,7 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
 
 /// REQs written on the connection behind [key] and not closed since
 int _openRequests(RelayManager manager, RelayConnectionKey key) =>
-    relayManagerParts(manager).connections.relays[key]!.openRequestIds.length;
+    relayManagerParts(manager).connections.relays[key]!.slots.written.length;
 
 Future<void> _waitUntil(
   bool Function() condition, {

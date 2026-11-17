@@ -82,7 +82,7 @@ They fit the `subscriptionLimit` and `messageLengthLimit` of a [`dostr_core`](ht
 
 ```dart
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
   subscriptionLimit: cached.maxSubscriptions,
   messageLengthLimit: cached.maxMessageLength,
 );

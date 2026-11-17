@@ -17,7 +17,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 final reqs = RelayReqs(relayManager: relays, eventVerifier: Bip340EventVerifier());
 final publishes = RelayPublishes(relayManager: relays);
@@ -29,7 +29,7 @@ Keep one `RelayManager` per app: it owns the connections.
 
 | Parameter | Default | Purpose |
 |-----------|---------|---------|
-| `nostrTransportFactory` | required | Opens the sockets. `WebSocketClientNostrTransportFactory(compressionEnabled: false)` saves memory on native |
+| `nostrTransportFactory` | required | Opens the sockets. `webSocketTransportFactory(compressionEnabled: false)` saves memory on native |
 | `accounts` | null | `AuthAccounts` (e.g. `Accounts` from `dostr_accounts`) a request without `auth` may authenticate as |
 | `authHandler` | null | Asked before a pubkey is revealed to a relay (NIP-42). Without it, a request without `auth` stays anonymous |
 | `allowReconnect` | true | Reconnect dropped connections with backoff |

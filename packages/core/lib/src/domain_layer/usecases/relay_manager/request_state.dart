@@ -208,29 +208,35 @@ class RequestState implements TimeoutPausable {
   /// request name, only shown in logs
   final String? name;
 
-  /// should it close on receiving EOSE?
+  /// whether it is a query, which ends once every relay sent its EOSE, rather
+  /// than a subscription
   final bool closeOnEose;
 
   /// which identity this request may be attributed to on the relays (NIP-42)
   final AuthPolicy? auth;
 
-  /// is this a subscription?
   bool get isSubscription => !closeOnEose;
 
-  ///! our requests tracking obj
-  // key is the connection the request was sent on, value is RelayRequestState
-  Map<RelayConnectionKey, RelayRequestState> requests = {};
+  /// the request on each connection it was sent on
+  final Map<RelayConnectionKey, RelayRequestState> requests = {};
 
   /// send paths still working out which connection to use, before they show up
   /// in [requests]. The relay that answers first must not look like the only
   /// one this request ever had, or the stream closes on the others
-  int pendingConnections = 0;
+  int _pendingConnections = 0;
+
+  void beginPendingConnection() => _pendingConnections++;
+
+  void endPendingConnection() => _pendingConnections--;
+
+  bool get hasPendingConnections => _pendingConnections > 0;
 
   // the connections of one relay, so collapsing a url into its outcome reads
   // them instead of scanning every connection of the request
   final Map<RelayUrl, List<RelayRequestState>> _requestsByUrl = {};
 
-  /// timeout duration, closes all streams
+  /// how long the request runs before it ends on its own, null when it never
+  /// does
   final Duration? timeoutDuration;
 
   bool _timedOut = false;
@@ -244,10 +250,9 @@ class RequestState implements TimeoutPausable {
     _refreshRelayOutcomes();
   }
 
-  /// called when timeout is triggered
-  Function(RequestState)? onTimeout;
+  /// told once [timeoutDuration] ran out
+  void Function(RequestState)? onTimeout;
 
-  /// Creates a new [RequestState] instance
   RequestState(
     this.id, {
     this.name,
@@ -268,7 +273,7 @@ class RequestState implements TimeoutPausable {
   /// Whether every relay is done with the request, see
   /// [RelayRequestState.isDone].
   bool get didAllRequestsFinish =>
-      pendingConnections == 0 &&
+      _pendingConnections == 0 &&
       requests.values.every((request) => request.isDone);
 
   final Map<RelayUrl, RelayRequestOutcome> _relayOutcomes = {};
@@ -352,7 +357,7 @@ class RequestState implements TimeoutPausable {
     }
   }
 
-  /// Adds single relay request to the state
+  /// Tracks the request on [key], unless it already is.
   void addRequest(RelayConnectionKey key, List<Filter> filters) {
     if (requests.containsKey(key)) return;
     _trackRequest(RelayRequestState(key, filters, isQuery: closeOnEose));
@@ -375,7 +380,7 @@ class RequestState implements TimeoutPausable {
     _ended.complete();
   }
 
-  /// closes all streams
+  /// Stops taking events, and ends the request.
   Future<void> close() async {
     _timeout.cancel();
     await _received.close();

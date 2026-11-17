@@ -23,7 +23,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 final relay = RelayUrl.parse('wss://relay.example.com');
 
@@ -104,7 +104,7 @@ A subscription has no timeout unless it is given one.
 - Each event comes as a `RelayReqEvent`: the `event`, and the `relayUrl` that sent it.
 - The events of a relay come in the order it sent them, even when the `EventVerifier` checks several at once.
 - Events are not deduplicated: an event two relays hold arrives twice, once from each. `events.map((e) => e.event).distinctUnique()` from rxdart keeps each one once.
-- `events` is a single-subscription stream.
+- `events` is a single-subscription stream, which keeps every event until it is listened to, without a limit: listen to a subscription right away, or close it.
 - `auth` takes an `AuthPolicy`, see [NIP-42 authentication](#nip-42-authentication).
 
 ## Relay publishes
@@ -170,7 +170,7 @@ Without one, a request that does not pass `auth` reveals no identity.
 
 ```dart
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
   accounts: accounts,
   authHandler: (url, pubkey) => askUser(url, pubkey),
 );
@@ -239,7 +239,7 @@ Null keeps idle connections open.
 
 ```dart
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
   anonymousIdleTimeout: const Duration(seconds: 30),
   authenticatedIdleTimeout: null,
 );
@@ -272,7 +272,7 @@ final relayInfo = CachedRelayInfoRepository(
 );
 
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
   subscriptionLimit: relayInfo.maxSubscriptions,
   messageLengthLimit: relayInfo.maxMessageLength,
 );
@@ -290,7 +290,7 @@ Native applications can opt out of `permessage-deflate` negotiation:
 
 ```dart
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(
+  nostrTransportFactory: webSocketTransportFactory(
     compressionEnabled: false,
   ),
 );
@@ -318,4 +318,4 @@ Logger.root.onRecord.listen((record) {
 
 ## Coming from `ndk`
 
-What moved and what changed is in the [changelog](https://pub.dev/packages/dostr_core/changelog).
+What moved and what changed is in [Coming from `ndk`](https://github.com/nogringo/dostr/blob/master/doc/coming-from-ndk.md).

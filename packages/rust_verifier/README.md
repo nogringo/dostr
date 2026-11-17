@@ -26,7 +26,7 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 
 final relayManager = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 final reqs = RelayReqs(
   relayManager: relayManager,

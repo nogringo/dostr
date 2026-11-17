@@ -23,9 +23,7 @@ void main() {
       remoteSigner = MockRemoteSigner([relay]);
 
       relayManager = RelayManager(
-        nostrTransportFactory: WebSocketClientNostrTransportFactory(
-          pingInterval: null,
-        ),
+        nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
       );
       bunkers = Bunkers(
         relayReqs: RelayReqs(

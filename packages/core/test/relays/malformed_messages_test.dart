@@ -13,7 +13,7 @@ class _Transport implements NostrTransport {
   @override
   Future<void> ready = Future.value();
   @override
-  bool isOpen() => true;
+  bool get isOpen => true;
   @override
   Future<void> close() async {}
   @override
@@ -25,15 +25,14 @@ class _Transport implements NostrTransport {
   @override
   void send(dynamic data) => sent.add(data);
   @override
-  int? closeCode() => null;
+  int? get closeCode => null;
   @override
-  String? closeReason() => null;
+  String? get closeReason => null;
 }
 
-class _Factory implements NostrTransportFactory {
+class _Factory {
   late _Transport last;
 
-  @override
   NostrTransport call(String url) => last = _Transport();
 }
 
@@ -54,7 +53,7 @@ void main() {
 
   setUp(() async {
     factory = _Factory();
-    manager = RelayManager(nostrTransportFactory: factory);
+    manager = RelayManager(nostrTransportFactory: factory.call);
     await manager.connectRelay(url);
   });
 

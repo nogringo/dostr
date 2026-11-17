@@ -4,7 +4,7 @@ import 'package:dostr_core/dostr_core.dart';
 Future<void> main() async {
   final relay = RelayUrl.parse('wss://relay.example.com');
   final relays = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
   final publishes = RelayPublishes(relayManager: relays);
   final reqs = RelayReqs(

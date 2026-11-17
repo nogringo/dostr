@@ -4,14 +4,14 @@ library;
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_core/src/data_layer/repositories/nostr_transport/web_socket_transport_factory.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
 const _wait = Duration(seconds: 2);
 
 void main() {
-  final factory = WebSocketClientNostrTransportFactory(pingInterval: null);
+  final factory = webSocketTransportFactory(pingInterval: null);
 
   test('ready fails with the reason a connection was refused', () async {
     final closed = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
@@ -69,7 +69,7 @@ void main() {
     await ended.future.timeout(_wait);
     await Future<void>.delayed(const Duration(milliseconds: 500));
 
-    expect(transport.isOpen(), isFalse);
+    expect(transport.isOpen, isFalse);
     expect(connections, 1);
   });
 
@@ -86,9 +86,9 @@ void main() {
     await (await upgraded).close(WebSocketStatus.messageTooBig, 'too big');
     await ended.future.timeout(_wait);
 
-    expect(transport.closeCode(), WebSocketStatus.messageTooBig);
-    expect(transport.closeReason(), 'too big');
-    expect(transport.isOpen(), isFalse);
+    expect(transport.closeCode, WebSocketStatus.messageTooBig);
+    expect(transport.closeReason, 'too big');
+    expect(transport.isOpen, isFalse);
   });
 
   test('closing an open transport hangs up and ends its listeners', () async {
@@ -104,7 +104,7 @@ void main() {
 
     await ended.future.timeout(_wait);
     await hungUp.timeout(_wait);
-    expect(transport.isOpen(), isFalse);
+    expect(transport.isOpen, isFalse);
   });
 
   test('the handshake sends the configured user agent', () async {
@@ -129,7 +129,7 @@ void main() {
         '${compressionEnabled ? 'on' : 'off'}', () async {
       final relay = await _EchoRelay.start();
       addTearDown(relay.close);
-      final transport = WebSocketClientNostrTransportFactory(
+      final transport = webSocketTransportFactory(
         pingInterval: null,
         compressionEnabled: compressionEnabled,
       )(relay.url);

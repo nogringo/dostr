@@ -14,7 +14,7 @@ Future<Nip01Event?> verifyEvent(
   // incoming payload. This is intentionally done before signature lookup.
   if (!data.hasValidId) {
     logger.warning(
-      () => 'WARNING: Event with id ${data.id} has invalid event id',
+      () => 'Dropping event ${data.id}: its id does not match its payload',
     );
     return null;
   }
@@ -24,9 +24,7 @@ Future<Nip01Event?> verifyEvent(
   }
 
   if (!await cache.verifyOnce(data, eventVerifier)) {
-    logger.warning(
-      () => 'WARNING: Event with id ${data.id} has invalid signature',
-    );
+    logger.warning(() => 'Dropping event ${data.id}: its signature is invalid');
     return null;
   }
 

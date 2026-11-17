@@ -5,7 +5,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger.dart';
-import '../../../shared/nips/nip01/client_msg.dart';
+import '../../../shared/nips/nip01/client_messages.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
@@ -28,8 +28,7 @@ class RelayRequests {
   final RelayConnections _connections;
   final RelayAuth _auth;
 
-  /// holds the state of all in flight requests
-  /// key: request Id
+  /// the requests in flight, by subscription id
   final Map<String, RequestState> inFlight = {};
 
   late final ReqQueue _queue = ReqQueue(inFlight);
@@ -44,7 +43,7 @@ class RelayRequests {
   /// its subscriptions, and the queries that never got their EOSE.
   void replayOn(RelayConnection connection) {
     final transport = connection.relayTransport;
-    if (transport == null || !transport.isOpen()) {
+    if (transport == null || !transport.isOpen) {
       return;
     }
 
@@ -137,7 +136,7 @@ class RelayRequests {
     }
   }
 
-  /// handles EOSE messages
+  /// A query ends where it got its EOSE, a subscription goes on.
   void handleEose(List<dynamic> eventJson, RelayConnection connection) {
     String id = eventJson[1];
     RequestState? state = inFlight[id];
@@ -152,7 +151,6 @@ class RelayRequests {
 
   /// handles CLOSED messages for REQ [id]
   void handleClosed(String id, String? message, RelayConnection connection) {
-    // Check if this is an auth-required CLOSED message
     if (message != null && message.startsWith("auth-required")) {
       _handleClosedAuthRequired(id, connection, message);
       return;
@@ -178,7 +176,7 @@ class RelayRequests {
     RelayRequestState request,
   ) {
     // a REQ open there already is not sent twice, nor queued twice
-    if (connection.holdsSlot(state.id) || _queue.contains(request)) {
+    if (connection.slots.holds(state.id) || _queue.contains(request)) {
       return Future.value();
     }
     // before queueing too: a CLOSED auth-required it still carried would make
@@ -197,16 +195,11 @@ class RelayRequests {
     RequestState state,
     RelayRequestState request,
   ) async {
-    final write = Object();
-    connection.reservedRequestIds[state.id] = write;
+    final write = connection.slots.reserve(state.id);
     try {
       await _connections.sendOrThrow(
         connection,
-        ClientMsg(
-          ClientMsgType.kReq,
-          id: state.id,
-          filters: request.filters,
-        ).toJson(),
+        reqMessage(state.id, request.filters),
       );
     } on MessageTooLong catch (e) {
       logger.warning(() => "REQ ${state.id} not sent to ${request.url}: $e");
@@ -214,11 +207,9 @@ class RelayRequests {
     } catch (e) {
       logger.fine(() => "REQ ${state.id} not sent to ${request.url}", e);
     } finally {
-      if (identical(connection.reservedRequestIds[state.id], write)) {
-        connection.reservedRequestIds.remove(state.id);
-      }
+      connection.slots.release(state.id, write);
       // a write that did not land frees its slot
-      if (!connection.holdsSlot(state.id)) admitQueuedOn(connection);
+      if (!connection.slots.holds(state.id)) admitQueuedOn(connection);
     }
   }
 
@@ -236,7 +227,7 @@ class RelayRequests {
     String? message,
   ) {
     request.markClosed(message);
-    if (connection.openRequestIds.remove(reqId)) {
+    if (connection.slots.ended(reqId)) {
       admitQueuedOn(connection);
     }
   }
@@ -244,14 +235,15 @@ class RelayRequests {
   /// Announces a send path that has yet to work out which connection to use,
   /// so a relay answering meanwhile does not look like the only one this
   /// request ever had. Pair every call with [endPendingConnection].
-  void beginPendingConnection(RequestState state) => state.pendingConnections++;
+  void beginPendingConnection(RequestState state) =>
+      state.beginPendingConnection();
 
   /// Ends what [beginPendingConnection] announced, and reconsiders closing the
   /// request. A path that gave up without registering anything is the last
   /// thing that can notice: nothing else runs when a connection simply never
   /// opened.
   void endPendingConnection(RequestState state) {
-    state.pendingConnections--;
+    state.endPendingConnection();
     _checkNetworkClose(state);
   }
 
@@ -378,7 +370,7 @@ class RelayRequests {
     for (final relay in _connections.connectedRelays) {
       final request = state.requests[relay.key];
       // a request the relay ended itself, or never got, needs no CLOSE
-      if (request == null || request.isDone || !relay.holdsSlot(state.id)) {
+      if (request == null || request.isDone || !relay.slots.holds(state.id)) {
         continue;
       }
       _sendCloseToConnection(relay.key, state.id);
@@ -525,7 +517,7 @@ class RelayRequests {
   void _checkNetworkClose(RequestState state) {
     // a send path is still working out which connection to use, so the relays
     // registered so far are not all this request will ever have
-    if (state.pendingConnections > 0) {
+    if (state.hasPendingConnections) {
       return;
     }
     if (state.didAllRequestsFinish) {
@@ -558,8 +550,8 @@ class RelayRequests {
     }
   }
 
-  void _sendCloseToRelay(RelayConnection connection, String id) => _connections
-      .sendTo(connection, ClientMsg(ClientMsgType.kClose, id: id).toJson());
+  void _sendCloseToRelay(RelayConnection connection, String id) =>
+      _connections.sendTo(connection, closeMessage(id));
 
   void logActive() {
     Map<String?, int> namesMap = {};

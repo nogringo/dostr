@@ -44,23 +44,22 @@ class _FaultyTransport implements NostrTransport {
   Future<void> get ready => _inner.ready;
 
   @override
-  bool isOpen() => _inner.isOpen();
+  bool get isOpen => _inner.isOpen;
 
   @override
-  void send(data) => _inner.send(data);
+  void send(dynamic data) => _inner.send(data);
 
   @override
-  int? closeCode() => _inner.closeCode();
+  int? get closeCode => _inner.closeCode;
 
   @override
-  String? closeReason() => _inner.closeReason();
+  String? get closeReason => _inner.closeReason;
 }
 
-class _FaultyTransportFactory implements NostrTransportFactory {
-  final _inner = WebSocketClientNostrTransportFactory();
+class _FaultyTransportFactory {
+  final _inner = webSocketTransportFactory();
   final List<_FaultyTransport> created = [];
 
-  @override
   NostrTransport call(RelayUrl url) {
     final transport = _FaultyTransport(_inner(url));
     created.add(transport);
@@ -73,7 +72,7 @@ void main() {
     final relay = await startRelay();
 
     final factory = _FaultyTransportFactory();
-    final manager = newRelayManager(transportFactory: factory);
+    final manager = newRelayManager(transportFactory: factory.call);
     addTearDown(manager.dispose);
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
@@ -102,7 +101,7 @@ void main() {
 
       final factory = _FaultyTransportFactory();
       final manager = newRelayManager(
-        transportFactory: factory,
+        transportFactory: factory.call,
         accounts: accounts,
       );
       addTearDown(manager.dispose);

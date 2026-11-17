@@ -150,7 +150,7 @@ Future<bool> onlyMyRelay(String url, String pubkey) async =>
 ## Coming from `ndk`
 
 `PendingSignerRequest`, the `SignerRequestRejectedException` and `SignerRequestCancelledException` and `ConcurrencyLimiterMixin` used to be in `ndk`, and so did `NostrSigner` and `LocalSignerFactory`, as `EventSigner` and `LocalEventSignerFactory`.
-What changed is in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
+What changed is in [Coming from `ndk`](https://github.com/nogringo/dostr/blob/master/doc/coming-from-ndk.md).
 
 `package:ndk/domain_layer/entities/auth_policy.dart`, `auth_handler.dart` and `package:ndk/domain_layer/repositories/auth_accounts.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports too.
 `Account`, from `account.dart`, is gone: an account is its `NostrSigner`, which `AuthPolicy` takes and `AuthAccounts` returns.

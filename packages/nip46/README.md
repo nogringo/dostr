@@ -20,7 +20,7 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 
 final relayManager = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 final bunkers = Bunkers(
   relayReqs: RelayReqs(

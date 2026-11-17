@@ -10,6 +10,8 @@ import '../../entities/relay_failure.dart';
 import '../../repositories/nostr_transport.dart';
 import 'auth_session.dart';
 import 'relay_revivals.dart';
+import 'request_slots.dart';
+import 'socket_limits.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
 /// dostr_core: everyone else sees its [snapshot].
@@ -18,41 +20,20 @@ class RelayConnection {
 
   final ConnectAttempts attempts = ConnectAttempts();
 
-  /// ids of the REQs open on the connection, so that a request replayed on a
-  /// socket that came back is not counted twice and a CLOSE that lands late
-  /// does not count below what is open
-  final Set<String> openRequestIds = {};
+  /// the REQs holding a slot on the current socket
+  final RequestSlots slots = RequestSlots();
 
-  /// transport layer for this relay, usually websocket, null while it neither
-  /// is connected nor connecting
+  /// what the relay reads on the current socket
+  SocketLimits limits = SocketLimits.none();
+
+  /// the current socket, null while it neither is connected nor connecting
   NostrTransport? relayTransport;
 
   StreamSubscription? _streamSubscription;
 
-  /// how many REQs the relay keeps open on this socket, null until known
-  int? subscriptionLimit;
-
-  /// how many UTF-8 bytes the relay reads in one message, as it publishes it,
-  /// null when unknown
-  int? messageLengthLimit;
-
-  /// tells a late answer for a previous socket from the current one
-  int limitsGeneration = 0;
-
-  /// completes once [subscriptionLimit] and [messageLengthLimit] are settled
-  /// for this socket
-  Completer<void> limitsKnown = Completer()..complete();
-
-  /// UTF-8 length of the longest message written on this socket
-  int longestMessage = 0;
-
   /// time since a message went through, a socket was tried, or the connection
   /// was last found with work
   final Stopwatch idleFor = Stopwatch()..start();
-
-  /// ids of the REQs that hold a slot here but are not written yet, each with
-  /// the write it waits for, see [openRequestIds] for the written ones
-  final Map<String, Object> reservedRequestIds = {};
 
   /// the signer a bound connection was opened as: a challenge can arrive long
   /// after whatever asked for that identity is gone
@@ -71,7 +52,7 @@ class RelayConnection {
 
   RelayUrl get url => key.url;
 
-  bool get isConnected => relayTransport?.isOpen() ?? false;
+  bool get isConnected => relayTransport?.isOpen ?? false;
 
   /// The connection as it stands now, which nothing changes afterwards.
   RelayConnectivity snapshot() => _ConnectivitySnapshot(
@@ -85,14 +66,6 @@ class RelayConnection {
 
   bool get isAuthenticating => authSession?.authenticating ?? false;
 
-  /// Whether the REQ [id] holds a slot here, written or not.
-  bool holdsSlot(String id) =>
-      openRequestIds.contains(id) || reservedRequestIds.containsKey(id);
-
-  /// ids of every REQ holding a slot here
-  Set<String> get heldSlots => {...openRequestIds, ...reservedRequestIds.keys};
-
-  /// starts listening on nostr transport
   void listen(
     void Function(dynamic) onData, {
     Function? onError,
@@ -116,9 +89,7 @@ class RelayConnection {
     // the socket carried them, they die with it
     authSession?.end();
     authSession = null;
-    openRequestIds.clear();
-    reservedRequestIds.clear();
-    longestMessage = 0;
+    slots.clear();
 
     return _retire(streamSubscription, transport);
   }

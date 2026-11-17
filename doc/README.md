@@ -9,6 +9,7 @@ These pages cover what spans several packages.
 - [Tips](tips.md): one `RelayManager` per app, fewer redraws.
 - [Performance](performance.md): how Dostr saves bandwidth and compute.
 - [Common terminology](common-terminology.md): the words these pages use, and their other names.
+- [Coming from `ndk`](coming-from-ndk.md): where each part of `ndk` moved, and what changed.
 
 Dostr does not ship ready to use feeds: you build them from the packages.
 

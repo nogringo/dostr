@@ -24,7 +24,7 @@ import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 
 final relays = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 final reqs = RelayReqs(
   relayManager: relays,

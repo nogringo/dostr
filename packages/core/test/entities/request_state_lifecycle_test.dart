@@ -44,13 +44,13 @@ void main() {
 
       // a second send path is resolving which connection to use, so it has no
       // entry yet. The relay that answered must not look like the only one
-      state.pendingConnections++;
+      state.beginPendingConnection();
       state.addRequest(fast, _filters);
       state.requests[fast]!.markCaughtUp();
 
       expect(state.didAllRequestsFinish, isFalse);
 
-      state.pendingConnections--;
+      state.endPendingConnection();
       expect(state.didAllRequestsFinish, isTrue);
     });
 

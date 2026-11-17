@@ -3,7 +3,7 @@ import 'package:dostr_nip77/dostr_nip77.dart';
 
 Future<void> main() async {
   final relays = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
 
   // nothing is stored yet, so every matching event on the relay is needed

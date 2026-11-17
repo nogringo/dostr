@@ -5,7 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../../domain_layer/repositories/nostr_transport.dart';
 
 /// A [NostrTransport] over one [WebSocketChannel].
-class WebSocketClientNostrTransport implements NostrTransport {
+final class WebSocketClientNostrTransport implements NostrTransport {
   /// [abortHandshake] stops a connection attempt that has not opened yet.
   WebSocketClientNostrTransport(
     this._channel, {
@@ -21,8 +21,7 @@ class WebSocketClientNostrTransport implements NostrTransport {
     _source = _channel.stream.listen(
       _messages.add,
       onError: (Object error) => _end(_unwrap(error)),
-      onDone: () =>
-          _end(StateError("closed with ${closeCode()} ${closeReason()}")),
+      onDone: () => _end(StateError("closed with $closeCode $closeReason")),
     );
   }
 
@@ -50,7 +49,7 @@ class WebSocketClientNostrTransport implements NostrTransport {
   Future<void> get ready => _ready.future;
 
   @override
-  bool isOpen() => _open;
+  bool get isOpen => _open;
 
   @override
   Future<void> close() async {
@@ -63,19 +62,19 @@ class WebSocketClientNostrTransport implements NostrTransport {
 
   @override
   StreamSubscription listen(
-    void Function(dynamic p1) onData, {
+    void Function(dynamic) onData, {
     Function? onError,
     void Function()? onDone,
   }) => _messages.stream.listen(onData, onError: onError, onDone: onDone);
 
   @override
-  void send(data) {
+  void send(dynamic data) {
     if (_open) _channel.sink.add(data);
   }
 
   @override
-  int? closeCode() => _channel.closeCode;
+  int? get closeCode => _channel.closeCode;
 
   @override
-  String? closeReason() => _channel.closeReason;
+  String? get closeReason => _channel.closeReason;
 }

@@ -32,7 +32,7 @@ class _Transport implements NostrTransport {
   @override
   Future<void> ready = Future.value();
   @override
-  bool isOpen() => !closed;
+  bool get isOpen => !closed;
   @override
   Future<void> close() async {
     closed = true;
@@ -48,13 +48,12 @@ class _Transport implements NostrTransport {
     void Function()? onDone,
   }) => controller.stream.listen(onData, onError: onError, onDone: onDone);
   @override
-  int? closeCode() => null;
+  int? get closeCode => null;
   @override
-  String? closeReason() => null;
+  String? get closeReason => null;
 }
 
-class _NoConnections implements NostrTransportFactory {
-  @override
+class _NoConnections {
   NostrTransport call(String url) =>
       throw StateError('Tests must not open network connections');
 }
@@ -121,7 +120,7 @@ void main() {
   }
 
   setUp(() {
-    manager = RelayManager(nostrTransportFactory: _NoConnections());
+    manager = RelayManager(nostrTransportFactory: _NoConnections().call);
     parts = relayManagerParts(manager);
   });
 
@@ -227,7 +226,7 @@ void main() {
   test('a request that has not picked a relay keeps nothing open', () async {
     connect(anonymous);
     connect(other);
-    request('discovering').pendingConnections = 1;
+    request('discovering').beginPendingConnection();
     await manager.closeIdleConnections();
     expect(parts.connections.relays, isEmpty);
   });
@@ -235,7 +234,7 @@ void main() {
   test('a request still picking relays keeps only those it picked', () async {
     connect(anonymous);
     final idle = connect(other);
-    request('selecting', key: anonymous).pendingConnections = 1;
+    request('selecting', key: anonymous).beginPendingConnection();
     await manager.closeIdleConnections();
     expect(idle.closed, isTrue);
     expect(parts.connections.relays.keys, [anonymous]);

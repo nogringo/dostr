@@ -18,9 +18,7 @@ void main() {
 
   setUp(() {
     relayManager = RelayManager(
-      nostrTransportFactory: WebSocketClientNostrTransportFactory(
-        pingInterval: null,
-      ),
+      nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
     );
     relayReqs = RelayReqs(
       relayManager: relayManager,

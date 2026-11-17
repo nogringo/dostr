@@ -8,6 +8,7 @@ import '../../entities/message_length_limit.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/subscription_limit.dart';
 import 'relay_connection.dart';
+import 'socket_limits.dart';
 
 /// What [RelayLimits.check] throws for a message longer than its relay reads.
 class MessageTooLong implements Exception {
@@ -50,23 +51,19 @@ class RelayLimits {
   /// [connection] is about to open. Its REQs wait in their queue until both
   /// answer, or until [subscriptionLimitTimeout] gives them the defaults.
   void ask(RelayConnection connection) {
-    final generation = ++connection.limitsGeneration;
-    connection.subscriptionLimit = null;
-    connection.messageLengthLimit = null;
-    final previous = connection.limitsKnown;
-    connection.limitsKnown = Completer();
-    if (!previous.isCompleted) previous.complete();
+    connection.limits.abandon();
+    final limits = connection.limits = SocketLimits();
     final url = connection.url;
     final subscriptions = _askOne(_subscriptionLimit, url, "subscription");
     final messageLength = _askOne(_messageLengthLimit, url, "message length");
     if (subscriptions is! Future<int?> && messageLength is! Future<int?>) {
-      _set(connection, generation, subscriptions, messageLength);
+      _settle(connection, limits, subscriptions, messageLength);
       return;
     }
     Future.wait([
       Future.value(subscriptions),
       Future.value(messageLength),
-    ]).then((limits) => _set(connection, generation, limits[0], limits[1]));
+    ]).then((answers) => _settle(connection, limits, answers[0], answers[1]));
   }
 
   static FutureOr<int?> _askOne(
@@ -91,31 +88,30 @@ class RelayLimits {
     });
   }
 
-  void _set(
+  /// Settles [limits] with the answers, unless another socket replaced the one
+  /// they were asked for.
+  void _settle(
     RelayConnection connection,
-    int generation,
-    int? subscriptionLimit,
-    int? messageLengthLimit,
+    SocketLimits limits,
+    int? subscriptions,
+    int? messageLength,
   ) {
-    if (connection.limitsGeneration != generation) return;
-    connection.subscriptionLimit =
-        subscriptionLimit != null && subscriptionLimit > 0
-        ? subscriptionLimit
-        : defaultMaxSubscriptionsPerConnection;
-    connection.messageLengthLimit =
-        messageLengthLimit != null && messageLengthLimit > 0
-        ? messageLengthLimit
-        : null;
-    if (!connection.limitsKnown.isCompleted) {
-      connection.limitsKnown.complete();
-    }
+    if (!identical(connection.limits, limits)) return;
+    limits.settle(
+      subscriptions: subscriptions != null && subscriptions > 0
+          ? subscriptions
+          : defaultMaxSubscriptionsPerConnection,
+      messageLength: messageLength != null && messageLength > 0
+          ? messageLength
+          : null,
+    );
     _onKnown(connection);
   }
 
   /// Throws [MessageTooLong] when [length] bytes are more than the relay
   /// behind [connection] publishes it reads, or than it closed a socket over.
   void check(RelayConnection connection, int length) {
-    final published = connection.messageLengthLimit;
+    final published = connection.limits.messageLength;
     if (published != null && length > published) {
       throw MessageTooLong("$length bytes, the relay reads at most $published");
     }
@@ -131,7 +127,7 @@ class RelayLimits {
   /// longer than it reads. It reads them in order and closes on the first one
   /// too long, so the longest one written there is too long as well.
   void learnFrom(RelayConnection connection) {
-    final longest = connection.longestMessage;
+    final longest = connection.limits.longestMessage;
     if (longest == 0) return;
     final url = connection.url;
     final previous = _learnedMessageLengths[url];

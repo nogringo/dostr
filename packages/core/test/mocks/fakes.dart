@@ -126,8 +126,7 @@ RelayManager newRelayManager({
   bool allowReconnect = true,
 }) => RelayManager(
   nostrTransportFactory:
-      transportFactory ??
-      WebSocketClientNostrTransportFactory(pingInterval: null),
+      transportFactory ?? webSocketTransportFactory(pingInterval: null),
   allowReconnect: allowReconnect,
   accounts: accounts,
   authHandler: authHandler,

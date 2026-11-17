@@ -6,7 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:dostr_core/src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
+import 'package:dostr_core/src/data_layer/repositories/nostr_transport/web_socket_transport_factory.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:test/test.dart';
 
@@ -15,7 +15,7 @@ void main() {
     'custom heartbeat reaches native socket without delaying events',
     () async {
       final peer = await _RawPeer.start();
-      final transport = WebSocketClientNostrTransportFactory(
+      final transport = webSocketTransportFactory(
         pingInterval: const Duration(milliseconds: 100),
       ).call(peer.url);
       addTearDown(() async {
@@ -35,7 +35,7 @@ void main() {
         'offer arrived',
       );
       await peer.firstPing.future.timeout(const Duration(seconds: 2));
-      expect(transport.isOpen(), isTrue);
+      expect(transport.isOpen, isTrue);
     },
   );
 
@@ -43,7 +43,7 @@ void main() {
     'null heartbeat leaves idle socket silent and events available',
     () async {
       final peer = await _RawPeer.start();
-      final transport = WebSocketClientNostrTransportFactory(
+      final transport = webSocketTransportFactory(
         pingInterval: null,
       ).call(peer.url);
       addTearDown(() async {

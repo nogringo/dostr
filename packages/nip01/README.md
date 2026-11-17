@@ -81,4 +81,4 @@ class MyVerifier implements EventVerifier {
 ## Coming from `ndk`
 
 `Nip01Event` and `EventVerifier` used to be in `ndk`.
-What changed, and the deprecated members that `dostr_core` keeps, are in the [`dostr_core` changelog](https://pub.dev/packages/dostr_core/changelog).
+What changed is in [Coming from `ndk`](https://github.com/nogringo/dostr/blob/master/doc/coming-from-ndk.md).

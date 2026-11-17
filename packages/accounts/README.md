@@ -79,7 +79,7 @@ Give `Accounts` to the `RelayManager` of [`dostr_core`](https://pub.dev/packages
 
 ```dart
 final relayManager = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
   accounts: accounts,
   authHandler: (url, pubkey) async => url == 'wss://relay.example.com',
 );

@@ -6,8 +6,8 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../config/request_defaults.dart';
+import '../../../shared/helpers/secure_random_hex.dart';
 import '../../../shared/logger.dart';
-import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
 import '../relay_manager/relay_manager.dart';
@@ -21,7 +21,7 @@ import '../requests/verify_event.dart';
 ///
 /// No cache, no outbox routing, no merging of identical requests and no
 /// pagination.
-class RelayReqs {
+final class RelayReqs {
   final RelayRequests _requests;
   final EventVerifier _eventVerifier;
   final VerifiedEventMemCache _verifiedEventCache = VerifiedEventMemCache();
@@ -54,7 +54,7 @@ class RelayReqs {
     if (_requests.disposed) {
       throw StateError('the RelayManager was disposed');
     }
-    final reqId = id ?? Helpers.getSecureRandomHex(16);
+    final reqId = id ?? secureRandomHex(16);
     if (reqId.isEmpty || reqId.length > 64) {
       throw ArgumentError.value(id, 'id', 'must be 1 to 64 characters long');
     }
@@ -89,7 +89,7 @@ class RelayReqs {
 ///
 /// [events] are verified, each with the relay that sent it. They are not
 /// deduplicated: an event two relays hold arrives twice.
-class RelayReq {
+final class RelayReq {
   final RequestState _state;
   final RelayRequests _requests;
   late final StreamController<RelayReqEvent> _events = StreamController(
@@ -166,6 +166,9 @@ class RelayReq {
   String get id => _state.id;
 
   /// Single-subscription: cancelling it closes the request, like [close].
+  ///
+  /// It keeps every event until it is listened to, without a limit: listen to
+  /// a subscription right away, or close it.
   Stream<RelayReqEvent> get events => _events.stream;
 
   /// Where the request stands on each relay so far, keyed by relay url. A

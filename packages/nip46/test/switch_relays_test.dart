@@ -24,9 +24,7 @@ void main() {
     remoteSigner = MockRemoteSigner([relayA, relayB]);
 
     relayManager = RelayManager(
-      nostrTransportFactory: WebSocketClientNostrTransportFactory(
-        pingInterval: null,
-      ),
+      nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
     );
     signer = Nip46Signer(
       connection: BunkerConnection(

@@ -163,9 +163,7 @@ void main() {
 
   setUp(() {
     relayManager = RelayManager(
-      nostrTransportFactory: WebSocketClientNostrTransportFactory(
-        pingInterval: null,
-      ),
+      nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
     );
     reqs = RelayReqs(relayManager: relayManager, eventVerifier: AcceptAll());
   });
@@ -877,9 +875,7 @@ void main() {
         metadata('bob', pubkey: bob),
       ]);
       relayManager = RelayManager(
-        nostrTransportFactory: WebSocketClientNostrTransportFactory(
-          pingInterval: null,
-        ),
+        nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
         // a REQ for one pubkey is 145 bytes, for two 212
         messageLengthLimit: (_) => 180,
       );

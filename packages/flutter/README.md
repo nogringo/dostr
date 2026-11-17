@@ -24,7 +24,7 @@ import 'package:dostr_flutter/l10n/app_localizations.dart' as dostr_flutter;
 import 'package:material_ui/material_ui.dart';
 
 final relayManager = RelayManager(
-  nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+  nostrTransportFactory: webSocketTransportFactory(),
 );
 
 final dostrFlutter = DostrFlutter(

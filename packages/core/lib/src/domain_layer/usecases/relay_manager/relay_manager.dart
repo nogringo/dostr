@@ -142,8 +142,6 @@ final class RelayManager {
     _connections = RelayConnections(
       nostrTransportFactory: nostrTransportFactory,
       auth: _auth,
-      onMessage: _dispatch,
-      hasWorkOn: _connectionHasWork,
       listener: _ConnectionWork(this),
       anonymousIdleTimeout: anonymousIdleTimeout,
       authenticatedIdleTimeout: authenticatedIdleTimeout,
@@ -322,7 +320,6 @@ final class RelayManager {
         _requests.handleClosed(id, closedMsg, connection);
       case NostrMessageRawType.auth:
         final eventJson = nostrMsg.otherData;
-        // nip 42 used to send authentication challenges
         final challenge = eventJson[1];
         logger.fine(() => "AUTH challenge from $key: $challenge");
 
@@ -410,11 +407,19 @@ final class RelayManager {
   }
 }
 
-/// Hands what happens to a connection to the REQs and the publishes on it.
+/// Hands what happens to a connection to the REQs, the publishes and the
+/// protocol handlers on it.
 final class _ConnectionWork implements ConnectionListener {
   final RelayManager _manager;
 
   _ConnectionWork(this._manager);
+
+  @override
+  void onMessage(NostrMessageRaw message, RelayConnection connection) =>
+      _manager._dispatch(message, connection);
+
+  @override
+  bool hasWorkOn(RelayConnectionKey key) => _manager._connectionHasWork(key);
 
   @override
   void replayOn(RelayConnection connection) {

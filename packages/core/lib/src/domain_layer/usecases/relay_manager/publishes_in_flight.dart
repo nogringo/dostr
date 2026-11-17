@@ -4,7 +4,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger.dart';
-import '../../../shared/nips/nip01/client_msg.dart';
+import '../../../shared/nips/nip01/client_messages.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/relay_publish_outcome.dart';
@@ -34,8 +34,7 @@ class PublishesInFlight {
   final RelayConnections _connections;
   final RelayAuth _auth;
 
-  /// key: event id
-  /// value: one state per publish, the same event can be in flight several
+  /// the publishes of each event id: the same event can be in flight several
   /// times at once
   final Map<String, List<PublishState>> inFlight = {};
 
@@ -117,10 +116,7 @@ class PublishesInFlight {
     RelayPublishState relay,
     RelayConnection connection,
   ) async {
-    await _connections.sendOrThrow(
-      connection,
-      ClientMsg(ClientMsgType.kEvent, event: state.event).toJson(),
-    );
+    await _connections.sendOrThrow(connection, eventMessage(state.event));
     if (relay.key == connection.key) {
       relay.progress = RelayPublishProgress.written;
     }
@@ -232,12 +228,14 @@ class PublishesInFlight {
       return;
     }
 
-    // not an answer yet: each publish retries under its own auth policy,
-    // unless the relay refused the identity this connection already proved
+    // not an answer yet: each publish on this connection retries under its own
+    // auth policy, unless the relay refused the identity this connection
+    // already proved. One on another connection waits for its own OK.
     if (!success &&
         message.startsWith("auth-required") &&
         !connection.isAuthenticated) {
       for (final (:state, :relay) in waiting) {
+        if (!relay.isPendingOn(connection.key)) continue;
         _handleAuthRequired(state, relay, connection, message);
       }
       return;

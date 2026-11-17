@@ -10,7 +10,6 @@ import 'package:web_socket_channel/status.dart' as ws_status;
 import '../../../config/relay_defaults.dart';
 import '../../../shared/helpers/utf8_length.dart';
 import '../../../shared/logger.dart';
-import '../../../shared/nips/nip01/client_msg.dart';
 import '../../../shared/nips/nip01/decode_nostr_msg.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
@@ -27,9 +26,17 @@ import 'relay_connection.dart';
 import 'relay_limits.dart';
 import 'relay_revivals.dart';
 
-/// What the work riding on the connections of [RelayConnections] has to do
-/// when a socket comes back or goes away.
+/// The work riding on the connections of [RelayConnections]: what it is
+/// handed when a socket brings a message, comes back or goes away, and whether
+/// it still needs a connection.
 abstract interface class ConnectionListener {
+  /// A decoded message of [connection], in the order its relay sent it.
+  void onMessage(NostrMessageRaw message, RelayConnection connection);
+
+  /// Whether something still needs the connection behind [key]: one that drops
+  /// without is forgotten instead of brought back.
+  bool hasWorkOn(RelayConnectionKey key);
+
   /// Puts back on [connection] what the socket it replaces still owed.
   void replayOn(RelayConnection connection);
 
@@ -69,10 +76,6 @@ final class NotOpened extends Opening {
   const NotOpened(this.failure);
 }
 
-/// A decoded relay message, in the order its relay sent it.
-typedef RelayMessageHandler =
-    void Function(NostrMessageRaw message, RelayConnection connection);
-
 /// The connections of a `RelayManager`: opening, reconnecting and closing them,
 /// writing to them and reading from them. Internal to dostr_core.
 ///
@@ -80,11 +83,6 @@ typedef RelayMessageHandler =
 class RelayConnections {
   final NostrTransportFactory nostrTransportFactory;
   final RelayAuth _auth;
-  final RelayMessageHandler _onMessage;
-
-  /// whether something still needs the connection behind a key: one that
-  /// drops without is forgotten instead of brought back
-  final bool Function(RelayConnectionKey key) hasWorkOn;
   final int _reconnectMaximumStep;
   late final RelayLimits _limits;
   late final IdleConnections _idle;
@@ -93,18 +91,14 @@ class RelayConnections {
     maximumStep: _reconnectMaximumStep,
   );
 
-  /// told when a socket comes back or goes away
   final ConnectionListener listener;
 
-  /// Are reconnects allowed when a connection drops?
+  /// whether a connection that drops is brought back
   final bool allowReconnect;
 
-  /// touched relays - connected, connecting, disconnected
-  /// key: relay url and identity bound to the connection
-  /// value: relay connection
+  /// every connection, connected or not, by relay and identity
   final Map<RelayConnectionKey, RelayConnection> relays = {};
 
-  /// relays that are blocked
   final Set<RelayUrl> blockedRelays = {};
 
   final _updates = BehaviorSubject<List<RelayConnectivity>>();
@@ -124,8 +118,6 @@ class RelayConnections {
   RelayConnections({
     required this.nostrTransportFactory,
     required RelayAuth auth,
-    required RelayMessageHandler onMessage,
-    required this.hasWorkOn,
     required this.listener,
     Duration? anonymousIdleTimeout,
     Duration? authenticatedIdleTimeout,
@@ -135,7 +127,6 @@ class RelayConnections {
     MessageLengthLimit? messageLengthLimit,
     FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) : _auth = auth,
-       _onMessage = onMessage,
        _reconnectMaximumStep = reconnectMaximumStep {
     _limits = RelayLimits(
       onKnown: (connection) => listener.admitQueuedOn(connection),
@@ -149,6 +140,9 @@ class RelayConnections {
       authenticatedTimeout: authenticatedIdleTimeout,
     );
   }
+
+  /// See [ConnectionListener.hasWorkOn].
+  bool hasWorkOn(RelayConnectionKey key) => listener.hasWorkOn(key);
 
   /// every connection each time one is added, starts connecting, opens,
   /// closes or is forgotten, the latest one cached
@@ -206,14 +200,14 @@ class RelayConnections {
     NostrTransport transport,
     Duration timeout,
   ) async {
-    if (!transport.isOpen()) {
+    if (!transport.isOpen) {
       try {
         await transport.ready.timeout(timeout);
       } catch (error) {
         return error;
       }
     }
-    return transport.isOpen() ? null : StateError("closed once ready");
+    return transport.isOpen ? null : StateError("closed once ready");
   }
 
   /// Opens the connection behind [key] unless it is open already, and says
@@ -461,8 +455,7 @@ class RelayConnections {
     NostrTransport transport,
     dynamic data,
   ) {
-    if (!identical(connection.relayTransport, transport) ||
-        !transport.isOpen()) {
+    if (!identical(connection.relayTransport, transport) || !transport.isOpen) {
       logger.finest(
         () => "Not sent to ${connection.url}: its socket changed or closed",
       );
@@ -487,8 +480,7 @@ class RelayConnections {
 
     await transport.ready;
 
-    if (!identical(connection.relayTransport, transport) ||
-        !transport.isOpen()) {
+    if (!identical(connection.relayTransport, transport) || !transport.isOpen) {
       transport = connection.relayTransport;
       if (transport == null) {
         throw StateError(
@@ -499,7 +491,7 @@ class RelayConnections {
       await transport.ready;
 
       if (!identical(connection.relayTransport, transport) ||
-          !transport.isOpen()) {
+          !transport.isOpen) {
         throw StateError(
           "transport changed while waiting for ${connection.url}",
         );
@@ -507,18 +499,20 @@ class RelayConnections {
     }
 
     // a REQ already waited for them in its queue
-    if (message.first == ClientMsgType.kEvent) {
-      await connection.limitsKnown.future;
+    if (message.first == 'EVENT') {
+      await connection.limits.settled;
     }
     final String encodedMsg = jsonEncode(message);
-    if (!identical(connection.relayTransport, transport) ||
-        !transport.isOpen()) {
+    if (!identical(connection.relayTransport, transport) || !transport.isOpen) {
       throw StateError("transport closed before send: ${connection.url}");
     }
     final length = utf8Length(encodedMsg);
     _limits.check(connection, length);
     if (_sendRaw(connection, transport, encodedMsg)) {
-      connection.longestMessage = max(connection.longestMessage, length);
+      connection.limits.longestMessage = max(
+        connection.limits.longestMessage,
+        length,
+      );
       _countRequest(connection, message);
     }
   }
@@ -527,10 +521,10 @@ class RelayConnections {
   /// them: a REQ re-routed to another one is not accounted here.
   void _countRequest(RelayConnection connection, List<dynamic> message) {
     switch (message) {
-      case [ClientMsgType.kReq, final String id, ...]:
-        connection.openRequestIds.add(id);
-      case [ClientMsgType.kClose, final String id, ...]:
-        if (connection.openRequestIds.remove(id)) {
+      case ['REQ', final String id, ...]:
+        connection.slots.wrote(id);
+      case ['CLOSE', final String id, ...]:
+        if (connection.slots.ended(id)) {
           listener.admitQueuedOn(connection);
         }
     }
@@ -585,7 +579,7 @@ class RelayConnections {
       onDone: () {
         logger.finest(
           () =>
-              "Socket of ${connection.url} closed: ${connection.relayTransport?.closeCode()} ${connection.relayTransport?.closeReason()}",
+              "Socket of ${connection.url} closed: ${connection.relayTransport?.closeCode} ${connection.relayTransport?.closeReason}",
         );
         _handleTransportGone(connection, transport);
       },
@@ -609,7 +603,7 @@ class RelayConnections {
       return;
     }
     final key = connection.key;
-    if (transport?.closeCode() == ws_status.messageTooBig) {
+    if (transport?.closeCode == ws_status.messageTooBig) {
       _limits.learnFrom(connection);
     }
     // the AUTH the relay accepted died with the socket, and so did any still
@@ -641,7 +635,7 @@ class RelayConnections {
     // a relay controls what it sends: nothing it sends may throw out of here,
     // where it would kill a process that has no zone to catch it
     try {
-      _onMessage(decodeNostrMsg(message), connection);
+      listener.onMessage(decodeNostrMsg(message), connection);
     } catch (error, stackTrace) {
       logger.severe(
         () => "Could not handle a message from ${connection.url}: $message",

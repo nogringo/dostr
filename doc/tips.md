@@ -12,7 +12,7 @@ import 'package:riverpod/riverpod.dart';
 
 final relayManagerProvider = Provider<RelayManager>((ref) {
   final relays = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
   ref.onDispose(relays.dispose);
   return relays;

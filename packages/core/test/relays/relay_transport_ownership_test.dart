@@ -17,7 +17,7 @@ class _Transport implements NostrTransport {
   @override
   Future<void> ready = Future.value();
   @override
-  bool isOpen() => open && !closed;
+  bool get isOpen => open && !closed;
   @override
   Future<void> close() async {
     closes++;
@@ -40,12 +40,12 @@ class _Transport implements NostrTransport {
   @override
   void send(dynamic data) => sent.add(data);
   @override
-  int? closeCode() => null;
+  int? get closeCode => null;
   @override
-  String? closeReason() => null;
+  String? get closeReason => null;
 }
 
-class _Factory implements NostrTransportFactory {
+class _Factory {
   final created = <_Transport>[];
   bool openNext = true;
   Completer<void>? readyGate;
@@ -54,7 +54,6 @@ class _Factory implements NostrTransportFactory {
   /// keeps its sockets does
   _Transport? reuse;
   int calls = 0;
-  @override
   NostrTransport call(String url) {
     calls++;
     // bounded, so a retry loop fails the test instead of starving it
@@ -91,7 +90,7 @@ void main() {
   RelayRequestStatus status() => subscription.relayOutcomes[url]!.status;
   void start({bool allowReconnect = true}) {
     manager = RelayManager(
-      nostrTransportFactory: factory,
+      nostrTransportFactory: factory.call,
       allowReconnect: allowReconnect,
     );
     parts = relayManagerParts(manager);
@@ -121,10 +120,10 @@ void main() {
     final old = factory.created.single..open = false;
     expect(await connect(), isTrue);
     expect(old.closed, isTrue);
-    expect(factory.created.where((t) => t.isOpen()).length, 1);
+    expect(factory.created.where((t) => t.isOpen).length, 1);
     expect(parts.connections.relays.length, 1);
     await manager.closeAllConnections();
-    expect(factory.created.where((t) => t.isOpen()), isEmpty);
+    expect(factory.created.where((t) => t.isOpen), isEmpty);
     expect(parts.connections.relays, isEmpty);
   });
 
@@ -168,11 +167,11 @@ void main() {
       final old = factory.created.single..open = false;
       await connect();
       final current = parts.connections.relays[key]!;
-      current.openRequestIds.add('live-request');
+      current.slots.wrote('live-request');
       old.controller.addError(StateError('late error'));
       old.drop();
       await pumpEventQueue();
-      expect(current.openRequestIds, {'live-request'});
+      expect(current.slots.written, {'live-request'});
       expect(current.relayTransport, same(factory.created.last));
       expect(factory.created, hasLength(2));
       expect(allReplays(), 0);

@@ -5,7 +5,7 @@ import 'package:dostr_nip46/dostr_nip46.dart';
 /// `dart run example/dostr_nip46_example.dart 'bunker://<pubkey>?relay=wss://...&secret=...'`
 Future<void> main(List<String> args) async {
   final relayManager = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
   final bunkers = Bunkers(
     relayReqs: RelayReqs(

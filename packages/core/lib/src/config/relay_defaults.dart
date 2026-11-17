@@ -1,4 +1,4 @@
-/// max time to wait for a WebSocket connection to be established
+/// how long a socket may take to open
 const Duration defaultWebSocketConnectTimeout = Duration(seconds: 4);
 
 /// how long a REQ leaves alone a relay it could not reach

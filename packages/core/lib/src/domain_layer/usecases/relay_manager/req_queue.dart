@@ -62,10 +62,10 @@ class ReqQueue {
     RequestState state,
     RelayRequestState request,
   ) {
-    final limit = connection.subscriptionLimit;
+    final limit = connection.limits.subscriptions;
     var heldByShare = false;
     if (limit != null && connection.isConnected) {
-      final slots = connection.heldSlots;
+      final slots = connection.slots.held;
       heldByShare =
           state.isSubscription &&
           _subscriptionsIn(slots) >= _subscriptionShare(limit);
@@ -98,9 +98,9 @@ class ReqQueue {
     void Function(RequestState state, RelayRequestState request) write,
   ) {
     final waiting = _waiting[connection.key];
-    final limit = connection.subscriptionLimit;
+    final limit = connection.limits.subscriptions;
     if (waiting == null || limit == null || !connection.isConnected) return;
-    final slots = connection.heldSlots;
+    final slots = connection.slots.held;
     final share = _subscriptionShare(limit);
     var held = slots.length;
     var subscriptions = _subscriptionsIn(slots);
@@ -117,7 +117,7 @@ class ReqQueue {
       if (next == null) break;
       waiting.of(next.state).removeFirst();
       _queued.remove(next.request);
-      if (connection.holdsSlot(next.state.id)) continue;
+      if (connection.slots.holds(next.state.id)) continue;
       held++;
       if (next.state.isSubscription) subscriptions++;
       write(next.state, next.request);

@@ -42,7 +42,7 @@ Future<void> main() async {
 
   accounts = Accounts(const DostrSignerFactory());
   relayManager = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
     accounts: accounts,
   );
   relayReqs = RelayReqs(

@@ -5,7 +5,7 @@ import 'package:dostr_home_relays/dostr_home_relays.dart';
 
 Future<void> main() async {
   final relayManager = RelayManager(
-    nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+    nostrTransportFactory: webSocketTransportFactory(),
   );
   final verifier = Bip340EventVerifier();
   final reqs = RelayReqs(relayManager: relayManager, eventVerifier: verifier);

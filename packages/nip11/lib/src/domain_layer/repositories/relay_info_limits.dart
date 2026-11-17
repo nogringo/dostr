@@ -7,7 +7,7 @@ import 'relay_info_repository.dart';
 ///
 /// ```dart
 /// final relays = RelayManager(
-///   nostrTransportFactory: WebSocketClientNostrTransportFactory(),
+///   nostrTransportFactory: webSocketTransportFactory(),
 ///   subscriptionLimit: relayInfo.maxSubscriptions,
 ///   messageLengthLimit: relayInfo.maxMessageLength,
 /// );
