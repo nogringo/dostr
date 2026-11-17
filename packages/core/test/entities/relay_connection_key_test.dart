@@ -23,11 +23,7 @@ void main() {
         key.hashCode,
         RelayConnectionKey.authenticated(url, alice).hashCode,
       );
-      for (final notHex in [
-        'npub1',
-        'npub1${'0' * 59}',
-        RelayConnectionKey.anonymousMarker,
-      ]) {
+      for (final notHex in ['npub1', 'npub1${'0' * 59}', 'anon']) {
         expect(
           () => RelayConnectionKey.authenticated(url, notHex),
           throwsArgumentError,
@@ -45,9 +41,8 @@ void main() {
       expect(asAlice, isNot(RelayConnectionKey.authenticated(url, bob)));
       expect(anonymous.isAnonymous, isTrue);
       expect(asAlice.isAnonymous, isFalse);
-      expect(anonymous.canonical, 'wss://relay.example|anon');
-      expect(asAlice.canonical, 'wss://relay.example|$alice');
-      expect(asAlice.toString(), asAlice.canonical);
+      expect(anonymous.toString(), 'wss://relay.example|anon');
+      expect(asAlice.toString(), 'wss://relay.example|$alice');
     });
 
     test('forAuth picks the connection each policy allows', () {

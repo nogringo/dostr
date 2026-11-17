@@ -101,10 +101,12 @@ void main() {
   });
 
   group('an EVENT a relay took without answering', () {
-    Future<(MockRelay, Nip01Event, RelayPublish)> unanswered() async {
+    Future<(MockRelay, Nip01Event, RelayPublish)> unanswered({
+      RelayPublishes? on,
+    }) async {
       final relay = await startRelay(answerEvents: false);
       final event = signedEvent(content: 'no OK yet');
-      final publish = publishes.publish(
+      final publish = (on ?? publishes).publish(
         event,
         relays: [relay.url],
         timeout: const Duration(seconds: 30),
@@ -123,8 +125,11 @@ void main() {
     }, timeout: const Timeout(Duration(seconds: 10)));
 
     test('fails as connectionLost when its socket drops for good', () async {
-      final (relay, _, publish) = await unanswered();
-      manager.allowReconnectRelays = false;
+      final manager = newRelayManager(allowReconnect: false);
+      addTearDown(manager.dispose);
+      final (relay, _, publish) = await unanswered(
+        on: RelayPublishes(relayManager: manager),
+      );
 
       await relay.dropConnections();
 
@@ -186,13 +191,24 @@ void main() {
       publishes.publish(event, relays: [relay.url]).done,
       publishes.publish(event, relays: [relay.url]).done,
     ];
-    expect(manager.isPublishing(event.id), isTrue);
     final responses = await Future.wait(broadcasts);
 
     for (final response in responses) {
       expect(response.values.single.accepted, isTrue);
     }
-    expect(manager.isPublishing(event.id), isFalse);
+  });
+
+  test('reports the OK of each relay as it comes', () async {
+    final relay = await startRelay();
+    final publish = publishes.publish(signedEvent(), relays: [relay.url]);
+    final updates = publish.outcomesStream.toList();
+
+    expect(publish.outcomes[relay.url]!.okReceived, isFalse);
+    final outcomes = await publish.done;
+
+    expect(outcomes[relay.url]!.accepted, isTrue);
+    expect(publish.outcomes, outcomes);
+    expect((await updates).last[relay.url]!.accepted, isTrue);
   });
 
   test('ends on its timeout when a relay never answers', () async {
@@ -231,153 +247,4 @@ void main() {
       expect(relay.received('EVENT'), isEmpty);
     },
   );
-
-  group('open', () {
-    test('is in flight before it is signed', () async {
-      final relay = await startRelay();
-      final event = signedEvent();
-      final unsigned = Nip01Event(
-        pubkey: event.pubkey,
-        createdAt: event.createdAt,
-        kind: event.kind,
-        tags: event.tags,
-        content: event.content,
-      );
-
-      final publish = publishes.open(unsigned);
-      expect(manager.isPublishing(event.id), isTrue);
-
-      publish.start(event);
-      expect(publish.send(relay.url), isTrue);
-      publish.seal();
-      final responses = await publish.done;
-
-      expect(responses.values.single.accepted, isTrue);
-      expect(relay.events.single.sig, event.sig);
-      expect(manager.isPublishing(event.id), isFalse);
-    });
-
-    test('takes a relay once sealed only if the publish is not over', () async {
-      final first = await startRelay();
-      final late = await startRelay();
-      final event = signedEvent();
-      final publish = publishes.open(event)..start(event);
-
-      publish.send(first.url);
-      publish.seal();
-      await publish.done;
-
-      expect(publish.send(late.url), isFalse);
-      expect(late.received('EVENT'), isEmpty);
-      expect(publish.seal, returnsNormally);
-    });
-
-    test('waits to be sealed, although its relays answered', () async {
-      final first = await startRelay();
-      final second = await startRelay();
-      final event = signedEvent();
-      final publish = publishes.open(event)..start(event);
-
-      publish.send(first.url);
-      await eventually(() => publish.outcomes[first.url]!.okReceived);
-      expect(publish.send(second.url), isTrue);
-      publish.seal();
-      final outcomes = await publish.done;
-
-      expect(outcomes[second.url]!.accepted, isTrue);
-      expect(second.events.single.id, event.id);
-    });
-
-    test('ends on its timeout when it is never sealed', () async {
-      final relay = await startRelay();
-      final event = signedEvent();
-      final publish = publishes.open(
-        event,
-        timeout: const Duration(milliseconds: 300),
-      )..start(event);
-
-      publish.send(relay.url);
-      await eventually(() => publish.outcomes[relay.url]!.okReceived);
-
-      expect((await publish.done)[relay.url]!.accepted, isTrue);
-    });
-
-    test('sends to a relay once', () async {
-      final relay = await startRelay();
-      final event = signedEvent();
-      final publish = publishes.open(event)..start(event);
-
-      expect(publish.send(relay.url), isTrue);
-      expect(publish.send(RelayUrl.parse('${relay.url}/')), isFalse);
-      publish.seal();
-      await publish.done;
-
-      expect(relay.received('EVENT'), hasLength(1));
-      expect(publish.outcomes.keys, [relay.url]);
-    });
-
-    test('reports the OK of each relay as it comes', () async {
-      final relay = await startRelay();
-      final event = signedEvent();
-      final publish = publishes.open(event)..start(event);
-      final updates = publish.outcomesStream.toList();
-
-      publish.send(relay.url);
-      expect(publish.outcomes[relay.url]!.okReceived, isFalse);
-      publish.seal();
-      final outcomes = await publish.done;
-
-      expect(outcomes[relay.url]!.accepted, isTrue);
-      expect(publish.outcomes, outcomes);
-      expect((await updates).last[relay.url]!.accepted, isTrue);
-    });
-
-    test('cannot be sent before it is started', () {
-      final publish = publishes.open(signedEvent());
-
-      expect(
-        () => publish.send(RelayUrl.parse('wss://relay.example')),
-        throwsStateError,
-      );
-    });
-
-    test('refuses to start unsigned', () {
-      final unsigned = Nip01Event(
-        pubkey: alice,
-        kind: 1,
-        tags: [],
-        content: '',
-      );
-      final publish = publishes.open(unsigned);
-
-      expect(() => publish.start(unsigned), throwsArgumentError);
-    });
-
-    test('follows the id of an event its signer changed', () async {
-      final relay = await startRelay();
-      final asked = signedEvent(content: 'asked');
-      final signed = signedEvent(content: 'signed');
-      final publish = publishes.open(asked)..start(signed);
-
-      publish.send(relay.url);
-      publish.seal();
-      expect(manager.isPublishing(asked.id), isTrue);
-      final responses = await publish.done;
-
-      expect(relay.events.single.id, signed.id);
-      expect(responses.values.single.accepted, isTrue);
-      expect(manager.isPublishing(asked.id), isFalse);
-      expect(manager.isPublishing(signed.id), isFalse);
-    });
-
-    test('fails with the error it is given', () async {
-      final event = signedEvent();
-      final publish = publishes.open(event);
-
-      publish.fail(StateError('signer refused'));
-
-      await expectLater(publish.done, throwsA(isA<StateError>()));
-      expect(manager.isPublishing(event.id), isFalse);
-    });
-  });
 }

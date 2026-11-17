@@ -61,17 +61,4 @@ void main() {
     expect(cache.hasVerifiedSignature('b', 'sig'), isFalse);
     expect(cache.hasVerifiedSignature('c', 'sig'), isTrue);
   });
-
-  test('a verification started before clear cannot repopulate it', () async {
-    final cache = VerifiedEventMemCache();
-    final verifier = _GatedVerifier();
-    final event = signedEvent(createdAt: 1);
-
-    final pending = cache.verifyOnce(event, verifier);
-    cache.clear();
-    verifier.gate.complete(true);
-
-    expect(await pending, isTrue);
-    expect(cache.hasVerifiedSignature(event.id, event.sig), isFalse);
-  });
 }

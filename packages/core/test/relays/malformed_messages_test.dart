@@ -15,8 +15,6 @@ class _Transport implements NostrTransport {
   @override
   bool isOpen() => true;
   @override
-  bool isConnecting() => false;
-  @override
   Future<void> close() async {}
   @override
   StreamSubscription listen(

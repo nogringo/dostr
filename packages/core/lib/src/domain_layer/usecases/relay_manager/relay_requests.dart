@@ -95,11 +95,7 @@ class RelayRequests {
     }
   }
 
-  void handleEvent(
-    NostrMessageRaw nostrMsgRaw,
-    RelayConnection connection,
-    int messageSize,
-  ) {
+  void handleEvent(NostrMessageRaw nostrMsgRaw, RelayConnection connection) {
     final requestId = nostrMsgRaw.requestId!;
     final event = nostrMsgRaw.nip01Event!;
 
@@ -110,8 +106,6 @@ class RelayRequests {
       );
       return;
     }
-
-    connection.stats.incStatsByNewEvent(event, messageSize);
 
     RequestState? state = inFlight[requestId];
     if (state != null) {
@@ -247,7 +241,7 @@ class RelayRequests {
     String? message,
   ) {
     request.markClosed(message);
-    if (connection.stats.openRequestIds.remove(reqId)) {
+    if (connection.openRequestIds.remove(reqId)) {
       admitQueuedOn(connection);
     }
   }
@@ -297,8 +291,8 @@ class RelayRequests {
   }
 
   /// Sends [filters] to [url] for [state], on the connection its [AuthPolicy]
-  /// allows. The relay is tracked before this returns, so a request sealed
-  /// right after does not end on it.
+  /// allows. The relay is tracked before this returns, so the request does not
+  /// end on it once every relay was handed its filters.
   ///
   /// Each relay takes one call: [filters] travel in a single REQ, since a
   /// second REQ with the same id would replace the first on the relay.
@@ -307,9 +301,6 @@ class RelayRequests {
     RelayUrl url,
     List<Filter> filters,
   ) async {
-    // a relay handed over late, once the request is over, must not revive it:
-    // nothing would ever CLOSE that REQ
-    if (state.isOver) return;
     final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {

@@ -14,10 +14,6 @@ class RelayConnectionKey {
   /// lowercase hex pubkey authenticated on this connection, null when anonymous
   final String? pubkey;
 
-  /// stands for the absent pubkey in [canonical]; not a valid pubkey, so it
-  /// cannot collide with one
-  static const String anonymousMarker = 'anon';
-
   const RelayConnectionKey._(this.url, this.pubkey);
 
   /// key of a connection that never authenticates
@@ -51,11 +47,8 @@ class RelayConnectionKey {
   /// whether any identity is bound to this connection
   bool get isAnonymous => pubkey == null;
 
-  /// stable representation, for persisted keys and logs
-  String get canonical => '$url|${pubkey ?? anonymousMarker}';
-
   @override
-  String toString() => canonical;
+  String toString() => '$url|${pubkey ?? 'anon'}';
 
   @override
   bool operator ==(Object other) =>

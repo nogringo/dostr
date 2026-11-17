@@ -245,14 +245,14 @@ class _RelaysPageState extends State<RelaysPage>
         final connectivity = relayManager
             .connectivities[RelayConnectionKey.anonymous(entry.key)];
         final stateColor = connectivity != null
-            ? connectivity.relay.connecting
+            ? connectivity.isConnecting
                 ? Colors.orange
                 : connectivity.isConnected
                     ? Colors.green
                     : Colors.red
             : Colors.grey;
         final stateLabel = connectivity != null
-            ? connectivity.relay.connecting
+            ? connectivity.isConnecting
                 ? l10n.relayStateConnecting
                 : connectivity.isConnected
                     ? l10n.relayStateOnline

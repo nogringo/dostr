@@ -19,8 +19,6 @@ class _Transport implements NostrTransport {
   @override
   bool isOpen() => open && !closed;
   @override
-  bool isConnecting() => false;
-  @override
   Future<void> close() async {
     closes++;
     closed = true;
@@ -91,9 +89,11 @@ void main() {
       .length;
   int allReplays() => factory.created.map(replays).fold(0, (a, b) => a + b);
   RelayRequestStatus status() => subscription.relayOutcomes[url]!.status;
-  setUp(() {
-    factory = _Factory();
-    manager = RelayManager(nostrTransportFactory: factory);
+  void start({bool allowReconnect = true}) {
+    manager = RelayManager(
+      nostrTransportFactory: factory,
+      allowReconnect: allowReconnect,
+    );
     parts = relayManagerParts(manager);
     subscription = RequestState('live', closeOnEose: false)
       ..addRequest(key, [
@@ -101,6 +101,11 @@ void main() {
       ]);
     subscription.received.listen((_) {});
     parts.requests.inFlight[subscription.id] = subscription;
+  }
+
+  setUp(() {
+    factory = _Factory();
+    start();
   });
   tearDown(() async {
     await subscription.close();
@@ -163,13 +168,12 @@ void main() {
       final old = factory.created.single..open = false;
       await connect();
       final current = parts.connections.relays[key]!;
-      current.stats.openRequestIds.add('live-request');
-      final errors = current.stats.connectionErrors;
+      current.openRequestIds.add('live-request');
       old.controller.addError(StateError('late error'));
       old.drop();
       await pumpEventQueue();
-      expect(current.stats.openRequestIds, {'live-request'});
-      expect(current.stats.connectionErrors, errors);
+      expect(current.openRequestIds, {'live-request'});
+      expect(current.relayTransport, same(factory.created.last));
       expect(factory.created, hasLength(2));
       expect(allReplays(), 0);
     },
@@ -203,8 +207,7 @@ void main() {
     expect(factory.created, hasLength(2));
     expect(factory.created.first.closed, isTrue);
     expect(replays(factory.created.last), 1);
-    expect(manager.isConnectionOpen(key), isTrue);
-    expect(parts.connections.relays[key]!.stats.connectionErrors, 1);
+    expect(manager.connectivities[key]?.isConnected ?? false, isTrue);
   });
 
   test('a socket ending with an error is replaced too', () async {
@@ -227,14 +230,14 @@ void main() {
       await pumpEventQueue();
 
       expect(factory.created, hasLength(2));
-      expect(manager.isConnectionOpen(key), isFalse);
+      expect(manager.connectivities[key]?.isConnected ?? false, isFalse);
       expect(status(), RelayRequestStatus.pending);
 
       factory.openNext = true;
       await Future<void>.delayed(const Duration(milliseconds: 700));
 
       expect(factory.created, hasLength(3));
-      expect(manager.isConnectionOpen(key), isTrue);
+      expect(manager.connectivities[key]?.isConnected ?? false, isTrue);
       expect(replays(factory.created.last), 1);
     },
   );
@@ -304,7 +307,8 @@ void main() {
   test(
     'without reconnects, a dropped socket ends its requests as disconnected',
     () async {
-      manager.allowReconnectRelays = false;
+      await manager.dispose();
+      start(allowReconnect: false);
       await connect();
 
       factory.created.single.drop();
@@ -327,7 +331,7 @@ void main() {
       expect(factory.created, hasLength(2));
       expect(factory.created.first.closed, isTrue);
       expect(replays(factory.created.last), 1);
-      expect(manager.isConnectionOpen(key), isTrue);
+      expect(manager.connectivities[key]?.isConnected ?? false, isTrue);
     },
   );
 
@@ -352,11 +356,14 @@ void main() {
     factory.readyGate!.complete();
     await reconnecting;
 
-    expect(manager.isConnectionOpen(key), isTrue);
+    expect(manager.connectivities[key]?.isConnected ?? false, isTrue);
     expect(
-      manager.isConnectionOpen(
-        RelayConnectionKey.anonymous(RelayUrl.parse(other)),
-      ),
+      manager
+              .connectivities[RelayConnectionKey.anonymous(
+                RelayUrl.parse(other),
+              )]
+              ?.isConnected ??
+          false,
       isTrue,
     );
   });

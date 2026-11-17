@@ -16,7 +16,6 @@ class VerifiedEventMemCache {
       LinkedHashSet<_VerificationKey>();
   final Map<_VerificationKey, Future<bool>> _verificationInFlight =
       HashMap<_VerificationKey, Future<bool>>();
-  int _generation = 0;
 
   VerifiedEventMemCache({this.maxSize = 5000});
 
@@ -44,13 +43,10 @@ class VerifiedEventMemCache {
       return existing;
     }
 
-    final generation = _generation;
     late final Future<bool> future;
     future = Future<bool>.sync(() => verifier.verify(event))
         .then((valid) {
-          if (valid && generation == _generation) {
-            markVerified(event.id, event.sig);
-          }
+          if (valid) markVerified(event.id, event.sig);
           return valid;
         })
         .whenComplete(() {
@@ -60,16 +56,6 @@ class VerifiedEventMemCache {
         });
     _verificationInFlight[key] = future;
     return future;
-  }
-
-  /// Removes all verification state.
-  ///
-  /// Verifications started before this call may still complete for their
-  /// existing listeners, but cannot repopulate this cache.
-  void clear() {
-    _generation++;
-    _verified.clear();
-    _verificationInFlight.clear();
   }
 
   void _evictOverflow() {

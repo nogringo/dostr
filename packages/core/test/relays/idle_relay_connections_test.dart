@@ -34,8 +34,6 @@ class _Transport implements NostrTransport {
   @override
   bool isOpen() => !closed;
   @override
-  bool isConnecting() => false;
-  @override
   Future<void> close() async {
     closed = true;
     onClose?.call();
@@ -111,13 +109,14 @@ void main() {
     return request;
   }
 
-  PublishState publish(String id, {RelayUrl? url}) {
-    final publish = PublishState(timeout: const Duration(minutes: 1));
+  PublishState publish(String id, {required RelayUrl url}) {
+    final publish = PublishState(
+      Nip01Event(pubkey: 'a' * 64, kind: 1, tags: [], content: id),
+      relays: [url],
+      timeout: const Duration(minutes: 1),
+    );
     parts.publishes.inFlight[id] = [publish];
     publishes.add(publish);
-    if (url != null) {
-      publish.outcomes[url] = const RelayPublishOutcome();
-    }
     return publish;
   }
 
@@ -138,7 +137,6 @@ void main() {
           const RelayPublishOutcome(okReceived: true, accepted: true),
         );
       }
-      publish.seal();
       await publish.done;
     }
     publishes.clear();
@@ -233,14 +231,6 @@ void main() {
     await manager.closeIdleConnections();
     expect(idle.closed, isTrue);
     expect(parts.connections.relays.keys, [anonymous]);
-  });
-
-  test('a publish that has not picked a relay keeps nothing open', () async {
-    connect(anonymous);
-    connect(other);
-    publish('discovering');
-    await manager.closeIdleConnections();
-    expect(parts.connections.relays, isEmpty);
   });
 
   test('a connection whose socket is being opened is retained', () async {

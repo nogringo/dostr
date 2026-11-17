@@ -12,11 +12,9 @@ import '../../entities/timeout_pausable.dart';
 
 /// State of one publish. Internal to dostr_core.
 class PublishState implements TimeoutPausable {
-  final Duration timeout;
-
   /// the event being published, kept to send it again after an auth-required
   /// or a socket that dropped before the OK
-  Nip01Event? event;
+  final Nip01Event event;
 
   /// which identity this publish may be attributed to on the relays (NIP-42)
   final AuthPolicy? auth;
@@ -38,10 +36,10 @@ class PublishState implements TimeoutPausable {
   /// new listener
   Stream<PublishState> get stateUpdates => _stateUpdatesController.stream;
 
-  /// the outcome on each relay the event was sent to
-  Map<RelayUrl, RelayPublishOutcome> outcomes = {};
+  /// the outcome on each relay the event is sent to
+  final Map<RelayUrl, RelayPublishOutcome> outcomes;
 
-  /// Whether the publish is over: done, timed out or failed.
+  /// Whether the publish is over: done or timed out.
   bool get isOver => _answers.isClosed;
 
   /// Records what [url] did with the event, unless the publish is over.
@@ -58,15 +56,12 @@ class PublishState implements TimeoutPausable {
         outcome.failure == null;
   }
 
-  /// Whether the publish was [seal]ed and every relay it was sent to answered
-  /// or failed.
-  bool get isDone =>
-      _sealed &&
-      outcomes.values.every(
-        (outcome) => outcome.okReceived || outcome.failure != null,
-      );
+  /// Whether every relay answered or failed.
+  bool get isDone => outcomes.values.every(
+    (outcome) => outcome.okReceived || outcome.failure != null,
+  );
 
-  /// completes once the publish is done or timed out, fails on [addError]
+  /// completes once the publish is done or timed out
   Future<PublishState> get done => _done.future;
 
   late final StreamSubscription _answersSubscription;
@@ -77,19 +72,23 @@ class PublishState implements TimeoutPausable {
     }
   });
   bool _isDisposed = false;
-  bool _sealed = false;
   final Completer<PublishState> _done = Completer();
 
-  PublishState({required this.timeout, this.auth}) {
+  /// Starts the publish of [event] to [relays], done right away without any.
+  PublishState(
+    this.event, {
+    required Iterable<RelayUrl> relays,
+    required Duration timeout,
+    this.auth,
+  }) : outcomes = {for (final url in relays) url: const RelayPublishOutcome()} {
     _answersSubscription = _answers.stream.listen((response) {
       outcomes[response.url] = response.outcome;
       _stateUpdatesController.add(this);
       _checkDone();
     });
+    _timeout.start(timeout);
+    _checkDone();
   }
-
-  /// Starts the timeout timer. Call this after signing is complete.
-  void startTimeout() => _timeout.start(timeout);
 
   @override
   void pauseTimeout() => _timeout.pause();
@@ -116,20 +115,5 @@ class PublishState implements TimeoutPausable {
     }
     _stateUpdatesController.close();
     _answers.close();
-  }
-
-  /// Ends the publish on [error].
-  void addError(Object error, [StackTrace? stackTrace]) {
-    if (!_done.isCompleted) {
-      _done.completeError(error, stackTrace);
-    }
-    _dispose();
-  }
-
-  /// Lets the publish end once the relays it was sent to answered, right away
-  /// when they all did or when it was sent to none.
-  void seal() {
-    _sealed = true;
-    _checkDone();
   }
 }

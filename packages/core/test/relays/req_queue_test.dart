@@ -215,7 +215,6 @@ void main() {
         failure: RelayFailure(RelayFailureKind.connectionFull),
       ),
     });
-    expect(queued.timedOut, isTrue);
 
     relay.sendToAll(['EOSE', first.id]);
     await first.done;

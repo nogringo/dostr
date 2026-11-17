@@ -94,26 +94,10 @@ await listener.cancel();
 ```
 
 A subscription has no timeout unless it is given one.
-`reqs.close(id)` and `reqs.closeAll()` close the REQs `reqs` opened, by id or all of them, never those of another `RelayReqs`.
-
-### Adding relays as you find them
-
-Without `relays`, the request stays open until you `seal()` it, so a relay that answers fast does not end it while you are still picking the others:
-
-```dart
-final req = reqs.req();
-req.send(RelayUrl.parse('wss://a.example.com'), [filterA]);
-req.send(RelayUrl.parse('wss://b.example.com'), [filterB]);
-req.seal();
-```
-
-Each relay takes one `send`.
-Its filters travel in a single REQ, since a second REQ with the same id replaces the first on the relay.
-
-A relay can still be added after `seal()` while the request runs: it then has to answer too before the request ends.
-`send` returns `false` and sends nothing once the request is over, and for a relay the request was already sent to.
 
 ### What you get
+
+- Each relay gets its filters in a single REQ. A filter that matches nothing is left out, and a relay left with none is not sent to.
 
 - Events are signature-checked, and invalid ones are dropped.
 - An event that matches none of the filters sent to its relay is dropped too, its `search` aside, since each relay reads that one its own way.
@@ -209,12 +193,12 @@ The `RelayManager` opens, keeps and closes the relay connections.
 // connecting, opens, closes or is forgotten
 relays.relayConnectivityChanges.listen((connections) {
   for (final c in connections) {
-    print('${c.url}: ${c.isConnected}');
+    print('${c.key.url}: ${c.isConnected}');
   }
 });
 ```
 
-A relay can hold several connections, one anonymous and one per identity it authenticated as, so group them by `url` to show one status per relay.
+A relay can hold several connections, one anonymous and one per identity it authenticated as, so group them by `key.url` to show one status per relay.
 Each list holds the connections as they stood when it was emitted, and nothing changes them afterwards: read `connectivities` again for their state now.
 
 ### Reconnecting

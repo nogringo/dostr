@@ -123,10 +123,12 @@ RelayManager newRelayManager({
   SubscriptionLimit? subscriptionLimit,
   MessageLengthLimit? messageLengthLimit,
   void Function(String url, int length)? onMessageLengthLearned,
+  bool allowReconnect = true,
 }) => RelayManager(
   nostrTransportFactory:
       transportFactory ??
       WebSocketClientNostrTransportFactory(pingInterval: null),
+  allowReconnect: allowReconnect,
   accounts: accounts,
   authHandler: authHandler,
   subscriptionLimit: subscriptionLimit,

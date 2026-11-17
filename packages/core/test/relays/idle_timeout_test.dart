@@ -32,7 +32,10 @@ void main() {
 
     await Future<void>.delayed(const Duration(milliseconds: 100));
     expect(
-      relays.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      relays
+              .connectivities[RelayConnectionKey.anonymous(relay.url)]
+              ?.isConnected ??
+          false,
       isTrue,
     );
 
@@ -66,7 +69,10 @@ void main() {
 
     await Future<void>.delayed(const Duration(milliseconds: 800));
     expect(
-      relays.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      relays
+              .connectivities[RelayConnectionKey.anonymous(relay.url)]
+              ?.isConnected ??
+          false,
       isTrue,
     );
 
@@ -111,7 +117,7 @@ void main() {
     );
 
     await eventually(() => !relays.connectivities.containsKey(bound));
-    expect(relays.isConnectionOpen(anonymous), isTrue);
+    expect(relays.connectivities[anonymous]?.isConnected ?? false, isTrue);
   });
 
   test('a null timeout keeps idle connections open', () async {
@@ -121,7 +127,7 @@ void main() {
 
     await eventually(() => !relays.connectivities.containsKey(anonymous));
     await Future<void>.delayed(const Duration(milliseconds: 500));
-    expect(relays.isConnectionOpen(bound), isTrue);
+    expect(relays.connectivities[bound]?.isConnected ?? false, isTrue);
   });
 
   test('rejects a timeout that is not positive', () {

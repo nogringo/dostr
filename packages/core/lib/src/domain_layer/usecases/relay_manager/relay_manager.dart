@@ -6,7 +6,6 @@ import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../config/relay_defaults.dart';
 import '../../../config/request_defaults.dart';
-import '../../../shared/helpers/utf8_length.dart';
 import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
@@ -40,14 +39,10 @@ final class RelayManager {
 
   final List<RelayProtocolHandler> _protocolHandlers = [];
 
-  /// Are reconnects allowed when a connection drops?
-  bool get allowReconnectRelays => _connections.allowReconnect;
-  set allowReconnectRelays(bool allow) => _connections.allowReconnect = allow;
-
   /// Every connection each time one is added, starts connecting, opens, closes
   /// or is forgotten, as it stood then, the latest list cached. A relay can
-  /// hold several connections, so this cannot be indexed by url; group by
-  /// [RelayConnectivity.url] if you need to.
+  /// hold several connections, so this cannot be indexed by url; group by the
+  /// url of [RelayConnectivity.key] if you need to.
   Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
       _connections.changes;
 
@@ -71,9 +66,6 @@ final class RelayManager {
 
   /// Lets requests and publishes connect to [url] again.
   void unblockRelay(RelayUrl url) => _connections.blockedRelays.remove(url);
-
-  /// Whether a publish of [eventId] is still waiting on its relays.
-  bool isPublishing(String eventId) => _publishes.isPublishing(eventId);
 
   /// Creates a new relay manager.
   ///
@@ -185,10 +177,6 @@ final class RelayManager {
     _protocolHandlers.remove(handler);
   }
 
-  /// Whether the connection behind [key] is open.
-  bool isConnectionOpen(RelayConnectionKey key) =>
-      _connections.isConnectionOpen(key);
-
   /// Opens the anonymous connection to [url]. Returns whether it is
   /// connected, and why if it is not. A refused connection is tried
   /// again until [connectTimeout] runs out, and one that dropped is tried now
@@ -264,11 +252,7 @@ final class RelayManager {
   NostrSigner? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
 
   /// Routes a message from [connection] to whatever it answers.
-  void _dispatch(
-    NostrMessageRaw nostrMsg,
-    RelayConnection connection,
-    String message,
-  ) {
+  void _dispatch(NostrMessageRaw nostrMsg, RelayConnection connection) {
     final key = connection.key;
     switch (nostrMsg.type) {
       case NostrMessageRawType.unknown:
@@ -319,7 +303,7 @@ final class RelayManager {
           handler.onNotice(key, noticeMsg);
         }
       case NostrMessageRawType.event:
-        _requests.handleEvent(nostrMsg, connection, utf8Length(message));
+        _requests.handleEvent(nostrMsg, connection);
       case NostrMessageRawType.eose:
         final eventJson = nostrMsg.otherData;
         logger.fine(() => "EOSE from ${connection.url}: ${eventJson[1]}");
@@ -373,8 +357,6 @@ final class RelayManager {
   /// after EOSE, and authentication/reconnect work keeps the exact connection
   /// it is preparing to use.
   ///
-  /// A request or a publish that has yet to pick a relay keeps no connection
-  /// open: sending to the relay it picks reopens the connection when needed.
   /// Publishes track relay URLs rather than identities, so both anonymous and
   /// authenticated connections at an in-flight publish's URL are retained.
   Future<void> closeIdleConnections() async {

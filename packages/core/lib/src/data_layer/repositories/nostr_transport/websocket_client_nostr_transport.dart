@@ -53,9 +53,6 @@ class WebSocketClientNostrTransport implements NostrTransport {
   bool isOpen() => _open;
 
   @override
-  bool isConnecting() => !_open && !_ended;
-
-  @override
   Future<void> close() async {
     if (!_open) _abortHandshake?.call();
     _end(StateError("closed before it opened"));

@@ -74,7 +74,7 @@ Nothing replaces `ndk.relays.seedRelaysConnected`.
 The defaults of the parameters of `dostr_core` are top-level constants, and the rest is gone: `DEFAULT_USER_AGENT` and `MAX_INBOX_RELAYS_TO_BROADCAST`, among others.
 `FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS` and the other constants that tune the reconnection and the relay limits are internal.
 
-`connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs` and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so is `defaultWebSocketConnectTimeout`.
+`connectTimeout`, on `RelayManager.connectRelay` and `RelayManager.openConnectionAs`, is a `Duration` instead of a number of seconds, and so is `defaultWebSocketConnectTimeout`.
 
 The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout` and `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout`.
 `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read, is gone.
@@ -83,10 +83,11 @@ The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT
 
 `RelayManager` and `RelayConnectivity` are no longer generic.
 `RelayManager` is a final class: it can no longer be extended, implemented or mocked.
-`EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and `RelayStats.touched` and `touchUseful` are gone: they only served the JIT engine of `ndk`.
+`EngineAdditionalDataFactory` and `RelayConnectivity.specificEngineData` are gone: they only served the JIT engine of `ndk`.
 
 `GlobalState` and `RequestState` are no longer public: `RelayManager` keeps its own state and no longer takes a `globalState`.
-Read its connections with `RelayManager.connectivities`, ask `RelayManager.isPublishing` whether an event is still being published, and `RelayReqs.openIds` which of its REQs are open.
+Read its connections with `RelayManager.connectivities`.
+Nothing lists the REQs and publishes in flight: keep the `RelayReq` or `RelayPublish` you opened, whose `done` completes once it is over.
 `RelayManager.blockRelay` blocks a relay and closes its connections, `unblockRelay` lets it be connected to again, and `blockedRelays` lists the blocked relays without letting them be changed.
 
 `RelayManager` keeps the plumbing behind `RelayReq` and publishes to itself.
@@ -99,20 +100,17 @@ It no longer takes an `authPubkey` and only opens the anonymous connection: open
 
 `isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays`, `reconnectRelay`, `reconnectConnection`, `resetTransport`, the `resetConnection` of a single connection and `waitForRequestSent` are gone.
 Open a connection with `connectRelay` or `openConnectionAs`, and close one with `closeConnection` or `closeConnectionsTo`.
-`connectedRelays`, `connectedAnonymousRelays`, `isRelayConnected`, `getRelayConnectivity` and `getConnectivity` are gone too: read `RelayManager.connectivities`, keyed by `RelayConnectionKey`, or ask `isConnectionOpen`.
-A connection that is still connecting has `relay.connecting` set in `RelayManager.connectivities`.
+`connectedRelays`, `connectedAnonymousRelays`, `isRelayConnected`, `isConnectionOpen`, `getRelayConnectivity` and `getConnectivity` are gone too: read `RelayManager.connectivities`, keyed by `RelayConnectionKey`.
+A connection that is still connecting has `isConnecting` set in `RelayManager.connectivities`.
 `relayConnectivityChanges` emits when a connection is added, starts connecting, opens, closes or is forgotten, and no longer each time a REQ is sent or ends.
-`authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and `nostrTransportFactory` are constructor parameters only, no longer fields.
+`allowReconnect`, `authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and `nostrTransportFactory` are constructor parameters only, no longer fields, and `allowReconnectRelays` is gone.
 
-`RelayConnectivity`, `Relay` and `RelayStats` are snapshots: `connectivities`, `relayConnectivityChanges` and `openConnectionAs` give each connection as it stood when they were read, and nothing changes it afterwards.
-They used to give the live connection, so a list kept from `relayConnectivityChanges` changed under its holder.
-None has a public constructor anymore.
-`RelayConnectivity` no longer has `relayTransport`, `listen` or `close`: read `isConnected`, and close a connection with `RelayManager.closeConnection`.
-`Relay` loses its setters, `tryingToConnect`, `succeededToConnect`, `failedToConnect` and `wasLastConnectTryLongerThanSeconds`.
-`Relay.lastConnectTry` and `lastSuccessfulConnect` are `DateTime`s instead of seconds since the epoch.
-`RelayStats` loses its setters, `openRequestIds` and `incStatsByNewEvent`, and its maps are unmodifiable.
-`eventsWritten` and `dataWrittenBytes` are gone: nothing ever filled them.
-`dataReadBytes` counts the UTF-8 bytes of the EVENT messages, where it used to count their UTF-16 code units.
+`RelayConnectivity` is a snapshot: `connectivities`, `relayConnectivityChanges` and `openConnectionAs` give each connection as it stood when they were read, and nothing changes it afterwards.
+It used to give the live connection, so a list kept from `relayConnectivityChanges` changed under its holder.
+It no longer has a public constructor.
+`RelayConnectivity` no longer has `url`, `relayTransport`, `listen` or `close`: read `key.url` and `isConnected`, and close a connection with `RelayManager.closeConnection`.
+`Relay` and `RelayStats` are gone, and so are `RelayConnectivity.relay` and `stats`: `RelayConnectivity.isConnecting` replaces `relay.connecting`, and nothing replaces the times and counts they kept.
+`RelayConnectionKey.canonical` and `anonymousMarker` are gone: `toString` gives the same text.
 
 A relay message that misses a field or carries one of the wrong type, and a binary frame, are logged and dropped, and so is an exception a `RelayProtocolHandler` throws.
 They used to escape as uncaught errors, which end a plain Dart process.
@@ -129,8 +127,8 @@ Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that 
  - `RelayManager.connectRelay`, `closeConnectionsTo` and `openConnectionAs` take a `RelayUrl`, `connectRelay` as its first argument instead of a `dirtyUrl`.
  - `RelayManager.blockRelay`, `unblockRelay` and `blockedRelays` take and give `RelayUrl`s, so a relay blocked in another spelling is blocked too.
  - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
- - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
- - `RelayConnectivity.url`, `Relay.url` and `RelayReqEvent.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
+ - `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
+ - `RelayConnectionKey.url` and `RelayReqEvent.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
  - `NostrTransportFactory`, `SubscriptionLimit`, `MessageLengthLimit` and `onMessageLengthLearned` are given a `RelayUrl`. One written for a `String` still fits.
  - `WebSocketClientNostrTransportFactory` no longer throws on a url it cannot parse, since it is given a `RelayUrl`.
 
@@ -138,6 +136,7 @@ Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that 
 
 `RelayManager` is the only thing that reconnects, and a `NostrTransport` is a single socket.
 `NostrTransportFactory` takes the url alone, without `onReconnect` or `onDisconnect`.
+`NostrTransport` no longer has `isConnecting`, which `RelayManager` never read.
 `ready` completes once the socket is open and fails when it cannot connect or is closed first, instead of waiting forever.
 The end of `listen` means the socket is gone.
 
@@ -166,14 +165,12 @@ Use `WebSocketClientNostrTransportFactory`.
 `reconnectClosedConnections` reconnects every connection at once instead of one after the other.
 `authenticateConnection` answers false for a connection that is not open.
 
-`closeIdleConnections` no longer waits for the requests and publishes that have yet to pick a relay.
-A REQ never sealed, or a publish never started or failed, used to keep every connection open for good.
-
 #### REQs
 
-Open REQs with `RelayReqs`.
-Close one with `RelayReq.close`, by its id with `RelayReqs.close`, or all of them with `RelayReqs.closeAll`.
-`RelayReqs.close`, `closeAll` and `openIds` only see the REQs that `RelayReqs` opened, never those of another one.
+Open REQs with `RelayReqs`, and close one with `RelayReq.close` or by cancelling its `events`.
+`RelayReqs.req` takes its `relays` up front: `RelayReq.send` and `seal` are gone.
+`RelayReq.closeOnEose` and `timedOut` are gone: the caller knows the first, and a relay the timeout ended reports `RelayRequestStatus.timedOut` in `outcomes`.
+`RelayReqs.clearVerifiedEventCache` is gone: the signatures it checked are kept in a bounded cache.
 
 A query given no `timeout` ends after `defaultQueryTimeout`, 10 seconds, as in `ndk`, so a relay that never sends its EOSE cannot hold it open.
 A subscription has no timeout unless it is given one.
@@ -198,9 +195,6 @@ Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllC
 Its fields are final, `broadcastSuccessful` is now `accepted` and `msg` is now `message`.
 It no longer has `relayUrl`, since the outcomes are keyed by relay url, and two outcomes are equal when all their fields are, where two responses were equal when they came from the same relay.
 Publish a signed event with `RelayPublishes.publish`.
-To publish an event that still has to be signed, open it with `RelayPublishes.open`: it counts as in flight right away.
-Then `start` the `RelayPublish` with the signed event, `send` it to each relay with an optional `connectTimeout`, and `seal` it, or `fail` it when signing does.
-Until it is sealed, it only ends on its timeout, even once the relays it was sent to answered.
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
@@ -231,7 +225,7 @@ An empty list in a `Filter` matches nothing, as NIP-01 requires, instead of stan
 
 `Filter.clone` copies the values of the tag filters too, which it used to share with the original filter.
 
-`RelayReq.send` leaves out the filters that match nothing, and does not send to a relay left with none.
+`RelayReqs.req` leaves out the filters that match nothing, and does not send to a relay left with none.
 A REQ whose filters all match nothing ends right away, with no relay in its outcomes.
 An empty tag list no longer means "has this tag".
 

@@ -1,10 +1,8 @@
 import 'dart:async';
 
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../config/relay_defaults.dart';
 import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../entities/relay_connection_key.dart';
@@ -34,9 +32,6 @@ class PublishesInFlight {
   }) : _connections = connections,
        _auth = auth;
 
-  /// Whether a publish of [eventId] is still waiting on its relays.
-  bool isPublishing(String eventId) => inFlight.containsKey(eventId);
-
   /// Whether the `RelayManager` was disposed.
   bool get disposed => _connections.disposed;
 
@@ -48,21 +43,6 @@ class PublishesInFlight {
       for (final url in state.outcomes.keys.toList()) {
         if (state.owesAnswer(url)) _failRelay(state, url, failure);
       }
-      state.seal();
-    }
-  }
-
-  /// Tracks [relayUrl] in [state], so its OK can be routed back.
-  void _registerRelay(PublishState state, RelayUrl relayUrl, Nip01Event event) {
-    state.event ??= event;
-
-    if (state.outcomes[relayUrl] == null) {
-      state.outcomes[relayUrl] = const RelayPublishOutcome();
-    } else {
-      logger.warning(
-        () =>
-            "_registerRelay: $relayUrl already registered for ${event.id}, skipping",
-      );
     }
   }
 
@@ -70,43 +50,34 @@ class PublishesInFlight {
     if (state.isOver) {
       logger.warning(
         () =>
-            "Ignoring a late failure of ${state.event?.id} on $relay: the publish is over",
+            "Ignoring a late failure of ${state.event.id} on $relay: the publish is over",
       );
       return;
     }
     state.report(relay, RelayPublishOutcome(failure: failure));
   }
 
-  /// Tracks [state] as a publish of [eventId] until it is done, so the OK of
-  /// the relays reach it.
-  void track(String eventId, PublishState state) {
+  /// Sends the event of [state] to each of its relays, and tracks [state]
+  /// until it is done, so the OK of the relays reach it.
+  void start(PublishState state) {
+    final eventId = state.event.id;
     inFlight.putIfAbsent(eventId, () => []).add(state);
-    void untrack() {
+    state.done.then((_) {
       final states = inFlight[eventId];
       if (states == null) return;
       states.remove(state);
       if (states.isEmpty) inFlight.remove(eventId);
+    });
+    for (final url in state.outcomes.keys.toList()) {
+      unawaited(_publishToRelay(state, url));
     }
-
-    state.done.then((_) => untrack(), onError: (_, _) => untrack());
   }
 
-  /// Sends [event] to [url] for [state], on the connection its [AuthPolicy]
-  /// allows. The relay is tracked before this returns, and reported as failed
-  /// when the EVENT cannot go out.
-  Future<void> publishToRelay(
-    PublishState state,
-    RelayUrl url,
-    Nip01Event event, {
-    Duration connectTimeout = defaultWebSocketConnectTimeout,
-  }) async {
-    _registerRelay(state, url, event);
+  /// Sends the event of [state] to [url], on the connection its [AuthPolicy]
+  /// allows, and reports the relay as failed when the EVENT cannot go out.
+  Future<void> _publishToRelay(PublishState state, RelayUrl url) async {
     try {
-      final (:relay, :failure) = await _connectionFor(
-        state,
-        url,
-        connectTimeout: connectTimeout,
-      );
+      final (:relay, :failure) = await _connectionFor(state, url);
       if (relay == null) {
         _failRelay(
           state,
@@ -117,7 +88,7 @@ class PublishesInFlight {
       }
       await _connections.sendOrThrow(
         relay,
-        ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
+        ClientMsg(ClientMsgType.kEvent, event: state.event).toJson(),
       );
       state.writtenOn[url] = relay.key;
     } on MessageTooLong catch (error) {
@@ -155,7 +126,7 @@ class PublishesInFlight {
   }
 
   /// The publishes whose EVENT was written on [key] and is still unanswered
-  /// there, each once although it may be tracked under two ids.
+  /// there.
   Set<PublishState> _owedOn(RelayConnectionKey key) => {
     for (final states in inFlight.values)
       for (final state in states)
@@ -166,7 +137,7 @@ class PublishesInFlight {
   };
 
   Future<void> _resend(PublishState state, RelayConnection connection) async {
-    final event = state.event!;
+    final event = state.event;
     try {
       await _connections.sendOrThrow(
         connection,
@@ -190,9 +161,8 @@ class PublishesInFlight {
   /// relay saw, whether or not anything was sent on it.
   Future<({RelayConnection? relay, RelayFailure? failure})> _connectionFor(
     PublishState state,
-    RelayUrl url, {
-    Duration connectTimeout = defaultWebSocketConnectTimeout,
-  }) async {
+    RelayUrl url,
+  ) async {
     final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
@@ -204,7 +174,7 @@ class PublishesInFlight {
         failure: const RelayFailure(RelayFailureKind.cannotSign),
       );
     }
-    return _open(state, key, as: auth?.signer, connectTimeout: connectTimeout);
+    return _open(state, key, as: auth?.signer);
   }
 
   /// The connection behind [key] once it is open, or why [state] cannot go
@@ -216,13 +186,11 @@ class PublishesInFlight {
     PublishState state,
     RelayConnectionKey key, {
     NostrSigner? as,
-    Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
     final opening = await _connections.ensureOpen(
       key,
       as: as,
       pausing: state,
-      connectTimeout: connectTimeout,
       retryUnreachable: true,
     );
     switch (opening) {
@@ -233,7 +201,7 @@ class PublishesInFlight {
       case ComingBack():
         final back = await Future.any([
           _connections.whenBack(key),
-          state.done.then((_) => false, onError: (_, _) => false),
+          state.done.then((_) => false),
         ]);
         final connection = _connections.relays[key];
         if (back && connection != null && connection.isConnected) {
@@ -310,13 +278,6 @@ class PublishesInFlight {
     }
 
     final eventToResend = state.event;
-    if (eventToResend == null) {
-      logger.warning(
-        () =>
-            "Received OK auth-required from $relayUrl but no event stored for the publish",
-      );
-      return;
-    }
     final eventId = eventToResend.id;
 
     final account = _auth.accountForPublish(state.auth, eventToResend);

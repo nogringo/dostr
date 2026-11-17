@@ -53,7 +53,10 @@ void main() {
     expect(results.map((r) => r.connected), [true, true, true]);
     expect(relay.clients, hasLength(1));
     expect(
-      manager.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      manager
+              .connectivities[RelayConnectionKey.anonymous(relay.url)]
+              ?.isConnected ??
+          false,
       isTrue,
     );
   });
@@ -120,22 +123,6 @@ void main() {
     ));
   });
 
-  test('remembers when it last tried to connect', () async {
-    final relay = await startRelay();
-    await manager.connectRelay(relay.url);
-
-    final connection =
-        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!.relay;
-    expect(
-      DateTime.now().difference(connection.lastConnectTry!),
-      lessThan(const Duration(minutes: 1)),
-    );
-    expect(
-      connection.lastSuccessfulConnect!.isBefore(connection.lastConnectTry!),
-      isFalse,
-    );
-  });
-
   test('closeConnectionsTo closes the anonymous and bound connections '
       'to one relay only', () async {
     final relay = await startRelay(challengeOnConnect: false);
@@ -162,7 +149,7 @@ void main() {
     await eventually(
       () =>
           updates.isNotEmpty &&
-          updates.last.any((c) => c.url == relay.url && c.isConnected),
+          updates.last.any((c) => c.key.url == relay.url && c.isConnected),
     );
     await subscription.cancel();
   });
@@ -178,7 +165,7 @@ void main() {
     final subscription = manager.relayConnectivityChanges.listen(
       (connections) => updates.add([
         for (final c in connections)
-          (connected: c.isConnected, connecting: c.relay.connecting),
+          (connected: c.isConnected, connecting: c.isConnecting),
       ]),
     );
 
@@ -209,7 +196,7 @@ void main() {
     await pumpEventQueue();
 
     expect(connected.isConnected, isTrue);
-    expect(changes.first.single.relay.connecting, isTrue);
+    expect(changes.first.single.isConnecting, isTrue);
     await subscription.cancel();
   });
 
@@ -230,7 +217,6 @@ void main() {
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
     await manager.connectRelay(relay.url);
-    expect(manager.connectivities[key]!.stats.connections, 1);
 
     await relay.dropConnections();
 
@@ -239,9 +225,12 @@ void main() {
       timeout: const Duration(seconds: 10),
     );
     await eventually(
-      () => manager.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
+      () =>
+          manager
+              .connectivities[RelayConnectionKey.anonymous(relay.url)]
+              ?.isConnected ??
+          false,
     );
-    expect(manager.connectivities[key]!.stats.connections, 2);
   });
 
   test('forgets a dropped socket nothing uses', () async {
@@ -277,36 +266,20 @@ void main() {
     await manager.closeIdleConnections();
 
     expect(
-      manager.isConnectionOpen(RelayConnectionKey.anonymous(busy.url)),
+      manager
+              .connectivities[RelayConnectionKey.anonymous(busy.url)]
+              ?.isConnected ??
+          false,
       isTrue,
     );
     expect(
-      manager.isConnectionOpen(RelayConnectionKey.anonymous(idle.url)),
+      manager
+              .connectivities[RelayConnectionKey.anonymous(idle.url)]
+              ?.isConnected ??
+          false,
       isFalse,
     );
     await subscription.close();
-  });
-
-  test('closeIdleConnections ignores work that never picked a relay', () async {
-    final idle = await startRelay();
-    final reqs = RelayReqs(
-      relayManager: manager,
-      eventVerifier: FakeVerifier(),
-    );
-    final forgotten = reqs.req();
-    final publishes = RelayPublishes(relayManager: manager);
-    final unsigned = publishes.open(signedEvent(content: 'never signed'));
-    await manager.connectRelay(idle.url);
-
-    await manager.closeIdleConnections();
-
-    expect(
-      manager.isConnectionOpen(RelayConnectionKey.anonymous(idle.url)),
-      isFalse,
-    );
-    await forgotten.close();
-    unsigned.fail(StateError('test over'));
-    await unsigned.done.catchError((_) => <RelayUrl, RelayPublishOutcome>{});
   });
 
   test('hands what it does not handle to protocol handlers', () async {
@@ -375,7 +348,6 @@ void main() {
         relays: {relay.url: notes},
         closeOnEose: false,
       );
-      final unsealed = reqs.req();
       final event = signedEvent(content: 'unanswered');
       final publish = RelayPublishes(relayManager: manager).publish(
         event,
@@ -390,7 +362,6 @@ void main() {
         (await subscription.done)[relay.url]?.status,
         RelayRequestStatus.disconnected,
       );
-      expect(await unsealed.done, isEmpty);
       expect(
         (await publish.done)[relay.url]?.failure?.kind,
         RelayFailureKind.connectionLost,
@@ -398,14 +369,6 @@ void main() {
       await changesDone;
       expect(manager.connectivities, isEmpty);
     }, timeout: const Timeout(Duration(seconds: 10)));
-
-    test('ends a publish that was never started', () async {
-      final publish = RelayPublishes(relayManager: manager).open(signedEvent());
-
-      await manager.dispose();
-
-      expect(await publish.done, isEmpty);
-    });
 
     test('refuses to open anything afterwards', () async {
       final relay = await startRelay();

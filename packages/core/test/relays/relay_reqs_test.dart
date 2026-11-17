@@ -99,7 +99,6 @@ void main() {
       );
       final outcomes = await req.done;
 
-      expect(req.timedOut, isTrue);
       expect(outcomes[relay.url]!.status, RelayRequestStatus.timedOut);
       await eventually(() => relay.received('CLOSE').isNotEmpty);
     });
@@ -107,8 +106,12 @@ void main() {
     test(
       'gets the default timeout when given none, unlike a subscription',
       () async {
-        final query = reqs.req();
-        final subscription = reqs.req(closeOnEose: false);
+        final relay = await startRelay(answerRequests: false);
+        final query = reqs.req(relays: {relay.url: notes});
+        final subscription = reqs.req(
+          relays: {relay.url: notes},
+          closeOnEose: false,
+        );
         final inFlight = relayManagerParts(manager).requests.inFlight;
 
         expect(inFlight[query.id]!.timeoutDuration, defaultQueryTimeout);
@@ -229,7 +232,9 @@ void main() {
     });
 
     test('sends to a relay it reached, once its socket dropped', () async {
-      manager.allowReconnectRelays = false;
+      final manager = newRelayManager(allowReconnect: false);
+      addTearDown(manager.dispose);
+      final reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
       final relay = await startRelay();
       final subscription = reqs.req(
         relays: {relay.url: notes},
@@ -250,86 +255,27 @@ void main() {
     });
   });
 
-  group('send and seal', () {
-    test('a request sealed without relays ends at once', () async {
+  group('relays', () {
+    test('a request without relays ends at once', () async {
       final req = reqs.req(relays: {});
 
       expect(await req.done, isEmpty);
       expect(await req.events.toList(), isEmpty);
     });
 
-    test('takes a relay sent after seal while it is not over', () async {
-      final first = await startRelay();
-      final second = await startRelay();
-      final req = reqs.req();
-
-      expect(req.send(first.url, notes), isTrue);
-      req.seal();
-      expect(req.send(second.url, notes), isTrue);
-
-      expect(await req.done, {
-        first.url: const RelayRequestOutcome(RelayRequestStatus.eose),
-        second.url: const RelayRequestOutcome(RelayRequestStatus.eose),
-      });
-    });
-
-    test('sends nothing once it is over', () async {
-      final relay = await startRelay();
-      final req = reqs.req(relays: {});
-      await req.done;
-
-      expect(req.send(relay.url, notes), isFalse);
-      expect(req.outcomes, isEmpty);
-    });
-
-    test('a request without relays is held open until sealed', () async {
-      final relay = await startRelay();
-      relay.events.add(signedEvent(createdAt: 1));
-      final req = reqs.req();
-      final events = req.events.toList();
-      var ended = false;
-      unawaited(req.done.then((_) => ended = true));
-
-      expect(req.send(relay.url, notes), isTrue);
-      await eventually(
-        () => req.outcomes[relay.url]?.status == RelayRequestStatus.eose,
-      );
-      await pumpEventQueue();
-      expect(ended, isFalse);
-
-      req.seal();
-      await req.done;
-      expect(await events, hasLength(1));
-      expect(req.send(relay.url, notes), isFalse);
-    });
-
-    test('sends to each relay once', () async {
-      final relay = await startRelay();
-      final req = reqs.req();
-      req.events.listen((_) {});
-
-      expect(req.send(relay.url, notes), isTrue);
-      expect(req.send(RelayUrl.parse('${relay.url}/'), notes), isFalse);
-
-      await eventually(() => relay.received('REQ').isNotEmpty);
-      expect(relay.received('REQ'), hasLength(1));
-      expect(req.outcomes.keys, [relay.url]);
-      await req.close();
-    });
-
     test('leaves out the filters that match nothing', () async {
       final relay = await startRelay();
-      final req = reqs.req();
+      final req = reqs.req(
+        relays: {
+          relay.url: [Filter(authors: []), ...notes],
+        },
+      );
       req.events.listen((_) {});
 
-      expect(req.send(relay.url, [Filter(authors: [])]), isFalse);
-      expect(req.send(relay.url, [Filter(authors: []), ...notes]), isTrue);
-
-      await eventually(() => relay.received('REQ').isNotEmpty);
+      await req.done;
       expect(relay.received('REQ'), [
         ['REQ', req.id, notes.single.toJson()],
       ]);
-      await req.close();
     });
 
     test('a request whose filters all match nothing ends at once', () async {
@@ -347,14 +293,15 @@ void main() {
     });
 
     test('takes a free id that relays accept', () async {
-      final req = reqs.req(id: 'same');
+      final relay = await startRelay(answerRequests: false);
+      final req = reqs.req(relays: {relay.url: notes}, id: 'same');
 
-      expect(() => reqs.req(id: 'same'), throwsStateError);
-      expect(() => reqs.req(id: ''), throwsArgumentError);
-      expect(() => reqs.req(id: 'x' * 65), throwsArgumentError);
+      expect(() => reqs.req(relays: {}, id: 'same'), throwsStateError);
+      expect(() => reqs.req(relays: {}, id: ''), throwsArgumentError);
+      expect(() => reqs.req(relays: {}, id: 'x' * 65), throwsArgumentError);
 
       await req.close();
-      await reqs.req(id: 'same').close();
+      await reqs.req(relays: {}, id: 'same').done;
     });
   });
 
@@ -400,7 +347,6 @@ void main() {
       final live = signedEvent(content: 'after the eose');
       caughtUp.sendToAll(['EVENT', req.id, live.toJson()]);
       await eventually(() => received.any((e) => e.id == live.id));
-      expect(reqs.openIds, [req.id]);
       await req.close();
     });
 
@@ -426,7 +372,6 @@ void main() {
         req.outcomes[serving.url]?.status,
         isNot(RelayRequestStatus.closed),
       );
-      expect(reqs.openIds, [req.id]);
       final live = signedEvent(content: 'from the relay still serving it');
       serving.sendToAll(['EVENT', req.id, live.toJson()]);
       await eventually(() => received.any((e) => e.id == live.id));
@@ -443,7 +388,6 @@ void main() {
 
       await req.done;
       await eventually(() => !subscribed(relay, req));
-      expect(reqs.openIds, isEmpty);
     });
 
     test('is sent again once the relay drops the connection', () async {
@@ -542,24 +486,6 @@ void main() {
       expect(received.map((e) => e.id), [next.id]);
       await req.close();
     });
-
-    test('count in the relay stats by their UTF-8 bytes', () async {
-      final (relay, req, received) = await subscribe(reqs);
-      final note = signedEvent(content: 'héllo 🌍');
-      final message = ['EVENT', req.id, note.toJson()];
-
-      relay.sendToAll(message);
-      await eventually(() => received.isNotEmpty);
-
-      expect(
-        manager
-            .connectivities[RelayConnectionKey.anonymous(relay.url)]!
-            .stats
-            .dataReadBytes,
-        {1: utf8.encode(jsonEncode(message)).length},
-      );
-      await req.close();
-    });
   });
 
   for (final closeOnEose in [true, false]) {
@@ -577,48 +503,21 @@ void main() {
       expect(await req.done, {
         relay.url: const RelayRequestOutcome(RelayRequestStatus.disconnected),
       });
-      expect(reqs.openIds, isEmpty);
     });
   }
 
-  group('close by id', () {
-    test('closes a REQ it opened, once', () async {
-      final relay = await startRelay();
-      final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
-      await eventually(() => subscribed(relay, req));
+  test('sends its CLOSE once, however often it is closed', () async {
+    final relay = await startRelay();
+    final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
+    await eventually(() => subscribed(relay, req));
 
-      final closed = reqs.close(req.id);
-      await req.close();
+    await Future.wait([req.close(), req.close()]);
 
-      expect(await closed, isTrue);
-      await req.done;
-      await eventually(() => !subscribed(relay, req));
-      expect(relay.received('CLOSE'), [
-        ['CLOSE', req.id],
-      ]);
-      expect(await reqs.close(req.id), isFalse);
-    });
-
-    test('close and closeAll leave the REQs of another RelayReqs '
-        'alone', () async {
-      final relay = await startRelay();
-      final others = RelayReqs(relayManager: manager, eventVerifier: verifier);
-      final mine = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
-      final theirs = others.req(relays: {relay.url: notes}, closeOnEose: false);
-      await eventually(
-        () => subscribed(relay, mine) && subscribed(relay, theirs),
-      );
-
-      expect(reqs.openIds, [mine.id]);
-      expect(await reqs.close(theirs.id), isFalse);
-      await reqs.closeAll();
-
-      await mine.done;
-      await eventually(() => !subscribed(relay, mine));
-      expect(subscribed(relay, theirs), isTrue);
-      expect(others.openIds, [theirs.id]);
-      await theirs.close();
-    });
+    await req.done;
+    await eventually(() => !subscribed(relay, req));
+    expect(relay.received('CLOSE'), [
+      ['CLOSE', req.id],
+    ]);
   });
 }
 

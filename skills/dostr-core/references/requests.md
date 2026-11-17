@@ -19,9 +19,7 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 
 - `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.
 - Without `timeout`, a query ends after `defaultQueryTimeout` (10 s); a subscription has none unless given one.
-- `reqs.close(id)`, `reqs.closeAll()` and `reqs.openIds` only see the REQs `reqs` opened.
 - Relays are `RelayUrl`s: `RelayUrl.parse(url)` throws on a url that is not a relay's, `RelayUrl.tryParse(url)` returns null, and `urls.map(RelayUrl.tryParse).nonNulls` drops them. A `RelayUrl` is a `String`.
-- Without `relays`, call `req.send(url, filters)` per relay, then `req.seal()`.
 - `auth: AuthPolicy.never() / allow(account) / require(account)` picks the identity (NIP-42).
 - Events are verified; an event two relays hold arrives twice.
 

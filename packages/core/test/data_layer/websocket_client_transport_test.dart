@@ -47,7 +47,6 @@ void main() {
 
       await expectLater(ready.timeout(_wait), throwsA(isA<StateError>()));
       await hungUp.timeout(_wait);
-      expect(transport.isConnecting(), isFalse);
     },
   );
 
@@ -106,7 +105,6 @@ void main() {
     await ended.future.timeout(_wait);
     await hungUp.timeout(_wait);
     expect(transport.isOpen(), isFalse);
-    expect(transport.isConnecting(), isFalse);
   });
 
   test('the handshake sends the configured user agent', () async {

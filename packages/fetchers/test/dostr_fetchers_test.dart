@@ -144,9 +144,12 @@ void main() {
   }
 
   /// A relay that accepts the connection and never answers.
-  Future<RelayUrl> startSilentRelay() async {
+  Future<RelayUrl> startSilentRelay({List<List<Object?>>? received}) async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-    server.transform(WebSocketTransformer()).listen((_) {});
+    server.transform(WebSocketTransformer()).listen((socket) {
+      if (received == null) return;
+      socket.listen((data) => received.add(jsonDecode(data as String) as List));
+    });
     addTearDown(() => server.close(force: true));
     return RelayUrl.parse('ws://127.0.0.1:${server.port}');
   }
@@ -1692,18 +1695,25 @@ void main() {
     });
 
     test('cancelling its events closes its REQs', () async {
+      final received = <List<Object?>>[];
       final fetch = fetcher().fetch(
         Filter(kinds: [1]),
-        from: UrlSet.explicit([await startSilentRelay()]),
+        from: UrlSet.explicit([await startSilentRelay(received: received)]),
       );
       final subscription = fetch.events.listen(null);
       await Future<void>.delayed(const Duration(milliseconds: 100));
 
       await subscription.cancel();
       final result = await fetch.done.timeout(const Duration(seconds: 1));
+      await Future<void>.delayed(const Duration(milliseconds: 100));
 
       expect(result.complete, isFalse);
-      expect(reqs.openIds, isEmpty);
+      List<Object?> idsOf(String type) => [
+        for (final message in received)
+          if (message.first == type) message[1],
+      ];
+      expect(idsOf('REQ'), isNotEmpty);
+      expect(idsOf('CLOSE'), idsOf('REQ'));
     });
 
     test('skips the urls that are not relays', () async {

@@ -25,7 +25,6 @@ class RelayReqs {
   final RelayRequests _requests;
   final EventVerifier _eventVerifier;
   final VerifiedEventMemCache _verifiedEventCache = VerifiedEventMemCache();
-  final Map<String, RelayReq> _open = {};
 
   RelayReqs({
     required RelayManager relayManager,
@@ -33,31 +32,11 @@ class RelayReqs {
   }) : _requests = relayManagerParts(relayManager).requests,
        _eventVerifier = eventVerifier;
 
-  /// Forgets which signatures were already checked.
-  void clearVerifiedEventCache() => _verifiedEventCache.clear();
-
-  /// The ids of the REQs this [RelayReqs] opened that are still open.
-  List<String> get openIds => _open.keys.toList();
-
-  /// Closes the REQ this [RelayReqs] opened under [id], like [RelayReq.close].
-  /// Says whether there was one.
-  Future<bool> close(String id) async {
-    final req = _open[id];
-    if (req == null) return false;
-    await req.close();
-    return true;
-  }
-
-  /// Closes every REQ this [RelayReqs] opened.
-  Future<void> closeAll() async {
-    await Future.wait([for (final req in _open.values.toList()) req.close()]);
-  }
-
   /// Opens a REQ. Throws a [StateError] once the [RelayManager] was disposed.
   ///
-  /// With [relays], each of them gets its filters and the request is sealed
-  /// right away. Without, add relays with [RelayReq.send], then
-  /// [RelayReq.seal]: the request is held open until then.
+  /// Each of [relays] gets its filters in a single REQ, on the connection
+  /// [auth] allows. A filter that [Filter.matchesNothing] is left out, and a
+  /// relay left with no filter is not sent to.
   ///
   /// [closeOnEose] makes it a query, ended once every relay sent its EOSE.
   /// Otherwise it is a subscription, which lives until [RelayReq.close].
@@ -65,7 +44,7 @@ class RelayReqs {
   /// [defaultQueryTimeout] for a query by default, never for a subscription.
   /// [name] only shows in logs.
   RelayReq req({
-    Map<RelayUrl, List<Filter>>? relays,
+    required Map<RelayUrl, List<Filter>> relays,
     String? id,
     String? name,
     bool closeOnEose = true,
@@ -92,19 +71,16 @@ class RelayReqs {
         timeoutDuration: timeout ?? (closeOnEose ? defaultQueryTimeout : null),
       ),
       requests: _requests,
-      open: _open,
       eventVerifier: _eventVerifier,
       verifiedEventCache: _verifiedEventCache,
     );
-    if (relays != null) {
-      try {
-        relays.forEach(req.send);
-      } catch (_) {
-        unawaited(req.close());
-        rethrow;
-      }
-      req.seal();
+    try {
+      relays.forEach(req._send);
+    } catch (_) {
+      unawaited(req.close());
+      rethrow;
     }
+    _requests.endPendingConnection(req._state);
     return req;
   }
 }
@@ -116,29 +92,23 @@ class RelayReqs {
 class RelayReq {
   final RequestState _state;
   final RelayRequests _requests;
-  final Map<String, RelayReq> _open;
   late final StreamController<RelayReqEvent> _events = StreamController(
     onCancel: close,
   );
   late final Future<Map<RelayUrl, RelayRequestOutcome>> _done;
-  final Set<RelayUrl> _sentTo = {};
-  bool _sealed = false;
   Future<void>? _closing;
 
   RelayReq._(
     this._state, {
     required RelayRequests requests,
-    required Map<String, RelayReq> open,
     required EventVerifier eventVerifier,
     required VerifiedEventMemCache verifiedEventCache,
-  }) : _requests = requests,
-       _open = open {
+  }) : _requests = requests {
     final inFlight = requests.inFlight;
     _state.onTimeout = (_) => close();
-    // released by seal: until then, more relays may come
+    // released once every relay was handed its filters
     requests.beginPendingConnection(_state);
     inFlight[id] = _state;
-    open[id] = this;
     _done = _state.ended.then((_) => _state.relayOutcomes);
 
     final deliveries = Queue<Future<void>>();
@@ -162,7 +132,6 @@ class RelayReq {
         unawaited(_events.close());
         _state.end();
         if (identical(inFlight[id], _state)) inFlight.remove(id);
-        if (identical(open[id], this)) open.remove(id);
       }),
     );
   }
@@ -196,8 +165,6 @@ class RelayReq {
   /// NIP-01 subscription id
   String get id => _state.id;
 
-  bool get closeOnEose => _state.closeOnEose;
-
   /// Single-subscription: cancelling it closes the request, like [close].
   Stream<RelayReqEvent> get events => _events.stream;
 
@@ -212,41 +179,15 @@ class RelayReq {
   /// [outcomes] once every relay ended the request, on timeout, or on [close].
   Future<Map<RelayUrl, RelayRequestOutcome>> get done => _done;
 
-  /// Whether the request ended on its timeout.
-  bool get timedOut => _state.timedOut;
-
-  /// Sends [filters] to [url] on the connection the request's
-  /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
-  /// the request is over, nor twice to a relay.
-  /// A filter that [Filter.matchesNothing] is left out, and a relay left with
-  /// no filter is not sent to.
-  ///
-  /// A relay sent to after [seal] still has to answer before the request ends.
-  bool send(RelayUrl url, List<Filter> filters) {
+  void _send(RelayUrl url, List<Filter> filters) {
     final matchable = [
       for (final filter in filters)
         if (!filter.matchesNothing) filter.clone(),
     ];
-    if (matchable.isEmpty || _state.isOver || !_sentTo.add(url)) {
-      return false;
-    }
+    if (matchable.isEmpty) return;
     unawaited(_requests.sendToRelay(_state, url, matchable));
-    return true;
-  }
-
-  /// The request may end once the relays it was sent to are done with it.
-  /// Until then, it is held open for the relays still to come.
-  void seal() {
-    if (_sealed) return;
-    _sealed = true;
-    _requests.endPendingConnection(_state);
   }
 
   /// Sends a CLOSE to the relays still serving the request, then ends it.
-  Future<void> close() => _closing ??= _close();
-
-  Future<void> _close() async {
-    await _requests.close(_state);
-    if (identical(_open[id], this)) _open.remove(id);
-  }
+  Future<void> close() => _closing ??= _requests.close(_state);
 }

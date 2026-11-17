@@ -47,9 +47,6 @@ class _FaultyTransport implements NostrTransport {
   bool isOpen() => _inner.isOpen();
 
   @override
-  bool isConnecting() => _inner.isConnecting();
-
-  @override
   void send(data) => _inner.send(data);
 
   @override
@@ -82,12 +79,14 @@ void main() {
     manager.addProtocolHandler(ClaimConnections({key}));
     await manager.connectRelay(relay.url);
 
-    expect(manager.connectivities[key]!.stats.connections, 1);
+    expect(factory.created, hasLength(1));
 
     factory.created.last.breakStream();
 
     await eventually(
-      () => (manager.connectivities[key]?.stats.connections ?? 0) >= 2,
+      () =>
+          factory.created.length >= 2 &&
+          (manager.connectivities[key]?.isConnected ?? false),
       timeout: const Duration(seconds: 15),
     );
   }, timeout: const Timeout(Duration(seconds: 60)));

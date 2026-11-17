@@ -1,15 +1,12 @@
 import 'dart:async';
 
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger.dart';
-import '../../entities/relay.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_connectivity.dart';
 import '../../entities/relay_failure.dart';
-import '../../entities/relay_stats.dart';
 import '../../repositories/nostr_transport.dart';
 import 'auth_session.dart';
 import 'relay_revivals.dart';
@@ -19,9 +16,12 @@ import 'relay_revivals.dart';
 class RelayConnection {
   final RelayConnectionKey key;
 
-  final MutableRelay relay;
+  final ConnectAttempts attempts = ConnectAttempts();
 
-  final MutableRelayStats stats = MutableRelayStats();
+  /// ids of the REQs open on the connection, so that a request replayed on a
+  /// socket that came back is not counted twice and a CLOSE that lands late
+  /// does not count below what is open
+  final Set<String> openRequestIds = {};
 
   /// transport layer for this relay, usually websocket, null while it neither
   /// is connected nor connecting
@@ -51,8 +51,7 @@ class RelayConnection {
   final Stopwatch idleFor = Stopwatch()..start();
 
   /// ids of the REQs that hold a slot here but are not written yet, each with
-  /// the write it waits for, see [MutableRelayStats.openRequestIds] for the
-  /// written ones
+  /// the write it waits for, see [openRequestIds] for the written ones
   final Map<String, Object> reservedRequestIds = {};
 
   /// the signer a bound connection was opened as: a challenge can arrive long
@@ -68,8 +67,7 @@ class RelayConnection {
   /// the bringing back of a socket that dropped, see `RelayRevivals`
   Revival? revival;
 
-  RelayConnection(this.key, {this.relayTransport})
-    : relay = MutableRelay(url: key.url);
+  RelayConnection(this.key, {this.relayTransport});
 
   RelayUrl get url => key.url;
 
@@ -78,9 +76,8 @@ class RelayConnection {
   /// The connection as it stands now, which nothing changes afterwards.
   RelayConnectivity snapshot() => _ConnectivitySnapshot(
     key: key,
-    relay: relay.snapshot(),
-    stats: stats.snapshot(),
     isConnected: isConnected,
+    isConnecting: attempts.connecting,
   );
 
   /// whether the relay accepted an AUTH on the current socket
@@ -90,13 +87,10 @@ class RelayConnection {
 
   /// Whether the REQ [id] holds a slot here, written or not.
   bool holdsSlot(String id) =>
-      stats.openRequestIds.contains(id) || reservedRequestIds.containsKey(id);
+      openRequestIds.contains(id) || reservedRequestIds.containsKey(id);
 
   /// ids of every REQ holding a slot here
-  Set<String> get heldSlots => {
-    ...stats.openRequestIds,
-    ...reservedRequestIds.keys,
-  };
+  Set<String> get heldSlots => {...openRequestIds, ...reservedRequestIds.keys};
 
   /// starts listening on nostr transport
   void listen(
@@ -122,7 +116,7 @@ class RelayConnection {
     // the socket carried them, they die with it
     authSession?.end();
     authSession = null;
-    stats.openRequestIds.clear();
+    openRequestIds.clear();
     reservedRequestIds.clear();
     longestMessage = 0;
 
@@ -150,26 +144,16 @@ class RelayConnection {
 }
 
 /// The connection attempts of a [RelayConnection].
-class MutableRelay {
-  final RelayUrl url;
-
+class ConnectAttempts {
   bool connecting = false;
-
-  DateTime? lastConnectTry;
-
-  DateTime? lastSuccessfulConnect;
 
   DateTime? _lastFailure;
 
-  MutableRelay({required this.url});
-
   void tryingToConnect() {
-    lastConnectTry = DateTime.now();
     connecting = true;
   }
 
   void succeededToConnect() {
-    lastSuccessfulConnect = DateTime.now();
     _lastFailure = null;
     connecting = false;
   }
@@ -184,43 +168,6 @@ class MutableRelay {
     final failure = _lastFailure;
     return failure != null && DateTime.now().difference(failure) < duration;
   }
-
-  Relay snapshot() => _RelaySnapshot(
-    url: url,
-    connecting: connecting,
-    lastConnectTry: lastConnectTry,
-    lastSuccessfulConnect: lastSuccessfulConnect,
-  );
-}
-
-/// What a [RelayConnection] carried.
-class MutableRelayStats {
-  int connections = 0;
-
-  int connectionErrors = 0;
-
-  /// ids of the requests open on the connection, so that a request replayed on
-  /// a socket that came back is not counted twice and a CLOSE that lands late
-  /// does not count below what is open
-  final Set<String> openRequestIds = {};
-
-  final Map<int, int> _eventsRead = {};
-
-  final Map<int, int> _dataReadBytes = {};
-
-  /// increment stats by new event
-  void incStatsByNewEvent(Nip01Event event, int bytes) {
-    _eventsRead[event.kind] = (_eventsRead[event.kind] ?? 0) + 1;
-    _dataReadBytes[event.kind] = (_dataReadBytes[event.kind] ?? 0) + bytes;
-  }
-
-  RelayStats snapshot() => _StatsSnapshot(
-    connections: connections,
-    connectionErrors: connectionErrors,
-    activeRequests: openRequestIds.length,
-    eventsRead: Map.unmodifiable(_eventsRead),
-    dataReadBytes: Map.unmodifiable(_dataReadBytes),
-  );
 }
 
 final class _ConnectivitySnapshot implements RelayConnectivity {
@@ -228,77 +175,18 @@ final class _ConnectivitySnapshot implements RelayConnectivity {
   final RelayConnectionKey key;
 
   @override
-  final Relay relay;
-
-  @override
-  final RelayStats stats;
-
-  @override
   final bool isConnected;
+
+  @override
+  final bool isConnecting;
 
   const _ConnectivitySnapshot({
     required this.key,
-    required this.relay,
-    required this.stats,
     required this.isConnected,
+    required this.isConnecting,
   });
-
-  @override
-  RelayUrl get url => key.url;
 
   @override
   String toString() =>
-      "$key: ${isConnected ? 'connected' : (relay.connecting ? 'connecting' : 'disconnected')}";
-}
-
-final class _RelaySnapshot implements Relay {
-  @override
-  final RelayUrl url;
-
-  @override
-  final bool connecting;
-
-  @override
-  final DateTime? lastConnectTry;
-
-  @override
-  final DateTime? lastSuccessfulConnect;
-
-  const _RelaySnapshot({
-    required this.url,
-    required this.connecting,
-    required this.lastConnectTry,
-    required this.lastSuccessfulConnect,
-  });
-}
-
-final class _StatsSnapshot implements RelayStats {
-  @override
-  final int connections;
-
-  @override
-  final int connectionErrors;
-
-  @override
-  final int activeRequests;
-
-  @override
-  final Map<int, int> eventsRead;
-
-  @override
-  final Map<int, int> dataReadBytes;
-
-  const _StatsSnapshot({
-    required this.connections,
-    required this.connectionErrors,
-    required this.activeRequests,
-    required this.eventsRead,
-    required this.dataReadBytes,
-  });
-
-  @override
-  int getTotalEventsRead() => eventsRead.values.fold(0, (a, b) => a + b);
-
-  @override
-  int getTotalBytesRead() => dataReadBytes.values.fold(0, (a, b) => a + b);
+      "$key: ${isConnected ? 'connected' : (isConnecting ? 'connecting' : 'disconnected')}";
 }

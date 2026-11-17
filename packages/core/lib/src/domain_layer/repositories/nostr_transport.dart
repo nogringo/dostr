@@ -9,7 +9,6 @@ abstract class NostrTransport {
   /// closed before that.
   Future<void> get ready;
   bool isOpen();
-  bool isConnecting();
   Future<void> close();
   void send(dynamic data);
 

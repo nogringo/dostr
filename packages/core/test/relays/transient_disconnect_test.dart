@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
 
@@ -52,9 +53,6 @@ class _FlakyTransport implements NostrTransport {
   bool isOpen() => !_dropped && _inner.isOpen();
 
   @override
-  bool isConnecting() => !_dropped && _inner.isConnecting();
-
-  @override
   void send(data) {
     if (!_dropped) _inner.send(data);
   }
@@ -76,9 +74,6 @@ class _RefusedTransport implements NostrTransport {
 
   @override
   bool isOpen() => false;
-
-  @override
-  bool isConnecting() => false;
 
   @override
   Future<void> close() async {
@@ -109,9 +104,15 @@ class _FlakyTransportFactory implements NostrTransportFactory {
   /// refuses new sockets while set
   bool down = false;
 
+  /// sockets refused so far
+  int refused = 0;
+
   @override
   NostrTransport call(RelayUrl url) {
-    if (down) return _RefusedTransport();
+    if (down) {
+      refused++;
+      return _RefusedTransport();
+    }
     final transport = _FlakyTransport(_inner(url));
     created.add(transport);
     return transport;
@@ -150,7 +151,10 @@ void main() {
     factory.down = true;
     factory.created.last.dropConnection();
 
-    expect(manager.isConnectionOpen(connectivity.key), false);
+    expect(
+      manager.connectivities[connectivity.key]?.isConnected ?? false,
+      false,
+    );
     expect(
       await manager.authenticateConnection(connectivity.key),
       false,
@@ -160,7 +164,9 @@ void main() {
     );
 
     factory.down = false;
-    await _waitUntil(() => manager.isConnectionOpen(connectivity.key));
+    await _waitUntil(
+      () => manager.connectivities[connectivity.key]?.isConnected ?? false,
+    );
     expect(await manager.authenticateConnection(connectivity.key), true);
     expect(
       acceptedAuths(relay),
@@ -210,11 +216,9 @@ void main() {
 
       subscribed.factory.down = true;
       subscribed.transport.dropConnection();
-      await _waitUntil(
-        () => subscribed.connectivity.stats.connectionErrors >= 1,
-      );
+      await _waitUntil(() => subscribed.factory.refused >= 1);
       expect(
-        subscribed.connectivity.stats.activeRequests,
+        subscribed.openRequests,
         0,
         reason: 'the requests died with the socket that carried them',
       );
@@ -223,7 +227,7 @@ void main() {
       await _waitUntil(() => subscribed.connectivity.isConnected);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(
-        subscribed.connectivity.stats.activeRequests,
+        subscribed.openRequests,
         1,
         reason:
             'the replayed subscription was counted on top of the one the dead '
@@ -231,7 +235,7 @@ void main() {
       );
 
       await subscribed.req.close();
-      await _waitUntil(() => subscribed.connectivity.stats.activeRequests == 0);
+      await _waitUntil(() => subscribed.openRequests == 0);
 
       await subscribed.tearDown();
     },
@@ -243,7 +247,7 @@ void main() {
 
     subscribed.factory.down = true;
     subscribed.transport.dropConnection();
-    await _waitUntil(() => subscribed.connectivity.stats.connectionErrors >= 1);
+    await _waitUntil(() => subscribed.factory.refused >= 1);
     subscribed.manager.send(subscribed.connectivity.key, ['CLOSE', _subId]);
     await subscribed.req.close();
 
@@ -251,7 +255,7 @@ void main() {
     await _waitUntil(() => subscribed.connectivity.isConnected);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(
-      subscribed.connectivity.stats.activeRequests,
+      subscribed.openRequests,
       0,
       reason: 'a subscription closed while the relay was unreachable came back',
     );
@@ -265,14 +269,14 @@ void main() {
       'a $kind opened while its connection comes back goes out once it is back',
       () async {
         final subscribed = await _subscribeOnFlakyRelay();
-        final url = subscribed.connectivity.url;
+        final url = subscribed.key.url;
 
         subscribed.factory.down = true;
         subscribed.transport.dropConnection();
         await _waitUntil(
           () =>
-              subscribed.connectivity.stats.connectionErrors >= 2 &&
-              !subscribed.connectivity.relay.connecting,
+              subscribed.factory.refused >= 1 &&
+              !subscribed.connectivity.isConnecting,
         );
 
         final opened =
@@ -306,14 +310,14 @@ void main() {
 
   test('a query does not end without a relay that comes back', () async {
     final subscribed = await _subscribeOnFlakyRelay();
-    final flaky = subscribed.connectivity;
+    final flaky = subscribed.key;
     final flakyTransport = subscribed.transport;
     final steady = await startRelay();
     await subscribed.manager.connectRelay(steady.url);
 
     subscribed.factory.down = true;
     flakyTransport.dropConnection();
-    await _waitUntil(() => subscribed.connectivity.stats.connectionErrors >= 1);
+    await _waitUntil(() => subscribed.factory.refused >= 1);
 
     final notes = [
       Filter(kinds: [Nip01Event.kTextNoteKind]),
@@ -337,14 +341,14 @@ void main() {
 
   test('a publish sent while its connection comes back waits for it', () async {
     final subscribed = await _subscribeOnFlakyRelay();
-    final url = subscribed.connectivity.url;
+    final url = subscribed.key.url;
 
     subscribed.factory.down = true;
     subscribed.transport.dropConnection();
     await _waitUntil(
       () =>
-          subscribed.connectivity.stats.connectionErrors >= 2 &&
-          !subscribed.connectivity.relay.connecting,
+          subscribed.factory.refused >= 1 &&
+          !subscribed.connectivity.isConnecting,
     );
 
     final event = signedEvent(content: 'while it comes back');
@@ -366,14 +370,14 @@ void main() {
     'a publish over before its connection is back is not sent there',
     () async {
       final subscribed = await _subscribeOnFlakyRelay();
-      final url = subscribed.connectivity.url;
+      final url = subscribed.key.url;
 
       subscribed.factory.down = true;
       subscribed.transport.dropConnection();
       await _waitUntil(
         () =>
-            subscribed.connectivity.stats.connectionErrors >= 2 &&
-            !subscribed.connectivity.relay.connecting,
+            subscribed.factory.refused >= 1 &&
+            !subscribed.connectivity.isConnecting,
       );
 
       final event = signedEvent(content: 'too late');
@@ -407,9 +411,7 @@ void main() {
 
     factory.down = true;
     factory.created.last.dropConnection();
-    await _waitUntil(
-      () => manager.connectivities[key]!.stats.connectionErrors >= 1,
-    );
+    await _waitUntil(() => factory.refused >= 1);
     claim.keys.clear();
 
     await _waitUntil(() => manager.connectivities.isEmpty);
@@ -437,6 +439,8 @@ class _SubscribedOnFlakyRelay {
   final RelayReq req;
 
   RelayConnectivity get connectivity => manager.connectivities[key]!;
+
+  int get openRequests => _openRequests(manager, key);
 
   _FlakyTransport get transport => factory.created.last;
 
@@ -469,12 +473,14 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
     relayManager: manager,
     eventVerifier: FakeVerifier(),
   ).req(id: _subId, relays: {relay.url: filters}, closeOnEose: false);
-  await _waitUntil(
-    () => manager.connectivities[connectionKey]!.stats.activeRequests == 1,
-  );
+  await _waitUntil(() => _openRequests(manager, connectionKey) == 1);
 
   return _SubscribedOnFlakyRelay(manager, connectionKey, factory, relay, req);
 }
+
+/// REQs written on the connection behind [key] and not closed since
+int _openRequests(RelayManager manager, RelayConnectionKey key) =>
+    relayManagerParts(manager).connections.relays[key]!.openRequestIds.length;
 
 Future<void> _waitUntil(
   bool Function() condition, {

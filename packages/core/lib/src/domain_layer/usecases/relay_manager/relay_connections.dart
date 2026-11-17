@@ -71,11 +71,7 @@ final class NotOpened extends Opening {
 
 /// A decoded relay message, in the order its relay sent it.
 typedef RelayMessageHandler =
-    void Function(
-      NostrMessageRaw message,
-      RelayConnection connection,
-      String raw,
-    );
+    void Function(NostrMessageRaw message, RelayConnection connection);
 
 /// The connections of a `RelayManager`: opening, reconnecting and closing them,
 /// writing to them and reading from them. Internal to dostr_core.
@@ -101,7 +97,7 @@ class RelayConnections {
   final ConnectionListener listener;
 
   /// Are reconnects allowed when a connection drops?
-  bool allowReconnect;
+  final bool allowReconnect;
 
   /// touched relays - connected, connecting, disconnected
   /// key: relay url and identity bound to the connection
@@ -167,7 +163,7 @@ class RelayConnections {
         (
           key: connection.key,
           connected: connection.isConnected,
-          connecting: connection.relay.connecting,
+          connecting: connection.attempts.connecting,
         ),
     ];
     final notified = _notified;
@@ -246,7 +242,7 @@ class RelayConnections {
     if (!retryUnreachable &&
         connection != null &&
         connection.opening == null &&
-        connection.relay.failedWithin(unreachableRelayRetryAfter)) {
+        connection.attempts.failedWithin(unreachableRelayRetryAfter)) {
       return NotOpened(
         RelayFailure(
           RelayFailureKind.unreachable,
@@ -354,7 +350,7 @@ class RelayConnections {
     NostrTransport? transport;
     bool ownsTransport() => _isCurrent(connection, transport);
 
-    connection.relay.tryingToConnect();
+    connection.attempts.tryingToConnect();
     notifyChanged();
     connection.idleFor.reset();
     _idle.watch();
@@ -410,14 +406,12 @@ class RelayConnections {
           );
         });
       }
-      connection.relay.failedToConnect();
-      connection.stats.connectionErrors++;
+      connection.attempts.failedToConnect();
       notifyChanged();
       return RelayFailure(RelayFailureKind.unreachable, "$error");
     }
     logger.info(() => "connected to relay: $url");
-    connection.relay.succeededToConnect();
-    connection.stats.connections++;
+    connection.attempts.succeededToConnect();
     notifyChanged();
     return null;
   }
@@ -534,9 +528,9 @@ class RelayConnections {
   void _countRequest(RelayConnection connection, List<dynamic> message) {
     switch (message) {
       case [ClientMsgType.kReq, final String id, ...]:
-        connection.stats.openRequestIds.add(id);
+        connection.openRequestIds.add(id);
       case [ClientMsgType.kClose, final String id, ...]:
-        if (connection.stats.openRequestIds.remove(id)) {
+        if (connection.openRequestIds.remove(id)) {
           listener.admitQueuedOn(connection);
         }
     }
@@ -615,7 +609,6 @@ class RelayConnections {
       return;
     }
     final key = connection.key;
-    connection.stats.connectionErrors++;
     if (transport?.closeCode() == ws_status.messageTooBig) {
       _limits.learnFrom(connection);
     }
@@ -648,7 +641,7 @@ class RelayConnections {
     // a relay controls what it sends: nothing it sends may throw out of here,
     // where it would kill a process that has no zone to catch it
     try {
-      _onMessage(decodeNostrMsg(message), connection, message);
+      _onMessage(decodeNostrMsg(message), connection);
     } catch (error, stackTrace) {
       logger.severe(
         () => "Could not handle a message from ${connection.url}: $message",

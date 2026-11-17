@@ -128,7 +128,7 @@ A subscription sent out alone again, after a reconnection or a CLOSED of the liv
 ### API
 
 `RelayReqs.subscribe()` opens a subscription that moves.
-It mirrors `RelayReq`: `send(url, filters)`, `seal()`, `events`, `outcomes` and `close()`.
+It takes its relays as `RelayReqs.req` does, and has the `events`, `outcomes` and `close()` of a `RelayReq`.
 
 The id of a subscription stays the NIP-01 id of its own REQ.
 Once it has moved, its new events come through the live REQ of the connection.

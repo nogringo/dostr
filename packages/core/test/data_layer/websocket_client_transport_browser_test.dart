@@ -34,7 +34,6 @@ void main() {
     addTearDown(transport.close);
 
     await expectLater(transport.ready.timeout(_wait), throwsA(anything));
-    expect(transport.isConnecting(), isFalse);
   });
 
   test(
