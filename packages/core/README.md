@@ -125,7 +125,7 @@ A relay can still be added after `seal()` while the request runs: it then has to
 
 ## Relay publishes
 
-`RelayPublishes` sends a signed event to the relays you pick (NIP-01 EVENT): no signing, no cache, no outbox routing, no retry.
+`RelayPublishes` sends a signed event to the relays you pick (NIP-01 EVENT): no signing, no cache, no outbox routing, no retry after a refusal.
 To publish where the outbox model says, resolve the relays with a `UrlSet` of [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) first.
 
 ```dart
@@ -148,7 +148,8 @@ outcomes.forEach((url, outcome) {
 
 - Each relay gets the event once, whatever the list holds twice.
 - A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
-- `done` completes once every relay answered, once `considerDonePercent` of them accepted the event, a share between 0 and 1, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
+- A relay whose connection goes away after it took the event, before its OK, gets the event again once the connection is back. It fails with `RelayFailureKind.connectionLost` once nothing will bring that connection back, see [Reconnecting](#reconnecting).
+- `done` completes once every relay answered, once `considerDoneRatio` of them accepted the event, a share between 0 and 1, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
 - `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
 
@@ -214,6 +215,7 @@ relays.relayConnectivityChanges.listen((connections) {
 ```
 
 A relay can hold several connections, one anonymous and one per identity it authenticated as, so group them by `url` to show one status per relay.
+Each list holds the connections as they stood when it was emitted, and nothing changes them afterwards: read `connectivities` again for their state now.
 
 ### Reconnecting
 
@@ -221,6 +223,8 @@ A connection that drops is retried right away, then after a wait that starts at 
 Its requests are replayed once it is back, and so are the REQs sent to it meanwhile.
 A query waits for it too, until its timeout, or until that hour gives the relay up as `disconnected`.
 A publish sent to it meanwhile waits for it as long as the publish lasts, and sends the event once it is back.
+An EVENT the dropped socket took without its OK goes out again once it is back.
+A connection given up, closed, blocked, or dropped while `allowReconnect` is false ends its REQs as `disconnected` and fails the relays its publishes still wait on with `RelayFailureKind.connectionLost`.
 A socket that drops again within 10 seconds of coming back is not retried right away, so a relay that drops every socket is not reconnected in a loop.
 
 A relay that could not be reached is not tried again by a REQ for a minute: the REQ ends there as `notSent`, with `RelayFailureKind.unreachable`.
@@ -255,6 +259,12 @@ final relays = RelayManager(
   authenticatedIdleTimeout: null,
 );
 ```
+
+### Shutting down
+
+`closeAllConnections()` closes every connection, as `closeConnection` does for one, and the manager connects again for the next request.
+`dispose()` closes them for good: it ends every REQ and publish still in flight and closes `relayConnectivityChanges`.
+Opening a connection, a REQ or a publish on a disposed manager throws a `StateError`.
 
 ### Relay limits
 

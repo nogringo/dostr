@@ -14,7 +14,7 @@ final relayManagerProvider = Provider<RelayManager>((ref) {
   final relays = RelayManager(
     nostrTransportFactory: WebSocketClientNostrTransportFactory(),
   );
-  ref.onDispose(relays.closeAllTransports);
+  ref.onDispose(relays.dispose);
   return relays;
 });
 

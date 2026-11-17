@@ -35,7 +35,7 @@ final outcomes = await publishes
 ```
 
 The event must be signed. No retry, no cache.
-Each `RelayPublishOutcome` has `accepted`, the `message` of the relay's OK, and a `failure` when the event never reached the relay.
+Each `RelayPublishOutcome` has `accepted`, the `message` of the relay's OK, and a `failure` when the event never reached the relay or its connection went away for good before the OK.
 
 ## Outbox model (`dostr_fetchers` + `dostr_url_set`)
 

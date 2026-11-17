@@ -17,7 +17,7 @@ void main() {
   late RequestState state;
 
   RequestState listened(RequestState state) {
-    state.networkController.stream.listen((_) {});
+    state.received.listen((_) {});
     return state;
   }
 

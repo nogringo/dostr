@@ -76,12 +76,13 @@ The defaults of the parameters of `dostr_core` are top-level constants, and the 
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs` and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so is `defaultWebSocketConnectTimeout`.
 
-The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout`, `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDonePercent`.
+The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout`, `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDoneRatio`.
 `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read, is gone.
 
 #### `RelayManager`
 
 `RelayManager` and `RelayConnectivity` are no longer generic.
+`RelayManager` is a final class: it can no longer be extended, implemented or mocked.
 `EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and `RelayStats.touched` and `touchUseful` are gone: they only served the JIT engine of `ndk`.
 
 `GlobalState` and `RequestState` are no longer public: `RelayManager` keeps its own state and no longer takes a `globalState`.
@@ -103,7 +104,9 @@ A connection that is still connecting has `relay.connecting` set in `RelayManage
 `relayConnectivityChanges` emits when a connection is added, starts connecting, opens, closes or is forgotten, and no longer each time a REQ is sent or ends.
 `authCallbackTimeout`, `authChallengeTimeout`, `authHandler` and `nostrTransportFactory` are constructor parameters only, no longer fields.
 
-`RelayConnectivity`, `Relay` and `RelayStats` are read-only: only `RelayManager` changes them, and none has a public constructor anymore.
+`RelayConnectivity`, `Relay` and `RelayStats` are snapshots: `connectivities`, `relayConnectivityChanges` and `openConnectionAs` give each connection as it stood when they were read, and nothing changes it afterwards.
+They used to give the live connection, so a list kept from `relayConnectivityChanges` changed under its holder.
+None has a public constructor anymore.
 `RelayConnectivity` no longer has `relayTransport`, `listen` or `close`: read `isConnected`, and close a connection with `RelayManager.closeConnection`.
 `Relay` loses its setters, `tryingToConnect`, `succeededToConnect`, `failedToConnect` and `wasLastConnectTryLongerThanSeconds`.
 `Relay.lastConnectTry` and `lastSuccessfulConnect` are `DateTime`s instead of seconds since the epoch.
@@ -115,6 +118,8 @@ A relay message that misses a field or carries one of the wrong type, and a bina
 They used to escape as uncaught errors, which end a plain Dart process.
 
 `RelayManager.closeTransport` is now `closeConnectionsTo`: it acts on every connection to the relay, anonymous or bound.
+`closeAllTransports` is now `closeAllConnections`, after which the manager connects again for the next request.
+`RelayManager.dispose` ends every REQ and publish still in flight, closes the connections and `relayConnectivityChanges`, and leaves the manager unusable: opening a connection, a REQ or a publish on it afterwards throws a `StateError`.
 
 #### Relay urls
 
@@ -185,7 +190,7 @@ An event whose `EventVerifier` throws is logged and dropped, where the error use
 A subscription now reports `RelayRequestStatus.eose` on each relay that sent its EOSE, instead of staying `pending` until it is closed.
 It still runs until closed, and a CLOSED, a lost connection or its timeout replace that `eose`.
 
-Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllTransports`, ends the REQs still on it as `disconnected`, where they used to stay `pending` until their timeout, or for good without one.
+Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllConnections`, ends the REQs still on it as `disconnected`, where they used to stay `pending` until their timeout, or for good without one.
 
 #### Publishes
 
@@ -198,11 +203,15 @@ Then `start` the `RelayPublish` with the signed event, `send` it to each relay w
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
-`considerDonePercent` counts the relays that accepted the event: a refusal no longer brings a publish closer to done.
+`considerDonePercent` is now `considerDoneRatio`, since it was never a percentage.
+It counts the relays that accepted the event: a refusal no longer brings a publish closer to done.
 It must be between 0 and 1, or `publish` and `open` throw an `ArgumentError`.
 
 What `dostr_core` itself failed at comes as a `RelayFailure`, whose `RelayFailureKind` says what it was and whose `detail` may say more, instead of a sentence of its own in a message.
 `RelayRequestOutcome.failure` holds it for `notSent`, `RelayPublishOutcome.failure` for a relay the event did not reach, and `connectRelay` returns it.
+An EVENT whose socket drops before the relay's OK is sent again once the connection is back.
+The relay fails with `RelayFailureKind.connectionLost` once nothing will bring the connection back, when it is closed, blocked, given up, or drops while `allowReconnect` is false, where it used to stay without an answer until the timeout.
+
 `RelayRequestOutcome.message` and `RelayPublishOutcome.message` only hold what the relay sent in its CLOSED or OK, and a publish the relay refused for want of an identity it may not reveal reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its `detail`.
 
 #### Filters

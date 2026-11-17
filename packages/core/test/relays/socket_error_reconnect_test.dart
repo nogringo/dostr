@@ -77,18 +77,17 @@ void main() {
 
     final factory = _FaultyTransportFactory();
     final manager = newRelayManager(transportFactory: factory);
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
     await manager.connectRelay(relay.url);
 
-    final connectivity = manager.connectivities[key]!;
-    expect(connectivity.stats.connections, 1);
+    expect(manager.connectivities[key]!.stats.connections, 1);
 
     factory.created.last.breakStream();
 
     await eventually(
-      () => connectivity.stats.connections >= 2,
+      () => (manager.connectivities[key]?.stats.connections ?? 0) >= 2,
       timeout: const Duration(seconds: 15),
     );
   }, timeout: const Timeout(Duration(seconds: 60)));
@@ -107,7 +106,7 @@ void main() {
         transportFactory: factory,
         accounts: accounts,
       );
-      addTearDown(manager.closeAllTransports);
+      addTearDown(manager.dispose);
 
       final connectivity = await manager.openConnectionAs(relay.url, account);
       expect(connectivity, isNotNull);
@@ -143,7 +142,7 @@ void main() {
       return true;
     };
     final manager = newRelayManager();
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
     final reqs = RelayReqs(
       relayManager: manager,
       eventVerifier: FakeVerifier(),

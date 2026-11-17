@@ -4,8 +4,9 @@ import 'relay.dart';
 import 'relay_connection_key.dart';
 import 'relay_stats.dart';
 
-/// One connection of a `RelayManager`, which alone opens, closes and updates
-/// it.
+/// One connection of a `RelayManager`, as it stood when it was read: nothing
+/// changes it afterwards. Read it again from the `RelayManager` for its state
+/// now.
 abstract interface class RelayConnectivity {
   /// identifies this connection: the relay and the identity bound to it
   RelayConnectionKey get key;

@@ -15,7 +15,7 @@ void main() {
     Filter(kinds: [1]),
   ];
 
-  tearDown(() => manager?.closeAllTransports());
+  tearDown(() => manager?.dispose());
 
   RelayReqs open(SubscriptionLimit limit) {
     manager = newRelayManager(subscriptionLimit: limit);

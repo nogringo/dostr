@@ -15,7 +15,7 @@ void main() {
     publishes = RelayPublishes(relayManager: manager);
   });
 
-  tearDown(() => manager.closeAllTransports());
+  tearDown(() => manager.dispose());
 
   (String, bool, bool, String) summary(
     MapEntry<RelayUrl, RelayPublishOutcome> response,
@@ -102,6 +102,50 @@ void main() {
     expect(relay.events, isEmpty);
   });
 
+  group('an EVENT a relay took without answering', () {
+    Future<(MockRelay, Nip01Event, RelayPublish)> unanswered() async {
+      final relay = await startRelay(answerEvents: false);
+      final event = signedEvent(content: 'no OK yet');
+      final publish = publishes.publish(
+        event,
+        relays: [relay.url],
+        timeout: const Duration(seconds: 30),
+      );
+      await eventually(() => relay.received('EVENT').isNotEmpty);
+      return (relay, event, publish);
+    }
+
+    test('fails as connectionLost when its connection is closed', () async {
+      final (relay, _, publish) = await unanswered();
+
+      await manager.closeConnectionsTo(relay.url);
+
+      final outcome = (await publish.done)[relay.url]!;
+      expect(outcome.failure?.kind, RelayFailureKind.connectionLost);
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('fails as connectionLost when its socket drops for good', () async {
+      final (relay, _, publish) = await unanswered();
+      manager.allowReconnectRelays = false;
+
+      await relay.dropConnections();
+
+      final outcome = (await publish.done)[relay.url]!;
+      expect(outcome.failure?.kind, RelayFailureKind.connectionLost);
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('goes out again once its socket is back', () async {
+      final (relay, event, publish) = await unanswered();
+      relay.answerEvents = true;
+
+      await relay.dropConnections();
+
+      final outcome = (await publish.done)[relay.url]!;
+      expect(outcome.accepted, isTrue);
+      expect(relay.receivedEvents.map((e) => e.id), [event.id, event.id]);
+    }, timeout: const Timeout(Duration(seconds: 10)));
+  });
+
   test('refuses an unsigned event', () {
     final unsigned = Nip01Event(pubkey: alice, kind: 1, tags: [], content: '');
 
@@ -114,13 +158,13 @@ void main() {
     );
   });
 
-  test('refuses a considerDonePercent outside 0 to 1', () {
-    for (final percent in [-0.1, 1.5, double.nan]) {
+  test('refuses a considerDoneRatio outside 0 to 1', () {
+    for (final ratio in [-0.1, 1.5, double.nan]) {
       expect(
         () => publishes.publish(
           signedEvent(),
           relays: [],
-          considerDonePercent: percent,
+          considerDoneRatio: ratio,
         ),
         throwsArgumentError,
       );
@@ -174,7 +218,7 @@ void main() {
         .publish(
           signedEvent(),
           relays: [fast.url, silent.url],
-          considerDonePercent: 0.5,
+          considerDoneRatio: 0.5,
         )
         .done
         .timeout(const Duration(seconds: 3));
@@ -184,13 +228,13 @@ void main() {
     ]);
   });
 
-  test('does not count a refusal towards considerDonePercent', () async {
+  test('does not count a refusal towards considerDoneRatio', () async {
     final refusing = await startRelay(rejectEventsWith: 'blocked: no');
     final silent = await startRelay(answerEvents: false);
     final publish = publishes.publish(
       signedEvent(),
       relays: [refusing.url, silent.url],
-      considerDonePercent: 0.5,
+      considerDoneRatio: 0.5,
       timeout: const Duration(milliseconds: 500),
     );
     var done = false;
@@ -228,7 +272,7 @@ void main() {
         messageLengthLimit: (_) =>
             Future.delayed(const Duration(milliseconds: 100), () => 1000),
       );
-      addTearDown(manager.closeAllTransports);
+      addTearDown(manager.dispose);
 
       final responses = await RelayPublishes(
         relayManager: manager,

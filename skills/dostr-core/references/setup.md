@@ -45,8 +45,8 @@ NIP-11 documents come from `dostr_nip11` (`HttpRelayInfoRepository`, `CachedRela
 ## Lifecycle
 
 ```dart
-relays.relayConnectivityChanges.listen(print); // Stream<List<RelayConnectivity>>
+relays.relayConnectivityChanges.listen(print); // Stream<List<RelayConnectivity>>, snapshots
 await relays.reconnectClosedConnections();     // network back, app resumed
 await relays.closeIdleConnections();           // app backgrounded
-await relays.closeAllTransports();             // shutdown
+await relays.dispose();                        // shutdown, unusable afterwards
 ```

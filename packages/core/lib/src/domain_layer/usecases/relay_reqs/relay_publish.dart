@@ -24,15 +24,15 @@ class RelayPublishes {
   /// Sends [event], which must be signed, to each of [relays] and collects
   /// their OK, on the connections [auth] allows.
   ///
-  /// It is done once every relay answered or failed, once [considerDonePercent]
+  /// It is done once every relay answered or failed, once [considerDoneRatio]
   /// of them accepted the event, or after [timeout], not counting NIP-42
-  /// authentication. [considerDonePercent] is between 0 and 1.
+  /// authentication. [considerDoneRatio] is between 0 and 1.
   RelayPublish publish(
     Nip01Event event, {
     required Iterable<RelayUrl> relays,
     AuthPolicy? auth,
     Duration timeout = defaultPublishTimeout,
-    double considerDonePercent = defaultConsiderDonePercent,
+    double considerDoneRatio = defaultConsiderDoneRatio,
   }) {
     if (event.sig == null) {
       throw ArgumentError.value(event.id, 'event', 'must be signed');
@@ -41,7 +41,7 @@ class RelayPublishes {
       event,
       auth: auth,
       timeout: timeout,
-      considerDonePercent: considerDonePercent,
+      considerDoneRatio: considerDoneRatio,
     )..start(event);
     relays.forEach(relayPublish.send);
     relayPublish.seal();
@@ -52,17 +52,21 @@ class RelayPublishes {
   /// as in flight from now on. [RelayPublish.start] it with the signed event,
   /// then [RelayPublish.send] it to each relay and [RelayPublish.seal] it.
   ///
-  /// [timeout] runs from [RelayPublish.start], see [publish].
+  /// [timeout] runs from [RelayPublish.start], see [publish]. Throws a
+  /// [StateError] once the [RelayManager] was disposed.
   RelayPublish open(
     Nip01Event event, {
     AuthPolicy? auth,
     Duration timeout = defaultPublishTimeout,
-    double considerDonePercent = defaultConsiderDonePercent,
+    double considerDoneRatio = defaultConsiderDoneRatio,
   }) {
-    if (!(considerDonePercent >= 0 && considerDonePercent <= 1)) {
+    if (_publishes.disposed) {
+      throw StateError('the RelayManager was disposed');
+    }
+    if (!(considerDoneRatio >= 0 && considerDoneRatio <= 1)) {
       throw ArgumentError.value(
-        considerDonePercent,
-        'considerDonePercent',
+        considerDoneRatio,
+        'considerDoneRatio',
         'must be between 0 and 1',
       );
     }
@@ -70,7 +74,7 @@ class RelayPublishes {
       event,
       PublishState(
         timeout: timeout,
-        considerDonePercent: considerDonePercent,
+        considerDoneRatio: considerDoneRatio,
         auth: auth,
       ),
       _publishes,
@@ -146,7 +150,7 @@ class RelayPublish {
     if (signed == null) {
       throw StateError('${event.id} has to be started before it is sent');
     }
-    if (_state.networkController.isClosed || !_sentTo.add(url)) {
+    if (_state.isOver || !_sentTo.add(url)) {
       return false;
     }
     unawaited(

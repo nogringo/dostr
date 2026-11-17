@@ -47,5 +47,5 @@ Future<void> main() async {
         : 'home-relays list of nmail.li: '
               '${HomeRelayList.fromEvent(nmailList).candidates}',
   );
-  await relayManager.closeAllTransports();
+  await relayManager.dispose();
 }

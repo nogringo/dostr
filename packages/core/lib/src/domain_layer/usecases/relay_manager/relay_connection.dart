@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:collection';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
@@ -16,15 +15,12 @@ import 'auth_session.dart';
 import 'relay_revivals.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
-/// dostr_core: everyone else sees a [RelayConnectivity].
-class RelayConnection implements RelayConnectivity {
-  @override
+/// dostr_core: everyone else sees its [snapshot].
+class RelayConnection {
   final RelayConnectionKey key;
 
-  @override
   final MutableRelay relay;
 
-  @override
   final MutableRelayStats stats = MutableRelayStats();
 
   /// transport layer for this relay, usually websocket, null while it neither
@@ -75,11 +71,17 @@ class RelayConnection implements RelayConnectivity {
   RelayConnection(this.key, {this.relayTransport})
     : relay = MutableRelay(url: key.url);
 
-  @override
   RelayUrl get url => key.url;
 
-  @override
   bool get isConnected => relayTransport?.isOpen() ?? false;
+
+  /// The connection as it stands now, which nothing changes afterwards.
+  RelayConnectivity snapshot() => _ConnectivitySnapshot(
+    key: key,
+    relay: relay.snapshot(),
+    stats: stats.snapshot(),
+    isConnected: isConnected,
+  );
 
   /// whether the relay accepted an AUTH on the current socket
   bool get isAuthenticated => authSession?.authenticated ?? false;
@@ -147,18 +149,14 @@ class RelayConnection implements RelayConnectivity {
   }
 }
 
-/// The [Relay] of a [RelayConnection].
-class MutableRelay implements Relay {
-  @override
+/// The connection attempts of a [RelayConnection].
+class MutableRelay {
   final RelayUrl url;
 
-  @override
   bool connecting = false;
 
-  @override
   DateTime? lastConnectTry;
 
-  @override
   DateTime? lastSuccessfulConnect;
 
   DateTime? _lastFailure;
@@ -186,14 +184,19 @@ class MutableRelay implements Relay {
     final failure = _lastFailure;
     return failure != null && DateTime.now().difference(failure) < duration;
   }
+
+  Relay snapshot() => _RelaySnapshot(
+    url: url,
+    connecting: connecting,
+    lastConnectTry: lastConnectTry,
+    lastSuccessfulConnect: lastSuccessfulConnect,
+  );
 }
 
-/// The [RelayStats] of a [RelayConnection].
-class MutableRelayStats implements RelayStats {
-  @override
+/// What a [RelayConnection] carried.
+class MutableRelayStats {
   int connections = 0;
 
-  @override
   int connectionErrors = 0;
 
   /// ids of the requests open on the connection, so that a request replayed on
@@ -201,28 +204,101 @@ class MutableRelayStats implements RelayStats {
   /// does not count below what is open
   final Set<String> openRequestIds = {};
 
-  @override
-  int get activeRequests => openRequestIds.length;
-
   final Map<int, int> _eventsRead = {};
 
   final Map<int, int> _dataReadBytes = {};
-
-  @override
-  Map<int, int> get eventsRead => UnmodifiableMapView(_eventsRead);
-
-  @override
-  Map<int, int> get dataReadBytes => UnmodifiableMapView(_dataReadBytes);
-
-  @override
-  int getTotalEventsRead() => _eventsRead.values.fold(0, (a, b) => a + b);
-
-  @override
-  int getTotalBytesRead() => _dataReadBytes.values.fold(0, (a, b) => a + b);
 
   /// increment stats by new event
   void incStatsByNewEvent(Nip01Event event, int bytes) {
     _eventsRead[event.kind] = (_eventsRead[event.kind] ?? 0) + 1;
     _dataReadBytes[event.kind] = (_dataReadBytes[event.kind] ?? 0) + bytes;
   }
+
+  RelayStats snapshot() => _StatsSnapshot(
+    connections: connections,
+    connectionErrors: connectionErrors,
+    activeRequests: openRequestIds.length,
+    eventsRead: Map.unmodifiable(_eventsRead),
+    dataReadBytes: Map.unmodifiable(_dataReadBytes),
+  );
+}
+
+final class _ConnectivitySnapshot implements RelayConnectivity {
+  @override
+  final RelayConnectionKey key;
+
+  @override
+  final Relay relay;
+
+  @override
+  final RelayStats stats;
+
+  @override
+  final bool isConnected;
+
+  const _ConnectivitySnapshot({
+    required this.key,
+    required this.relay,
+    required this.stats,
+    required this.isConnected,
+  });
+
+  @override
+  RelayUrl get url => key.url;
+
+  @override
+  String toString() =>
+      "$key: ${isConnected ? 'connected' : (relay.connecting ? 'connecting' : 'disconnected')}";
+}
+
+final class _RelaySnapshot implements Relay {
+  @override
+  final RelayUrl url;
+
+  @override
+  final bool connecting;
+
+  @override
+  final DateTime? lastConnectTry;
+
+  @override
+  final DateTime? lastSuccessfulConnect;
+
+  const _RelaySnapshot({
+    required this.url,
+    required this.connecting,
+    required this.lastConnectTry,
+    required this.lastSuccessfulConnect,
+  });
+}
+
+final class _StatsSnapshot implements RelayStats {
+  @override
+  final int connections;
+
+  @override
+  final int connectionErrors;
+
+  @override
+  final int activeRequests;
+
+  @override
+  final Map<int, int> eventsRead;
+
+  @override
+  final Map<int, int> dataReadBytes;
+
+  const _StatsSnapshot({
+    required this.connections,
+    required this.connectionErrors,
+    required this.activeRequests,
+    required this.eventsRead,
+    required this.dataReadBytes,
+  });
+
+  @override
+  int getTotalEventsRead() => eventsRead.values.fold(0, (a, b) => a + b);
+
+  @override
+  int getTotalBytesRead() => dataReadBytes.values.fold(0, (a, b) => a + b);
 }

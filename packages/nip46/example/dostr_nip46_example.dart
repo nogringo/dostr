@@ -30,5 +30,5 @@ Future<void> main(List<String> args) async {
     await signer.dispose();
   }
 
-  await relayManager.closeAllTransports();
+  await relayManager.dispose();
 }

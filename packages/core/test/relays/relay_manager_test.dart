@@ -41,7 +41,7 @@ void main() {
 
   setUp(() => manager = newRelayManager());
 
-  tearDown(() => manager.closeAllTransports());
+  tearDown(() => manager.dispose());
 
   test('connects once, however many callers ask at once', () async {
     final relay = await startRelay();
@@ -197,6 +197,22 @@ void main() {
     await subscription.cancel();
   });
 
+  test('hands out connections as they stood when read', () async {
+    final relay = await startRelay();
+    final key = RelayConnectionKey.anonymous(relay.url);
+    final changes = <List<RelayConnectivity>>[];
+    final subscription = manager.relayConnectivityChanges.listen(changes.add);
+    await manager.connectRelay(relay.url);
+    final connected = manager.connectivities[key]!;
+
+    await manager.closeConnection(key);
+    await pumpEventQueue();
+
+    expect(connected.isConnected, isTrue);
+    expect(changes.first.single.relay.connecting, isTrue);
+    await subscription.cancel();
+  });
+
   test('closeConnection forgets the connection for good', () async {
     final relay = await startRelay();
     await manager.connectRelay(relay.url);
@@ -214,8 +230,7 @@ void main() {
     final key = RelayConnectionKey.anonymous(relay.url);
     manager.addProtocolHandler(ClaimConnections({key}));
     await manager.connectRelay(relay.url);
-    final stats = manager.connectivities[key]!.stats;
-    expect(stats.connections, 1);
+    expect(manager.connectivities[key]!.stats.connections, 1);
 
     await relay.dropConnections();
 
@@ -226,7 +241,7 @@ void main() {
     await eventually(
       () => manager.isConnectionOpen(RelayConnectionKey.anonymous(relay.url)),
     );
-    expect(stats.connections, 2);
+    expect(manager.connectivities[key]!.stats.connections, 2);
   });
 
   test('forgets a dropped socket nothing uses', () async {
@@ -345,5 +360,74 @@ void main() {
       },
       '6100',
     ]);
+  });
+
+  group('dispose', () {
+    test('ends the REQs and publishes in flight, and the connectivity '
+        'changes', () async {
+      final relay = await startRelay(answerEvents: false);
+      final reqs = RelayReqs(
+        relayManager: manager,
+        eventVerifier: FakeVerifier(),
+      );
+      final changesDone = manager.relayConnectivityChanges.drain<void>();
+      final subscription = reqs.req(
+        relays: {relay.url: notes},
+        closeOnEose: false,
+      );
+      final unsealed = reqs.req();
+      final event = signedEvent(content: 'unanswered');
+      final publish = RelayPublishes(relayManager: manager).publish(
+        event,
+        relays: [relay.url],
+        timeout: const Duration(seconds: 30),
+      );
+      await eventually(() => relay.received('EVENT').isNotEmpty);
+
+      await manager.dispose();
+
+      expect(
+        (await subscription.done)[relay.url]?.status,
+        RelayRequestStatus.disconnected,
+      );
+      expect(await unsealed.done, isEmpty);
+      expect(
+        (await publish.done)[relay.url]?.failure?.kind,
+        RelayFailureKind.connectionLost,
+      );
+      await changesDone;
+      expect(manager.connectivities, isEmpty);
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('ends a publish that was never started', () async {
+      final publish = RelayPublishes(relayManager: manager).open(signedEvent());
+
+      await manager.dispose();
+
+      expect(await publish.done, isEmpty);
+    });
+
+    test('refuses to open anything afterwards', () async {
+      final relay = await startRelay();
+      final reqs = RelayReqs(
+        relayManager: manager,
+        eventVerifier: FakeVerifier(),
+      );
+      final publishes = RelayPublishes(relayManager: manager);
+
+      await manager.dispose();
+
+      expect(() => manager.connectRelay(relay.url), throwsStateError);
+      expect(
+        () => manager.openConnectionAs(relay.url, fakeAccount(alice)),
+        throwsStateError,
+      );
+      expect(() => reqs.req(relays: {relay.url: notes}), throwsStateError);
+      expect(
+        () => publishes.publish(signedEvent(), relays: [relay.url]),
+        throwsStateError,
+      );
+      expect(relay.clients, isEmpty);
+    });
   });
 }

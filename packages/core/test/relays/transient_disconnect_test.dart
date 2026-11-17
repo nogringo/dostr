@@ -140,7 +140,7 @@ void main() {
       transportFactory: factory,
       accounts: accounts,
     );
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
 
     final connectivity = await manager.openConnectionAs(relay.url, account);
     manager.addProtocolHandler(ClaimConnections({connectivity!.key}));
@@ -181,7 +181,7 @@ void main() {
       accounts: accounts,
       authCallbackTimeout: const Duration(seconds: 10),
     );
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
 
     final connectivity = await manager.openConnectionAs(relay.url, account);
     final authenticating = manager.authenticateConnection(connectivity!.key);
@@ -207,22 +207,23 @@ void main() {
     'a subscription replayed after a dropped socket is counted once',
     () async {
       final subscribed = await _subscribeOnFlakyRelay();
-      final connectivity = subscribed.connectivity;
 
       subscribed.factory.down = true;
       subscribed.transport.dropConnection();
-      await _waitUntil(() => connectivity.stats.connectionErrors >= 1);
+      await _waitUntil(
+        () => subscribed.connectivity.stats.connectionErrors >= 1,
+      );
       expect(
-        connectivity.stats.activeRequests,
+        subscribed.connectivity.stats.activeRequests,
         0,
         reason: 'the requests died with the socket that carried them',
       );
 
       subscribed.factory.down = false;
-      await _waitUntil(() => connectivity.isConnected);
+      await _waitUntil(() => subscribed.connectivity.isConnected);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(
-        connectivity.stats.activeRequests,
+        subscribed.connectivity.stats.activeRequests,
         1,
         reason:
             'the replayed subscription was counted on top of the one the dead '
@@ -230,7 +231,7 @@ void main() {
       );
 
       await subscribed.req.close();
-      await _waitUntil(() => connectivity.stats.activeRequests == 0);
+      await _waitUntil(() => subscribed.connectivity.stats.activeRequests == 0);
 
       await subscribed.tearDown();
     },
@@ -239,19 +240,18 @@ void main() {
 
   test('a subscription closed during an outage is not replayed', () async {
     final subscribed = await _subscribeOnFlakyRelay();
-    final connectivity = subscribed.connectivity;
 
     subscribed.factory.down = true;
     subscribed.transport.dropConnection();
-    await _waitUntil(() => connectivity.stats.connectionErrors >= 1);
-    subscribed.manager.send(connectivity.key, ['CLOSE', _subId]);
+    await _waitUntil(() => subscribed.connectivity.stats.connectionErrors >= 1);
+    subscribed.manager.send(subscribed.connectivity.key, ['CLOSE', _subId]);
     await subscribed.req.close();
 
     subscribed.factory.down = false;
-    await _waitUntil(() => connectivity.isConnected);
+    await _waitUntil(() => subscribed.connectivity.isConnected);
     await Future<void>.delayed(const Duration(milliseconds: 300));
     expect(
-      connectivity.stats.activeRequests,
+      subscribed.connectivity.stats.activeRequests,
       0,
       reason: 'a subscription closed while the relay was unreachable came back',
     );
@@ -265,15 +265,14 @@ void main() {
       'a $kind opened while its connection comes back goes out once it is back',
       () async {
         final subscribed = await _subscribeOnFlakyRelay();
-        final connectivity = subscribed.connectivity;
-        final url = connectivity.url;
+        final url = subscribed.connectivity.url;
 
         subscribed.factory.down = true;
         subscribed.transport.dropConnection();
         await _waitUntil(
           () =>
-              connectivity.stats.connectionErrors >= 2 &&
-              !connectivity.relay.connecting,
+              subscribed.connectivity.stats.connectionErrors >= 2 &&
+              !subscribed.connectivity.relay.connecting,
         );
 
         final opened =
@@ -314,7 +313,7 @@ void main() {
 
     subscribed.factory.down = true;
     flakyTransport.dropConnection();
-    await _waitUntil(() => flaky.stats.connectionErrors >= 1);
+    await _waitUntil(() => subscribed.connectivity.stats.connectionErrors >= 1);
 
     final notes = [
       Filter(kinds: [Nip01Event.kTextNoteKind]),
@@ -338,15 +337,14 @@ void main() {
 
   test('a publish sent while its connection comes back waits for it', () async {
     final subscribed = await _subscribeOnFlakyRelay();
-    final connectivity = subscribed.connectivity;
-    final url = connectivity.url;
+    final url = subscribed.connectivity.url;
 
     subscribed.factory.down = true;
     subscribed.transport.dropConnection();
     await _waitUntil(
       () =>
-          connectivity.stats.connectionErrors >= 2 &&
-          !connectivity.relay.connecting,
+          subscribed.connectivity.stats.connectionErrors >= 2 &&
+          !subscribed.connectivity.relay.connecting,
     );
 
     final event = signedEvent(content: 'while it comes back');
@@ -368,15 +366,14 @@ void main() {
     'a publish over before its connection is back is not sent there',
     () async {
       final subscribed = await _subscribeOnFlakyRelay();
-      final connectivity = subscribed.connectivity;
-      final url = connectivity.url;
+      final url = subscribed.connectivity.url;
 
       subscribed.factory.down = true;
       subscribed.transport.dropConnection();
       await _waitUntil(
         () =>
-            connectivity.stats.connectionErrors >= 2 &&
-            !connectivity.relay.connecting,
+            subscribed.connectivity.stats.connectionErrors >= 2 &&
+            !subscribed.connectivity.relay.connecting,
       );
 
       final event = signedEvent(content: 'too late');
@@ -389,7 +386,7 @@ void main() {
       expect(response.okReceived, isFalse);
 
       subscribed.factory.down = false;
-      await _waitUntil(() => connectivity.isConnected);
+      await _waitUntil(() => subscribed.connectivity.isConnected);
       await Future<void>.delayed(const Duration(milliseconds: 300));
       expect(subscribed.relayReceivedEvent(event.id), isFalse);
 
@@ -402,7 +399,7 @@ void main() {
     final relay = await startRelay();
     final factory = _FlakyTransportFactory();
     final manager = RelayManager(nostrTransportFactory: factory);
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
     final key = RelayConnectionKey.anonymous(relay.url);
     final claim = ClaimConnections({key});
     manager.addProtocolHandler(claim);
@@ -427,17 +424,19 @@ const _subId = "sub";
 class _SubscribedOnFlakyRelay {
   _SubscribedOnFlakyRelay(
     this.manager,
-    this.connectivity,
+    this.key,
     this.factory,
     this._relay,
     this.req,
   );
 
   final RelayManager manager;
-  final RelayConnectivity connectivity;
+  final RelayConnectionKey key;
   final _FlakyTransportFactory factory;
   final MockRelay _relay;
   final RelayReq req;
+
+  RelayConnectivity get connectivity => manager.connectivities[key]!;
 
   _FlakyTransport get transport => factory.created.last;
 
@@ -448,7 +447,7 @@ class _SubscribedOnFlakyRelay {
       _relay.events.any((event) => event.id == id);
 
   Future<void> tearDown() async {
-    await manager.closeAllTransports();
+    await manager.dispose();
     await _relay.stop();
   }
 }
@@ -463,7 +462,6 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
   await manager.connectRelay(relay.url);
 
   final connectionKey = RelayConnectionKey.anonymous(relay.url);
-  final connectivity = manager.connectivities[connectionKey]!;
   final filters = [
     Filter(kinds: [Nip01Event.kTextNoteKind]),
   ];
@@ -471,9 +469,11 @@ Future<_SubscribedOnFlakyRelay> _subscribeOnFlakyRelay() async {
     relayManager: manager,
     eventVerifier: FakeVerifier(),
   ).req(id: _subId, relays: {relay.url: filters}, closeOnEose: false);
-  await _waitUntil(() => connectivity.stats.activeRequests == 1);
+  await _waitUntil(
+    () => manager.connectivities[connectionKey]!.stats.activeRequests == 1,
+  );
 
-  return _SubscribedOnFlakyRelay(manager, connectivity, factory, relay, req);
+  return _SubscribedOnFlakyRelay(manager, connectionKey, factory, relay, req);
 }
 
 Future<void> _waitUntil(

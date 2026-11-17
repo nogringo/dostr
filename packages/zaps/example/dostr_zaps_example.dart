@@ -68,5 +68,5 @@ Future<void> main(List<String> args) async {
     print(invoice?.invoice ?? 'no invoice from ${args[2]}');
   }
 
-  await relayManager.closeAllTransports();
+  await relayManager.dispose();
 }

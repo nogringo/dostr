@@ -60,7 +60,7 @@ void main() {
     await manager.connectRelay(url);
   });
 
-  tearDown(() => manager.closeAllTransports());
+  tearDown(() => manager.dispose());
 
   /// Whether a query sent after whatever the relay sent so far still ends on
   /// the EOSE that relay sends next.

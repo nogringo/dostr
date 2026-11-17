@@ -104,7 +104,7 @@ void main() {
       Filter(kinds: [1]),
     ];
     final request = RequestState(id, closeOnEose: query);
-    request.networkController.stream.listen((_) {});
+    request.received.listen((_) {});
     if (key != null) request.addRequest(key, filters);
     parts.requests.inFlight[id] = request;
     requests.add(request);
@@ -134,21 +134,18 @@ void main() {
     for (final publish in publishes) {
       if (publish.outcomes.isEmpty) {
         publish.closeIfNoRelays();
-      } else if (!publish.networkController.isClosed) {
+      } else {
         for (final url in publish.outcomes.keys.toList()) {
-          publish.networkController.add((
-            url: url,
-            outcome: const RelayPublishOutcome(
-              okReceived: true,
-              accepted: true,
-            ),
-          ));
+          publish.report(
+            url,
+            const RelayPublishOutcome(okReceived: true, accepted: true),
+          );
         }
       }
       await publish.done;
     }
     publishes.clear();
-    await manager.closeAllTransports();
+    await manager.dispose();
   });
 
   test('idle anonymous and authenticated transports are removed', () async {

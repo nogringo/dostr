@@ -168,7 +168,7 @@ void main() {
   });
 
   tearDown(() async {
-    await relayManager.closeAllTransports();
+    await relayManager.dispose();
     await Future.wait(relays.map((relay) => relay.stop()));
     relays.clear();
   });

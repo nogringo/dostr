@@ -32,7 +32,7 @@ export '../relay_reqs/relay_reqs.dart' show RelayReq, RelayReqs;
 ///
 /// Keep one for the whole app, and open REQs and publishes on it with
 /// [RelayReqs] and [RelayPublishes].
-class RelayManager {
+final class RelayManager {
   late final RelayAuth _auth;
   late final RelayConnections _connections;
   late final RelayRequests _requests;
@@ -45,15 +45,19 @@ class RelayManager {
   set allowReconnectRelays(bool allow) => _connections.allowReconnect = allow;
 
   /// Every connection each time one is added, starts connecting, opens, closes
-  /// or is forgotten, the latest list cached. A relay can hold several
-  /// connections, so this cannot be indexed by url; group by
+  /// or is forgotten, as it stood then, the latest list cached. A relay can
+  /// hold several connections, so this cannot be indexed by url; group by
   /// [RelayConnectivity.url] if you need to.
   Stream<List<RelayConnectivity>> get relayConnectivityChanges =>
       _connections.changes;
 
-  /// Every connection this manager holds, connected or not, by key.
+  /// Every connection this manager holds, connected or not, by key, as it
+  /// stands now.
   Map<RelayConnectionKey, RelayConnectivity> get connectivities =>
-      UnmodifiableMapView(_connections.relays);
+      Map.unmodifiable({
+        for (final MapEntry(:key, :value) in _connections.relays.entries)
+          key: value.snapshot(),
+      });
 
   /// The relays this manager does not connect to, see [blockRelay].
   Set<RelayUrl> get blockedRelays =>
@@ -148,6 +152,7 @@ class RelayManager {
       auth: _auth,
       onMessage: _dispatch,
       hasWorkOn: _connectionHasWork,
+      listener: _ConnectionWork(this),
       anonymousIdleTimeout: anonymousIdleTimeout,
       authenticatedIdleTimeout: authenticatedIdleTimeout,
       allowReconnect: allowReconnect,
@@ -158,7 +163,6 @@ class RelayManager {
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
     _publishes = PublishesInFlight(connections: _connections, auth: _auth);
-    _connections.listener = _requests;
     bindRelayManagerParts(
       this,
       RelayManagerParts(
@@ -189,11 +193,12 @@ class RelayManager {
   /// connected, and why if it is not. A refused connection is tried
   /// again until [connectTimeout] runs out, and one that dropped is tried now
   /// instead of after its backoff. A connection bound to an identity is
-  /// opened with [openConnectionAs].
+  /// opened with [openConnectionAs]. Throws a [StateError] once disposed.
   Future<({bool connected, RelayFailure? failure})> connectRelay(
     RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
+    _checkNotDisposed();
     final failure = await _connections.connectNow(
       RelayConnectionKey.anonymous(url),
       connectTimeout: connectTimeout,
@@ -220,13 +225,15 @@ class RelayManager {
   ///
   /// A new binding is first put to the [AuthHandler], with [pausing] paused
   /// while it decides. A connection that already exists was agreed to when it
-  /// was first opened, so reconnecting it does not ask again.
+  /// was first opened, so reconnecting it does not ask again. Throws a
+  /// [StateError] once disposed.
   Future<RelayConnectivity?> openConnectionAs(
     RelayUrl url,
     NostrSigner account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
   }) async {
+    _checkNotDisposed();
     if (!account.canSign) {
       logger.warning(() => "Cannot bind a connection to ${account.publicKey}");
       return null;
@@ -242,7 +249,7 @@ class RelayManager {
       logger.warning(() => "Could not open $key: $failure");
       return null;
     }
-    return _connections.relays[key];
+    return _connections.relays[key]?.snapshot();
   }
 
   /// Answers the challenge for [key] and completes once the relay accepted the
@@ -396,6 +403,59 @@ class RelayManager {
   Future<void> closeConnection(RelayConnectionKey key) =>
       _connections.closeConnection(key);
 
-  /// Closes all transports
-  Future<void> closeAllTransports() => _connections.closeAll();
+  /// Closes every connection, as [closeConnection] does. The manager can still
+  /// be used, see [dispose].
+  Future<void> closeAllConnections() => _connections.closeAll();
+
+  /// Ends every REQ and publish of this manager, closes its connections and
+  /// [relayConnectivityChanges]. Opening a connection, a REQ or a publish on
+  /// it afterwards throws a [StateError].
+  ///
+  /// The REQs still on a connection end as `RelayRequestStatus.disconnected`,
+  /// and the relays a publish still waits on fail with
+  /// [RelayFailureKind.connectionLost].
+  Future<void> dispose() async {
+    if (_connections.disposed) return;
+    await _connections.dispose();
+    await _requests.closeAll();
+    _publishes.endAll(
+      const RelayFailure(
+        RelayFailureKind.connectionLost,
+        "the RelayManager was disposed",
+      ),
+    );
+  }
+
+  void _checkNotDisposed() {
+    if (_connections.disposed) {
+      throw StateError('the RelayManager was disposed');
+    }
+  }
+}
+
+/// Hands what happens to a connection to the REQs and the publishes on it.
+final class _ConnectionWork implements ConnectionListener {
+  final RelayManager _manager;
+
+  _ConnectionWork(this._manager);
+
+  @override
+  void replayOn(RelayConnection connection) {
+    _manager._requests.replayOn(connection);
+    _manager._publishes.replayOn(connection);
+  }
+
+  @override
+  void endAuthRetriesOn(RelayConnectionKey key) =>
+      _manager._requests.endAuthRetriesOn(key);
+
+  @override
+  void giveUpOn(RelayConnectionKey key) {
+    _manager._requests.endRequestsOn(key);
+    _manager._publishes.endPublishesOn(key);
+  }
+
+  @override
+  void admitQueuedOn(RelayConnection connection) =>
+      _manager._requests.admitQueuedOn(connection);
 }

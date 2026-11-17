@@ -99,12 +99,12 @@ void main() {
       ..addRequest(key, [
         Filter(kinds: [1]),
       ]);
-    subscription.networkController.stream.listen((_) {});
+    subscription.received.listen((_) {});
     parts.requests.inFlight[subscription.id] = subscription;
   });
   tearDown(() async {
     await subscription.close();
-    await manager.closeAllTransports();
+    await manager.dispose();
     for (final transport in factory.created) {
       await transport.close();
       if (!transport.controller.isClosed) await transport.controller.close();
@@ -118,7 +118,7 @@ void main() {
     expect(old.closed, isTrue);
     expect(factory.created.where((t) => t.isOpen()).length, 1);
     expect(parts.connections.relays.length, 1);
-    await manager.closeAllTransports();
+    await manager.closeAllConnections();
     expect(factory.created.where((t) => t.isOpen()), isEmpty);
     expect(parts.connections.relays, isEmpty);
   });
@@ -183,7 +183,7 @@ void main() {
       final connecting = connect();
       await pumpEventQueue();
       final transport = factory.created.single;
-      await manager.closeAllTransports();
+      await manager.closeAllConnections();
       transport.open = true;
       factory.readyGate!.complete();
       expect(await connecting.timeout(const Duration(seconds: 2)), isFalse);

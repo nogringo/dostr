@@ -93,7 +93,7 @@ class TestDostrFlutter {
 
   Future<void> dispose() async {
     await accounts.dispose();
-    await _relayManager.closeAllTransports();
+    await _relayManager.dispose();
   }
 }
 

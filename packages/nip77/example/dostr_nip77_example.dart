@@ -20,5 +20,5 @@ Future<void> main() async {
   final result = await response.future;
   print('need ${result.needIds.length}, have ${result.haveIds.length}');
 
-  await relays.closeAllTransports();
+  await relays.dispose();
 }

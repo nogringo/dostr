@@ -23,7 +23,7 @@ void main() {
     reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
   });
 
-  tearDown(() => manager.closeAllTransports());
+  tearDown(() => manager.dispose());
 
   bool subscribed(MockRelay relay, RelayReq req) =>
       relay.openClients.any((c) => c.subscriptions.containsKey(req.id));
@@ -139,7 +139,7 @@ void main() {
       () async {
         final relay = await startRelay(maxMessageLength: 64 * 1024);
         final manager = newRelayManager(messageLengthLimit: (_) => 64 * 1024);
-        addTearDown(manager.closeAllTransports);
+        addTearDown(manager.dispose);
         final reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
 
         final req = reqs.req(
@@ -189,7 +189,7 @@ void main() {
       final manager = newRelayManager(
         onMessageLengthLearned: (url, length) => learned.add((url, length)),
       );
-      addTearDown(manager.closeAllTransports);
+      addTearDown(manager.dispose);
       final reqs = RelayReqs(relayManager: manager, eventVerifier: verifier);
 
       final req = reqs.req(

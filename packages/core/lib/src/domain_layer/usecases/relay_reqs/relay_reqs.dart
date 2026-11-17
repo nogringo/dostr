@@ -53,7 +53,7 @@ class RelayReqs {
     await Future.wait([for (final req in _open.values.toList()) req.close()]);
   }
 
-  /// Opens a REQ.
+  /// Opens a REQ. Throws a [StateError] once the [RelayManager] was disposed.
   ///
   /// With [relays], each of them gets its filters and the request is sealed
   /// right away. Without, add relays with [RelayReq.send], then
@@ -72,6 +72,9 @@ class RelayReqs {
     AuthPolicy? auth,
     Duration? timeout,
   }) {
+    if (_requests.disposed) {
+      throw StateError('the RelayManager was disposed');
+    }
     final reqId = id ?? Helpers.getSecureRandomHex(16);
     if (reqId.isEmpty || reqId.length > 64) {
       throw ArgumentError.value(id, 'id', 'must be 1 to 64 characters long');
@@ -140,7 +143,7 @@ class RelayReq {
 
     final deliveries = Queue<Future<void>>();
     Future<void> delivered = Future.value();
-    _state.networkController.stream.listen(
+    _state.received.listen(
       (received) {
         // starts once the event _maxVerifying places earlier is handed over,
         // so that at most that many are checked at once
@@ -224,10 +227,7 @@ class RelayReq {
       for (final filter in filters)
         if (!filter.matchesNothing) filter.clone(),
     ];
-    if (matchable.isEmpty ||
-        !_requests.isStillInFlight(_state) ||
-        _state.networkController.isClosed ||
-        !_sentTo.add(url)) {
+    if (matchable.isEmpty || _state.isOver || !_sentTo.add(url)) {
       return false;
     }
     unawaited(_requests.sendToRelay(_state, url, matchable));

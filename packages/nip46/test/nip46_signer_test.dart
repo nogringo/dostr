@@ -29,7 +29,7 @@ void main() {
     relayPublishes = RelayPublishes(relayManager: relayManager);
   });
 
-  tearDown(() => relayManager.closeAllTransports());
+  tearDown(() => relayManager.dispose());
 
   BunkerConnection connectionTo(List<RelayUrl> relays) => BunkerConnection(
     privateKey: _clientPrivateKey,

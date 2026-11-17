@@ -129,7 +129,7 @@ class RelayRevivals {
         revival.since.elapsed >= reconnectGiveUpAfter) {
       stop(connection);
       connections.listener.endAuthRetriesOn(key);
-      connections.listener.endRequestsOn(key);
+      connections.listener.giveUpOn(key);
       return failure;
     }
     revival.next = Timer(revival.backoff.next(), () => hurry(connection));

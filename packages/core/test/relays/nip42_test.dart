@@ -20,7 +20,7 @@ void main() {
 
   setUp(build);
 
-  tearDown(() => manager.closeAllTransports());
+  tearDown(() => manager.dispose());
 
   group('REQ', () {
     test('an anonymous connection never answers a challenge', () async {

@@ -15,6 +15,7 @@ import '../../../shared/nips/nip01/decode_nostr_msg.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
 import '../../entities/relay_connection_key.dart';
+import '../../entities/relay_connectivity.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/subscription_limit.dart';
 import '../../entities/timeout_pausable.dart';
@@ -37,7 +38,7 @@ abstract interface class ConnectionListener {
   void endAuthRetriesOn(RelayConnectionKey key);
 
   /// Gives up on what [key] still owed, once nothing will bring it back.
-  void endRequestsOn(RelayConnectionKey key);
+  void giveUpOn(RelayConnectionKey key);
 
   /// Writes the queued REQs that now fit on [connection]: a slot was freed
   /// there, or its limit became known.
@@ -96,8 +97,8 @@ class RelayConnections {
     maximumStep: _reconnectMaximumStep,
   );
 
-  /// told when a socket comes back or goes away, set before any connection
-  late final ConnectionListener listener;
+  /// told when a socket comes back or goes away
+  final ConnectionListener listener;
 
   /// Are reconnects allowed when a connection drops?
   bool allowReconnect;
@@ -110,7 +111,17 @@ class RelayConnections {
   /// relays that are blocked
   final Set<RelayUrl> blockedRelays = {};
 
-  final _updates = BehaviorSubject<List<RelayConnection>>();
+  final _updates = BehaviorSubject<List<RelayConnectivity>>();
+
+  bool _disposed = false;
+
+  /// Whether [dispose] was called: no connection opens any more.
+  bool get disposed => _disposed;
+
+  static const _disposedFailure = RelayFailure(
+    RelayFailureKind.connectionLost,
+    "the RelayManager was disposed",
+  );
 
   List<({RelayConnectionKey key, bool connected, bool connecting})>? _notified;
 
@@ -119,6 +130,7 @@ class RelayConnections {
     required RelayAuth auth,
     required RelayMessageHandler onMessage,
     required this.hasWorkOn,
+    required this.listener,
     Duration? anonymousIdleTimeout,
     Duration? authenticatedIdleTimeout,
     this.allowReconnect = true,
@@ -144,10 +156,11 @@ class RelayConnections {
 
   /// every connection each time one is added, starts connecting, opens,
   /// closes or is forgotten, the latest one cached
-  Stream<List<RelayConnection>> get changes => _updates.stream;
+  Stream<List<RelayConnectivity>> get changes => _updates.stream;
 
   /// Tells [changes], unless no connection changed since it last did.
   void notifyChanged() {
+    if (_updates.isClosed) return;
     final connections = relays.values.toList();
     final states = [
       for (final connection in connections)
@@ -166,7 +179,7 @@ class RelayConnections {
       return;
     }
     _notified = states;
-    _updates.add(connections);
+    _updates.add([for (final connection in connections) connection.snapshot()]);
   }
 
   /// Every open connection, anonymous or bound, so a relay can show up more
@@ -293,6 +306,7 @@ class RelayConnections {
     TimeoutPausable? pausing,
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
+    if (_disposed) return _disposedFailure;
     if (!key.isAnonymous) {
       final account =
           as ?? _auth.accountFor(key, openedAs: relays[key]?.account);
@@ -318,6 +332,7 @@ class RelayConnections {
     RelayConnection connection, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) {
+    if (_disposed) return Future.value(_disposedFailure);
     if (blockedRelays.contains(connection.url)) {
       return Future.value(const RelayFailure(RelayFailureKind.blocked));
     }
@@ -621,7 +636,7 @@ class RelayConnections {
     }
     _revivals.stop(connection);
     listener.endAuthRetriesOn(key);
-    listener.endRequestsOn(key);
+    listener.giveUpOn(key);
   }
 
   void _handleIncomingMessage(dynamic message, RelayConnection connection) {
@@ -654,11 +669,18 @@ class RelayConnections {
     _revivals.stop(connection);
     final closing = connection.close();
     listener.endAuthRetriesOn(key);
-    listener.endRequestsOn(key);
+    listener.giveUpOn(key);
     return closing;
   }
 
-  /// Closes all transports
+  /// Closes every connection, and [changes], and opens none afterwards.
+  Future<void> dispose() async {
+    _disposed = true;
+    await closeAll();
+    await _updates.close();
+  }
+
+  /// Closes every connection.
   Future<void> closeAll() async {
     _idle.stop();
     final keys = relays.keys.toList();

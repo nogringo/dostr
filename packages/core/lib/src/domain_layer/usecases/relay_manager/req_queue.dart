@@ -26,8 +26,8 @@ class _Waiting {
 /// The REQs held back while their connection is full, each connection keeping
 /// at most as many open as its relay accepts. Internal to dostr_core.
 class ReqQueue {
-  /// the requests in flight, by id, which tell a queued one that stopped
-  /// waiting from one still worth sending
+  /// the requests in flight, by id, which tell the subscriptions holding a
+  /// slot from the queries
   final Map<String, RequestState> _inFlight;
 
   final Map<RelayConnectionKey, _Waiting> _waiting = {};
@@ -133,8 +133,7 @@ class ReqQueue {
     while (queue.isNotEmpty) {
       final entry = queue.first;
       if (_queued.contains(entry.request) &&
-          identical(_inFlight[entry.state.id], entry.state) &&
-          !entry.state.networkController.isClosed &&
+          !entry.state.isOver &&
           !entry.request.isDone) {
         return entry;
       }

@@ -37,6 +37,21 @@ class PublishesInFlight {
   /// Whether a publish of [eventId] is still waiting on its relays.
   bool isPublishing(String eventId) => inFlight.containsKey(eventId);
 
+  /// Whether the `RelayManager` was disposed.
+  bool get disposed => _connections.disposed;
+
+  /// Ends every publish in flight, failing with [failure] the relays that still
+  /// owe an answer.
+  void endAll(RelayFailure failure) {
+    final states = {for (final states in inFlight.values) ...states};
+    for (final state in states) {
+      for (final url in state.outcomes.keys.toList()) {
+        if (state.owesAnswer(url)) _failRelay(state, url, failure);
+      }
+      state.closeIfNoRelays();
+    }
+  }
+
   /// Tracks [relayUrl] in [state], so its OK can be routed back.
   void _registerRelay(PublishState state, RelayUrl relayUrl, Nip01Event event) {
     state.event ??= event;
@@ -52,18 +67,14 @@ class PublishesInFlight {
   }
 
   void _failRelay(PublishState state, RelayUrl relay, RelayFailure failure) {
-    if (state.networkController.isClosed) {
+    if (state.isOver) {
       logger.warning(
         () =>
             "Ignoring a late failure of ${state.event?.id} on $relay: the publish is over",
       );
       return;
     }
-
-    state.networkController.add((
-      url: relay,
-      outcome: RelayPublishOutcome(failure: failure),
-    ));
+    state.report(relay, RelayPublishOutcome(failure: failure));
   }
 
   /// Tracks [state] as a publish of [eventId] until it is done, so the OK of
@@ -108,6 +119,7 @@ class PublishesInFlight {
         relay,
         ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
       );
+      state.writtenOn[url] = relay.key;
     } on MessageTooLong catch (error) {
       _failRelay(state, url, error.failure);
     } catch (error) {
@@ -115,6 +127,57 @@ class PublishesInFlight {
         state,
         url,
         RelayFailure(RelayFailureKind.connectionLost, "$error"),
+      );
+    }
+  }
+
+  /// Sends again on [connection] the EVENTs the socket it replaces took
+  /// without the relay answering them.
+  void replayOn(RelayConnection connection) {
+    for (final state in _owedOn(connection.key)) {
+      unawaited(_resend(state, connection));
+    }
+  }
+
+  /// Fails the relays that took an EVENT on [key] without answering it, once
+  /// nothing will bring that connection back.
+  void endPublishesOn(RelayConnectionKey key) {
+    for (final state in _owedOn(key)) {
+      _failRelay(
+        state,
+        key.url,
+        const RelayFailure(
+          RelayFailureKind.connectionLost,
+          "the connection went away before the relay answered",
+        ),
+      );
+    }
+  }
+
+  /// The publishes whose EVENT was written on [key] and is still unanswered
+  /// there, each once although it may be tracked under two ids.
+  Set<PublishState> _owedOn(RelayConnectionKey key) => {
+    for (final states in inFlight.values)
+      for (final state in states)
+        if (state.writtenOn[key.url] == key &&
+            state.owesAnswer(key.url) &&
+            !state.retryingAuth.contains(key.url))
+          state,
+  };
+
+  Future<void> _resend(PublishState state, RelayConnection connection) async {
+    final event = state.event!;
+    try {
+      await _connections.sendOrThrow(
+        connection,
+        ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
+      );
+    } on MessageTooLong catch (error) {
+      _failRelay(state, connection.url, error.failure);
+    } catch (error) {
+      // gone again: its next comeback sends it, or endPublishesOn fails it
+      logger.fine(
+        () => "EVENT ${event.id} not sent again to ${connection.url}: $error",
       );
     }
   }
@@ -216,14 +279,10 @@ class PublishesInFlight {
     }
 
     for (final state in success ? waiting : waiting.take(1)) {
-      state.networkController.add((
-        url: connection.url,
-        outcome: RelayPublishOutcome(
-          okReceived: true,
-          accepted: success,
-          message: msg,
-        ),
-      ));
+      state.report(
+        connection.url,
+        RelayPublishOutcome(okReceived: true, accepted: success, message: msg),
+      );
     }
   }
 
@@ -231,13 +290,7 @@ class PublishesInFlight {
   /// from it yet.
   List<PublishState> _waitingOn(String eventId, RelayUrl relayUrl) {
     final states = inFlight[eventId] ?? const [];
-    return states.where((state) {
-      final outcome = state.outcomes[relayUrl];
-      return !state.networkController.isClosed &&
-          outcome != null &&
-          !outcome.okReceived &&
-          outcome.failure == null;
-    }).toList();
+    return states.where((state) => state.owesAnswer(relayUrl)).toList();
   }
 
   /// Handles OK auth-required for a publish by moving the retry onto an
@@ -291,7 +344,7 @@ class PublishesInFlight {
           boundKey,
           as: account,
         );
-        if (state.networkController.isClosed) {
+        if (state.isOver) {
           return;
         }
         if (bound == null) {
@@ -311,11 +364,12 @@ class PublishesInFlight {
             bound,
             ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
           );
+          state.writtenOn[relayUrl] = boundKey;
           return;
         }
 
         final accepted = await _connections.authenticate(boundKey);
-        if (state.networkController.isClosed) {
+        if (state.isOver) {
           return;
         }
         if (!accepted) {
@@ -330,13 +384,14 @@ class PublishesInFlight {
           bound,
           ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
         );
+        state.writtenOn[relayUrl] = boundKey;
       } catch (error, stackTrace) {
         logger.severe(
           () => "Publish auth retry failed for $eventId",
           error,
           stackTrace,
         );
-        if (!state.networkController.isClosed) {
+        if (!state.isOver) {
           _failRelay(
             state,
             relayUrl,
@@ -359,9 +414,5 @@ class PublishesInFlight {
   /// counts.
   bool hasWorkOn(RelayConnectionKey key) => inFlight.values
       .expand((states) => states)
-      .any(
-        (state) =>
-            !state.networkController.isClosed &&
-            state.outcomes.containsKey(key.url),
-      );
+      .any((state) => !state.isOver && state.outcomes.containsKey(key.url));
 }

@@ -7,7 +7,7 @@ import '../mocks/fakes.dart';
 
 void main() async {
   test('stats', () async {
-    RelayStats stats = MutableRelayStats();
+    final RelayStats stats = MutableRelayStats().snapshot();
     expect(0, stats.getTotalEventsRead());
     expect(0, stats.getTotalBytesRead());
   });
@@ -19,7 +19,8 @@ void main() async {
     stats.incStatsByNewEvent(note, 100);
     stats.incStatsByNewEvent(note, 50);
 
-    RelayStats view = stats;
+    final view = stats.snapshot();
+    stats.incStatsByNewEvent(note, 10);
     expect(view.eventsRead, {1: 2});
     expect(view.dataReadBytes, {1: 150});
     expect(view.getTotalEventsRead(), 2);

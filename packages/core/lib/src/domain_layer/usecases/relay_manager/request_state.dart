@@ -176,9 +176,20 @@ class RelayRequestState {
 
 /// State per request for multiple relays
 class RequestState implements TimeoutPausable {
+  final StreamController<RelayReqEvent> _received = StreamController();
+
   /// what the relays send for this request, before it is verified
-  StreamController<RelayReqEvent> networkController =
-      StreamController<RelayReqEvent>();
+  Stream<RelayReqEvent> get received => _received.stream;
+
+  /// Whether the request takes no more events: the relays are done with it,
+  /// or it was closed or timed out.
+  bool get isOver => _received.isClosed;
+
+  /// Hands [event] to [received]. Only call it while the request is not over.
+  void deliver(RelayReqEvent event) => _received.add(event);
+
+  /// Stops taking events, once the relays are done with the request.
+  void finish() => unawaited(_received.close());
 
   final Completer<void> _ended = Completer<void>();
 
@@ -367,7 +378,7 @@ class RequestState implements TimeoutPausable {
   /// closes all streams
   Future<void> close() async {
     _timeout.cancel();
-    await networkController.close();
+    await _received.close();
     end();
   }
 }

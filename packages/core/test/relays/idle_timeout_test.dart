@@ -21,7 +21,7 @@ void main() {
       anonymousIdleTimeout: anonymous,
       authenticatedIdleTimeout: authenticated,
     );
-    addTearDown(manager.closeAllTransports);
+    addTearDown(manager.dispose);
     return manager;
   }
 

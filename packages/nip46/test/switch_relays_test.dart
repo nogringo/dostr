@@ -47,7 +47,7 @@ void main() {
 
   tearDown(() async {
     await signer.dispose();
-    await relayManager.closeAllTransports();
+    await relayManager.dispose();
     await relayA.stop();
     await relayB.stop();
   });
