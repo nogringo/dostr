@@ -5,7 +5,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-import '../../entities/relay_broadcast_response.dart';
+import '../../entities/relay_publish_outcome.dart';
 import '../../entities/timeout_pausable.dart';
 
 /// State of one broadcast. Internal to dostr_core.
@@ -31,8 +31,8 @@ class BroadcastState implements TimeoutPausable {
       BehaviorSubject<BroadcastState>();
 
   /// [networkController] used by relay manger to write responses
-  StreamController<RelayBroadcastResponse> networkController =
-      StreamController<RelayBroadcastResponse>();
+  StreamController<({RelayUrl url, RelayPublishOutcome outcome})>
+  networkController = StreamController();
 
   /// stream of state updates \
   /// updates are sent when a relay responds, the whole state is sent \
@@ -40,8 +40,8 @@ class BroadcastState implements TimeoutPausable {
   Stream<BroadcastState> get stateUpdates => _stateUpdatesController.stream;
 
   //! our broadcast tracking obj
-  /// key is relay url, value is [RelayBroadcastResponse]
-  Map<RelayUrl, RelayBroadcastResponse> broadcasts = {};
+  /// key is relay url, value is [RelayPublishOutcome]
+  Map<RelayUrl, RelayPublishOutcome> broadcasts = {};
 
   /// completes when all relays have responded or timed out
   /// first string is the relay url, second is the response
@@ -60,7 +60,7 @@ class BroadcastState implements TimeoutPausable {
     }
 
     final acceptedCount = broadcasts.values
-        .where((element) => element.broadcastSuccessful)
+        .where((element) => element.accepted)
         .length
         .toDouble();
     final totalCount = broadcasts.length.toDouble();
@@ -90,7 +90,7 @@ class BroadcastState implements TimeoutPausable {
     _networkSubscription = networkController.stream.listen(
       (response) {
         // got a response from a relay
-        broadcasts[response.relayUrl] = response;
+        broadcasts[response.url] = response.outcome;
         // send state update
         _stateUpdatesController.add(this);
         // check if all relays responded

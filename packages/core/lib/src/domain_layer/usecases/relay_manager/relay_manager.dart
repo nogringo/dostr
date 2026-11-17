@@ -7,7 +7,7 @@ import 'package:dostr_signer/dostr_signer.dart';
 import '../../../config/relay_defaults.dart';
 import '../../../config/request_defaults.dart';
 import '../../../shared/helpers/utf8_length.dart';
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/message_length_limit.dart';
 import '../../entities/relay_connection_key.dart';
@@ -27,8 +27,11 @@ import 'relay_requests.dart';
 export '../relay_reqs/relay_publish.dart' show RelayPublish, RelayPublishes;
 export '../relay_reqs/relay_reqs.dart' show RelayReq, RelayReqs;
 
-///  relay manager, responsible for lifecycle of relays, sending messages, \
-///  and help with tracking of requests
+/// Opens, keeps and closes the relay connections, authenticates them (NIP-42),
+/// and routes what each relay sends to the REQs and publishes waiting for it.
+///
+/// Keep one for the whole app, and open REQs and publishes on it with
+/// [RelayReqs] and [RelayPublishes].
 class RelayManager {
   late final RelayAuth _auth;
   late final RelayConnections _connections;
@@ -55,8 +58,8 @@ class RelayManager {
   /// The relays this manager does not connect to.
   Set<RelayUrl> get blockedRelays => _connections.blockedRelays;
 
-  /// Whether a broadcast of [eventId] is still waiting on its relays.
-  bool isBroadcasting(String eventId) => _broadcasts.isBroadcasting(eventId);
+  /// Whether a publish of [eventId] is still waiting on its relays.
+  bool isPublishing(String eventId) => _broadcasts.isBroadcasting(eventId);
 
   /// Creates a new relay manager.
   ///
@@ -70,8 +73,8 @@ class RelayManager {
   /// starts at 500 milliseconds and doubles each time, for an hour. The
   /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
   /// requests are replayed once it is back. A socket that drops again within
-  /// [reconnectStableAfter] of coming back is not retried right away: it
-  /// goes on with that wait. A connection that carries nothing
+  /// 10 seconds of coming back is not retried right away: it goes on with that
+  /// wait. A connection that carries nothing
   /// [closeIdleConnections] would keep, when it drops or before an attempt, is
   /// forgotten instead.
   ///
@@ -83,9 +86,9 @@ class RelayManager {
   /// A connection keeps at most as many REQs open as [subscriptionLimit] says
   /// its relay accepts, asked each time its socket opens. The others wait for
   /// a slot, and subscriptions leave a quarter of them to queries, at least
-  /// one when there are several. No answer
-  /// within [subscriptionLimitTimeout], or none at all, gives
-  /// [defaultMaxSubscriptionsPerConnection].
+  /// one when there are several. No answer within 2 seconds, or none at all,
+  /// gives 20, a cautious default and a tenth of what strfry accepts: answer
+  /// it from the NIP-11 document of the relay, as `dostr_nip11` fetches it.
   ///
   /// A message longer than [messageLengthLimit] says its relay reads, also
   /// asked each time a socket opens, is not sent: a REQ ends there as notSent,
@@ -240,12 +243,12 @@ class RelayManager {
             ).any((handler) => handler.onMessage(key, data))) {
           break;
         }
-        Logger.log.w(
+        logger.warning(
           () =>
               "Received unhandled message from ${connection.url}: ${nostrMsg.otherData}",
         );
       case NostrMessageRawType.invalid:
-        Logger.log.w(
+        logger.warning(
           () =>
               "Received invalid message from ${connection.url}: ${nostrMsg.otherData}",
         );
@@ -259,22 +262,22 @@ class RelayManager {
         final session = _auth.existingSessionOf(key);
         if (session != null && session.receiveOk(eventId, success)) {
           if (success) {
-            Logger.log.d(() => "AUTH OK for $eventId");
+            logger.fine(() => "AUTH OK for $eventId");
           } else {
-            Logger.log.e(() => "AUTH failed for $eventId: $msg");
+            logger.severe(() => "AUTH failed for $eventId: $msg");
           }
           break;
         }
 
         //nip 20 used to notify clients if an EVENT was successful
         if (!success) {
-          Logger.log.e(() => "NOT OK from ${connection.url}: $eventJson");
+          logger.severe(() => "NOT OK from ${connection.url}: $eventJson");
         }
         _broadcasts.routeOk(eventId, connection, success, msg ?? '');
       case NostrMessageRawType.notice:
         final eventJson = nostrMsg.otherData;
         final String noticeMsg = eventJson[1];
-        Logger.log.w(() => "NOTICE from ${connection.url}: $noticeMsg");
+        logger.warning(() => "NOTICE from ${connection.url}: $noticeMsg");
         _requests.logActive();
         for (final handler in List.of(_protocolHandlers)) {
           handler.onNotice(key, noticeMsg);
@@ -287,13 +290,13 @@ class RelayManager {
         );
       case NostrMessageRawType.eose:
         final eventJson = nostrMsg.otherData;
-        Logger.log.d(() => "EOSE from ${connection.url}: ${eventJson[1]}");
+        logger.fine(() => "EOSE from ${connection.url}: ${eventJson[1]}");
         _requests.handleEose(eventJson, connection);
       case NostrMessageRawType.closed:
         final eventJson = nostrMsg.otherData;
         final String id = eventJson[1];
         final closedMsg = _stringAt(eventJson, 2);
-        Logger.log.w(
+        logger.warning(
           () =>
               " CLOSED subscription url: ${connection.url} id: $id msg: ${closedMsg ?? ''}",
         );
@@ -307,7 +310,7 @@ class RelayManager {
         final eventJson = nostrMsg.otherData;
         // nip 42 used to send authentication challenges
         final challenge = eventJson[1];
-        Logger.log.d(() => "AUTH challenge from $key: $challenge");
+        logger.fine(() => "AUTH challenge from $key: $challenge");
 
         _auth.sessionOf(key).receiveChallenge(challenge);
 

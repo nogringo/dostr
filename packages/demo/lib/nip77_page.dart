@@ -183,7 +183,7 @@ class _Nip77PageState extends State<Nip77Page> {
         );
         accepted += responses
             .where(
-              (outcomes) => outcomes.values.any((r) => r.broadcastSuccessful),
+              (outcomes) => outcomes.values.any((r) => r.accepted),
             )
             .length;
       }

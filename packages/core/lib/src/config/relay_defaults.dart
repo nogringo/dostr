@@ -1,8 +1,8 @@
 /// max time to wait for a WebSocket connection to be established
 const Duration defaultWebSocketConnectTimeout = Duration(seconds: 4);
 
-/// Default timeout in seconds for retrying the WebSocket connection.
-const int failRelayConnectTryAfterSeconds = 60;
+/// how long a REQ leaves alone a relay it could not reach
+const Duration unreachableRelayRetryAfter = Duration(minutes: 1);
 
 /// wait before the second attempt at bringing a dropped connection back
 const Duration reconnectInitialDelay = Duration(milliseconds: 500);

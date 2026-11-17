@@ -8,6 +8,7 @@ import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:logging/logging.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:media_kit/media_kit.dart';
 
@@ -32,7 +33,12 @@ final localeNotifier = ValueNotifier<Locale>(const Locale('en'));
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   MediaKit.ensureInitialized();
-  Logger.setLogLevel(LogLevel.info);
+  Logger.root.onRecord.listen(
+    (record) => debugPrint(
+      '${record.level.name} ${record.loggerName}: ${record.message}'
+      '${record.error == null ? '' : ' ${record.error}'}',
+    ),
+  );
 
   accounts = Accounts(const DostrSignerFactory());
   relayManager = RelayManager(

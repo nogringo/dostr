@@ -1,8 +1,8 @@
 import 'dart:async';
 
-import 'package:dostr_core/src/domain_layer/entities/relay_broadcast_response.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_connection_key.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_protocol_handler.dart';
+import 'package:dostr_core/src/domain_layer/entities/relay_publish_outcome.dart';
 import 'package:dostr_core/src/domain_layer/repositories/nostr_transport.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/broadcast_state.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_connection.dart';
@@ -118,7 +118,7 @@ void main() {
     parts.broadcasts.inFlight[id] = [broadcast];
     broadcasts.add(broadcast);
     if (url != null) {
-      broadcast.broadcasts[url] = RelayBroadcastResponse(relayUrl: url);
+      broadcast.broadcasts[url] = const RelayPublishOutcome();
     }
     return broadcast;
   }
@@ -138,13 +138,13 @@ void main() {
         broadcast.closeIfNoRelays();
       } else if (!broadcast.networkController.isClosed) {
         for (final url in broadcast.broadcasts.keys.toList()) {
-          broadcast.networkController.add(
-            RelayBroadcastResponse(
-              relayUrl: url,
+          broadcast.networkController.add((
+            url: url,
+            outcome: const RelayPublishOutcome(
               okReceived: true,
-              broadcastSuccessful: true,
+              accepted: true,
             ),
-          );
+          ));
         }
       }
       await broadcast.publishDoneFuture;

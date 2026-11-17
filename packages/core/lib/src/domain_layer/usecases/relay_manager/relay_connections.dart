@@ -9,7 +9,7 @@ import 'package:web_socket_channel/status.dart' as ws_status;
 
 import '../../../config/relay_defaults.dart';
 import '../../../shared/helpers/utf8_length.dart';
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../../shared/nips/nip01/decode_nostr_msg.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
@@ -262,13 +262,13 @@ class RelayConnections {
         : RelayConnectionKey.authenticated(url, authPubkey);
 
     if (isConnectionOpen(connectionKey)) {
-      Logger.log.t(() => "relay already connected: $connectionKey");
+      logger.finest(() => "relay already connected: $connectionKey");
       return (connected: true, failure: null);
     }
 
     if (isConnectionConnecting(connectionKey) ||
         _connectReadyCompleters.containsKey(connectionKey)) {
-      Logger.log.t(() => "relay is already connecting: $connectionKey");
+      logger.finest(() => "relay is already connecting: $connectionKey");
       final inFlightConnect = _connectReadyCompleters[connectionKey];
       if (inFlightConnect != null) {
         return inFlightConnect.future;
@@ -297,7 +297,7 @@ class RelayConnections {
       connection.idleFor.reset();
       _idle.watch();
 
-      Logger.log.i(() => "connecting to relay $url");
+      logger.info(() => "connecting to relay $url");
 
       // a fresh socket for a key we may already know: nothing the previous one
       // authenticated carries over
@@ -341,7 +341,7 @@ class RelayConnections {
         }
       }
 
-      Logger.log.i(() => "connected to relay: $url");
+      logger.info(() => "connected to relay: $url");
       connection.relay.succeededToConnect();
       connection.stats.connections++;
       final connected = (connected: true, failure: null);
@@ -359,7 +359,7 @@ class RelayConnections {
       return connected;
     } catch (e) {
       failure = e;
-      Logger.log.e(() => "!! could not connect to $url -> $failure");
+      logger.severe(() => "!! could not connect to $url -> $failure");
       try {
         if (transport == null ||
             identical(connection!.relayTransport, transport)) {
@@ -368,7 +368,7 @@ class RelayConnections {
           await transport.close();
         }
       } catch (closeError) {
-        Logger.log.w(() => "Error retiring transport for $url: $closeError");
+        logger.warning(() => "Error retiring transport for $url: $closeError");
       }
     }
     final failedConnection = connection;
@@ -394,7 +394,7 @@ class RelayConnections {
   /// what came of it. A bound one comes back bound or not at all.
   ///
   /// One that dropped and is being brought back is left to its backoff. One
-  /// tried less than [failRelayConnectTryAfterSeconds] ago is not tried again,
+  /// tried less than [unreachableRelayRetryAfter] ago is not tried again,
   /// unless [retryUnreachable].
   ///
   /// [as] is the identity to open a bound connection as, for a caller that has
@@ -423,13 +423,11 @@ class RelayConnections {
     final tried = relays[key]?.relay;
     if (!retryUnreachable &&
         tried != null &&
-        !tried.wasLastConnectTryLongerThanSeconds(
-          failRelayConnectTryAfterSeconds,
-        )) {
-      return const NotOpened(
+        !tried.wasLastConnectTryLongerThan(unreachableRelayRetryAfter)) {
+      return NotOpened(
         RelayFailure(
           RelayFailureKind.unreachable,
-          "tried less than $failRelayConnectTryAfterSeconds seconds ago",
+          "tried less than ${unreachableRelayRetryAfter.inSeconds} seconds ago",
         ),
       );
     }
@@ -470,7 +468,7 @@ class RelayConnections {
     }
     final account = as ?? _auth.accountFor(key);
     if (account == null) {
-      Logger.log.w(() => "No account left to open $key");
+      logger.warning(() => "No account left to open $key");
       return const RelayFailure(RelayFailureKind.noBoundConnection);
     }
     final bound = await openConnectionAs(
@@ -514,12 +512,12 @@ class RelayConnections {
     TimeoutPausable? pausing,
   }) async {
     if (!account.canSign) {
-      Logger.log.w(() => "Cannot bind a connection to ${account.publicKey}");
+      logger.warning(() => "Cannot bind a connection to ${account.publicKey}");
       return null;
     }
     final key = RelayConnectionKey.authenticated(url, account.publicKey);
     if (relays[key] == null && !await _auth.consent(key, pausing: pausing)) {
-      Logger.log.d(() => "Not allowed to open $key");
+      logger.fine(() => "Not allowed to open $key");
       return null;
     }
     _auth.bind(key, account);
@@ -535,7 +533,7 @@ class RelayConnections {
     );
     final connection = relays[key];
     if (!result.connected || connection == null) {
-      Logger.log.w(() => "Could not open $key: ${result.failure}");
+      logger.warning(() => "Could not open $key: ${result.failure}");
       return null;
     }
     return connection;
@@ -574,14 +572,14 @@ class RelayConnections {
   ) {
     if (!identical(connection.relayTransport, transport) ||
         !transport.isOpen()) {
-      Logger.log.t(
+      logger.finest(
         () => "skip send to ${connection.url}: transport changed or closed",
       );
       return false;
     }
     transport.send(data);
     connection.idleFor.reset();
-    Logger.log.d(() => "send message to ${connection.url}: $data");
+    logger.fine(() => "send message to ${connection.url}: $data");
     return true;
   }
 
@@ -652,7 +650,7 @@ class RelayConnections {
   void send(RelayConnectionKey key, List<dynamic> message) {
     final connection = relays[key];
     if (connection == null) {
-      Logger.log.t(() => "skip send to $key: no such connection");
+      logger.finest(() => "skip send to $key: no such connection");
       return;
     }
     sendTo(connection, message);
@@ -664,9 +662,9 @@ class RelayConnections {
     unawaited(
       sendOrThrow(connection, message).catchError((Object error) {
         if (error is MessageTooLong) {
-          Logger.log.w(() => "skip send to ${connection.url}: $error");
+          logger.warning(() => "skip send to ${connection.url}: $error");
         } else {
-          Logger.log.t(() => "skip send to ${connection.url}: $error");
+          logger.finest(() => "skip send to ${connection.url}: $error");
         }
       }),
     );
@@ -690,11 +688,11 @@ class RelayConnections {
       },
       onError: (error) {
         if (!_isCurrent(connection, transport)) return;
-        Logger.log.e(() => "onError ${connection.url} on listen $error");
+        logger.severe(() => "onError ${connection.url} on listen $error");
         _handleTransportGone(connection, transport);
       },
       onDone: () {
-        Logger.log.t(
+        logger.finest(
           () =>
               "onDone ${connection.url} on listen (close: ${connection.relayTransport?.closeCode()} ${connection.relayTransport?.closeReason()})",
         );
@@ -731,7 +729,7 @@ class RelayConnections {
     try {
       await connection.close();
     } catch (e) {
-      Logger.log.w(() => "Error closing relay ${connection.url}: $e");
+      logger.warning(() => "Error closing relay ${connection.url}: $e");
     } finally {
       if (identical(_dropping[key], dropped)) _dropping.remove(key);
       dropped.complete();
@@ -743,14 +741,14 @@ class RelayConnections {
       return;
     }
     if (!hasWorkOn(key)) {
-      Logger.log.i(() => "closed $key, nothing left on it");
+      logger.info(() => "closed $key, nothing left on it");
       await closeConnection(key);
       return;
     }
     notifyChanged();
     // deliberate closes cancel the stream subscription first and never get here
     if (allowReconnect) {
-      Logger.log.i(() => "closed ${connection.url}. Reconnecting");
+      logger.info(() => "closed ${connection.url}. Reconnecting");
       if (!_revivals.resume(connection)) {
         unawaited(_revivals.revive(connection));
       }
@@ -779,15 +777,15 @@ class RelayConnections {
     try {
       await previousMessage?.future;
       if (nostrMsg == null) {
-        Logger.log.w(() => "Ignoring a non-text frame from $relayUrl");
+        logger.warning(() => "Ignoring a non-text frame from $relayUrl");
         return;
       }
       await _onMessage(nostrMsg, connection, message);
     } catch (error, stackTrace) {
-      Logger.log.e(
+      logger.severe(
         () => "Could not handle a message from $relayUrl: $message",
-        error: error,
-        stackTrace: stackTrace,
+        error,
+        stackTrace,
       );
     } finally {
       if (!myCompleter.isCompleted) {
@@ -808,7 +806,7 @@ class RelayConnections {
       return;
     }
     notifyChanged();
-    Logger.log.d(() => "Disconnecting $key...");
+    logger.fine(() => "Disconnecting $key...");
     _revivals.stop(key);
     _auth.unbind(key);
     _auth.forget(key);
@@ -824,7 +822,7 @@ class RelayConnections {
     try {
       await Future.wait(keys.map(closeConnection));
     } catch (e) {
-      Logger.log.e(() => e);
+      logger.severe(() => e);
     }
   }
 }

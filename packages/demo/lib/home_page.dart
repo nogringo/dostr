@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show packageVersion;
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +8,7 @@ import 'package:material_ui/material_ui.dart';
 import 'l10n/app_localizations_context.dart';
 import 'login_popup.dart';
 import 'main.dart';
+import 'version.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -53,7 +53,7 @@ class _HomePageState extends State<HomePage> {
             ),
             const Text(' '),
             Text(
-              packageVersion,
+              appVersion,
               style: Theme.of(context).appBarTheme.titleTextStyle,
             ),
           ],

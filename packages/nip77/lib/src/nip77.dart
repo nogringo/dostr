@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
 
+import 'logger.dart';
 import 'negentropy.dart' as neg;
 import 'nip77_state.dart';
 

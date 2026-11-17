@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 
 import '../../../config/relay_defaults.dart';
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../entities/message_length_limit.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/subscription_limit.dart';
@@ -76,7 +76,7 @@ class RelayLimits {
   ) {
     if (provider == null) return null;
     void warn(Object error) =>
-        Logger.log.w(() => "No $name limit for $url", error: error);
+        logger.warning(() => "No $name limit for $url", error);
     final FutureOr<int?> answer;
     try {
       answer = provider(url);
@@ -137,15 +137,14 @@ class RelayLimits {
     final previous = _learnedMessageLengths[url];
     if (previous != null && previous < longest) return;
     final learned = _learnedMessageLengths[url] = longest - 1;
-    Logger.log.w(() => "$url closed a socket over a message of $longest bytes");
+    logger.warning(
+      () => "$url closed a socket over a message of $longest bytes",
+    );
     final onLearned = _onMessageLengthLearned;
     if (onLearned == null) return;
     unawaited(
       Future.sync(() => onLearned(url, learned)).catchError((Object error) {
-        Logger.log.e(
-          () => "onMessageLengthLearned failed for $url",
-          error: error,
-        );
+        logger.severe(() => "onMessageLengthLearned failed for $url", error);
       }),
     );
   }

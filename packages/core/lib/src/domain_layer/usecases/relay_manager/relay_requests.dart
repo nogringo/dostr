@@ -4,7 +4,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../../shared/nips/nip01/nostr_message_raw.dart';
 import '../../entities/relay_connection_key.dart';
@@ -106,7 +106,7 @@ class RelayRequests implements ConnectionListener {
     final event = nostrMsgRaw.nip01Event!;
 
     if (inFlight[requestId] == null) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "RECEIVED EVENT from ${connection.url} for id $requestId, not in flight. Likely data after EOSE on a query",
       );
@@ -119,12 +119,12 @@ class RelayRequests implements ConnectionListener {
     if (state != null) {
       RelayRequestState? request = state.requests[connection.key];
       if (request == null) {
-        Logger.log.w(() => "No RelayRequestState found for id $requestId");
+        logger.warning(() => "No RelayRequestState found for id $requestId");
         return;
       }
 
       if (!request.filters.any((filter) => filter.matches(event))) {
-        Logger.log.w(
+        logger.warning(
           () =>
               "Dropping event ${event.id} from ${connection.url}: no filter of REQ $requestId matches it",
         );
@@ -133,7 +133,7 @@ class RelayRequests implements ConnectionListener {
 
       if (state.networkController.isClosed) {
         // this might happen because relays even after we send a CLOSE subscription.id, they'll still send more events
-        Logger.log.t(
+        logger.finest(
           () => "tried to add event to an already closed STREAM ${state.id}",
         );
       } else {
@@ -147,7 +147,7 @@ class RelayRequests implements ConnectionListener {
     String id = eventJson[1];
     RequestState? state = inFlight[id];
     if (state == null) return;
-    Logger.log.t(
+    logger.finest(
       () =>
           "⛁ received EOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
     );
@@ -169,7 +169,7 @@ class RelayRequests implements ConnectionListener {
 
     RequestState? state = inFlight[id];
     if (state != null) {
-      Logger.log.t(
+      logger.finest(
         () =>
             "⛁ received CLOSE from ${connection.url} for REQ id $id, remaining requests from :${state.requests.keys} kind:${state.requests.values.first.filters.first.kinds}",
       );
@@ -222,10 +222,10 @@ class RelayRequests implements ConnectionListener {
         ).toJson(),
       );
     } on MessageTooLong catch (e) {
-      Logger.log.w(() => "REQ ${state.id} not sent to ${request.url}: $e");
+      logger.warning(() => "REQ ${state.id} not sent to ${request.url}: $e");
       _failRelayRequest(state, request.key, request.filters, e.failure);
     } catch (e) {
-      Logger.log.w(() => "COULD NOT SEND REQUEST TO ${request.url}:", error: e);
+      logger.warning(() => "COULD NOT SEND REQUEST TO ${request.url}:", e);
     } finally {
       if (identical(connection.reservedRequestIds[state.id], write)) {
         connection.reservedRequestIds.remove(state.id);
@@ -367,7 +367,7 @@ class RelayRequests implements ConnectionListener {
       case ComingBack():
         break;
       case NotOpened(:final failure):
-        Logger.log.w(
+        logger.warning(
           () => "COULD NOT SEND REQUEST TO ${request.url}: $failure",
         );
         return failure;
@@ -411,7 +411,7 @@ class RelayRequests implements ConnectionListener {
   ) {
     final state = inFlight[reqId];
     if (state == null) {
-      Logger.log.w(
+      logger.warning(
         () => "Received CLOSED auth-required for unknown request $reqId",
       );
       return;
@@ -420,7 +420,7 @@ class RelayRequests implements ConnectionListener {
     final key = connection.key;
     final request = state.requests[key];
     if (request == null) {
-      Logger.log.w(
+      logger.warning(
         () => "Received CLOSED auth-required but no request state for $key",
       );
       return;
@@ -438,12 +438,12 @@ class RelayRequests implements ConnectionListener {
       if (session.authenticated) {
         // the relay refused us while we were authenticated as the only identity
         // this connection may ever assume, so there is nothing left to try
-        Logger.log.w(() => "REQ $reqId refused on authenticated $key");
+        logger.warning(() => "REQ $reqId refused on authenticated $key");
         _checkNetworkClose(state);
         return;
       }
 
-      Logger.log.d(() => "Authenticating $key to satisfy REQ $reqId");
+      logger.fine(() => "Authenticating $key to satisfy REQ $reqId");
       state.pauseTimeout();
       request.markRetryingAuth();
       _connections.authenticate(key).then((authenticated) {
@@ -465,7 +465,9 @@ class RelayRequests implements ConnectionListener {
 
     final account = _accountForRequest(state);
     if (account == null) {
-      Logger.log.w(() => "Cannot satisfy auth-required for REQ $reqId on $key");
+      logger.warning(
+        () => "Cannot satisfy auth-required for REQ $reqId on $key",
+      );
       _checkNetworkClose(state);
       return;
     }
@@ -473,7 +475,7 @@ class RelayRequests implements ConnectionListener {
     final target = RelayConnectionKey.authenticated(key.url, account.publicKey);
     state.addRequest(target, request.filters);
 
-    Logger.log.d(
+    logger.fine(
       () => "AUTH required for REQ $reqId on $key, retrying on $target",
     );
 
@@ -555,7 +557,7 @@ class RelayRequests implements ConnectionListener {
         ClientMsg(ClientMsgType.kClose, id: id).toJson(),
       );
     } catch (e) {
-      Logger.log.e(() => e);
+      logger.severe(() => e);
     }
   }
 
@@ -564,7 +566,7 @@ class RelayRequests implements ConnectionListener {
     inFlight.forEach((key, state) {
       namesMap[state.name] = (namesMap[state.name] ?? 0) + 1;
     });
-    Logger.log.d(
+    logger.fine(
       () => "------------ IN FLIGHT REQUESTS: ${inFlight.length} || $namesMap",
     );
   }

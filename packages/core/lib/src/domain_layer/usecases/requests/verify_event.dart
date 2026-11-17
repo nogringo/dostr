@@ -1,6 +1,6 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import 'verified_event_cache.dart';
 
 /// [data], or null when its id or signature is wrong. [cache] spares checking
@@ -13,7 +13,7 @@ Future<Nip01Event?> verifyEvent(
   // Never reuse verification state for an id that does not match the
   // incoming payload. This is intentionally done before signature lookup.
   if (!data.hasValidId) {
-    Logger.log.w(
+    logger.warning(
       () => 'WARNING: Event with id ${data.id} has invalid event id',
     );
     return null;
@@ -24,7 +24,7 @@ Future<Nip01Event?> verifyEvent(
   }
 
   if (!await cache.verifyOnce(data, eventVerifier)) {
-    Logger.log.w(
+    logger.warning(
       () => 'WARNING: Event with id ${data.id} has invalid signature',
     );
     return null;

@@ -262,7 +262,7 @@ void main() {
     );
     await forgotten.close();
     unsigned.fail(StateError('test over'));
-    await unsigned.done.catchError((_) => <RelayUrl, RelayBroadcastResponse>{});
+    await unsigned.done.catchError((_) => <RelayUrl, RelayPublishOutcome>{});
   });
 
   test('hands what it does not handle to protocol handlers', () async {

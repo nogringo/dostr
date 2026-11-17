@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show Logger, RelayUrl;
+import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import 'invoice_response.dart';
 import 'lnurl.dart';
+import 'logger.dart';
 import 'zap_receipt.dart';
 import 'zap_request.dart';
 
@@ -59,7 +60,7 @@ class Zaps {
         comment: comment,
       );
     } catch (e) {
-      Logger.log.d(() => e);
+      logger.fine(() => e);
       return null;
     }
   }

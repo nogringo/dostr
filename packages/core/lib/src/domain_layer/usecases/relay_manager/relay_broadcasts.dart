@@ -5,11 +5,11 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../config/relay_defaults.dart';
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
-import '../../entities/relay_broadcast_response.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
+import '../../entities/relay_publish_outcome.dart';
 import 'broadcast_state.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
@@ -49,12 +49,10 @@ class RelayBroadcasts {
 
     // new tracking
     if (broadcastState.broadcasts[relayUrl] == null) {
-      broadcastState.broadcasts[relayUrl] = RelayBroadcastResponse(
-        relayUrl: relayUrl,
-      );
+      broadcastState.broadcasts[relayUrl] = const RelayPublishOutcome();
     } else {
       // do not overwrite
-      Logger.log.w(
+      logger.warning(
         () =>
             "_registerRelayBroadcast: relay broadcast already registered for ${eventToPublish.id} $relayUrl, skipping",
       );
@@ -68,16 +66,17 @@ class RelayBroadcasts {
     RelayFailure failure,
   ) {
     if (broadcastState.networkController.isClosed) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "Ignoring late failed broadcast for ${broadcastState.event?.id} on $relay because the broadcast controller is already closed",
       );
       return;
     }
 
-    broadcastState.networkController.add(
-      RelayBroadcastResponse(relayUrl: relay, failure: failure),
-    );
+    broadcastState.networkController.add((
+      url: relay,
+      outcome: RelayPublishOutcome(failure: failure),
+    ));
   }
 
   /// Tracks [state] as a broadcast of [eventId] until it is done, so the OK of
@@ -178,7 +177,7 @@ class RelayBroadcasts {
     final auth = state.auth;
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "Broadcast requires ${auth?.signer?.publicKey}, which cannot sign",
       );
@@ -243,7 +242,7 @@ class RelayBroadcasts {
   ) {
     final waiting = _broadcastsWaitingOn(eventId, connection.url);
     if (waiting.isEmpty) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "Received OK for broadcast $eventId from ${connection.url} but no broadcast is waiting for it",
       );
@@ -262,14 +261,14 @@ class RelayBroadcasts {
     }
 
     for (final broadcastState in success ? waiting : waiting.take(1)) {
-      broadcastState.networkController.add(
-        RelayBroadcastResponse(
-          relayUrl: connection.url,
+      broadcastState.networkController.add((
+        url: connection.url,
+        outcome: RelayPublishOutcome(
           okReceived: true,
-          broadcastSuccessful: success,
-          msg: msg,
+          accepted: success,
+          message: msg,
         ),
-      );
+      ));
     }
   }
 
@@ -277,18 +276,13 @@ class RelayBroadcasts {
   /// from it yet.
   List<BroadcastState> _broadcastsWaitingOn(String eventId, RelayUrl relayUrl) {
     final states = inFlight[eventId] ?? const [];
-    return states
-        .where(
-          (state) =>
-              !state.networkController.isClosed &&
-              state.broadcasts.values.any(
-                (response) =>
-                    response.relayUrl == relayUrl &&
-                    !response.okReceived &&
-                    response.failure == null,
-              ),
-        )
-        .toList();
+    return states.where((state) {
+      final outcome = state.broadcasts[relayUrl];
+      return !state.networkController.isClosed &&
+          outcome != null &&
+          !outcome.okReceived &&
+          outcome.failure == null;
+    }).toList();
   }
 
   /// Handles OK auth-required for a broadcast by moving the retry onto an
@@ -309,7 +303,7 @@ class RelayBroadcasts {
 
     final eventToResend = broadcastState.event;
     if (eventToResend == null) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "Received OK auth-required from $relayUrl but no event stored for the broadcast",
       );
@@ -323,7 +317,7 @@ class RelayBroadcasts {
     );
 
     if (resolved == null) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "Cannot satisfy auth-required for broadcast $eventId on $relayUrl",
       );
@@ -388,10 +382,10 @@ class RelayBroadcasts {
           ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),
         );
       } catch (error, stackTrace) {
-        Logger.log.e(
+        logger.severe(
           () => "Broadcast auth retry failed for $eventId",
-          error: error,
-          stackTrace: stackTrace,
+          error,
+          stackTrace,
         );
         if (!broadcastState.networkController.isClosed) {
           _failBroadcast(

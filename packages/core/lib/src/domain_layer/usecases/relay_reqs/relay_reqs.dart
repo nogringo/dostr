@@ -5,7 +5,8 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../config/request_defaults.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/helpers.dart';
 import '../../entities/relay_req_event.dart';
 import '../../entities/relay_request_outcome.dart';
@@ -16,12 +17,6 @@ import '../relay_manager/request_state.dart';
 import '../requests/verified_event_cache.dart';
 import '../requests/verify_event.dart';
 
-final _openReqs = Expando<Map<String, RelayReq>>();
-
-/// The [RelayReq]s open on the manager behind [requests], by id
-Map<String, RelayReq> _openOn(RelayRequests requests) =>
-    _openReqs[requests] ??= {};
-
 /// Opens [RelayReq]s: NIP-01 REQs on relays the caller picks.
 ///
 /// No cache, no outbox routing, no merging of identical requests and no
@@ -30,6 +25,7 @@ class RelayReqs {
   final RelayRequests _requests;
   final EventVerifier _eventVerifier;
   final VerifiedEventMemCache _verifiedEventCache = VerifiedEventMemCache();
+  final Map<String, RelayReq> _open = {};
 
   RelayReqs({
     required RelayManager relayManager,
@@ -40,24 +36,21 @@ class RelayReqs {
   /// Forgets which signatures were already checked.
   void clearVerifiedEventCache() => _verifiedEventCache.clear();
 
-  /// The ids of the REQs open on this manager, whatever [RelayReqs] opened
-  /// them.
-  List<String> get openIds => _openOn(_requests).keys.toList();
+  /// The ids of the REQs this [RelayReqs] opened that are still open.
+  List<String> get openIds => _open.keys.toList();
 
-  /// Closes the REQ open under [id] on this manager, whatever [RelayReqs]
-  /// opened it, like [RelayReq.close]. Says whether there was one.
+  /// Closes the REQ this [RelayReqs] opened under [id], like [RelayReq.close].
+  /// Says whether there was one.
   Future<bool> close(String id) async {
-    final req = _openOn(_requests)[id];
+    final req = _open[id];
     if (req == null) return false;
     await req.close();
     return true;
   }
 
-  /// Closes every REQ open on this manager, whatever [RelayReqs] opened them.
+  /// Closes every REQ this [RelayReqs] opened.
   Future<void> closeAll() async {
-    await Future.wait([
-      for (final req in _openOn(_requests).values.toList()) req.close(),
-    ]);
+    await Future.wait([for (final req in _open.values.toList()) req.close()]);
   }
 
   /// Opens a REQ.
@@ -68,7 +61,8 @@ class RelayReqs {
   ///
   /// [closeOnEose] makes it a query, ended once every relay sent its EOSE.
   /// Otherwise it is a subscription, which lives until [RelayReq.close].
-  /// [timeout] ends it after that long, not counting NIP-42 authentication.
+  /// [timeout] ends it after that long, not counting NIP-42 authentication:
+  /// [defaultQueryTimeout] for a query by default, never for a subscription.
   /// [name] only shows in logs.
   RelayReq req({
     Map<RelayUrl, List<Filter>>? relays,
@@ -92,9 +86,10 @@ class RelayReqs {
         name: name,
         closeOnEose: closeOnEose,
         auth: auth,
-        timeoutDuration: timeout,
+        timeoutDuration: timeout ?? (closeOnEose ? defaultQueryTimeout : null),
       ),
       requests: _requests,
+      open: _open,
       eventVerifier: _eventVerifier,
       verifiedEventCache: _verifiedEventCache,
     );
@@ -118,6 +113,7 @@ class RelayReqs {
 class RelayReq {
   final RequestState _state;
   final RelayRequests _requests;
+  final Map<String, RelayReq> _open;
   late final StreamController<RelayReqEvent> _events = StreamController(
     onCancel: close,
   );
@@ -129,11 +125,12 @@ class RelayReq {
   RelayReq._(
     this._state, {
     required RelayRequests requests,
+    required Map<String, RelayReq> open,
     required EventVerifier eventVerifier,
     required VerifiedEventMemCache verifiedEventCache,
-  }) : _requests = requests {
+  }) : _requests = requests,
+       _open = open {
     final inFlight = requests.inFlight;
-    final open = _openOn(requests);
     _state.onTimeout = (_) => close();
     // released by seal: until then, more relays may come
     requests.beginPendingConnection(_state);
@@ -184,10 +181,10 @@ class RelayReq {
       );
       return verified == null ? null : received;
     } catch (error, stackTrace) {
-      Logger.log.w(
+      logger.warning(
         () => "Could not verify ${received.event.id}",
-        error: error,
-        stackTrace: stackTrace,
+        error,
+        stackTrace,
       );
       return null;
     }
@@ -250,7 +247,6 @@ class RelayReq {
 
   Future<void> _close() async {
     await _requests.close(_state);
-    final open = _openOn(_requests);
-    if (identical(open[id], this)) open.remove(id);
+    if (identical(_open[id], this)) _open.remove(id);
   }
 }

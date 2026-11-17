@@ -358,7 +358,7 @@ void main() {
 
     subscribed.factory.down = false;
     final response = (await publish.done)[url]!;
-    expect(response.broadcastSuccessful, isTrue);
+    expect(response.accepted, isTrue);
     expect(subscribed.relayReceivedEvent(event.id), isTrue);
 
     await subscribed.tearDown();

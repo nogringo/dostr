@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/timeout_pausable.dart';
 import 'auth_session.dart';
@@ -122,11 +122,7 @@ class RelayAuth {
     try {
       return await handler(key.url, key.pubkey!);
     } catch (error, stackTrace) {
-      Logger.log.w(
-        () => "AuthHandler failed for $key",
-        error: error,
-        stackTrace: stackTrace,
-      );
+      logger.warning(() => "AuthHandler failed for $key", error, stackTrace);
       return false;
     }
   }

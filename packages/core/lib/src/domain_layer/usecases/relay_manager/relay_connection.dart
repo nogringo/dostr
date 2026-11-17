@@ -4,7 +4,7 @@ import 'dart:collection';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../entities/relay.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_connectivity.dart';
@@ -106,7 +106,7 @@ class RelayConnection implements RelayConnectivity {
       await transport.close().timeout(
         const Duration(seconds: 3),
         onTimeout: () {
-          Logger.log.w(() => "timeout while trying to close socket $url");
+          logger.warning(() => "timeout while trying to close socket $url");
         },
       );
     }
@@ -146,15 +146,10 @@ class MutableRelay implements Relay {
     connecting = false;
   }
 
-  /// was last connection try longer than given seconds
-  bool wasLastConnectTryLongerThanSeconds(int seconds) {
-    return lastConnectTry == null ||
-        lastConnectTry! <
-            DateTime.now()
-                    .add(Duration(seconds: -seconds))
-                    .millisecondsSinceEpoch ~/
-                1000;
-  }
+  bool wasLastConnectTryLongerThan(Duration duration) =>
+      lastConnectTry == null ||
+      lastConnectTry! <
+          DateTime.now().subtract(duration).millisecondsSinceEpoch ~/ 1000;
 }
 
 /// The [RelayStats] of a [RelayConnection].

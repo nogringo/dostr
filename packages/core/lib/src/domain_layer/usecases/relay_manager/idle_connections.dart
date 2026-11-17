@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';
 
@@ -33,7 +33,7 @@ class IdleConnections {
     _sweep = Timer.periodic(period < finest ? finest : period, (_) {
       unawaited(
         _closeIdle().catchError((Object error) {
-          Logger.log.e(() => "Could not close idle connections", error: error);
+          logger.severe(() => "Could not close idle connections", error);
         }),
       );
     });
@@ -63,7 +63,7 @@ class IdleConnections {
           continue;
         }
         if (connection.idleFor.elapsed < timeout) continue;
-        Logger.log.d(
+        logger.fine(
           () => "closing $key, idle for ${connection.idleFor.elapsed}",
         );
         await connections.closeConnection(key);

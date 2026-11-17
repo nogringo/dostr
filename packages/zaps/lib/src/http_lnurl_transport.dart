@@ -1,10 +1,10 @@
 import 'dart:convert';
 
-import 'package:dostr_core/dostr_core.dart' show Logger;
 import 'package:http/http.dart' as http;
 
 import 'lnurl_response.dart';
 import 'lnurl_transport.dart';
+import 'logger.dart';
 
 /// implementation of the [LnurlTransport] interface with http
 class HttpLnurlTransport implements LnurlTransport {
@@ -18,7 +18,7 @@ class HttpLnurlTransport implements LnurlTransport {
     try {
       return LnurlResponse.fromJson(await _getJson(lnurl));
     } catch (e) {
-      Logger.log.w(() => e);
+      logger.warning(() => e);
       return null;
     }
   }
@@ -28,7 +28,7 @@ class HttpLnurlTransport implements LnurlTransport {
     try {
       return await _getJson(callbacklink);
     } catch (e) {
-      Logger.log.d(() => e);
+      logger.fine(() => e);
       return null;
     }
   }

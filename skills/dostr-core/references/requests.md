@@ -18,6 +18,8 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 ```
 
 - `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.
+- Without `timeout`, a query ends after `defaultQueryTimeout` (10 s); a subscription has none unless given one.
+- `reqs.close(id)`, `reqs.closeAll()` and `reqs.openIds` only see the REQs `reqs` opened.
 - Relays are `RelayUrl`s: `RelayUrl.parse(url)` throws on a url that is not a relay's, `RelayUrl.tryParse(url)` returns null, and `urls.map(RelayUrl.tryParse).nonNulls` drops them. A `RelayUrl` is a `String`.
 - Without `relays`, call `req.send(url, filters)` per relay, then `req.seal()`.
 - `auth: AuthPolicy.never() / allow(account) / require(account)` picks the identity (NIP-42).
@@ -29,10 +31,11 @@ final outcomes = await req.done; // per relay: eose, closed, notSent, disconnect
 final signed = await signer.sign(event);
 final outcomes = await publishes
     .publish(signed, relays: [RelayUrl.parse('wss://relay.example.com')])
-    .done; // Map<RelayUrl, RelayBroadcastResponse>
+    .done; // Map<RelayUrl, RelayPublishOutcome>
 ```
 
 The event must be signed. No retry, no cache.
+Each `RelayPublishOutcome` has `accepted`, the `message` of the relay's OK, and a `failure` when the event never reached the relay.
 
 ## Outbox model (`dostr_fetchers` + `dostr_url_set`)
 

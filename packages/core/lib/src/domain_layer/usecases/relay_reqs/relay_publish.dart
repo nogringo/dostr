@@ -4,9 +4,9 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../config/broadcast_defaults.dart';
+import '../../../config/publish_defaults.dart';
 import '../../../config/relay_defaults.dart';
-import '../../entities/relay_broadcast_response.dart';
+import '../../entities/relay_publish_outcome.dart';
 import '../relay_manager/broadcast_state.dart';
 import '../relay_manager/relay_broadcasts.dart';
 import '../relay_manager/relay_manager.dart';
@@ -31,7 +31,7 @@ class RelayPublishes {
     Nip01Event event, {
     required Iterable<RelayUrl> relays,
     AuthPolicy? auth,
-    Duration timeout = defaultBroadcastTimeout,
+    Duration timeout = defaultPublishTimeout,
     double considerDonePercent = defaultConsiderDonePercent,
   }) {
     if (event.sig == null) {
@@ -56,7 +56,7 @@ class RelayPublishes {
   RelayPublish open(
     Nip01Event event, {
     AuthPolicy? auth,
-    Duration timeout = defaultBroadcastTimeout,
+    Duration timeout = defaultPublishTimeout,
     double considerDonePercent = defaultConsiderDonePercent,
   }) => RelayPublish._(
     event,
@@ -81,24 +81,23 @@ class RelayPublish {
   Nip01Event? _signed;
 
   /// The OK of each relay so far, keyed by relay url. A relay that did not
-  /// answer yet has neither [RelayBroadcastResponse.okReceived] nor a
-  /// [RelayBroadcastResponse.failure].
-  Map<RelayUrl, RelayBroadcastResponse> get outcomes => _outcomesOf(_state);
+  /// answer yet has neither [RelayPublishOutcome.okReceived] nor a
+  /// [RelayPublishOutcome.failure].
+  Map<RelayUrl, RelayPublishOutcome> get outcomes => _outcomesOf(_state);
 
   /// [outcomes] each time a relay answers, closed once the publish is done.
-  Stream<Map<RelayUrl, RelayBroadcastResponse>> get outcomesStream =>
+  Stream<Map<RelayUrl, RelayPublishOutcome>> get outcomesStream =>
       _state.stateUpdates.map(_outcomesOf);
 
   /// [outcomes] once the publish is done, see [RelayPublishes.publish]. Fails
   /// with the error the publish was [fail]ed on.
   // late: an unawaited failure would otherwise surface as an uncaught error
-  late final Future<Map<RelayUrl, RelayBroadcastResponse>> done = _state
+  late final Future<Map<RelayUrl, RelayPublishOutcome>> done = _state
       .publishDoneFuture
       .then(_outcomesOf);
 
-  static Map<RelayUrl, RelayBroadcastResponse> _outcomesOf(
-    BroadcastState state,
-  ) => Map.unmodifiable(state.broadcasts);
+  static Map<RelayUrl, RelayPublishOutcome> _outcomesOf(BroadcastState state) =>
+      Map.unmodifiable(state.broadcasts);
 
   RelayPublish._(this.event, this._state, this._broadcasts) {
     _broadcasts.track(event.id, _state);

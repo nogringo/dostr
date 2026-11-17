@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import '../../../config/relay_defaults.dart';
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../entities/relay_connection_key.dart';
 import 'backoff.dart';
 import 'relay_connection.dart';
@@ -84,7 +84,7 @@ class RelayRevivals {
     final connections = _connections;
     // an open one was just opened by a caller that has yet to use it
     if (!connections.isConnectionOpen(key) && !connections.hasWorkOn(key)) {
-      Logger.log.i(() => "nothing left to reconnect $key for");
+      logger.info(() => "nothing left to reconnect $key for");
       await connections.closeConnection(key);
       return false;
     }
@@ -92,7 +92,7 @@ class RelayRevivals {
         .openNow(key)
         .then((failure) => failure == null)
         .catchError((Object error) {
-          Logger.log.e(() => "Could not reconnect $key", error: error);
+          logger.severe(() => "Could not reconnect $key", error);
           return false;
         });
     // closed or reset meanwhile, which settled what it carried

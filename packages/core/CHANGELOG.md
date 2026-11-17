@@ -14,8 +14,9 @@ What it does not export is internal: `NostrMessageRaw`, `decodeNostrMsg`, `Clien
 
 `IsolateManager` and its pool are gone: relay messages are decoded on the main isolate, and `Isolate.run` replaces `runInComputeIsolate` for your own work.
 
-`package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart` are now `package:dostr_core/dostr_core.dart`.
-`NdkLogger` became `DostrLogger`, and `LogColor` is internal.
+The logger of `ndk` is gone, with `package:ndk/shared/logger/*.dart` and `package:ndk/config/logger_defaults.dart`.
+`dostr_core` logs with [`logging`](https://pub.dev/packages/logging), under the name `dostr_core`, and prints nothing until the app listens to `Logger.root.onRecord`.
+`Logger.setLogLevel(level)` is now `Logger.root.level = level`, with the levels of `logging`.
 
 `AuthPolicy`, `AuthHandler` and `AuthAccounts` are in [`dostr_signer`](https://pub.dev/packages/dostr_signer): `package:ndk/domain_layer/entities/auth_policy.dart` and `auth_handler.dart` are now `package:dostr_signer/dostr_signer.dart`, which `package:dostr_core/dostr_core.dart` exports.
 `Account`, from `package:ndk/domain_layer/entities/account.dart`, is gone: an account is its `NostrSigner`. `AuthPolicy.allow` and `AuthPolicy.require` take the signer, `AuthPolicy.account` is now `signer`, and `AuthAccounts` gives signers, with `getAccount(pubkey)` instead of the `accounts` map.
@@ -57,7 +58,8 @@ A protocol of its own, NIP-77 included, plugs in with `RelayManager.addProtocolH
 `HttpRequestDS` is gone: the packages that make HTTP calls take an `http.Client`.
 The deprecated `RelayInfo.get` is gone.
 
-`configureDefaultUserAgent`, which sets the User-Agent of the websockets of the process on `dart:io`, is in `package:dostr_core/dostr_core.dart` instead of `package:ndk/shared/net/user_agent.dart`.
+`configureDefaultUserAgent` of `package:ndk/shared/net/user_agent.dart` is gone: set `WebSocket.userAgent` of `dart:io`, which is all it did.
+`packageVersion` is gone too.
 
 `Nip13` is in [`dostr_nip13`](https://pub.dev/packages/dostr_nip13).
 `Nip01Utils.isIdValid` checks the id alone and no longer rejects an event that misses the proof-of-work target its `nonce` tag declares.
@@ -69,11 +71,12 @@ The deprecated `RelayInfo.get` is gone.
 `dostr_core` has no `DEFAULT_BOOTSTRAP_RELAYS`.
 Nothing replaces `ndk.relays.seedRelaysConnected`.
 `RequestDefaults` and `BroadcastDefaults` are gone.
-What `dostr_core` uses of them is a top-level constant, and the rest is gone: `DEFAULT_QUERY_TIMEOUT`, `DEFAULT_USER_AGENT` and `MAX_INBOX_RELAYS_TO_BROADCAST`, among others.
+The defaults of the parameters of `dostr_core` are top-level constants, and the rest is gone: `DEFAULT_USER_AGENT` and `MAX_INBOX_RELAYS_TO_BROADCAST`, among others.
+`FAIL_RELAY_CONNECT_TRY_AFTER_SECONDS` and the other constants that tune the reconnection and the relay limits are internal.
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs` and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so is `defaultWebSocketConnectTimeout`.
 
-The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `BroadcastDefaults.TIMEOUT` is `defaultBroadcastTimeout` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDonePercent`.
+The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout`, `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDonePercent`.
 `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read, is gone.
 
 #### `RelayManager`
@@ -82,7 +85,7 @@ The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT
 `EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and `RelayStats.touched` and `touchUseful` are gone: they only served the JIT engine of `ndk`.
 
 `GlobalState` and `RequestState` are no longer public: `RelayManager` keeps its own state and no longer takes a `globalState`.
-Read its connections with `RelayManager.connectivities`, block relays with `RelayManager.blockedRelays`, ask `RelayManager.isBroadcasting` whether an event is still being broadcast, and `RelayReqs.openIds` which REQs are open.
+Read its connections with `RelayManager.connectivities`, block relays with `RelayManager.blockedRelays`, ask `RelayManager.isPublishing` whether an event is still being published, and `RelayReqs.openIds` which of its REQs are open.
 
 `RelayManager` keeps the plumbing behind `RelayReq` and broadcasts to itself.
 `sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`, `failBroadcast`, `failRelayRequest`, `connectionForBroadcast`, `isStillInFlight`, `beginPendingConnection`, `endPendingConnection`, `sendCloseToRelay`, `sendCloseToConnection`, `reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the deprecated `authenticateIfNeeded` are gone, and so is `RequestState.registerRequest`.
@@ -120,7 +123,7 @@ Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that 
  - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.
  - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
  - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
- - `RelayConnectivity.url`, `Relay.url`, `RelayReqEvent.relayUrl` and `RelayBroadcastResponse.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
+ - `RelayConnectivity.url`, `Relay.url` and `RelayReqEvent.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
  - `NostrTransportFactory`, `SubscriptionLimit`, `MessageLengthLimit` and `onMessageLengthLearned` are given a `RelayUrl`. One written for a `String` still fits.
  - `WebSocketClientNostrTransportFactory` no longer throws on a url it cannot parse, since it is given a `RelayUrl`.
 
@@ -161,6 +164,10 @@ A REQ never sealed, or a publish never started or failed, used to keep every con
 
 Open REQs with `RelayReqs`.
 Close one with `RelayReq.close`, by its id with `RelayReqs.close`, or all of them with `RelayReqs.closeAll`.
+`RelayReqs.close`, `closeAll` and `openIds` only see the REQs that `RelayReqs` opened, never those of another one.
+
+A query given no `timeout` ends after `defaultQueryTimeout`, 10 seconds, as in `ndk`, so a relay that never sends its EOSE cannot hold it open.
+A subscription has no timeout unless it is given one.
 
 `RelayReq.events` gives each event as a `RelayReqEvent`, with the relay that sent it in `relayUrl`.
 The deprecated `Nip01Event.sources` is gone.
@@ -178,18 +185,20 @@ Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllT
 
 #### Publishes
 
-`BroadcastState` is no longer public, and `RelayBroadcastResponse` is in `package:dostr_core/dostr_core.dart`.
+`BroadcastState` is no longer public, and `RelayBroadcastResponse` is now `RelayPublishOutcome`, in `package:dostr_core/dostr_core.dart`.
+Its fields are final, `broadcastSuccessful` is now `accepted` and `msg` is now `message`.
+It no longer has `relayUrl`, since the outcomes are keyed by relay url, and two outcomes are equal when all their fields are, where two responses were equal when they came from the same relay.
 Publish a signed event with `RelayPublishes.publish`.
 To publish an event that still has to be signed, open it with `RelayPublishes.open`: it counts as in flight right away.
 Then `start` the `RelayPublish` with the signed event, `send` it to each relay with an optional `veto` and `connectTimeout`, and `seal` it, or `fail` it when signing does.
 
-A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayBroadcastResponse` of each relay, keyed by relay url.
+A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
 `considerDonePercent` counts the relays that accepted the event: a refusal no longer brings a publish closer to done.
 
 What `dostr_core` itself failed at comes as a `RelayFailure`, whose `RelayFailureKind` says what it was and whose `detail` may say more, instead of a sentence of its own in a message.
-`RelayRequestOutcome.failure` holds it for `notSent`, `RelayBroadcastResponse.failure` for a relay the event did not reach, and `connectRelay` returns it.
-`RelayRequestOutcome.message` and `RelayBroadcastResponse.msg` only hold what the relay sent in its CLOSED or OK, and a broadcast the relay refused for want of an identity it may not reveal reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its `detail`.
+`RelayRequestOutcome.failure` holds it for `notSent`, `RelayPublishOutcome.failure` for a relay the event did not reach, and `connectRelay` returns it.
+`RelayRequestOutcome.message` and `RelayPublishOutcome.message` only hold what the relay sent in its CLOSED or OK, and a broadcast the relay refused for want of an identity it may not reveal reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its `detail`.
 
 #### Filters
 
@@ -243,7 +252,7 @@ A request only hands out events whose id and signature it checked, and nothing r
 Build the events a test needs with its constructor or `fromJson`.
 
 `Nip01EventModel` is gone: use `Nip01Event`, which has its `fromJson`, `toJson` and `toJsonString`, and `event` itself instead of `Nip01EventModel.fromEntity(event)`.
-`toBase64()` is an extension member, which `package:dostr_core/dostr_core.dart` exports.
+`toBase64()` is gone: use `base64Encode(utf8.encode(event.toJsonString()))`.
 
 `fromJson` is strict.
 It used to read a missing `pubkey` or `content` as `''` and missing `tags` as none, to skip a tag that is not a list and to turn tag values into strings: it now throws a `FormatException` for all of these, and for a missing `created_at` or `kind` instead of a `TypeError`.

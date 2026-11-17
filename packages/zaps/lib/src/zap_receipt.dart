@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:dostr_core/dostr_core.dart' show Logger;
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 import 'lnurl.dart';
+import 'logger.dart';
 
 class ZapReceipt {
   /// zap receipt kind
@@ -71,7 +71,7 @@ class ZapReceipt {
               amountSats = (amount / 1000).round();
             }
           } catch (e) {
-            Logger.log.w(() => e);
+            logger.warning(() => e);
           }
         }
       }

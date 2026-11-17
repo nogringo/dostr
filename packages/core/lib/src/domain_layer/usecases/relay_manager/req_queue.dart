@@ -1,7 +1,7 @@
 import 'dart:collection';
 import 'dart:math';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../entities/relay_connection_key.dart';
 import 'relay_connection.dart';
 import 'request_state.dart';
@@ -72,13 +72,13 @@ class ReqQueue {
       if (slots.length < limit && !heldByShare) return false;
     }
     if (heldByShare) {
-      Logger.log.w(
+      logger.warning(
         () =>
             "REQ ${state.id} waits on ${connection.key}: subscriptions hold "
             "${_subscriptionShare(limit!)} of its $limit slots",
       );
     } else {
-      Logger.log.d(
+      logger.fine(
         () => "REQ ${state.id} waits for a slot on ${connection.key}",
       );
     }

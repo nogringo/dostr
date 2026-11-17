@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
 
@@ -102,6 +103,19 @@ void main() {
       expect(outcomes[relay.url]!.status, RelayRequestStatus.timedOut);
       await eventually(() => relay.received('CLOSE').isNotEmpty);
     });
+
+    test(
+      'gets the default timeout when given none, unlike a subscription',
+      () async {
+        final query = reqs.req();
+        final subscription = reqs.req(closeOnEose: false);
+        final inFlight = relayManagerParts(manager).requests.inFlight;
+
+        expect(inFlight[query.id]!.timeoutDuration, defaultQueryTimeout);
+        expect(inFlight[subscription.id]!.timeoutDuration, isNull);
+        await Future.wait([query.close(), subscription.close()]);
+      },
+    );
 
     test('a 100 KB filter sent to a relay that accepts 64 KB ends the query '
         'instead of being sent again', () async {
@@ -547,13 +561,12 @@ void main() {
   }
 
   group('close by id', () {
-    test('closes a REQ another RelayReqs opened, once', () async {
+    test('closes a REQ it opened, once', () async {
       final relay = await startRelay();
       final req = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
       await eventually(() => subscribed(relay, req));
-      final others = RelayReqs(relayManager: manager, eventVerifier: verifier);
 
-      final closed = others.close(req.id);
+      final closed = reqs.close(req.id);
       await req.close();
 
       expect(await closed, isTrue);
@@ -562,26 +575,28 @@ void main() {
       expect(relay.received('CLOSE'), [
         ['CLOSE', req.id],
       ]);
-      expect(await others.close(req.id), isFalse);
+      expect(await reqs.close(req.id), isFalse);
     });
 
-    test('closeAll closes the REQs of every RelayReqs', () async {
+    test('close and closeAll leave the REQs of another RelayReqs '
+        'alone', () async {
       final relay = await startRelay();
       final others = RelayReqs(relayManager: manager, eventVerifier: verifier);
-      final first = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
-      final second = others.req(relays: {relay.url: notes}, closeOnEose: false);
+      final mine = reqs.req(relays: {relay.url: notes}, closeOnEose: false);
+      final theirs = others.req(relays: {relay.url: notes}, closeOnEose: false);
       await eventually(
-        () => subscribed(relay, first) && subscribed(relay, second),
+        () => subscribed(relay, mine) && subscribed(relay, theirs),
       );
 
+      expect(reqs.openIds, [mine.id]);
+      expect(await reqs.close(theirs.id), isFalse);
       await reqs.closeAll();
 
-      await Future.wait([first.done, second.done]);
-      await eventually(
-        () => !subscribed(relay, first) && !subscribed(relay, second),
-      );
-      expect(await reqs.close(first.id), isFalse);
-      expect(await reqs.close(second.id), isFalse);
+      await mine.done;
+      await eventually(() => !subscribed(relay, mine));
+      expect(subscribed(relay, theirs), isTrue);
+      expect(others.openIds, [theirs.id]);
+      await theirs.close();
     });
   });
 }

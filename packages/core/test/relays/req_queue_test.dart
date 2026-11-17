@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/src/config/relay_defaults.dart'
+    show defaultMaxSubscriptionsPerConnection;
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
 

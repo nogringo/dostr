@@ -22,9 +22,7 @@ Future<void> main() async {
     ),
   );
   final outcomes = await publishes.publish(event, relays: [relay]).done;
-  for (final response in outcomes.values) {
-    print('${response.relayUrl}: ${response.broadcastSuccessful}');
-  }
+  outcomes.forEach((url, outcome) => print('$url: ${outcome.accepted}'));
 
   final req = reqs.req(
     relays: {

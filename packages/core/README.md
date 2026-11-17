@@ -49,6 +49,7 @@ final outcomes = await publishes
 ```
 
 Keep one `RelayManager` for the whole app: it holds the connections, which every `RelayReqs` and `RelayPublishes` built on it shares.
+Give it the limits of each relay from its NIP-11 document too, see [Relay limits](#relay-limits): without them, a connection keeps at most 20 REQs open.
 
 Relays are named by `RelayUrl`s, the normalized urls of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which `dostr_core` exports.
 Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
@@ -76,6 +77,8 @@ final events = await req.events.toList();
 final outcomes = await req.done;
 ```
 
+Without `timeout`, a query ends after `defaultQueryTimeout`, 10 seconds, so a relay that never sends its EOSE cannot hold it open.
+
 ### Subscription
 
 ```dart
@@ -89,6 +92,9 @@ final listener = sub.events.listen(onEvent);
 // sends the CLOSE, as sub.close() does
 await listener.cancel();
 ```
+
+A subscription has no timeout unless it is given one.
+`reqs.close(id)` and `reqs.closeAll()` close the REQs `reqs` opened, by id or all of them, never those of another `RelayReqs`.
 
 ### Adding relays as you find them
 
@@ -135,13 +141,13 @@ final outcomes = await publishes
     )
     .done;
 
-for (final response in outcomes.values) {
-  print('${response.relayUrl}: ${response.broadcastSuccessful} ${response.msg}');
-}
+outcomes.forEach((url, outcome) {
+  print('$url: ${outcome.accepted} ${outcome.message}');
+});
 ```
 
 - Each relay gets the event once, whatever the list holds twice.
-- A relay that cannot be reached is reported as failed, with the reason in `msg` and `failure`, instead of waiting for the timeout.
+- A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
 - `done` completes once every relay answered, once `considerDonePercent` of them accepted the event, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
 - `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
@@ -249,7 +255,7 @@ final relays = RelayManager(
 
 `RelayManager` asks two callbacks each time a socket opens, and waits up to 2 seconds for them:
 
-- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries, at least one when there are several. No answer gives 20.
+- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries, at least one when there are several. No answer gives 20, a cautious default and a tenth of what strfry accepts: answer it from the NIP-11 document, as below.
 - `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
 Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.
@@ -296,6 +302,21 @@ Disabling compression can reduce memory and codec overhead for long-running serv
 Compression remains enabled by default.
 
 Browser WebSocket APIs do not expose compression negotiation controls, so this setting has no effect on web builds.
+
+## Logging
+
+`dostr_core` logs with [`logging`](https://pub.dev/packages/logging), under the name `dostr_core`, and prints nothing on its own.
+To read its warnings and errors:
+
+```dart
+import 'package:logging/logging.dart';
+
+Logger.root.onRecord.listen((record) {
+  print('${record.level.name} ${record.loggerName}: ${record.message}');
+});
+```
+
+`Logger.root.level = Level.FINE` adds the debug messages.
 
 ## Coming from `ndk`
 

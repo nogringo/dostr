@@ -2,4 +2,4 @@
 const double defaultConsiderDonePercent = 1.0;
 
 /// how long a publish waits for its relays
-const Duration defaultBroadcastTimeout = Duration(seconds: 10);
+const Duration defaultPublishTimeout = Duration(seconds: 10);

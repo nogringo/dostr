@@ -1,8 +1,7 @@
-import 'package:dostr_core/dostr_core.dart' show Logger;
-
 import 'invoice_response.dart';
 import 'lnurl_response.dart';
 import 'lnurl_transport.dart';
+import 'logger.dart';
 import 'zap_request.dart';
 
 /// LN URL utilities
@@ -80,7 +79,7 @@ class Lnurl {
       callback += "&nostr=$eventStr";
     }
 
-    Logger.log.d(() => "getInvoice callback $callback");
+    logger.fine(() => "getInvoice callback $callback");
 
     try {
       var response = await _transport.fetchInvoice(callback);
@@ -91,7 +90,7 @@ class Lnurl {
         nostrPubkey: lnurlResponse.nostrPubkey,
       );
     } catch (e) {
-      Logger.log.d(() => e);
+      logger.fine(() => e);
     }
     return null;
   }

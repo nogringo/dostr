@@ -185,7 +185,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     _relayManager.send(state.connectionKey, negOpen);
     _awaitAnswer(state, state.openTimeout, openUnanswered: true);
 
-    Logger.log.d(
+    logger.fine(
       () => 'NEG-OPEN sent to ${state.connectionKey}: ${state.subscriptionId}',
     );
   }
@@ -247,13 +247,13 @@ class _Nip77Internal extends RelayProtocolHandler {
   ) {
     final state = _sessions[subscriptionId];
     if (state == null) {
-      Logger.log.w(
+      logger.warning(
         () => 'Received $messageType for unknown session: $subscriptionId',
       );
       return null;
     }
     if (state.connectionKey != key) {
-      Logger.log.w(
+      logger.warning(
         () =>
             'Received $messageType from mismatched connection: expected '
             '${state.connectionKey}, got $key',
@@ -281,7 +281,7 @@ class _Nip77Internal extends RelayProtocolHandler {
         _sendNegClose(key, subscriptionId);
         state.complete();
         _sessions.remove(subscriptionId);
-        Logger.log.d(
+        logger.fine(
           () =>
               'NEG reconciliation complete: need=${state.needIds.length}, have=${state.haveIds.length}',
         );
@@ -290,10 +290,10 @@ class _Nip77Internal extends RelayProtocolHandler {
         final responsePayload = neg.NegentropyEncoder.bytesToHex(response);
         _relayManager.send(key, ['NEG-MSG', subscriptionId, responsePayload]);
         _awaitAnswer(state, state.idleTimeout, openUnanswered: false);
-        Logger.log.d(() => 'NEG-MSG sent to $key');
+        logger.fine(() => 'NEG-MSG sent to $key');
       }
     } catch (e) {
-      Logger.log.e(() => 'Error processing NEG-MSG: $e');
+      logger.severe(() => 'Error processing NEG-MSG: $e');
       state.completeWithError(e);
       _sessions.remove(subscriptionId);
     }
@@ -308,7 +308,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     final state = _sessionFor(subscriptionId, key, 'NEG-ERR');
     if (state == null) return;
 
-    Logger.log.e(() => 'NEG-ERR from $key: $errorMsg');
+    logger.severe(() => 'NEG-ERR from $key: $errorMsg');
 
     if (_isAuthRefusal(errorMsg)) {
       _handleNegAuthRequired(state, errorMsg);
@@ -336,7 +336,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     if (state == null) return;
 
     final reason = message ?? '';
-    Logger.log.d(
+    logger.fine(
       () => 'CLOSED for negotiation $subscriptionId on $key: $reason',
     );
 
@@ -441,7 +441,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     final url = state.connectionKey.url;
     state.movedToBoundConnection = true;
 
-    Logger.log.d(
+    logger.fine(
       () =>
           'AUTH required for negotiation ${state.subscriptionId} on $url, '
           'retrying as ${account.publicKey}',
@@ -473,7 +473,7 @@ class _Nip77Internal extends RelayProtocolHandler {
 
   void _sendNegClose(RelayConnectionKey key, String subscriptionId) {
     _relayManager.send(key, ['NEG-CLOSE', subscriptionId]);
-    Logger.log.d(() => 'NEG-CLOSE sent to $key: $subscriptionId');
+    logger.fine(() => 'NEG-CLOSE sent to $key: $subscriptionId');
   }
 
   void close(String subscriptionId) {

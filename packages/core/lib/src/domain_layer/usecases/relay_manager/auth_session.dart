@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import '../../../shared/logger/logger.dart';
+import '../../../shared/logger.dart';
 import '../../../shared/nips/nip01/client_msg.dart';
 import '../../entities/relay_connection_key.dart';
 
@@ -80,11 +80,13 @@ class AuthSession {
     void Function(List<dynamic> message) send,
   ) async {
     if (account == null) {
-      Logger.log.w(() => "Cannot authenticate $key, no account for its pubkey");
+      logger.warning(
+        () => "Cannot authenticate $key, no account for its pubkey",
+      );
       return false;
     }
     if (!account.canSign) {
-      Logger.log.w(() => "Cannot authenticate $key, signer cannot sign");
+      logger.warning(() => "Cannot authenticate $key, signer cannot sign");
       return false;
     }
 
@@ -110,11 +112,7 @@ class AuthSession {
         ),
       );
     } catch (error, stackTrace) {
-      Logger.log.w(
-        () => "Could not sign AUTH for $key",
-        error: error,
-        stackTrace: stackTrace,
-      );
+      logger.warning(() => "Could not sign AUTH for $key", error, stackTrace);
       return false;
     }
     if (_ended) return false;
@@ -122,12 +120,12 @@ class AuthSession {
     final ok = Completer<bool>();
     _pendingAuth = (eventId: signedAuth.id, ok: ok);
     send(ClientMsg(ClientMsgType.kAuth, event: signedAuth).toJson());
-    Logger.log.d(() => "AUTH sent on $key");
+    logger.fine(() => "AUTH sent on $key");
 
     final accepted = await ok.future.timeout(
       okTimeout,
       onTimeout: () {
-        Logger.log.w(
+        logger.warning(
           () => "AUTH callback timeout for ${signedAuth.id} on $key",
         );
         return false;
@@ -150,7 +148,7 @@ class AuthSession {
       onTimeout: () => null,
     );
     if (identical(_challengeWaiter, waiter)) _challengeWaiter = null;
-    if (challenge == null) Logger.log.w(() => "No AUTH challenge from $key");
+    if (challenge == null) logger.warning(() => "No AUTH challenge from $key");
     return challenge;
   }
 

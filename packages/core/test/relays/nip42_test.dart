@@ -187,7 +187,7 @@ void main() {
             )
             .done;
 
-        expect(responses.values.single.broadcastSuccessful, isTrue);
+        expect(responses.values.single.accepted, isTrue);
         expect(relay.events.single.id, event.id);
         expect(relay.clients.last.authenticatedAs, bob);
         expect(relay.clients.first.receivedOfType('AUTH'), isEmpty);
@@ -210,8 +210,8 @@ void main() {
 
       final response = responses.values.single;
       expect(response.okReceived, isTrue);
-      expect(response.broadcastSuccessful, isFalse);
-      expect(response.msg, 'auth-required: not on the whitelist');
+      expect(response.accepted, isFalse);
+      expect(response.message, 'auth-required: not on the whitelist');
       // anonymous, bound, and one resend if the bound EVENT raced the AUTH
       expect(relay.received('EVENT').length, lessThanOrEqualTo(3));
     });
@@ -227,7 +227,7 @@ void main() {
           )
           .done;
 
-      expect(responses.values.single.broadcastSuccessful, isFalse);
+      expect(responses.values.single.accepted, isFalse);
       final failure = responses.values.single.failure!;
       expect(failure.kind, RelayFailureKind.identityNotAllowed);
       expect(failure.detail, startsWith('auth-required'));
@@ -245,7 +245,7 @@ void main() {
           )
           .done;
 
-      expect(responses.values.single.broadcastSuccessful, isTrue);
+      expect(responses.values.single.accepted, isTrue);
       expect(relay.clients, hasLength(1));
     });
   });
