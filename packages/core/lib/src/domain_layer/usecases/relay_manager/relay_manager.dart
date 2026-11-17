@@ -17,8 +17,8 @@ import '../../entities/relay_protocol_handler.dart';
 import '../../entities/subscription_limit.dart';
 import '../../entities/timeout_pausable.dart';
 import '../../repositories/nostr_transport.dart';
+import 'publishes_in_flight.dart';
 import 'relay_auth.dart';
-import 'relay_broadcasts.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'relay_manager_parts.dart';
@@ -36,7 +36,7 @@ class RelayManager {
   late final RelayAuth _auth;
   late final RelayConnections _connections;
   late final RelayRequests _requests;
-  late final RelayBroadcasts _broadcasts;
+  late final PublishesInFlight _publishes;
 
   final List<RelayProtocolHandler> _protocolHandlers = [];
 
@@ -55,11 +55,21 @@ class RelayManager {
   Map<RelayConnectionKey, RelayConnectivity> get connectivities =>
       UnmodifiableMapView(_connections.relays);
 
-  /// The relays this manager does not connect to.
-  Set<RelayUrl> get blockedRelays => _connections.blockedRelays;
+  /// The relays this manager does not connect to, see [blockRelay].
+  Set<RelayUrl> get blockedRelays =>
+      UnmodifiableSetView(_connections.blockedRelays);
+
+  /// Stops connecting to [url], and closes the connections already there.
+  Future<void> blockRelay(RelayUrl url) {
+    _connections.blockedRelays.add(url);
+    return closeConnectionsTo(url);
+  }
+
+  /// Lets requests and publishes connect to [url] again.
+  void unblockRelay(RelayUrl url) => _connections.blockedRelays.remove(url);
 
   /// Whether a publish of [eventId] is still waiting on its relays.
-  bool isPublishing(String eventId) => _broadcasts.isBroadcasting(eventId);
+  bool isPublishing(String eventId) => _publishes.isPublishing(eventId);
 
   /// Creates a new relay manager.
   ///
@@ -147,7 +157,7 @@ class RelayManager {
       onMessageLengthLearned: onMessageLengthLearned,
     );
     _requests = RelayRequests(connections: _connections, auth: _auth);
-    _broadcasts = RelayBroadcasts(connections: _connections, auth: _auth);
+    _publishes = PublishesInFlight(connections: _connections, auth: _auth);
     _connections.listener = _requests;
     bindRelayManagerParts(
       this,
@@ -155,7 +165,7 @@ class RelayManager {
         auth: _auth,
         connections: _connections,
         requests: _requests,
-        broadcasts: _broadcasts,
+        publishes: _publishes,
       ),
     );
   }
@@ -228,10 +238,10 @@ class RelayManager {
   NostrSigner? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
 
   /// Routes a message from [connection] to whatever it answers.
-  Future<void> _dispatch(
+  void _dispatch(
     NostrMessageRaw nostrMsg,
     RelayConnection connection,
-    dynamic message,
+    String message,
   ) {
     final key = connection.key;
     switch (nostrMsg.type) {
@@ -273,7 +283,7 @@ class RelayManager {
         if (!success) {
           logger.severe(() => "NOT OK from ${connection.url}: $eventJson");
         }
-        _broadcasts.routeOk(eventId, connection, success, msg ?? '');
+        _publishes.routeOk(eventId, connection, success, msg ?? '');
       case NostrMessageRawType.notice:
         final eventJson = nostrMsg.otherData;
         final String noticeMsg = eventJson[1];
@@ -283,11 +293,7 @@ class RelayManager {
           handler.onNotice(key, noticeMsg);
         }
       case NostrMessageRawType.event:
-        _requests.handleEvent(
-          nostrMsg,
-          connection,
-          utf8Length(message.toString()),
-        );
+        _requests.handleEvent(nostrMsg, connection, utf8Length(message));
       case NostrMessageRawType.eose:
         final eventJson = nostrMsg.otherData;
         logger.fine(() => "EOSE from ${connection.url}: ${eventJson[1]}");
@@ -303,7 +309,7 @@ class RelayManager {
         // a protocol session is not a REQ: it owns its own retry and never has
         // a RequestState for the auth-required branch to find
         for (final handler in List.of(_protocolHandlers)) {
-          if (handler.onClosed(key, id, closedMsg)) return Future.value();
+          if (handler.onClosed(key, id, closedMsg)) return;
         }
         _requests.handleClosed(id, closedMsg, connection);
       case NostrMessageRawType.auth:
@@ -321,7 +327,6 @@ class RelayManager {
           unawaited(_connections.authenticate(key));
         }
     }
-    return Future.value();
   }
 
   static String? _stringAt(List<dynamic> message, int index) =>
@@ -342,10 +347,10 @@ class RelayManager {
   /// after EOSE, and authentication/reconnect work keeps the exact connection
   /// it is preparing to use.
   ///
-  /// A request or a broadcast that has yet to pick a relay keeps no connection
+  /// A request or a publish that has yet to pick a relay keeps no connection
   /// open: sending to the relay it picks reopens the connection when needed.
-  /// Broadcasts track relay URLs rather than identities, so both anonymous and
-  /// authenticated connections at an in-flight broadcast's URL are retained.
+  /// Publishes track relay URLs rather than identities, so both anonymous and
+  /// authenticated connections at an in-flight publish's URL are retained.
   Future<void> closeIdleConnections() async {
     for (final key in _connections.relays.keys.toList()) {
       // Re-evaluate after each asynchronous close. Another operation may
@@ -360,7 +365,7 @@ class RelayManager {
       _connections.isOpening(key) ||
       _auth.isAuthenticating(key) ||
       _requests.hasWorkOn(key) ||
-      _broadcasts.hasWorkOn(key) ||
+      _publishes.hasWorkOn(key) ||
       _protocolHandlers.any((handler) => handler.hasWorkOn(key));
 
   /// Closes one connection and forgets it. An entry that lost its transport, to

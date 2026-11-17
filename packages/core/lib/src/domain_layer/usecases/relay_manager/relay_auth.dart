@@ -147,14 +147,14 @@ class RelayAuth {
     return logged != null && logged.canSign ? logged : null;
   }
 
-  /// Account a broadcast under [auth] authenticates as, null when it must stay
+  /// Account a publish under [auth] authenticates as, null when it must stay
   /// unattributable.
   ///
   /// A caller that named an identity gets that one, with no heuristic. Only a
-  /// broadcast that said nothing prefers the event author, because gift wraps
+  /// publish that said nothing prefers the event author, because gift wraps
   /// and other ephemeral-author events have no matching account, and only once
   /// an [AuthHandler] is there to agree to it.
-  NostrSigner? accountForBroadcast(AuthPolicy? auth, Nip01Event event) {
+  NostrSigner? accountForPublish(AuthPolicy? auth, Nip01Event event) {
     if (auth != null) {
       return accountForAuth(auth);
     }

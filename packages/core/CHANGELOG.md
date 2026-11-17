@@ -62,8 +62,8 @@ The deprecated `RelayInfo.get` is gone.
 `packageVersion` is gone too.
 
 `Nip13` is in [`dostr_nip13`](https://pub.dev/packages/dostr_nip13).
-`Nip01Utils.isIdValid` checks the id alone and no longer rejects an event that misses the proof-of-work target its `nonce` tag declares.
-`Nip01Utils.createEventCalculateId`, `Nip01Utils.calculateEventId` and `Nip01Utils.calculateEventIdSync` are gone: `Nip01Event` computes its own id, and `payloadId` recomputes it from the payload.
+`Nip01Utils` is gone: `Nip01Event` computes its own id, `hasValidId` checks it and `payloadId` recomputes it from the payload.
+`hasValidId` checks the id alone, where `Nip01Utils.isIdValid` also rejected an event that misses the proof-of-work target its `nonce` tag declares.
 
 #### Defaults
 
@@ -85,9 +85,10 @@ The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT
 `EngineAdditionalDataFactory`, `RelayConnectivity.specificEngineData` and `RelayStats.touched` and `touchUseful` are gone: they only served the JIT engine of `ndk`.
 
 `GlobalState` and `RequestState` are no longer public: `RelayManager` keeps its own state and no longer takes a `globalState`.
-Read its connections with `RelayManager.connectivities`, block relays with `RelayManager.blockedRelays`, ask `RelayManager.isPublishing` whether an event is still being published, and `RelayReqs.openIds` which of its REQs are open.
+Read its connections with `RelayManager.connectivities`, ask `RelayManager.isPublishing` whether an event is still being published, and `RelayReqs.openIds` which of its REQs are open.
+`RelayManager.blockRelay` blocks a relay and closes its connections, `unblockRelay` lets it be connected to again, and `blockedRelays` lists the blocked relays without letting them be changed.
 
-`RelayManager` keeps the plumbing behind `RelayReq` and broadcasts to itself.
+`RelayManager` keeps the plumbing behind `RelayReq` and publishes to itself.
 `sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`, `failBroadcast`, `failRelayRequest`, `connectionForBroadcast`, `isStillInFlight`, `beginPendingConnection`, `endPendingConnection`, `sendCloseToRelay`, `sendCloseToConnection`, `reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the deprecated `authenticateIfNeeded` are gone, and so is `RequestState.registerRequest`.
 Send any message other than a REQ or an EVENT with `RelayManager.send`, which now takes the `RelayConnectionKey` of a connection and the message as a JSON array, such as `['NEG-CLOSE', subscriptionId]`, instead of a `RelayConnectivity` and a `ClientMsg`.
 `RelayManager.reconnectClosedConnections` reconnects and replays the requests that `reSubscribeInFlightSubscriptions` used to replay by hand.
@@ -105,6 +106,7 @@ A connection that is still connecting has `relay.connecting` set in `RelayManage
 `RelayConnectivity`, `Relay` and `RelayStats` are read-only: only `RelayManager` changes them, and none has a public constructor anymore.
 `RelayConnectivity` no longer has `relayTransport`, `listen` or `close`: read `isConnected`, and close a connection with `RelayManager.closeConnection`.
 `Relay` loses its setters, `tryingToConnect`, `succeededToConnect`, `failedToConnect` and `wasLastConnectTryLongerThanSeconds`.
+`Relay.lastConnectTry` and `lastSuccessfulConnect` are `DateTime`s instead of seconds since the epoch.
 `RelayStats` loses its setters, `openRequestIds` and `incStatsByNewEvent`, and its maps are unmodifiable.
 `eventsWritten` and `dataWrittenBytes` are gone: nothing ever filled them.
 `dataReadBytes` counts the UTF-8 bytes of the EVENT messages, where it used to count their UTF-16 code units.
@@ -120,7 +122,7 @@ The relay urls `dostr_core` takes and gives are `RelayUrl`s, from [`dostr_relay_
 Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
 
  - `RelayManager.connectRelay`, `closeConnectionsTo` and `openConnectionAs` take a `RelayUrl`, `connectRelay` as its first argument instead of a `dirtyUrl`.
- - `RelayManager.blockedRelays` is a `Set<RelayUrl>`, so a relay added in another spelling is blocked too.
+ - `RelayManager.blockRelay`, `unblockRelay` and `blockedRelays` take and give `RelayUrl`s, so a relay blocked in another spelling is blocked too.
  - `RelayConnectionKey.anonymous`, `RelayConnectionKey.authenticated` and `RelayConnectionKey.forAuth` take a `RelayUrl` and no longer normalize it.
  - `RelayReq.send`, `RelayPublish.send`, `RelayPublishes.publish` and the `relays` of `RelayReqs.req` take `RelayUrl`s.
  - `RelayConnectivity.url`, `Relay.url` and `RelayReqEvent.relayUrl` are `RelayUrl`s, and so are the keys of `RelayReq.outcomes` and `RelayPublish.outcomes`.
@@ -143,6 +145,8 @@ A connection that drops within a minute of opening comes back too.
 One that carries nothing `closeIdleConnections` would keep is forgotten instead, when it drops or before an attempt to bring it back: a relay that closes idle sockets used to get them reopened forever.
 `WebSocketClientNostrTransportFactory` no longer takes `reconnectMaximumStep`: `RelayManager` does.
 
+A REQ leaves a relay alone for a minute only after an attempt to connect to it failed, where it did after any attempt, one that succeeded too.
+
 #### Idle connections
 
 A connection is closed once it went without work, as `closeIdleConnections` counts it, and without any message sent or received, for `anonymousIdleTimeout` (a minute by default) or, when it is bound to an identity, `authenticatedIdleTimeout` (five minutes by default).
@@ -157,7 +161,7 @@ Use `WebSocketClientNostrTransportFactory`.
 `reconnectClosedConnections` reconnects every connection at once instead of one after the other.
 `authenticateConnection` answers false for a connection that is not open.
 
-`closeIdleConnections` no longer waits for the requests and broadcasts that have yet to pick a relay.
+`closeIdleConnections` no longer waits for the requests and publishes that have yet to pick a relay.
 A REQ never sealed, or a publish never started or failed, used to keep every connection open for good.
 
 #### REQs
@@ -190,15 +194,16 @@ Its fields are final, `broadcastSuccessful` is now `accepted` and `msg` is now `
 It no longer has `relayUrl`, since the outcomes are keyed by relay url, and two outcomes are equal when all their fields are, where two responses were equal when they came from the same relay.
 Publish a signed event with `RelayPublishes.publish`.
 To publish an event that still has to be signed, open it with `RelayPublishes.open`: it counts as in flight right away.
-Then `start` the `RelayPublish` with the signed event, `send` it to each relay with an optional `veto` and `connectTimeout`, and `seal` it, or `fail` it when signing does.
+Then `start` the `RelayPublish` with the signed event, `send` it to each relay with an optional `connectTimeout`, and `seal` it, or `fail` it when signing does.
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
 `considerDonePercent` counts the relays that accepted the event: a refusal no longer brings a publish closer to done.
+It must be between 0 and 1, or `publish` and `open` throw an `ArgumentError`.
 
 What `dostr_core` itself failed at comes as a `RelayFailure`, whose `RelayFailureKind` says what it was and whose `detail` may say more, instead of a sentence of its own in a message.
 `RelayRequestOutcome.failure` holds it for `notSent`, `RelayPublishOutcome.failure` for a relay the event did not reach, and `connectRelay` returns it.
-`RelayRequestOutcome.message` and `RelayPublishOutcome.message` only hold what the relay sent in its CLOSED or OK, and a broadcast the relay refused for want of an identity it may not reveal reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its `detail`.
+`RelayRequestOutcome.message` and `RelayPublishOutcome.message` only hold what the relay sent in its CLOSED or OK, and a publish the relay refused for want of an identity it may not reveal reports `RelayFailureKind.identityNotAllowed`, with the relay's message as its `detail`.
 
 #### Filters
 
@@ -226,7 +231,7 @@ A `created_at` of 0 is kept.
 `Nip01Event` used to read it as "now", which rewrote the `created_at` of an event received with 0 and made its id invalid.
 Leave `createdAt` out to get the current time.
 
-`Nip01Event.getTags`, `pTags`, `tTags` and `replyETags` return the values as the event holds them, where they used to trim and lowercase them.
+`Nip01Event.getTags` and `pTags` return the values as the event holds them, where they used to trim and lowercase them.
 
 `Nip01Event.tags` is a copy of the tags the event was created with, and neither it nor any of its tags can be changed: build another event with `copyWith`.
 Changing the list an event was created from used to change its tags without changing its id.
@@ -260,10 +265,9 @@ A missing `id`, which it read as `''`, is now computed.
 `Nip01Event.tryFromJson` returns null where `fromJson` throws.
 `toJson` no longer writes `"sig": null` for an unsigned event.
 
-The other deprecated members are in `package:dostr_core/dostr_core.dart`: the event ones are extension members of `Nip01Event`.
-`dostr_nip01` has none of them.
+The deprecated members are gone:
 
-| Deprecated | Use |
+| Gone | Use |
 | --- | --- |
 | `Nip01Utils.isIdValid(event)` | `event.hasValidId` |
 | `Nip01Utils.calculateId(event)` | `event.payloadId` |

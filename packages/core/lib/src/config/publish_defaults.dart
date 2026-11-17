@@ -1,4 +1,5 @@
-/// share of the relays that must answer before a publish counts as done
+/// share of the relays that must accept the event before a publish counts as
+/// done, without waiting for the others
 const double defaultConsiderDonePercent = 1.0;
 
 /// how long a publish waits for its relays

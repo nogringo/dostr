@@ -70,10 +70,10 @@ final class NotOpened extends Opening {
 
 /// A decoded relay message, in the order its relay sent it.
 typedef RelayMessageHandler =
-    Future<void> Function(
+    void Function(
       NostrMessageRaw message,
       RelayConnection connection,
-      dynamic raw,
+      String raw,
     );
 
 /// The connections of a `RelayManager`: opening, reconnecting and closing them,
@@ -121,10 +121,6 @@ class RelayConnections {
   /// connections whose socket just died, until it is settled whether they come
   /// back
   final Map<RelayConnectionKey, Completer<void>> _dropping = {};
-
-  // Track processing order per relay so EVENT/EOSE/AUTH/CLOSED ordering stays
-  // correct without introducing cross-relay head-of-line blocking.
-  final Map<RelayUrl, Completer<void>> _lastMessageCompleters = {};
 
   final _updates = BehaviorSubject<List<RelayConnection>>();
 
@@ -206,12 +202,6 @@ class RelayConnections {
   bool isGone(RelayConnectionKey key) =>
       !isConnectionOpen(key) && !isComingBack(key);
 
-  /// checks if the connection identified by [key] is connecting
-  bool isConnectionConnecting(RelayConnectionKey key) {
-    final relay = relays[key]?.relay;
-    return relay != null && relay.connecting;
-  }
-
   /// Whether a socket for [key] is still being opened.
   bool isOpening(RelayConnectionKey key) {
     final connection = relays[key];
@@ -266,17 +256,10 @@ class RelayConnections {
       return (connected: true, failure: null);
     }
 
-    if (isConnectionConnecting(connectionKey) ||
-        _connectReadyCompleters.containsKey(connectionKey)) {
+    final inFlightConnect = _connectReadyCompleters[connectionKey];
+    if (inFlightConnect != null) {
       logger.finest(() => "relay is already connecting: $connectionKey");
-      final inFlightConnect = _connectReadyCompleters[connectionKey];
-      if (inFlightConnect != null) {
-        return inFlightConnect.future;
-      }
-      return (
-        connected: false,
-        failure: const RelayFailure(RelayFailureKind.stillConnecting),
-      );
+      return inFlightConnect.future;
     }
     RelayConnection? connection = relays[connectionKey];
     final connectCompleter =
@@ -394,8 +377,8 @@ class RelayConnections {
   /// what came of it. A bound one comes back bound or not at all.
   ///
   /// One that dropped and is being brought back is left to its backoff. One
-  /// tried less than [unreachableRelayRetryAfter] ago is not tried again,
-  /// unless [retryUnreachable].
+  /// that failed to open less than [unreachableRelayRetryAfter] ago is not
+  /// tried again, unless [retryUnreachable].
   ///
   /// [as] is the identity to open a bound connection as, for a caller that has
   /// it in hand. Without it the account is looked up, which only works for a
@@ -423,11 +406,11 @@ class RelayConnections {
     final tried = relays[key]?.relay;
     if (!retryUnreachable &&
         tried != null &&
-        !tried.wasLastConnectTryLongerThan(unreachableRelayRetryAfter)) {
+        tried.failedWithin(unreachableRelayRetryAfter)) {
       return NotOpened(
         RelayFailure(
           RelayFailureKind.unreachable,
-          "tried less than ${unreachableRelayRetryAfter.inSeconds} seconds ago",
+          "failed less than ${unreachableRelayRetryAfter.inSeconds} seconds ago",
         ),
       );
     }
@@ -759,41 +742,22 @@ class RelayConnections {
     listener.endRequestsOn(key);
   }
 
-  Future<void> _handleIncomingMessage(
-    dynamic message,
-    RelayConnection connection,
-  ) async {
-    final relayUrl = connection.url;
+  void _handleIncomingMessage(dynamic message, RelayConnection connection) {
     connection.idleFor.reset();
-    final previousMessage = _lastMessageCompleters[relayUrl];
-
-    final myCompleter = Completer<void>();
-    _lastMessageCompleters[relayUrl] = myCompleter;
-
-    final nostrMsg = message is String ? decodeNostrMsg(message) : null;
-
+    if (message is! String) {
+      logger.warning(() => "Ignoring a non-text frame from ${connection.url}");
+      return;
+    }
     // a relay controls what it sends: nothing it sends may throw out of here,
     // where it would kill a process that has no zone to catch it
     try {
-      await previousMessage?.future;
-      if (nostrMsg == null) {
-        logger.warning(() => "Ignoring a non-text frame from $relayUrl");
-        return;
-      }
-      await _onMessage(nostrMsg, connection, message);
+      _onMessage(decodeNostrMsg(message), connection, message);
     } catch (error, stackTrace) {
       logger.severe(
-        () => "Could not handle a message from $relayUrl: $message",
+        () => "Could not handle a message from ${connection.url}: $message",
         error,
         stackTrace,
       );
-    } finally {
-      if (!myCompleter.isCompleted) {
-        myCompleter.complete();
-      }
-      if (identical(_lastMessageCompleters[relayUrl], myCompleter)) {
-        _lastMessageCompleters.remove(relayUrl);
-      }
     }
   }
 

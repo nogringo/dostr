@@ -79,13 +79,36 @@ void main() {
   });
 
   test('refuses a blocked url without opening anything', () async {
-    manager.blockedRelays.add(RelayUrl.parse('wss://blocked.example'));
+    await manager.blockRelay(RelayUrl.parse('wss://blocked.example'));
 
     expect(
       await manager.connectRelay(RelayUrl.parse('wss://blocked.example/')),
       (connected: false, failure: const RelayFailure(RelayFailureKind.blocked)),
     );
     expect(manager.connectivities, isEmpty);
+  });
+
+  test('blocking a relay closes its connections until unblocked', () async {
+    final relay = await startRelay(challengeOnConnect: false);
+    await manager.connectRelay(relay.url);
+    await manager.openConnectionAs(relay.url, fakeAccount(alice));
+
+    await manager.blockRelay(relay.url);
+
+    expect(manager.connectivities, isEmpty);
+    expect(manager.blockedRelays, {relay.url});
+    expect(() => manager.blockedRelays.clear(), throwsUnsupportedError);
+    expect(
+      (await manager.connectRelay(relay.url)).failure?.kind,
+      RelayFailureKind.blocked,
+    );
+
+    manager.unblockRelay(relay.url);
+
+    expect(await manager.connectRelay(relay.url), (
+      connected: true,
+      failure: null,
+    ));
   });
 
   test('connects to a relay with a null failure', () async {
@@ -102,9 +125,15 @@ void main() {
     await manager.connectRelay(relay.url);
 
     final connection =
-        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!;
-    final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
-    expect(connection.relay.lastConnectTry, closeTo(now, 120));
+        manager.connectivities[RelayConnectionKey.anonymous(relay.url)]!.relay;
+    expect(
+      DateTime.now().difference(connection.lastConnectTry!),
+      lessThan(const Duration(minutes: 1)),
+    );
+    expect(
+      connection.lastSuccessfulConnect!.isBefore(connection.lastConnectTry!),
+      isFalse,
+    );
   });
 
   test('closeConnectionsTo closes the anonymous and bound connections '

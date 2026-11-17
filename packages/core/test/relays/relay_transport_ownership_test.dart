@@ -95,7 +95,7 @@ void main() {
     factory = _Factory();
     manager = RelayManager(nostrTransportFactory: factory);
     parts = relayManagerParts(manager);
-    subscription = RequestState.subscription('live')
+    subscription = RequestState('live', closeOnEose: false)
       ..addRequest(key, [
         Filter(kinds: [1]),
       ]);

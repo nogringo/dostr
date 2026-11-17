@@ -5,9 +5,6 @@ enum RelayFailureKind {
   /// the relay is one of `RelayManager.blockedRelays`
   blocked,
 
-  /// another attempt at opening the connection was still under way
-  stillConnecting,
-
   /// the connection could not be opened
   unreachable,
 
@@ -37,9 +34,6 @@ enum RelayFailureKind {
 
   /// the relay did not accept the AUTH
   authenticationFailed,
-
-  /// the veto of the caller called it off, or failed
-  vetoed,
 }
 
 /// Why dostr_core gave up on a relay, see [RelayFailureKind].
@@ -47,7 +41,7 @@ class RelayFailure {
   final RelayFailureKind kind;
 
   /// what more there is to say, such as the error behind
-  /// [RelayFailureKind.unreachable] or the reason a veto gave
+  /// [RelayFailureKind.unreachable]
   final String? detail;
 
   const RelayFailure(this.kind, [this.detail]);

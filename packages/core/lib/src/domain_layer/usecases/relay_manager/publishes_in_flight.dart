@@ -10,78 +10,65 @@ import '../../../shared/nips/nip01/client_msg.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/relay_publish_outcome.dart';
-import 'broadcast_state.dart';
+import 'publish_state.dart';
 import 'relay_auth.dart';
 import 'relay_connection.dart';
 import 'relay_connections.dart';
 import 'relay_limits.dart';
 
 /// The EVENTs in flight on a `RelayManager`: sending them, routing each OK to
-/// the broadcasts waiting on it and moving them to a bound connection when a
+/// the publishes waiting on it and moving them to a bound connection when a
 /// relay asks for authentication. Internal to dostr_core.
-class RelayBroadcasts {
+class PublishesInFlight {
   final RelayConnections _connections;
   final RelayAuth _auth;
 
-  /// hold state information for a broadcast
-  /// key: event Id
-  /// value: one state per broadcast call, the same event can be in flight
-  /// several times at once
-  final Map<String, List<BroadcastState>> inFlight = {};
+  /// key: event id
+  /// value: one state per publish, the same event can be in flight several
+  /// times at once
+  final Map<String, List<PublishState>> inFlight = {};
 
-  RelayBroadcasts({
+  PublishesInFlight({
     required RelayConnections connections,
     required RelayAuth auth,
   }) : _connections = connections,
        _auth = auth;
 
-  /// Whether a broadcast of [eventId] is still waiting on its relays.
-  bool isBroadcasting(String eventId) => inFlight.containsKey(eventId);
+  /// Whether a publish of [eventId] is still waiting on its relays.
+  bool isPublishing(String eventId) => inFlight.containsKey(eventId);
 
-  /// Tracks [relayUrl] in [broadcastState], so its OK can be routed back.
-  void _registerRelayBroadcast({
-    required BroadcastState broadcastState,
-    required RelayUrl relayUrl,
-    required Nip01Event eventToPublish,
-  }) {
-    // Store the event for potential retries on auth-required
-    broadcastState.event ??= eventToPublish;
+  /// Tracks [relayUrl] in [state], so its OK can be routed back.
+  void _registerRelay(PublishState state, RelayUrl relayUrl, Nip01Event event) {
+    state.event ??= event;
 
-    // new tracking
-    if (broadcastState.broadcasts[relayUrl] == null) {
-      broadcastState.broadcasts[relayUrl] = const RelayPublishOutcome();
+    if (state.outcomes[relayUrl] == null) {
+      state.outcomes[relayUrl] = const RelayPublishOutcome();
     } else {
-      // do not overwrite
       logger.warning(
         () =>
-            "_registerRelayBroadcast: relay broadcast already registered for ${eventToPublish.id} $relayUrl, skipping",
+            "_registerRelay: $relayUrl already registered for ${event.id}, skipping",
       );
     }
   }
 
-  /// use this to signal a failed broadcast
-  void _failBroadcast(
-    BroadcastState broadcastState,
-    RelayUrl relay,
-    RelayFailure failure,
-  ) {
-    if (broadcastState.networkController.isClosed) {
+  void _failRelay(PublishState state, RelayUrl relay, RelayFailure failure) {
+    if (state.networkController.isClosed) {
       logger.warning(
         () =>
-            "Ignoring late failed broadcast for ${broadcastState.event?.id} on $relay because the broadcast controller is already closed",
+            "Ignoring a late failure of ${state.event?.id} on $relay: the publish is over",
       );
       return;
     }
 
-    broadcastState.networkController.add((
+    state.networkController.add((
       url: relay,
       outcome: RelayPublishOutcome(failure: failure),
     ));
   }
 
-  /// Tracks [state] as a broadcast of [eventId] until it is done, so the OK of
+  /// Tracks [state] as a publish of [eventId] until it is done, so the OK of
   /// the relays reach it.
-  void track(String eventId, BroadcastState state) {
+  void track(String eventId, PublishState state) {
     inFlight.putIfAbsent(eventId, () => []).add(state);
     void untrack() {
       final states = inFlight[eventId];
@@ -90,60 +77,30 @@ class RelayBroadcasts {
       if (states.isEmpty) inFlight.remove(eventId);
     }
 
-    state.publishDoneFuture.then(
-      (_) => untrack(),
-      onError: (_, _) => untrack(),
-    );
+    state.done.then((_) => untrack(), onError: (_, _) => untrack());
   }
 
   /// Sends [event] to [url] for [state], on the connection its [AuthPolicy]
   /// allows. The relay is tracked before this returns, and reported as failed
   /// when the EVENT cannot go out.
-  ///
-  /// [veto] is asked once the connection is up: a reason it gives not to send
-  /// after all fails the relay with that reason.
   Future<void> publishToRelay(
-    BroadcastState state,
+    PublishState state,
     RelayUrl url,
     Nip01Event event, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
-    Future<String?> Function()? veto,
   }) async {
-    _registerRelayBroadcast(
-      broadcastState: state,
-      eventToPublish: event,
-      relayUrl: url,
-    );
+    _registerRelay(state, url, event);
     try {
-      final (:relay, :failure) = await _connectionForBroadcast(
+      final (:relay, :failure) = await _connectionFor(
         state,
         url,
         connectTimeout: connectTimeout,
       );
       if (relay == null) {
-        _failBroadcast(
+        _failRelay(
           state,
           url,
           failure ?? const RelayFailure(RelayFailureKind.unreachable),
-        );
-        return;
-      }
-      final String? vetoed;
-      try {
-        vetoed = await veto?.call();
-      } catch (error) {
-        _failBroadcast(
-          state,
-          url,
-          RelayFailure(RelayFailureKind.vetoed, "$error"),
-        );
-        return;
-      }
-      if (vetoed != null) {
-        _failBroadcast(
-          state,
-          url,
-          RelayFailure(RelayFailureKind.vetoed, vetoed),
         );
         return;
       }
@@ -152,9 +109,9 @@ class RelayBroadcasts {
         ClientMsg(ClientMsgType.kEvent, event: event).toJson(),
       );
     } on MessageTooLong catch (error) {
-      _failBroadcast(state, url, error.failure);
+      _failRelay(state, url, error.failure);
     } catch (error) {
-      _failBroadcast(
+      _failRelay(
         state,
         url,
         RelayFailure(RelayFailureKind.connectionLost, "$error"),
@@ -165,12 +122,11 @@ class RelayBroadcasts {
   /// The connection [state] must go out on towards [url], opening it when it
   /// is not there yet, or why nothing may be sent.
   ///
-  /// Owns the connecting too: a broadcast that requires an identity must not
+  /// Owns the connecting too: a publish that requires an identity must not
   /// even open the anonymous connection, because a socket we opened is one the
   /// relay saw, whether or not anything was sent on it.
-  Future<({RelayConnection? relay, RelayFailure? failure})>
-  _connectionForBroadcast(
-    BroadcastState state,
+  Future<({RelayConnection? relay, RelayFailure? failure})> _connectionFor(
+    PublishState state,
     RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) async {
@@ -178,8 +134,7 @@ class RelayBroadcasts {
     final key = RelayConnectionKey.forAuth(url, auth);
     if (key == null) {
       logger.warning(
-        () =>
-            "Broadcast requires ${auth?.signer?.publicKey}, which cannot sign",
+        () => "Publish requires ${auth?.signer?.publicKey}, which cannot sign",
       );
       return (
         relay: null,
@@ -195,7 +150,7 @@ class RelayBroadcasts {
   /// A relay tried a moment ago is tried again: an EVENT is worth the wait a
   /// REQ is spared.
   Future<({RelayConnection? relay, RelayFailure? failure})> _open(
-    BroadcastState state,
+    PublishState state,
     RelayConnectionKey key, {
     NostrSigner? as,
     Duration connectTimeout = defaultWebSocketConnectTimeout,
@@ -215,7 +170,7 @@ class RelayBroadcasts {
       case ComingBack():
         final back = await Future.any([
           _connections.whenBack(key),
-          state.publishDoneFuture.then((_) => false, onError: (_, _) => false),
+          state.done.then((_) => false, onError: (_, _) => false),
         ]);
         final connection = _connections.relays[key];
         if (back && connection != null && connection.isConnected) {
@@ -232,7 +187,7 @@ class RelayBroadcasts {
   }
 
   /// A relay answers every EVENT it receives, and the same event can be in
-  /// flight in several broadcasts. An acceptance means the relay holds the
+  /// flight in several publishes. An acceptance means the relay holds the
   /// event, so it answers all of them; a refusal answers a single EVENT.
   void routeOk(
     String eventId,
@@ -240,28 +195,28 @@ class RelayBroadcasts {
     bool success,
     String msg,
   ) {
-    final waiting = _broadcastsWaitingOn(eventId, connection.url);
+    final waiting = _waitingOn(eventId, connection.url);
     if (waiting.isEmpty) {
       logger.warning(
         () =>
-            "Received OK for broadcast $eventId from ${connection.url} but no broadcast is waiting for it",
+            "Received OK for $eventId from ${connection.url} but no publish is waiting for it",
       );
       return;
     }
 
-    // not an answer yet: each broadcast retries under its own auth policy,
+    // not an answer yet: each publish retries under its own auth policy,
     // unless the relay refused the identity this connection already proved
     if (!success &&
         msg.startsWith("auth-required") &&
         !_auth.isAuthenticated(connection.key)) {
-      for (final broadcastState in waiting) {
-        _handleBroadcastAuthRequired(broadcastState, connection, msg);
+      for (final state in waiting) {
+        _handleAuthRequired(state, connection, msg);
       }
       return;
     }
 
-    for (final broadcastState in success ? waiting : waiting.take(1)) {
-      broadcastState.networkController.add((
+    for (final state in success ? waiting : waiting.take(1)) {
+      state.networkController.add((
         url: connection.url,
         outcome: RelayPublishOutcome(
           okReceived: true,
@@ -272,12 +227,12 @@ class RelayBroadcasts {
     }
   }
 
-  /// In-flight broadcasts of [eventId] sent to [relayUrl] that have no answer
+  /// In-flight publishes of [eventId] sent to [relayUrl] that have no answer
   /// from it yet.
-  List<BroadcastState> _broadcastsWaitingOn(String eventId, RelayUrl relayUrl) {
+  List<PublishState> _waitingOn(String eventId, RelayUrl relayUrl) {
     final states = inFlight[eventId] ?? const [];
     return states.where((state) {
-      final outcome = state.broadcasts[relayUrl];
+      final outcome = state.outcomes[relayUrl];
       return !state.networkController.isClosed &&
           outcome != null &&
           !outcome.okReceived &&
@@ -285,50 +240,44 @@ class RelayBroadcasts {
     }).toList();
   }
 
-  /// Handles OK auth-required for a broadcast by moving the retry onto an
+  /// Handles OK auth-required for a publish by moving the retry onto an
   /// account-bound connection, authenticating it once, and re-sending EVENT.
-  /// Concurrent broadcasts share [RelayConnections.authenticate], avoiding
+  /// Concurrent publishes share [RelayConnections.authenticate], avoiding
   /// duplicate AUTH events whose identical ids used to overwrite each other's
   /// callbacks.
-  void _handleBroadcastAuthRequired(
-    BroadcastState broadcastState,
+  void _handleAuthRequired(
+    PublishState state,
     RelayConnection connection,
     String refusal,
   ) {
     final relayUrl = connection.url;
-    // the refusal of another broadcast of the same event reaches this one too
-    if (broadcastState.retryingAuth.contains(relayUrl)) {
+    // the refusal of another publish of the same event reaches this one too
+    if (state.retryingAuth.contains(relayUrl)) {
       return;
     }
 
-    final eventToResend = broadcastState.event;
+    final eventToResend = state.event;
     if (eventToResend == null) {
       logger.warning(
         () =>
-            "Received OK auth-required from $relayUrl but no event stored for the broadcast",
+            "Received OK auth-required from $relayUrl but no event stored for the publish",
       );
       return;
     }
     final eventId = eventToResend.id;
 
-    final resolved = _auth.accountForBroadcast(
-      broadcastState.auth,
-      eventToResend,
-    );
-
-    if (resolved == null) {
+    final account = _auth.accountForPublish(state.auth, eventToResend);
+    if (account == null) {
       logger.warning(
-        () =>
-            "Cannot satisfy auth-required for broadcast $eventId on $relayUrl",
+        () => "Cannot satisfy auth-required for publish $eventId on $relayUrl",
       );
-      _failBroadcast(
-        broadcastState,
+      _failRelay(
+        state,
         relayUrl,
         RelayFailure(RelayFailureKind.identityNotAllowed, refusal),
       );
       return;
     }
-    final account = resolved;
 
     final boundKey = RelayConnectionKey.authenticated(
       relayUrl,
@@ -338,16 +287,16 @@ class RelayBroadcasts {
     Future<void> retryOnBoundConnection() async {
       try {
         final (relay: bound, :failure) = await _open(
-          broadcastState,
+          state,
           boundKey,
           as: account,
         );
-        if (broadcastState.networkController.isClosed) {
+        if (state.networkController.isClosed) {
           return;
         }
         if (bound == null) {
-          _failBroadcast(
-            broadcastState,
+          _failRelay(
+            state,
             relayUrl,
             failure ?? const RelayFailure(RelayFailureKind.noBoundConnection),
           );
@@ -366,12 +315,12 @@ class RelayBroadcasts {
         }
 
         final accepted = await _connections.authenticate(boundKey);
-        if (broadcastState.networkController.isClosed) {
+        if (state.networkController.isClosed) {
           return;
         }
         if (!accepted) {
-          _failBroadcast(
-            broadcastState,
+          _failRelay(
+            state,
             relayUrl,
             const RelayFailure(RelayFailureKind.authenticationFailed),
           );
@@ -383,13 +332,13 @@ class RelayBroadcasts {
         );
       } catch (error, stackTrace) {
         logger.severe(
-          () => "Broadcast auth retry failed for $eventId",
+          () => "Publish auth retry failed for $eventId",
           error,
           stackTrace,
         );
-        if (!broadcastState.networkController.isClosed) {
-          _failBroadcast(
-            broadcastState,
+        if (!state.networkController.isClosed) {
+          _failRelay(
+            state,
             relayUrl,
             error is MessageTooLong
                 ? error.failure
@@ -397,22 +346,22 @@ class RelayBroadcasts {
           );
         }
       } finally {
-        broadcastState.retryingAuth.remove(relayUrl);
+        state.retryingAuth.remove(relayUrl);
       }
     }
 
-    broadcastState.retryingAuth.add(relayUrl);
+    state.retryingAuth.add(relayUrl);
     unawaited(retryOnBoundConnection());
   }
 
-  /// Whether a broadcast still waits on the relay behind [key]. Broadcasts
-  /// track relay urls rather than identities, so every connection to that
-  /// relay counts.
+  /// Whether a publish still waits on the relay behind [key]. Publishes track
+  /// relay urls rather than identities, so every connection to that relay
+  /// counts.
   bool hasWorkOn(RelayConnectionKey key) => inFlight.values
       .expand((states) => states)
       .any(
         (state) =>
             !state.networkController.isClosed &&
-            state.broadcasts.containsKey(key.url),
+            state.outcomes.containsKey(key.url),
       );
 }

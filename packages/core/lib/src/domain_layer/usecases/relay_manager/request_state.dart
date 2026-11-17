@@ -5,6 +5,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
+import '../../../shared/helpers/pausable_timer.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_failure.dart';
 import '../../entities/relay_req_event.dart';
@@ -181,11 +182,11 @@ class RequestState implements TimeoutPausable {
 
   final Completer<void> _ended = Completer<void>();
 
-  Timer? _timeout;
-  DateTime? _timeoutStartedAt;
-  Duration? _timeoutLeftAtStart;
-  Duration? _remainingTimeout;
-  int _timeoutPauses = 0;
+  late final PausableTimer _timeout = PausableTimer(() {
+    timedOut = true;
+    onTimeout?.call(this);
+    close();
+  });
 
   /// completes once [end] was called
   Future<void> get ended => _ended.future;
@@ -244,72 +245,14 @@ class RequestState implements TimeoutPausable {
     this.timeoutDuration,
   }) {
     final timeout = timeoutDuration;
-    if (timeout != null) {
-      _startTimeout(timeout);
-    }
+    if (timeout != null) _timeout.start(timeout);
   }
 
-  /// A query, ended once every relay sent its EOSE.
-  RequestState.query(
-    String id, {
-    String? name,
-    AuthPolicy? auth,
-    Duration? timeout,
-  }) : this(
-         id,
-         name: name,
-         closeOnEose: true,
-         auth: auth,
-         timeoutDuration: timeout,
-       );
-
-  /// A subscription, which runs until closed.
-  RequestState.subscription(
-    String id, {
-    String? name,
-    AuthPolicy? auth,
-    Duration? timeout,
-  }) : this(
-         id,
-         name: name,
-         closeOnEose: false,
-         auth: auth,
-         timeoutDuration: timeout,
-       );
-
-  void _startTimeout(Duration duration) {
-    _timeoutStartedAt = DateTime.now();
-    _timeoutLeftAtStart = duration;
-    _timeout = Timer(duration, () {
-      timedOut = true;
-      onTimeout?.call(this);
-      close();
-    });
-  }
-
-  /// Pauses the timeout timer. Call this before signing starts.
   @override
-  void pauseTimeout() {
-    _timeoutPauses++;
-    if (_timeoutPauses > 1 || _timeout == null || !_timeout!.isActive) return;
+  void pauseTimeout() => _timeout.pause();
 
-    final elapsed = DateTime.now().difference(_timeoutStartedAt!);
-    final remaining = _timeoutLeftAtStart! - elapsed;
-    _remainingTimeout = remaining.isNegative ? Duration.zero : remaining;
-    _timeout!.cancel();
-    _timeout = null;
-  }
-
-  /// Resumes the timeout timer. Call this after signing completes.
   @override
-  void resumeTimeout() {
-    if (_timeoutPauses == 0) return;
-    _timeoutPauses--;
-    final remaining = _remainingTimeout;
-    if (_timeoutPauses > 0 || remaining == null) return;
-    _remainingTimeout = null;
-    _startTimeout(remaining);
-  }
+  void resumeTimeout() => _timeout.resume();
 
   /// Whether every relay is done with the request, see
   /// [RelayRequestState.isDone].
@@ -415,7 +358,7 @@ class RequestState implements TimeoutPausable {
   /// once its events are all delivered, rather than on [close].
   void end() {
     if (_ended.isCompleted) return;
-    _stopTimeout();
+    _timeout.cancel();
     _relayOutcomesDone = true;
     _relayOutcomesSubject?.close();
     _ended.complete();
@@ -423,14 +366,8 @@ class RequestState implements TimeoutPausable {
 
   /// closes all streams
   Future<void> close() async {
-    _stopTimeout();
+    _timeout.cancel();
     await networkController.close();
     end();
-  }
-
-  void _stopTimeout() {
-    _timeout?.cancel();
-    _timeout = null;
-    _remainingTimeout = null;
   }
 }

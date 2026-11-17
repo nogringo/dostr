@@ -9,7 +9,8 @@ void main() {
     final url = RelayUrl.parse("wss://relay.example.com");
     final filter = Filter(kinds: [Nip01Event.kTextNoteKind]);
 
-    RequestState buildState() => RequestState.subscription("outcome-test");
+    RequestState buildState() =>
+        RequestState("outcome-test", closeOnEose: false);
 
     test('a connection that went away reports disconnected', () {
       final state = buildState();
@@ -135,7 +136,7 @@ void main() {
     final key = RelayConnectionKey.anonymous(url);
 
     RequestState caughtUp() {
-      final state = RequestState.subscription("caught-up")
+      final state = RequestState("caught-up", closeOnEose: false)
         ..addRequest(key, [filter]);
       state.requests[key]!.markCaughtUp();
       return state;
@@ -183,7 +184,8 @@ void main() {
     });
 
     test('a query keeps its eose over a later timeout', () {
-      final state = RequestState.query("query")..addRequest(key, [filter]);
+      final state = RequestState("query", closeOnEose: true)
+        ..addRequest(key, [filter]);
       state.requests[key]!.markCaughtUp();
       state.timedOut = true;
 

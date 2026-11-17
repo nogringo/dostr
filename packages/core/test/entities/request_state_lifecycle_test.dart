@@ -6,8 +6,11 @@ final _filters = [
   Filter(kinds: [Nip01Event.kTextNoteKind]),
 ];
 
-RequestState _query() =>
-    RequestState.query('a-query', timeout: const Duration(seconds: 5));
+RequestState _query() => RequestState(
+  'a-query',
+  closeOnEose: true,
+  timeoutDuration: const Duration(seconds: 5),
+);
 
 void main() {
   group('RequestState.didAllRequestsFinish', () {
@@ -69,7 +72,7 @@ void main() {
 
   group('RequestState timeout pauses', () {
     RequestState withTimeout(Duration timeout) =>
-        RequestState.query('a-query', timeout: timeout);
+        RequestState('a-query', closeOnEose: true, timeoutDuration: timeout);
 
     test('the timer waits for every pause to resume', () async {
       final state = withTimeout(const Duration(milliseconds: 300));

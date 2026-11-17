@@ -148,7 +148,7 @@ outcomes.forEach((url, outcome) {
 
 - Each relay gets the event once, whatever the list holds twice.
 - A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
-- `done` completes once every relay answered, once `considerDonePercent` of them accepted the event, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
+- `done` completes once every relay answered, once `considerDonePercent` of them accepted the event, a share between 0 and 1, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
 - `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
 
@@ -225,6 +225,11 @@ A socket that drops again within 10 seconds of coming back is not retried right 
 
 A relay that could not be reached is not tried again by a REQ for a minute: the REQ ends there as `notSent`, with `RelayFailureKind.unreachable`.
 A publish tries it again.
+
+### Blocked relays
+
+`blockRelay(url)` closes the connections to a relay, and nothing connects to it again until `unblockRelay(url)`.
+A REQ sent there meanwhile ends as `notSent` and a publish fails, both with `RelayFailureKind.blocked`.
 
 When the app learns that the network is back, or comes back to the foreground, it does not have to wait for the backoff:
 

@@ -60,7 +60,7 @@ void main() {
 
   test('fails a relay it cannot connect to', () async {
     final blocked = RelayUrl.parse('wss://blocked.example');
-    manager.blockedRelays.add(blocked);
+    await manager.blockRelay(blocked);
 
     final responses = await publishes
         .publish(signedEvent(), relays: [blocked])
@@ -102,33 +102,6 @@ void main() {
     expect(relay.events, isEmpty);
   });
 
-  test('reports the reason of a veto, and a veto that failed', () async {
-    final relay = await startRelay();
-    final event = signedEvent();
-
-    Future<Map<String, RelayPublishOutcome>> publishWith(
-      Future<String?> Function() veto,
-    ) {
-      final publish = publishes.open(event)..start(event);
-      publish.send(relay.url, veto: veto);
-      publish.seal();
-      return publish.done;
-    }
-
-    final vetoed = await publishWith(() async => 'obsolete');
-    final failed = await publishWith(
-      () async => throw StateError('cache down'),
-    );
-
-    expect(
-      vetoed.values.single.failure,
-      const RelayFailure(RelayFailureKind.vetoed, 'obsolete'),
-    );
-    expect(failed.values.single.failure?.kind, RelayFailureKind.vetoed);
-    expect(failed.values.single.failure?.detail, contains('cache down'));
-    expect(relay.events, isEmpty);
-  });
-
   test('refuses an unsigned event', () {
     final unsigned = Nip01Event(pubkey: alice, kind: 1, tags: [], content: '');
 
@@ -139,6 +112,19 @@ void main() {
       ),
       throwsArgumentError,
     );
+  });
+
+  test('refuses a considerDonePercent outside 0 to 1', () {
+    for (final percent in [-0.1, 1.5, double.nan]) {
+      expect(
+        () => publishes.publish(
+          signedEvent(),
+          relays: [],
+          considerDonePercent: percent,
+        ),
+        throwsArgumentError,
+      );
+    }
   });
 
   test('is done right away without relays', () async {

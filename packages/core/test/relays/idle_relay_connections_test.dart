@@ -4,7 +4,7 @@ import 'package:dostr_core/src/domain_layer/entities/relay_connection_key.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_protocol_handler.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_publish_outcome.dart';
 import 'package:dostr_core/src/domain_layer/repositories/nostr_transport.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/broadcast_state.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/publish_state.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_connection.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
@@ -74,7 +74,7 @@ void main() {
   late RelayManagerParts parts;
   late RelayManager manager;
   final requests = <RequestState>[];
-  final broadcasts = <BroadcastState>[];
+  final publishes = <PublishState>[];
   final anonymous = RelayConnectionKey.anonymous(
     RelayUrl.parse('wss://relay.example'),
   );
@@ -103,9 +103,7 @@ void main() {
     final filters = [
       Filter(kinds: [1]),
     ];
-    final request = query
-        ? RequestState.query(id)
-        : RequestState.subscription(id);
+    final request = RequestState(id, closeOnEose: query);
     request.networkController.stream.listen((_) {});
     if (key != null) request.addRequest(key, filters);
     parts.requests.inFlight[id] = request;
@@ -113,14 +111,14 @@ void main() {
     return request;
   }
 
-  BroadcastState broadcast(String id, {RelayUrl? url}) {
-    final broadcast = BroadcastState(timeout: const Duration(minutes: 1));
-    parts.broadcasts.inFlight[id] = [broadcast];
-    broadcasts.add(broadcast);
+  PublishState publish(String id, {RelayUrl? url}) {
+    final publish = PublishState(timeout: const Duration(minutes: 1));
+    parts.publishes.inFlight[id] = [publish];
+    publishes.add(publish);
     if (url != null) {
-      broadcast.broadcasts[url] = const RelayPublishOutcome();
+      publish.outcomes[url] = const RelayPublishOutcome();
     }
-    return broadcast;
+    return publish;
   }
 
   setUp(() {
@@ -133,12 +131,12 @@ void main() {
       await request.close();
     }
     requests.clear();
-    for (final broadcast in broadcasts) {
-      if (broadcast.broadcasts.isEmpty) {
-        broadcast.closeIfNoRelays();
-      } else if (!broadcast.networkController.isClosed) {
-        for (final url in broadcast.broadcasts.keys.toList()) {
-          broadcast.networkController.add((
+    for (final publish in publishes) {
+      if (publish.outcomes.isEmpty) {
+        publish.closeIfNoRelays();
+      } else if (!publish.networkController.isClosed) {
+        for (final url in publish.outcomes.keys.toList()) {
+          publish.networkController.add((
             url: url,
             outcome: const RelayPublishOutcome(
               okReceived: true,
@@ -147,9 +145,9 @@ void main() {
           ));
         }
       }
-      await broadcast.publishDoneFuture;
+      await publish.done;
     }
-    broadcasts.clear();
+    publishes.clear();
     await manager.closeAllTransports();
   });
 
@@ -213,21 +211,18 @@ void main() {
     expect(parts.connections.relays.keys, [anonymous]);
   });
 
-  test(
-    'broadcast conservatively keeps both identities at target URL',
-    () async {
-      connect(anonymous);
-      connect(authenticated);
-      final unrelated = connect(other);
-      broadcast('event', url: anonymous.url);
-      await manager.closeIdleConnections();
-      expect(
-        parts.connections.relays.keys,
-        unorderedEquals([anonymous, authenticated]),
-      );
-      expect(unrelated.closed, isTrue);
-    },
-  );
+  test('publish conservatively keeps both identities at target URL', () async {
+    connect(anonymous);
+    connect(authenticated);
+    final unrelated = connect(other);
+    publish('event', url: anonymous.url);
+    await manager.closeIdleConnections();
+    expect(
+      parts.connections.relays.keys,
+      unorderedEquals([anonymous, authenticated]),
+    );
+    expect(unrelated.closed, isTrue);
+  });
 
   test('a request that has not picked a relay keeps nothing open', () async {
     connect(anonymous);
@@ -246,10 +241,10 @@ void main() {
     expect(parts.connections.relays.keys, [anonymous]);
   });
 
-  test('a broadcast that has not picked a relay keeps nothing open', () async {
+  test('a publish that has not picked a relay keeps nothing open', () async {
     connect(anonymous);
     connect(other);
-    broadcast('discovering');
+    publish('discovering');
     await manager.closeIdleConnections();
     expect(parts.connections.relays, isEmpty);
   });

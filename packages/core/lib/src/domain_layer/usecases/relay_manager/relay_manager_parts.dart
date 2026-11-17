@@ -1,5 +1,5 @@
+import 'publishes_in_flight.dart';
 import 'relay_auth.dart';
-import 'relay_broadcasts.dart';
 import 'relay_connections.dart';
 import 'relay_manager.dart';
 import 'relay_requests.dart';
@@ -9,13 +9,13 @@ final class RelayManagerParts {
   final RelayAuth auth;
   final RelayConnections connections;
   final RelayRequests requests;
-  final RelayBroadcasts broadcasts;
+  final PublishesInFlight publishes;
 
   const RelayManagerParts({
     required this.auth,
     required this.connections,
     required this.requests,
-    required this.broadcasts,
+    required this.publishes,
   });
 }
 

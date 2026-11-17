@@ -205,7 +205,7 @@ void main() {
 
     test('reports a blocked relay as notSent', () async {
       final blocked = RelayUrl.parse('wss://blocked.example');
-      manager.blockedRelays.add(blocked);
+      await manager.blockRelay(blocked);
 
       final req = reqs.req(relays: {blocked: notes});
 
@@ -226,6 +226,27 @@ void main() {
       expect(outcome.status, RelayRequestStatus.notSent);
       expect(outcome.failure?.kind, RelayFailureKind.unreachable);
       expect(outcome.failure?.detail, isNotNull);
+    });
+
+    test('sends to a relay it reached, once its socket dropped', () async {
+      manager.allowReconnectRelays = false;
+      final relay = await startRelay();
+      final subscription = reqs.req(
+        relays: {relay.url: notes},
+        closeOnEose: false,
+      );
+      await eventually(() => subscribed(relay, subscription));
+
+      await relay.dropConnections();
+      expect(
+        (await subscription.done)[relay.url]?.status,
+        RelayRequestStatus.disconnected,
+      );
+
+      final req = reqs.req(relays: {relay.url: notes});
+      expect(await req.done, {
+        relay.url: const RelayRequestOutcome(RelayRequestStatus.eose),
+      });
     });
   });
 

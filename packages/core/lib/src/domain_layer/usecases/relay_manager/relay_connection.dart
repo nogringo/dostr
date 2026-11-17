@@ -122,34 +122,36 @@ class MutableRelay implements Relay {
   bool connecting = false;
 
   @override
-  int? lastConnectTry;
+  DateTime? lastConnectTry;
 
   @override
-  int? lastSuccessfulConnect;
+  DateTime? lastSuccessfulConnect;
+
+  DateTime? _lastFailure;
 
   MutableRelay({required this.url});
 
-  /// set trying to connect
   void tryingToConnect() {
-    lastConnectTry = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    lastConnectTry = DateTime.now();
     connecting = true;
   }
 
-  /// mark as succeded to connect
   void succeededToConnect() {
-    lastSuccessfulConnect = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+    lastSuccessfulConnect = DateTime.now();
+    _lastFailure = null;
     connecting = false;
   }
 
-  /// mark as failed to connect
   void failedToConnect() {
+    _lastFailure = DateTime.now();
     connecting = false;
   }
 
-  bool wasLastConnectTryLongerThan(Duration duration) =>
-      lastConnectTry == null ||
-      lastConnectTry! <
-          DateTime.now().subtract(duration).millisecondsSinceEpoch ~/ 1000;
+  /// Whether its last attempt failed less than [duration] ago.
+  bool failedWithin(Duration duration) {
+    final failure = _lastFailure;
+    return failure != null && DateTime.now().difference(failure) < duration;
+  }
 }
 
 /// The [RelayStats] of a [RelayConnection].

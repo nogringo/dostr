@@ -21,7 +21,7 @@ void main() {
     return state;
   }
 
-  setUp(() => state = listened(RequestState.query('query')));
+  setUp(() => state = listened(RequestState('query', closeOnEose: true)));
 
   tearDown(() => state.close());
 
@@ -84,7 +84,11 @@ void main() {
 
   test('a paused timeout keeps the time it had left', () async {
     final timed = listened(
-      RequestState.query('timed', timeout: const Duration(milliseconds: 200)),
+      RequestState(
+        'timed',
+        closeOnEose: true,
+        timeoutDuration: const Duration(milliseconds: 200),
+      ),
     );
     addTearDown(timed.close);
     final timedOut = Completer<void>();

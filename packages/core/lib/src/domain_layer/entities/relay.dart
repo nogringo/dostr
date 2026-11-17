@@ -7,9 +7,9 @@ abstract interface class Relay {
   /// is it connecting
   bool get connecting;
 
-  /// last connection try timestamp
-  int? get lastConnectTry;
+  /// when the last attempt to connect started
+  DateTime? get lastConnectTry;
 
-  /// last successful connection
-  int? get lastSuccessfulConnect;
+  /// when the last attempt to connect succeeded
+  DateTime? get lastSuccessfulConnect;
 }

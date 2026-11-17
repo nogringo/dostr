@@ -15,7 +15,6 @@ export 'src/config/relay_defaults.dart'
 export 'src/config/request_defaults.dart';
 export 'src/data_layer/repositories/nostr_transport/websocket_client_nostr_transport_factory.dart';
 export 'src/domain_layer/entities/message_length_limit.dart';
-export 'src/domain_layer/entities/nip_01_utils.dart';
 export 'src/domain_layer/entities/relay.dart';
 export 'src/domain_layer/entities/relay_connection_key.dart';
 export 'src/domain_layer/entities/relay_connectivity.dart';

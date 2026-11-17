@@ -7,8 +7,8 @@ import 'package:dostr_signer/dostr_signer.dart';
 import '../../../config/publish_defaults.dart';
 import '../../../config/relay_defaults.dart';
 import '../../entities/relay_publish_outcome.dart';
-import '../relay_manager/broadcast_state.dart';
-import '../relay_manager/relay_broadcasts.dart';
+import '../relay_manager/publish_state.dart';
+import '../relay_manager/publishes_in_flight.dart';
 import '../relay_manager/relay_manager.dart';
 import '../relay_manager/relay_manager_parts.dart';
 
@@ -16,17 +16,17 @@ import '../relay_manager/relay_manager_parts.dart';
 ///
 /// No signing, no cache, no outbox routing and no retry.
 class RelayPublishes {
-  final RelayBroadcasts _broadcasts;
+  final PublishesInFlight _publishes;
 
   RelayPublishes({required RelayManager relayManager})
-    : _broadcasts = relayManagerParts(relayManager).broadcasts;
+    : _publishes = relayManagerParts(relayManager).publishes;
 
   /// Sends [event], which must be signed, to each of [relays] and collects
   /// their OK, on the connections [auth] allows.
   ///
   /// It is done once every relay answered or failed, once [considerDonePercent]
   /// of them accepted the event, or after [timeout], not counting NIP-42
-  /// authentication.
+  /// authentication. [considerDonePercent] is between 0 and 1.
   RelayPublish publish(
     Nip01Event event, {
     required Iterable<RelayUrl> relays,
@@ -58,15 +58,24 @@ class RelayPublishes {
     AuthPolicy? auth,
     Duration timeout = defaultPublishTimeout,
     double considerDonePercent = defaultConsiderDonePercent,
-  }) => RelayPublish._(
-    event,
-    BroadcastState(
-      timeout: timeout,
-      considerDonePercent: considerDonePercent,
-      auth: auth,
-    ),
-    _broadcasts,
-  );
+  }) {
+    if (!(considerDonePercent >= 0 && considerDonePercent <= 1)) {
+      throw ArgumentError.value(
+        considerDonePercent,
+        'considerDonePercent',
+        'must be between 0 and 1',
+      );
+    }
+    return RelayPublish._(
+      event,
+      PublishState(
+        timeout: timeout,
+        considerDonePercent: considerDonePercent,
+        auth: auth,
+      ),
+      _publishes,
+    );
+  }
 }
 
 /// One EVENT on the relays its caller picked, opened by [RelayPublishes.open]
@@ -75,8 +84,8 @@ class RelayPublish {
   /// the event as it was opened, signed or not
   final Nip01Event event;
 
-  final BroadcastState _state;
-  final RelayBroadcasts _broadcasts;
+  final PublishState _state;
+  final PublishesInFlight _publishes;
   final Set<RelayUrl> _sentTo = {};
   Nip01Event? _signed;
 
@@ -92,15 +101,15 @@ class RelayPublish {
   /// [outcomes] once the publish is done, see [RelayPublishes.publish]. Fails
   /// with the error the publish was [fail]ed on.
   // late: an unawaited failure would otherwise surface as an uncaught error
-  late final Future<Map<RelayUrl, RelayPublishOutcome>> done = _state
-      .publishDoneFuture
-      .then(_outcomesOf);
+  late final Future<Map<RelayUrl, RelayPublishOutcome>> done = _state.done.then(
+    _outcomesOf,
+  );
 
-  static Map<RelayUrl, RelayPublishOutcome> _outcomesOf(BroadcastState state) =>
-      Map.unmodifiable(state.broadcasts);
+  static Map<RelayUrl, RelayPublishOutcome> _outcomesOf(PublishState state) =>
+      Map.unmodifiable(state.outcomes);
 
-  RelayPublish._(this.event, this._state, this._broadcasts) {
-    _broadcasts.track(event.id, _state);
+  RelayPublish._(this.event, this._state, this._publishes) {
+    _publishes.track(event.id, _state);
   }
 
   /// Starts the publish with [signed], [event] once signed. The timeout runs
@@ -116,7 +125,7 @@ class RelayPublish {
       throw ArgumentError.value(signed.id, 'signed', 'must be signed');
     }
     _signed = signed;
-    if (signed.id != event.id) _broadcasts.track(signed.id, _state);
+    if (signed.id != event.id) _publishes.track(signed.id, _state);
     _state.startTimeout();
   }
 
@@ -128,13 +137,10 @@ class RelayPublish {
   /// [AuthPolicy] allows, and says whether it went out: nothing is sent once
   /// the publish is over, nor twice to a relay.
   ///
-  /// [connectTimeout] bounds the connecting. [veto] is asked once
-  /// the connection is up: a reason it gives not to send after all fails the
-  /// relay with that reason.
+  /// [connectTimeout] bounds the connecting.
   bool send(
     RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
-    Future<String?> Function()? veto,
   }) {
     final signed = _signed;
     if (signed == null) {
@@ -144,12 +150,11 @@ class RelayPublish {
       return false;
     }
     unawaited(
-      _broadcasts.publishToRelay(
+      _publishes.publishToRelay(
         _state,
         url,
         signed,
         connectTimeout: connectTimeout,
-        veto: veto,
       ),
     );
     return true;
