@@ -48,12 +48,15 @@ final outcomes = await publishes
     .done;
 ```
 
-Keep one `RelayManager` for the whole app: it holds the connections, which every `RelayReqs` and `RelayPublishes` built on it shares.
-Give it the limits of each relay from its NIP-11 document too, see [Relay limits](#relay-limits): without them, a connection keeps at most 20 REQs open.
+Keep one `RelayManager` for the whole app.
+It holds the connections, and every `RelayReqs` and `RelayPublishes` built on it shares them.
+Give it the limits of each relay from its NIP-11 document too, see [Relay limits](#relay-limits).
+Without them, a connection keeps at most 20 REQs open.
 
-Relays are named by `RelayUrl`s, the normalized urls of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which `dostr_core` exports.
-Make one with `RelayUrl.parse`, which throws a `FormatException` for a url that is not a relay's, or with `RelayUrl.tryParse`, which returns null.
-A `RelayUrl` is a `String`, so the urls `dostr_core` gives back read as strings.
+A relay is named by a `RelayUrl`, the normalized url of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which `dostr_core` exports.
+Make one with `RelayUrl.parse`, which throws a `FormatException` when the url is not a relay's.
+`RelayUrl.tryParse` returns null instead.
+A `RelayUrl` is a `String`, so the urls that `dostr_core` gives back read as strings.
 
 ## Relay REQs
 
@@ -77,7 +80,8 @@ final events = await req.events.toList();
 final outcomes = await req.done;
 ```
 
-Without `timeout`, a query ends after `defaultQueryTimeout`, 10 seconds, so a relay that never sends its EOSE cannot hold it open.
+Without `timeout`, a query ends after `defaultQueryTimeout` (10 seconds).
+A relay that never sends its EOSE cannot hold it open.
 
 ### Subscription
 
@@ -98,14 +102,13 @@ Once closed, it reports `eose` on the relays that caught up and `cancelled` on t
 
 ### What you get
 
-- Each relay gets its filters in a single REQ. A filter that matches nothing is left out, and a relay left with none is not sent to.
-
+- Each relay gets its filters in a single REQ. A filter that matches nothing is left out, and a relay left with no filter gets nothing.
 - Events are signature-checked, and invalid ones are dropped.
-- An event that matches none of the filters sent to its relay is dropped too, its `search` aside, since each relay reads that one its own way.
+- An event that matches none of the filters sent to its relay is dropped too. `search` is not checked, since each relay reads it its own way.
 - Each event comes as a `RelayReqEvent`: the `event`, and the `relayUrl` that sent it.
 - The events of a relay come in the order it sent them, even when the `EventVerifier` checks several at once.
-- Events are not deduplicated: an event two relays hold arrives twice, once from each. `events.map((e) => e.event).distinctUnique()` from rxdart keeps each one once.
-- `events` is a single-subscription stream, which keeps every event until it is listened to, without a limit: listen to a subscription right away, or close it.
+- Events are not deduplicated: an event that two relays hold arrives twice. `events.map((e) => e.event).distinctUnique()` from rxdart keeps each one once.
+- `events` is a single-subscription stream. It keeps every event until it is listened to, without a limit, so listen to a subscription right away or close it.
 - `auth` takes an `AuthPolicy`, see [NIP-42 authentication](#nip-42-authentication).
 
 ## Relay publishes
@@ -131,19 +134,20 @@ outcomes.forEach((url, outcome) {
 });
 ```
 
-- Each relay gets the event once, whatever the list holds twice.
-- The `RelayPublishOutcome` of a relay is `pending` until it answers, then `accepted` or `refused` with the `message` of its OK, `failed` with the reason in `failure`, or `timedOut`.
-- A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
-- A relay whose connection goes away after it took the event, before its OK, gets the event again once the connection is back. It fails with `RelayFailureKind.connectionLost` once nothing will bring that connection back, see [Reconnecting](#reconnecting).
-- `done` completes once every relay answered, or after `timeout`, which leaves the others `timedOut`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`. To move on once one relay accepted the event, wait on `outcomesStream` instead: the publish goes on for the others.
-- `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
+- Each relay gets the event once, even when the list names it twice.
+- The `RelayPublishOutcome` of a relay is `pending` until it answers. It then becomes `accepted` or `refused`, with the `message` of its OK, `failed`, with the reason in `failure`, or `timedOut`.
+- A relay that cannot be reached fails right away, with the reason in `failure`, rather than waiting for the timeout.
+- When a connection goes away after its relay took the event but before its OK, the event goes out again once the connection is back. It fails with `RelayFailureKind.connectionLost` once nothing will bring that connection back, see [Reconnecting](#reconnecting).
+- `done` completes once every relay answered, or after `timeout`, which leaves the others `timedOut`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url as in `RelayReqs`. To move on once one relay accepted the event, wait on `outcomesStream`: the publish goes on for the others.
+- `auth` takes an `AuthPolicy`. A relay that answers `auth-required` gets the event again, on a connection bound to the account that the policy allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
 
 ## NIP-42 authentication
 
 When a relay requires authentication, the `RelayManager` signs and sends the AUTH event, then retries the original request.
 
-A connection carries at most one identity, chosen when it is opened and immutable for its whole lifetime, so a request that authenticates moves to its own connection.
+A connection carries at most one identity, chosen when it opens and fixed for its whole lifetime.
+A request that authenticates therefore moves to a connection of its own.
 
 ### Which identity
 
@@ -162,7 +166,8 @@ final req = reqs.req(
 
 `RelayReqs`, `RelayPublishes` and the negentropy sync of [`dostr_nip77`](https://pub.dev/packages/dostr_nip77) all take `auth`.
 
-Without `auth`, a request authenticates as the account the `RelayManager` gets from its `accounts`, an `AuthAccounts` such as `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts), and only where the `AuthHandler` agrees.
+A request without `auth` authenticates only where the `AuthHandler` agrees.
+It then uses the logged-in account of the `RelayManager`'s `accounts`, an `AuthAccounts` such as `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
 
 ### AuthHandler
 
@@ -178,8 +183,8 @@ final relays = RelayManager(
 ```
 
 - `never()` is never asked about. `allow(a)`, `require(a)` and a request without `auth` authenticate only where the handler returns true.
-- `require` asks before sending, so a relay or server it refuses receives nothing. The rest asks once a relay or server refused.
-- A relay is asked when a connection bound to that pubkey opens, a Blossom server once per operation.
+- `require` asks before sending, so a relay or server it refuses receives nothing. The others ask once a relay or server refused them.
+- The handler is asked about a relay when a connection bound to that pubkey opens, and about a Blossom server once per operation.
 - The time spent waiting on the handler does not count against the request timeout.
 
 `authHandler: (_, _) async => true` authenticates as the logged-in account wherever asked.
@@ -200,21 +205,42 @@ relays.relayConnectivityChanges.listen((connections) {
 });
 ```
 
-A relay can hold several connections, one anonymous and one per identity it authenticated as, so group them by `key.url` to show one status per relay.
-Each list holds the connections as they stood when it was emitted, and nothing changes them afterwards: read `connectivities` again for their state now.
+A relay can have several connections: one anonymous, and one per identity it authenticated as.
+Group them by `key.url` to show one status per relay.
+Each list holds the connections as they stood when it was emitted, and nothing changes them afterwards.
+Read `connectivities` for their state now.
 
 ### Reconnecting
 
-A connection that drops is retried right away, then after a wait that starts at 500 milliseconds and doubles, up to `reconnectMaximumDelay` (4 seconds by default), for an hour.
-Its requests are replayed once it is back, and so are the REQs sent to it meanwhile.
-A query waits for it too, until its timeout, or until that hour gives the relay up as `disconnected`.
-A publish sent to it meanwhile waits for it as long as the publish lasts, and sends the event once it is back.
-An EVENT the dropped socket took without its OK goes out again once it is back.
-A connection given up, closed, blocked, or dropped while `allowReconnect` is false ends its REQs as `disconnected` and fails the relays its publishes still wait on with `RelayFailureKind.connectionLost`.
-A socket that drops again within 10 seconds of coming back is not retried right away, so a relay that drops every socket is not reconnected in a loop.
+A connection that drops is tried again at once.
+Each later attempt waits 500 milliseconds, then twice as long as the one before, up to `reconnectMaximumDelay` (4 seconds by default).
+A socket that drops again within 10 seconds of coming back waits for the next step, so a relay that drops every socket is not reconnected in a loop.
 
-A relay that could not be reached is not tried again by a REQ for a minute: the REQ ends there as `notSent`, with `RelayFailureKind.unreachable`.
-A publish tries it again.
+While the connection comes back:
+
+- Its requests are replayed once it is back, and so are the REQs sent to it meanwhile.
+- A query waits for it until its timeout.
+- A publish sent to it waits for it as long as the publish lasts, and sends the event once it is back.
+- An EVENT that the dropped socket took without an OK goes out again once it is back.
+
+After `reconnectGiveUpAfter` (an hour by default), the connection is given up.
+Null keeps trying for good.
+A connection given up, closed or blocked ends its REQs as `disconnected`.
+The relays its publishes still wait on fail with `RelayFailureKind.connectionLost`.
+With `allowReconnect: false`, a connection is given up as soon as it drops.
+
+A REQ does not try again a relay it could not reach less than `unreachableRelayRetryAfter` ago (a minute by default).
+It ends there as `notSent`, with `RelayFailureKind.unreachable`.
+`Duration.zero` tries every time.
+A publish always tries again.
+
+```dart
+final relays = RelayManager(
+  nostrTransportFactory: webSocketTransportFactory(),
+  reconnectGiveUpAfter: null,
+  unreachableRelayRetryAfter: const Duration(seconds: 10),
+);
+```
 
 ### Blocked relays
 
@@ -233,8 +259,14 @@ void didChangeAppLifecycleState(AppLifecycleState state) {
 
 ### Idle connections
 
-A connection opens when a request or a publish goes to its relay, and closes once nothing needs it: no live subscription, no request waiting for its answer, no publish or authentication in flight, and no message sent or received for `anonymousIdleTimeout`, a minute by default.
-A connection bound to an identity waits `authenticatedIdleTimeout`, five minutes by default, since opening it again means authenticating again.
+A connection opens when a request or a publish goes to its relay.
+It closes once it had nothing to do for `anonymousIdleTimeout` (a minute by default):
+
+- no live subscription, and no request waiting for its answer,
+- no publish or authentication in flight,
+- no message sent or received.
+
+A connection bound to an identity waits `authenticatedIdleTimeout` (five minutes by default), since opening it again means authenticating again.
 Null keeps idle connections open.
 `closeIdleConnections()` closes them right away.
 
@@ -248,19 +280,21 @@ final relays = RelayManager(
 
 ### Shutting down
 
-`closeAllConnections()` closes every connection, as `closeConnection` does for one, and the manager connects again for the next request.
-`dispose()` closes them for good: it ends every REQ and publish still in flight and closes `relayConnectivityChanges`.
+`closeAllConnections()` closes every connection, as `closeConnection` does for one.
+The manager connects again for the next request.
+`dispose()` closes them for good: it ends every REQ and publish still in flight, and closes `relayConnectivityChanges`.
 Opening a connection, a REQ or a publish on a disposed manager throws a `StateError`.
 
 ### Relay limits
 
 `RelayManager` asks two callbacks each time a socket opens, and waits up to 2 seconds for them:
 
-- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot, and subscriptions leave a quarter of them to queries, at least one when there are several. No answer gives 20, a cautious default and a tenth of what strfry accepts: answer it from the NIP-11 document, as below.
-- `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, an EVENT fails, both with `RelayFailureKind.messageTooLong`.
+- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot. Subscriptions leave a quarter of the slots to queries, and at least one when there are several. Without an answer, the limit is 20, a tenth of what strfry accepts, so answer it from the NIP-11 document as below.
+- `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, and an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
 Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.
-`CachedRelayInfoRepository` fetches it once per relay and refreshes it in the background, and `maxSubscriptions` and `maxMessageLength` read the limits from it, null for a relay that could not be reached:
+`CachedRelayInfoRepository` fetches it once per relay and refreshes it in the background.
+`maxSubscriptions` and `maxMessageLength` read the limits from it, and give null for a relay that could not be reached:
 
 ```dart
 import 'package:http/http.dart' as http;
@@ -281,7 +315,9 @@ final relays = RelayManager(
 
 Give `CachedRelayInfoRepository` a `RelayInfoCache` to keep the documents across restarts, so a socket does not wait for the network to read them.
 
-A relay that publishes no limit and closes a socket with a 1009 reads less than the longest message written there: nothing that long is sent to it again, and the other REQs go out again on the new socket.
+A relay that publishes no limit may close a socket with a 1009 (message too big).
+It reads less than the longest message written there, so nothing that long is sent to it again.
+The other REQs go out again on the new socket.
 `onMessageLengthLearned` gets the url and the most bytes the relay may still be sent.
 Store them and answer `messageLengthLimit` from them after a restart, so the limit is not learned again with another 1009.
 

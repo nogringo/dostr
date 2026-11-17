@@ -1,32 +1,35 @@
-/// how long a socket may take to open
+/// How long a socket may take to open.
 const Duration defaultWebSocketConnectTimeout = Duration(seconds: 4);
 
-/// how long a REQ leaves alone a relay it could not reach
-const Duration unreachableRelayRetryAfter = Duration(minutes: 1);
+/// How long a REQ leaves alone a relay it could not reach. A publish always
+/// tries again.
+const Duration defaultUnreachableRelayRetryAfter = Duration(minutes: 1);
 
-/// wait before the second attempt at bringing a dropped connection back
+/// The wait before the second attempt to bring back a dropped connection. The
+/// first attempt is immediate.
 const Duration reconnectInitialDelay = Duration(milliseconds: 500);
 
-/// longest wait between two attempts at bringing a dropped connection back
+/// The longest wait between two attempts to bring back a dropped connection.
 const Duration defaultReconnectMaximumDelay = Duration(seconds: 4);
 
-/// how long a dropped connection is retried before its requests are given up
-const Duration reconnectGiveUpAfter = Duration(hours: 1);
+/// How long a dropped connection is retried before its requests are given up.
+const Duration defaultReconnectGiveUpAfter = Duration(hours: 1);
 
-/// how long a socket that came back must live for its next drop to be retried
-/// right away. One that drops sooner waits the next step of its backoff
+/// How long a socket that came back must live for its next drop to be retried
+/// at once. One that drops sooner waits for the next step of its backoff.
 const Duration reconnectStableAfter = Duration(seconds: 10);
 
-/// how long an anonymous connection stays open with nothing to do
+/// How long an anonymous connection stays open with nothing to do.
 const Duration defaultAnonymousIdleTimeout = Duration(minutes: 1);
 
-/// how long a connection bound to an identity stays open with nothing to do:
-/// opening it again means authenticating again
+/// How long a connection bound to an identity stays open with nothing to do.
+/// It is longer than [defaultAnonymousIdleTimeout] because opening it again
+/// means authenticating again.
 const Duration defaultAuthenticatedIdleTimeout = Duration(minutes: 5);
 
-/// REQs a connection keeps open at once when its relay does not say otherwise
+/// How many REQs a connection keeps open at once when its relay does not say.
 const int defaultMaxSubscriptionsPerConnection = 20;
 
-/// how long a `SubscriptionLimit` or a `MessageLengthLimit` may take to
-/// answer, counted from the call
+/// How long a `SubscriptionLimit` or a `MessageLengthLimit` may take to
+/// answer.
 const Duration subscriptionLimitTimeout = Duration(seconds: 2);

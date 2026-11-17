@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_core/protocol.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
+import 'package:dostr_core/src/relay_manager_parts.dart';
+import 'package:dostr_core/src/reqs/request_state.dart';
 import 'package:test/test.dart';
 
 class _Transport implements NostrTransport {
@@ -95,10 +95,10 @@ void main() {
       allowReconnect: allowReconnect,
     );
     parts = relayManagerParts(manager);
-    subscription = RequestState('live', closeOnEose: false)
-      ..addRequest(key, [
-        Filter(kinds: [1]),
-      ]);
+    subscription = RequestState('live', closeOnEose: false);
+    subscription.addRequest(key, [
+      Filter(kinds: [1]),
+    ]).markOnItsWay();
     subscription.received.listen((_) {});
     parts.requests.inFlight[subscription.id] = subscription;
   }

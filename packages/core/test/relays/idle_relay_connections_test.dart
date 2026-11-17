@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:dostr_core/src/domain_layer/entities/relay_connection_key.dart';
-import 'package:dostr_core/src/domain_layer/entities/relay_failure.dart';
-import 'package:dostr_core/src/domain_layer/entities/relay_protocol_handler.dart';
-import 'package:dostr_core/src/domain_layer/entities/relay_publish_outcome.dart';
-import 'package:dostr_core/src/domain_layer/repositories/nostr_transport.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/publish_state.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_connection.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_protocol.dart';
-import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
+import 'package:dostr_core/src/connections/relay_connection.dart';
+import 'package:dostr_core/src/connections/relay_connection_key.dart';
+import 'package:dostr_core/src/protocol/relay_manager_protocol.dart';
+import 'package:dostr_core/src/protocol/relay_protocol_handler.dart';
+import 'package:dostr_core/src/publishes/publish_state.dart';
+import 'package:dostr_core/src/publishes/relay_publish_outcome.dart';
+import 'package:dostr_core/src/relay_failure.dart';
+import 'package:dostr_core/src/relay_manager.dart';
+import 'package:dostr_core/src/relay_manager_parts.dart';
+import 'package:dostr_core/src/reqs/request_state.dart';
+import 'package:dostr_core/src/transport/nostr_transport.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
@@ -224,18 +224,18 @@ void main() {
     },
   );
 
-  test('a request that has not picked a relay keeps nothing open', () async {
+  test('a request sent to no relay keeps nothing open', () async {
     connect(anonymous);
     connect(other);
-    request('discovering').beginPendingConnection();
+    request('nowhere');
     await manager.closeIdleConnections();
     expect(parts.connections.relays, isEmpty);
   });
 
-  test('a request still picking relays keeps only those it picked', () async {
+  test('a request whose connection is opening keeps only that one', () async {
     connect(anonymous);
     final idle = connect(other);
-    request('selecting', key: anonymous).beginPendingConnection();
+    request('opening', key: anonymous);
     await manager.closeIdleConnections();
     expect(idle.closed, isTrue);
     expect(parts.connections.relays.keys, [anonymous]);

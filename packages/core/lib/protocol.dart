@@ -3,5 +3,5 @@
 /// EVENTs.
 library;
 
-export 'src/domain_layer/entities/relay_protocol_handler.dart';
-export 'src/domain_layer/usecases/relay_manager/relay_manager_protocol.dart';
+export 'src/protocol/relay_manager_protocol.dart';
+export 'src/protocol/relay_protocol_handler.dart';

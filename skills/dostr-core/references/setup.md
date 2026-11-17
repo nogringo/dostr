@@ -34,6 +34,8 @@ Keep one `RelayManager` per app: it owns the connections.
 | `authHandler` | null | Asked before a pubkey is revealed to a relay (NIP-42). Without it, a request without `auth` stays anonymous |
 | `allowReconnect` | true | Reconnect dropped connections with backoff |
 | `reconnectMaximumDelay` | 4 s | Caps the doubling reconnect wait |
+| `reconnectGiveUpAfter` | 1 h | Ends the requests of a connection that did not come back; null keeps trying |
+| `unreachableRelayRetryAfter` | 1 min | How long a REQ leaves alone a relay it could not reach; `Duration.zero` tries every time |
 | `anonymousIdleTimeout` | 1 min | Close an unused anonymous connection; null keeps it |
 | `authenticatedIdleTimeout` | 5 min | Same for a connection bound to an identity |
 | `subscriptionLimit` | null | `(url) => int?`, REQs per socket, e.g. NIP-11 `max_subscriptions`; 20 when unknown |

@@ -1,0 +1,165 @@
+import 'dart:async';
+
+import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_signer/dostr_signer.dart';
+
+import '../connections/relay_connection_key.dart';
+import '../helpers/logger.dart';
+import '../messages/client_messages.dart';
+
+/// NIP-42 on one socket of a connection: the challenge the relay sent on it,
+/// the AUTH waiting for its OK, and whether the relay accepted it.
+///
+/// A session lasts as long as its socket. Once it [end]s, an authentication
+/// started on it can no longer land on the socket that took its place.
+class AuthSession {
+  static const _kAuthKind = 22242;
+
+  AuthSession(
+    this.key, {
+    required this.challengeTimeout,
+    required this.okTimeout,
+  });
+
+  final RelayConnectionKey key;
+
+  /// how long to wait for the challenge once authentication was asked for
+  final Duration challengeTimeout;
+
+  /// how long to wait for the OK of an AUTH
+  final Duration okTimeout;
+
+  String? _challenge;
+  Completer<String?>? _challengeWaiter;
+  Future<bool>? _authenticating;
+  ({String eventId, Completer<bool> ok})? _pendingAuth;
+  bool _authenticated = false;
+  bool _ended = false;
+
+  /// whether the relay accepted an AUTH on this socket
+  bool get authenticated => _authenticated;
+
+  /// whether an authentication is under way on this socket
+  bool get authenticating => _authenticating != null;
+
+  /// whether the socket is gone
+  bool get ended => _ended;
+
+  void receiveChallenge(String challenge) {
+    _challenge = challenge;
+    final waiter = _challengeWaiter;
+    _challengeWaiter = null;
+    if (waiter != null && !waiter.isCompleted) waiter.complete(challenge);
+  }
+
+  /// Takes the OK of [eventId] when it answers the AUTH sent on this socket.
+  bool receiveOk(String eventId, bool accepted) {
+    final pending = _pendingAuth;
+    if (pending == null || pending.eventId != eventId) return false;
+    _pendingAuth = null;
+    if (!pending.ok.isCompleted) pending.ok.complete(accepted);
+    return true;
+  }
+
+  /// Answers the challenge as [account] with an AUTH handed to [send], and
+  /// completes with whether the relay accepted it. Concurrent callers share a
+  /// single AUTH.
+  Future<bool> authenticate(
+    NostrSigner? account,
+    void Function(List<dynamic> message) send,
+  ) {
+    if (_authenticated) return Future.value(true);
+    return _authenticating ??= _authenticate(
+      account,
+      send,
+    ).whenComplete(() => _authenticating = null);
+  }
+
+  Future<bool> _authenticate(
+    NostrSigner? account,
+    void Function(List<dynamic> message) send,
+  ) async {
+    if (account == null) {
+      logger.warning(
+        () => "Cannot authenticate $key, no account for its pubkey",
+      );
+      return false;
+    }
+    if (!account.canSign) {
+      logger.warning(() => "Cannot authenticate $key, signer cannot sign");
+      return false;
+    }
+
+    // the relay may send its challenge before or with the refusal, so waiting
+    // is safe here: something already asked us to authenticate
+    final challenge = await _nextChallenge();
+    if (challenge == null || _ended) return false;
+
+    // signing throws for anything from a declined request to an unreachable
+    // signer, and a caller that paused its timeout to wait for it would never
+    // resume that timeout if the error escaped here
+    final Nip01Event signedAuth;
+    try {
+      signedAuth = await account.sign(
+        Nip01Event(
+          pubkey: account.publicKey,
+          kind: _kAuthKind,
+          tags: [
+            ["relay", key.url],
+            ["challenge", challenge],
+          ],
+          content: '',
+        ),
+      );
+    } catch (error, stackTrace) {
+      logger.warning(() => "Could not sign AUTH for $key", error, stackTrace);
+      return false;
+    }
+    if (_ended) return false;
+
+    final ok = Completer<bool>();
+    _pendingAuth = (eventId: signedAuth.id, ok: ok);
+    send(authMessage(signedAuth));
+    logger.fine(() => "AUTH sent on $key");
+
+    final accepted = await ok.future.timeout(
+      okTimeout,
+      onTimeout: () {
+        logger.warning(
+          () => "AUTH callback timeout for ${signedAuth.id} on $key",
+        );
+        return false;
+      },
+    );
+    if (identical(_pendingAuth?.ok, ok)) _pendingAuth = null;
+    if (!accepted || _ended) return false;
+    _authenticated = true;
+    return true;
+  }
+
+  /// Only call this once something asked for authentication. A relay that
+  /// only challenges on demand would never answer otherwise.
+  Future<String?> _nextChallenge() async {
+    final stored = _challenge;
+    if (stored != null || _ended) return stored;
+    final waiter = _challengeWaiter ??= Completer<String?>();
+    final challenge = await waiter.future.timeout(
+      challengeTimeout,
+      onTimeout: () => null,
+    );
+    if (identical(_challengeWaiter, waiter)) _challengeWaiter = null;
+    if (challenge == null) logger.warning(() => "No AUTH challenge from $key");
+    return challenge;
+  }
+
+  /// The socket is gone: whatever is still waiting resolves to nothing.
+  void end() {
+    _ended = true;
+    final waiter = _challengeWaiter;
+    _challengeWaiter = null;
+    if (waiter != null && !waiter.isCompleted) waiter.complete(null);
+    final pending = _pendingAuth;
+    _pendingAuth = null;
+    if (pending != null && !pending.ok.isCompleted) pending.ok.complete(false);
+  }
+}

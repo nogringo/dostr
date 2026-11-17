@@ -3,8 +3,9 @@
 - `lib/<package>.dart` is the library meant to be imported. It exports what the package offers. A part only some callers need gets a library of its own beside it: `dostr_nip01/lib/hex.dart` for event verifiers, `dostr_core/lib/protocol.dart` for protocol handlers.
 - Every other file is under `lib/src/`, which other packages do not import (the `implementation_imports` lint). The one exception is `dostr_flutter/lib/l10n/app_localizations.dart`: exported from the barrel, its generated `AppLocalizations` would clash with the app's own.
 - Inside a package, imports are relative (`prefer_relative_imports`) and sorted (`directives_ordering`).
-- A package with several layers splits `lib/src/` into the folders below, as `dostr_core`, `dostr_blossom` and `dostr_nip59` do. A small package keeps its files flat in `lib/src/`.
-- The internals of a use case sit in a folder named after it: `dostr_core/lib/src/domain_layer/usecases/relay_manager/` holds `RelayManager` and the parts it is made of.
+- A package with several layers splits `lib/src/` into the folders below, as `dostr_blossom` and `dostr_nip59` do. A small package keeps its files flat in `lib/src/`.
+- A package built around one engine groups `lib/src/` by concern instead, as `dostr_core` does: `connections/`, `auth/`, `reqs/`, `publishes/`, `transport/`, `messages/`, `protocol/` and `helpers/`, with `config/` for the defaults. Each folder holds the internals of its concern and the public types it returns, and the engine itself (`relay_manager.dart`) sits at the root of `lib/src/`.
+- The internals of a use case sit in a folder named after it.
 - A package that needs a small helper another package keeps internal has its own copy rather than reaching into that package's `lib/src/`.
 
 ## Layers
