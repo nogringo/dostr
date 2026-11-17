@@ -48,7 +48,7 @@ class PublishesInFlight {
       for (final url in state.outcomes.keys.toList()) {
         if (state.owesAnswer(url)) _failRelay(state, url, failure);
       }
-      state.closeIfNoRelays();
+      state.seal();
     }
   }
 

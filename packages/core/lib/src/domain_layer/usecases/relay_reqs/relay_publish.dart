@@ -24,25 +24,19 @@ class RelayPublishes {
   /// Sends [event], which must be signed, to each of [relays] and collects
   /// their OK, on the connections [auth] allows.
   ///
-  /// It is done once every relay answered or failed, once [considerDoneRatio]
-  /// of them accepted the event, or after [timeout], not counting NIP-42
-  /// authentication. [considerDoneRatio] is between 0 and 1.
+  /// It is done once every relay answered or failed, or after [timeout], not
+  /// counting NIP-42 authentication.
   RelayPublish publish(
     Nip01Event event, {
     required Iterable<RelayUrl> relays,
     AuthPolicy? auth,
     Duration timeout = defaultPublishTimeout,
-    double considerDoneRatio = defaultConsiderDoneRatio,
   }) {
     if (event.sig == null) {
       throw ArgumentError.value(event.id, 'event', 'must be signed');
     }
-    final relayPublish = open(
-      event,
-      auth: auth,
-      timeout: timeout,
-      considerDoneRatio: considerDoneRatio,
-    )..start(event);
+    final relayPublish = open(event, auth: auth, timeout: timeout)
+      ..start(event);
     relays.forEach(relayPublish.send);
     relayPublish.seal();
     return relayPublish;
@@ -58,25 +52,13 @@ class RelayPublishes {
     Nip01Event event, {
     AuthPolicy? auth,
     Duration timeout = defaultPublishTimeout,
-    double considerDoneRatio = defaultConsiderDoneRatio,
   }) {
     if (_publishes.disposed) {
       throw StateError('the RelayManager was disposed');
     }
-    if (!(considerDoneRatio >= 0 && considerDoneRatio <= 1)) {
-      throw ArgumentError.value(
-        considerDoneRatio,
-        'considerDoneRatio',
-        'must be between 0 and 1',
-      );
-    }
     return RelayPublish._(
       event,
-      PublishState(
-        timeout: timeout,
-        considerDoneRatio: considerDoneRatio,
-        auth: auth,
-      ),
+      PublishState(timeout: timeout, auth: auth),
       _publishes,
     );
   }
@@ -164,7 +146,8 @@ class RelayPublish {
     return true;
   }
 
-  /// The publish may end once the relays it was sent to answered. Without any,
-  /// it ends right away.
-  void seal() => _state.closeIfNoRelays();
+  /// The publish may end once the relays it was sent to answered. Until then,
+  /// it is held open for the relays still to come, up to its timeout. Without
+  /// any relay, it ends right away.
+  void seal() => _state.seal();
 }

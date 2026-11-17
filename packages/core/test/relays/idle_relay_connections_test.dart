@@ -132,16 +132,13 @@ void main() {
     }
     requests.clear();
     for (final publish in publishes) {
-      if (publish.outcomes.isEmpty) {
-        publish.closeIfNoRelays();
-      } else {
-        for (final url in publish.outcomes.keys.toList()) {
-          publish.report(
-            url,
-            const RelayPublishOutcome(okReceived: true, accepted: true),
-          );
-        }
+      for (final url in publish.outcomes.keys.toList()) {
+        publish.report(
+          url,
+          const RelayPublishOutcome(okReceived: true, accepted: true),
+        );
       }
+      publish.seal();
       await publish.done;
     }
     publishes.clear();

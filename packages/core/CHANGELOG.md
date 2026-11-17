@@ -76,7 +76,7 @@ The defaults of the parameters of `dostr_core` are top-level constants, and the 
 
 `connectTimeout`, on `RelayManager.connectRelay`, `RelayManager.openConnectionAs` and `RelayPublish.send`, is a `Duration` instead of a number of seconds, and so is `defaultWebSocketConnectTimeout`.
 
-The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout`, `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` is `defaultConsiderDoneRatio`.
+The default constants are in lowerCamelCase: `DEFAULT_WEB_SOCKET_CONNECT_TIMEOUT` is `defaultWebSocketConnectTimeout`, `RequestDefaults.DEFAULT_AUTH_CALLBACK_TIMEOUT` is `defaultAuthCallbackTimeout`, `RequestDefaults.DEFAULT_QUERY_TIMEOUT` is `defaultQueryTimeout` and `BroadcastDefaults.TIMEOUT` is `defaultPublishTimeout`.
 `RX_REPLAYSUBJECT_MAX_EVENTS`, which nothing read, is gone.
 
 #### `RelayManager`
@@ -200,12 +200,13 @@ It no longer has `relayUrl`, since the outcomes are keyed by relay url, and two 
 Publish a signed event with `RelayPublishes.publish`.
 To publish an event that still has to be signed, open it with `RelayPublishes.open`: it counts as in flight right away.
 Then `start` the `RelayPublish` with the signed event, `send` it to each relay with an optional `connectTimeout`, and `seal` it, or `fail` it when signing does.
+Until it is sealed, it only ends on its timeout, even once the relays it was sent to answered.
 
 A `RelayPublish` reports like a `RelayReq`: `outcomes`, `outcomesStream` and `done` give the `RelayPublishOutcome` of each relay, keyed by relay url.
 
-`considerDonePercent` is now `considerDoneRatio`, since it was never a percentage.
-It counts the relays that accepted the event: a refusal no longer brings a publish closer to done.
-It must be between 0 and 1, or `publish` and `open` throw an `ArgumentError`.
+`considerDonePercent` and `BroadcastDefaults.CONSIDER_DONE_PERCENT` are gone: a publish is done once every relay answered, or after its `timeout`.
+Ending a publish early also stopped sending the event again to the relays that had not answered, after an `auth-required` or a dropped connection.
+To move on once enough relays accepted the event, wait on `outcomesStream`: the publish goes on for the others.
 
 What `dostr_core` itself failed at comes as a `RelayFailure`, whose `RelayFailureKind` says what it was and whose `detail` may say more, instead of a sentence of its own in a message.
 `RelayRequestOutcome.failure` holds it for `notSent`, `RelayPublishOutcome.failure` for a relay the event did not reach, and `connectRelay` returns it.

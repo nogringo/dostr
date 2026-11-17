@@ -149,7 +149,7 @@ outcomes.forEach((url, outcome) {
 - Each relay gets the event once, whatever the list holds twice.
 - A relay that cannot be reached is reported as failed, with the reason in `failure`, instead of waiting for the timeout.
 - A relay whose connection goes away after it took the event, before its OK, gets the event again once the connection is back. It fails with `RelayFailureKind.connectionLost` once nothing will bring that connection back, see [Reconnecting](#reconnecting).
-- `done` completes once every relay answered, once `considerDoneRatio` of them accepted the event, a share between 0 and 1, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`.
+- `done` completes once every relay answered, or after `timeout`. `outcomes` and `outcomesStream` show the answers as they come, keyed by relay url like those of `RelayReqs`. To move on once one relay accepted the event, wait on `outcomesStream` instead: the publish goes on for the others.
 - `auth` takes an `AuthPolicy`: a relay that answers `auth-required` gets the event again on a connection bound to the account it allows, see [NIP-42 authentication](#nip-42-authentication).
 - An unsigned event is refused with an `ArgumentError`.
 

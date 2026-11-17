@@ -12,10 +12,6 @@ import '../../entities/timeout_pausable.dart';
 
 /// State of one publish. Internal to dostr_core.
 class PublishState implements TimeoutPausable {
-  /// share of the relays, between 0 and 1, that must accept the event for the
-  /// publish to be done before every relay answered
-  final double considerDoneRatio;
-
   final Duration timeout;
 
   /// the event being published, kept to send it again after an auth-required
@@ -62,28 +58,13 @@ class PublishState implements TimeoutPausable {
         outcome.failure == null;
   }
 
-  /// Whether every relay answered or failed, or [considerDoneRatio] of them
-  /// accepted the event.
-  bool get isDone {
-    // sealed without a relay
-    if (outcomes.isEmpty) {
-      return isOver;
-    }
-
-    final allResponded = outcomes.values.every(
-      (element) => element.okReceived || element.failure != null,
-    );
-    if (allResponded) {
-      return true;
-    }
-
-    final acceptedCount = outcomes.values
-        .where((element) => element.accepted)
-        .length
-        .toDouble();
-    final totalCount = outcomes.length.toDouble();
-    return acceptedCount / totalCount >= considerDoneRatio;
-  }
+  /// Whether the publish was [seal]ed and every relay it was sent to answered
+  /// or failed.
+  bool get isDone =>
+      _sealed &&
+      outcomes.values.every(
+        (outcome) => outcome.okReceived || outcome.failure != null,
+      );
 
   /// completes once the publish is done or timed out, fails on [addError]
   Future<PublishState> get done => _done.future;
@@ -96,19 +77,15 @@ class PublishState implements TimeoutPausable {
     }
   });
   bool _isDisposed = false;
+  bool _sealed = false;
   final Completer<PublishState> _done = Completer();
 
-  PublishState({required this.timeout, this.considerDoneRatio = 1, this.auth}) {
-    _answersSubscription = _answers.stream.listen(
-      (response) {
-        outcomes[response.url] = response.outcome;
-        _stateUpdatesController.add(this);
-        _checkDone();
-      },
-      onDone: () {
-        _checkDone();
-      },
-    );
+  PublishState({required this.timeout, this.auth}) {
+    _answersSubscription = _answers.stream.listen((response) {
+      outcomes[response.url] = response.outcome;
+      _stateUpdatesController.add(this);
+      _checkDone();
+    });
   }
 
   /// Starts the timeout timer. Call this after signing is complete.
@@ -121,7 +98,7 @@ class PublishState implements TimeoutPausable {
   void resumeTimeout() => _timeout.resume();
 
   void _checkDone() {
-    if (isDone) {
+    if (!isOver && isDone) {
       _stateUpdatesController.add(this);
       _dispose();
     }
@@ -149,9 +126,10 @@ class PublishState implements TimeoutPausable {
     _dispose();
   }
 
-  /// Ends the publish when it was sent to no relay.
-  void closeIfNoRelays() {
-    if (outcomes.isNotEmpty || isOver) return;
-    _answers.close();
+  /// Lets the publish end once the relays it was sent to answered, right away
+  /// when they all did or when it was sent to none.
+  void seal() {
+    _sealed = true;
+    _checkDone();
   }
 }

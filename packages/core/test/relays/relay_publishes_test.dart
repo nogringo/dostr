@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
@@ -158,19 +156,6 @@ void main() {
     );
   });
 
-  test('refuses a considerDoneRatio outside 0 to 1', () {
-    for (final ratio in [-0.1, 1.5, double.nan]) {
-      expect(
-        () => publishes.publish(
-          signedEvent(),
-          relays: [],
-          considerDoneRatio: ratio,
-        ),
-        throwsArgumentError,
-      );
-    }
-  });
-
   test('is done right away without relays', () async {
     final responses = await publishes
         .publish(signedEvent(), relays: [])
@@ -208,45 +193,6 @@ void main() {
       expect(response.values.single.accepted, isTrue);
     }
     expect(manager.isPublishing(event.id), isFalse);
-  });
-
-  test('is done once enough relays accepted the event', () async {
-    final fast = await startRelay();
-    final silent = await startRelay(answerEvents: false);
-
-    final responses = await publishes
-        .publish(
-          signedEvent(),
-          relays: [fast.url, silent.url],
-          considerDoneRatio: 0.5,
-        )
-        .done
-        .timeout(const Duration(seconds: 3));
-
-    expect(responses.entries.where((r) => r.value.accepted).map((r) => r.key), [
-      fast.url,
-    ]);
-  });
-
-  test('does not count a refusal towards considerDoneRatio', () async {
-    final refusing = await startRelay(rejectEventsWith: 'blocked: no');
-    final silent = await startRelay(answerEvents: false);
-    final publish = publishes.publish(
-      signedEvent(),
-      relays: [refusing.url, silent.url],
-      considerDoneRatio: 0.5,
-      timeout: const Duration(milliseconds: 500),
-    );
-    var done = false;
-    unawaited(publish.done.then((_) => done = true));
-
-    await eventually(() => publish.outcomes[refusing.url]!.okReceived);
-    await pumpEventQueue();
-    expect(done, isFalse, reason: 'the refusal made it look half done');
-
-    final responses = await publish.done;
-    expect(responses[refusing.url]!.accepted, isFalse);
-    expect(responses[silent.url]!.okReceived, isFalse);
   });
 
   test('ends on its timeout when a relay never answers', () async {
@@ -323,6 +269,37 @@ void main() {
 
       expect(publish.send(late.url), isFalse);
       expect(late.received('EVENT'), isEmpty);
+      expect(publish.seal, returnsNormally);
+    });
+
+    test('waits to be sealed, although its relays answered', () async {
+      final first = await startRelay();
+      final second = await startRelay();
+      final event = signedEvent();
+      final publish = publishes.open(event)..start(event);
+
+      publish.send(first.url);
+      await eventually(() => publish.outcomes[first.url]!.okReceived);
+      expect(publish.send(second.url), isTrue);
+      publish.seal();
+      final outcomes = await publish.done;
+
+      expect(outcomes[second.url]!.accepted, isTrue);
+      expect(second.events.single.id, event.id);
+    });
+
+    test('ends on its timeout when it is never sealed', () async {
+      final relay = await startRelay();
+      final event = signedEvent();
+      final publish = publishes.open(
+        event,
+        timeout: const Duration(milliseconds: 300),
+      )..start(event);
+
+      publish.send(relay.url);
+      await eventually(() => publish.outcomes[relay.url]!.okReceived);
+
+      expect((await publish.done)[relay.url]!.accepted, isTrue);
     });
 
     test('sends to a relay once', () async {
