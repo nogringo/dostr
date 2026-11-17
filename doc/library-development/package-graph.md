@@ -6,7 +6,7 @@ The workspace has 32 packages and 60 direct dependencies between them, with no c
 A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
 An arrow from A to B means that A depends on B.
-The graph draws 40 of the 60 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
+The graph draws 41 of the 60 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
 Names drop their `dostr_` prefix.
 The table lists every direct dependency.
 
@@ -21,7 +21,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 0 | `dostr_nip05` |  | 1 |
 | 0 | `dostr_nip11` |  | 0 |
 | 0 | `dostr_nip49` |  | 0 |
-| 0 | `dostr_relay_url` |  | 2 |
+| 0 | `dostr_relay_url` |  | 3 |
 | 0 | `dostr_secp256k1` |  | 3 |
 | 0 | `dostr_string_color` |  | 1 |
 | 0 | `dostr_url_set` |  | 1 |
@@ -34,7 +34,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 2 | `dostr_accounts` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_bip340` | `dostr_nip01`, `dostr_nip44`, `dostr_secp256k1`, `dostr_signer` | 2 |
 | 2 | `dostr_blossom` | `dostr_blossom_url`, `dostr_nip01`, `dostr_signer` | 0 |
-| 2 | `dostr_core` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 6 |
+| 2 | `dostr_core` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 5 |
 | 2 | `dostr_event_verifier_test_suite` | `dostr_nip01`, `dostr_signer` | 0 |
 | 2 | `dostr_home_relays` | `dostr_nip01`, `dostr_nip19`, `dostr_relay_url` | 1 |
 | 2 | `dostr_nip07` | `dostr_nip01`, `dostr_signer` | 1 |
@@ -42,9 +42,9 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 2 | `dostr_nip59` | `dostr_nip01`, `dostr_signer` | 0 |
 | 2 | `dostr_signer_test_suite` | `dostr_nip01`, `dostr_signer` | 0 |
 | 2 | `dostr_web_crypto` | `dostr_nip01`, `dostr_signer` | 1 |
+| 2 | `dostr_zaps` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 0 |
 | 3 | `dostr_fetchers` | `dostr_blossom_url`, `dostr_core`, `dostr_home_relays`, `dostr_url_set` | 1 |
 | 3 | `dostr_nip46` | `dostr_core` | 1 |
 | 3 | `dostr_nip77` | `dostr_core` | 1 |
-| 3 | `dostr_zaps` | `dostr_core`, `dostr_nip01`, `dostr_signer` | 0 |
 | 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip05`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_signer`, `dostr_string_color`, `dostr_web_crypto` | 0 |
 | 4 | `dostr_mock_relay` | `dostr_bip340`, `dostr_core`, `dostr_nip44`, `dostr_nip77` | 0 |

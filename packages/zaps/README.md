@@ -9,13 +9,14 @@ Paying the invoice is up to your wallet.
 dependencies:
   dostr_zaps: ^0.1.0
   dostr_bip340: ^0.1.0
+  dostr_relay_url: ^0.1.0
   http: ^1.6.0
 ```
 
 ```dart
 import 'package:http/http.dart' as http;
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_core/dostr_core.dart' show RelayUrl;
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
 
 final zaps = Zaps(

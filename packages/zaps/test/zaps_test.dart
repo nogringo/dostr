@@ -1,8 +1,8 @@
 import 'dart:convert';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:http/http.dart' as http;

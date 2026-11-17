@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import 'invoice_response.dart';
