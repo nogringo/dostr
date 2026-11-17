@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_core/src/domain_layer/entities/relay_connection_key.dart';
+import 'package:dostr_core/src/domain_layer/entities/relay_failure.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_protocol_handler.dart';
 import 'package:dostr_core/src/domain_layer/entities/relay_publish_outcome.dart';
 import 'package:dostr_core/src/domain_layer/repositories/nostr_transport.dart';
@@ -25,7 +26,6 @@ class _NeedsConnection extends RelayProtocolHandler {
 
 class _Transport implements NostrTransport {
   bool closed = false;
-  bool connecting = false;
   void Function()? onClose;
   final controller = StreamController<dynamic>();
 
@@ -34,7 +34,7 @@ class _Transport implements NostrTransport {
   @override
   bool isOpen() => !closed;
   @override
-  bool isConnecting() => connecting;
+  bool isConnecting() => false;
   @override
   Future<void> close() async {
     closed = true;
@@ -249,15 +249,14 @@ void main() {
     expect(parts.connections.relays, isEmpty);
   });
 
-  test('ongoing transport and relay connection setup are retained', () async {
-    connect(anonymous).connecting = true;
-    connect(authenticated);
-    parts.connections.relays[authenticated]!.relay.connecting = true;
+  test('a connection whose socket is being opened is retained', () async {
+    connect(anonymous);
+    connect(other);
+    final opening = Completer<RelayFailure?>();
+    parts.connections.relays[anonymous]!.opening = opening.future;
     await manager.closeIdleConnections();
-    expect(
-      parts.connections.relays.keys,
-      unorderedEquals([anonymous, authenticated]),
-    );
+    expect(parts.connections.relays.keys, [anonymous]);
+    opening.complete();
   });
 
   test(

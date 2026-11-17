@@ -187,12 +187,19 @@ class RelayManager {
 
   /// Opens the anonymous connection to [url]. Returns whether it is
   /// connected, and why if it is not. A refused connection is tried
-  /// again until [connectTimeout] runs out. A connection bound to an
-  /// identity is opened with [openConnectionAs].
+  /// again until [connectTimeout] runs out, and one that dropped is tried now
+  /// instead of after its backoff. A connection bound to an identity is
+  /// opened with [openConnectionAs].
   Future<({bool connected, RelayFailure? failure})> connectRelay(
     RelayUrl url, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
-  }) => _connections.connectRelay(url, connectTimeout: connectTimeout);
+  }) async {
+    final failure = await _connections.connectNow(
+      RelayConnectionKey.anonymous(url),
+      connectTimeout: connectTimeout,
+    );
+    return (connected: failure == null, failure: failure);
+  }
 
   /// Reconnects every connection that is not connected, even one that just
   /// failed to, and replays the requests it was carrying. Call this when the
@@ -219,12 +226,24 @@ class RelayManager {
     NostrSigner account, {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
     TimeoutPausable? pausing,
-  }) => _connections.openConnectionAs(
-    url,
-    account,
-    connectTimeout: connectTimeout,
-    pausing: pausing,
-  );
+  }) async {
+    if (!account.canSign) {
+      logger.warning(() => "Cannot bind a connection to ${account.publicKey}");
+      return null;
+    }
+    final key = RelayConnectionKey.authenticated(url, account.publicKey);
+    final failure = await _connections.connectNow(
+      key,
+      as: account,
+      pausing: pausing,
+      connectTimeout: connectTimeout,
+    );
+    if (failure != null) {
+      logger.warning(() => "Could not open $key: $failure");
+      return null;
+    }
+    return _connections.relays[key];
+  }
 
   /// Answers the challenge for [key] and completes once the relay accepted the
   /// AUTH event. Concurrent callers share a single AUTH. False when the
@@ -269,7 +288,7 @@ class RelayManager {
         final msg = _stringAt(eventJson, 3);
 
         // an AUTH is only answered by the connection it was sent on
-        final session = _auth.existingSessionOf(key);
+        final session = connection.authSession;
         if (session != null && session.receiveOk(eventId, success)) {
           if (success) {
             logger.fine(() => "AUTH OK for $eventId");
@@ -318,7 +337,7 @@ class RelayManager {
         final challenge = eventJson[1];
         logger.fine(() => "AUTH challenge from $key: $challenge");
 
-        _auth.sessionOf(key).receiveChallenge(challenge);
+        _auth.sessionOf(connection).receiveChallenge(challenge);
 
         // an anonymous connection never answers a challenge: signing here would
         // bind it to an identity nobody asked for, and every request already on
@@ -360,13 +379,15 @@ class RelayManager {
     }
   }
 
-  bool _connectionHasWork(RelayConnectionKey key) =>
-      !_connections.relays.containsKey(key) ||
-      _connections.isOpening(key) ||
-      _auth.isAuthenticating(key) ||
-      _requests.hasWorkOn(key) ||
-      _publishes.hasWorkOn(key) ||
-      _protocolHandlers.any((handler) => handler.hasWorkOn(key));
+  bool _connectionHasWork(RelayConnectionKey key) {
+    final connection = _connections.relays[key];
+    return connection == null ||
+        connection.opening != null ||
+        connection.isAuthenticating ||
+        _requests.hasWorkOn(key) ||
+        _publishes.hasWorkOn(key) ||
+        _protocolHandlers.any((handler) => handler.hasWorkOn(key));
+  }
 
   /// Closes one connection and forgets it. An entry that lost its transport, to
   /// a reset or to a failed connection attempt, is forgotten just the same:

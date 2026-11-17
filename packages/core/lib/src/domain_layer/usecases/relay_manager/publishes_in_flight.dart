@@ -208,7 +208,7 @@ class PublishesInFlight {
     // unless the relay refused the identity this connection already proved
     if (!success &&
         msg.startsWith("auth-required") &&
-        !_auth.isAuthenticated(connection.key)) {
+        !connection.isAuthenticated) {
       for (final state in waiting) {
         _handleAuthRequired(state, connection, msg);
       }
@@ -306,7 +306,7 @@ class PublishesInFlight {
         // Some relays challenge immediately; others only after seeing EVENT on
         // the bound socket. Trigger the latter, then the next auth-required OK
         // enters this method with the bound key and authenticates below.
-        if (connection.key != boundKey && !_auth.isAuthenticated(boundKey)) {
+        if (connection.key != boundKey && !bound.isAuthenticated) {
           await _connections.sendOrThrow(
             bound,
             ClientMsg(ClientMsgType.kEvent, event: eventToResend).toJson(),

@@ -434,7 +434,7 @@ class RelayRequests implements ConnectionListener {
     }
 
     if (!key.isAnonymous) {
-      final session = _auth.sessionOf(key);
+      final session = _auth.sessionOf(connection);
       if (session.authenticated) {
         // the relay refused us while we were authenticated as the only identity
         // this connection may ever assume, so there is nothing left to try

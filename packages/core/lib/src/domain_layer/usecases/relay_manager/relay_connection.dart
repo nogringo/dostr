@@ -3,13 +3,17 @@ import 'dart:collection';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../../shared/logger.dart';
 import '../../entities/relay.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/relay_connectivity.dart';
+import '../../entities/relay_failure.dart';
 import '../../entities/relay_stats.dart';
 import '../../repositories/nostr_transport.dart';
+import 'auth_session.dart';
+import 'relay_revivals.dart';
 
 /// A connection of `RelayConnections`, which alone changes it. Internal to
 /// dostr_core: everyone else sees a [RelayConnectivity].
@@ -55,6 +59,19 @@ class RelayConnection implements RelayConnectivity {
   /// written ones
   final Map<String, Object> reservedRequestIds = {};
 
+  /// the signer a bound connection was opened as: a challenge can arrive long
+  /// after whatever asked for that identity is gone
+  NostrSigner? account;
+
+  /// NIP-42 on the current socket, opened by `RelayAuth.sessionOf`
+  AuthSession? authSession;
+
+  /// the socket being opened, with why it could not be
+  Future<RelayFailure?>? opening;
+
+  /// the bringing back of a socket that dropped, see `RelayRevivals`
+  Revival? revival;
+
   RelayConnection(this.key, {this.relayTransport})
     : relay = MutableRelay(url: key.url);
 
@@ -63,6 +80,11 @@ class RelayConnection implements RelayConnectivity {
 
   @override
   bool get isConnected => relayTransport?.isOpen() ?? false;
+
+  /// whether the relay accepted an AUTH on the current socket
+  bool get isAuthenticated => authSession?.authenticated ?? false;
+
+  bool get isAuthenticating => authSession?.authenticating ?? false;
 
   /// Whether the REQ [id] holds a slot here, written or not.
   bool holdsSlot(String id) =>
@@ -87,28 +109,40 @@ class RelayConnection implements RelayConnectivity {
     );
   }
 
-  /// cancels stream subscription and closes relay transport
-  Future<void> close() async {
+  /// Retires the current socket right away, and completes once it is closed.
+  /// Never throws.
+  Future<void> close() {
     final streamSubscription = _streamSubscription;
     final transport = relayTransport;
 
     _streamSubscription = null;
     relayTransport = null;
     // the socket carried them, they die with it
+    authSession?.end();
+    authSession = null;
     stats.openRequestIds.clear();
     reservedRequestIds.clear();
     longestMessage = 0;
 
-    if (streamSubscription != null) {
-      await streamSubscription.cancel();
-    }
-    if (transport != null) {
-      await transport.close().timeout(
+    return _retire(streamSubscription, transport);
+  }
+
+  Future<void> _retire(
+    StreamSubscription? streamSubscription,
+    NostrTransport? transport,
+  ) async {
+    try {
+      final cancelled = streamSubscription?.cancel();
+      final closed = transport?.close();
+      await cancelled;
+      await closed?.timeout(
         const Duration(seconds: 3),
         onTimeout: () {
           logger.warning(() => "timeout while trying to close socket $url");
         },
       );
+    } catch (error) {
+      logger.warning(() => "Error closing the socket of $url: $error");
     }
   }
 }

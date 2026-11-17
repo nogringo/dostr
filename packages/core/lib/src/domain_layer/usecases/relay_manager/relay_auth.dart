@@ -7,6 +7,7 @@ import '../../../shared/logger.dart';
 import '../../entities/relay_connection_key.dart';
 import '../../entities/timeout_pausable.dart';
 import 'auth_session.dart';
+import 'relay_connection.dart';
 
 /// NIP-42 for a `RelayManager`: who each connection may authenticate as, and
 /// the session on its current socket. Internal to dostr_core.
@@ -23,14 +24,6 @@ class RelayAuth {
   /// how long to wait for a NIP-42 challenge once authentication was asked for
   final Duration challengeTimeout;
 
-  /// NIP-42 on the current socket of each connection, see [forget]
-  final Map<RelayConnectionKey, AuthSession> _sessions = {};
-
-  /// the account a connection was opened as, for identities the caller handed
-  /// over instead of registering. A challenge can arrive long after whatever
-  /// asked for that identity is gone, so the connection has to keep it
-  final Map<RelayConnectionKey, NostrSigner> _boundAccounts = {};
-
   /// in flight [authHandler] questions, so concurrent openings ask once
   final Map<RelayConnectionKey, Future<bool>> _consents = {};
 
@@ -41,54 +34,35 @@ class RelayAuth {
     required this.challengeTimeout,
   }) : _accounts = accounts;
 
-  /// The session on the current socket of [key], opened on first use.
-  AuthSession sessionOf(RelayConnectionKey key) => _sessions.putIfAbsent(
-    key,
-    () => AuthSession(
-      key,
-      challengeTimeout: challengeTimeout,
-      okTimeout: okTimeout,
-    ),
-  );
-
-  /// The session on the current socket of [key], if anything opened one.
-  AuthSession? existingSessionOf(RelayConnectionKey key) => _sessions[key];
-
-  bool isAuthenticated(RelayConnectionKey key) =>
-      _sessions[key]?.authenticated ?? false;
-
-  bool isAuthenticating(RelayConnectionKey key) =>
-      _sessions[key]?.authenticating ?? false;
-
-  /// Ends the NIP-42 session of [key]'s socket. Call this whenever the socket
-  /// dies or gets replaced: what is still in flight then resolves to false
-  /// instead of landing on the socket that took its place.
-  void forget(RelayConnectionKey key) => _sessions.remove(key)?.end();
-
-  /// Keeps [account] as the identity the connection behind [key] signs as.
-  void bind(RelayConnectionKey key, NostrSigner account) =>
-      _boundAccounts[key] = account;
-
-  void unbind(RelayConnectionKey key) => _boundAccounts.remove(key);
+  /// The session on the current socket of [connection], opened on first use.
+  AuthSession sessionOf(RelayConnection connection) =>
+      connection.authSession ??= AuthSession(
+        connection.key,
+        challengeTimeout: challengeTimeout,
+        okTimeout: okTimeout,
+      );
 
   /// The account [key] authenticates as. A registered account wins, because
-  /// [AuthAccounts] owns its signer's lifetime; otherwise it is the one the
-  /// caller handed to [AuthPolicy], which never had to be registered. Both
-  /// carry [RelayConnectionKey.pubkey], so this only picks a signer, never an
-  /// identity.
-  NostrSigner? accountFor(RelayConnectionKey key) {
+  /// [AuthAccounts] owns its signer's lifetime; otherwise it is [openedAs], the
+  /// one the caller handed to [AuthPolicy], which never had to be registered.
+  /// Both carry [RelayConnectionKey.pubkey], so this only picks a signer, never
+  /// an identity.
+  NostrSigner? accountFor(RelayConnectionKey key, {NostrSigner? openedAs}) {
     final pubkey = key.pubkey;
     if (pubkey == null) return null;
-    return _accounts?.getAccount(pubkey) ?? _boundAccounts[key];
+    return _accounts?.getAccount(pubkey) ?? openedAs;
   }
 
-  /// Answers the challenge for [key] with an AUTH handed to [send], and
+  /// Answers the challenge for [connection] with an AUTH handed to [send], and
   /// completes once the relay accepted it. Concurrent callers share a single
   /// AUTH.
   Future<bool> authenticate(
-    RelayConnectionKey key,
+    RelayConnection connection,
     void Function(List<dynamic> message) send,
-  ) => sessionOf(key).authenticate(accountFor(key), send);
+  ) => sessionOf(connection).authenticate(
+    accountFor(connection.key, openedAs: connection.account),
+    send,
+  );
 
   /// Whether a new connection bound to [key]'s identity may be opened, put to
   /// [authHandler] with [pausing] paused while it decides.
