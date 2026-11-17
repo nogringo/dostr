@@ -1,9 +1,9 @@
 import 'relay_connection_key.dart';
 
 /// Runs a protocol of its own over the relay connections, such as NIP-77
-/// negentropy. Once added with `RelayManager.addProtocolHandler`, it receives
-/// what `RelayManager` does not handle itself, and sends its own messages with
-/// `RelayManager.send`.
+/// negentropy. Once added with `addProtocolHandler`, from
+/// `package:dostr_core/protocol.dart`, it receives what `RelayManager` does not
+/// handle itself, and sends its own messages with `send`.
 abstract class RelayProtocolHandler {
   /// A relay message of a type `RelayManager` does not know, such as NEG-MSG.
   /// Returns whether this handler took it.

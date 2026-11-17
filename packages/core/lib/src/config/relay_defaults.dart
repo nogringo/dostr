@@ -7,8 +7,8 @@ const Duration unreachableRelayRetryAfter = Duration(minutes: 1);
 /// wait before the second attempt at bringing a dropped connection back
 const Duration reconnectInitialDelay = Duration(milliseconds: 500);
 
-/// steps of that doubling wait: 4 caps it at 4 seconds
-const int defaultReconnectMaximumStep = 4;
+/// longest wait between two attempts at bringing a dropped connection back
+const Duration defaultReconnectMaximumDelay = Duration(seconds: 4);
 
 /// how long a dropped connection is retried before its requests are given up
 const Duration reconnectGiveUpAfter = Duration(hours: 1);

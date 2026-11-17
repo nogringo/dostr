@@ -25,6 +25,10 @@ enum RelayRequestStatus {
   /// the request ran into its timeout before the relay ended it
   timedOut,
 
+  /// the request was closed, with `RelayReq.close` or by cancelling its
+  /// events, before the relay ended it
+  cancelled,
+
   /// the request never reached the relay
   notSent,
 }

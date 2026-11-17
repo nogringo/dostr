@@ -83,12 +83,12 @@ final class NotOpened extends Opening {
 class RelayConnections {
   final NostrTransportFactory nostrTransportFactory;
   final RelayAuth _auth;
-  final int _reconnectMaximumStep;
+  final Duration _reconnectMaximumDelay;
   late final RelayLimits _limits;
   late final IdleConnections _idle;
   late final RelayRevivals _revivals = RelayRevivals(
     this,
-    maximumStep: _reconnectMaximumStep,
+    maximumDelay: _reconnectMaximumDelay,
   );
 
   final ConnectionListener listener;
@@ -122,12 +122,12 @@ class RelayConnections {
     Duration? anonymousIdleTimeout,
     Duration? authenticatedIdleTimeout,
     this.allowReconnect = true,
-    int reconnectMaximumStep = defaultReconnectMaximumStep,
+    Duration reconnectMaximumDelay = defaultReconnectMaximumDelay,
     SubscriptionLimit? subscriptionLimit,
     MessageLengthLimit? messageLengthLimit,
     FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) : _auth = auth,
-       _reconnectMaximumStep = reconnectMaximumStep {
+       _reconnectMaximumDelay = reconnectMaximumDelay {
     _limits = RelayLimits(
       onKnown: (connection) => listener.admitQueuedOn(connection),
       subscriptionLimit: subscriptionLimit,
@@ -362,7 +362,7 @@ class RelayConnections {
       final elapsed = Stopwatch()..start();
       final backoff = BinaryExponentialBackoff(
         initial: reconnectInitialDelay,
-        maximumStep: _reconnectMaximumStep,
+        maximum: _reconnectMaximumDelay,
       );
       while (true) {
         transport = nostrTransportFactory(url);
@@ -467,45 +467,28 @@ class RelayConnections {
     return true;
   }
 
-  /// Sends [message] and surfaces transport churn/closed-socket failures to
-  /// the caller instead of silently dropping the write.
+  /// Sends [message] on the current socket of [connection] once it is ready,
+  /// and throws when that socket is replaced or closed first: what it still
+  /// owed is replayed on the next one.
   Future<void> sendOrThrow(
     RelayConnection connection,
     List<dynamic> message,
   ) async {
-    NostrTransport? transport = connection.relayTransport;
+    final transport = connection.relayTransport;
     if (transport == null) {
       throw StateError("relay not connected: ${connection.url}");
     }
-
     await transport.ready;
-
-    if (!identical(connection.relayTransport, transport) || !transport.isOpen) {
-      transport = connection.relayTransport;
-      if (transport == null) {
-        throw StateError(
-          "transport changed while waiting for ${connection.url}",
-        );
-      }
-
-      await transport.ready;
-
-      if (!identical(connection.relayTransport, transport) ||
-          !transport.isOpen) {
-        throw StateError(
-          "transport changed while waiting for ${connection.url}",
-        );
-      }
-    }
-
     // a REQ already waited for them in its queue
     if (message.first == 'EVENT') {
       await connection.limits.settled;
     }
-    final String encodedMsg = jsonEncode(message);
     if (!identical(connection.relayTransport, transport) || !transport.isOpen) {
-      throw StateError("transport closed before send: ${connection.url}");
+      throw StateError(
+        "socket replaced or closed before send: ${connection.url}",
+      );
     }
+    final String encodedMsg = jsonEncode(message);
     final length = utf8Length(encodedMsg);
     _limits.check(connection, length);
     if (_sendRaw(connection, transport, encodedMsg)) {

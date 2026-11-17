@@ -98,7 +98,8 @@ class RelayRequests {
     final requestId = nostrMsgRaw.requestId!;
     final event = nostrMsgRaw.nip01Event!;
 
-    if (inFlight[requestId] == null) {
+    final state = inFlight[requestId];
+    if (state == null) {
       logger.fine(
         () =>
             "EVENT from ${connection.url} for $requestId, which is not in flight",
@@ -106,33 +107,30 @@ class RelayRequests {
       return;
     }
 
-    RequestState? state = inFlight[requestId];
-    if (state != null) {
-      RelayRequestState? request = state.requests[connection.key];
-      if (request == null) {
-        logger.fine(
-          () =>
-              "EVENT from ${connection.url} for $requestId, which was not sent on ${connection.key}",
-        );
-        return;
-      }
+    final request = state.requests[connection.key];
+    if (request == null) {
+      logger.fine(
+        () =>
+            "EVENT from ${connection.url} for $requestId, which was not sent on ${connection.key}",
+      );
+      return;
+    }
 
-      if (!request.filters.any((filter) => filter.matches(event))) {
-        logger.warning(
-          () =>
-              "Dropping event ${event.id} from ${connection.url}: no filter of REQ $requestId matches it",
-        );
-        return;
-      }
+    if (!request.filters.any((filter) => filter.matches(event))) {
+      logger.warning(
+        () =>
+            "Dropping event ${event.id} from ${connection.url}: no filter of REQ $requestId matches it",
+      );
+      return;
+    }
 
-      if (state.isOver) {
-        // relays keep sending for a while after our CLOSE
-        logger.finest(
-          () => "EVENT from ${connection.url} for $requestId, which is over",
-        );
-      } else {
-        state.deliver(RelayReqEvent(event, connection.url));
-      }
+    if (state.isOver) {
+      // relays keep sending for a while after our CLOSE
+      logger.finest(
+        () => "EVENT from ${connection.url} for $requestId, which is over",
+      );
+    } else {
+      state.deliver(RelayReqEvent(event, connection.url));
     }
   }
 
@@ -360,6 +358,7 @@ class RelayRequests {
 
   /// Sends a CLOSE wherever [state] is still open on a relay, then ends it.
   Future<void> close(RequestState state) async {
+    state.cancel();
     for (final request in state.requests.values) {
       if (_queue.remove(request)) {
         request.markNotSent(

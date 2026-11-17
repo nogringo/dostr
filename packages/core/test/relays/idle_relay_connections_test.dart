@@ -9,6 +9,7 @@ import 'package:dostr_core/src/domain_layer/usecases/relay_manager/publish_state
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_connection.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
+import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_protocol.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/request_state.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';

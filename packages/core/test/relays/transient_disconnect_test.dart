@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/protocol.dart';
 import 'package:dostr_core/src/domain_layer/usecases/relay_manager/relay_manager_parts.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';

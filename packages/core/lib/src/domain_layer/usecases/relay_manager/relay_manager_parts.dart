@@ -1,3 +1,4 @@
+import '../../entities/relay_protocol_handler.dart';
 import 'publishes_in_flight.dart';
 import 'relay_auth.dart';
 import 'relay_connections.dart';
@@ -10,17 +11,20 @@ final class RelayManagerParts {
   final RelayConnections connections;
   final RelayRequests requests;
   final PublishesInFlight publishes;
+  final List<RelayProtocolHandler> protocolHandlers;
 
   const RelayManagerParts({
     required this.auth,
     required this.connections,
     required this.requests,
     required this.publishes,
+    required this.protocolHandlers,
   });
 }
 
-// Dart has no package-private members: RelayReqs, RelayPublishes and the tests
-// reach the parts through here instead of through RelayManager's public API
+// Dart has no package-private members: RelayReqs, RelayPublishes, the protocol
+// extension and the tests reach the parts through here instead of through
+// RelayManager's public API
 final _parts = Expando<RelayManagerParts>();
 
 RelayManagerParts relayManagerParts(RelayManager manager) => _parts[manager]!;

@@ -49,7 +49,7 @@ They are in [`dostr_signer`](https://pub.dev/packages/dostr_signer) with `Pendin
 
 NIP-77 is in [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), with `NegentropyEncoder` and `Nip77Result`.
 `GlobalState` no longer has `inFlightNegotiations`, `RelayManager` no longer has `onNegMsg`, `onNegErr` or `onNegClosed`.
-A protocol of its own, NIP-77 included, plugs in with `RelayManager.addProtocolHandler` and a `RelayProtocolHandler`.
+A protocol of its own, NIP-77 included, plugs in with a `RelayProtocolHandler` and `addProtocolHandler`, from `package:dostr_core/protocol.dart`, which also has `send` and `accountForAuth`.
 
 `Tuple`, `Helpers` and `MutexSimple` are gone: use `DateTime.now().millisecondsSinceEpoch ~/ 1000` for `Helpers.now`.
 `castToListOfListOfString` of `package:ndk/shared/helpers/list_casting.dart` is gone.
@@ -93,7 +93,7 @@ Nothing lists the REQs and publishes in flight: keep the `RelayReq` or `RelayPub
 
 `RelayManager` keeps the plumbing behind `RelayReq` and publishes to itself.
 `sendOrThrow`, `registerRelayRequest`, `registerRelayBroadcast`, `failBroadcast`, `failRelayRequest`, `connectionForBroadcast`, `isStillInFlight`, `beginPendingConnection`, `endPendingConnection`, `sendCloseToRelay`, `sendCloseToConnection`, `reSubscribeInFlightSubscriptions`, `updateRelayConnectivity` and the deprecated `authenticateIfNeeded` are gone, and so is `RequestState.registerRequest`.
-Send any message other than a REQ or an EVENT with `RelayManager.send`, which now takes the `RelayConnectionKey` of a connection and the message as a JSON array, such as `['NEG-CLOSE', subscriptionId]`, instead of a `RelayConnectivity` and a `ClientMsg`.
+Send any message other than a REQ or an EVENT with `send`, from `package:dostr_core/protocol.dart`, which now takes the `RelayConnectionKey` of a connection and the message as a JSON array, such as `['NEG-CLOSE', subscriptionId]`, instead of a `RelayConnectivity` and a `ClientMsg`.
 `RelayManager.reconnectClosedConnections` reconnects and replays the requests that `reSubscribeInFlightSubscriptions` used to replay by hand.
 
 `RelayManager.connectRelay` returns a `({bool connected, RelayFailure? failure})` record, with a null `failure` once connected.
@@ -147,7 +147,7 @@ A factory of your own is a function, or the `call` tear-off of an object that ha
 
 `WebSocketNostrTransportFactory`, `WebSocketNostrTransport` and `WebsocketDS` are gone: they reported a socket open before its handshake, which skipped the connect timeout and kept `closeIdleConnections` from closing anything.
 `WebsocketDSClient` and `WebSocketClientNostrTransport` are gone too: the sockets `webSocketTransportFactory` opens run on `web_socket_channel`, not on a copy of `web_socket_client`.
-`reconnectMaximumStep` moved from the WebSocket factory to `RelayManager`.
+`reconnectMaximumStep` moved from the WebSocket factory to `RelayManager`, as `reconnectMaximumDelay`: the longest wait between two attempts, a `Duration` instead of a number of doublings.
 
 ## Reconnecting
 
@@ -195,6 +195,7 @@ A subscription now reports `RelayRequestStatus.eose` on each relay that sent its
 It still runs until closed, and a CLOSED, a lost connection or its timeout replace that `eose`.
 
 Closing a connection, with `closeConnection`, `closeConnectionsTo` or `closeAllConnections`, ends the REQs still on it as `disconnected`, where they used to stay `pending` until their timeout, or for good without one.
+A REQ closed with `RelayReq.close`, or by cancelling its `events`, reports `RelayRequestStatus.cancelled` on the relays that had yet to end it, where they stayed `pending`.
 
 ## Publishes
 

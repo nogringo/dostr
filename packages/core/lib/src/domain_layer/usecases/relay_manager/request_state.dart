@@ -88,10 +88,12 @@ class RelayRequestState {
       _failure?.kind != RelayFailureKind.messageTooLong,
   };
 
-  RelayRequestOutcome outcome({required bool timedOut}) => switch (_progress) {
-    RelayReqProgress.retryingAuth => const RelayRequestOutcome(
-      RelayRequestStatus.pending,
-    ),
+  /// A request that [timedOut] or was [cancelled] reports it on the relays
+  /// that had yet to end it, a subscription that caught up excepted.
+  RelayRequestOutcome outcome({
+    required bool timedOut,
+    required bool cancelled,
+  }) => switch (_progress) {
     RelayReqProgress.caughtUp when isQuery => const RelayRequestOutcome(
       RelayRequestStatus.eose,
     ),
@@ -110,9 +112,9 @@ class RelayRequestState {
     RelayReqProgress.caughtUp => const RelayRequestOutcome(
       RelayRequestStatus.eose,
     ),
-    RelayReqProgress.pending => const RelayRequestOutcome(
-      RelayRequestStatus.pending,
-    ),
+    _ when cancelled => const RelayRequestOutcome(RelayRequestStatus.cancelled),
+    RelayReqProgress.pending || RelayReqProgress.retryingAuth =>
+      const RelayRequestOutcome(RelayRequestStatus.pending),
   };
 
   void _moveTo(
@@ -250,6 +252,19 @@ class RequestState implements TimeoutPausable {
     _refreshRelayOutcomes();
   }
 
+  bool _cancelled = false;
+
+  /// set when the request was closed before the relays ended it, other than by
+  /// its timeout
+  bool get cancelled => _cancelled;
+
+  /// Marks the request as closed by its caller, unless it is over or timed out.
+  void cancel() {
+    if (_cancelled || _timedOut || isOver) return;
+    _cancelled = true;
+    _refreshRelayOutcomes();
+  }
+
   /// told once [timeoutDuration] ran out
   void Function(RequestState)? onTimeout;
 
@@ -334,7 +349,7 @@ class RequestState implements TimeoutPausable {
   bool _recomputeRelayOutcome(RelayUrl url) {
     RelayRequestOutcome? collapsed;
     for (final request in _requestsByUrl[url] ?? const <RelayRequestState>[]) {
-      final outcome = request.outcome(timedOut: timedOut);
+      final outcome = request.outcome(timedOut: timedOut, cancelled: cancelled);
       if (collapsed == null || outcome.status.index < collapsed.status.index) {
         collapsed = outcome;
       }

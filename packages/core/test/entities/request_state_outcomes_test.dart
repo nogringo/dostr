@@ -128,6 +128,32 @@ void main() {
         url: RelayRequestOutcome(RelayRequestStatus.pending),
       });
     });
+
+    test('a timeout ends a relay retrying its authentication', () {
+      final state = buildState();
+      final key = RelayConnectionKey.anonymous(url);
+      state.addRequest(key, [filter]);
+      state.requests[key]!
+        ..markClosed(null)
+        ..markRetryingAuth();
+      state.timedOut = true;
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.timedOut),
+      });
+    });
+
+    test('a request closed on its timeout is not cancelled', () {
+      final state = buildState();
+      final key = RelayConnectionKey.anonymous(url);
+      state.addRequest(key, [filter]);
+      state.timedOut = true;
+      state.cancel();
+
+      expect(state.relayOutcomes, {
+        url: RelayRequestOutcome(RelayRequestStatus.timedOut),
+      });
+    });
   });
 
   group('a subscription after its EOSE', () {

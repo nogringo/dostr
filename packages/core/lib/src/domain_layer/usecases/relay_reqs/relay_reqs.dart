@@ -191,6 +191,8 @@ final class RelayReq {
     unawaited(_requests.sendToRelay(_state, url, matchable));
   }
 
-  /// Sends a CLOSE to the relays still serving the request, then ends it.
+  /// Sends a CLOSE to the relays still serving the request, then ends it. A
+  /// relay that had yet to end it reports [RelayRequestStatus.cancelled], or
+  /// [RelayRequestStatus.eose] for a subscription that caught up there.
   Future<void> close() => _closing ??= _requests.close(_state);
 }

@@ -10,7 +10,7 @@ export 'src/config/relay_defaults.dart'
     show
         defaultAnonymousIdleTimeout,
         defaultAuthenticatedIdleTimeout,
-        defaultReconnectMaximumStep,
+        defaultReconnectMaximumDelay,
         defaultWebSocketConnectTimeout;
 export 'src/config/request_defaults.dart';
 export 'src/data_layer/repositories/nostr_transport/web_socket_transport_factory.dart';
@@ -18,7 +18,6 @@ export 'src/domain_layer/entities/message_length_limit.dart';
 export 'src/domain_layer/entities/relay_connection_key.dart';
 export 'src/domain_layer/entities/relay_connectivity.dart';
 export 'src/domain_layer/entities/relay_failure.dart';
-export 'src/domain_layer/entities/relay_protocol_handler.dart';
 export 'src/domain_layer/entities/relay_publish_outcome.dart';
 export 'src/domain_layer/entities/relay_req_event.dart';
 export 'src/domain_layer/entities/relay_request_outcome.dart';

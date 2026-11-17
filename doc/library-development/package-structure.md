@@ -1,6 +1,6 @@
 # Package structure
 
-- `lib/<package>.dart` is the only library meant to be imported. It exports what the package offers.
+- `lib/<package>.dart` is the library meant to be imported. It exports what the package offers. A part only some callers need gets a library of its own beside it: `dostr_nip01/lib/hex.dart` for event verifiers, `dostr_core/lib/protocol.dart` for protocol handlers.
 - Every other file is under `lib/src/`, which other packages do not import (the `implementation_imports` lint). The one exception is `dostr_flutter/lib/l10n/app_localizations.dart`: exported from the barrel, its generated `AppLocalizations` would clash with the app's own.
 - Inside a package, imports are relative (`prefer_relative_imports`) and sorted (`directives_ordering`).
 - A package with several layers splits `lib/src/` into the folders below, as `dostr_core`, `dostr_blossom` and `dostr_nip59` do. A small package keeps its files flat in `lib/src/`.

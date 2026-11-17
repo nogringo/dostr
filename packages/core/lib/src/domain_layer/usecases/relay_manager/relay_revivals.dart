@@ -29,10 +29,10 @@ class Revival {
   /// completes once the connection is back, given up or no longer revived
   Completer<void> settled = Completer();
 
-  Revival(int maximumStep, this.retired)
+  Revival(Duration maximumDelay, this.retired)
     : backoff = BinaryExponentialBackoff(
         initial: reconnectInitialDelay,
-        maximumStep: maximumStep,
+        maximum: maximumDelay,
       );
 
   void _settle() {
@@ -45,10 +45,10 @@ class Revival {
 /// or [reconnectGiveUpAfter] gave up on it. Internal to dostr_core.
 class RelayRevivals {
   final RelayConnections _connections;
-  final int _maximumStep;
+  final Duration _maximumDelay;
 
-  RelayRevivals(this._connections, {required int maximumStep})
-    : _maximumStep = maximumStep;
+  RelayRevivals(this._connections, {required Duration maximumDelay})
+    : _maximumDelay = maximumDelay;
 
   /// Whether [connection] dropped and is being brought back.
   bool isReviving(RelayConnection connection) =>
@@ -76,7 +76,7 @@ class RelayRevivals {
       return;
     }
     stop(connection);
-    connection.revival = Revival(_maximumStep, retired);
+    connection.revival = Revival(_maximumDelay, retired);
     unawaited(hurry(connection));
   }
 

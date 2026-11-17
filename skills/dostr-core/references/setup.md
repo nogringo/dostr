@@ -33,7 +33,7 @@ Keep one `RelayManager` per app: it owns the connections.
 | `accounts` | null | `AuthAccounts` (e.g. `Accounts` from `dostr_accounts`) a request without `auth` may authenticate as |
 | `authHandler` | null | Asked before a pubkey is revealed to a relay (NIP-42). Without it, a request without `auth` stays anonymous |
 | `allowReconnect` | true | Reconnect dropped connections with backoff |
-| `reconnectMaximumStep` | 4 | Caps the doubling reconnect wait (4 → 4 s) |
+| `reconnectMaximumDelay` | 4 s | Caps the doubling reconnect wait |
 | `anonymousIdleTimeout` | 1 min | Close an unused anonymous connection; null keeps it |
 | `authenticatedIdleTimeout` | 5 min | Same for a connection bound to an identity |
 | `subscriptionLimit` | null | `(url) => int?`, REQs per socket, e.g. NIP-11 `max_subscriptions`; 20 when unknown |

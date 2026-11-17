@@ -104,6 +104,22 @@ void main() {
     });
 
     test(
+      'reports cancelled a relay it was closed on before it ended',
+      () async {
+        final relay = await startRelay(answerRequests: false);
+        final req = reqs.req(relays: {relay.url: notes});
+        await eventually(() => subscribed(relay, req));
+
+        await req.close();
+
+        expect(
+          (await req.done)[relay.url]!.status,
+          RelayRequestStatus.cancelled,
+        );
+      },
+    );
+
+    test(
       'gets the default timeout when given none, unlike a subscription',
       () async {
         final relay = await startRelay(answerRequests: false);
@@ -388,6 +404,26 @@ void main() {
 
       await req.done;
       await eventually(() => !subscribed(relay, req));
+    });
+
+    test('once closed, keeps eose where it caught up', () async {
+      final caughtUp = await startRelay();
+      final silent = await startRelay(answerRequests: false);
+      final req = reqs.req(
+        relays: {caughtUp.url: notes, silent.url: notes},
+        closeOnEose: false,
+      );
+      req.events.listen((_) {});
+      await eventually(
+        () => req.outcomes[caughtUp.url]?.status == RelayRequestStatus.eose,
+      );
+
+      await req.close();
+
+      expect(await req.done, {
+        caughtUp.url: const RelayRequestOutcome(RelayRequestStatus.eose),
+        silent.url: const RelayRequestOutcome(RelayRequestStatus.cancelled),
+      });
     });
 
     test('is sent again once the relay drops the connection', () async {

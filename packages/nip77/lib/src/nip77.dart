@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/protocol.dart';
 
 import 'logger.dart';
 import 'negentropy.dart' as neg;

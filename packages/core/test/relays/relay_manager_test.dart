@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_core/protocol.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';

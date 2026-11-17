@@ -137,6 +137,21 @@ void main() {
       expect(relay.received('AUTH'), isEmpty);
     });
 
+    test('the timeout does not count the authentication', () async {
+      final relay = await startRelay(requireAuthForRequests: true);
+      relay.events.add(signedEvent(createdAt: 1));
+
+      final outcomes = await reqs
+          .req(
+            relays: {relay.url: notes},
+            auth: AuthPolicy.allow(_SlowAuthSigner(alice)),
+            timeout: _shorterThanAuth,
+          )
+          .done;
+
+      expect(outcomes[relay.url]!.status, RelayRequestStatus.eose);
+    });
+
     group('without a policy', () {
       late FakeAuthAccounts accounts;
 
@@ -251,5 +266,35 @@ void main() {
       expect(responses.values.single.accepted, isTrue);
       expect(relay.clients, hasLength(1));
     });
+
+    test('the timeout does not count the authentication', () async {
+      final relay = await startRelay(requireAuthForEvents: true);
+
+      final responses = await publishes
+          .publish(
+            signedEvent(),
+            relays: [relay.url],
+            auth: AuthPolicy.require(_SlowAuthSigner(bob)),
+            timeout: _shorterThanAuth,
+          )
+          .done;
+
+      expect(responses.values.single.accepted, isTrue);
+    });
   });
+}
+
+const _authSigningTime = Duration(milliseconds: 500);
+const _shorterThanAuth = Duration(milliseconds: 200);
+
+/// Takes [_authSigningTime] to sign an AUTH, as a remote signer waiting for
+/// its user does.
+class _SlowAuthSigner extends FakeSigner {
+  _SlowAuthSigner(super.publicKey);
+
+  @override
+  Future<Nip01Event> sign(Nip01Event event) async {
+    if (event.kind == 22242) await Future<void>.delayed(_authSigningTime);
+    return super.sign(event);
+  }
 }

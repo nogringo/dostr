@@ -76,13 +76,12 @@ final class RelayManager {
   /// bound to an identity is opened.
   ///
   /// A connection that drops is retried right away, then after a wait that
-  /// starts at 500 milliseconds and doubles each time, for an hour. The
-  /// default [reconnectMaximumStep] of 4 caps that wait at 4 seconds. Its
-  /// requests are replayed once it is back. A socket that drops again within
-  /// 10 seconds of coming back is not retried right away: it goes on with that
-  /// wait. A connection that carries nothing
-  /// [closeIdleConnections] would keep, when it drops or before an attempt, is
-  /// forgotten instead.
+  /// starts at 500 milliseconds and doubles each time, up to
+  /// [reconnectMaximumDelay], for an hour. Its requests are replayed once it
+  /// is back. A socket that drops again within 10 seconds of coming back is
+  /// not retried right away: it goes on with that wait. A connection that
+  /// carries nothing [closeIdleConnections] would keep, when it drops or
+  /// before an attempt, is forgotten instead.
   ///
   /// A connection with nothing [closeIdleConnections] would keep it for, and
   /// no message sent or received, is closed after [anonymousIdleTimeout], or
@@ -108,7 +107,7 @@ final class RelayManager {
     required NostrTransportFactory nostrTransportFactory,
     AuthAccounts? accounts,
     bool allowReconnect = true,
-    int reconnectMaximumStep = defaultReconnectMaximumStep,
+    Duration reconnectMaximumDelay = defaultReconnectMaximumDelay,
     Duration? anonymousIdleTimeout = defaultAnonymousIdleTimeout,
     Duration? authenticatedIdleTimeout = defaultAuthenticatedIdleTimeout,
     Duration authCallbackTimeout = defaultAuthCallbackTimeout,
@@ -118,19 +117,13 @@ final class RelayManager {
     MessageLengthLimit? messageLengthLimit,
     FutureOr<void> Function(RelayUrl url, int length)? onMessageLengthLearned,
   }) {
-    if (reconnectMaximumStep <= 0) {
-      throw ArgumentError.value(
-        reconnectMaximumStep,
-        'reconnectMaximumStep',
-        'must be positive',
-      );
-    }
-    for (final (name, timeout) in [
+    for (final (name, duration) in [
+      ('reconnectMaximumDelay', reconnectMaximumDelay),
       ('anonymousIdleTimeout', anonymousIdleTimeout),
       ('authenticatedIdleTimeout', authenticatedIdleTimeout),
     ]) {
-      if (timeout != null && timeout <= Duration.zero) {
-        throw ArgumentError.value(timeout, name, 'must be positive');
+      if (duration != null && duration <= Duration.zero) {
+        throw ArgumentError.value(duration, name, 'must be positive');
       }
     }
     _auth = RelayAuth(
@@ -146,7 +139,7 @@ final class RelayManager {
       anonymousIdleTimeout: anonymousIdleTimeout,
       authenticatedIdleTimeout: authenticatedIdleTimeout,
       allowReconnect: allowReconnect,
-      reconnectMaximumStep: reconnectMaximumStep,
+      reconnectMaximumDelay: reconnectMaximumDelay,
       subscriptionLimit: subscriptionLimit,
       messageLengthLimit: messageLengthLimit,
       onMessageLengthLearned: onMessageLengthLearned,
@@ -160,19 +153,9 @@ final class RelayManager {
         connections: _connections,
         requests: _requests,
         publishes: _publishes,
+        protocolHandlers: _protocolHandlers,
       ),
     );
-  }
-
-  /// Hands [handler] the messages, CLOSED and NOTICE this manager does not
-  /// handle itself, and keeps the connections it still needs open.
-  void addProtocolHandler(RelayProtocolHandler handler) {
-    _protocolHandlers.add(handler);
-  }
-
-  /// Stops handing messages to [handler].
-  void removeProtocolHandler(RelayProtocolHandler handler) {
-    _protocolHandlers.remove(handler);
   }
 
   /// Opens the anonymous connection to [url]. Returns whether it is
@@ -197,12 +180,6 @@ final class RelayManager {
   /// app learns that the network is back.
   Future<void> reconnectClosedConnections() =>
       _connections.reconnectClosedConnections();
-
-  /// Sends [message], a JSON array such as `["NEG-CLOSE", subscriptionId]`, on
-  /// the connection behind [key] once its socket is ready. It is dropped, and
-  /// logged, when there is no such connection or its socket goes away first.
-  void send(RelayConnectionKey key, List<dynamic> message) =>
-      _connections.send(key, message);
 
   /// Opens the connection towards [url] bound to [account]. The binding says
   /// which identity this socket may ever assume, not that it is already
@@ -245,9 +222,6 @@ final class RelayManager {
       _connections.isConnectionOpen(key)
       ? _connections.authenticate(key)
       : Future.value(false);
-
-  /// Account [auth] authenticates as, null when it must stay unattributable.
-  NostrSigner? accountForAuth(AuthPolicy? auth) => _auth.accountForAuth(auth);
 
   /// Routes a message from [connection] to whatever it answers.
   void _dispatch(NostrMessageRaw nostrMsg, RelayConnection connection) {

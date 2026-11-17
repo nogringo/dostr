@@ -1,15 +1,15 @@
-/// Delays that start at [initial] and double on each [next], until they were
-/// doubled `maximumStep - 1` times.
+/// Delays that start at [initial] and double on each [next], up to [maximum].
 class BinaryExponentialBackoff {
-  BinaryExponentialBackoff({required this.initial, required this.maximumStep});
+  BinaryExponentialBackoff({required this.initial, required this.maximum});
 
   final Duration initial;
-  final int maximumStep;
-  int _doublings = 0;
+  final Duration maximum;
+  late Duration _delay = initial < maximum ? initial : maximum;
 
   Duration next() {
-    final delay = initial * (1 << _doublings);
-    if (_doublings + 1 < maximumStep) _doublings++;
+    final delay = _delay;
+    final doubled = delay * 2;
+    _delay = doubled < maximum ? doubled : maximum;
     return delay;
   }
 }

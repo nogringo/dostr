@@ -14,7 +14,7 @@ final req = reqs.req(
 await for (final received in req.events) {
   print('${received.relayUrl}: ${received.event.content}');
 }
-final outcomes = await req.done; // per relay: eose, closed, notSent, disconnected, timedOut
+final outcomes = await req.done; // per relay: eose, closed, notSent, disconnected, timedOut, cancelled
 ```
 
 - `closeOnEose: false` makes it a subscription; `req.close()` or cancelling the listener sends CLOSE.

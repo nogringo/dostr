@@ -32,7 +32,8 @@ class RelayConnectionKey {
   ///
   /// Null means no connection can satisfy it and nothing may be sent to that
   /// relay: falling back to the anonymous one is exactly what the caller ruled
-  /// out. A null [auth] keeps the historical default.
+  /// out. A null [auth] starts on the anonymous connection, as
+  /// [AuthPolicy.allow] does.
   static RelayConnectionKey? forAuth(RelayUrl url, AuthPolicy? auth) =>
       switch (auth) {
         AuthPolicyRequire(:final signer) =>

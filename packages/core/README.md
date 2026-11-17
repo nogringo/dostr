@@ -73,7 +73,7 @@ final req = reqs.req(
 );
 
 final events = await req.events.toList();
-// per relay: eose, closed, notSent, disconnected or timedOut
+// per relay: eose, closed, notSent, disconnected, timedOut or cancelled
 final outcomes = await req.done;
 ```
 
@@ -94,6 +94,7 @@ await listener.cancel();
 ```
 
 A subscription has no timeout unless it is given one.
+Once closed, it reports `eose` on the relays that caught up and `cancelled` on the others.
 
 ### What you get
 
@@ -204,7 +205,7 @@ Each list holds the connections as they stood when it was emitted, and nothing c
 
 ### Reconnecting
 
-A connection that drops is retried right away, then after a wait that starts at 500 milliseconds and doubles, up to `reconnectMaximumStep` (4 seconds by default), for an hour.
+A connection that drops is retried right away, then after a wait that starts at 500 milliseconds and doubles, up to `reconnectMaximumDelay` (4 seconds by default), for an hour.
 Its requests are replayed once it is back, and so are the REQs sent to it meanwhile.
 A query waits for it too, until its timeout, or until that hour gives the relay up as `disconnected`.
 A publish sent to it meanwhile waits for it as long as the publish lasts, and sends the event once it is back.
@@ -300,6 +301,11 @@ Disabling compression can reduce memory and codec overhead for long-running serv
 Compression remains enabled by default.
 
 Browser WebSocket APIs do not expose compression negotiation controls, so this setting has no effect on web builds.
+
+## Protocols of your own
+
+A protocol that runs over the relay connections besides REQs and EVENTs, such as the NIP-77 negentropy of [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), imports `package:dostr_core/protocol.dart`.
+Its `RelayProtocolHandler`, added with `addProtocolHandler`, receives the messages, CLOSED and NOTICE the `RelayManager` does not handle itself, and sends its own with `send`.
 
 ## Logging
 

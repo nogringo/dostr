@@ -314,7 +314,13 @@ class PublishesInFlight {
         await _write(state, relay, connection);
         return;
       }
-      final accepted = await _connections.authenticate(bound);
+      final bool accepted;
+      state.pauseTimeout();
+      try {
+        accepted = await _connections.authenticate(bound);
+      } finally {
+        state.resumeTimeout();
+      }
       if (state.isOver) return;
       if (!accepted) {
         _fail(
