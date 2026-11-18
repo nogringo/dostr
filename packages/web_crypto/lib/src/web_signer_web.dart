@@ -1,109 +1,79 @@
-import 'dart:async';
 import 'dart:js_interop';
 import 'dart:math';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:rxdart/rxdart.dart';
-import 'package:web/web.dart' as web;
 
 import 'js_interop.dart';
-import 'nostr_crypto_js.dart';
 
-/// Web factory: produces [WebSigner] instances using @noble/curves.
+/// Makes [WebSigner]s.
 class WebSignerFactory implements LocalSignerFactory {
   const WebSignerFactory();
 
   @override
-  NostrSigner create(String privateKey) =>
-      WebSigner(privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
+  NostrSigner create(String privateKey) => WebSigner(privateKey);
 
   @override
-  NostrSigner readOnly(String publicKey) =>
-      WebSigner(privateKey: null, publicKey: publicKey);
+  NostrSigner readOnly(String publicKey) => WebSigner.readOnly(publicKey);
 
   @override
   KeyPair generateKeyPair() {
     final random = Random.secure();
-    final privateKey = List.generate(
-      32,
-      (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
-    ).join();
+    final privateKey = bytesToHex(
+      List.generate(32, (_) => random.nextInt(256)),
+    );
     return (privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
   }
 
   @override
   NostrSigner createWithNewKeyPair() {
     final (:privateKey, :publicKey) = generateKeyPair();
-    return WebSigner(privateKey: privateKey, publicKey: publicKey);
-  }
-
-  String _publicKeyOf(String privateKey) {
-    WebSigner._injectJS();
-    return WebSigner._requireNostrCrypto().getPublicKey(privateKey.toJS).toDart;
+    return WebSigner._(privateKey, publicKey);
   }
 }
 
-/// Web implementation of NostrSigner using @noble/curves and Web Crypto API
-/// via JS interop for fast BIP-340 signing, NIP-04 and NIP-44 encryption.
+String _publicKeyOf(String privateKey) {
+  final crypto = nostrCrypto;
+  try {
+    return crypto.getPublicKey(privateKey.toJS).toDart;
+  } catch (_) {
+    throw const FormatException('Not a valid private key');
+  }
+}
+
+/// A [NostrSigner] that holds its private key and signs, encrypts and
+/// decrypts with @noble through JS interop: BIP-340, NIP-04 and NIP-44.
 class WebSigner implements NostrSigner {
-  /// hex private key
+  /// The hex private key, or null for a read-only signer.
   final String? privateKey;
 
-  /// hex public key
   @override
   final String publicKey;
-
-  final Completer<bool> _isInitialized = Completer<bool>();
-  static bool _jsInjected = false;
 
   // Bounded: each gift wrap comes from a one-off key that never comes back.
   static const _maxConversationKeys = 256;
   final _conversationKeys = <String, JSUint8Array>{};
 
-  /// Get a new web signer with the given keys
+  /// A signer for [privateKey], with the public key it derives.
+  ///
+  /// Throws a [FormatException] when [privateKey] is not a valid private key.
+  WebSigner(String privateKey) : this._(privateKey, _publicKeyOf(privateKey));
+
+  /// A signer that knows [publicKey] only: [canSign] is false, and every
+  /// other operation throws a [StateError].
   ///
   /// Throws a [FormatException] when [publicKey] is not 64 lowercase hex
   /// characters.
-  WebSigner({required this.privateKey, required String publicKey})
-    : publicKey = isLowercaseHex(publicKey, length: 64)
-          ? publicKey
-          : throw const FormatException('Not a valid public key') {
-    _init();
-  }
+  WebSigner.readOnly(String publicKey)
+    : this._(null, _checkedPublicKey(publicKey));
 
-  Future<void> _init() async {
-    if (!_jsInjected) {
-      _injectJS();
-      _jsInjected = true;
-    }
-    _isInitialized.complete(true);
-  }
+  WebSigner._(this.privateKey, this.publicKey);
 
-  static void _injectJS() {
-    // Check if already loaded (e.g., via index.html or WebEventVerifier)
-    if (nostrCrypto != null) {
-      return;
-    }
-
-    final script =
-        web.document.createElement('script') as web.HTMLScriptElement;
-    script.type = 'text/javascript';
-    script.text = nostrCryptoJs;
-    web.document.head?.appendChild(script);
-  }
-
-  static NostrCrypto _requireNostrCrypto() =>
-      nostrCrypto ??
-      (throw Exception(
-        'NostrCrypto not available. JS injection may have failed.',
-      ));
-
-  Future<NostrCrypto> _getCrypto() async {
-    await _isInitialized.future;
-    return _requireNostrCrypto();
-  }
+  static String _checkedPublicKey(String publicKey) =>
+      isLowercaseHex(publicKey, length: 64)
+      ? publicKey
+      : throw const FormatException('Not a valid public key');
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
@@ -117,17 +87,15 @@ class WebSigner implements NostrSigner {
     }
 
     final id = event.payloadId;
-    final crypto = await _getCrypto();
-    final signature = await crypto.signEvent(key.toJS, id.toJS).toDart;
-
-    return event.copyWith(id: id, sig: signature.toDart);
+    final sig = nostrCrypto.signEvent(key.toJS, id.toJS).toDart;
+    return event.copyWith(id: id, sig: sig);
   }
 
   @override
   Future<String> decryptNip04({
     required String ciphertext,
     required String senderPubkey,
-  }) => _crypto(
+  }) async => _crypto(
     'NIP-04 decryption failed',
     (crypto, key) =>
         crypto.nip04Decrypt(key.toJS, senderPubkey.toJS, ciphertext.toJS),
@@ -137,22 +105,20 @@ class WebSigner implements NostrSigner {
   Future<String> encryptNip04({
     required String plaintext,
     required String recipientPubkey,
-  }) => _crypto(
+  }) async => _crypto(
     'NIP-04 encryption failed',
     (crypto, key) =>
         crypto.nip04Encrypt(key.toJS, recipientPubkey.toJS, plaintext.toJS),
   );
 
   @override
-  bool get canSign {
-    return privateKey != null && privateKey!.isNotEmpty;
-  }
+  bool get canSign => privateKey != null;
 
   @override
   Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
-  }) => _crypto(
+  }) async => _crypto(
     'NIP-44 encryption failed',
     (crypto, key) => crypto.nip44Encrypt(
       _conversationKey(crypto, key, recipientPubkey),
@@ -164,7 +130,7 @@ class WebSigner implements NostrSigner {
   Future<String> decryptNip44({
     required String ciphertext,
     required String senderPubkey,
-  }) => _crypto(
+  }) async => _crypto(
     'NIP-44 decryption failed',
     (crypto, key) => crypto.nip44Decrypt(
       _conversationKey(crypto, key, senderPubkey),
@@ -172,23 +138,19 @@ class WebSigner implements NostrSigner {
     ),
   );
 
-  String _privateKey() {
-    final key = privateKey;
-    if (key == null || key.isEmpty) {
-      throw StateError('A read-only signer cannot sign, encrypt or decrypt');
-    }
-    return key;
-  }
+  String _privateKey() =>
+      privateKey ??
+      (throw StateError('A read-only signer cannot sign, encrypt or decrypt'));
 
   // the input comes from others, such as a ciphertext a relay served
-  Future<String> _crypto(
+  String _crypto(
     String failure,
-    JSPromise<JSString> Function(NostrCrypto crypto, String privateKey) run,
-  ) async {
+    JSString Function(NostrCrypto crypto, String privateKey) run,
+  ) {
     final key = _privateKey();
-    final crypto = await _getCrypto();
+    final crypto = nostrCrypto;
     try {
-      return (await run(crypto, key).toDart).toDart;
+      return run(crypto, key).toDart;
     } catch (error) {
       throw SignerRequestFailedException(failure, cause: error);
     }
@@ -208,23 +170,16 @@ class WebSigner implements NostrSigner {
     return _conversationKeys[pubkey] = key;
   }
 
-  // Local signer - no pending requests (operations are instant)
-  final _pendingRequestsController =
-      BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
-
   @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>
-      _pendingRequestsController.stream;
+      Stream.value(const []);
 
   @override
-  List<PendingSignerRequest> get pendingRequests => [];
+  List<PendingSignerRequest> get pendingRequests => const [];
 
   @override
   bool cancelRequest(String requestId) => false;
 
   @override
-  Future<void> dispose() async {
-    _conversationKeys.clear();
-    await _pendingRequestsController.close();
-  }
+  Future<void> dispose() async => _conversationKeys.clear();
 }

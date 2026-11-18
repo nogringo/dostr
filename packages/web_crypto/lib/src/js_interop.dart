@@ -1,28 +1,42 @@
 import 'dart:js_interop';
 
-@JS('NostrCrypto')
-external NostrCrypto? get nostrCrypto;
+import 'package:web/web.dart' as web;
 
-@JS()
-@anonymous
+import 'nostr_crypto_js.dart';
+
+@JS('NostrCrypto')
+external NostrCrypto? get _loadedNostrCrypto;
+
+/// The bundle of `js/nostr_crypto.src.js`, injected into the page on first
+/// use unless the page already loaded it.
+final NostrCrypto nostrCrypto = _loadNostrCrypto();
+
+NostrCrypto _loadNostrCrypto() {
+  if (_loadedNostrCrypto case final loaded?) return loaded;
+  final script = web.document.createElement('script') as web.HTMLScriptElement
+    ..text = nostrCryptoJs;
+  web.document.head!.append(script);
+  return _loadedNostrCrypto ??
+      (throw StateError(
+        'The NostrCrypto bundle did not run: a Content-Security-Policy may '
+        'block inline scripts, see the dostr_web_crypto README',
+      ));
+}
+
 extension type NostrCrypto._(JSObject _) implements JSObject {
-  external JSPromise<JSBoolean> verifyEvent(NostrEventJS event);
-  external JSPromise<JSBoolean> verifySignature(
+  external JSBoolean verifySignature(
     JSString signatureHex,
-    JSString messageHash,
+    JSString hashHex,
     JSString publicKeyHex,
   );
-  external JSPromise<JSString> signEvent(
-    JSString privateKeyHex,
-    JSString messageHashHex,
-  );
+  external JSString signEvent(JSString privateKeyHex, JSString hashHex);
   external JSString getPublicKey(JSString privateKeyHex);
-  external JSPromise<JSString> nip04Encrypt(
+  external JSString nip04Encrypt(
     JSString privateKeyHex,
     JSString publicKeyHex,
     JSString plaintext,
   );
-  external JSPromise<JSString> nip04Decrypt(
+  external JSString nip04Decrypt(
     JSString privateKeyHex,
     JSString publicKeyHex,
     JSString ciphertext,
@@ -31,40 +45,13 @@ extension type NostrCrypto._(JSObject _) implements JSObject {
     JSString privateKeyHex,
     JSString publicKeyHex,
   );
-  external JSPromise<JSString> nip44Encrypt(
+  external JSString nip44Encrypt(
     JSUint8Array conversationKey,
-    JSString plaintext,
-  );
-  external JSPromise<JSString> nip44Decrypt(
+    JSString plaintext, [
+    JSUint8Array nonce,
+  ]);
+  external JSString nip44Decrypt(
     JSUint8Array conversationKey,
     JSString payloadB64,
   );
-}
-
-@JS('Object')
-extension type NostrEventJS._(JSObject _) implements JSObject {
-  external factory NostrEventJS();
-
-  external String get id;
-  external set id(String value);
-
-  external String get sig;
-  external set sig(String value);
-
-  external String get pubkey;
-  external set pubkey(String value);
-
-  @JS('created_at')
-  external int get createdAt;
-  @JS('created_at')
-  external set createdAt(int value);
-
-  external int get kind;
-  external set kind(int value);
-
-  external JSArray<JSArray<JSString>> get tags;
-  external set tags(JSArray<JSArray<JSString>> value);
-
-  external String get content;
-  external set content(String value);
 }

@@ -47,7 +47,7 @@ Future<void> main() async {
   );
   relayReqs = RelayReqs(
     relayManager: relayManager,
-    eventVerifier: kIsWeb ? WebEventVerifier() : RustEventVerifier(),
+    eventVerifier: kIsWeb ? const WebEventVerifier() : RustEventVerifier(),
   );
   relayPublishes = RelayPublishes(relayManager: relayManager);
   nip65Fetcher = Nip65Fetcher(reqs: relayReqs);

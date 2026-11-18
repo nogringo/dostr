@@ -21,12 +21,13 @@ resolution: workspace
 dependencies:
   dostr_nip01: ^0.1.0
   dostr_signer: ^0.2.0
-  rxdart: ^0.28.0
   web: ">=1.0.0 <2.0.0"
 
 dev_dependencies:
+  crypto: ^3.0.7
   dostr_bip340: ^0.1.0
   dostr_event_verifier_test_suite: ^0.1.0
   dostr_signer_test_suite: ^0.1.0
   lints: ^6.1.0
+  stream_channel: ^2.1.4
   test: ^1.31.1

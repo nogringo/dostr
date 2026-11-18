@@ -1,80 +1,25 @@
-import 'dart:async';
 import 'dart:js_interop';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip01/hex.dart';
-import 'package:web/web.dart' as web;
 
 import 'js_interop.dart';
-import 'nostr_crypto_js.dart';
 
-/// Web implementation of EventVerifier using nostr-tools via JS interop.
-/// Uses native Web Crypto APIs for fast signature verification.
+/// Verifies BIP-340 event signatures with @noble/curves through JS interop.
 class WebEventVerifier implements EventVerifier {
-  final Completer<bool> _isInitialized = Completer<bool>();
-  static bool _jsInjected = false;
-
-  WebEventVerifier() {
-    _init();
-  }
-
-  Future<void> _init() async {
-    if (!_jsInjected) {
-      _injectJS();
-      _jsInjected = true;
-    }
-    _isInitialized.complete(true);
-  }
-
-  void _injectJS() {
-    // Check if already loaded (e.g., via index.html)
-    if (nostrCrypto != null) {
-      return;
-    }
-
-    final script =
-        web.document.createElement('script') as web.HTMLScriptElement;
-    script.type = 'text/javascript';
-    script.text = nostrCryptoJs;
-    web.document.head?.appendChild(script);
-  }
+  const WebEventVerifier();
 
   @override
   Future<bool> verify(Nip01Event event) async {
-    await _isInitialized.future;
-
     final sig = event.sig;
     if (sig == null ||
         !isLowercaseHex(sig, length: 128) ||
-        !isLowercaseHex(event.pubkey, length: 64)) {
+        !isLowercaseHex(event.pubkey, length: 64) ||
+        !event.hasValidId) {
       return false;
     }
-
-    final verifier = nostrCrypto;
-    if (verifier == null) {
-      throw Exception(
-        'NostrCrypto not available. JS injection may have failed.',
-      );
-    }
-
-    final jsEvent = NostrEventJS();
-    jsEvent.id = event.id;
-    jsEvent.pubkey = event.pubkey;
-    jsEvent.createdAt = event.createdAt;
-    jsEvent.kind = event.kind;
-    jsEvent.content = event.content;
-    jsEvent.sig = sig;
-
-    // Convert tags
-    final jsTags = event.tags
-        .map((tag) {
-          return tag.map((t) => t.toJS).toList().toJS;
-        })
-        .toList()
-        .toJS;
-    jsEvent.tags = jsTags;
-
-    final result = await verifier.verifyEvent(jsEvent).toDart;
-    return result.toDart;
+    return nostrCrypto
+        .verifySignature(sig.toJS, event.id.toJS, event.pubkey.toJS)
+        .toDart;
   }
 }

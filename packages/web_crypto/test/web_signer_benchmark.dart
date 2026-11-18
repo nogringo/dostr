@@ -29,10 +29,7 @@ void main() {
     test('benchmark sign', () async {
       const count = 10;
 
-      final webSigner = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      final webSigner = WebSigner(keyPair.privateKey);
       final dartSigner = Bip340Signer(keyPair.privateKey);
 
       // Warmup
@@ -103,10 +100,7 @@ void main() {
       const message = 'Hello, NIP-04 benchmark!';
       final otherKeyPair = Bip340.generateKeyPair();
 
-      final webSigner = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      final webSigner = WebSigner(keyPair.privateKey);
       final dartSigner = Bip340Signer(keyPair.privateKey);
 
       // Warmup
@@ -154,10 +148,7 @@ void main() {
       const message = 'Hello, NIP-44 benchmark!';
       final otherKeyPair = Bip340.generateKeyPair();
 
-      final webSigner = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      final webSigner = WebSigner(keyPair.privateKey);
       final dartSigner = Bip340Signer(keyPair.privateKey);
 
       // Warmup
@@ -205,10 +196,7 @@ void main() {
       const message = 'Hello, NIP-04 decrypt benchmark!';
       final otherKeyPair = Bip340.generateKeyPair();
 
-      final webSigner = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      final webSigner = WebSigner(keyPair.privateKey);
       final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
       final encrypted = await webSigner.encryptNip04(
@@ -261,10 +249,7 @@ void main() {
       const message = 'Hello, NIP-44 decrypt benchmark!';
       final otherKeyPair = Bip340.generateKeyPair();
 
-      final webSigner = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      final webSigner = WebSigner(keyPair.privateKey);
       final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
       final encrypted = await webSigner.encryptNip44(

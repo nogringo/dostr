@@ -1,117 +1,58 @@
+// Everything runs on @noble, without crypto.subtle, which a page served over
+// plain http does not have.
+import { cbc } from '@noble/ciphers/aes.js';
+import { chacha20 } from '@noble/ciphers/chacha.js';
+import { equalBytes } from '@noble/ciphers/utils.js';
 import { schnorr, secp256k1 } from '@noble/curves/secp256k1.js';
+import { expand, extract } from '@noble/hashes/hkdf.js';
 import { hmac } from '@noble/hashes/hmac.js';
 import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex, concatBytes } from '@noble/hashes/utils.js';
-import { chacha20 } from '@noble/ciphers/chacha.js';
+import {
+  bytesToHex,
+  concatBytes,
+  hexToBytes,
+  randomBytes,
+} from '@noble/hashes/utils.js';
+
+const utf8Encoder = new TextEncoder();
+const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
 
 /**
- * Serialize a Nostr event for hashing (NIP-01)
+ * Whether a BIP-340 signature of a 32-byte hash is valid
+ * @param {string} signatureHex
+ * @param {string} hashHex
+ * @param {string} publicKeyHex x-only
+ * @returns {boolean}
  */
-function serializeEvent(event) {
-  return JSON.stringify([
-    0,
-    event.pubkey,
-    event.created_at,
-    event.kind,
-    event.tags,
-    event.content
-  ]);
-}
-
-/**
- * Compute the event ID (SHA256 hash of serialized event)
- */
-function getEventHash(event) {
-  const serialized = serializeEvent(event);
-  const encoder = new TextEncoder();
-  const data = encoder.encode(serialized);
-  return bytesToHex(sha256(data));
-}
-
-/**
- * Verify a Nostr event signature
- * @param {Object} event - Nostr event with id, pubkey, sig, created_at, kind, tags, content
- * @returns {Promise<boolean>} - true if valid, false otherwise
- */
-async function verifyEvent(event) {
+function verifySignature(signatureHex, hashHex, publicKeyHex) {
   try {
-    // Verify the event ID matches the hash
-    const expectedId = getEventHash(event);
-    if (event.id !== expectedId) {
-      return false;
-    }
-
-    // Verify the Schnorr signature
-    const signatureBytes = hexToBytes(event.sig);
-    const messageBytes = hexToBytes(event.id);
-    const publicKeyBytes = hexToBytes(event.pubkey);
-
-    return schnorr.verify(signatureBytes, messageBytes, publicKeyBytes);
-  } catch (e) {
-    console.error('Event verification error:', e);
+    return schnorr.verify(
+      hexToBytes(signatureHex),
+      hexToBytes(hashHex),
+      hexToBytes(publicKeyHex),
+    );
+  } catch {
     return false;
   }
 }
 
 /**
- * Verify a Schnorr signature directly
- * @param {string} signatureHex - 64-byte signature in hex
- * @param {string} messageHash - 32-byte message hash in hex
- * @param {string} publicKeyHex - 32-byte public key in hex
- * @returns {Promise<boolean>}
+ * The BIP-340 signature of a 32-byte hash, with fresh auxiliary randomness
+ * @param {string} privateKeyHex
+ * @param {string} hashHex
+ * @returns {string}
  */
-async function verifySignature(signatureHex, messageHash, publicKeyHex) {
-  try {
-    const signatureBytes = hexToBytes(signatureHex);
-    const messageBytes = hexToBytes(messageHash);
-    const publicKeyBytes = hexToBytes(publicKeyHex);
-
-    return schnorr.verify(signatureBytes, messageBytes, publicKeyBytes);
-  } catch (e) {
-    console.error('Signature verification error:', e);
-    return false;
-  }
+function signEvent(privateKeyHex, hashHex) {
+  return bytesToHex(schnorr.sign(hexToBytes(hashHex), hexToBytes(privateKeyHex)));
 }
 
 /**
- * Sign a message hash with a private key (BIP-340 Schnorr)
- * @param {string} privateKeyHex - 32-byte private key in hex
- * @param {string} messageHashHex - 32-byte message hash in hex
- * @returns {Promise<string>} - 64-byte signature in hex
- */
-async function signEvent(privateKeyHex, messageHashHex) {
-  try {
-    const privateKeyBytes = hexToBytes(privateKeyHex);
-    const messageBytes = hexToBytes(messageHashHex);
-    const signatureBytes = schnorr.sign(messageBytes, privateKeyBytes);
-    return bytesToHex(signatureBytes);
-  } catch (e) {
-    console.error('Event signing error:', e);
-    throw e;
-  }
-}
-
-/**
- * Derive the x-only public key of a private key
- * @param {string} privateKeyHex - 32-byte private key in hex
- * @returns {string} - 32-byte public key in hex
+ * The x-only public key of a private key, which throws when it is not one
+ * @param {string} privateKeyHex
+ * @returns {string}
  */
 function getPublicKey(privateKeyHex) {
   return bytesToHex(schnorr.getPublicKey(hexToBytes(privateKeyHex)));
-}
-
-// ---------------------------------------------------------------------------
-// Crypto helpers
-// ---------------------------------------------------------------------------
-
-const utf8Decoder = new TextDecoder('utf-8', { fatal: true });
-
-function hexToBytes(hex) {
-  const bytes = new Uint8Array(hex.length / 2);
-  for (let i = 0; i < bytes.length; i++) {
-    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
-  }
-  return bytes;
 }
 
 function bytesToBase64(bytes) {
@@ -131,55 +72,14 @@ function base64ToBytes(base64) {
   return bytes;
 }
 
-function getSharedSecret(privateKeyHex, publicKeyHex) {
-  const privateKeyBytes = hexToBytes(privateKeyHex);
-  // @noble/curves expects compressed (33-byte) or uncompressed (65-byte) public keys.
-  // Dart package:elliptic uses raw 32-byte X coordinates, so we prepend '02' if needed.
-  let normalizedPubHex = publicKeyHex;
-  if (publicKeyHex.length === 64) {
-    normalizedPubHex = '02' + publicKeyHex;
-  }
-  const publicKeyBytes = hexToBytes(normalizedPubHex);
-  // getSharedSecret returns a compressed point (33 bytes). Slice off the prefix
-  // to get the X coordinate (32 bytes), matching package:elliptic behaviour.
-  const shared = secp256k1.getSharedSecret(privateKeyBytes, publicKeyBytes, true);
-  return shared.slice(1, 33);
-}
-
-async function hmacSha256(key, data) {
-  const cryptoKey = await crypto.subtle.importKey(
-    'raw', key, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+// The x of the ECDH point. An x-only public key is taken as its even point.
+function sharedX(privateKeyHex, publicKeyHex) {
+  const publicKey = hexToBytes(
+    publicKeyHex.length === 64 ? '02' + publicKeyHex : publicKeyHex,
   );
-  const signature = await crypto.subtle.sign('HMAC', cryptoKey, data);
-  return new Uint8Array(signature);
-}
-
-async function hkdfExpand(prk, info, length) {
-  const hashLen = 32;
-  const n = Math.ceil(length / hashLen);
-  let okm = new Uint8Array(0);
-  let previous = new Uint8Array(0);
-  for (let i = 1; i <= n; i++) {
-    const data = new Uint8Array(previous.length + info.length + 1);
-    data.set(previous, 0);
-    data.set(info, previous.length);
-    data[data.length - 1] = i;
-    previous = await hmacSha256(prk, data);
-    const newOkm = new Uint8Array(okm.length + previous.length);
-    newOkm.set(okm, 0);
-    newOkm.set(previous, okm.length);
-    okm = newOkm;
-  }
-  return okm.slice(0, length);
-}
-
-function equalBytes(a, b) {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) {
-    diff |= a[i] ^ b[i];
-  }
-  return diff === 0;
+  return secp256k1
+    .getSharedSecret(hexToBytes(privateKeyHex), publicKey, true)
+    .subarray(1, 33);
 }
 
 // ---------------------------------------------------------------------------
@@ -187,54 +87,39 @@ function equalBytes(a, b) {
 // ---------------------------------------------------------------------------
 
 /**
- * Encrypt a NIP-04 message
  * @param {string} privateKeyHex
  * @param {string} publicKeyHex
  * @param {string} plaintext
- * @returns {Promise<string>}
+ * @returns {string}
  */
-async function nip04Encrypt(privateKeyHex, publicKeyHex, plaintext) {
-  const sharedSecret = getSharedSecret(privateKeyHex, publicKeyHex);
-  const key = await crypto.subtle.importKey(
-    'raw', sharedSecret, { name: 'AES-CBC' }, false, ['encrypt']
-  );
-  const iv = crypto.getRandomValues(new Uint8Array(16));
-  const encoder = new TextEncoder();
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-CBC', iv }, key, encoder.encode(plaintext)
-  );
-  const encryptedBytes = new Uint8Array(encrypted);
-  return `${bytesToBase64(encryptedBytes)}?iv=${bytesToBase64(iv)}`;
+function nip04Encrypt(privateKeyHex, publicKeyHex, plaintext) {
+  const key = sharedX(privateKeyHex, publicKeyHex);
+  const iv = randomBytes(16);
+  const ciphertext = cbc(key, iv).encrypt(utf8Encoder.encode(plaintext));
+  return `${bytesToBase64(ciphertext)}?iv=${bytesToBase64(iv)}`;
 }
 
 /**
- * Decrypt a NIP-04 message
  * @param {string} privateKeyHex
  * @param {string} publicKeyHex
  * @param {string} ciphertext
- * @returns {Promise<string>}
+ * @returns {string}
  */
-async function nip04Decrypt(privateKeyHex, publicKeyHex, ciphertext) {
+function nip04Decrypt(privateKeyHex, publicKeyHex, ciphertext) {
   const [dataB64, ivB64] = ciphertext.split('?iv=');
   if (!ivB64) throw new Error('Invalid NIP-04 ciphertext');
 
-  const sharedSecret = getSharedSecret(privateKeyHex, publicKeyHex);
-  const key = await crypto.subtle.importKey(
-    'raw', sharedSecret, { name: 'AES-CBC' }, false, ['decrypt']
-  );
-  const iv = base64ToBytes(ivB64);
-  const data = base64ToBytes(dataB64);
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-CBC', iv }, key, data
-  );
-  return utf8Decoder.decode(decrypted);
+  const key = sharedX(privateKeyHex, publicKeyHex);
+  const plaintext = cbc(key, base64ToBytes(ivB64)).decrypt(base64ToBytes(dataB64));
+  return utf8Decoder.decode(plaintext);
 }
 
 // ---------------------------------------------------------------------------
-// NIP-44 helpers
+// NIP-44
 // ---------------------------------------------------------------------------
 
 const MAX_PLAINTEXT_LENGTH = 0xffffffff;
+// nostr-protocol/nips#1907: from this length on, a 6-byte prefix
 const EXTENDED_PREFIX_THRESHOLD = 0x10000;
 
 function calcPaddedLen(unpaddedLen) {
@@ -272,9 +157,14 @@ function unpad(padded) {
   return padded.subarray(prefixLen, prefixLen + unpaddedLen);
 }
 
-// ---------------------------------------------------------------------------
-// NIP-44
-// ---------------------------------------------------------------------------
+function messageKeys(conversationKey, nonce) {
+  const keys = expand(sha256, conversationKey, nonce, 76);
+  return {
+    chachaKey: keys.subarray(0, 32),
+    chachaNonce: keys.subarray(32, 44),
+    hmacKey: keys.subarray(44, 76),
+  };
+}
 
 /**
  * The NIP-44 conversation key between two peers, the same on both sides
@@ -283,71 +173,50 @@ function unpad(padded) {
  * @returns {Uint8Array}
  */
 function nip44ConversationKey(privateKeyHex, publicKeyHex) {
-  const salt = new TextEncoder().encode('nip44-v2');
-  return hmac(sha256, salt, getSharedSecret(privateKeyHex, publicKeyHex));
+  return extract(
+    sha256,
+    sharedX(privateKeyHex, publicKeyHex),
+    utf8Encoder.encode('nip44-v2'),
+  );
 }
 
 /**
- * Encrypt a NIP-44 message
  * @param {Uint8Array} conversationKey
  * @param {string} plaintext
- * @returns {Promise<string>}
+ * @param {Uint8Array} [nonce] for test vectors only
+ * @returns {string}
  */
-async function nip44Encrypt(conversationKey, plaintext) {
-  const nonce = crypto.getRandomValues(new Uint8Array(32));
-
-  const hkdfOutput = await hkdfExpand(conversationKey, nonce, 76);
-  const chachaKey = hkdfOutput.slice(0, 32);
-  const chachaNonce = hkdfOutput.slice(32, 44);
-  const hmacKey = hkdfOutput.slice(44, 76);
-
-  const encoder = new TextEncoder();
-  const paddedPlaintext = pad(encoder.encode(plaintext));
-  const ciphertext = chacha20(chachaKey, chachaNonce, paddedPlaintext);
-  const mac = await hmacSha256(hmacKey, concatBytes(nonce, ciphertext));
-
-  const payload = new Uint8Array(1 + 32 + ciphertext.length + 32);
-  payload[0] = 0x02;
-  payload.set(nonce, 1);
-  payload.set(ciphertext, 33);
-  payload.set(mac, 33 + ciphertext.length);
-
-  return bytesToBase64(payload);
+function nip44Encrypt(conversationKey, plaintext, nonce = randomBytes(32)) {
+  const { chachaKey, chachaNonce, hmacKey } = messageKeys(conversationKey, nonce);
+  const ciphertext = chacha20(chachaKey, chachaNonce, pad(utf8Encoder.encode(plaintext)));
+  const mac = hmac(sha256, hmacKey, concatBytes(nonce, ciphertext));
+  return bytesToBase64(concatBytes(new Uint8Array([2]), nonce, ciphertext, mac));
 }
 
 /**
- * Decrypt a NIP-44 message
  * @param {Uint8Array} conversationKey
  * @param {string} payloadB64
- * @returns {Promise<string>}
+ * @returns {string}
  */
-async function nip44Decrypt(conversationKey, payloadB64) {
+function nip44Decrypt(conversationKey, payloadB64) {
   if (payloadB64.startsWith('#')) throw new Error('Unsupported version');
   if (payloadB64.length < 132) throw new Error('Invalid payload size');
   const payload = base64ToBytes(payloadB64);
   if (payload.length < 99) throw new Error('Invalid data size');
-  if (payload[0] !== 0x02) throw new Error('Unsupported version');
+  if (payload[0] !== 2) throw new Error('Unsupported version');
 
   const nonce = payload.subarray(1, 33);
-  const mac = payload.subarray(payload.length - 32);
   const ciphertext = payload.subarray(33, payload.length - 32);
+  const mac = payload.subarray(payload.length - 32);
 
-  const hkdfOutput = await hkdfExpand(conversationKey, nonce, 76);
-  const chachaKey = hkdfOutput.slice(0, 32);
-  const chachaNonce = hkdfOutput.slice(32, 44);
-  const hmacKey = hkdfOutput.slice(44, 76);
-
-  const calculatedMac = await hmacSha256(hmacKey, concatBytes(nonce, ciphertext));
-  if (!equalBytes(calculatedMac, mac)) throw new Error('Invalid MAC');
-
-  const paddedPlaintext = chacha20(chachaKey, chachaNonce, ciphertext);
-  const plaintext = unpad(paddedPlaintext);
-  return utf8Decoder.decode(plaintext);
+  const { chachaKey, chachaNonce, hmacKey } = messageKeys(conversationKey, nonce);
+  if (!equalBytes(hmac(sha256, hmacKey, concatBytes(nonce, ciphertext)), mac)) {
+    throw new Error('Invalid MAC');
+  }
+  return utf8Decoder.decode(unpad(chacha20(chachaKey, chachaNonce, ciphertext)));
 }
 
-// Expose to global scope for Dart JS interop
-window.NostrCrypto = {
-  verifyEvent,
+globalThis.NostrCrypto = {
   verifySignature,
   signEvent,
   getPublicKey,

@@ -1,19 +1,12 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// Stub implementation for non-web platforms.
-/// WebEventVerifier is only available on web platforms.
+/// Only on the web: on other platforms, [verify] throws an [UnsupportedError].
 class WebEventVerifier implements EventVerifier {
-  WebEventVerifier() {
-    throw UnsupportedError(
-      'WebEventVerifier is only available on web platforms. '
-      'Use Bip340EventVerifier or RustEventVerifier for native platforms.',
-    );
-  }
+  const WebEventVerifier();
 
   @override
-  Future<bool> verify(Nip01Event event) {
-    throw UnsupportedError(
-      'WebEventVerifier is only available on web platforms.',
-    );
-  }
+  Future<bool> verify(Nip01Event event) => throw UnsupportedError(
+    'WebEventVerifier is only available on the web. '
+    'Use Bip340EventVerifier or RustEventVerifier on other platforms.',
+  );
 }

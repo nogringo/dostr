@@ -7,7 +7,10 @@
  - `decryptNip44` rejects a payload whose padding is not the one NIP-44 requires, and checks the payload size as NIP-44 says.
  - `decryptNip04` and `decryptNip44` throw when the plaintext is not valid UTF-8, as `dostr_nip44` does, instead of replacing the invalid bytes with U+FFFD.
  - `WebSigner` keeps the NIP-44 conversation keys of its last 256 peers, so `encryptNip44` and `decryptNip44` run the key agreement once per peer instead of once per message.
- - **BREAKING** `privateKey` and `publicKey` of `WebSigner` are final.
+ - **BREAKING** `WebSigner(privateKey)` derives its public key and `WebSigner.readOnly(publicKey)` knows only a public key, as for `Bip340Signer`, instead of `WebSigner(privateKey:, publicKey:)`, which signed with a public key that might not be the one of the private key. Both fields are final.
  - As in `LocalSignerFactory`, `WebSignerFactory.create` takes the private key alone, `readOnly` takes a public key, `generateKeyPair` returns a `KeyPair`, and `derivePublicKey` is gone.
- - `WebSigner` throws a `FormatException` for a public key that is not 64 lowercase hex characters, and so does `WebSignerFactory.readOnly`, as `LocalSignerFactory` says.
+ - `WebSigner` and `WebSignerFactory.create` throw a `FormatException` for a private key that is not one, as `Bip340Signer` does, instead of reading `1z` as `01`, and `WebSigner.readOnly` and `WebSignerFactory.readOnly` throw one for a public key that is not 64 lowercase hex characters, as `LocalSignerFactory` says.
  - As `NostrSigner` says, an encryption or a decryption that fails throws a `SignerRequestFailedException`, `sign` throws an `ArgumentError` for an event of another pubkey, and every operation of a read-only `WebSigner` throws a `StateError`.
+ - NIP-04 and NIP-44 run on @noble/ciphers and @noble/hashes instead of the Web Crypto API, so they also work on a page served over plain http, where `crypto.subtle` does not exist.
+ - `WebEventVerifier` is const and checks the id with `Nip01Event.hasValidId`, as `Bip340EventVerifier` does, instead of hashing the event again in JS. On other platforms, its `verify` throws the `UnsupportedError` instead of its constructor.
+ - The JS bundle is injected on first use instead of when a class is created, and a `StateError` says so when it did not run, as under a Content-Security-Policy that blocks inline scripts.

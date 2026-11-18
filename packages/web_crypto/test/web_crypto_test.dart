@@ -14,10 +14,7 @@ void main() {
 
     setUp(() {
       keyPair = Bip340.generateKeyPair();
-      signer = WebSigner(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      signer = WebSigner(keyPair.privateKey);
     });
 
     tearDown(() async {
@@ -28,15 +25,45 @@ void main() {
       expect(signer.publicKey, equals(keyPair.publicKey));
     });
 
+    test('rejects a private key that is not one', () {
+      for (final invalid in [
+        '',
+        keyPair.privateKey.substring(2),
+        '1z${keyPair.privateKey.substring(2)}',
+        '00' * 32,
+        'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
+      ]) {
+        expect(() => WebSigner(invalid), throwsFormatException);
+        expect(
+          () => const WebSignerFactory().create(invalid),
+          throwsFormatException,
+        );
+      }
+    });
+
+    test('readOnly rejects a public key that is not NIP-01 hex', () {
+      expect(
+        () => WebSigner.readOnly(keyPair.publicKey.toUpperCase()),
+        throwsFormatException,
+      );
+    });
+
+    test('an invalid recipient public key fails the request', () async {
+      await expectLater(
+        signer.encryptNip44(
+          plaintext: 'hello',
+          recipientPubkey: '1z${keyPair.publicKey.substring(2)}',
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
     test('canSign returns true when private key is present', () {
       expect(signer.canSign, isTrue);
     });
 
     test('canSign returns false when no private key', () {
-      final readOnlySigner = WebSigner(
-        privateKey: null,
-        publicKey: keyPair.publicKey,
-      );
+      final readOnlySigner = WebSigner.readOnly(keyPair.publicKey);
       expect(readOnlySigner.canSign, isFalse);
     });
 
@@ -58,16 +85,13 @@ void main() {
       expect(isValidDart, isTrue);
 
       // Verify with web verifier
-      final webVerifier = WebEventVerifier();
+      const webVerifier = WebEventVerifier();
       final isValidWeb = await webVerifier.verify(signedEvent);
       expect(isValidWeb, isTrue);
     });
 
     test('sign throws when no private key', () async {
-      final readOnlySigner = WebSigner(
-        privateKey: null,
-        publicKey: keyPair.publicKey,
-      );
+      final readOnlySigner = WebSigner.readOnly(keyPair.publicKey);
 
       final event = Nip01Event(
         pubkey: keyPair.publicKey,
@@ -278,13 +302,8 @@ void main() {
         expect(signer.cancelRequest('any-id'), isFalse);
       });
 
-      test('dispose closes stream without error', () async {
+      test('dispose completes without error', () async {
         await signer.dispose();
-        // Recreate for tearDown
-        signer = WebSigner(
-          privateKey: keyPair.privateKey,
-          publicKey: keyPair.publicKey,
-        );
       });
     });
   });
