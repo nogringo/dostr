@@ -31,7 +31,7 @@ jobs:
           - package: nip55
             test_command: flutter test
           - package: flutter
-            test_command: flutter test --platform chrome --concurrency=2
+            test_command: flutter test && flutter test --platform chrome --concurrency=2
     defaults:
       run:
         working-directory: ./packages/${{ matrix.package }}

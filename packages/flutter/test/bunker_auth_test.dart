@@ -1,3 +1,6 @@
+@TestOn('vm')
+library;
+
 import 'dart:convert';
 
 import 'package:dostr_core/dostr_core.dart';

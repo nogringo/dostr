@@ -1,3 +1,6 @@
+@TestOn('vm')
+library;
+
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:flutter_test/flutter_test.dart';
