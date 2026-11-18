@@ -137,6 +137,11 @@ class ConnectAttempts {
     connecting = false;
   }
 
+  /// The attempt was called off, which says nothing about the relay.
+  void stoppedConnecting() {
+    connecting = false;
+  }
+
   /// Whether its last attempt failed less than [duration] ago.
   bool failedWithin(Duration duration) {
     final failure = _lastFailure;

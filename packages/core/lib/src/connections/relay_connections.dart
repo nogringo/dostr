@@ -107,6 +107,17 @@ class RelayConnections {
     "the RelayManager was disposed",
   );
 
+  bool _suspended = false;
+  Completer<void> _resumed = Completer()..complete();
+
+  /// Whether [suspend] was called without a [resume] since: no socket opens.
+  bool get suspended => _suspended;
+
+  static const _suspendedFailure = RelayFailure(
+    RelayFailureKind.connectionLost,
+    "the RelayManager is suspended",
+  );
+
   List<({RelayConnectionKey key, bool connected, bool connecting})>? _notified;
 
   RelayConnections({
@@ -183,10 +194,12 @@ class RelayConnections {
   bool isConnectionOpen(RelayConnectionKey key) =>
       relays[key]?.isConnected ?? false;
 
-  /// Whether the connection behind [key] dropped and is being brought back.
+  /// Whether the connection behind [key] dropped and is being brought back,
+  /// or waits for [resume].
   bool isComingBack(RelayConnectionKey key) {
     final connection = relays[key];
-    return connection != null && _revivals.isReviving(connection);
+    return connection != null &&
+        (_suspended || _revivals.isReviving(connection));
   }
 
   /// Whether the connection behind [key] is neither open nor coming back.
@@ -262,7 +275,7 @@ class RelayConnections {
     final connection = relays[key];
     if (connection == null) return null;
     if (connection.isConnected) return Opened(connection);
-    return _revivals.isReviving(connection) ? const ComingBack() : null;
+    return isComingBack(key) ? const ComingBack() : null;
   }
 
   /// Opens the connection behind [key] now, whatever its last attempt, and
@@ -277,6 +290,7 @@ class RelayConnections {
     if (blockedRelays.contains(key.url)) {
       return Future.value(const RelayFailure(RelayFailureKind.blocked));
     }
+    if (_suspended) return Future.value(_suspendedFailure);
     final connection = relays[key];
     if (connection != null && _revivals.isReviving(connection)) {
       return _revivals.hurry(connection);
@@ -325,6 +339,7 @@ class RelayConnections {
     Duration connectTimeout = defaultWebSocketConnectTimeout,
   }) {
     if (_disposed) return Future.value(_disposedFailure);
+    if (_suspended) return Future.value(_suspendedFailure);
     if (blockedRelays.contains(connection.url)) {
       return Future.value(const RelayFailure(RelayFailureKind.blocked));
     }
@@ -367,6 +382,7 @@ class RelayConnections {
         maximum: _reconnectMaximumDelay,
       );
       while (true) {
+        if (_suspended) throw StateError("suspended while connecting");
         transport = nostrTransportFactory(url);
         connection.relayTransport = transport;
         // Start listening immediately so we don't miss early frames such as
@@ -402,6 +418,12 @@ class RelayConnections {
           );
         });
       }
+      if (_suspended) {
+        // a failure would keep REQs off this relay for a while after resume
+        connection.attempts.stoppedConnecting();
+        notifyChanged();
+        return _suspendedFailure;
+      }
       connection.attempts.failedToConnect();
       notifyChanged();
       return RelayFailure(RelayFailureKind.unreachable, "$error");
@@ -416,6 +438,10 @@ class RelayConnections {
   /// up, and says whether it is open.
   Future<bool> whenBack(RelayConnectionKey key) async {
     while (true) {
+      if (_suspended) {
+        await _resumed.future;
+        continue;
+      }
       final connection = relays[key];
       final settled = connection == null ? null : _revivals.settled(connection);
       if (settled == null) return isConnectionOpen(key);
@@ -434,6 +460,44 @@ class RelayConnections {
       connection,
       (message) => sendTo(connection, message),
     );
+  }
+
+  /// Closes every socket, and opens none until [resume].
+  ///
+  /// A connection that carries work is kept, without its revival, and is
+  /// coming back to whatever asks. One that carries none is forgotten.
+  Future<void> suspend() async {
+    if (_disposed || _suspended) return;
+    _suspended = true;
+    _resumed = Completer();
+    _idle.stop();
+    final closing = <Future<void>>[];
+    for (final key in relays.keys.toList()) {
+      final connection = relays[key];
+      if (connection == null) continue;
+      if (!hasWorkOn(key)) {
+        closing.add(closeConnection(key));
+        continue;
+      }
+      _revivals.stop(connection);
+      closing.add(connection.close());
+    }
+    notifyChanged();
+    await Future.wait(closing);
+  }
+
+  /// Ends [suspend]: each connection still kept is brought back on a fresh
+  /// backoff, as after a drop. Completes once each one came back or failed
+  /// its first attempt.
+  Future<void> resume() async {
+    if (!_suspended) return;
+    _suspended = false;
+    final attempts = [
+      for (final connection in relays.values.toList())
+        if (!connection.isConnected) _revivals.revive(connection),
+    ];
+    _resumed.complete();
+    await Future.wait(attempts);
   }
 
   /// Reconnects at once every connection that is not connected, even one whose
@@ -646,6 +710,8 @@ class RelayConnections {
   /// Closes every connection, and [changes], and opens none afterwards.
   Future<void> dispose() async {
     _disposed = true;
+    _suspended = false;
+    if (!_resumed.isCompleted) _resumed.complete();
     await closeAll();
     await _updates.close();
   }

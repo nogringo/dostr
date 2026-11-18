@@ -208,9 +208,36 @@ final class RelayManager {
 
   /// Reconnects every connection that is not connected, even one whose last
   /// attempt just failed, and replays the requests it was carrying. Call it
-  /// when the app learns that the network is back.
+  /// when the app learns that the network is back. Does nothing while
+  /// [isSuspended].
   Future<void> reconnectClosedConnections() =>
       _connections.reconnectClosedConnections();
+
+  /// Whether [suspend] was called without a [resume] since.
+  bool get isSuspended => _connections.suspended;
+
+  /// Closes every socket, and opens none until [resume]. Call it when the app
+  /// goes to the background, where the system cuts the sockets anyway.
+  ///
+  /// - The REQs and publishes in flight are kept, and so are the ones started
+  ///   meanwhile: they wait for [resume], with their timeouts running.
+  /// - Nothing is retried meanwhile, and the suspension does not count
+  ///   toward `reconnectGiveUpAfter`.
+  /// - A connection that carries nothing is forgotten.
+  /// - [connectRelay] and [openConnectionAs] fail meanwhile, and
+  ///   [reconnectClosedConnections] does nothing.
+  ///
+  /// Does nothing once disposed.
+  Future<void> suspend() => _connections.suspend();
+
+  /// Ends [suspend]. Every connection that still carries work opens a new
+  /// socket, which gets its REQs again and the EVENTs the old one took
+  /// without an OK.
+  ///
+  /// Completes once each connection came back or failed its first attempt.
+  /// One that failed is brought back as after a drop, with a fresh
+  /// `reconnectGiveUpAfter`. Does nothing unless [isSuspended].
+  Future<void> resume() => _connections.resume();
 
   /// Opens the connection to [url] bound to [account].
   ///

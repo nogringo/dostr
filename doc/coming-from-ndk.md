@@ -177,6 +177,7 @@ Null keeps them open.
 A publish keeps open only the connection it goes out on, where it kept every connection to its relay, the anonymous one and the bound ones.
 
 `reconnectClosedConnections` reconnects every connection at once instead of one after the other.
+`suspend` and `resume` are new: call them when the app goes to the background and comes back, see the README of `dostr_core`.
 `authenticateConnection` answers false for a connection that is not open.
 
 ## REQs

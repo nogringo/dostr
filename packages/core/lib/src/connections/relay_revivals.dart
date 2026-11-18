@@ -125,9 +125,18 @@ class RelayRevivals {
       previous.droppedAgain(retired, () => hurry(connection));
       return;
     }
+    unawaited(revive(connection, retired));
+  }
+
+  /// Brings [connection] back on a fresh backoff and a fresh `giveUpAfter`,
+  /// once [retired] is closed, and says why its first attempt did not.
+  Future<RelayFailure?> revive(
+    RelayConnection connection, [
+    Future<void>? retired,
+  ]) {
     stop(connection);
-    connection.revival = Revival(_maximumDelay, retired);
-    unawaited(hurry(connection));
+    connection.revival = Revival(_maximumDelay, retired ?? Future.value());
+    return hurry(connection);
   }
 
   /// Tries to bring [connection] back now, without waiting for the next step

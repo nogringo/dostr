@@ -249,13 +249,29 @@ final relays = RelayManager(
 `blockRelay(url)` closes the connections to a relay, and nothing connects to it again until `unblockRelay(url)`.
 A REQ sent there meanwhile ends as `notSent` and a publish fails, both with `RelayFailureKind.blocked`.
 
-When the app learns that the network is back, or comes back to the foreground, it does not have to wait for the backoff:
+When the app learns that the network is back, `reconnectClosedConnections()` reconnects at once, without waiting for the backoff.
+
+### Background
+
+In the background, the system cuts the sockets of the app sooner or later, and a socket can still look open long after it died.
+`suspend()` closes them all, and opens none until `resume()`:
+
+- The REQs and publishes in flight wait for `resume()`, and so do the ones started meanwhile, with their timeouts running.
+- Nothing is retried meanwhile, and the suspension does not count toward `reconnectGiveUpAfter`.
+- A connection that carries nothing is forgotten.
+- `connectRelay` and `openConnectionAs` fail meanwhile, and `reconnectClosedConnections` does nothing.
+
+`resume()` opens a new socket for every connection that still carries work.
+Its REQs are sent again with their filters unchanged, so a subscription gets its stored events again: `RelayReq.events` are not deduplicated.
+The EVENTs that the old socket took without an OK go out again too.
+A connection bound to an identity authenticates again once its relay asks.
+One that cannot connect is brought back as after a drop.
 
 ```dart
 @override
 void didChangeAppLifecycleState(AppLifecycleState state) {
-  if (state == AppLifecycleState.resumed) relays.reconnectClosedConnections();
-  if (state == AppLifecycleState.paused) relays.closeIdleConnections();
+  if (state == AppLifecycleState.paused) relays.suspend();
+  if (state == AppLifecycleState.resumed) relays.resume();
 }
 ```
 
