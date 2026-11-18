@@ -233,4 +233,50 @@ void main() {
     expect(errors.single, isA<SignerRequestCancelledException>());
     expect(opacity(tester), 0);
   });
+
+  group('bunker auth challenge', () {
+    const url = 'https://bunker.example/auth';
+    final challenge = find.text('Tap to open: $url');
+
+    testWidgets('shows the latest while requests wait', (tester) async {
+      await tester.pumpWidget(pendingRequests());
+      signNote();
+      await tester.pumpAndSettle();
+
+      dostr.dostrFlutter.addBunkerAuthUrl('https://bunker.example/older');
+      dostr.dostrFlutter.addBunkerAuthUrl(url);
+      await tester.pumpAndSettle();
+      expect(challenge, findsOneWidget);
+      expect(
+        find.text('Tap to open: https://bunker.example/older'),
+        findsNothing,
+      );
+
+      app.answers.single.complete({'signature': 'done'});
+      await tester.pumpAndSettle();
+      expect(challenge, findsNothing);
+    });
+
+    testWidgets('is ignored while nothing waits', (tester) async {
+      await tester.pumpWidget(pendingRequests());
+      dostr.dostrFlutter.addBunkerAuthUrl(url);
+      await tester.pumpAndSettle();
+
+      signNote();
+      await tester.pumpAndSettle();
+      expect(challenge, findsNothing);
+    });
+
+    testWidgets('is dropped for another account', (tester) async {
+      await tester.pumpWidget(pendingRequests());
+      signNote();
+      await tester.pumpAndSettle();
+      dostr.dostrFlutter.addBunkerAuthUrl(url);
+      await tester.pumpAndSettle();
+
+      dostr.accounts.loginPublicKey(pubkey: bobPubkey);
+      await tester.pumpAndSettle();
+      expect(challenge, findsNothing);
+    });
+  });
 }

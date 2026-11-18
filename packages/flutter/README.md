@@ -74,6 +74,9 @@ Its build hook compiles Rust, so it needs the [Rust toolchain](https://rustup.rs
 
 `DostrFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), a `metadataFetcher` and a `nip05Resolver`.
 `dostrFlutter.logout()` and `dostrFlutter.removeAccount(pubkey: ...)` remove an account as `accounts` does, and also end the session of a bunker account on its bunker: `NUserProfile` and `NSwitchAccount` log out through them.
+`dostrFlutter.bunkerAuthUrls` streams the auth challenges of the bunker accounts it logged in or restored: the https urls where the user approves a request.
+The `authCallback` of `loginWithBunkerUrl` and `loginWithNostrConnect` only gets those of the login.
+To send the challenges of a `Nip46Signer` you log in yourself to the same stream, set its `authCallback` to `dostrFlutter.addBunkerAuthUrl`.
 The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers).
 Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
 `NLogin` resolves NIP-05 addresses with `nip05Resolver`, a `Nip05Resolver` of [`dostr_nip05`](https://pub.dev/packages/dostr_nip05) that keeps them in memory unless you pass your own.
@@ -99,7 +102,7 @@ Each widget takes the `DostrFlutter` as `dostrFlutter`.
 - `NUserProfile`: the banner, picture, name and NIP-05 of a profile, with a logout button on the logged account.
 - `NPicture`, `NName` and `NBanner`: the picture, name or banner alone. Without a picture, `NPicture` shows an initial on the pubkey's String Color, `StringColor.fromHex(pubkey).toColor()`.
 - `NSwitchAccount`: the accounts, with a tap to switch and a logout for the others. Give it `onAddAccount` to show an add account button.
-- `NPendingRequests`: a floating panel of the requests waiting on the logged account's external signer, where the user can cancel them. It is a `Positioned`, so put it in a `Stack` over your content.
+- `NPendingRequests`: a floating panel of the requests waiting on the logged account's external signer, where the user can cancel them. While they wait, it also shows the latest of `bunkerAuthUrls`, which opens on tap. It is a `Positioned`, so put it in a `Stack` over your content.
 
 The profile widgets show the logged account unless given a `pubkey`.
 Pass a `metadata` (`Metadata.fromEvent(event)`) when you already have the profile, to skip the fetch.

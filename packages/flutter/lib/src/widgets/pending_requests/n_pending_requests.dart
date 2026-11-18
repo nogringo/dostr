@@ -6,6 +6,7 @@ import 'package:dostr_signer/dostr_signer.dart';
 import 'package:material_ui/material_ui.dart';
 
 import '../../../dostr_flutter.dart';
+import '../bunker_auth_card.dart';
 
 /// State of the pending requests widget
 enum NPendingRequestsState { hidden, collapsed, expanded }
@@ -67,8 +68,12 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   List<PendingSignerRequest> _pendingRequests = [];
   NPendingRequestsState _state = NPendingRequestsState.hidden;
 
+  /// the latest auth challenge of a bunker, while requests wait
+  String? _bunkerAuthUrl;
+
   StreamSubscription<List<PendingSignerRequest>>? _requestsSubscription;
   StreamSubscription<NostrSigner?>? _authSubscription;
+  StreamSubscription<String>? _bunkerAuthSubscription;
 
   Accounts get _accounts => widget.dostrFlutter.accounts;
 
@@ -78,6 +83,10 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     _setupListener();
     _authSubscription = _accounts.authStateChanges.listen((_) {
       _setupListener();
+    });
+    _bunkerAuthSubscription = widget.dostrFlutter.bunkerAuthUrls.listen((url) {
+      if (_pendingRequests.isEmpty) return;
+      setState(() => _bunkerAuthUrl = url);
     });
   }
 
@@ -89,6 +98,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
     if (account == null) {
       setState(() {
         _pendingRequests = [];
+        _bunkerAuthUrl = null;
         _state = NPendingRequestsState.hidden;
       });
       return;
@@ -104,6 +114,7 @@ class _NPendingRequestsState extends State<NPendingRequests> {
 
   void _updateState() {
     if (_pendingRequests.isEmpty) {
+      _bunkerAuthUrl = null;
       _state = NPendingRequestsState.hidden;
     } else if (_state == NPendingRequestsState.hidden) {
       _state = NPendingRequestsState.collapsed;
@@ -143,12 +154,14 @@ class _NPendingRequestsState extends State<NPendingRequests> {
   void dispose() {
     _requestsSubscription?.cancel();
     _authSubscription?.cancel();
+    _bunkerAuthSubscription?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final isVisible = _state != NPendingRequestsState.hidden;
+    final bunkerAuthUrl = _bunkerAuthUrl;
 
     return AnimatedPositioned(
       duration: widget.animationDuration,
@@ -160,7 +173,16 @@ class _NPendingRequestsState extends State<NPendingRequests> {
         duration: widget.animationDuration,
         curve: Curves.easeInOut,
         opacity: isVisible ? 1.0 : 0.0,
-        child: Center(child: _buildContent(context)),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (bunkerAuthUrl != null) ...[
+              BunkerAuthCard(url: bunkerAuthUrl),
+              const SizedBox(height: 8),
+            ],
+            Center(child: _buildContent(context)),
+          ],
+        ),
       ),
     );
   }

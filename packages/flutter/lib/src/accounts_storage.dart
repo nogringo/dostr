@@ -13,7 +13,8 @@ import 'config.dart';
 
 /// Writes the logged accounts of [accounts] to [storage] under [accountsKey],
 /// and logs them in again. A restored NIP-46 signer reaches its bunker through
-/// [relayReqs] and [relayPublishes].
+/// [relayReqs] and [relayPublishes], and passes its auth challenges to
+/// [bunkerAuthCallback].
 ///
 /// Each account is saved as `ndk_flutter` saved it, so that its users stay
 /// logged in.
@@ -22,12 +23,14 @@ class AccountsStorage {
   final Accounts accounts;
   final RelayReqs relayReqs;
   final RelayPublishes relayPublishes;
+  final void Function(String url) bunkerAuthCallback;
 
   AccountsStorage({
     required this.storage,
     required this.accounts,
     required this.relayReqs,
     required this.relayPublishes,
+    required this.bunkerAuthCallback,
   });
 
   Future<void> save() => storage.write(
@@ -118,6 +121,7 @@ class AccountsStorage {
         publicKey: pubkey,
         relayReqs: relayReqs,
         relayPublishes: relayPublishes,
+        authCallback: bunkerAuthCallback,
         signerFactory: accounts.signerFactory,
       ),
     {'kind': 'pubkey', 'pubkey': final String pubkey} =>

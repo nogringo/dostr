@@ -29,7 +29,8 @@ class DostrFlutter {
   final String npubSeparator;
   final int npubPrefixLength;
   final int npubSuffixLength;
-  final AccountsStorage _accountsStorage;
+  late final AccountsStorage _accountsStorage;
+  final _bunkerAuthUrls = StreamController<String>.broadcast();
 
   /// [metadataFetcher] defaults to one that asks the write relays of each
   /// pubkey, found by its own [Nip65Fetcher], and [nip05Resolver] to one that
@@ -59,13 +60,25 @@ class DostrFlutter {
          relayReqs: relayReqs,
          relayPublishes: relayPublishes,
          signerFactory: accounts.signerFactory,
-       ),
-       _accountsStorage = AccountsStorage(
-         storage: storage ?? const FlutterSecureStorage(),
-         accounts: accounts,
-         relayReqs: relayReqs,
-         relayPublishes: relayPublishes,
-       );
+       ) {
+    _accountsStorage = AccountsStorage(
+      storage: storage ?? const FlutterSecureStorage(),
+      accounts: accounts,
+      relayReqs: relayReqs,
+      relayPublishes: relayPublishes,
+      bunkerAuthCallback: addBunkerAuthUrl,
+    );
+  }
+
+  /// The auth challenges of the bunker accounts: https urls where the user
+  /// approves a request. `NPendingRequests` shows the latest one while
+  /// requests wait.
+  Stream<String> get bunkerAuthUrls => _bunkerAuthUrls.stream;
+
+  /// Adds [url] to [bunkerAuthUrls]. It is the `authCallback` of the bunker
+  /// accounts this logs in or restores: give it to a `Nip46Signer` you log in
+  /// yourself.
+  void addBunkerAuthUrl(String url) => _bunkerAuthUrls.add(url);
 
   /// the newest profile of [pubkey], or null if no relay has one
   Future<Metadata?> loadMetadata(String pubkey) async {
@@ -73,7 +86,8 @@ class DostrFlutter {
     return event == null ? null : Metadata.fromEvent(event);
   }
 
-  /// logs in through a `bunker://` url
+  /// Logs in through a `bunker://` url. [authCallback] gets the auth
+  /// challenges of the login, and [bunkerAuthUrls] the later ones.
   Future<BunkerConnection> loginWithBunkerUrl(
     String bunkerUrl, {
     void Function(String url)? authCallback,
@@ -88,7 +102,8 @@ class DostrFlutter {
     return connection;
   }
 
-  /// logs in once a signer answers [nostrConnect]
+  /// Logs in once a signer answers [nostrConnect]. [authCallback] gets the
+  /// auth challenges of the login, and [bunkerAuthUrls] the later ones.
   Future<BunkerConnection> loginWithNostrConnect(
     NostrConnect nostrConnect, {
     void Function(String url)? authCallback,
@@ -106,6 +121,8 @@ class DostrFlutter {
       connection,
       authCallback: authCallback,
     );
+    // the login screen behind authCallback may be gone by the next challenge
+    signer.authCallback = addBunkerAuthUrl;
     accounts.loginExternalSigner(signer: signer);
   }
 

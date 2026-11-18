@@ -4,7 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../dostr_flutter.dart';
-import '../../../l10n/app_localizations.dart';
+import '../bunker_auth_card.dart';
 import 'nostr_connect_dialog_view.dart';
 
 class LoginController extends ChangeNotifier {
@@ -197,52 +197,12 @@ class LoginController extends ChangeNotifier {
   }
 
   void showBunkerAuthToast(String challenge, BuildContext context) {
-    final l10n = AppLocalizations.of(context)!;
-    late final OverlayEntry entry;
-    entry = OverlayEntry(
-      builder: (ctx) => Positioned(
+    if (!context.mounted) return;
+    final entry = OverlayEntry(
+      builder: (_) => Positioned(
         right: 16,
         bottom: 16,
-        child: SafeArea(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: Material(
-              elevation: 6,
-              borderRadius: BorderRadius.circular(8),
-              color: Theme.of(ctx).colorScheme.surface,
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
-                onTap: () => launchUrl(Uri.parse(challenge)),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.info_outline, color: Colors.blue),
-                      const SizedBox(width: 12),
-                      Flexible(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.bunkerAuthentication,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(l10n.tapToOpen(challenge)),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
+        child: SafeArea(child: BunkerAuthCard(url: challenge)),
       ),
     );
 
