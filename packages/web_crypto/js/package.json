@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "esbuild nostr_crypto.src.js --bundle --minify --format=iife --global-name=NostrCryptoModule --outfile=nostr_crypto.js"
+    "build": "./build.sh"
   },
   "dependencies": {
     "@noble/ciphers": "^2.2.0",

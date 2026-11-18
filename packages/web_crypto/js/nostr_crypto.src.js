@@ -216,7 +216,9 @@ function nip44Decrypt(conversationKey, payloadB64) {
   return utf8Decoder.decode(unpad(chacha20(chachaKey, chachaNonce, ciphertext)));
 }
 
-globalThis.NostrCrypto = {
+globalThis.DostrWebCrypto = {
+  // build.sh defines BUNDLE_VERSION, which the Dart side checks
+  version: BUNDLE_VERSION,
   verifySignature,
   signEvent,
   getPublicKey,

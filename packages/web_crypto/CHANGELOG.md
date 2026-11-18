@@ -13,4 +13,7 @@
  - As `NostrSigner` says, an encryption or a decryption that fails throws a `SignerRequestFailedException`, `sign` throws an `ArgumentError` for an event of another pubkey, and every operation of a read-only `WebSigner` throws a `StateError`.
  - NIP-04 and NIP-44 run on @noble/ciphers and @noble/hashes instead of the Web Crypto API, so they also work on a page served over plain http, where `crypto.subtle` does not exist.
  - `WebEventVerifier` is const and checks the id with `Nip01Event.hasValidId`, as `Bip340EventVerifier` does, instead of hashing the event again in JS. On other platforms, its `verify` throws the `UnsupportedError` instead of its constructor.
- - The JS bundle is injected on first use instead of when a class is created, and a `StateError` says so when it did not run, as under a Content-Security-Policy that blocks inline scripts.
+ - The JS bundle is injected on first use instead of when a class is created, and a `StateError` says so when it did not run, as under a Content-Security-Policy that blocks inline scripts. It is injected once only, so that each call under such a policy does not add a script to the page.
+ - **BREAKING** The JS bundle defines `DostrWebCrypto` instead of `NostrCrypto`, so that the one of `ndk_flutter` or of another library is not taken for it, and no longer defines `NostrCryptoModule`.
+ - The JS bundle carries a version, a hash of the files it is built from, and the classes throw a `StateError` when the page loaded a bundle of another version, as a `nostr_crypto.js` not copied again after an upgrade.
+ - `WebSignerFactory.generateKeyPair` draws again a private key that is not one, as `Bip340.generateKeyPair` does, instead of throwing a `FormatException`.

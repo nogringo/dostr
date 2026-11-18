@@ -4,26 +4,46 @@ import 'package:web/web.dart' as web;
 
 import 'nostr_crypto_js.dart';
 
-@JS('NostrCrypto')
+@JS('DostrWebCrypto')
 external NostrCrypto? get _loadedNostrCrypto;
+
+NostrCrypto? _nostrCrypto;
+var _injected = false;
 
 /// The bundle of `js/nostr_crypto.src.js`, injected into the page on first
 /// use unless the page already loaded it.
-final NostrCrypto nostrCrypto = _loadNostrCrypto();
+///
+/// Throws a [StateError] when the bundle did not run, or when the page loaded
+/// one of another version.
+NostrCrypto get nostrCrypto => _nostrCrypto ??= _loadNostrCrypto();
 
 NostrCrypto _loadNostrCrypto() {
-  if (_loadedNostrCrypto case final loaded?) return loaded;
-  final script = web.document.createElement('script') as web.HTMLScriptElement
-    ..text = nostrCryptoJs;
-  web.document.head!.append(script);
-  return _loadedNostrCrypto ??
+  if (_loadedNostrCrypto == null && !_injected) {
+    // once: under a Content-Security-Policy, each try adds a script and a report
+    _injected = true;
+    final script = web.document.createElement('script') as web.HTMLScriptElement
+      ..text = nostrCryptoJs;
+    web.document.head!.append(script);
+  }
+  final loaded =
+      _loadedNostrCrypto ??
       (throw StateError(
-        'The NostrCrypto bundle did not run: a Content-Security-Policy may '
+        'The DostrWebCrypto bundle did not run: a Content-Security-Policy may '
         'block inline scripts, see the dostr_web_crypto README',
       ));
+  final version = loaded.version?.toDart;
+  if (version != nostrCryptoVersion) {
+    throw StateError(
+      'The page loaded the DostrWebCrypto bundle $version, but this '
+      'dostr_web_crypto needs $nostrCryptoVersion: serve the js/nostr_crypto.js '
+      'of the version you depend on, see the dostr_web_crypto README',
+    );
+  }
+  return loaded;
 }
 
 extension type NostrCrypto._(JSObject _) implements JSObject {
+  external JSString? get version;
   external JSBoolean verifySignature(
     JSString signatureHex,
     JSString hashHex,

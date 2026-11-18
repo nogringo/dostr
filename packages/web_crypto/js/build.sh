@@ -5,8 +5,18 @@ set -e
 
 cd "$(dirname "$0")"
 
-echo "Building JS bundle..."
-npm run build
+# A hash of what the bundle is built from, so that a stale copy on a page shows.
+version=$(node -e '
+  const hash = require("crypto").createHash("sha256");
+  for (const file of process.argv.slice(1)) {
+    hash.update(require("fs").readFileSync(file));
+  }
+  console.log(hash.digest("hex").slice(0, 16));
+' nostr_crypto.src.js package-lock.json build.sh)
+
+echo "Building JS bundle $version..."
+npx esbuild nostr_crypto.src.js --bundle --minify --format=iife \
+  "--define:BUNDLE_VERSION=\"$version\"" --outfile=nostr_crypto.js
 
 echo "Updating nostr_crypto_js.dart..."
 cat > ../lib/src/nostr_crypto_js.dart << 'DARTEOF'
@@ -17,6 +27,11 @@ const String nostrCryptoJs = r'''
 DARTEOF
 
 cat nostr_crypto.js >> ../lib/src/nostr_crypto_js.dart
-echo "''';" >> ../lib/src/nostr_crypto_js.dart
+cat >> ../lib/src/nostr_crypto_js.dart << DARTEOF
+''';
+
+/// The version of [nostrCryptoJs], a hash of the files it is built from.
+const String nostrCryptoVersion = '$version';
+DARTEOF
 
 echo "Done!"

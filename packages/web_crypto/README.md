@@ -51,8 +51,8 @@ On such a page, serve the `js/nostr_crypto.js` of the version you depend on, and
 <script src="nostr_crypto.js"></script>
 ```
 
-The classes then use the `NostrCrypto` it defines and inject nothing.
-Copy the file again on every upgrade of `dostr_web_crypto`, since it must match the Dart side.
+The classes then use the `DostrWebCrypto` it defines and inject nothing.
+Copy the file again on every upgrade of `dostr_web_crypto`, since it must match the Dart side: when it does not, the classes throw a `StateError` that gives both versions.
 
 A Web Worker has no page to inject the bundle into, so the classes are not supported there.
 
@@ -68,3 +68,5 @@ The web `NdkEventSignerFactory` of `ndk_flutter` is now `DostrSignerFactory`, a 
 `lib/src/nostr_crypto_js.dart` is generated from `js/nostr_crypto.src.js`.
 To rebuild it, run `npm ci`, then `./build.sh`, in `js/`.
 `js/package-lock.json` pins the @noble versions the committed bundle was built with.
+`build.sh` stamps the bundle with a hash of the files it is built from, which is the version the classes check.
+The CI rebuilds the bundle and fails when it differs from the committed one, so the committed bundle is the one its sources build.

@@ -20,10 +20,16 @@ class WebSignerFactory implements LocalSignerFactory {
   @override
   KeyPair generateKeyPair() {
     final random = Random.secure();
-    final privateKey = bytesToHex(
-      List.generate(32, (_) => random.nextInt(256)),
-    );
-    return (privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
+    while (true) {
+      final privateKey = bytesToHex(
+        List.generate(32, (_) => random.nextInt(256)),
+      );
+      try {
+        return (privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
+      } on FormatException {
+        // zero or not below the curve order: draw again, as Bip340 does
+      }
+    }
   }
 
   @override

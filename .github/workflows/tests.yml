@@ -43,6 +43,10 @@ jobs:
           channel: stable
           cache: true
       - run: dart pub get
+      - name: Check that the JS bundle is the one its sources build
+        if: matrix.package == 'web_crypto'
+        working-directory: ./packages/web_crypto/js
+        run: npm ci && ./build.sh && git diff --stat --exit-code -- nostr_crypto.js ../lib/src/nostr_crypto_js.dart
       - run: ${{ matrix.test_command || 'dart test' }}
 
   nip55-android:
