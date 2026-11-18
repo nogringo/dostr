@@ -20,7 +20,7 @@ dependencies:
   convert: ^3.1.2
   crypto: ^3.0.7
   dostr_secp256k1: ^0.1.0
-  pointycastle: ">=3.0.0 <5.0.0"
+  pointycastle: ">=3.4.0 <5.0.0"
 
 dev_dependencies:
   lints: ^6.1.0
