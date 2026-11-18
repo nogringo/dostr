@@ -31,13 +31,13 @@ if (flutterVersionName == null) {
 }
 
 android {
-    namespace "com.example.example"
+    namespace = "com.example.example"
     compileSdk = 36
-    ndkVersion "28.2.13676358"
+    ndkVersion = "28.2.13676358"
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_17
-        targetCompatibility JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 
     sourceSets {
@@ -46,22 +46,22 @@ android {
 
     defaultConfig {
       
-        applicationId "io.github.nogringo.dostr.demo"
+        applicationId = "io.github.nogringo.dostr.demo"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        minSdkVersion flutter.minSdkVersion
-        targetSdkVersion flutter.targetSdkVersion
-        versionCode flutterVersionCode.toInteger()
-        versionName flutterVersionName
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutterVersionCode.toInteger()
+        versionName = flutterVersionName
     }
 
     signingConfigs {
         if (keystorePropertiesFile.exists()) {
             release {
-                keyAlias keystoreProperties['keyAlias']
-                keyPassword keystoreProperties['keyPassword']
-                storeFile file(keystoreProperties['storeFile'])
-                storePassword keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
             }
         }
     }
@@ -72,7 +72,7 @@ android {
             // installed apps cannot be upgraded (Android rejects signature
             // changes and NIP-82 update checks filter by certificate hash).
             // Fall back to debug keys only for local builds without key.properties.
-            signingConfig keystorePropertiesFile.exists()
+            signingConfig = keystorePropertiesFile.exists()
                     ? signingConfigs.release
                     : signingConfigs.debug
         }
@@ -86,7 +86,7 @@ kotlin {
 }
 
 flutter {
-    source '../..'
+    source = '../..'
 }
 
 dependencies {}
