@@ -521,13 +521,13 @@ class RelayRequests {
   void _sendCloseToRelay(RelayConnection connection, String id) =>
       _connections.sendTo(connection, closeMessage(id));
 
-  void logActive() {
-    Map<String?, int> namesMap = {};
-    inFlight.forEach((key, state) {
-      namesMap[state.name] = (namesMap[state.name] ?? 0) + 1;
-    });
-    logger.fine(() => "${inFlight.length} REQs in flight, by name: $namesMap");
-  }
+  void logActive() => logger.fine(() {
+    final byName = <String?, int>{};
+    for (final state in inFlight.values) {
+      byName.update(state.name, (count) => count + 1, ifAbsent: () => 1);
+    }
+    return "${inFlight.length} REQs in flight, by name: $byName";
+  });
 
   /// Whether a request still needs the connection behind [key].
   bool hasWorkOn(RelayConnectionKey key) {
