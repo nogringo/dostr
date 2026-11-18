@@ -34,6 +34,7 @@ final plaintext = await Nip44.decryptMessage(
 - `encryptMessage` and `decryptMessage` return futures but do the work on the calling isolate, on every platform.
 - The plaintext must be 1 to 4294967295 bytes in UTF-8: an empty string throws.
 - `decrypt` and `decryptMessage` decode the whole payload in memory, with no size limit of their own: bound the size of a payload from an untrusted source before you decrypt it.
+- The secp256k1 key agreement, which `Nip04` shares, does not run in constant time: its timing depends on the private key.
 
 ## Many messages with the same peer
 

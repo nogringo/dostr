@@ -272,6 +272,32 @@ void main() {
       });
     }
 
+    for (final (variant, rewrite) in [
+      (
+        'the URL-safe base64 alphabet',
+        (String payload) => payload.replaceAll('+', '-').replaceAll('/', '_'),
+      ),
+      (
+        'a percent-encoded base64 padding',
+        (String payload) => payload.replaceAll('=', '%3D'),
+      ),
+    ]) {
+      test('rejects $variant', () {
+        final v = _cases(
+          valid,
+          'encrypt_decrypt',
+        ).firstWhere((v) => rewrite(v['payload']) != v['payload']);
+
+        expect(
+          () => Nip44.decrypt(
+            rewrite(v['payload']),
+            _bytes(v['conversation_key']),
+          ),
+          throwsFormatException,
+        );
+      });
+    }
+
     test('uses a fresh nonce on each message', () {
       final conversationKey = Uint8List(32);
 

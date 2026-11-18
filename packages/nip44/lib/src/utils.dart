@@ -19,6 +19,9 @@ const _version = 2;
 const _maxPlaintextLength = 0xffffffff;
 const _extendedPrefixThreshold = 0x10000;
 
+// base64.decode also takes the URL-safe alphabet and a %3D padding.
+final _base64Pattern = RegExp(r'^[A-Za-z0-9+/]*={0,2}$');
+
 Uint8List secureRandomBytes(int length) {
   final random = Random.secure();
   return Uint8List.fromList(
@@ -160,6 +163,9 @@ Payload parsePayload(String payload) {
   }
   if (payload.length < 132) {
     throw const FormatException('Invalid payload size');
+  }
+  if (!_base64Pattern.hasMatch(payload)) {
+    throw const FormatException('Not standard base64 with padding');
   }
   final data = base64.decode(payload);
   if (data.length < 99) {
