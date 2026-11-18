@@ -50,6 +50,7 @@ switch (Nip19Entity.decode(input)) {
 ```
 
 The decoders accept the `nostr:` prefix of [NIP-21](https://github.com/nostr-protocol/nips/blob/master/21.md), except before an `nsec`, which NIP-21 forbids.
+They ignore whitespace around the input, such as the newline of a pasted string.
 For the same reason, every class but `Nsec` extends `Nip21Entity`, whose `uri` getter is its string with the `nostr:` prefix, so `if (entity case Nip21Entity(:final uri))` reads it from any decoded entity that has one.
 Each class has a `prefix` constant, such as `Npub.prefix`.
 

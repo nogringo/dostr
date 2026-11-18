@@ -22,8 +22,9 @@ sealed class Nip19Entity {
   /// stores the length of each in one byte.
   static const maxTlvValueLength = 255;
 
-  /// Decodes [input], with or without the `nostr:` prefix of NIP-21. Throws a
-  /// [FormatException] when it is not an entity.
+  /// Decodes [input], with or without the `nostr:` prefix of NIP-21, ignoring
+  /// whitespace around it. Throws a [FormatException] when it is not an
+  /// entity.
   factory Nip19Entity.decode(String input) => _decode(input);
 
   /// [input] decoded like [Nip19Entity.decode], or null when it is not an
@@ -372,7 +373,7 @@ final class Naddr extends Nip21Entity {
 }
 
 Nip19Entity _decode(String input, [String? expectedPrefix]) {
-  final (prefix, bytes) = decodeBech32(_withoutUriScheme(input));
+  final (prefix, bytes) = decodeBech32(_withoutUriScheme(input.trim()));
   if (expectedPrefix != null && prefix != expectedPrefix) {
     throw FormatException('Expected $expectedPrefix, got $prefix');
   }

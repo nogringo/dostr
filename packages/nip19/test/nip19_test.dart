@@ -100,8 +100,20 @@ void main() {
       expect(Nevent.decode('NOSTR:$nevent').eventId, eventId);
     });
 
+    test('ignores whitespace around the input', () {
+      for (final input in [
+        '$npub\n',
+        ' $npub',
+        '\t$npub \r\n',
+        ' nostr:$npub ',
+      ]) {
+        expect(Npub.decode(input).pubkey, pubkey);
+      }
+    });
+
     test('rejects an nsec behind the nostr: prefix', () {
       expect(() => Nsec.decode('nostr:$nsec'), throwsFormatException);
+      expect(() => Nsec.decode(' nostr:$nsec'), throwsFormatException);
     });
 
     test('accepts an uppercase string', () {
