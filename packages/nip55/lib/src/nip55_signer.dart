@@ -12,6 +12,7 @@ import 'nip55_signer_app.dart';
 class _PendingRequestEntry {
   final Completer<dynamic> completer;
   final PendingSignerRequest request;
+  bool sentToSignerApp = false;
   _PendingRequestEntry(this.completer, this.request);
 }
 
@@ -22,6 +23,10 @@ class _PendingRequestEntry {
 /// operations to whichever compatible signer is installed via [Nip55SignerApp].
 class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final Nip55SignerApp signerApp;
+
+  /// When set, [sign] checks the signature of every event the signer app
+  /// signs, and fails on an invalid one.
+  final EventVerifier? verifier;
 
   /// in hex, also when the signer was given an npub
   @override
@@ -44,19 +49,31 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   Nip55Signer({
     required String publicKey,
     required this.signerApp,
+    this.verifier,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : publicKey = publicKey.startsWith(Npub.prefix)
            ? Npub.decode(publicKey).pubkey
            : publicKey,
        assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
 
-  /// The signer app answers a refusal with no result (NIP-55).
   static String _extractResult(Map<dynamic, dynamic> map, String requestId) {
-    final result = map['signature'] as String?;
-    if (result == null || result.isEmpty) {
+    if (map['rejected'] == 'true') {
       throw SignerRequestRejectedException(requestId: requestId);
     }
+    final result = map['signature'] as String?;
+    if (result == null || result.isEmpty) {
+      throw SignerRequestFailedException(
+        'The signer app returned no result',
+        requestId: requestId,
+      );
+    }
     return result;
+  }
+
+  void _checkSupported() {
+    if (!canSign) {
+      throw UnsupportedError('NIP-55 is only available on Android');
+    }
   }
 
   String _generateRequestId() {
@@ -70,8 +87,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
   }
 
-  /// Runs [operation] while [describe] waits in [pendingRequests]. An error of
-  /// the signer app means it turned the request down.
+  /// Runs [operation] while [describe] waits in [pendingRequests].
   Future<T> _trackRequest<T>(
     PendingSignerRequest Function(String requestId) describe,
     Future<T> Function(String requestId) operation,
@@ -89,9 +105,11 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     // `pendingRequests` so the UI sees the full backlog. If the request was
     // cancelled while queued, skip the signer call entirely.
     runThrottled(() async {
-          if (!_pendingRequests.containsKey(requestId)) {
+          final entry = _pendingRequests[requestId];
+          if (entry == null) {
             throw SignerRequestCancelledException(requestId);
           }
+          entry.sentToSignerApp = true;
           return await operation(requestId);
         })
         .then((result) {
@@ -104,9 +122,10 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
             completer.completeError(
               error is SignerRequestException
                   ? error
-                  : SignerRequestRejectedException(
+                  : SignerRequestFailedException(
+                      'The request to the signer app failed',
                       requestId: requestId,
-                      originalMessage: error.toString(),
+                      cause: error,
                     ),
             );
           }
@@ -121,6 +140,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
+    _checkSupported();
     if (event.pubkey != publicKey) {
       throw ArgumentError.value(
         event.pubkey,
@@ -147,10 +167,17 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
         // Prefer the event the signer actually signed, when it returns one.
         final signedEventJson = map['event'] as String?;
-        if (signedEventJson == null || signedEventJson.isEmpty) {
-          return toSign.copyWith(sig: signature);
+        final signed = signedEventJson == null || signedEventJson.isEmpty
+            ? toSign.copyWith(sig: signature)
+            : _checkSigned(signedEventJson, requestId);
+        final verifier = this.verifier;
+        if (verifier != null && !await verifier.verify(signed)) {
+          throw SignerRequestFailedException(
+            'The signer app returned an invalid signature',
+            requestId: requestId,
+          );
         }
-        return _checkSigned(signedEventJson, requestId);
+        return signed;
       },
     );
   }
@@ -183,6 +210,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String ciphertext,
     required String senderPubkey,
   }) async {
+    _checkSupported();
     return _trackRequest(
       (id) => PendingDecryptRequest.nip04(
         id: id,
@@ -208,6 +236,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String plaintext,
     required String recipientPubkey,
   }) async {
+    _checkSupported();
     return _trackRequest(
       (id) => PendingEncryptRequest.nip04(
         id: id,
@@ -228,14 +257,16 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
   }
 
+  /// false off Android, where every request throws an [UnsupportedError]
   @override
-  bool get canSign => true;
+  bool get canSign => Nip55SignerApp.isSupported;
 
   @override
   Future<String> encryptNip44({
     required String plaintext,
     required String recipientPubkey,
   }) async {
+    _checkSupported();
     return _trackRequest(
       (id) => PendingEncryptRequest.nip44(
         id: id,
@@ -261,6 +292,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String ciphertext,
     required String senderPubkey,
   }) async {
+    _checkSupported();
     return _trackRequest(
       (id) => PendingDecryptRequest.nip44(
         id: id,
@@ -292,12 +324,14 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   @override
   bool cancelRequest(String requestId) {
     final entry = _pendingRequests.remove(requestId);
-    if (entry != null) {
-      entry.completer.completeError(SignerRequestCancelledException(requestId));
-      _notifyPendingRequestsChange();
-      return true;
+    if (entry == null) return false;
+    entry.completer.completeError(SignerRequestCancelledException(requestId));
+    _notifyPendingRequestsChange();
+    if (entry.sentToSignerApp) {
+      // frees the slot of the request, which waits for the signer app
+      signerApp.cancelRequest(requestId).ignore();
     }
-    return false;
+    return true;
   }
 
   @override

@@ -7,3 +7,11 @@
  - Given an npub, `Nip55Signer` keeps its pubkey in hex, so `publicKey` is the hex pubkey that it sends as `current_user`.
  - `sign` throws an `ArgumentError` for an event of another pubkey, and a `SignerRequestFailedException` when the signer app returns an invalid event or one signed by another account. It used to return that event, and to reject an invalid one with a `SignerRequestRejectedException`.
  - A queued request that `dispose` drops fails with a `SignerRequestFailedException` instead of a `SignerRequestRejectedException`, and the pending requests are the `PendingSignRequest`, `PendingEncryptRequest` and `PendingDecryptRequest` of `dostr_signer`.
+ - Only a refusal of the user, which NIP-55 marks with `rejected`, throws a `SignerRequestRejectedException`. A request with no usable answer throws a `SignerRequestFailedException` instead: no activity to open the signer app from, a signer app that cannot be opened, a result code other than `RESULT_OK`, or an answer with no result.
+ - When the user told the signer app to always reject a request, the Content Resolver answer rejects it, instead of opening the signer app to ask again, as NIP-55 requires.
+ - The Content Resolver is queried on a background thread instead of the main thread, which froze the UI while the signer app answered.
+ - Off Android, `Nip55Signer.canSign` is false and every request throws an `UnsupportedError`, as `NostrSigner` requires, instead of a `SignerRequestRejectedException`. `isAppInstalled` is false there, and `Nip55SignerApp.isSupported` tells whether the platform has NIP-55 signer apps.
+ - `isAppInstalled` checks the signer app of `package` when it is set.
+ - `Nip55Signer` takes an optional `verifier`, which checks the signature of every event the signer app signs.
+ - `getPublicKey` and `getPublicKeyHex` are gone: `login` returns the pubkey and the signer app package. `login` throws a `PlatformException` when the signer app cannot be opened, instead of returning `null`.
+ - `cancelRequest` also stops the plugin from waiting for the answer of the signer app, through `Nip55SignerApp.cancelRequest`, which frees the slot of the request.

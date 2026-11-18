@@ -6,6 +6,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
 import 'package:dostr_signer/dostr_signer.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -59,6 +60,7 @@ void main() {
           'signature': actuallySigned.sig,
           'event': actuallySigned.toJsonString(),
         }),
+        verifier: Bip340EventVerifier(),
       );
       addTearDown(signer.dispose);
 
@@ -123,6 +125,20 @@ void main() {
       },
     );
 
+    test('sign fails on an invalid signature when it has a verifier', () async {
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: _FakeNip55SignerApp({'signature': 'ab12'}),
+        verifier: Bip340EventVerifier(),
+      );
+      addTearDown(signer.dispose);
+
+      await expectLater(
+        signer.sign(note(publicKey)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
     test('sign sends the payload id, whatever id the event holds', () async {
       final app = _FakeNip55SignerApp({'signature': 'ab12'});
       final signer = Nip55Signer(publicKey: publicKey, signerApp: app);
@@ -142,12 +158,18 @@ void main() {
 
     late List<MethodCall> calls;
     late List<Completer<Object?>> answers;
+    late List<Object?> cancelled;
 
     setUp(() {
       calls = [];
       answers = [];
+      cancelled = [];
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
-          .setMockMethodCallHandler(channel, (call) {
+          .setMockMethodCallHandler(channel, (call) async {
+            if (call.method == 'cancel') {
+              cancelled.add((call.arguments as Map<dynamic, dynamic>)['id']);
+              return true;
+            }
             calls.add(call);
             final answer = Completer<Object?>();
             answers.add(answer);
@@ -273,13 +295,13 @@ void main() {
       );
     });
 
-    test('rejects with the request id when the signer app fails', () async {
+    test('rejects when the user refuses on the signer app', () async {
       final signer = newSigner();
 
       final result = encrypt(signer, 'hello');
       await pumpEventQueue();
       final id = signer.pendingRequests.single.id;
-      answers.single.completeError(PlatformException(code: 'USER_REJECTED'));
+      answers.single.complete({'rejected': 'true'});
 
       await expectLater(
         result,
@@ -291,11 +313,32 @@ void main() {
           ),
         ),
       );
-      await pumpEventQueue();
-      expect(signer.pendingRequests, isEmpty);
     });
 
-    test('rejects an answer without a result', () async {
+    test(
+      'fails with the request id when the signer app cannot be opened',
+      () async {
+        final signer = newSigner();
+
+        final result = encrypt(signer, 'hello');
+        await pumpEventQueue();
+        final id = signer.pendingRequests.single.id;
+        answers.single.completeError(PlatformException(code: 'LAUNCH_FAILED'));
+
+        await expectLater(
+          result,
+          throwsA(
+            isA<SignerRequestFailedException>()
+                .having((e) => e.requestId, 'requestId', id)
+                .having((e) => e.cause, 'cause', isA<PlatformException>()),
+          ),
+        );
+        await pumpEventQueue();
+        expect(signer.pendingRequests, isEmpty);
+      },
+    );
+
+    test('fails on an answer without a result', () async {
       final signer = newSigner();
 
       final results = [
@@ -309,10 +352,7 @@ void main() {
       answers[2].complete({'signature': ''});
 
       for (final result in results) {
-        await expectLater(
-          result,
-          throwsA(isA<SignerRequestRejectedException>()),
-        );
+        await expectLater(result, throwsA(isA<SignerRequestFailedException>()));
       }
     });
 
@@ -347,6 +387,7 @@ void main() {
           ),
         ),
       );
+      expect(cancelled, [id]);
 
       answers.single.complete({'signature': 'late'});
       await pumpEventQueue();
@@ -397,6 +438,7 @@ void main() {
       await pumpEventQueue();
 
       expect(calls, hasLength(1));
+      expect(cancelled, isEmpty);
       expect(signer.pendingRequests, isEmpty);
       expect(signer.queuedRequests, 0);
     });
@@ -421,5 +463,31 @@ void main() {
         await pumpEventQueue();
       },
     );
+  });
+
+  group('Nip55Signer off Android', () {
+    setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.iOS);
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('cannot sign, and throws an UnsupportedError', () async {
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: _FakeNip55SignerApp({'signature': 'ab12'}),
+      );
+      addTearDown(signer.dispose);
+
+      expect(signer.canSign, isFalse);
+      await expectLater(
+        signer.sign(
+          Nip01Event(pubkey: publicKey, kind: 1, tags: [], content: ''),
+        ),
+        throwsUnsupportedError,
+      );
+      await expectLater(
+        signer.encryptNip44(plaintext: 'hi', recipientPubkey: publicKey),
+        throwsUnsupportedError,
+      );
+      expect(signer.pendingRequests, isEmpty);
+    });
   });
 }

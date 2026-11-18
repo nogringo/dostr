@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -35,11 +36,22 @@ void main() {
       call.arguments as Map<dynamic, dynamic>;
 
   group('isAppInstalled', () {
-    test('asks the native side', () async {
+    test('asks the native side for any signer app', () async {
       reply = (_) => true;
 
       expect(await const Nip55SignerApp().isAppInstalled(), isTrue);
       expect(calls.single.method, 'isAppInstalled');
+      expect(argumentsOf(calls.single), isEmpty);
+    });
+
+    test('asks for the signer app of the login', () async {
+      reply = (_) => false;
+
+      expect(
+        await const Nip55SignerApp(package: package).isAppInstalled(),
+        isFalse,
+      );
+      expect(argumentsOf(calls.single), {'package': package});
     });
 
     test('is false when the native side answers nothing', () async {
@@ -114,21 +126,6 @@ void main() {
 
       reply = (_) => {'result': ''};
       expect(await const Nip55SignerApp().login(), isNull);
-    });
-
-    test('getPublicKeyHex returns the key in hex', () async {
-      reply = (_) => {'result': Npub(pubkey).encode()};
-
-      expect(await const Nip55SignerApp().getPublicKeyHex(), pubkey);
-    });
-
-    test('getPublicKey sends no permissions unless asked', () async {
-      reply = (_) => {'result': pubkey};
-
-      final response = await const Nip55SignerApp().getPublicKey();
-
-      expect(response['result'], pubkey);
-      expect(argumentsOf(calls.single).containsKey('permissions'), isFalse);
     });
   });
 
@@ -252,6 +249,14 @@ void main() {
       );
     });
 
+    test('cancelRequest names the request to stop waiting for', () async {
+      reply = (_) => true;
+
+      expect(await const Nip55SignerApp().cancelRequest('req-4'), isTrue);
+      expect(calls.single.method, 'cancel');
+      expect(argumentsOf(calls.single), {'id': 'req-4'});
+    });
+
     test('a missing plugin reaches the caller', () async {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
           .setMockMethodCallHandler(channel, null);
@@ -260,6 +265,33 @@ void main() {
         const Nip55SignerApp().isAppInstalled(),
         throwsA(isA<MissingPluginException>()),
       );
+    });
+  });
+
+  group('off Android', () {
+    setUp(() => debugDefaultTargetPlatformOverride = TargetPlatform.iOS);
+    tearDown(() => debugDefaultTargetPlatformOverride = null);
+
+    test('is not supported', () {
+      expect(Nip55SignerApp.isSupported, isFalse);
+    });
+
+    test('has no signer app installed', () async {
+      expect(await const Nip55SignerApp().isAppInstalled(), isFalse);
+      expect(calls, isEmpty);
+    });
+
+    test('throws an UnsupportedError for a request', () async {
+      await expectLater(
+        const Nip55SignerApp().login(),
+        throwsA(isA<UnsupportedError>()),
+      );
+      await expectLater(
+        const Nip55SignerApp().signEvent(currentUser: pubkey, eventJson: '{}'),
+        throwsA(isA<UnsupportedError>()),
+      );
+      expect(await const Nip55SignerApp().cancelRequest('req-5'), isFalse);
+      expect(calls, isEmpty);
     });
   });
 }

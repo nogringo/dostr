@@ -1,7 +1,6 @@
 package io.github.nogringo.dostr.nip55
 
 import android.app.Activity
-import android.content.ContentResolver
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -19,19 +18,35 @@ import io.flutter.plugin.common.MethodChannel.Result
 import io.flutter.plugin.common.PluginRegistry
 import org.json.JSONArray
 import org.json.JSONObject
+import java.util.concurrent.Executor
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 
 /// NIP-55 "Android Signer Application" bridge for external signer apps.
 ///
-/// Communication happens either silently through a ContentResolver query
-/// (when the user has pre-authorized the permission) or, as a fallback, by
-/// launching the signer via an Intent and reading the result in
+/// A request is first sent silently to the Content Resolver of the signer app
+/// captured at login, off the main thread. When the signer app cannot answer
+/// it there, it opens the signer app with an Intent and waits for
 /// [onActivityResult].
-class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
+class Nip55Plugin(
+    private val backgroundExecutor: Executor = Executors.newSingleThreadExecutor(),
+) : FlutterPlugin, MethodCallHandler, ActivityAware,
     PluginRegistry.ActivityResultListener {
     private lateinit var _channel : MethodChannel
     private lateinit var _context : Context
-    private var _activity: Activity? = null
+    private var _activityBinding: ActivityPluginBinding? = null
+    private val _mainHandler = Handler(Looper.getMainLooper())
+
+    private class Nip55Request(
+        val type: String,
+        val currentUser: String,
+        val pubkey: String,
+        val id: String,
+        val uriData: String,
+        val permissions: String,
+        val signerPackage: String,
+    )
 
     private data class PendingIntentResult(
         val result: MethodChannel.Result,
@@ -48,113 +63,106 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         _context = flutterPluginBinding.applicationContext
     }
 
-    private fun isPackageInstalled(context: Context, target: String): Boolean {
-        return context.packageManager.getInstalledApplications(0)
-            .find { info -> info.packageName == target } != null
-    }
-
-    private fun isExternalSignerInstalled(context: Context): Boolean {
+    private fun isSignerInstalled(signerPackage: String?): Boolean {
         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("$nostrSignerScheme:"))
-        return context.packageManager.queryIntentActivities(intent, 0).isNotEmpty()
+        if (!signerPackage.isNullOrEmpty()) {
+            intent.setPackage(signerPackage)
+        }
+        return _context.packageManager.queryIntentActivities(intent, 0).isNotEmpty()
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
+        val params = call.arguments as? Map<*, *>
         when (call.method) {
             nostrSignerScheme -> {
-                val methodResult = MethodResultWrapper(result)
-
-                val paramsMap = call.arguments as? HashMap<*, *>
-                if (paramsMap == null) {
-                    Log.d("onMethodCall", "paramsMap is null")
-                    methodResult.success(HashMap<String, String?>())
+                if (params == null) {
+                    result.error("BAD_ARGUMENTS", "A NIP-55 request needs a map of arguments", null)
                     return
                 }
-
-                val requestType = paramsMap[keyType] as? String ?: ""
-                val currentUser = paramsMap[keyCurrentUser] as? String ?: ""
-                val pubKey = paramsMap[keyPubKey] as? String
-                    ?: paramsMap["pubkey"] as? String
-                    ?: ""
-                val id = paramsMap[keyId] as? String ?: ""
-                val uriData = paramsMap[keyUriData] as? String ?: ""
-                val permissions = paramsMap[keyPermissions] as? String ?: ""
-                // Signer app package captured at login.
-                // Empty for get_public_key / legacy accounts.
-                val signerPackage = paramsMap[keyPackage] as? String ?: ""
-
-                // First try the silent ContentResolver path (pre-authorized
-                // permissions). Only attempt it when we know which signer to
-                // query (a captured package): querying a foreign provider
-                // returns wrong/empty data.
-                // get_public_key (login) is Intent-only per NIP-55.
-                if (requestType != "get_public_key" && signerPackage.isNotEmpty()) {
-                    val data = getDataFromContentResolver(
-                        requestType.uppercase(),
-                        arrayOf(uriData, pubKey, currentUser),
-                        _context.contentResolver,
-                        signerPackage,
-                    )
-                    if (!data.isNullOrEmpty()) {
-                        Log.d("onMethodCall", "content resolver got data")
-                        methodResult.success(data)
-                        return
-                    }
-                }
-
-                // Fallback: launch the signer app via Intent.
-                val intent = Intent(
-                    Intent.ACTION_VIEW,
-                    Uri.parse("$nostrSignerScheme:$uriData")
+                val request = Nip55Request(
+                    type = params[keyType] as? String ?: "",
+                    currentUser = params[keyCurrentUser] as? String ?: "",
+                    pubkey = params[keyPubKey] as? String
+                        ?: params["pubkey"] as? String
+                        ?: "",
+                    id = params[keyId] as? String ?: "",
+                    uriData = params[keyUriData] as? String ?: "",
+                    permissions = params[keyPermissions] as? String ?: "",
+                    signerPackage = params[keyPackage] as? String ?: "",
                 )
-                if (requestType != "get_public_key") {
-                    intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                }
-                intent.putExtra(keyType, requestType)
-                intent.putExtra(keyCurrentUser, currentUser)
-                intent.putExtra(keyPubKey, pubKey)
-                intent.putExtra("pubkey", pubKey)
-                intent.putExtra(keyId, id)
-                intent.putExtra(keyPermissions, permissions)
-                // Target the captured signer directly (no app chooser). Empty
-                // for login, so the user can pick a signer the first time.
-                if (signerPackage.isNotEmpty()) {
-                    intent.setPackage(signerPackage)
-                    intent.putExtra(keyPackage, signerPackage)
-                }
 
-                val activity = _activity
-                if (activity == null) {
-                    methodResult.success(HashMap<String, String?>())
+                // NIP-55: get_public_key is Intent-only, and the Content
+                // Resolver is addressed by the signer package.
+                if (request.type == "get_public_key" || request.signerPackage.isEmpty()) {
+                    launchSigner(request, result)
                     return
                 }
-
-                var requestCode: Int? = null
-                try {
-                    requestCode = reserveIntentRequestCode(methodResult, id)
-                    activity.startActivityForResult(intent, requestCode)
-                } catch (e: Exception) {
-                    Log.d("onMethodCall", "startActivityForResult failed for '$signerPackage': ${e.message}")
-                    if (requestCode != null) {
-                        removePendingIntentResult(requestCode)
+                backgroundExecutor.execute {
+                    val answer = queryContentResolver(request)
+                    _mainHandler.post {
+                        if (answer != null) {
+                            result.success(answer)
+                        } else {
+                            launchSigner(request, result)
+                        }
                     }
-                    methodResult.success(HashMap<String, String?>())
                 }
             }
 
             "isAppInstalled" -> {
-                val paramsMap = call.arguments as? HashMap<*, *>
-                val packageName = paramsMap?.get("packageName") as? String
-                val isInstalled = if (packageName.isNullOrEmpty()) {
-                    isExternalSignerInstalled(_context)
-                } else {
-                    isPackageInstalled(_context, packageName)
-                }
-                result.success(isInstalled)
+                result.success(isSignerInstalled(params?.get(keyPackage) as? String))
+            }
+
+            "cancel" -> {
+                val requestCode = (params?.get(keyId) as? String)
+                    ?.let { _pendingIntentRequestCodesById[it] }
+                val pending = requestCode?.let { removePendingIntentResult(it) }
+                pending?.result?.error("CANCELLED", "The request was cancelled", null)
+                result.success(pending != null)
             }
 
             else -> {
                 result.notImplemented()
             }
+        }
+    }
+
+    private fun launchSigner(request: Nip55Request, result: Result) {
+        val activity = _activityBinding?.activity
+        if (activity == null) {
+            result.error("NO_ACTIVITY", "There is no activity to open the signer app from", null)
+            return
+        }
+
+        val intent = Intent(
+            Intent.ACTION_VIEW,
+            Uri.parse("$nostrSignerScheme:${request.uriData}")
+        )
+        if (request.type != "get_public_key") {
+            intent.addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+        }
+        intent.putExtra(keyType, request.type)
+        intent.putExtra(keyCurrentUser, request.currentUser)
+        intent.putExtra(keyPubKey, request.pubkey)
+        intent.putExtra("pubkey", request.pubkey)
+        intent.putExtra(keyId, request.id)
+        intent.putExtra(keyPermissions, request.permissions)
+        // Without a package, as at login, the user picks the signer app.
+        if (request.signerPackage.isNotEmpty()) {
+            intent.setPackage(request.signerPackage)
+            intent.putExtra(keyPackage, request.signerPackage)
+        }
+
+        var requestCode: Int? = null
+        try {
+            requestCode = reserveIntentRequestCode(result, request.id)
+            activity.startActivityForResult(intent, requestCode)
+        } catch (e: Exception) {
+            Log.d("Nip55Plugin", "cannot open the signer app '${request.signerPackage}': ${e.message}")
+            if (requestCode != null) {
+                removePendingIntentResult(requestCode)
+            }
+            result.error("LAUNCH_FAILED", e.message ?: "Cannot open the signer app", null)
         }
     }
 
@@ -193,9 +201,7 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     private fun completePendingIntentResultById(id: String, data: HashMap<String, String?>): Boolean {
         val requestCode = _pendingIntentRequestCodesById[id] ?: return false
-        val pending = removePendingIntentResult(requestCode) ?: return false
-        pending.result.success(data)
-        return true
+        return completePendingIntentResult(requestCode, data)
     }
 
     private fun buildResultMapFromJson(resultJson: JSONObject): HashMap<String, String?> {
@@ -228,7 +234,6 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
         if (intent.hasExtra(keyResult)) {
             val signerResult = intent.getStringExtra(keyResult)
             dataMap[keyResult] = signerResult
-            // keep `signature` populated for backwards compatibility
             dataMap[keySignature] = signerResult
         }
         if (intent.hasExtra(keySignature)) {
@@ -269,11 +274,13 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
             }
             completedAny
         } catch (e: Exception) {
-            Log.d("onActivityResult", "failed to parse NIP-55 batched results: ${e.message}")
+            Log.d("Nip55Plugin", "cannot parse the batched NIP-55 results: ${e.message}")
             false
         }
     }
 
+    // NIP-55: a result code other than RESULT_OK means the signer app failed,
+    // not that the user refused.
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
         if (!_pendingIntentResults.containsKey(requestCode)) {
             return false
@@ -281,9 +288,7 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
         if (resultCode == Activity.RESULT_OK && intent != null) {
             if (completeBatchedResults(intent)) {
-                if (_pendingIntentResults.containsKey(requestCode)) {
-                    completePendingIntentResult(requestCode, HashMap())
-                }
+                completePendingIntentResult(requestCode, HashMap())
                 return true
             }
 
@@ -302,106 +307,70 @@ class Nip55Plugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         _channel.setMethodCallHandler(null)
-    }
-
-    override fun onDetachedFromActivity() {
-        _activity = null
-    }
-
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        _activity = binding.activity
-        binding.addActivityResultListener(this)
+        (backgroundExecutor as? ExecutorService)?.shutdown()
     }
 
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        _activity = binding.activity
+        _activityBinding = binding
         binding.addActivityResultListener(this)
     }
 
-    override fun onDetachedFromActivityForConfigChanges() {
-        _activity = null
+    override fun onDetachedFromActivity() {
+        _activityBinding?.removeActivityResultListener(this)
+        _activityBinding = null
     }
 
-    /*
-      Content resolver path adapted from:
-      https://github.com/0xchat-app/nostr-dart/blob/main/android/src/main/kotlin/com/oxchat/nostrcore/ChatcorePlugin.kt
-     */
-    private fun getDataFromContentResolver(
-        type: String,
-        uriData: Array<out String>,
-        resolver: ContentResolver,
-        signerPackage: String,
-    ): HashMap<String, String?>? {
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        onAttachedToActivity(binding)
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        onDetachedFromActivity()
+    }
+
+    /// The answer of the signer app, or null when it cannot answer silently
+    /// and the Intent must ask the user. NIP-55: a `rejected` column means the
+    /// user always rejects this request, so the Intent must not ask again.
+    /// Adapted from https://github.com/0xchat-app/nostr-dart/blob/main/android/src/main/kotlin/com/oxchat/nostrcore/ChatcorePlugin.kt
+    private fun queryContentResolver(request: Nip55Request): HashMap<String, String?>? {
         try {
-            resolver.query(
-                Uri.parse("content://${signerPackage}.$type"),
-                uriData,
+            _context.contentResolver.query(
+                Uri.parse("content://${request.signerPackage}.${request.type.uppercase()}"),
+                arrayOf(request.uriData, request.pubkey, request.currentUser),
                 null,
                 null,
                 null
             ).use {
                 if (it == null) {
-                    Log.d("getDataFromResolver", "resolver query is NULL")
                     return null
                 }
-                if (it.moveToFirst()) {
-                    // The signer reports it cannot answer silently (permission
-                    // not granted / user denied): fall back to the Intent so
-                    // the user can approve, instead of returning empty data.
-                    val rejectedIndex = it.getColumnIndex("rejected")
-                    if (rejectedIndex >= 0) {
-                        Log.d("getDataFromResolver", "request rejected -> fallback to intent")
-                        return null
-                    }
-
-                    val dataMap: HashMap<String, String?> = HashMap()
-                    val resultIndex = it.getColumnIndex("result")
-                    if (resultIndex >= 0) {
-                        val result = it.getString(resultIndex)
-                        dataMap["result"] = result
-                        dataMap["signature"] = result
-                    }
-                    val index = it.getColumnIndex("signature")
-                    if (index >= 0) {
-                        dataMap["signature"] = it.getString(index)
-                    }
-                    val indexJson = it.getColumnIndex("event")
-                    if (indexJson >= 0) {
-                        dataMap["event"] = it.getString(indexJson)
-                    }
-
-                    // Only short-circuit the Intent if we actually got a result;
-                    // an empty/absent result means the signer didn't answer.
-                    if (dataMap["signature"].isNullOrEmpty()) {
-                        Log.d("getDataFromResolver", "empty result -> fallback to intent")
-                        return null
-                    }
-                    return dataMap
+                if (it.getColumnIndex(keyRejected) >= 0) {
+                    return hashMapOf(keyRejected to "true")
                 }
+                if (!it.moveToFirst()) {
+                    return null
+                }
+
+                val dataMap: HashMap<String, String?> = HashMap()
+                val resultIndex = it.getColumnIndex(keyResult)
+                if (resultIndex >= 0) {
+                    val result = it.getString(resultIndex)
+                    dataMap[keyResult] = result
+                    dataMap[keySignature] = result
+                }
+                val signatureIndex = it.getColumnIndex(keySignature)
+                if (signatureIndex >= 0) {
+                    dataMap[keySignature] = it.getString(signatureIndex)
+                }
+                val eventIndex = it.getColumnIndex(keyEvent)
+                if (eventIndex >= 0) {
+                    dataMap[keyEvent] = it.getString(eventIndex)
+                }
+                return if (dataMap[keySignature].isNullOrEmpty()) null else dataMap
             }
         } catch (e: Exception) {
-            Log.d("contentResolver", e.message ?: "unknown error")
+            Log.d("Nip55Plugin", "Content Resolver query failed: ${e.message}")
             return null
         }
-        return null
-    }
-}
-
-
-private class MethodResultWrapper internal constructor(result: MethodChannel.Result) :
-    MethodChannel.Result {
-    private val methodResult: MethodChannel.Result = result
-    private val handler: Handler = Handler(Looper.getMainLooper())
-
-    override fun success(result: Any?) {
-        handler.post { methodResult.success(result) }
-    }
-
-    override fun error(errorCode: String, errorMessage: String?, errorDetails: Any?) {
-        handler.post { methodResult.error(errorCode, errorMessage, errorDetails) }
-    }
-
-    override fun notImplemented() {
-        handler.post { methodResult.notImplemented() }
     }
 }

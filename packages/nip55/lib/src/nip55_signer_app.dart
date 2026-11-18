@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 /// A permission that can be requested when logging in with a NIP-55 external
@@ -39,8 +40,11 @@ class Nip55LoginResult {
 /// This class talks to whichever compatible signer is installed through the
 /// native `dostr_nip55` method channel (`Nip55Plugin` on Android).
 ///
-/// Every method resolves to a `Map` that contains (at least) a `signature`
-/// key with the result, mirroring the historical external-signer plugin API.
+/// Each request resolves to the answer of the signer app: the result under
+/// `signature` and `result`, the signed `event` for `sign_event`, and
+/// `rejected` set to `'true'` when the user refused. An empty map means that
+/// no result came back. A request throws a [PlatformException] when the signer
+/// app cannot be opened, and an [UnsupportedError] off Android.
 class Nip55SignerApp {
   static const MethodChannel _channel = MethodChannel('dostr_nip55');
 
@@ -62,47 +66,32 @@ class Nip55SignerApp {
 
   const Nip55SignerApp({this.package});
 
-  /// Whether a NIP-55 compatible external signer is installed.
+  /// Whether this platform has NIP-55 signer apps: only Android does.
+  static bool get isSupported =>
+      !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
+
+  /// Whether the signer app of [package] is installed, or any NIP-55 signer
+  /// app when [package] is null. Always false off Android.
   Future<bool> isAppInstalled() async {
-    final data = await _channel.invokeMethod<bool>('isAppInstalled');
+    if (!isSupported) return false;
+    final data = await _channel.invokeMethod<bool>('isAppInstalled', {
+      'package': ?package,
+    });
     return data ?? false;
-  }
-
-  /// Requests the user's public key (login). Optionally pre-authorizes
-  /// [permissions] so subsequent requests can be answered silently.
-  ///
-  /// Returns the raw signer response map. Most callers want
-  /// [getPublicKeyHex] instead.
-  Future<Map<dynamic, dynamic>> getPublicKey({
-    List<Nip55Permission>? permissions,
-  }) async {
-    final arguments = <String, dynamic>{
-      'type': 'get_public_key',
-      'uri_data': 'login',
-    };
-    if (permissions != null) {
-      arguments['permissions'] = jsonEncode(permissions);
-    }
-    return _invoke(arguments);
-  }
-
-  /// Requests the user's public key and returns it as a hex pubkey, or `null`
-  /// if the user rejected or no key was returned.
-  ///
-  /// NIP-55 returns the key in the `result` field, in hex format. Older
-  /// signer implementations may return an npub instead, so both are
-  /// accepted. See https://github.com/nostr-protocol/nips/blob/master/55.md
-  Future<String?> getPublicKeyHex({List<Nip55Permission>? permissions}) async {
-    return (await login(permissions: permissions))?.pubkey;
   }
 
   /// Logs in: requests the user's public key, pre-authorizing [permissions]
   /// (defaults to [defaultPermissions]), and captures the signer app package.
   /// Returns `null` if the user rejected or no key was returned.
+  ///
+  /// NIP-55 returns the key in hex. Older signer apps may return an npub,
+  /// which this decodes.
   Future<Nip55LoginResult?> login({List<Nip55Permission>? permissions}) async {
-    final response = await getPublicKey(
-      permissions: permissions ?? defaultPermissions,
-    );
+    final response = await _invoke({
+      'type': 'get_public_key',
+      'uri_data': 'login',
+      'permissions': jsonEncode(permissions ?? defaultPermissions),
+    });
     final raw = (response['result'] ?? response['signature']) as String?;
     if (raw == null || raw.isEmpty) return null;
     final pubkey = raw.startsWith(Npub.prefix) ? Npub.decode(raw).pubkey : raw;
@@ -183,6 +172,15 @@ class Nip55SignerApp {
     });
   }
 
+  /// Stops waiting for the answer to request [id], whose call then throws a
+  /// [PlatformException] with the code `CANCELLED`. Returns whether the
+  /// request was still waiting for the signer app.
+  Future<bool> cancelRequest(String id) async {
+    if (!isSupported) return false;
+    final cancelled = await _channel.invokeMethod<bool>('cancel', {'id': id});
+    return cancelled ?? false;
+  }
+
   Map<String, dynamic> _encryptArgs(
     String type,
     String uriData,
@@ -202,6 +200,9 @@ class Nip55SignerApp {
   }
 
   Future<Map<dynamic, dynamic>> _invoke(Map<String, dynamic> arguments) async {
+    if (!isSupported) {
+      throw UnsupportedError('NIP-55 is only available on Android');
+    }
     // Target the signer captured at login (if any), so the request goes to the
     // right app and can be answered silently via its ContentResolver.
     if (package != null) {
