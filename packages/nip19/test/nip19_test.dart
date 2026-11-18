@@ -129,6 +129,10 @@ void main() {
       ('a truncated npub', npub.substring(0, 30)),
       ('a wrong checksum', '${npub.substring(0, npub.length - 1)}q'),
       ('mixed case', 'N${npub.substring(1)}'),
+      (
+        'a Kelvin sign, which lowercases to k',
+        npub.toUpperCase().replaceAll('K', 'K'),
+      ),
       ('an npub of 31 bytes', encodeBech32('npub', List.filled(31, 1))),
       (
         'an unsupported prefix',

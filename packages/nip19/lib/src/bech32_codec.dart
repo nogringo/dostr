@@ -26,6 +26,10 @@ int bech32Length(String prefix, int byteCount) =>
       'Not bech32: more than $maxBech32Length characters',
     );
   }
+  // Checked before lowercasing, which turns the Kelvin sign U+212A into a k.
+  if (input.codeUnits.any((unit) => unit < 33 || unit > 126)) {
+    throw const FormatException('Not bech32: invalid character');
+  }
   final lowercase = input.toLowerCase();
   if (lowercase != input && input.toUpperCase() != input) {
     throw const FormatException('Not bech32: mixed case');
@@ -35,9 +39,6 @@ int bech32Length(String prefix, int byteCount) =>
     throw const FormatException('Not bech32');
   }
   final prefix = lowercase.substring(0, separator);
-  if (prefix.codeUnits.any((unit) => unit < 33 || unit > 126)) {
-    throw const FormatException('Not bech32: invalid character');
-  }
   final data = <int>[];
   for (var i = separator + 1; i < lowercase.length; i++) {
     final value = _charset.indexOf(lowercase[i]);
