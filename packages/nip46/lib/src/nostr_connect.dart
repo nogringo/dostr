@@ -5,8 +5,8 @@ import 'random_hex.dart';
 
 /// A `nostrconnect://` invitation, from `Bunkers.createNostrConnect`.
 class NostrConnect {
-  List<RelayUrl> relays;
-  Nip46ClientMetadata? clientMetadata;
+  final List<RelayUrl> relays;
+  final Nip46ClientMetadata? clientMetadata;
 
   final String privateKey;
   final String publicKey;

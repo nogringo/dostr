@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 
 import 'package:dostr_core/dostr_core.dart';
@@ -7,16 +6,16 @@ import 'package:rxdart/rxdart.dart';
 import 'bunker_connection.dart';
 import 'bunker_request.dart';
 import 'nip46_client_metadata.dart';
+import 'nip46_message.dart';
 import 'nip46_signer.dart';
 import 'nostr_connect.dart';
 
-/// Bunkers usecase that handles NIP-46 remote signing protocol operations
+/// Connects to NIP-46 remote signers, and builds a [Nip46Signer] for each
+/// connection.
 class Bunkers {
   final RelayReqs _relayReqs;
   final RelayPublishes _relayPublishes;
   final LocalSignerFactory _signerFactory;
-
-  static const int kMaxWaitingTimeForConnectionSeconds = 600;
 
   Bunkers({
     required RelayReqs relayReqs,
@@ -26,12 +25,17 @@ class Bunkers {
        _relayPublishes = relayPublishes,
        _signerFactory = signerFactory;
 
-  /// Connects to a bunker using a bunker URL (bunker://)
-  /// authCallback is called with the auth URL if the bunker requires authentication
-  Future<BunkerConnection?> connectWithBunkerUrl(
+  /// Connects to the remote signer of a `bunker://` url.
+  ///
+  /// [authCallback] gets the url of an auth challenge, where the user
+  /// approves the connection. Throws a [SignerRequestRejectedException] when
+  /// the remote signer refuses, and a [SignerRequestFailedException] when it
+  /// accepts nothing within [timeout].
+  Future<BunkerConnection> connectWithBunkerUrl(
     String bunkerUrl, {
-    Function(String)? authCallback,
+    void Function(String url)? authCallback,
     Nip46ClientMetadata? clientMetadata,
+    Duration timeout = Nip46Signer.defaultConnectTimeout,
   }) async {
     final uri = Uri.parse(bunkerUrl);
     if (uri.scheme != 'bunker') {
@@ -49,88 +53,81 @@ class Bunkers {
       throw ArgumentError('At least one relay is required in bunker URL');
     }
 
-    if (secret == null) {
-      throw ArgumentError('Secret parameter is required in bunker URL');
-    }
-
     final privateKey = _signerFactory.generateKeyPair().privateKey;
-
     final localSigner = _signerFactory.create(privateKey);
 
-    final requestedPerms = clientMetadata?.perms?.join(',') ?? '';
-    final metadata = clientMetadata?.displayInfo ?? {};
+    final metadata = clientMetadata?.displayInfo ?? const {};
+    final params = [
+      remotePubkey,
+      secret ?? '',
+      clientMetadata?.perms?.join(',') ?? '',
+      if (metadata.isNotEmpty) jsonEncode(metadata),
+    ];
+    // an empty optional param holds the place of the ones after it (NIP-46)
+    while (params.length > 1 && params.last.isEmpty) {
+      params.removeLast();
+    }
+    final request = BunkerRequest(method: 'connect', params: params);
 
-    final request = BunkerRequest(
-      method: 'connect',
-      params: [
-        remotePubkey,
-        secret,
-        // an empty perms string keeps the metadata in fourth position (NIP-46)
-        if (requestedPerms.isNotEmpty || metadata.isNotEmpty) requestedPerms,
-        if (metadata.isNotEmpty) jsonEncode(metadata),
-      ],
-    );
-
-    final encryptedRequest = await localSigner.encryptNip44(
-      plaintext: jsonEncode(request),
-      recipientPubkey: remotePubkey,
-    );
-
-    final requestEvent = Nip01Event(
-      pubkey: localSigner.publicKey,
-      kind: BunkerRequest.kKind,
-      tags: [
-        ["p", remotePubkey],
-      ],
-      content: encryptedRequest,
-    );
-
-    final signedEvent = await localSigner.sign(requestEvent);
-
-    // Subscribe BEFORE broadcasting to avoid missing the response,
-    // since NIP-46 uses ephemeral events (kind 24133)
     final subscription = _subscribe(
       relays,
       Filter(
         authors: [remotePubkey],
         kinds: [BunkerRequest.kKind],
         pTags: [localSigner.publicKey],
-        since: someTimeAgo(),
+        since: _fiveMinutesAgo(),
       ),
     );
 
-    await _relayPublishes.publish(signedEvent, relays: relays).done;
+    Future<BunkerConnection> accepted() async {
+      await _relayPublishes
+          .publish(
+            await signedRequestEvent(
+              localSigner,
+              request,
+              remotePubkey: remotePubkey,
+            ),
+            relays: relays,
+          )
+          .done;
 
-    try {
-      await for (final event in _responses(subscription)) {
-        final decryptedContent = await localSigner.decryptNip44(
-          ciphertext: event.content,
-          senderPubkey: remotePubkey,
-        );
+      await for (final (_, message) in _messages(subscription, localSigner)) {
+        if (message['id'] != request.id) continue;
 
-        final response = jsonDecode(decryptedContent);
-
-        if (response["id"] != request.id) continue;
-
-        if (response["result"] == "auth_url") {
-          if (authCallback != null) {
-            authCallback(response["error"]);
-          }
+        final result = message['result'];
+        final error = message['error'];
+        if (result == 'auth_url') {
+          if (error is String) authCallback?.call(error);
           continue;
         }
-
-        if (response["result"] == "ack") {
+        if (error != null) {
+          throw SignerRequestRejectedException(
+            requestId: request.id,
+            originalMessage: '$error',
+          );
+        }
+        if (result == 'ack' || (secret != null && result == secret)) {
           return BunkerConnection(
             privateKey: privateKey,
             remotePubkey: remotePubkey,
             relays: relays,
           );
         }
+        throw SignerRequestFailedException(
+          'The remote signer answered connect with neither ack nor the secret',
+          requestId: request.id,
+          cause: result,
+        );
       }
-      return null;
-    } finally {
-      await subscription.close();
+      throw _closedBeforeAnswer(request.id);
     }
+
+    return _withTimeout(
+      accepted(),
+      subscription,
+      timeout,
+      requestId: request.id,
+    );
   }
 
   /// Creates a nostr connect invitation (nostrconnect://) with a fresh key pair
@@ -147,51 +144,42 @@ class Bunkers {
     );
   }
 
-  /// Connects to a bunker using a nostr connect URL (nostrconnect://)
-  /// authCallback is called with the auth URL if the bunker requires authentication
-  Future<BunkerConnection?> connectWithNostrConnect(
+  /// Waits for a remote signer to accept [nostrConnect], once the user gave
+  /// it the [NostrConnect.nostrConnectURL].
+  ///
+  /// Throws a [SignerRequestFailedException] when none accepts within
+  /// [timeout].
+  Future<BunkerConnection> connectWithNostrConnect(
     NostrConnect nostrConnect, {
-    Function(String)? authCallback,
+    Duration timeout = Nip46Signer.defaultConnectTimeout,
   }) async {
-    final relays = nostrConnect.relays;
-    final secret = nostrConnect.secret;
-
-    if (relays.isEmpty) {
-      throw ArgumentError('At least one relay is required in bunker URL');
-    }
-
     final localSigner = _signerFactory.create(nostrConnect.privateKey);
-
     final subscription = _subscribe(
-      relays,
+      nostrConnect.relays,
       Filter(
         kinds: [BunkerRequest.kKind],
         pTags: [localSigner.publicKey],
-        since: someTimeAgo(),
+        since: _fiveMinutesAgo(),
       ),
     );
 
-    try {
-      await for (final event in _responses(subscription)) {
-        final decryptedContent = await localSigner.decryptNip44(
-          ciphertext: event.content,
-          senderPubkey: event.pubkey,
-        );
-
-        final response = jsonDecode(decryptedContent);
-
-        if (response["result"] == secret) {
+    Future<BunkerConnection> accepted() async {
+      await for (final (event, message) in _messages(
+        subscription,
+        localSigner,
+      )) {
+        if (message['result'] == nostrConnect.secret) {
           return BunkerConnection(
             privateKey: nostrConnect.privateKey,
             remotePubkey: event.pubkey,
-            relays: relays,
+            relays: nostrConnect.relays,
           );
         }
       }
-      return null;
-    } finally {
-      await subscription.close();
+      throw _closedBeforeAnswer();
     }
+
+    return _withTimeout(accepted(), subscription, timeout);
   }
 
   RelayReq _subscribe(List<RelayUrl> relays, Filter filter) => _relayReqs.req(
@@ -201,27 +189,68 @@ class Bunkers {
     closeOnEose: false,
   );
 
-  /// Each response once, although every relay of the bunker delivers it.
-  Stream<Nip01Event> _responses(RelayReq subscription) => subscription.events
-      .map((received) => received.event)
-      .distinctUnique()
-      .timeout(Duration(seconds: kMaxWaitingTimeForConnectionSeconds));
-
-  int someTimeAgo({Duration duration = const Duration(minutes: 5)}) {
-    return (DateTime.now().millisecondsSinceEpoch ~/ 1000) - duration.inSeconds;
+  /// The messages [subscription] receives for [localSigner], each once
+  /// although every relay delivers it, without those it cannot read.
+  Stream<(Nip01Event, Map<String, dynamic>)> _messages(
+    RelayReq subscription,
+    NostrSigner localSigner,
+  ) async* {
+    final events = subscription.events
+        .map((received) => received.event)
+        .distinctUnique();
+    await for (final event in events) {
+      final message = await readMessage(localSigner, event);
+      if (message != null) yield (event, message);
+    }
   }
 
-  /// A signer for [connection], once the bunker sent the user's pubkey, see
-  /// [Nip46Signer.connect].
+  static SignerRequestFailedException _closedBeforeAnswer([
+    String? requestId,
+  ]) => SignerRequestFailedException(
+    'The subscription closed before the remote signer answered',
+    requestId: requestId,
+  );
+
+  /// [answer], unless [timeout] passes first. Closes [subscription] either
+  /// way.
+  Future<T> _withTimeout<T>(
+    Future<T> answer,
+    RelayReq subscription,
+    Duration timeout, {
+    String? requestId,
+  }) async {
+    try {
+      return await answer.timeout(
+        timeout,
+        onTimeout: () => throw SignerRequestFailedException(
+          'No remote signer answered within $timeout',
+          requestId: requestId,
+        ),
+      );
+    } finally {
+      await subscription.close();
+    }
+  }
+
+  static int _fiveMinutesAgo() =>
+      DateTime.now()
+          .subtract(const Duration(minutes: 5))
+          .millisecondsSinceEpoch ~/
+      1000;
+
+  /// A signer for [connection], once the remote signer sent the user's
+  /// pubkey, see [Nip46Signer.connect].
   Future<Nip46Signer> createSigner(
     BunkerConnection connection, {
-    Function(String)? authCallback,
-    Duration timeout = Nip46Signer.defaultPublicKeyTimeout,
+    void Function(String url)? authCallback,
+    EventVerifier? verifier,
+    Duration timeout = Nip46Signer.defaultConnectTimeout,
   }) => Nip46Signer.connect(
     connection: connection,
     relayReqs: _relayReqs,
     relayPublishes: _relayPublishes,
     authCallback: authCallback,
+    verifier: verifier,
     signerFactory: _signerFactory,
     timeout: timeout,
   );

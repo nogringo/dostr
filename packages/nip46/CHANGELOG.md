@@ -1,7 +1,7 @@
 ## 0.1.0
 
  - Initial release, moved out of the `ndk` package. Keys come from the `LocalSignerFactory` only, so it does not depend on `dostr_bip340`: `Bunkers.createNostrConnect` replaces `NostrConnect(relays:, clientMetadata:)`, and `NostrConnect` has `privateKey` and `publicKey` instead of a `KeyPair`.
- - `Nip46EventSigner` is now `Nip46Signer`, after the `NostrSigner` it implements. `Bunkers` and `Nip46Signer` take their factory as `signerFactory` instead of `eventSignerFactory`, and `localEventSigner` of `Nip46Signer` is now `localSigner`.
+ - `Nip46EventSigner` is now `Nip46Signer`, after the `NostrSigner` it implements. `Bunkers` and `Nip46Signer` take their factory as `signerFactory` instead of `eventSignerFactory`, and `localEventSigner` of `Nip46Signer` is private.
  - `encryptNip44` and `decryptNip44` take `recipientPubkey` and `senderPubkey`, as in `NostrSigner`, instead of `recipientPubKey` and `senderPubKey`.
  - As in `NostrSigner`, `encrypt` and `decrypt` are now `encryptNip04` and `decryptNip04`, with named parameters, the four encryption methods return a `Future<String>` instead of a `Future<String?>`, `canSign` is a getter, `getPublicKey()` is the `publicKey` getter, and `requiresInteractiveSigning`, `requiresSignerNetwork` and `signerTransportRelayUrls` are gone.
  - `BunkerRequest.method` is the NIP-46 method name, such as `sign_event`, instead of a `SignerMethod`, and `remoteRequest` is private: `ping` and `switchRelays` send the NIP-46 methods that are not in `NostrSigner`.
@@ -10,5 +10,13 @@
  - The pending requests are the `PendingSignRequest`, `PendingEncryptRequest` and `PendingDecryptRequest` of `dostr_signer`: a ping, `switchRelays` and the request for the user's pubkey are no longer in `pendingRequests`.
  - The relays of `BunkerConnection`, `NostrConnect`, `Bunkers.createNostrConnect` and `Nip46Signer.switchRelays` are `RelayUrl`s, from `dostr_core`. The relays of a `bunker://` url and of `BunkerConnection.fromJson` are normalized, and a url that is not a relay's is dropped.
  - `Nip46Signer.switchRelays` keeps the current relays when the remote signer sends none that is a relay url.
+ - `connectWithBunkerUrl` and `connectWithNostrConnect` return a `BunkerConnection` instead of a `BunkerConnection?`. A refused `connect` throws a `SignerRequestRejectedException` at once, where it waited for the timeout, and no answer within `timeout` a `SignerRequestFailedException`, where it threw a `TimeoutException`. `Nip46Signer.defaultConnectTimeout`, 10 minutes, replaces `Bunkers.kMaxWaitingTimeForConnectionSeconds` and `Nip46Signer.defaultPublicKeyTimeout`, and each wait takes a `timeout`.
+ - The `secret` of a `bunker://` url is optional, as in NIP-46, and `connect` takes the secret as an answer as well as `ack`.
+ - `connectWithNostrConnect` takes no `authCallback`, which it never called: a remote signer answers a `nostrconnect://` url without a request to challenge, and an `auth_url` from a pubkey not known yet could come from anyone who saw the url.
+ - A message that does not decrypt to a JSON object is skipped. It no longer throws an uncaught error out of `Nip46Signer`, nor fails `connectWithNostrConnect`.
+ - `Nip46Signer.logout` sends the NIP-46 `logout` and disposes the signer. A `dispose` meanwhile waits for it instead of dropping it.
+ - `Nip46Signer`, `Nip46Signer.connect` and `Bunkers.createSigner` take an optional `verifier`, which checks the signature of every event the bunker signs, as in `Nip07Signer`.
+ - `Nip46Signer.connection` is read-only, and `switchRelays` replaces it instead of changing the `BunkerConnection` it was given. The fields of `BunkerConnection` and `NostrConnect` are final.
+ - `listenRelays`, `onEvent`, `subscription`, `relayReqs`, `relayPublishes` and `signerFactory` of `Nip46Signer`, and `someTimeAgo` of `Bunkers`, are private. `authCallback` is a `void Function(String url)?`.
  - `cancelRequest` fails a request at once, also one that waits for its turn behind `maxConcurrentRequests`, whose caller waited for that turn, and leaves no uncaught `SignerRequestCancelledException` behind. A request that cannot be sent, such as one the local signer fails to encrypt, leaves `pendingRequests`.
  - `dispose` fails every request the bunker has not answered with a `SignerRequestFailedException`, where a request already sent never completed, and a request cancelled or disposed while it is prepared is not sent.

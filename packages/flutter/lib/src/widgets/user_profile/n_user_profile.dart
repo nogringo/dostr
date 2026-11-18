@@ -90,7 +90,7 @@ class NUserProfile extends StatelessWidget {
                     children: [
                       FilledButton.icon(
                         onPressed: () async {
-                          _accounts.logout();
+                          dostrFlutter.logout();
 
                           if (_accounts.accounts.isNotEmpty) {
                             final pubkey = _accounts.accounts.keys.first;

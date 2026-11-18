@@ -79,7 +79,7 @@ class LoginController extends ChangeNotifier {
     isBunkerLoading = true;
 
     try {
-      final bunkerConnection = await dostrFlutter.loginWithBunkerUrl(
+      await dostrFlutter.loginWithBunkerUrl(
         bunkerFieldController.text.trim(),
         authCallback: (challenge) => showBunkerAuthToast(challenge, context),
         clientMetadata: clientMetadata,
@@ -87,11 +87,9 @@ class LoginController extends ChangeNotifier {
 
       isBunkerLoading = false;
 
-      if (bunkerConnection == null) return;
-
       await loggedIn();
     } catch (e) {
-      //
+      isBunkerLoading = false;
     }
   }
 
@@ -159,10 +157,7 @@ class LoginController extends ChangeNotifier {
     openNostrConnectDialog(context);
 
     try {
-      final bunkerSettings = await dostrFlutter.loginWithNostrConnect(
-        nostrConnect!,
-        // authCallback: (challenge) => showBunkerAuthToast(challenge),
-      );
+      await dostrFlutter.loginWithNostrConnect(nostrConnect!);
 
       if (!context.mounted) {
         isNostrConnectDialogOpen = false;
@@ -173,8 +168,6 @@ class LoginController extends ChangeNotifier {
         Navigator.of(context).pop();
         isNostrConnectDialogOpen = false;
       }
-
-      if (bunkerSettings == null) return;
 
       await loggedIn();
     } catch (e) {

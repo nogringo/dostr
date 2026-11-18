@@ -1,9 +1,14 @@
 import 'package:dostr_core/dostr_core.dart';
 
+/// A connection to a remote signer, stored with [toJson] and restored with
+/// [BunkerConnection.fromJson].
+///
+/// Store it as a secret: whoever holds [privateKey] can send the remote
+/// signer requests under the permissions the user granted.
 class BunkerConnection {
-  String privateKey;
-  String remotePubkey;
-  List<RelayUrl> relays;
+  final String privateKey;
+  final String remotePubkey;
+  final List<RelayUrl> relays;
 
   BunkerConnection({
     required this.privateKey,

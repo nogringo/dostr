@@ -13,9 +13,15 @@ void main() {
     late RelayManager relayManager;
     late Bunkers bunkers;
 
-    String bunkerUrl() =>
+    String bunkerUrl({String? secret = 's3cret'}) =>
         'bunker://${MockRemoteSigner.publicKey}'
-        '?relay=${relay.url}&secret=s3cret';
+        '?relay=${relay.url}${secret == null ? '' : '&secret=$secret'}';
+
+    Future<void> subscribed(MockRelay relay) async {
+      while (!relay.openClients.any((c) => c.subscriptions.isNotEmpty)) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    }
 
     setUp(() async {
       relay = MockRelay();
@@ -86,6 +92,88 @@ void main() {
       );
     });
 
+    test('connects with a bunker URL without a secret', () async {
+      final connection = await bunkers.connectWithBunkerUrl(
+        bunkerUrl(secret: null),
+      );
+
+      expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
+      expect(
+        remoteSigner.lastConnectParams,
+        equals([MockRemoteSigner.publicKey]),
+      );
+    });
+
+    test('sends an empty secret before perms', () async {
+      await bunkers.connectWithBunkerUrl(
+        bunkerUrl(secret: null),
+        clientMetadata: const Nip46ClientMetadata(perms: ['sign_event:1']),
+      );
+
+      expect(
+        remoteSigner.lastConnectParams,
+        equals([MockRemoteSigner.publicKey, '', 'sign_event:1']),
+      );
+    });
+
+    test('accepts the secret as an answer to connect', () async {
+      remoteSigner.answers['connect'] = {'result': 's3cret'};
+
+      final connection = await bunkers.connectWithBunkerUrl(bunkerUrl());
+
+      expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
+    });
+
+    test('a refused connect throws at once', () async {
+      remoteSigner.answers['connect'] = {'error': 'denied'};
+
+      await expectLater(
+        bunkers.connectWithBunkerUrl(bunkerUrl()),
+        throwsA(
+          isA<SignerRequestRejectedException>().having(
+            (e) => e.originalMessage,
+            'originalMessage',
+            'denied',
+          ),
+        ),
+      );
+    });
+
+    test('forwards the auth challenge of connect', () async {
+      const authUrl = 'https://signer.example/approve';
+      remoteSigner.authUrl = authUrl;
+      final challenges = <String>[];
+
+      await bunkers.connectWithBunkerUrl(
+        bunkerUrl(),
+        authCallback: challenges.add,
+      );
+
+      expect(challenges, equals([authUrl]));
+    });
+
+    test('connect skips the messages it cannot read', () async {
+      remoteSigner.contentsBeforeAnswer = ['not a ciphertext'];
+
+      final connection = await bunkers.connectWithBunkerUrl(bunkerUrl());
+
+      expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
+    });
+
+    test('connect fails when the remote signer does not answer', () async {
+      final silentRelay = MockRelay();
+      await silentRelay.start();
+      addTearDown(silentRelay.stop);
+
+      await expectLater(
+        bunkers.connectWithBunkerUrl(
+          'bunker://${MockRemoteSigner.publicKey}?relay=${silentRelay.url}',
+          timeout: const Duration(milliseconds: 200),
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
     test(
       'connects when the remote signer accepts a nostrconnect URL',
       () async {
@@ -96,20 +184,65 @@ void main() {
         );
 
         final connecting = bunkers.connectWithNostrConnect(nostrConnect);
-        while (!relay.openClients.any((c) => c.subscriptions.isNotEmpty)) {
-          await Future<void>.delayed(const Duration(milliseconds: 10));
-        }
+        await subscribed(relay);
         await remoteSigner.acceptNostrConnect(
           relay,
           nostrConnect.nostrConnectURL,
         );
 
         final connection = await connecting;
-        expect(connection!.remotePubkey, equals(MockRemoteSigner.publicKey));
+        expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
         expect(connection.privateKey, equals(nostrConnect.privateKey));
         expect(connection.relays, equals([relay.url]));
       },
     );
+
+    test('nostrconnect skips what it cannot read and a wrong secret', () async {
+      final nostrConnect = bunkers.createNostrConnect(relays: [relay.url]);
+      final stranger = Bip340.generateKeyPair();
+      Nip01Event fromStranger(String content) => Bip340.signEvent(
+        event: Nip01Event(
+          pubkey: stranger.publicKey,
+          kind: BunkerRequest.kKind,
+          tags: [
+            ['p', nostrConnect.publicKey],
+          ],
+          content: content,
+        ),
+        privateKey: stranger.privateKey,
+      );
+
+      final connecting = bunkers.connectWithNostrConnect(nostrConnect);
+      await subscribed(relay);
+      relay.publish(fromStranger('not a ciphertext'));
+      relay.publish(
+        fromStranger(
+          await Bip340Signer(stranger.privateKey).encryptNip44(
+            plaintext: jsonEncode({'id': 'x', 'result': 'wrong secret'}),
+            recipientPubkey: nostrConnect.publicKey,
+          ),
+        ),
+      );
+      await remoteSigner.acceptNostrConnect(
+        relay,
+        nostrConnect.nostrConnectURL,
+      );
+
+      final connection = await connecting;
+      expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
+    });
+
+    test('nostrconnect fails when no remote signer accepts in time', () async {
+      final nostrConnect = bunkers.createNostrConnect(relays: [relay.url]);
+
+      await expectLater(
+        bunkers.connectWithNostrConnect(
+          nostrConnect,
+          timeout: const Duration(milliseconds: 200),
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
   });
 
   test('nostrconnect URL carries perms and metadata', () {

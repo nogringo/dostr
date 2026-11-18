@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
@@ -177,11 +178,7 @@ void main() {
         '&secret=test-secret-123',
       );
 
-      expect(bunkerConnection, isNotNull);
-      expect(
-        bunkerConnection!.remotePubkey,
-        equals(MockRemoteSigner.publicKey),
-      );
+      expect(bunkerConnection.remotePubkey, equals(MockRemoteSigner.publicKey));
       expect(bunkerConnection.relays, contains(relay.url));
 
       final bunkerSigner = await bunkers.createSigner(bunkerConnection);
@@ -285,6 +282,93 @@ void main() {
 
     test('ping should return pong', () async {
       expect(await signer.ping(), equals('pong'));
+    });
+
+    test('skips the messages it cannot read', () async {
+      final remote = Bip340Signer(MockRemoteSigner.privateKey);
+      final client = Bip340Signer(_clientPrivateKey).publicKey;
+      remoteSigner.contentsBeforeAnswer = [
+        'not a ciphertext',
+        for (final plaintext in ['not json', '["not", "an", "object"]'])
+          await remote.encryptNip44(
+            plaintext: plaintext,
+            recipientPubkey: client,
+          ),
+      ];
+
+      expect(await signer.ping(), equals('pong'));
+    });
+
+    test('forwards an auth challenge to authCallback', () async {
+      const authUrl = 'https://signer.example/approve';
+      remoteSigner.authUrl = authUrl;
+      final challenges = <String>[];
+      signer.authCallback = challenges.add;
+
+      expect(await signer.ping(), equals('pong'));
+      expect(challenges, equals([authUrl]));
+    });
+
+    test('a refused request throws SignerRequestRejectedException', () async {
+      remoteSigner.answers['sign_event'] = {'error': 'denied'};
+
+      await expectLater(
+        signer.sign(
+          Nip01Event(pubkey: MockRemoteSigner.publicKey, kind: 1, content: ''),
+        ),
+        throwsA(isA<SignerRequestRejectedException>()),
+      );
+    });
+
+    test('sign with a verifier fails on an invalid signature', () async {
+      final verified = Nip46Signer(
+        connection: connectionTo([relay.url]),
+        publicKey: MockRemoteSigner.publicKey,
+        relayReqs: relayReqs,
+        relayPublishes: relayPublishes,
+        signerFactory: signerFactory,
+        verifier: Bip340EventVerifier(),
+      );
+      addTearDown(verified.dispose);
+      Nip01Event note(String content) => Nip01Event(
+        pubkey: MockRemoteSigner.publicKey,
+        kind: 1,
+        content: content,
+      );
+
+      final signed = await verified.sign(note('valid'));
+      expect(signed.sig, isNotNull);
+
+      final other = Bip340.signEvent(
+        event: note('other'),
+        privateKey: MockRemoteSigner.privateKey,
+      );
+      remoteSigner.answers['sign_event'] = {
+        'result': jsonEncode(signed.copyWith(sig: other.sig).toJson()),
+      };
+      await expectLater(
+        verified.sign(note('valid')),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('logout tells the bunker', () async {
+      expect(await signer.logout(), isTrue);
+      expect(remoteSigner.receivedMethods.last, equals('logout'));
+    });
+
+    test('dispose waits for a logout under way', () async {
+      final loggingOut = signer.logout();
+      await signer.dispose();
+
+      expect(remoteSigner.receivedMethods, contains('logout'));
+      expect(await loggingOut, isTrue);
+    });
+
+    test('logout returns false when the bunker refuses', () async {
+      remoteSigner.answers['logout'] = {'error': 'unknown session'};
+
+      expect(await signer.logout(), isFalse);
     });
   });
 

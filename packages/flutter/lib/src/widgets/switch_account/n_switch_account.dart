@@ -72,7 +72,7 @@ class _NSwitchAccountState extends State<NSwitchAccount> {
               child: TextButton(
                 onPressed: () {
                   widget.beforeAccountRemove?.call(pubkey);
-                  _accounts.removeAccount(pubkey: pubkey);
+                  widget.dostrFlutter.removeAccount(pubkey: pubkey);
                   widget.dostrFlutter.saveAccountsState();
                   setState(() {});
                   widget.onAccountRemove?.call(pubkey);

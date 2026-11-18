@@ -29,6 +29,19 @@ class MockRemoteSigner {
   /// the params of the last connect request
   List<dynamic>? lastConnectParams;
 
+  /// the method of every request, in the order they came
+  final List<String> receivedMethods = [];
+
+  /// answers that replace the usual one, by method, such as
+  /// `{'error': 'denied'}`
+  final Map<String, Map<String, dynamic>> answers = {};
+
+  /// sent as an auth challenge before each answer
+  String? authUrl;
+
+  /// event contents sent to the client before each answer, as they are
+  List<String> contentsBeforeAnswer = [];
+
   MockRemoteSigner(Iterable<MockRelay> relays) {
     for (final relay in relays) {
       relay.onEvent = (event) => _onEvent(relay, event);
@@ -46,6 +59,17 @@ class MockRemoteSigner {
         senderPublicKey: event.pubkey,
       ),
     );
+    for (final content in contentsBeforeAnswer) {
+      relay.publish(_signed(event.pubkey, content));
+    }
+    final authUrl = this.authUrl;
+    if (authUrl != null) {
+      await _respond(relay, event.pubkey, {
+        'id': request['id'],
+        'result': 'auth_url',
+        'error': authUrl,
+      });
+    }
     Map<String, dynamic> response;
     try {
       response = await _answer(
@@ -76,35 +100,46 @@ class MockRemoteSigner {
     Map<String, dynamic> response,
   ) async {
     relay.publish(
-      Bip340.signEvent(
-        event: Nip01Event(
-          pubkey: publicKey,
-          kind: _kNip46Kind,
-          tags: [
-            ['p', recipient],
-          ],
-          content: Nip44.encryptMessage(
-            jsonEncode(response),
-            senderPrivateKey: privateKey,
-            recipientPublicKey: recipient,
-          ),
+      _signed(
+        recipient,
+        Nip44.encryptMessage(
+          jsonEncode(response),
+          senderPrivateKey: privateKey,
+          recipientPublicKey: recipient,
         ),
-        privateKey: privateKey,
       ),
     );
   }
+
+  Nip01Event _signed(String recipient, String content) => Bip340.signEvent(
+    event: Nip01Event(
+      pubkey: publicKey,
+      kind: _kNip46Kind,
+      tags: [
+        ['p', recipient],
+      ],
+      content: content,
+    ),
+    privateKey: privateKey,
+  );
 
   Future<Map<String, dynamic>> _answer(
     MockRelay relay,
     String method,
     List<dynamic> params,
   ) async {
+    receivedMethods.add(method);
+    if (method == 'connect') lastConnectParams = params;
+    final answer = answers[method];
+    if (answer != null) return {...answer};
+
     switch (method) {
       case 'connect':
-        lastConnectParams = params;
         return {'result': 'ack'};
       case 'ping':
         return {'result': 'pong'};
+      case 'logout':
+        return {'result': 'ack'};
       case 'switch_relays':
         final relays = switchRelaysResult;
         return {'result': relays == null ? null : jsonEncode(relays)};

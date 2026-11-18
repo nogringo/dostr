@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
@@ -72,7 +74,7 @@ class DostrFlutter {
   }
 
   /// logs in through a `bunker://` url
-  Future<BunkerConnection?> loginWithBunkerUrl(
+  Future<BunkerConnection> loginWithBunkerUrl(
     String bunkerUrl, {
     void Function(String url)? authCallback,
     Nip46ClientMetadata? clientMetadata,
@@ -82,24 +84,17 @@ class DostrFlutter {
       authCallback: authCallback,
       clientMetadata: clientMetadata,
     );
-    if (connection != null) {
-      await _loginWithBunker(connection, authCallback: authCallback);
-    }
+    await _loginWithBunker(connection, authCallback: authCallback);
     return connection;
   }
 
   /// logs in once a signer answers [nostrConnect]
-  Future<BunkerConnection?> loginWithNostrConnect(
+  Future<BunkerConnection> loginWithNostrConnect(
     NostrConnect nostrConnect, {
     void Function(String url)? authCallback,
   }) async {
-    final connection = await bunkers.connectWithNostrConnect(
-      nostrConnect,
-      authCallback: authCallback,
-    );
-    if (connection != null) {
-      await _loginWithBunker(connection, authCallback: authCallback);
-    }
+    final connection = await bunkers.connectWithNostrConnect(nostrConnect);
+    await _loginWithBunker(connection, authCallback: authCallback);
     return connection;
   }
 
@@ -112,6 +107,21 @@ class DostrFlutter {
       authCallback: authCallback,
     );
     accounts.loginExternalSigner(signer: signer);
+  }
+
+  /// Removes the logged account, as [Accounts.logout] does, and ends its
+  /// session on its bunker, see [removeAccount].
+  Future<void> logout() async {
+    final pubkey = accounts.loggedPubkey;
+    if (pubkey != null) await removeAccount(pubkey: pubkey);
+  }
+
+  /// Removes the account of [pubkey], as [Accounts.removeAccount] does. A
+  /// bunker account also ends its session on its bunker.
+  Future<void> removeAccount({required String pubkey}) {
+    final signer = accounts.getAccount(pubkey);
+    if (signer is Nip46Signer) unawaited(signer.logout());
+    return accounts.removeAccount(pubkey: pubkey);
   }
 
   String formatNpub(String pubkey) {

@@ -73,6 +73,7 @@ To verify faster on Android, iOS or desktop, give `RelayReqs` the `RustEventVeri
 Its build hook compiles Rust, so it needs the [Rust toolchain](https://rustup.rs).
 
 `DostrFlutter` also holds `bunkers`, the `Bunkers` of [`dostr_nip46`](https://pub.dev/packages/dostr_nip46), a `metadataFetcher` and a `nip05Resolver`.
+`dostrFlutter.logout()` and `dostrFlutter.removeAccount(pubkey: ...)` remove an account as `accounts` does, and also end the session of a bunker account on its bunker: `NUserProfile` and `NSwitchAccount` log out through them.
 The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers).
 Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
 `NLogin` resolves NIP-05 addresses with `nip05Resolver`, a `Nip05Resolver` of [`dostr_nip05`](https://pub.dev/packages/dostr_nip05) that keeps them in memory unless you pass your own.

@@ -7,7 +7,7 @@
 ///   signerFactory: Bip340SignerFactory(),
 /// );
 /// final connection = await bunkers.connectWithBunkerUrl('bunker://...');
-/// final signer = await bunkers.createSigner(connection!);
+/// final signer = await bunkers.createSigner(connection);
 /// ```
 library;
 

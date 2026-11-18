@@ -21,14 +21,12 @@ Future<void> main(List<String> args) async {
     clientMetadata: const Nip46ClientMetadata(name: 'dostr_nip46 example'),
     authCallback: (url) => print('approve the connection at $url'),
   );
-  if (connection != null) {
-    final signer = await bunkers.createSigner(connection);
-    final note = await signer.sign(
-      Nip01Event(pubkey: signer.publicKey, kind: 1, tags: [], content: 'hello'),
-    );
-    print(note.toJsonString());
-    await signer.dispose();
-  }
+  final signer = await bunkers.createSigner(connection);
+  final note = await signer.sign(
+    Nip01Event(pubkey: signer.publicKey, kind: 1, tags: [], content: 'hello'),
+  );
+  print(note.toJsonString());
+  await signer.dispose();
 
   await relayManager.dispose();
 }

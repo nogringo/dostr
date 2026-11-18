@@ -9,6 +9,7 @@ void main() {
   late MockRelay relayB;
   late MockRemoteSigner remoteSigner;
   late RelayManager relayManager;
+  late BunkerConnection connection;
   late Nip46Signer signer;
 
   int bunkerRequestsOn(MockRelay relay) => relay
@@ -26,13 +27,14 @@ void main() {
     relayManager = RelayManager(
       nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
     );
+    connection = BunkerConnection(
+      privateKey:
+          '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc',
+      remotePubkey: MockRemoteSigner.publicKey,
+      relays: [relayA.url],
+    );
     signer = Nip46Signer(
-      connection: BunkerConnection(
-        privateKey:
-            '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc',
-        remotePubkey: MockRemoteSigner.publicKey,
-        relays: [relayA.url],
-      ),
+      connection: connection,
       publicKey: MockRemoteSigner.publicKey,
       relayReqs: RelayReqs(
         relayManager: relayManager,
@@ -57,6 +59,7 @@ void main() {
 
     expect(relays, equals([relayB.url]));
     expect(signer.connection.relays, equals([relayB.url]));
+    expect(connection.relays, equals([relayA.url]));
 
     final requestsOnA = bunkerRequestsOn(relayA);
     expect(await signer.ping(), equals('pong'));

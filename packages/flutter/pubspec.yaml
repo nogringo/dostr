@@ -50,6 +50,7 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^6.0.0
+  dostr_mock_relay: ^0.1.0
 
 flutter:
   generate: true

@@ -7,6 +7,7 @@ import 'package:rxdart/rxdart.dart';
 import 'bounded_lru_set.dart';
 import 'bunker_connection.dart';
 import 'bunker_request.dart';
+import 'nip46_message.dart';
 
 class _RemoteRequest {
   final completer = Completer<String>();
@@ -18,12 +19,19 @@ class _RemoteRequest {
 }
 
 class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
-  BunkerConnection connection;
-  RelayReqs relayReqs;
-  RelayPublishes relayPublishes;
-  Function(String)? authCallback;
+  BunkerConnection _connection;
+  final RelayReqs _relayReqs;
+  final RelayPublishes _relayPublishes;
+  final NostrSigner _localSigner;
 
-  RelayReq? subscription;
+  /// Gets the url of an auth challenge, where the user approves a request.
+  void Function(String url)? authCallback;
+
+  /// When set, [sign] checks the signature of every event the remote signer
+  /// signs, and fails on an invalid one.
+  final EventVerifier? verifier;
+
+  RelayReq? _subscription;
 
   // every relay of the bunker delivers each response
   final BoundedLruSet<String> _seenResponseIds = BoundedLruSet(maxSize: 1000);
@@ -34,9 +42,6 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   late final String _publicKey;
 
-  late NostrSigner localSigner;
-  final LocalSignerFactory signerFactory;
-
   @override
   final int maxConcurrentRequests;
 
@@ -45,9 +50,9 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   /// Lower this if you hit relay rate limits.
   static const int defaultMaxConcurrentRequests = 100;
 
-  /// How long [connect] waits for the user's pubkey, which the bunker may ask
-  /// the user to approve first.
-  static const Duration defaultPublicKeyTimeout = Duration(minutes: 10);
+  /// How long connecting waits for the remote signer, which may ask the user
+  /// to approve first.
+  static const Duration defaultConnectTimeout = Duration(minutes: 10);
 
   /// A signer for the user [publicKey] of the bunker behind [connection], such
   /// as an account restored from storage. [connect] asks the bunker for it.
@@ -56,7 +61,8 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required String publicKey,
     required RelayReqs relayReqs,
     required RelayPublishes relayPublishes,
-    Function(String)? authCallback,
+    void Function(String url)? authCallback,
+    EventVerifier? verifier,
     required LocalSignerFactory signerFactory,
     int maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) : this._(
@@ -65,23 +71,27 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
          relayReqs: relayReqs,
          relayPublishes: relayPublishes,
          authCallback: authCallback,
+         verifier: verifier,
          signerFactory: signerFactory,
          maxConcurrentRequests: maxConcurrentRequests,
        );
 
   Nip46Signer._({
-    required this.connection,
+    required BunkerConnection connection,
     required String? publicKey,
-    required this.relayReqs,
-    required this.relayPublishes,
+    required RelayReqs relayReqs,
+    required RelayPublishes relayPublishes,
     required this.authCallback,
-    required this.signerFactory,
+    required this.verifier,
+    required LocalSignerFactory signerFactory,
     required this.maxConcurrentRequests,
-  }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
+  }) : _connection = connection,
+       _relayReqs = relayReqs,
+       _relayPublishes = relayPublishes,
+       _localSigner = signerFactory.create(connection.privateKey),
+       assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0') {
     if (publicKey != null) _publicKey = publicKey;
-    localSigner = signerFactory.create(connection.privateKey);
-
-    listenRelays();
+    _listen();
   }
 
   /// Asks the bunker behind [connection] for the user's pubkey, and completes
@@ -94,10 +104,11 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     required BunkerConnection connection,
     required RelayReqs relayReqs,
     required RelayPublishes relayPublishes,
-    Function(String)? authCallback,
+    void Function(String url)? authCallback,
+    EventVerifier? verifier,
     required LocalSignerFactory signerFactory,
     int maxConcurrentRequests = defaultMaxConcurrentRequests,
-    Duration timeout = defaultPublicKeyTimeout,
+    Duration timeout = defaultConnectTimeout,
   }) async {
     final signer = Nip46Signer._(
       connection: connection,
@@ -105,6 +116,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       relayReqs: relayReqs,
       relayPublishes: relayPublishes,
       authCallback: authCallback,
+      verifier: verifier,
       signerFactory: signerFactory,
       maxConcurrentRequests: maxConcurrentRequests,
     );
@@ -116,6 +128,10 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       rethrow;
     }
   }
+
+  /// The bunker and its relays. [switchRelays] may replace it, so store it
+  /// again after.
+  BunkerConnection get connection => _connection;
 
   Future<String> _fetchPublicKey(Duration timeout) async {
     final request = BunkerRequest(method: 'get_public_key');
@@ -138,53 +154,50 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     return pubkey;
   }
 
-  Future<void> listenRelays() async {
+  void _listen() {
     final filter = Filter(
-      authors: [connection.remotePubkey],
+      authors: [_connection.remotePubkey],
       kinds: [BunkerRequest.kKind],
-      pTags: [localSigner.publicKey],
+      pTags: [_localSigner.publicKey],
     );
-    subscription = relayReqs.req(
+    final subscription = _subscription = _relayReqs.req(
       relays: {
-        for (final relay in connection.relays) relay: [filter],
+        for (final relay in _connection.relays) relay: [filter],
       },
       closeOnEose: false,
     );
 
-    subscription!.events
+    subscription.events
         .map((received) => received.event)
         .where((event) => _seenResponseIds.add(event.id))
-        .listen(onEvent);
+        .listen(_onEvent);
   }
 
-  Future<void> onEvent(Nip01Event event) async {
-    final decryptedContent = await localSigner.decryptNip44(
-      ciphertext: event.content,
-      senderPubkey: event.pubkey,
-    );
+  Future<void> _onEvent(Nip01Event event) async {
+    final message = await readMessage(_localSigner, event);
+    if (message == null) return;
 
-    final response = jsonDecode(decryptedContent);
-
-    if (response["result"] == "auth_url") {
-      if (authCallback != null) {
-        authCallback!(response["error"]);
-      }
+    final error = message['error'];
+    if (message['result'] == 'auth_url') {
+      if (error is String) authCallback?.call(error);
       return;
     }
 
-    final entry = _requests.remove(response["id"]);
+    final id = message['id'];
+    if (id is! String) return;
+    final entry = _requests.remove(id);
     if (entry == null) return;
     if (entry.pending != null) _notifyPendingRequestsChange();
 
-    if (response["error"] != null) {
+    if (error != null) {
       entry.completer.completeError(
         SignerRequestRejectedException(
-          requestId: response["id"],
-          originalMessage: response["error"],
+          requestId: id,
+          originalMessage: '$error',
         ),
       );
     } else {
-      final result = response["result"];
+      final result = message['result'];
       entry.completer.complete(result is String ? result : jsonEncode(result));
     }
   }
@@ -202,26 +215,16 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     if (pending != null) _notifyPendingRequestsChange();
 
     runThrottled(() async {
-      final encryptedRequest = await localSigner.encryptNip44(
-        plaintext: jsonEncode(request),
-        recipientPubkey: connection.remotePubkey,
+      final signedEvent = await signedRequestEvent(
+        _localSigner,
+        request,
+        remotePubkey: _connection.remotePubkey,
       );
-
-      final requestEvent = Nip01Event(
-        pubkey: localSigner.publicKey,
-        kind: BunkerRequest.kKind,
-        tags: [
-          ["p", connection.remotePubkey],
-        ],
-        content: encryptedRequest,
-      );
-
-      final signedEvent = await localSigner.sign(requestEvent);
       // cancelled or disposed meanwhile: don't broadcast what nobody waits for
       if (!_requests.containsKey(request.id)) return;
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
-      relayPublishes.publish(signedEvent, relays: connection.relays);
+      _relayPublishes.publish(signedEvent, relays: _connection.relays);
 
       // holds the slot until the bunker answers
       await entry.completer.future;
@@ -380,6 +383,13 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
         requestId: request.id,
       );
     }
+    final verifier = this.verifier;
+    if (verifier != null && !await verifier.verify(signedEvent)) {
+      throw SignerRequestFailedException(
+        'The bunker returned an invalid signature',
+        requestId: request.id,
+      );
+    }
     return signedEvent;
   }
 
@@ -404,12 +414,42 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
         : const <RelayUrl>[];
     if (relays.isEmpty) return null;
 
-    final previousSubscription = subscription;
-    connection.relays = relays;
-    await listenRelays();
+    final previousSubscription = _subscription;
+    _connection = BunkerConnection(
+      privateKey: _connection.privateKey,
+      remotePubkey: _connection.remotePubkey,
+      relays: relays,
+    );
+    _listen();
     await previousSubscription?.close();
 
-    return connection.relays;
+    return relays;
+  }
+
+  Future<bool>? _logout;
+
+  /// Ends the session on the bunker, then disposes this signer.
+  ///
+  /// Returns whether the bunker acknowledged within [timeout]. A [dispose]
+  /// meanwhile waits for it, so the bunker still gets it. Delete the stored
+  /// [connection] either way: NIP-46 makes `logout` a courtesy, and the
+  /// bunker may still accept requests from its private key.
+  Future<bool> logout({Duration timeout = const Duration(seconds: 10)}) =>
+      _logout ??= _sendLogout(timeout);
+
+  Future<bool> _sendLogout(Duration timeout) async {
+    try {
+      final result = await _send(
+        BunkerRequest(method: 'logout'),
+      ).timeout(timeout);
+      return result == 'ack';
+    } on SignerRequestException {
+      return false;
+    } on TimeoutException {
+      return false;
+    } finally {
+      await _close();
+    }
   }
 
   @override
@@ -431,6 +471,11 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   Future<void> dispose() async {
+    await _logout?.catchError((_) => false);
+    await _close();
+  }
+
+  Future<void> _close() async {
     // the subscription closes, so no answer can come for them anymore
     for (final requestId in _requests.keys.toList()) {
       _fail(
@@ -442,7 +487,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       );
     }
     cancelAllQueued();
-    await subscription?.close();
+    await _subscription?.close();
     await _pendingRequestsController.close();
   }
 }
