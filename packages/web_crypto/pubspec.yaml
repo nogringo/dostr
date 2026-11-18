@@ -20,7 +20,7 @@ resolution: workspace
 
 dependencies:
   dostr_nip01: ^0.1.0
-  dostr_signer: ^0.1.0
+  dostr_signer: ^0.2.0
   rxdart: ^0.28.0
   web: ">=1.0.0 <2.0.0"
 

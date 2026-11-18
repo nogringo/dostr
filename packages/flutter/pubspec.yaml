@@ -40,7 +40,7 @@ dependencies:
   dostr_nip19: ^0.1.0
   dostr_nip46: ^0.1.0
   dostr_nip55: ^0.1.0
-  dostr_signer: ^0.1.0
+  dostr_signer: ^0.2.0
   dostr_string_color: ^0.1.0
   dostr_web_crypto: ^0.1.0
   qr: ^4.0.1

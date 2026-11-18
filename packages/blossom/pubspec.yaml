@@ -29,7 +29,7 @@ dependencies:
   http: ^1.6.0
   dostr_blossom_url: ^0.1.0
   dostr_nip01: ^0.1.0
-  dostr_signer: ^0.1.0
+  dostr_signer: ^0.2.0
   web: ^1.1.1
 
 dev_dependencies:

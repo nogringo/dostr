@@ -25,7 +25,7 @@ platforms:
 
 dependencies:
   dostr_nip01: ^0.1.0
-  dostr_signer: ^0.1.0
+  dostr_signer: ^0.2.0
 
 dev_dependencies:
   lints: ^6.1.0

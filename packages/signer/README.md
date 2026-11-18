@@ -15,7 +15,7 @@ So does a package that authenticates on behalf of Dostr accounts, such as [`dost
 
 ```yaml
 dependencies:
-  dostr_signer: ^0.1.0
+  dostr_signer: ^0.2.0
 ```
 
 ## Usage

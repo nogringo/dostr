@@ -3,11 +3,11 @@
 A shared test suite for implementations of the `NostrSigner` and `LocalSignerFactory` of [`dostr_signer`](https://pub.dev/packages/dostr_signer).
 Every signer runs the same cases, so they all keep the contract that `NostrSigner` documents.
 
-It is not published: the signers of this workspace (`dostr_bip340`, `dostr_web_crypto`, `dostr_nip46`, `dostr_nip07`, `dostr_nip55`) use it.
+The signers of Dostr (`dostr_bip340`, `dostr_web_crypto`, `dostr_nip46`, `dostr_nip07`, `dostr_nip55`) run it, and so can any other signer.
 
 ## Usage
 
-Add `dostr_signer_test_suite` as a **dev dependency** of a workspace package:
+Add `dostr_signer_test_suite` as a **dev dependency**:
 
 ```yaml
 dev_dependencies:
