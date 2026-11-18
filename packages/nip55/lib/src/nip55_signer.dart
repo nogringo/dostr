@@ -260,7 +260,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   /// false off Android, where every request throws an [UnsupportedError]
   @override
-  bool get canSign => Nip55SignerApp.isSupported;
+  bool get canSign => signerApp.isAvailable;
 
   @override
   Future<String> encryptNip44({

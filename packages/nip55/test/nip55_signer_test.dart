@@ -27,6 +27,13 @@ class _FakeNip55SignerApp extends Nip55SignerApp {
   }
 }
 
+class _AvailableNip55SignerApp extends _FakeNip55SignerApp {
+  _AvailableNip55SignerApp(super.response);
+
+  @override
+  bool get isAvailable => true;
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -534,6 +541,20 @@ void main() {
         throwsUnsupportedError,
       );
       expect(signer.pendingRequests, isEmpty);
+    });
+
+    test('signs through a signer app that is available', () async {
+      final signer = Nip55Signer(
+        publicKey: publicKey,
+        signerApp: _AvailableNip55SignerApp({'signature': 'ab12'}),
+      );
+      addTearDown(signer.dispose);
+
+      expect(signer.canSign, isTrue);
+      final signed = await signer.sign(
+        Nip01Event(pubkey: publicKey, kind: 1, tags: [], content: ''),
+      );
+      expect(signed.sig, 'ab12');
     });
   });
 }

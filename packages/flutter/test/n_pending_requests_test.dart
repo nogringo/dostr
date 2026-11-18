@@ -11,6 +11,9 @@ import 'helpers.dart';
 class _HeldNip55SignerApp extends Nip55SignerApp {
   final answers = <Completer<Map<dynamic, dynamic>>>[];
 
+  @override
+  bool get isAvailable => true;
+
   Future<Map<dynamic, dynamic>> _hold() {
     final answer = Completer<Map<dynamic, dynamic>>();
     answers.add(answer);

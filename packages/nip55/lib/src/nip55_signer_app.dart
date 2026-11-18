@@ -71,6 +71,10 @@ class Nip55SignerApp {
   static bool get isSupported =>
       !kIsWeb && defaultTargetPlatform == TargetPlatform.android;
 
+  /// Whether this signer app takes requests: [isSupported] by default. A fake
+  /// signer app overrides it to run off Android.
+  bool get isAvailable => isSupported;
+
   /// Whether the signer app of [package] is installed, or any NIP-55 signer
   /// app when [package] is null. Always false off Android.
   Future<bool> isAppInstalled() async {

@@ -27,7 +27,11 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           channel: stable
           cache: true
+      # The demo is not in the workspace: without its own package config,
+      # dart format would use the language version of the workspace root.
       - name: Resolve workspace packages
-        run: flutter pub get
+        run: |
+          flutter pub get
+          cd packages/demo && flutter pub get
       - name: Check Dart formatting
         run: dart format --set-exit-if-changed --output=none .
