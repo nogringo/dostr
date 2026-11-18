@@ -4,7 +4,7 @@ import '../relay_failure.dart';
 ///
 /// One request can run on several connections to the same relay, when an
 /// anonymous connection hands it over to an authenticated one. The relay then
-/// reports the status that comes first in this list among its connections.
+/// reports the status on the authenticated one.
 enum RelayRequestStatus {
   // No `queued` value: it would break the exhaustive switches of apps.
   /// the relay has not ended the request, it may still send events. A request

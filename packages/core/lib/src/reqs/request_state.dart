@@ -240,8 +240,9 @@ class RequestState implements TimeoutPausable {
   /// The request on each connection it goes out on.
   final Map<RelayConnectionKey, RelayRequestState> requests = {};
 
-  // the connections of each relay, so the outcome of a url reads only its own
-  final Map<RelayUrl, List<RelayRequestState>> _requestsByUrl = {};
+  // the connection each relay's outcome reads: the bound one, once an
+  // anonymous one handed the request over to it
+  final Map<RelayUrl, RelayRequestState> _servingByUrl = {};
 
   /// How long the request runs before it ends on its own. Null when it never
   /// does.
@@ -310,8 +311,8 @@ class RequestState implements TimeoutPausable {
 
   /// The outcome on each relay, as it stands now.
   ///
-  /// Several connections to one relay collapse into the outcome that comes
-  /// first in [RelayRequestStatus].
+  /// A relay whose anonymous connection handed the request over to a bound one
+  /// reports the outcome on the bound one.
   Map<RelayUrl, RelayRequestOutcome> get relayOutcomes => _ownRelayOutcomes;
 
   /// [relayOutcomes] on every change, starting with what it holds now, and
@@ -331,7 +332,7 @@ class RequestState implements TimeoutPausable {
   /// Recomputes every relay, for a change that reaches all of them at once.
   void _refreshRelayOutcomes() {
     var changed = false;
-    for (final url in _requestsByUrl.keys) {
+    for (final url in _servingByUrl.keys) {
       changed = _recomputeRelayOutcome(url) || changed;
     }
     if (changed) {
@@ -345,23 +346,17 @@ class RequestState implements TimeoutPausable {
     }
   }
 
-  /// Collapses the connections to [url] into its outcome, and returns whether
-  /// that outcome changed.
+  /// Reads the outcome of [url] from the connection serving it, and returns
+  /// whether that outcome changed.
   bool _recomputeRelayOutcome(RelayUrl url) {
-    RelayRequestOutcome? collapsed;
-    for (final request in _requestsByUrl[url] ?? const <RelayRequestState>[]) {
-      final outcome = request.outcome(timedOut: timedOut, cancelled: cancelled);
-      if (collapsed == null || outcome.status.index < collapsed.status.index) {
-        collapsed = outcome;
-      }
-    }
-    if (collapsed == null) {
-      return _relayOutcomes.remove(url) != null;
-    }
-    if (_relayOutcomes[url] == collapsed) {
+    final outcome = _servingByUrl[url]!.outcome(
+      timedOut: timedOut,
+      cancelled: cancelled,
+    );
+    if (_relayOutcomes[url] == outcome) {
       return false;
     }
-    _relayOutcomes[url] = collapsed;
+    _relayOutcomes[url] = outcome;
     return true;
   }
 
@@ -373,14 +368,16 @@ class RequestState implements TimeoutPausable {
     }
   }
 
-  /// The request on [key], tracked from now on if it was not yet.
+  /// The request on [key], tracked from now on if it was not yet. A new
+  /// connection to a relay already tracked is the one the request was handed
+  /// over to, and serves the relay from now on.
   RelayRequestState addRequest(RelayConnectionKey key, List<Filter> filters) {
     final tracked = requests[key];
     if (tracked != null) return tracked;
     final request = RelayRequestState(key, filters, isQuery: closeOnEose)
       ..onOutcomeChanged = () => _onRelayRequestChanged(key.url);
     requests[key] = request;
-    _requestsByUrl.putIfAbsent(key.url, () => []).add(request);
+    _servingByUrl[key.url] = request;
     _onRelayRequestChanged(key.url);
     return request;
   }

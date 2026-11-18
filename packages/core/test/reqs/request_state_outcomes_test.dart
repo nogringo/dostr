@@ -5,7 +5,7 @@ import 'package:test/test.dart';
 /// What no relay can be made to do on demand: a connection that goes away, and
 /// two connections to one relay ending differently.
 void main() {
-  group('relay outcomes collapse', () {
+  group('relay outcomes', () {
     final url = RelayUrl.parse("wss://relay.example.com");
     final filter = Filter(kinds: [Nip01Event.kTextNoteKind]);
 
@@ -24,19 +24,50 @@ void main() {
       });
     });
 
-    test('an eose on one connection wins over a closed on another', () {
-      final state = buildState();
-      final anonymous = RelayConnectionKey.anonymous(url);
-      final authenticated = RelayConnectionKey.authenticated(url, "a" * 64);
-      state.addRequest(anonymous, [filter]);
-      state.addRequest(authenticated, [filter]);
-      state.requests[anonymous]!.markClosed(
-        "auth-required: we only serve authenticated users",
-      );
-      state.requests[authenticated]!.markCaughtUp();
+    group('handed over to a bound connection', () {
+      final bound = RelayConnectionKey.authenticated(url, "a" * 64);
 
-      expect(state.relayOutcomes, {
-        url: RelayRequestOutcome(RelayRequestStatus.eose),
+      RequestState handedOver() {
+        final state = buildState();
+        state
+            .addRequest(RelayConnectionKey.anonymous(url), [filter])
+            .markClosed("auth-required: we only serve authenticated users");
+        state.addRequest(bound, [filter]).markOnItsWay();
+        return state;
+      }
+
+      test('reports the eose of the bound connection', () {
+        final state = handedOver();
+        state.requests[bound]!.markCaughtUp();
+
+        expect(state.relayOutcomes, {
+          url: RelayRequestOutcome(RelayRequestStatus.eose),
+        });
+      });
+
+      test('reports timedOut, not the anonymous refusal', () {
+        final state = handedOver()..timedOut = true;
+
+        expect(state.relayOutcomes, {
+          url: RelayRequestOutcome(RelayRequestStatus.timedOut),
+        });
+      });
+
+      test('reports cancelled, not the anonymous refusal', () {
+        final state = handedOver()..cancel();
+
+        expect(state.relayOutcomes, {
+          url: RelayRequestOutcome(RelayRequestStatus.cancelled),
+        });
+      });
+
+      test('reports disconnected, not the anonymous refusal', () {
+        final state = handedOver();
+        state.requests[bound]!.markGone();
+
+        expect(state.relayOutcomes, {
+          url: RelayRequestOutcome(RelayRequestStatus.disconnected),
+        });
       });
     });
 

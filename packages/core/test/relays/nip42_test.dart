@@ -80,6 +80,31 @@ void main() {
       );
     }
 
+    test(
+      'a REQ handed over to a bound connection reports how it ended there',
+      () async {
+        final relay = await startRelay(
+          requireAuthForRequests: true,
+          answerRequests: false,
+        );
+
+        final outcomes = await reqs
+            .req(
+              relays: {relay.url: notes},
+              auth: AuthPolicy.allow(fakeAccount(alice)),
+              timeout: const Duration(seconds: 1),
+            )
+            .done;
+
+        expect(relay.clients.last.authenticatedAs, alice);
+        expect(relay.clients.last.receivedOfType('REQ'), isNotEmpty);
+        expect(
+          outcomes[relay.url],
+          const RelayRequestOutcome(RelayRequestStatus.timedOut),
+        );
+      },
+    );
+
     test('AuthPolicy.require never opens the anonymous connection', () async {
       final relay = await startRelay();
       relay.events.add(signedEvent(createdAt: 1));

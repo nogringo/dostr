@@ -410,7 +410,7 @@ class RelayRequests {
       () => "AUTH required for REQ $reqId on $key, retrying on $target",
     );
 
-    unawaited(_retryOnBound(state, retry, account));
+    unawaited(_retryOnBound(state, retry, account, refusal: message));
   }
 
   /// Answers the challenge of the bound [connection] that refused [request],
@@ -440,12 +440,13 @@ class RelayRequests {
   }
 
   /// Sends [retry] on its connection, bound to [account], after an anonymous
-  /// one refused the request.
+  /// one refused the request with [refusal].
   Future<void> _retryOnBound(
     RequestState state,
     RelayRequestState retry,
-    NostrSigner account,
-  ) async {
+    NostrSigner account, {
+    required String refusal,
+  }) async {
     try {
       final Opening opening;
       state.pauseTimeout();
@@ -464,9 +465,7 @@ class RelayRequests {
         case ComingBack():
           retry.markOnItsWay();
         case NotOpened():
-          retry.markClosed(
-            "auth-required: no authenticated connection could be opened",
-          );
+          retry.markClosed(refusal);
       }
     } finally {
       _finishIfDone(state);
