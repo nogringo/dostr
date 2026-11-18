@@ -306,9 +306,7 @@ class Nip55Plugin(
     // NIP-55: a result code other than RESULT_OK means the signer app failed,
     // not that the user refused.
     override fun onActivityResult(requestCode: Int, resultCode: Int, intent: Intent?): Boolean {
-        if (!_pendingIntentResults.containsKey(requestCode)) {
-            return false
-        }
+        val pending = _pendingIntentResults[requestCode] ?: return false
 
         if (resultCode == Activity.RESULT_OK && intent != null) {
             if (completeBatchedResults(intent)) {
@@ -318,7 +316,11 @@ class Nip55Plugin(
 
             val dataMap = buildResultMapFromIntent(intent)
             val id = dataMap[keyId]
-            if (!id.isNullOrEmpty() && completePendingIntentResultById(id, dataMap)) {
+            // A single-top signer app can answer another request through this
+            // Intent, and this request code then gets no other result.
+            if (!id.isNullOrEmpty() && id != pending.id) {
+                completePendingIntentResultById(id, dataMap)
+                completePendingIntentResult(requestCode, HashMap())
                 return true
             }
             completePendingIntentResult(requestCode, dataMap)

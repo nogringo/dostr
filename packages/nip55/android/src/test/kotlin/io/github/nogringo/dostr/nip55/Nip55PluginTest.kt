@@ -320,6 +320,43 @@ class Nip55PluginTest {
     }
 
     @Test
+    fun completesTheRequestAnsweredThroughTheIntentOfAnother() {
+        val first = encrypt("req-1")
+        val firstRequestCode = nextStartedSigner().requestCode
+        val second = encrypt("req-2")
+        nextStartedSigner()
+
+        plugin.onActivityResult(
+            firstRequestCode,
+            Activity.RESULT_OK,
+            Intent().putExtra("result", "two").putExtra("id", "req-2"),
+        )
+
+        assertEquals("two", (second.value as Map<*, *>)["signature"])
+        assertEquals(emptyMap<String, String?>(), first.value)
+        assertEquals(false, call("cancel", mapOf("id" to "req-1")).value)
+    }
+
+    @Test
+    fun dropsTheAnswerOfARequestThatNoLongerWaits() {
+        val first = encrypt("req-1")
+        val firstRequestCode = nextStartedSigner().requestCode
+        val second = encrypt("req-2")
+        nextStartedSigner()
+        call("cancel", mapOf("id" to "req-2"))
+
+        plugin.onActivityResult(
+            firstRequestCode,
+            Activity.RESULT_OK,
+            Intent().putExtra("result", "two").putExtra("id", "req-2"),
+        )
+
+        assertEquals(emptyMap<String, String?>(), first.value)
+        assertEquals("CANCELLED", second.errorCode)
+        assertEquals(1, second.replies)
+    }
+
+    @Test
     fun cancelStopsWaitingForTheSignerApp() {
         val result = encrypt("req-1")
         val requestCode = nextStartedSigner().requestCode

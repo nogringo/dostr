@@ -16,3 +16,4 @@
  - `getPublicKey` and `getPublicKeyHex` are gone: `login` returns the pubkey and the signer app package. Instead of returning `null`, `login` throws a `SignerRequestRejectedException` when the user refuses, and a `SignerRequestFailedException` when no key comes back, such as when the signer app cannot be opened.
  - `cancelRequest` also stops the plugin from waiting for the answer of the signer app, through `Nip55SignerApp.cancelRequest`, which frees the slot of the request. A request cancelled while the plugin queries the Content Resolver no longer opens the signer app.
  - Two `Nip55Signer` never use the same request id, so the answers and cancellations of two accounts no longer get mixed up.
+ - When the signer app answers a request through the Intent of another request, that other request fails instead of waiting forever. It no longer takes the answer when the request it names is not waiting anymore, such as after `cancelRequest`.
