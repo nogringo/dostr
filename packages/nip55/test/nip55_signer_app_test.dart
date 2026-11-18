@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -65,7 +66,7 @@ void main() {
 
       final login = await const Nip55SignerApp().login();
 
-      expect(login!.pubkey, pubkey);
+      expect(login.pubkey, pubkey);
       expect(login.package, package);
       expect(calls.single.method, 'nostrsigner');
       final arguments = argumentsOf(calls.single);
@@ -100,32 +101,62 @@ void main() {
     test('decodes the npub an older signer returns', () async {
       reply = (_) => {'result': Npub(pubkey).encode()};
 
-      expect((await const Nip55SignerApp().login())!.pubkey, pubkey);
+      expect((await const Nip55SignerApp().login()).pubkey, pubkey);
     });
 
     test('falls back to the signature field', () async {
       reply = (_) => {'signature': pubkey};
 
-      expect((await const Nip55SignerApp().login())!.pubkey, pubkey);
+      expect((await const Nip55SignerApp().login()).pubkey, pubkey);
     });
 
     test('prefers the result field over the signature field', () async {
       reply = (_) => {'result': pubkey, 'signature': 'other'};
 
-      expect((await const Nip55SignerApp().login())!.pubkey, pubkey);
+      expect((await const Nip55SignerApp().login()).pubkey, pubkey);
     });
 
     test('leaves out an empty package', () async {
       reply = (_) => {'result': pubkey, 'package': ''};
 
-      expect((await const Nip55SignerApp().login())!.package, isNull);
+      expect((await const Nip55SignerApp().login()).package, isNull);
     });
 
-    test('is null when the signer app returns no key', () async {
-      expect(await const Nip55SignerApp().login(), isNull);
+    test('rejects when the user refuses', () async {
+      reply = (_) => {'rejected': 'true'};
+
+      await expectLater(
+        const Nip55SignerApp().login(),
+        throwsA(isA<SignerRequestRejectedException>()),
+      );
+    });
+
+    test('fails when the signer app returns no key', () async {
+      await expectLater(
+        const Nip55SignerApp().login(),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
 
       reply = (_) => {'result': ''};
-      expect(await const Nip55SignerApp().login(), isNull);
+      await expectLater(
+        const Nip55SignerApp().login(),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('fails when the signer app cannot be opened', () async {
+      reply = (_) => throw PlatformException(code: 'LAUNCH_FAILED');
+
+      await expectLater(
+        const Nip55SignerApp().login(),
+        throwsA(
+          isA<SignerRequestFailedException>().having(
+            (e) => (e.cause as PlatformException).code,
+            'cause',
+            'LAUNCH_FAILED',
+          ),
+        ),
+      );
     });
   });
 
@@ -191,7 +222,7 @@ void main() {
         };
 
     for (final MapEntry(key: type, value: request) in cryptoRequests.entries) {
-      test('$type sends the counterparty under both key casings', () async {
+      test('$type sends the counterparty as pubkey', () async {
         reply = (_) => {'signature': 'out'};
 
         final response = await request(
@@ -204,7 +235,6 @@ void main() {
           'type': type,
           'uri_data': 'in',
           'current_user': pubkey,
-          'pubKey': 'peer',
           'pubkey': 'peer',
           'id': 'req-2',
           'package': package,

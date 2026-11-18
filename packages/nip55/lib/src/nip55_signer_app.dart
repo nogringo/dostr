@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dostr_nip19/dostr_nip19.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -82,18 +83,34 @@ class Nip55SignerApp {
 
   /// Logs in: requests the user's public key, pre-authorizing [permissions]
   /// (defaults to [defaultPermissions]), and captures the signer app package.
-  /// Returns `null` if the user rejected or no key was returned.
+  ///
+  /// Throws a [SignerRequestRejectedException] when the user refuses, and a
+  /// [SignerRequestFailedException] when no key comes back, such as when the
+  /// signer app cannot be opened.
   ///
   /// NIP-55 returns the key in hex. Older signer apps may return an npub,
   /// which this decodes.
-  Future<Nip55LoginResult?> login({List<Nip55Permission>? permissions}) async {
-    final response = await _invoke({
-      'type': 'get_public_key',
-      'uri_data': 'login',
-      'permissions': jsonEncode(permissions ?? defaultPermissions),
-    });
+  Future<Nip55LoginResult> login({List<Nip55Permission>? permissions}) async {
+    final Map<dynamic, dynamic> response;
+    try {
+      response = await _invoke({
+        'type': 'get_public_key',
+        'uri_data': 'login',
+        'permissions': jsonEncode(permissions ?? defaultPermissions),
+      });
+    } on PlatformException catch (e) {
+      throw SignerRequestFailedException(
+        'The signer app could not be opened',
+        cause: e,
+      );
+    }
+    if (response['rejected'] == 'true') {
+      throw SignerRequestRejectedException();
+    }
     final raw = (response['result'] ?? response['signature']) as String?;
-    if (raw == null || raw.isEmpty) return null;
+    if (raw == null || raw.isEmpty) {
+      throw SignerRequestFailedException('The signer app returned no key');
+    }
     final pubkey = raw.startsWith(Npub.prefix) ? Npub.decode(raw).pubkey : raw;
     final pkg = response['package'] as String?;
     return Nip55LoginResult(
@@ -192,8 +209,6 @@ class Nip55SignerApp {
       'type': type,
       'uri_data': uriData,
       'current_user': currentUser,
-      // both casings are sent to stay compatible with signer implementations
-      'pubKey': pubkey,
       'pubkey': pubkey,
       'id': id,
     };

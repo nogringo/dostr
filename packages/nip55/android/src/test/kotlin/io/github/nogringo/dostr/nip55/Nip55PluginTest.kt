@@ -148,7 +148,6 @@ class Nip55PluginTest {
             "type" to "nip44_encrypt",
             "uri_data" to "hello",
             "current_user" to userPubkey,
-            "pubKey" to peerPubkey,
             "pubkey" to peerPubkey,
             "id" to id,
             "package" to if (withPackage) signerPackage else null,
@@ -215,6 +214,7 @@ class Nip55PluginTest {
         assertEquals("req-1", started.intent.getStringExtra("id"))
         assertEquals(userPubkey, started.intent.getStringExtra("current_user"))
         assertEquals(peerPubkey, started.intent.getStringExtra("pubkey"))
+        assertEquals(peerPubkey, started.intent.getStringExtra("pubKey"))
 
         plugin.onActivityResult(
             started.requestCode,
@@ -330,6 +330,26 @@ class Nip55PluginTest {
         assertEquals("CANCELLED", result.errorCode)
         assertFalse(plugin.onActivityResult(requestCode, Activity.RESULT_OK, Intent()))
         assertEquals(false, call("cancel", mapOf("id" to "req-1")).value)
+    }
+
+    @Test
+    fun cancelDuringTheContentResolverQueryDoesNotOpenTheSignerApp() {
+        registerProvider("NIP44_ENCRYPT") { null }
+        val result = RecordedResult()
+        plugin.onMethodCall(
+            MethodCall(
+                "nostrsigner",
+                hashMapOf("type" to "nip44_encrypt", "id" to "req-1", "package" to signerPackage),
+            ),
+            result,
+        )
+
+        val cancel = call("cancel", mapOf("id" to "req-1"))
+
+        assertEquals(true, cancel.value)
+        assertEquals("CANCELLED", result.errorCode)
+        assertEquals(1, result.replies)
+        assertNull(nextStartedSigner())
     }
 
     @Test

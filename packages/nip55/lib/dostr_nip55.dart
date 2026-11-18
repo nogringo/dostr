@@ -4,7 +4,7 @@
 /// const signerApp = Nip55SignerApp();
 /// final login = await signerApp.login();
 /// final signer = Nip55Signer(
-///   publicKey: login!.pubkey,
+///   publicKey: login.pubkey,
 ///   signerApp: Nip55SignerApp(package: login.package),
 /// );
 /// ```

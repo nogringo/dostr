@@ -53,6 +53,11 @@ class Nip55Plugin(
         val id: String,
     )
 
+    private class ResolverQuery(val result: Result) {
+        var cancelled = false
+    }
+
+    private val _resolverQueriesById = HashMap<String, ResolverQuery>()
     private val _pendingIntentResults = HashMap<Int, PendingIntentResult>()
     private val _pendingIntentRequestCodesById = HashMap<String, Int>()
     private var _nextIntentRequestCode = 1
@@ -82,9 +87,7 @@ class Nip55Plugin(
                 val request = Nip55Request(
                     type = params[keyType] as? String ?: "",
                     currentUser = params[keyCurrentUser] as? String ?: "",
-                    pubkey = params[keyPubKey] as? String
-                        ?: params["pubkey"] as? String
-                        ?: "",
+                    pubkey = params[keyPubkey] as? String ?: "",
                     id = params[keyId] as? String ?: "",
                     uriData = params[keyUriData] as? String ?: "",
                     permissions = params[keyPermissions] as? String ?: "",
@@ -97,9 +100,19 @@ class Nip55Plugin(
                     launchSigner(request, result)
                     return
                 }
+                val query = ResolverQuery(result)
+                if (request.id.isNotEmpty()) {
+                    _resolverQueriesById[request.id] = query
+                }
                 backgroundExecutor.execute {
                     val answer = queryContentResolver(request)
                     _mainHandler.post {
+                        if (_resolverQueriesById[request.id] === query) {
+                            _resolverQueriesById.remove(request.id)
+                        }
+                        if (query.cancelled) {
+                            return@post
+                        }
                         if (answer != null) {
                             result.success(answer)
                         } else {
@@ -114,17 +127,28 @@ class Nip55Plugin(
             }
 
             "cancel" -> {
-                val requestCode = (params?.get(keyId) as? String)
-                    ?.let { _pendingIntentRequestCodesById[it] }
-                val pending = requestCode?.let { removePendingIntentResult(it) }
-                pending?.result?.error("CANCELLED", "The request was cancelled", null)
-                result.success(pending != null)
+                val id = params?.get(keyId) as? String
+                result.success(id != null && (cancelResolverQuery(id) || cancelIntent(id)))
             }
 
             else -> {
                 result.notImplemented()
             }
         }
+    }
+
+    private fun cancelResolverQuery(id: String): Boolean {
+        val query = _resolverQueriesById.remove(id) ?: return false
+        query.cancelled = true
+        query.result.error("CANCELLED", "The request was cancelled", null)
+        return true
+    }
+
+    private fun cancelIntent(id: String): Boolean {
+        val requestCode = _pendingIntentRequestCodesById[id] ?: return false
+        val pending = removePendingIntentResult(requestCode) ?: return false
+        pending.result.error("CANCELLED", "The request was cancelled", null)
+        return true
     }
 
     private fun launchSigner(request: Nip55Request, result: Result) {
@@ -143,8 +167,8 @@ class Nip55Plugin(
         }
         intent.putExtra(keyType, request.type)
         intent.putExtra(keyCurrentUser, request.currentUser)
-        intent.putExtra(keyPubKey, request.pubkey)
-        intent.putExtra("pubkey", request.pubkey)
+        intent.putExtra(keyPubkey, request.pubkey)
+        intent.putExtra(keyPubkeyCamelCase, request.pubkey)
         intent.putExtra(keyId, request.id)
         intent.putExtra(keyPermissions, request.permissions)
         // Without a package, as at login, the user picks the signer app.

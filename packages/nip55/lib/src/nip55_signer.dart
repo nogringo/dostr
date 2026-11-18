@@ -36,7 +36,8 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final _pendingRequestsController =
       BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
 
-  int _requestCounter = 0;
+  // shared by every signer: the plugin matches answers and cancellations by id
+  static int _requestCounter = 0;
 
   @override
   final int maxConcurrentRequests;
@@ -322,10 +323,13 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
       _pendingRequests.values.map((e) => e.request).toList();
 
   @override
-  bool cancelRequest(String requestId) {
+  bool cancelRequest(String requestId) =>
+      _drop(requestId, SignerRequestCancelledException(requestId));
+
+  bool _drop(String requestId, SignerRequestException error) {
     final entry = _pendingRequests.remove(requestId);
     if (entry == null) return false;
-    entry.completer.completeError(SignerRequestCancelledException(requestId));
+    entry.completer.completeError(error);
     _notifyPendingRequestsChange();
     if (entry.sentToSignerApp) {
       // frees the slot of the request, which waits for the signer app
@@ -336,6 +340,20 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   Future<void> dispose() async {
+    final sent = [
+      for (final MapEntry(key: requestId, value: entry)
+          in _pendingRequests.entries)
+        if (entry.sentToSignerApp) requestId,
+    ];
+    for (final requestId in sent) {
+      _drop(
+        requestId,
+        SignerRequestFailedException(
+          'The signer was disposed before the signer app answered',
+          requestId: requestId,
+        ),
+      );
+    }
     cancelAllQueued();
     await _pendingRequestsController.close();
   }

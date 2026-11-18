@@ -1,4 +1,5 @@
 import 'package:dostr_nip46/dostr_nip46.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -107,9 +108,10 @@ class LoginController extends ChangeNotifier {
         return;
       }
 
-      final loginResult = await signer.login();
-      if (loginResult == null) {
-        isWaitingForExternalSigner = false;
+      final Nip55LoginResult loginResult;
+      try {
+        loginResult = await signer.login();
+      } on SignerRequestException {
         return;
       }
 

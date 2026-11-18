@@ -254,13 +254,19 @@ void main() {
     test('describes each encryption request for the UI', () async {
       final signer = newSigner();
 
-      signer.encryptNip04(
-        plaintext: 'plain04',
-        recipientPubkey: stalePublicKey,
-      );
-      signer.decryptNip04(ciphertext: 'cipher04', senderPubkey: stalePublicKey);
-      signer.encryptNip44(plaintext: 'plain44', recipientPubkey: publicKey);
-      signer.decryptNip44(ciphertext: 'cipher44', senderPubkey: publicKey);
+      // never answered: dispose fails them
+      signer
+          .encryptNip04(plaintext: 'plain04', recipientPubkey: stalePublicKey)
+          .ignore();
+      signer
+          .decryptNip04(ciphertext: 'cipher04', senderPubkey: stalePublicKey)
+          .ignore();
+      signer
+          .encryptNip44(plaintext: 'plain44', recipientPubkey: publicKey)
+          .ignore();
+      signer
+          .decryptNip44(ciphertext: 'cipher44', senderPubkey: publicKey)
+          .ignore();
       await pumpEventQueue();
 
       expect(
@@ -443,8 +449,29 @@ void main() {
       expect(signer.queuedRequests, 0);
     });
 
+    test('two signers never send the same request id', () async {
+      final first = newSigner();
+      final second = newSigner();
+
+      // the first round is slow, later ones fall in the same millisecond
+      final results = [
+        for (var round = 0; round < 3; round++) ...[
+          encrypt(first, 'one'),
+          encrypt(second, 'two'),
+        ],
+      ];
+      await pumpEventQueue();
+
+      final ids = [for (final call in calls) argumentsOf(call)['id']];
+      expect(ids.toSet(), hasLength(ids.length));
+      for (final answer in answers) {
+        answer.complete({'signature': 'out'});
+      }
+      await Future.wait(results);
+    });
+
     test(
-      'dispose fails the queued requests and lets the running one finish',
+      'dispose fails every request and stops waiting for the signer app',
       () async {
         final signer = Nip55Signer(
           publicKey: publicKey,
@@ -452,14 +479,33 @@ void main() {
           maxConcurrentRequests: 1,
         );
 
-        final first = encrypt(signer, 'one');
+        final sent = encrypt(signer, 'one');
         final queued = encrypt(signer, 'two');
         await pumpEventQueue();
+        final sentId = signer.pendingRequests.first.id;
+        final sentFails = expectLater(
+          sent,
+          throwsA(
+            isA<SignerRequestFailedException>().having(
+              (e) => e.requestId,
+              'requestId',
+              sentId,
+            ),
+          ),
+        );
+        final queuedFails = expectLater(
+          queued,
+          throwsA(isA<SignerRequestFailedException>()),
+        );
         await signer.dispose();
 
-        await expectLater(queued, throwsA(isA<SignerRequestFailedException>()));
-        answers.single.complete({'signature': '1'});
-        expect(await first, '1');
+        await sentFails;
+        await queuedFails;
+        await pumpEventQueue();
+        expect(cancelled, [sentId]);
+        expect(signer.pendingRequests, isEmpty);
+
+        answers.single.complete({'signature': 'late'});
         await pumpEventQueue();
       },
     );
