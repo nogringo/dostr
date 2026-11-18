@@ -16,10 +16,10 @@ class Nip04 {
   /// Encrypts [plaintext] from [senderPrivateKey] to [recipientPublicKey], as
   /// `<ciphertext>?iv=<iv>`.
   static String encrypt(
-    String plaintext,
-    String senderPrivateKey,
-    String recipientPublicKey,
-  ) {
+    String plaintext, {
+    required String senderPrivateKey,
+    required String recipientPublicKey,
+  }) {
     final iv = secureRandomBytes(16);
     final cipher = _aesCbc(
       true,
@@ -37,10 +37,10 @@ class Nip04 {
   /// decrypt with these keys. With no MAC, an altered payload can also decrypt
   /// to the wrong text.
   static String decrypt(
-    String payload,
-    String recipientPrivateKey,
-    String senderPublicKey,
-  ) {
+    String payload, {
+    required String recipientPrivateKey,
+    required String senderPublicKey,
+  }) {
     final parts = payload.split('?iv=');
     if (parts.length != 2) {
       throw const FormatException('Not a NIP-04 payload: it needs one ?iv=');

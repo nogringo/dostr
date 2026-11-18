@@ -1,6 +1,6 @@
 import 'package:dostr_nip44/dostr_nip44.dart';
 
-Future<void> main() async {
+void main() {
   const alicePrivateKey =
       '0000000000000000000000000000000000000000000000000000000000000001';
   const alicePublicKey =
@@ -10,16 +10,16 @@ Future<void> main() async {
   const bobPublicKey =
       'c6047f9441ed7d6d3045406e95c07cd85c778e4b8cef3ca7abac09b95c709ee5';
 
-  final payload = await Nip44.encryptMessage(
+  final payload = Nip44.encryptMessage(
     'hello bob',
-    alicePrivateKey,
-    bobPublicKey,
+    senderPrivateKey: alicePrivateKey,
+    recipientPublicKey: bobPublicKey,
   );
 
-  final plaintext = await Nip44.decryptMessage(
+  final plaintext = Nip44.decryptMessage(
     payload,
-    bobPrivateKey,
-    alicePublicKey,
+    recipientPrivateKey: bobPrivateKey,
+    senderPublicKey: alicePublicKey,
   );
   print(plaintext);
 }

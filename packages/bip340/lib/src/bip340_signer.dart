@@ -70,7 +70,11 @@ class Bip340Signer implements NostrSigner {
     required String senderPubkey,
   }) async => _crypto(
     'NIP-04 decryption failed',
-    (key) => Nip04.decrypt(ciphertext, key, senderPubkey),
+    (key) => Nip04.decrypt(
+      ciphertext,
+      recipientPrivateKey: key,
+      senderPublicKey: senderPubkey,
+    ),
   );
 
   @override
@@ -79,7 +83,11 @@ class Bip340Signer implements NostrSigner {
     required String recipientPubkey,
   }) async => _crypto(
     'NIP-04 encryption failed',
-    (key) => Nip04.encrypt(plaintext, key, recipientPubkey),
+    (key) => Nip04.encrypt(
+      plaintext,
+      senderPrivateKey: key,
+      recipientPublicKey: recipientPubkey,
+    ),
   );
 
   @override
@@ -126,7 +134,7 @@ class Bip340Signer implements NostrSigner {
   Uint8List _conversationKey(String privateKey, String pubkey) {
     final key =
         _conversationKeys.remove(pubkey) ??
-        Nip44.conversationKey(privateKey, pubkey);
+        Nip44.conversationKey(privateKey: privateKey, publicKey: pubkey);
     if (_conversationKeys.length >= _maxConversationKeys) {
       _conversationKeys.remove(_conversationKeys.keys.first);
     }

@@ -46,7 +46,7 @@ void main() {
     for (final (i, v) in _cases(valid, 'get_conversation_key').indexed) {
       test('vector $i', () {
         expect(
-          Nip44.conversationKey(v['sec1'], v['pub2']),
+          Nip44.conversationKey(privateKey: v['sec1'], publicKey: v['pub2']),
           _bytes(v['conversation_key']),
         );
       });
@@ -55,7 +55,10 @@ void main() {
     for (final v in _cases(invalid, 'get_conversation_key')) {
       test('rejects ${v['note']}', () {
         expect(
-          () => Nip44.conversationKey(v['sec1'], v['pub2']),
+          () => Nip44.conversationKey(
+            privateKey: v['sec1'],
+            publicKey: v['pub2'],
+          ),
           throwsFormatException,
         );
       });
@@ -66,11 +69,17 @@ void main() {
           '0000000000000000000000000000000000000000000000000000000000000001';
       const peer =
           'b74e6a341fb134127272b795a08b59250e5fa45a82a2eb4095e4ce9ed5f5e214';
-      final expected = Nip44.conversationKey(privateKey, _publicKey(peer));
+      final expected = Nip44.conversationKey(
+        privateKey: privateKey,
+        publicKey: _publicKey(peer),
+      );
 
       for (final compressed in [true, false]) {
         final encoded = hex.encode(_point(peer).getEncoded(compressed));
-        expect(Nip44.conversationKey(privateKey, encoded), expected);
+        expect(
+          Nip44.conversationKey(privateKey: privateKey, publicKey: encoded),
+          expected,
+        );
       }
     });
 
@@ -109,22 +118,40 @@ void main() {
       }
     });
 
+    Matcher throwsWithout(String privateKey) => throwsA(
+      isA<FormatException>().having(
+        (e) => e.toString(),
+        'toString()',
+        isNot(contains(privateKey)),
+      ),
+    );
+
     test('never puts the private key in its error', () {
       for (final privateKey in [
         'z' * 64,
         'fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141',
       ]) {
         expect(
-          () => Nip44.conversationKey(privateKey, _publicKey('${'0' * 63}1')),
-          throwsA(
-            isA<FormatException>().having(
-              (e) => e.toString(),
-              'toString()',
-              isNot(contains(privateKey)),
-            ),
+          () => Nip44.conversationKey(
+            privateKey: privateKey,
+            publicKey: _publicKey('${'0' * 63}1'),
           ),
+          throwsWithout(privateKey),
         );
       }
+    });
+
+    test('never puts a private key passed as the public key in its error', () {
+      // 5 is a valid private key, and the x of no point.
+      final privateKey = '${'0' * 63}5';
+
+      expect(
+        () => Nip44.conversationKey(
+          privateKey: '${'0' * 63}1',
+          publicKey: privateKey,
+        ),
+        throwsWithout(privateKey),
+      );
     });
   });
 
@@ -167,15 +194,21 @@ void main() {
 
   group('encrypt and decrypt', () {
     for (final (i, v) in _cases(valid, 'encrypt_decrypt').indexed) {
-      test('vector $i', () async {
+      test('vector $i', () {
         final conversationKey = _bytes(v['conversation_key']);
 
         expect(
-          Nip44.conversationKey(v['sec1'], _publicKey(v['sec2'])),
+          Nip44.conversationKey(
+            privateKey: v['sec1'],
+            publicKey: _publicKey(v['sec2']),
+          ),
           conversationKey,
         );
         expect(
-          Nip44.conversationKey(v['sec2'], _publicKey(v['sec1'])),
+          Nip44.conversationKey(
+            privateKey: v['sec2'],
+            publicKey: _publicKey(v['sec1']),
+          ),
           conversationKey,
         );
         expect(
@@ -188,10 +221,10 @@ void main() {
         );
         expect(Nip44.decrypt(v['payload'], conversationKey), v['plaintext']);
         expect(
-          await Nip44.decryptMessage(
+          Nip44.decryptMessage(
             v['payload'],
-            v['sec2'],
-            _publicKey(v['sec1']),
+            recipientPrivateKey: v['sec2'],
+            senderPublicKey: _publicKey(v['sec1']),
           ),
           v['plaintext'],
         );
@@ -307,24 +340,32 @@ void main() {
       );
     });
 
-    test('the recipient decrypts what the sender encrypts', () async {
+    test('the recipient decrypts what the sender encrypts', () {
       const sender =
           '5c0c523f52a5b6fad39ed2403092df8cebc36318b39383bca6c00808626fab3a';
       const recipient =
           '4b22aa260e4acb7021e32f38a6cdf4b673c6a277755bfce287e370c924dc936d';
 
-      final payload = await Nip44.encryptMessage(
+      final payload = Nip44.encryptMessage(
         'hello bob',
-        sender,
-        _publicKey(recipient),
+        senderPrivateKey: sender,
+        recipientPublicKey: _publicKey(recipient),
       );
 
       expect(
-        await Nip44.decryptMessage(payload, recipient, _publicKey(sender)),
+        Nip44.decryptMessage(
+          payload,
+          recipientPrivateKey: recipient,
+          senderPublicKey: _publicKey(sender),
+        ),
         'hello bob',
       );
       expect(
-        Nip44.decryptMessage(payload, sender, _publicKey(sender)),
+        () => Nip44.decryptMessage(
+          payload,
+          recipientPrivateKey: sender,
+          senderPublicKey: _publicKey(sender),
+        ),
         throwsA(isA<Nip44InvalidMacException>()),
       );
     });

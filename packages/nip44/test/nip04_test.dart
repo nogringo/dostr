@@ -18,16 +18,29 @@ void main() {
       'VezuSvWak++ASjFMRqBPWS3mK5pZ0vRLL325iuIL4S+r8n9z+DuMau5vMElz1tGC/UqCDmbzE2kwplafaFo/FnIZMdEj4pdxgptyBV1ifZpH3TEF6OMjEtqbYRRqnxgIXsuOSXaerWgpi0pm+raHQPseoELQI/SZ1cvtFqEUCXdXpa5AYaSd+quEuthAEw7V1jP+5TDRCEC8jiLosBVhCtaPpLcrm8HydMYJ2XB6Ixs=?iv=/rtV49RFm0XyFEwG62Eo9A==';
 
   test('decrypts a known payload', () {
-    expect(json.decode(Nip04.decrypt(ciphertext, priv, pub)), [
+    final decrypted = Nip04.decrypt(
+      ciphertext,
+      recipientPrivateKey: priv,
+      senderPublicKey: pub,
+    );
+
+    expect(json.decode(decrypted), [
       ['p', '9ec7a778167afb1d30c4833de9322da0c08ba71a69e1911d5578d3144bb56437'],
       ['p', '8c0da4862130283ff9e67d889df264177a508974e2feb96de139804ea66d6168'],
     ]);
   });
 
   test('the sender decrypts what it encrypted', () {
-    final encrypted = Nip04.encrypt('some content', priv, pub);
+    final encrypted = Nip04.encrypt(
+      'some content',
+      senderPrivateKey: priv,
+      recipientPublicKey: pub,
+    );
 
-    expect(Nip04.decrypt(encrypted, priv, pub), 'some content');
+    expect(
+      Nip04.decrypt(encrypted, recipientPrivateKey: priv, senderPublicKey: pub),
+      'some content',
+    );
   });
 
   test('the recipient decrypts what the sender encrypts', () {
@@ -38,12 +51,16 @@ void main() {
 
     final encrypted = Nip04.encrypt(
       'some content',
-      senderPriv,
-      xOnlyPublicKeyHex(recipientPriv),
+      senderPrivateKey: senderPriv,
+      recipientPublicKey: xOnlyPublicKeyHex(recipientPriv),
     );
 
     expect(
-      Nip04.decrypt(encrypted, recipientPriv, xOnlyPublicKeyHex(senderPriv)),
+      Nip04.decrypt(
+        encrypted,
+        recipientPrivateKey: recipientPriv,
+        senderPublicKey: xOnlyPublicKeyHex(senderPriv),
+      ),
       'some content',
     );
   });
@@ -60,20 +77,35 @@ void main() {
       ('an IV that is not 16 bytes', '${ciphertext.split('?iv=')[0]}?iv=AAAA'),
     ]) {
       test(name, () {
-        expect(() => Nip04.decrypt(payload, priv, pub), throwsFormatException);
+        expect(
+          () => Nip04.decrypt(
+            payload,
+            recipientPrivateKey: priv,
+            senderPublicKey: pub,
+          ),
+          throwsFormatException,
+        );
       });
     }
 
     test('a payload for other keys', () {
       expect(
-        () => Nip04.decrypt(ciphertext, '${'0' * 63}1', pub),
+        () => Nip04.decrypt(
+          ciphertext,
+          recipientPrivateKey: '${'0' * 63}1',
+          senderPublicKey: pub,
+        ),
         throwsFormatException,
       );
     });
 
     test('an invalid key', () {
       expect(
-        () => Nip04.decrypt(ciphertext, priv, 'not a key'),
+        () => Nip04.decrypt(
+          ciphertext,
+          recipientPrivateKey: priv,
+          senderPublicKey: 'not a key',
+        ),
         throwsFormatException,
       );
     });

@@ -29,6 +29,7 @@ Secp256k1Point _decodePublicKey(String publicKey) {
   final point = _publicKeyPattern.hasMatch(encoded)
       ? Secp256k1Point.fromSec1(hex.decode(encoded))
       : null;
+  // No source: it would hold a private key passed in place of the public key.
   return point ??
-      (throw FormatException('Not a valid secp256k1 public key', publicKey));
+      (throw const FormatException('Not a valid secp256k1 public key'));
 }

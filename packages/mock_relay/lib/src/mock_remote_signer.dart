@@ -40,7 +40,11 @@ class MockRemoteSigner {
     if (event.getFirstTag('p') != publicKey) return;
 
     final request = jsonDecode(
-      await Nip44.decryptMessage(event.content, privateKey, event.pubkey),
+      Nip44.decryptMessage(
+        event.content,
+        recipientPrivateKey: privateKey,
+        senderPublicKey: event.pubkey,
+      ),
     );
     Map<String, dynamic> response;
     try {
@@ -79,10 +83,10 @@ class MockRemoteSigner {
           tags: [
             ['p', recipient],
           ],
-          content: await Nip44.encryptMessage(
+          content: Nip44.encryptMessage(
             jsonEncode(response),
-            privateKey,
-            recipient,
+            senderPrivateKey: privateKey,
+            recipientPublicKey: recipient,
           ),
         ),
         privateKey: privateKey,
@@ -131,23 +135,35 @@ class MockRemoteSigner {
         );
         return {'result': signed.toJsonString()};
       case 'nip04_encrypt':
-        return {'result': Nip04.encrypt(params[1], privateKey, params[0])};
+        return {
+          'result': Nip04.encrypt(
+            params[1],
+            senderPrivateKey: privateKey,
+            recipientPublicKey: params[0],
+          ),
+        };
       case 'nip04_decrypt':
-        return {'result': Nip04.decrypt(params[1], privateKey, params[0])};
+        return {
+          'result': Nip04.decrypt(
+            params[1],
+            recipientPrivateKey: privateKey,
+            senderPublicKey: params[0],
+          ),
+        };
       case 'nip44_encrypt':
         return {
-          'result': await Nip44.encryptMessage(
+          'result': Nip44.encryptMessage(
             params[1],
-            privateKey,
-            params[0],
+            senderPrivateKey: privateKey,
+            recipientPublicKey: params[0],
           ),
         };
       case 'nip44_decrypt':
         return {
-          'result': await Nip44.decryptMessage(
+          'result': Nip44.decryptMessage(
             params[1],
-            privateKey,
-            params[0],
+            recipientPrivateKey: privateKey,
+            senderPublicKey: params[0],
           ),
         };
       default:

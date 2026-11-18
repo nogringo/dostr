@@ -27,7 +27,10 @@ class Nip44 {
   ///
   /// Compute it once per peer and pass it to [encrypt] and [decrypt] to skip
   /// the key agreement on each message.
-  static Uint8List conversationKey(String privateKey, String publicKey) {
+  static Uint8List conversationKey({
+    required String privateKey,
+    required String publicKey,
+  }) {
     return hkdfExtract(
       ikm: sharedSecret(privateKey, publicKey),
       salt: utf8.encode('nip44-v2'),
@@ -79,31 +82,33 @@ class Nip44 {
 
   /// Encrypts [plaintext] from [senderPrivateKey] to [recipientPublicKey], as
   /// [encrypt] does.
-  ///
-  /// Returns a future, but does the work on the calling isolate.
-  static Future<String> encryptMessage(
-    String plaintext,
-    String senderPrivateKey,
-    String recipientPublicKey,
-  ) async {
+  static String encryptMessage(
+    String plaintext, {
+    required String senderPrivateKey,
+    required String recipientPublicKey,
+  }) {
     return encrypt(
       plaintext,
-      conversationKey(senderPrivateKey, recipientPublicKey),
+      conversationKey(
+        privateKey: senderPrivateKey,
+        publicKey: recipientPublicKey,
+      ),
     );
   }
 
   /// Decrypts a [payload] from [senderPublicKey] to [recipientPrivateKey], as
   /// [decrypt] does.
-  ///
-  /// Returns a future, but does the work on the calling isolate.
-  static Future<String> decryptMessage(
-    String payload,
-    String recipientPrivateKey,
-    String senderPublicKey,
-  ) async {
+  static String decryptMessage(
+    String payload, {
+    required String recipientPrivateKey,
+    required String senderPublicKey,
+  }) {
     return decrypt(
       payload,
-      conversationKey(recipientPrivateKey, senderPublicKey),
+      conversationKey(
+        privateKey: recipientPrivateKey,
+        publicKey: senderPublicKey,
+      ),
     );
   }
 }
