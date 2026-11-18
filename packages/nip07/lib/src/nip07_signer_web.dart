@@ -10,6 +10,7 @@ import 'nip07_js_interop.dart' as js;
 class _PendingRequestEntry {
   final Completer<dynamic> completer;
   final PendingSignerRequest request;
+  bool sentToExtension = false;
 
   _PendingRequestEntry(this.completer, this.request);
 }
@@ -23,7 +24,8 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final _pendingRequestsController =
       BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
 
-  int _requestCounter = 0;
+  // shared by every signer, so request ids stay unique across them
+  static int _requestCounter = 0;
 
   @override
   final int maxConcurrentRequests;
@@ -49,13 +51,9 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     int maxConcurrentRequests = defaultMaxConcurrentRequests,
   }) async {
     final nostr = _extension();
-    final String publicKey;
-    try {
-      publicKey = (await nostr.getPublicKey().toDart).toDart;
-    } catch (error) {
-      throw SignerRequestRejectedException(originalMessage: error.toString());
-    }
-    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(publicKey)) {
+    final publicKey = (await _ask(() => nostr.getPublicKey())).dartify();
+    if (publicKey is! String ||
+        !RegExp(r'^[0-9a-f]{64}$').hasMatch(publicKey)) {
       throw SignerRequestFailedException(
         'The extension sent an invalid pubkey',
         cause: publicKey,
@@ -70,18 +68,48 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   static js.Nostr _extension() =>
       js.nostr ?? (throw StateError('No NIP-07 extension in window.nostr'));
 
+  /// The answer of the extension. It turns a request down by rejecting it.
+  static Future<JSAny?> _ask(
+    JSPromise<JSAny?> Function() request, {
+    String? requestId,
+  }) async {
+    try {
+      return await request().toDart;
+    } catch (error) {
+      throw SignerRequestRejectedException(
+        requestId: requestId,
+        originalMessage: error.toString(),
+      );
+    }
+  }
+
+  static Future<String> _askText(
+    JSPromise<JSAny?> Function() request,
+    String requestId,
+  ) async {
+    final text = (await _ask(request, requestId: requestId)).dartify();
+    if (text is! String) {
+      throw SignerRequestFailedException(
+        'The extension sent no text',
+        requestId: requestId,
+        cause: text,
+      );
+    }
+    return text;
+  }
+
   String _generateRequestId() {
     return 'nip07_${DateTime.now().millisecondsSinceEpoch}_${_requestCounter++}';
   }
 
   void _notifyPendingRequestsChange() {
+    if (_pendingRequestsController.isClosed) return;
     _pendingRequestsController.add(
       _pendingRequests.values.map((entry) => entry.request).toList(),
     );
   }
 
-  /// Runs [operation] while [describe] waits in [pendingRequests]. An error of
-  /// the extension means it turned the request down.
+  /// Runs [operation] while [describe] waits in [pendingRequests].
   Future<T> _trackRequest<T>(
     PendingSignerRequest Function(String requestId) describe,
     Future<T> Function(String requestId) operation,
@@ -96,10 +124,12 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     _notifyPendingRequestsChange();
 
     runThrottled(() async {
-          if (!_pendingRequests.containsKey(requestId)) {
+          final entry = _pendingRequests[requestId];
+          if (entry == null) {
             throw SignerRequestCancelledException(requestId);
           }
-          return operation(requestId);
+          entry.sentToExtension = true;
+          return await operation(requestId);
         })
         .then((result) {
           if (!completer.isCompleted) {
@@ -111,9 +141,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
             completer.completeError(
               error is SignerRequestException
                   ? error
-                  : SignerRequestRejectedException(
+                  : SignerRequestFailedException(
+                      'The extension sent an answer the signer cannot use',
                       requestId: requestId,
-                      originalMessage: error.toString(),
+                      cause: error,
                     ),
             );
           }
@@ -143,9 +174,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         ciphertext: ciphertext,
         senderPubkey: senderPubkey,
       ),
-      (_) async =>
-          (await nip04.decrypt(senderPubkey.toJS, ciphertext.toJS).toDart)
-              .toDart,
+      (requestId) => _askText(
+        () => nip04.decrypt(senderPubkey.toJS, ciphertext.toJS),
+        requestId,
+      ),
     );
   }
 
@@ -163,9 +195,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         ciphertext: ciphertext,
         senderPubkey: senderPubkey,
       ),
-      (_) async =>
-          (await nip44.decrypt(senderPubkey.toJS, ciphertext.toJS).toDart)
-              .toDart,
+      (requestId) => _askText(
+        () => nip44.decrypt(senderPubkey.toJS, ciphertext.toJS),
+        requestId,
+      ),
     );
   }
 
@@ -183,9 +216,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         plaintext: plaintext,
         recipientPubkey: recipientPubkey,
       ),
-      (_) async =>
-          (await nip04.encrypt(recipientPubkey.toJS, plaintext.toJS).toDart)
-              .toDart,
+      (requestId) => _askText(
+        () => nip04.encrypt(recipientPubkey.toJS, plaintext.toJS),
+        requestId,
+      ),
     );
   }
 
@@ -203,9 +237,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         plaintext: plaintext,
         recipientPubkey: recipientPubkey,
       ),
-      (_) async =>
-          (await nip44.encrypt(recipientPubkey.toJS, plaintext.toJS).toDart)
-              .toDart,
+      (requestId) => _askText(
+        () => nip44.encrypt(recipientPubkey.toJS, plaintext.toJS),
+        requestId,
+      ),
     );
   }
 
@@ -242,10 +277,14 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
               .toList()
               .toJS;
 
-        final signed = await nostr.signEvent(jsEvent).toDart;
-        final id = signed.id;
-        final sig = signed.sig;
-        final signedEvent = id == null || sig == null
+        final answer = await _ask(
+          () => nostr.signEvent(jsEvent),
+          requestId: requestId,
+        );
+        final signed = answer.isA<JSObject>() ? answer as js.NostrEvent : null;
+        final id = signed?.id;
+        final sig = signed?.sig;
+        final signedEvent = signed == null || id == null || sig == null
             ? null
             : event.copyWith(
                 id: id,
@@ -283,19 +322,33 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
       _pendingRequests.values.map((entry) => entry.request).toList();
 
   @override
-  bool cancelRequest(String requestId) {
-    final entry = _pendingRequests.remove(requestId);
-    if (entry == null) {
-      return false;
-    }
+  bool cancelRequest(String requestId) =>
+      _drop(requestId, SignerRequestCancelledException(requestId));
 
-    entry.completer.completeError(SignerRequestCancelledException(requestId));
+  bool _drop(String requestId, SignerRequestException error) {
+    final entry = _pendingRequests.remove(requestId);
+    if (entry == null) return false;
+    entry.completer.completeError(error);
     _notifyPendingRequestsChange();
     return true;
   }
 
   @override
   Future<void> dispose() async {
+    final sent = [
+      for (final MapEntry(key: requestId, value: entry)
+          in _pendingRequests.entries)
+        if (entry.sentToExtension) requestId,
+    ];
+    for (final requestId in sent) {
+      _drop(
+        requestId,
+        SignerRequestFailedException(
+          'The signer was disposed before the extension answered',
+          requestId: requestId,
+        ),
+      );
+    }
     cancelAllQueued();
     await _pendingRequestsController.close();
   }

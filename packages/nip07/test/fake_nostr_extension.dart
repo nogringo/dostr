@@ -37,10 +37,25 @@ void injectSetupCode() {
         _privkeyHex: privateKeyHex,
         _pubkey: publicKeyHex,
         _hang: false,
+        _held: [],
         _stripClientTag: false,
 
         setHang: function(hang) {
           this._hang = hang;
+        },
+
+        release: function() {
+          const held = this._held;
+          this._held = [];
+          held.forEach(function(answer) { answer(); });
+        },
+
+        _wait: function() {
+          if (!this._hang) {
+            return Promise.resolve();
+          }
+          const held = this._held;
+          return new Promise(function(answer) { held.push(answer); });
         },
 
         setStripClientTag: function(strip) {
@@ -53,17 +68,13 @@ void injectSetupCode() {
           this._pubkey = getPublicKey(this._privkey);
         },
 
-        getPublicKey: function() {
-          if (this._hang) {
-            return new Promise(() => {});
-          }
-          return Promise.resolve(this._pubkey);
+        getPublicKey: async function() {
+          await this._wait();
+          return this._pubkey;
         },
 
         signEvent: async function(event) {
-          if (this._hang) {
-            return new Promise(() => {});
-          }
+          await this._wait();
           const tags = this._stripClientTag
             ? event.tags.filter(function(tag) { return tag[0] !== 'client'; })
             : event.tags;

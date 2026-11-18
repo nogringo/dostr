@@ -8,18 +8,18 @@ external Nostr? get nostr;
 extension type Nostr._(JSObject _) implements JSObject {
   external Nip04? get nip04;
   external Nip44? get nip44;
-  external JSPromise<JSString> getPublicKey();
-  external JSPromise<NostrEvent> signEvent(NostrEvent event);
+  external JSPromise<JSAny?> getPublicKey();
+  external JSPromise<JSAny?> signEvent(NostrEvent event);
 }
 
 @JS()
 @anonymous
 extension type Nip04._(JSObject _) implements JSObject {
-  external JSPromise<JSString> encrypt(
+  external JSPromise<JSAny?> encrypt(
     JSString recipientPubkey,
     JSString plaintext,
   );
-  external JSPromise<JSString> decrypt(
+  external JSPromise<JSAny?> decrypt(
     JSString senderPubkey,
     JSString ciphertext,
   );
@@ -28,11 +28,11 @@ extension type Nip04._(JSObject _) implements JSObject {
 @JS()
 @anonymous
 extension type Nip44._(JSObject _) implements JSObject {
-  external JSPromise<JSString> encrypt(
+  external JSPromise<JSAny?> encrypt(
     JSString recipientPubkey,
     JSString plaintext,
   );
-  external JSPromise<JSString> decrypt(
+  external JSPromise<JSAny?> decrypt(
     JSString senderPubkey,
     JSString ciphertext,
   );

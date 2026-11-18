@@ -62,6 +62,16 @@ void main() {
       expect(Nip07Signer.connect(), throwsStateError);
     });
 
+    test('connect fails when the extension sends an invalid pubkey', () async {
+      await setupNostrExtension();
+      eval('window.nostr.getPublicKey = async function() { return 42; };');
+
+      await expectLater(
+        Nip07Signer.connect(),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
     test('publicKey is the pubkey the signer was made with', () {
       expect(nip07Signer.publicKey, extensionPubkey);
     });
@@ -104,6 +114,42 @@ void main() {
 
       await expectLater(
         nip07Signer.sign(note()),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('sign is rejected when the extension refuses', () async {
+      await setupNostrExtension();
+      eval(
+        'window.nostr.signEvent = function() { '
+        "return Promise.reject(new Error('refused')); };",
+      );
+
+      await expectLater(
+        nip07Signer.sign(note()),
+        throwsA(isA<SignerRequestRejectedException>()),
+      );
+    });
+
+    test('sign fails when the extension sends no event', () async {
+      await setupNostrExtension();
+      eval('window.nostr.signEvent = async function() { return null; };');
+
+      await expectLater(
+        nip07Signer.sign(note()),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
+    test('decrypt fails when the extension sends no text', () async {
+      await setupNostrExtension();
+      eval('window.nostr.nip44.decrypt = async function() { return 42; };');
+
+      await expectLater(
+        nip07Signer.decryptNip44(
+          ciphertext: 'cipher',
+          senderPubkey: bip340Signer.publicKey,
+        ),
         throwsA(isA<SignerRequestFailedException>()),
       );
     });
@@ -370,6 +416,46 @@ void main() {
 
       await Future<void>.delayed(const Duration(milliseconds: 10));
       expect(emissions.last, isEmpty);
+    });
+
+    test('request ids are unique across signers', () async {
+      await setupNostrExtension();
+      eval('window.nostr.setHang(true);');
+      final other = Nip07Signer(publicKey: extensionPubkey);
+
+      nip07Signer.sign(note()).ignore();
+      other.sign(note()).ignore();
+
+      expect(
+        nip07Signer.pendingRequests.single.id,
+        isNot(other.pendingRequests.single.id),
+      );
+    });
+
+    test('dispose fails the requests the extension has not answered', () async {
+      await setupNostrExtension();
+      eval('window.nostr.setHang(true);');
+      final signer = Nip07Signer(
+        publicKey: extensionPubkey,
+        maxConcurrentRequests: 1,
+      );
+
+      final sent = expectLater(
+        signer.sign(note()),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      final queued = expectLater(
+        signer.sign(note()),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      await signer.dispose();
+      await sent;
+      await queued;
+
+      eval('window.nostr.release();');
+      await Future<void>.delayed(const Duration(milliseconds: 10));
+      expect(signer.pendingRequests, isEmpty);
     });
   });
 }
