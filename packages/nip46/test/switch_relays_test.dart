@@ -79,4 +79,16 @@ void main() {
     expect(await signer.switchRelays(), isNull);
     expect(signer.connection.relays, equals([relayA.url]));
   });
+
+  test('fails on an answer that is neither a list nor null', () async {
+    for (final answer in ['ack', '{"relays": []}']) {
+      remoteSigner.answers['switch_relays'] = {'result': answer};
+
+      await expectLater(
+        signer.switchRelays(),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    }
+    expect(signer.connection.relays, equals([relayA.url]));
+  });
 }

@@ -152,6 +152,35 @@ void main() {
       expect(challenges, equals([authUrl]));
     });
 
+    test('drops a connect auth challenge that is not https', () async {
+      remoteSigner.authUrl = 'intent://approve#Intent;scheme=signer;end';
+      final challenges = <String>[];
+
+      await bunkers.connectWithBunkerUrl(
+        bunkerUrl(),
+        authCallback: challenges.add,
+      );
+
+      expect(challenges, isEmpty);
+    });
+
+    test('throws for a bunker URL without a hex pubkey', () async {
+      await expectLater(
+        bunkers.connectWithBunkerUrl('bunker://npub1abc?relay=${relay.url}'),
+        throwsArgumentError,
+      );
+      expect(relay.received('EVENT'), isEmpty);
+    });
+
+    test('connect fails at once when no relay takes it', () async {
+      relay.rejectEventsWith = 'blocked: not here';
+
+      await expectLater(
+        bunkers.connectWithBunkerUrl(bunkerUrl()),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+    });
+
     test('connect skips the messages it cannot read', () async {
       remoteSigner.contentsBeforeAnswer = ['not a ciphertext'];
 

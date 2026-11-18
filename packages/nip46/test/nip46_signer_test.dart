@@ -309,6 +309,48 @@ void main() {
       expect(challenges, equals([authUrl]));
     });
 
+    test('drops an auth challenge that is not https', () async {
+      remoteSigner.authUrl = 'javascript:alert(1)';
+      final challenges = <String>[];
+      signer.authCallback = challenges.add;
+
+      expect(await signer.ping(), equals('pong'));
+      expect(challenges, isEmpty);
+    });
+
+    test(
+      'drops an auth challenge for a request it does not wait for',
+      () async {
+        remoteSigner.contentsBeforeAnswer = [
+          await Bip340Signer(MockRemoteSigner.privateKey).encryptNip44(
+            plaintext: jsonEncode({
+              'id': 'unknown',
+              'result': 'auth_url',
+              'error': 'https://signer.example/approve',
+            }),
+            recipientPubkey: Bip340Signer(_clientPrivateKey).publicKey,
+          ),
+        ];
+        final challenges = <String>[];
+        signer.authCallback = challenges.add;
+
+        expect(await signer.ping(), equals('pong'));
+        expect(challenges, isEmpty);
+      },
+    );
+
+    test('a request no relay takes fails at once', () async {
+      relay.rejectEventsWith = 'blocked: not here';
+
+      await expectLater(
+        signer.sign(
+          Nip01Event(pubkey: MockRemoteSigner.publicKey, kind: 1, content: ''),
+        ),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      expect(signer.pendingRequests, isEmpty);
+    });
+
     test('a refused request throws SignerRequestRejectedException', () async {
       remoteSigner.answers['sign_event'] = {'error': 'denied'};
 
@@ -413,6 +455,38 @@ void main() {
     });
 
     tearDown(() => silentRelay.stop());
+
+    test('a ping without an answer in time fails and frees its slot', () async {
+      addTearDown(signer.dispose);
+      await expectLater(
+        signer.ping(timeout: const Duration(milliseconds: 200)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+
+      final sent = Completer<void>();
+      silentRelay.onEvent = (_) {
+        if (!sent.isCompleted) sent.complete();
+      };
+      final next = expectLater(
+        signer.ping(timeout: const Duration(milliseconds: 200)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      await sent.future;
+      await next;
+    });
+
+    test(
+      'switchRelays fails when the bunker does not answer in time',
+      () async {
+        addTearDown(signer.dispose);
+
+        await expectLater(
+          signer.switchRelays(timeout: const Duration(milliseconds: 200)),
+          throwsA(isA<SignerRequestFailedException>()),
+        );
+        expect(signer.connection.relays, equals([silentRelay.url]));
+      },
+    );
 
     test(
       'cancelRequest fails at once a request that waits for its turn',

@@ -39,7 +39,8 @@ final signer = await bunkers.createSigner(connection);
 ```
 
 Log the signer in with `accounts.loginExternalSigner(signer: signer)`, where `accounts` is an `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
-`connectWithBunkerUrl` throws a `SignerRequestRejectedException` when the bunker refuses, and a `SignerRequestFailedException` when it accepts nothing within `timeout` (10 minutes by default).
+`connectWithBunkerUrl` throws a `SignerRequestRejectedException` when the bunker refuses, and a `SignerRequestFailedException` when no relay takes the request or the bunker accepts nothing within `timeout` (10 minutes by default).
+`authCallback` only gets https urls: a `bunker://` url can come from anyone, and the challenge often goes straight to a launcher.
 `createSigner` asks the bunker for the user's pubkey, which the bunker may ask the user to approve first, and completes once it has it: `publicKey` never throws.
 
 ## Nostr Connect
@@ -95,11 +96,14 @@ if (relays != null) {
 }
 ```
 
+An older bunker may ignore `switch_relays`: like `ping()`, it then throws a `SignerRequestFailedException` once `timeout` passes (10 seconds by default).
+
 ## Pending requests
 
 The remote signer may ask the user to approve each request.
 While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
 A refusal throws a `SignerRequestRejectedException`, and an answer the signer cannot use, such as an event signed by another pubkey, a `SignerRequestFailedException`.
+A request that every relay refuses or never gets also fails with a `SignerRequestFailedException`, at once.
 Give the signer a `verifier`, such as a `Bip340EventVerifier`, to also check the signature of every event the bunker signs.
 At most `maxConcurrentRequests` requests (100 by default) go out at once.
 The rest wait in a queue.

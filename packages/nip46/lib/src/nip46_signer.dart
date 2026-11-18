@@ -24,7 +24,8 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final RelayPublishes _relayPublishes;
   final NostrSigner _localSigner;
 
-  /// Gets the url of an auth challenge, where the user approves a request.
+  /// Gets the url of an auth challenge, where the user approves a request,
+  /// and only an https one for a request this signer waits for.
   void Function(String url)? authCallback;
 
   /// When set, [sign] checks the signature of every event the remote signer
@@ -32,6 +33,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   final EventVerifier? verifier;
 
   RelayReq? _subscription;
+  bool _closed = false;
 
   // every relay of the bunker delivers each response
   final BoundedLruSet<String> _seenResponseIds = BoundedLruSet(maxSize: 1000);
@@ -135,16 +137,8 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   Future<String> _fetchPublicKey(Duration timeout) async {
     final request = BunkerRequest(method: 'get_public_key');
-    final String pubkey;
-    try {
-      pubkey = await _send(request).timeout(timeout);
-    } on TimeoutException {
-      throw SignerRequestFailedException(
-        'The bunker sent no pubkey within $timeout',
-        requestId: request.id,
-      );
-    }
-    if (!RegExp(r'^[0-9a-f]{64}$').hasMatch(pubkey)) {
+    final pubkey = await _sendWithin(request, timeout);
+    if (!isHexPubkey(pubkey)) {
       throw SignerRequestFailedException(
         'The bunker sent an invalid pubkey',
         requestId: request.id,
@@ -155,6 +149,8 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   void _listen() {
+    // a switchRelays answered just before dispose must not reopen it
+    if (_closed) return;
     final filter = Filter(
       authors: [_connection.remotePubkey],
       kinds: [BunkerRequest.kKind],
@@ -177,14 +173,16 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     final message = await readMessage(_localSigner, event);
     if (message == null) return;
 
+    final id = message['id'];
+    if (id is! String) return;
+
     final error = message['error'];
     if (message['result'] == 'auth_url') {
-      if (error is String) authCallback?.call(error);
+      final url = httpsAuthUrl(error);
+      if (url != null && _requests.containsKey(id)) authCallback?.call(url);
       return;
     }
 
-    final id = message['id'];
-    if (id is! String) return;
     final entry = _requests.remove(id);
     if (entry == null) return;
     if (entry.pending != null) _notifyPendingRequestsChange();
@@ -224,7 +222,20 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       if (!_requests.containsKey(request.id)) return;
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
-      _relayPublishes.publish(signedEvent, relays: _connection.relays);
+      _relayPublishes
+          .publish(signedEvent, relays: _connection.relays)
+          .done
+          .then((outcomes) {
+            if (!noRelayTook(outcomes)) return;
+            _fail(
+              request.id,
+              SignerRequestFailedException(
+                'No relay took the request',
+                requestId: request.id,
+                cause: outcomes,
+              ),
+            );
+          });
 
       // holds the slot until the bunker answers
       await entry.completer.future;
@@ -234,6 +245,22 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     );
 
     return entry.completer.future;
+  }
+
+  /// [_send] for a request no [PendingSignerRequest] describes, which fails
+  /// and frees its slot once [timeout] passes.
+  Future<String> _sendWithin(BunkerRequest request, Duration timeout) {
+    final timer = Timer(
+      timeout,
+      () => _fail(
+        request.id,
+        SignerRequestFailedException(
+          'The bunker did not answer within $timeout',
+          requestId: request.id,
+        ),
+      ),
+    );
+    return _send(request).whenComplete(timer.cancel);
   }
 
   /// Fails [requestId] with [error], unless it already completed.
@@ -401,17 +428,45 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
     }
   }
 
-  Future<String> ping() => _send(BunkerRequest(method: 'ping'));
+  /// The relay urls of a switch_relays [answer], none for null, or null when
+  /// it is neither a JSON list nor null.
+  static List<RelayUrl>? _tryParseRelays(String answer) {
+    try {
+      return switch (jsonDecode(answer)) {
+        null => const [],
+        List relays =>
+          relays.whereType<String>().map(RelayUrl.tryParse).nonNulls.toList(),
+        _ => null,
+      };
+    } on FormatException {
+      return null;
+    }
+  }
+
+  /// Throws a [SignerRequestFailedException] when the bunker does not answer
+  /// within [timeout].
+  Future<String> ping({Duration timeout = const Duration(seconds: 10)}) =>
+      _sendWithin(BunkerRequest(method: 'ping'), timeout);
 
   /// Returns the relays the remote signer moved to, or null if it keeps the
   /// current ones.
-  Future<List<RelayUrl>?> switchRelays() async {
-    final response = await _send(BunkerRequest(method: 'switch_relays'));
+  ///
+  /// Throws a [SignerRequestFailedException] when the remote signer does not
+  /// answer within [timeout], or answers neither a list nor null.
+  Future<List<RelayUrl>?> switchRelays({
+    Duration timeout = const Duration(seconds: 10),
+  }) async {
+    final request = BunkerRequest(method: 'switch_relays');
+    final response = await _sendWithin(request, timeout);
 
-    final decoded = jsonDecode(response);
-    final relays = decoded is List
-        ? decoded.whereType<String>().map(RelayUrl.tryParse).nonNulls.toList()
-        : const <RelayUrl>[];
+    final relays = _tryParseRelays(response);
+    if (relays == null) {
+      throw SignerRequestFailedException(
+        'The bunker answered switch_relays with neither a list nor null',
+        requestId: request.id,
+        cause: response,
+      );
+    }
     if (relays.isEmpty) return null;
 
     final previousSubscription = _subscription;
@@ -439,13 +494,12 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   Future<bool> _sendLogout(Duration timeout) async {
     try {
-      final result = await _send(
+      final result = await _sendWithin(
         BunkerRequest(method: 'logout'),
-      ).timeout(timeout);
+        timeout,
+      );
       return result == 'ack';
     } on SignerRequestException {
-      return false;
-    } on TimeoutException {
       return false;
     } finally {
       await _close();
@@ -476,6 +530,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   Future<void> _close() async {
+    _closed = true;
     // the subscription closes, so no answer can come for them anymore
     for (final requestId in _requests.keys.toList()) {
       _fail(

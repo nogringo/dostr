@@ -28,9 +28,11 @@ class Bunkers {
   /// Connects to the remote signer of a `bunker://` url.
   ///
   /// [authCallback] gets the url of an auth challenge, where the user
-  /// approves the connection. Throws a [SignerRequestRejectedException] when
-  /// the remote signer refuses, and a [SignerRequestFailedException] when it
-  /// accepts nothing within [timeout].
+  /// approves the connection, and only an https one. Throws an
+  /// [ArgumentError] for a url without a hex pubkey or a relay, a
+  /// [SignerRequestRejectedException] when the remote signer refuses, and a
+  /// [SignerRequestFailedException] when no relay takes the request or the
+  /// remote signer accepts nothing within [timeout].
   Future<BunkerConnection> connectWithBunkerUrl(
     String bunkerUrl, {
     void Function(String url)? authCallback,
@@ -43,6 +45,9 @@ class Bunkers {
     }
 
     final remotePubkey = uri.host;
+    if (!isHexPubkey(remotePubkey)) {
+      throw ArgumentError('The bunker URL has no hex remote signer pubkey');
+    }
     final relays = (uri.queryParametersAll['relay'] ?? [])
         .map(RelayUrl.tryParse)
         .nonNulls
@@ -80,7 +85,7 @@ class Bunkers {
     );
 
     Future<BunkerConnection> accepted() async {
-      await _relayPublishes
+      final outcomes = await _relayPublishes
           .publish(
             await signedRequestEvent(
               localSigner,
@@ -90,6 +95,13 @@ class Bunkers {
             relays: relays,
           )
           .done;
+      if (noRelayTook(outcomes)) {
+        throw SignerRequestFailedException(
+          'No relay took the connect request',
+          requestId: request.id,
+          cause: outcomes,
+        );
+      }
 
       await for (final (_, message) in _messages(subscription, localSigner)) {
         if (message['id'] != request.id) continue;
@@ -97,7 +109,8 @@ class Bunkers {
         final result = message['result'];
         final error = message['error'];
         if (result == 'auth_url') {
-          if (error is String) authCallback?.call(error);
+          final url = httpsAuthUrl(error);
+          if (url != null) authCallback?.call(url);
           continue;
         }
         if (error != null) {
