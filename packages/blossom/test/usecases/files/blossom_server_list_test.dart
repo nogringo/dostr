@@ -42,8 +42,8 @@ void main() {
   );
 
   String login() {
-    final key = Bip340.generatePrivateKey();
-    accounts.loginPrivateKey(privkey: key.privateKey!);
+    final key = Bip340.generateKeyPair();
+    accounts.loginPrivateKey(privkey: key.privateKey);
     return key.publicKey;
   }
 

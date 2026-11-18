@@ -80,15 +80,10 @@ void main() {
   runSignerTestSuite(
     name: 'Nip55Signer',
     createSigner: () {
-      final keyPair = Bip340.generatePrivateKey();
+      final keyPair = Bip340.generateKeyPair();
       return Nip55Signer(
         publicKey: keyPair.publicKey,
-        signerApp: _Bip340SignerApp(
-          Bip340Signer(
-            privateKey: keyPair.privateKey,
-            publicKey: keyPair.publicKey,
-          ),
-        ),
+        signerApp: _Bip340SignerApp(Bip340Signer(keyPair.privateKey)),
       );
     },
     createPeer: signerFactory.createWithNewKeyPair,

@@ -30,6 +30,8 @@ The relay url normalization dostr_core connects with is in [`dostr_relay_url`](h
 `relayUrlRegex` and the url normalizer behind them are gone: `RelayUrl.tryParse` builds on `Uri.parse`.
 
 `Bip340`, `Bip340EventVerifier` and `KeyPair` are in [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), and so are `Bip340EventSigner` and `Bip340EventSignerFactory`, now `Bip340Signer` and `Bip340SignerFactory`.
+`Bip340Signer(privateKey)` derives the public key, and `Bip340Signer.readOnly(publicKey)` replaces a signer without a private key.
+`Bip340.generatePrivateKey` is now `Bip340.generateKeyPair`, and `Bip340.sign` and `Bip340.verify` take named parameters.
 `Nip01Utils.signWithPrivateKey` is now `Bip340.signEvent`.
 `Nip04` and `Nip44` are in [`dostr_nip44`](https://pub.dev/packages/dostr_nip44).
 

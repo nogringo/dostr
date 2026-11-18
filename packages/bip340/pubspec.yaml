@@ -19,7 +19,6 @@ dependencies:
   dostr_nip44: ^0.1.0
   dostr_secp256k1: ^0.1.0
   dostr_signer: ^0.1.0
-  rxdart: ^0.28.0
 
 dev_dependencies:
   dostr_event_verifier_test_suite: ^0.1.0

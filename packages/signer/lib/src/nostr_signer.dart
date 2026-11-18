@@ -29,8 +29,9 @@ abstract interface class NostrSigner {
   /// Signs [event], which must have the pubkey of [publicKey], or this
   /// throws an [ArgumentError].
   ///
-  /// The signed event has that pubkey. An interactive signer may change other
-  /// fields before it signs, such as `created_at`.
+  /// The signed event has that pubkey, and the id of its payload, whatever id
+  /// [event] holds. An interactive signer may change other fields before it
+  /// signs, such as `created_at`.
   Future<Nip01Event> sign(Nip01Event event);
 
   /// The hex pubkey this signer signs as. A signer knows it from the moment it

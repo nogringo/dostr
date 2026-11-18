@@ -108,8 +108,8 @@ void main() {
 
   group('fetch', () {
     final verifier = Bip340EventVerifier();
-    final author = Bip340.generatePrivateKey();
-    final other = Bip340.generatePrivateKey();
+    final author = Bip340.generateKeyPair();
+    final other = Bip340.generateKeyPair();
 
     Nip01Event listEvent(String pubkey, KeyPair signer) => Bip340.signEvent(
       event: Nip01Event(
@@ -121,7 +121,7 @@ void main() {
         ],
         content: '',
       ),
-      privateKey: signer.privateKey!,
+      privateKey: signer.privateKey,
     );
 
     Future<HomeRelayList> fetch(Nip01Event event) async => HomeRelayList.fetch(

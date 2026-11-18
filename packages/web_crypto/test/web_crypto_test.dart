@@ -13,7 +13,7 @@ void main() {
     late KeyPair keyPair;
 
     setUp(() {
-      keyPair = Bip340.generatePrivateKey();
+      keyPair = Bip340.generateKeyPair();
       signer = WebSigner(
         privateKey: keyPair.privateKey,
         publicKey: keyPair.publicKey,
@@ -82,7 +82,7 @@ void main() {
 
     test('sign throws for an event of another pubkey', () async {
       final event = Nip01Event(
-        pubkey: Bip340.generatePrivateKey().publicKey,
+        pubkey: Bip340.generateKeyPair().publicKey,
         kind: 1,
         tags: [],
         content: 'Test content',
@@ -105,14 +105,11 @@ void main() {
       late KeyPair otherKeyPair;
 
       setUp(() {
-        otherKeyPair = Bip340.generatePrivateKey();
+        otherKeyPair = Bip340.generateKeyPair();
       });
 
       test('encrypt with WebSigner, decrypt with Bip340Signer', () async {
-        final dartSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello, NIP-04 from web!';
         final encrypted = await signer.encryptNip04(
@@ -131,10 +128,7 @@ void main() {
       });
 
       test('encrypt with Bip340Signer, decrypt with WebSigner', () async {
-        final dartSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello from Dart NIP-04!';
         final encrypted = await dartSigner.encryptNip04(
@@ -156,14 +150,11 @@ void main() {
       late KeyPair otherKeyPair;
 
       setUp(() {
-        otherKeyPair = Bip340.generatePrivateKey();
+        otherKeyPair = Bip340.generateKeyPair();
       });
 
       test('encrypt with WebSigner, decrypt with Bip340Signer', () async {
-        final dartSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello, NIP-44 from web!';
         final encrypted = await signer.encryptNip44(
@@ -182,10 +173,7 @@ void main() {
       });
 
       test('encrypt with Bip340Signer, decrypt with WebSigner', () async {
-        final dartSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final dartSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello from Dart NIP-44!';
         final encrypted = await dartSigner.encryptNip44(
@@ -204,10 +192,7 @@ void main() {
 
       for (final length in [65535, 65536, 100000]) {
         test('a message of $length bytes goes both ways', () async {
-          final dartSigner = Bip340Signer(
-            privateKey: otherKeyPair.privateKey,
-            publicKey: otherKeyPair.publicKey,
-          );
+          final dartSigner = Bip340Signer(otherKeyPair.privateKey);
           final message = 'a' * length;
 
           final fromWeb = await signer.encryptNip44(
@@ -239,14 +224,10 @@ void main() {
       }
 
       test('keeps each peer apart across repeated messages', () async {
-        final peers = [otherKeyPair, Bip340.generatePrivateKey()]
-            .map(
-              (k) => Bip340Signer(
-                privateKey: k.privateKey,
-                publicKey: k.publicKey,
-              ),
-            )
-            .toList();
+        final peers = [
+          otherKeyPair,
+          Bip340.generateKeyPair(),
+        ].map((k) => Bip340Signer(k.privateKey)).toList();
 
         for (var round = 0; round < 3; round++) {
           for (final peer in peers) {
@@ -312,14 +293,14 @@ void main() {
     const factory = WebSignerFactory();
 
     test('create derives the public key as Bip340 does', () {
-      final keyPair = Bip340.generatePrivateKey();
-      final signer = factory.create(keyPair.privateKey!);
+      final keyPair = Bip340.generateKeyPair();
+      final signer = factory.create(keyPair.privateKey);
       expect(signer.publicKey, equals(keyPair.publicKey));
       expect(signer.canSign, isTrue);
     });
 
     test('readOnly cannot sign', () {
-      final keyPair = Bip340.generatePrivateKey();
+      final keyPair = Bip340.generateKeyPair();
       final signer = factory.readOnly(keyPair.publicKey);
       expect(signer.publicKey, equals(keyPair.publicKey));
       expect(signer.canSign, isFalse);

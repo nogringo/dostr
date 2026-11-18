@@ -37,4 +37,6 @@ On mobile, the Rust verifier of `dostr_rust_verifier` is much faster.
 
 `package:ndk/shared/nips/nip01/bip340.dart` and the `Bip340EventSigner` and `Bip340EventVerifier` files are now all in `package:dostr_bip340/dostr_bip340.dart`.
 `Bip340EventSigner` and `Bip340EventSignerFactory` are now `Bip340Signer` and `Bip340SignerFactory`.
+`Bip340Signer(privateKey)` derives the public key, and `Bip340Signer.readOnly(publicKey)` replaces a signer without a private key.
+`Bip340.generatePrivateKey` is now `Bip340.generateKeyPair`, and `Bip340.sign` and `Bip340.verify` take named parameters.
 `Nip01Utils.signWithPrivateKey` is now `Bip340.signEvent`.

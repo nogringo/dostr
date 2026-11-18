@@ -18,7 +18,11 @@ class Bip340 {
   /// Throws a [FormatException] when [privateKey] is not a valid private key
   /// or [message] is not hex. [auxRand] is for test vectors only: each
   /// signature takes 32 fresh random bytes by default.
-  static String sign(String message, String privateKey, {String? auxRand}) {
+  static String sign({
+    required String message,
+    required String privateKey,
+    String? auxRand,
+  }) {
     final signature = Schnorr.sign(
       hexToBytes(message),
       _privateKeyBytes(privateKey),
@@ -30,9 +34,12 @@ class Bip340 {
   /// Whether [signature] signs [message] with the x-only [publicKey].
   ///
   /// It returns false, and never throws, on malformed input.
-  static bool verify(String message, String signature, String? publicKey) {
-    if (publicKey == null ||
-        !_keyPattern.hasMatch(publicKey) ||
+  static bool verify({
+    required String message,
+    required String signature,
+    required String publicKey,
+  }) {
+    if (!_keyPattern.hasMatch(publicKey) ||
         !_signaturePattern.hasMatch(signature) ||
         !_hexPattern.hasMatch(message)) {
       return false;
@@ -51,8 +58,8 @@ class Bip340 {
     return bytesToHex(Schnorr.publicKey(_privateKeyBytes(privateKey)));
   }
 
-  /// generates a new private key with a secure random generator
-  static KeyPair generatePrivateKey() {
+  /// A new key pair, from a secure random generator.
+  static KeyPair generateKeyPair() {
     String privateKey;
     do {
       privateKey = bytesToHex(_secureRandomBytes(32));
@@ -60,16 +67,19 @@ class Bip340 {
     return KeyPair(privateKey, getPublicKey(privateKey));
   }
 
-  /// this method signs the event with the provided private key
-  /// mainly used for testing purposes, please use the account usecase to sign events!
+  /// [event] with the id of its payload, whatever id it holds, signed with
+  /// [privateKey].
+  ///
+  /// Throws a [FormatException] when [privateKey] is not a valid private key.
   static Nip01Event signEvent({
     required Nip01Event event,
     required String privateKey,
   }) {
     final id = event.payloadId;
-
-    final signature = sign(id, privateKey);
-    return event.copyWith(id: id, sig: signature);
+    return event.copyWith(
+      id: id,
+      sig: sign(message: id, privateKey: privateKey),
+    );
   }
 }
 

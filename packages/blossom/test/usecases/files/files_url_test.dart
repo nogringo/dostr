@@ -14,7 +14,7 @@ import 'package:test/test.dart';
 
 final _blob = utf8.encode('a blob from a note');
 final _hash = sha256.convert(_blob).toString();
-final _author = Bip340.generatePrivateKey().publicKey;
+final _author = Bip340.generateKeyPair().publicKey;
 
 /// Blossom servers on which only the hosts in [having] hold [_blob]
 class _Servers {
@@ -172,11 +172,8 @@ void main() {
       'first server from the identity', () async {
     final servers = _Servers({'b.example'});
     final asked = <String>[];
-    final key = Bip340.generatePrivateKey();
-    final account = Bip340Signer(
-      privateKey: key.privateKey,
-      publicKey: key.publicKey,
-    );
+    final key = Bip340.generateKeyPair();
+    final account = Bip340Signer(key.privateKey);
 
     final blob =
         await filesOn(

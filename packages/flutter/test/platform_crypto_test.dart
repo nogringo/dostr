@@ -32,9 +32,7 @@ void main() {
     final platformSigned = await signNote(
       signerFactory.create(alicePrivateKey),
     );
-    final bip340Signed = await signNote(
-      Bip340Signer(privateKey: alicePrivateKey, publicKey: alicePubkey),
-    );
+    final bip340Signed = await signNote(Bip340Signer(alicePrivateKey));
 
     expect(await verifier.verify(platformSigned), isTrue);
     expect(await verifier.verify(bip340Signed), isTrue);

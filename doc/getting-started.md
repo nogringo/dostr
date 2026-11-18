@@ -50,11 +50,11 @@ Keep one `RelayManager` for the whole app.
 ## Sign and publish
 
 ```dart
-final signer = Bip340Signer(privateKey: privateKey, publicKey: publicKey);
+final signer = Bip340Signer(privateKey);
 
 final signed = await signer.sign(
   Nip01Event(
-    pubkey: publicKey,
+    pubkey: signer.publicKey,
     kind: Nip01Event.kTextNoteKind,
     tags: [],
     content: 'hello nostr',

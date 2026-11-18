@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
@@ -12,6 +13,7 @@ class _FakeNip55SignerApp extends Nip55SignerApp {
   _FakeNip55SignerApp(this.response);
 
   final Map<dynamic, dynamic> response;
+  String? eventJson;
 
   @override
   Future<Map<dynamic, dynamic>> signEvent({
@@ -19,6 +21,7 @@ class _FakeNip55SignerApp extends Nip55SignerApp {
     required String eventJson,
     String? id,
   }) async {
+    this.eventJson = eventJson;
     return response;
   }
 }
@@ -45,8 +48,7 @@ void main() {
     );
 
     Future<Nip01Event> signedByTheApp() => Bip340Signer(
-      privateKey: privateKey,
-      publicKey: publicKey,
+      privateKey,
     ).sign(note(publicKey).copyWith(content: 'changed by the app'));
 
     test('sign returns the event the signer app actually signed', () async {
@@ -120,6 +122,18 @@ void main() {
         expect(signedEvent.sig, equals(signature));
       },
     );
+
+    test('sign sends the payload id, whatever id the event holds', () async {
+      final app = _FakeNip55SignerApp({'signature': 'ab12'});
+      final signer = Nip55Signer(publicKey: publicKey, signerApp: app);
+      addTearDown(signer.dispose);
+      final event = note(publicKey);
+
+      final signedEvent = await signer.sign(event.copyWith(id: '00' * 32));
+
+      expect(jsonDecode(app.eventJson!)['id'], event.id);
+      expect(signedEvent.id, event.id);
+    });
   });
 
   group('Nip55Signer through the signer app', () {

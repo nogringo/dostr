@@ -50,13 +50,10 @@ Future<void> main(List<String> args) async {
   }
 
   if (args.length > 2) {
-    final key = Bip340.generatePrivateKey();
+    final key = Bip340.generateKeyPair();
     final zapRequest = await zaps.createZapRequest(
       amountSats: 21,
-      signer: Bip340Signer(
-        privateKey: key.privateKey,
-        publicKey: key.publicKey,
-      ),
+      signer: Bip340Signer(key.privateKey),
       pubkey: recipient,
       relays: [relay],
     );

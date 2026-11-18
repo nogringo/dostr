@@ -7,8 +7,7 @@ import 'package:test/test.dart';
 import 'mocks/memory_gift_wrap_cache.dart';
 
 class _RejectingSigner extends Bip340Signer {
-  _RejectingSigner(KeyPair key)
-    : super(privateKey: key.privateKey, publicKey: key.publicKey);
+  _RejectingSigner(KeyPair key) : super(key.privateKey);
 
   @override
   Future<String> decryptNip44({
@@ -21,12 +20,11 @@ void main() {
   NostrSigner? loggedSigner;
   late GiftWrap giftWrap;
 
-  final alice = Bip340.generatePrivateKey();
-  final bob = Bip340.generatePrivateKey();
-  final carol = Bip340.generatePrivateKey();
+  final alice = Bip340.generateKeyPair();
+  final bob = Bip340.generateKeyPair();
+  final carol = Bip340.generateKeyPair();
 
-  NostrSigner signerOf(KeyPair key) =>
-      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey);
+  NostrSigner signerOf(KeyPair key) => Bip340Signer(key.privateKey);
 
   GiftWrap giftWrapWith({GiftWrapCache? cache}) => GiftWrap(
     signer: () => loggedSigner,

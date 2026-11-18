@@ -3,7 +3,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:test/test.dart';
 
 void main() {
-  final keyPair = Bip340.generatePrivateKey();
+  final keyPair = Bip340.generateKeyPair();
   final event = Nip01Event(
     pubkey: keyPair.publicKey,
     kind: 1,
@@ -14,17 +14,24 @@ void main() {
   test('signEvent produces a signature the verifier accepts', () async {
     final signed = Bip340.signEvent(
       event: event,
-      privateKey: keyPair.privateKey!,
+      privateKey: keyPair.privateKey,
     );
 
-    expect(Bip340.verify(signed.id, signed.sig!, keyPair.publicKey), isTrue);
+    expect(
+      Bip340.verify(
+        message: signed.id,
+        signature: signed.sig!,
+        publicKey: keyPair.publicKey,
+      ),
+      isTrue,
+    );
     expect(await Bip340EventVerifier().verify(signed), isTrue);
   });
 
   test('verifier rejects an event signed by another key', () async {
     final signed = Bip340.signEvent(
       event: event,
-      privateKey: Bip340.generatePrivateKey().privateKey!,
+      privateKey: Bip340.generateKeyPair().privateKey,
     );
 
     expect(await Bip340EventVerifier().verify(signed), isFalse);
@@ -41,9 +48,22 @@ void main() {
         '25f66a4a85ea8b71e482a74f382d2ce5ebeee8fdb2172f477df4900d310536c0';
 
     expect(Bip340.getPublicKey(privateKey), publicKey);
-    expect(Bip340.sign(zeros, privateKey, auxRand: zeros), signature);
-    expect(Bip340.verify(zeros, signature, publicKey), isTrue);
-    expect(Bip340.verify(zeros, signature.toUpperCase(), publicKey), isTrue);
+    expect(
+      Bip340.sign(message: zeros, privateKey: privateKey, auxRand: zeros),
+      signature,
+    );
+    expect(
+      Bip340.verify(message: zeros, signature: signature, publicKey: publicKey),
+      isTrue,
+    );
+    expect(
+      Bip340.verify(
+        message: zeros,
+        signature: signature.toUpperCase(),
+        publicKey: publicKey,
+      ),
+      isTrue,
+    );
   });
 
   test('rejects a private key out of range', () {
@@ -53,20 +73,43 @@ void main() {
       'z' * 64,
     ]) {
       expect(() => Bip340.getPublicKey(privateKey), throwsFormatException);
-      expect(() => Bip340.sign('00' * 32, privateKey), throwsFormatException);
+      expect(
+        () => Bip340.sign(message: '00' * 32, privateKey: privateKey),
+        throwsFormatException,
+      );
     }
   });
 
   test('verify returns false on malformed input', () {
     final message = '00' * 32;
-    final signature = Bip340.sign(message, keyPair.privateKey!);
+    final signature = Bip340.sign(
+      message: message,
+      privateKey: keyPair.privateKey,
+    );
+    final publicKey = keyPair.publicKey;
 
-    expect(Bip340.verify(message, signature, keyPair.publicKey), isTrue);
-    expect(Bip340.verify(message, signature, null), isFalse);
-    expect(Bip340.verify(message, signature, 'zz'), isFalse);
-    expect(Bip340.verify('0', signature, keyPair.publicKey), isFalse);
     expect(
-      Bip340.verify(message, '${signature}00', keyPair.publicKey),
+      Bip340.verify(
+        message: message,
+        signature: signature,
+        publicKey: publicKey,
+      ),
+      isTrue,
+    );
+    expect(
+      Bip340.verify(message: message, signature: signature, publicKey: 'zz'),
+      isFalse,
+    );
+    expect(
+      Bip340.verify(message: '0', signature: signature, publicKey: publicKey),
+      isFalse,
+    );
+    expect(
+      Bip340.verify(
+        message: message,
+        signature: '${signature}00',
+        publicKey: publicKey,
+      ),
       isFalse,
     );
   });

@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_relay_url/dostr_relay_url.dart';
-import 'package:dostr_signer/dostr_signer.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
@@ -16,9 +15,6 @@ void main() {
   final relay1 = RelayUrl.parse('wss://relay1.example.com');
   final relay2 = RelayUrl.parse('wss://relay2.example.com');
 
-  NostrSigner signerFactory({String? privateKey, required String publicKey}) =>
-      Bip340Signer(privateKey: privateKey, publicKey: publicKey);
-
   Zaps zapsFor(FakeRelays relays, {http.Client? client}) => Zaps(
     query: relays.query,
     subscribe: relays.subscribe,
@@ -30,7 +26,7 @@ void main() {
   );
 
   group('Zaps', () {
-    KeyPair key = Bip340.generatePrivateKey();
+    KeyPair key = Bip340.generateKeyPair();
     late FakeRelays relays;
     late Zaps zaps;
 
@@ -77,10 +73,7 @@ void main() {
         amountSats: amount,
         eventId: 'eventId',
         comment: 'comment',
-        signer: signerFactory(
-          privateKey: key.privateKey,
-          publicKey: key.publicKey,
-        ),
+        signer: Bip340Signer(key.privateKey),
         pubkey: 'pubkey',
         relays: [relay1, relay2],
       );
@@ -139,10 +132,7 @@ void main() {
         amountSats: amount,
         eventId: eventId,
         comment: comment,
-        signer: signerFactory(
-          privateKey: key.privateKey,
-          publicKey: key.publicKey,
-        ),
+        signer: Bip340Signer(key.privateKey),
         pubkey: pubkey,
         relays: relays,
       );
@@ -169,10 +159,7 @@ void main() {
           eventId: 'eventId',
           comment: 'comment',
           signer: MockSlowSigner(
-            innerSigner: signerFactory(
-              privateKey: key.privateKey,
-              publicKey: key.publicKey,
-            ),
+            innerSigner: Bip340Signer(key.privateKey),
             delay: const Duration(milliseconds: 1100),
           ),
           pubkey: 'pubkey',
@@ -181,7 +168,11 @@ void main() {
 
         expect(zapRequest.hasValidId, isTrue);
         expect(
-          Bip340.verify(zapRequest.id, zapRequest.sig!, zapRequest.pubkey),
+          Bip340.verify(
+            message: zapRequest.id,
+            signature: zapRequest.sig!,
+            publicKey: zapRequest.pubkey,
+          ),
           isTrue,
         );
       },
@@ -193,10 +184,7 @@ void main() {
           amountSats: -1000,
           eventId: 'eventId',
           comment: 'comment',
-          signer: signerFactory(
-            privateKey: key.privateKey,
-            publicKey: key.publicKey,
-          ),
+          signer: Bip340Signer(key.privateKey),
           pubkey: 'pubkey',
           relays: [relay1, relay2],
         ),
@@ -209,10 +197,7 @@ void main() {
         amountSats: 1000,
         eventId: 'eventId',
         comment: 'comment',
-        signer: signerFactory(
-          privateKey: key.privateKey,
-          publicKey: key.publicKey,
-        ),
+        signer: Bip340Signer(key.privateKey),
         pubkey: 'pubkey',
         relays: [],
       );

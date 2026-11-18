@@ -26,9 +26,9 @@ void main() {
     await server.start();
     serverUrl = 'http://localhost:${server.port}';
 
-    KeyPair key = Bip340.generatePrivateKey();
+    KeyPair key = Bip340.generateKeyPair();
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey);
     loggedAccount = accounts.getLoggedAccount()!;
     return blossomFor(accounts);
   }

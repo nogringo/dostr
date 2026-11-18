@@ -3,10 +3,9 @@ import 'package:dostr_nip59/dostr_nip59.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 Future<void> main() async {
-  final alice = Bip340.generatePrivateKey();
-  final bob = Bip340.generatePrivateKey();
-  NostrSigner signerOf(KeyPair key) =>
-      Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey);
+  final alice = Bip340.generateKeyPair();
+  final bob = Bip340.generateKeyPair();
+  NostrSigner signerOf(KeyPair key) => Bip340Signer(key.privateKey);
 
   var current = signerOf(alice);
   final giftWrap = GiftWrap(

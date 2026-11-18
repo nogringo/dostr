@@ -14,11 +14,11 @@ void main() {
 
     setUp(() {
       verifier = RustEventVerifier();
-      keyPair = Bip340.generatePrivateKey();
+      keyPair = Bip340.generateKeyPair();
     });
 
     Nip01Event signed(Nip01Event event) =>
-        event.copyWith(sig: Bip340.sign(event.id, keyPair.privateKey!));
+        Bip340.signEvent(event: event, privateKey: keyPair.privateKey);
 
     test('rejects malformed packed FFI inputs for the combined id/signature '
         'check', () {

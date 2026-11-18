@@ -109,10 +109,11 @@ class WebSigner implements NostrSigner {
       );
     }
 
+    final id = event.payloadId;
     final crypto = await _getCrypto();
-    final signature = await crypto.signEvent(key.toJS, event.id.toJS).toDart;
+    final signature = await crypto.signEvent(key.toJS, id.toJS).toDart;
 
-    return event.copyWith(sig: signature.toDart);
+    return event.copyWith(id: id, sig: signature.toDart);
   }
 
   @override

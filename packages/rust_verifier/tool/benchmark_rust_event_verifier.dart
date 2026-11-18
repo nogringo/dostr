@@ -9,11 +9,11 @@ const _sampleIterations = 5000;
 const _sampleCount = 9;
 
 Future<void> main() async {
-  final keyPair = Bip340.generatePrivateKey();
+  final keyPair = Bip340.generateKeyPair();
   final createdAt = DateTime.now().millisecondsSinceEpoch ~/ 1000;
   const content = 'RustEventVerifier benchmark event';
   Nip01Event signed(Nip01Event event) =>
-      event.copyWith(sig: Bip340.sign(event.id, keyPair.privateKey!));
+      Bip340.signEvent(event: event, privateKey: keyPair.privateKey);
 
   final event = signed(
     Nip01Event(

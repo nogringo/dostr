@@ -30,10 +30,7 @@ void main() {
     setUp(() {
       nip07Signer = Nip07Signer(publicKey: extensionPubkey);
       bip340Signer = Bip340Signer(
-        privateKey:
-            'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127',
-        publicKey:
-            '953f12b4f6966a289fde9adfc511e00a66cfa4cb9d69551dee51f3f387e8e277',
+        'e4bd52924bce6a9c58d2decc7fe91b376d6a6513fc615aabc9e071f2b436b127',
       );
     });
 

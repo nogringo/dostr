@@ -9,11 +9,8 @@ void main() {
     late KeyPair keyPair;
 
     setUp(() {
-      keyPair = Bip340.generatePrivateKey();
-      signer = Bip340Signer(
-        privateKey: keyPair.privateKey,
-        publicKey: keyPair.publicKey,
-      );
+      keyPair = Bip340.generateKeyPair();
+      signer = Bip340Signer(keyPair.privateKey);
     });
 
     tearDown(() async {
@@ -38,10 +35,7 @@ void main() {
       test('dispose closes stream without error', () async {
         await signer.dispose();
         // Re-create signer for tearDown
-        signer = Bip340Signer(
-          privateKey: keyPair.privateKey,
-          publicKey: keyPair.publicKey,
-        );
+        signer = Bip340Signer(keyPair.privateKey);
       });
     });
 
@@ -62,10 +56,7 @@ void main() {
       });
 
       test('sign throws when no private key', () async {
-        final readOnlySigner = Bip340Signer(
-          privateKey: null,
-          publicKey: keyPair.publicKey,
-        );
+        final readOnlySigner = Bip340Signer.readOnly(keyPair.publicKey);
 
         final event = Nip01Event(
           pubkey: keyPair.publicKey,
@@ -80,7 +71,7 @@ void main() {
       });
 
       test('sign throws for an event of another pubkey', () async {
-        final other = Bip340.generatePrivateKey().publicKey;
+        final other = Bip340.generateKeyPair().publicKey;
         final event = Nip01Event(
           pubkey: other,
           kind: 1,
@@ -94,10 +85,7 @@ void main() {
 
     group('errors', () {
       test('a read-only signer cannot encrypt or decrypt', () async {
-        final readOnlySigner = Bip340Signer(
-          privateKey: null,
-          publicKey: keyPair.publicKey,
-        );
+        final readOnlySigner = Bip340Signer.readOnly(keyPair.publicKey);
 
         expect(
           () => readOnlySigner.encryptNip44(
@@ -147,16 +135,25 @@ void main() {
       });
 
       test('returns false when no private key', () {
-        final readOnlySigner = Bip340Signer(
-          privateKey: null,
-          publicKey: keyPair.publicKey,
-        );
+        final readOnlySigner = Bip340Signer.readOnly(keyPair.publicKey);
 
         expect(readOnlySigner.canSign, isFalse);
       });
     });
 
     group('publicKey', () {
+      test('is derived from the private key', () {
+        expect(
+          Bip340Signer(keyPair.privateKey.toUpperCase()).publicKey,
+          keyPair.publicKey,
+        );
+      });
+
+      test('a private key out of range throws a FormatException', () {
+        expect(() => Bip340Signer('0' * 64), throwsFormatException);
+        expect(() => Bip340Signer(''), throwsFormatException);
+      });
+
       test('returns the public key', () {
         expect(signer.publicKey, equals(keyPair.publicKey));
       });
@@ -164,11 +161,8 @@ void main() {
 
     group('encryption/decryption', () {
       test('encrypt and decrypt NIP-04 roundtrip', () async {
-        final otherKeyPair = Bip340.generatePrivateKey();
-        final otherSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final otherKeyPair = Bip340.generateKeyPair();
+        final otherSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello, world!';
 
@@ -188,11 +182,8 @@ void main() {
       });
 
       test('encrypt and decrypt NIP-44 roundtrip', () async {
-        final otherKeyPair = Bip340.generatePrivateKey();
-        final otherSigner = Bip340Signer(
-          privateKey: otherKeyPair.privateKey,
-          publicKey: otherKeyPair.publicKey,
-        );
+        final otherKeyPair = Bip340.generateKeyPair();
+        final otherSigner = Bip340Signer(otherKeyPair.privateKey);
 
         const message = 'Hello, NIP-44 world!';
 
@@ -212,14 +203,10 @@ void main() {
       });
 
       test('NIP-44 keeps each peer apart across repeated messages', () async {
-        final peers = [Bip340.generatePrivateKey(), Bip340.generatePrivateKey()]
-            .map(
-              (k) => Bip340Signer(
-                privateKey: k.privateKey,
-                publicKey: k.publicKey,
-              ),
-            )
-            .toList();
+        final peers = [
+          Bip340.generateKeyPair(),
+          Bip340.generateKeyPair(),
+        ].map((k) => Bip340Signer(k.privateKey)).toList();
 
         for (var round = 0; round < 3; round++) {
           for (final peer in peers) {
@@ -289,8 +276,8 @@ void main() {
 
     group('create', () {
       test('derives the public key of the private key', () async {
-        final keyPair = Bip340.generatePrivateKey();
-        final signer = factory.create(keyPair.privateKey!);
+        final keyPair = Bip340.generateKeyPair();
+        final signer = factory.create(keyPair.privateKey);
 
         expect(signer.publicKey, equals(keyPair.publicKey));
         expect(signer.canSign, isTrue);
@@ -299,8 +286,8 @@ void main() {
       });
 
       test('signs valid events', () async {
-        final keyPair = Bip340.generatePrivateKey();
-        final signer = factory.create(keyPair.privateKey!);
+        final keyPair = Bip340.generateKeyPair();
+        final signer = factory.create(keyPair.privateKey);
 
         final event = Nip01Event(
           pubkey: signer.publicKey,
@@ -321,7 +308,7 @@ void main() {
 
     group('readOnly', () {
       test('signs for the public key but cannot sign', () async {
-        final keyPair = Bip340.generatePrivateKey();
+        final keyPair = Bip340.generateKeyPair();
         final signer = factory.readOnly(keyPair.publicKey);
 
         expect(signer.publicKey, equals(keyPair.publicKey));

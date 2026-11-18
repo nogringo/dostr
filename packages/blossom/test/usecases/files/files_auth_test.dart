@@ -12,8 +12,7 @@ import '../../mocks/mock_blossom_server.dart';
 
 const int filesAuthPort = 30050;
 
-NostrSigner _signable(KeyPair keyPair) =>
-    Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey);
+NostrSigner _signable(KeyPair keyPair) => Bip340Signer(keyPair.privateKey);
 
 /// The facade owns no policy of its own, it only has to hand one down.
 void main() {
@@ -27,11 +26,11 @@ void main() {
     await server.start();
     serverUrl = 'http://localhost:$filesAuthPort';
 
-    final key = Bip340.generatePrivateKey();
-    other = _signable(Bip340.generatePrivateKey());
+    final key = Bip340.generateKeyPair();
+    other = _signable(Bip340.generateKeyPair());
 
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey);
     files = Files(blossomFor(accounts));
   });
 

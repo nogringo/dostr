@@ -3,7 +3,6 @@ import 'dart:typed_data';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip44/dostr_nip44.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:rxdart/rxdart.dart';
 
 import 'bip340.dart';
 
@@ -12,35 +11,29 @@ class Bip340SignerFactory implements LocalSignerFactory {
   const Bip340SignerFactory();
 
   @override
-  NostrSigner create(String privateKey) => Bip340Signer(
-    privateKey: privateKey,
-    publicKey: Bip340.getPublicKey(privateKey),
-  );
+  NostrSigner create(String privateKey) => Bip340Signer(privateKey);
 
   @override
-  NostrSigner readOnly(String publicKey) =>
-      Bip340Signer(privateKey: null, publicKey: publicKey);
+  NostrSigner readOnly(String publicKey) => Bip340Signer.readOnly(publicKey);
 
   @override
   (String, String) generateKeyPair() {
-    final keyPair = Bip340.generatePrivateKey();
-
-    return (keyPair.privateKey!, keyPair.publicKey);
+    final keyPair = Bip340.generateKeyPair();
+    return (keyPair.privateKey, keyPair.publicKey);
   }
 
   @override
   NostrSigner createWithNewKeyPair() {
-    final (privateKey, publicKey) = generateKeyPair();
-    return Bip340Signer(privateKey: privateKey, publicKey: publicKey);
+    final keyPair = Bip340.generateKeyPair();
+    return Bip340Signer._(keyPair.privateKey, keyPair.publicKey);
   }
 }
 
 /// Pure Dart signer
 class Bip340Signer implements NostrSigner {
-  /// hex private key
+  /// The hex private key, or null for a read-only signer.
   final String? privateKey;
 
-  /// hex public key
   @override
   final String publicKey;
 
@@ -48,8 +41,17 @@ class Bip340Signer implements NostrSigner {
   static const _maxConversationKeys = 256;
   final _conversationKeys = <String, Uint8List>{};
 
-  /// Get a new signer with the given keys
-  Bip340Signer({required this.privateKey, required this.publicKey});
+  /// A signer for [privateKey], with the public key it derives.
+  ///
+  /// Throws a [FormatException] when [privateKey] is not a valid private key.
+  Bip340Signer(String privateKey)
+    : this._(privateKey, Bip340.getPublicKey(privateKey));
+
+  /// A signer that knows [publicKey] only: [canSign] is false, and every
+  /// other operation throws a [StateError].
+  Bip340Signer.readOnly(String publicKey) : this._(null, publicKey);
+
+  Bip340Signer._(this.privateKey, this.publicKey);
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
@@ -61,7 +63,7 @@ class Bip340Signer implements NostrSigner {
         'is not the pubkey of the signer, $publicKey',
       );
     }
-    return event.copyWith(sig: Bip340.sign(event.id, key));
+    return Bip340.signEvent(event: event, privateKey: key);
   }
 
   @override
@@ -91,9 +93,7 @@ class Bip340Signer implements NostrSigner {
   );
 
   @override
-  bool get canSign {
-    return privateKey?.trim().isNotEmpty ?? false;
-  }
+  bool get canSign => privateKey != null;
 
   @override
   Future<String> encryptNip44({
@@ -113,13 +113,9 @@ class Bip340Signer implements NostrSigner {
     (key) => Nip44.decrypt(ciphertext, _conversationKey(key, senderPubkey)),
   );
 
-  String _privateKey() {
-    final key = privateKey;
-    if (key == null || key.trim().isEmpty) {
-      throw StateError('A read-only signer cannot sign, encrypt or decrypt');
-    }
-    return key;
-  }
+  String _privateKey() =>
+      privateKey ??
+      (throw StateError('A read-only signer cannot sign, encrypt or decrypt'));
 
   // the input comes from others, such as a ciphertext a relay served
   String _crypto(String failure, String Function(String privateKey) run) {
@@ -141,23 +137,16 @@ class Bip340Signer implements NostrSigner {
     return _conversationKeys[pubkey] = key;
   }
 
-  // Local signer - no pending requests (operations are instant)
-  final _pendingRequestsController =
-      BehaviorSubject<List<PendingSignerRequest>>.seeded([]);
-
   @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>
-      _pendingRequestsController.stream;
+      Stream.value(const []);
 
   @override
-  List<PendingSignerRequest> get pendingRequests => [];
+  List<PendingSignerRequest> get pendingRequests => const [];
 
   @override
   bool cancelRequest(String requestId) => false;
 
   @override
-  Future<void> dispose() async {
-    _conversationKeys.clear();
-    await _pendingRequestsController.close();
-  }
+  Future<void> dispose() async => _conversationKeys.clear();
 }

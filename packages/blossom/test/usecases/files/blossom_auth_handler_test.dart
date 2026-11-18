@@ -24,7 +24,7 @@ void main() {
 
   Blossom clientWith({required bool handler}) {
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey);
     return blossomFor(
       accounts,
       authHandler: handler
@@ -49,7 +49,7 @@ void main() {
     await serverB.start();
     urlA = 'http://localhost:$handlerPortA';
     urlB = 'http://localhost:$handlerPortB';
-    key = Bip340.generatePrivateKey();
+    key = Bip340.generateKeyPair();
     asked = [];
     answer = (_) => true;
   });
@@ -110,11 +110,8 @@ void main() {
       () async {
         answer = (url) => url == urlB;
         final client = clientWith(handler: true);
-        final other = Bip340.generatePrivateKey();
-        final account = Bip340Signer(
-          privateKey: other.privateKey,
-          publicKey: other.publicKey,
-        );
+        final other = Bip340.generateKeyPair();
+        final account = Bip340Signer(other.privateKey);
 
         final results = await client.mirrorToServers(
           blossomUrl: Uri.parse('https://cdn.example.com/${'b' * 64}'),
@@ -145,10 +142,7 @@ void main() {
     test('reveals nothing once the handler says no', () async {
       answer = (_) => false;
       final client = clientWith(handler: true);
-      final account = Bip340Signer(
-        privateKey: key.privateKey,
-        publicKey: key.publicKey,
-      );
+      final account = Bip340Signer(key.privateKey);
 
       await expectLater(
         client.getBlob(
@@ -165,10 +159,7 @@ void main() {
 
     test('asks once per server for a whole stream', () async {
       final client = clientWith(handler: true);
-      final account = Bip340Signer(
-        privateKey: key.privateKey,
-        publicKey: key.publicKey,
-      );
+      final account = Bip340Signer(key.privateKey);
 
       final stream = await client.getBlobStream(
         sha256: sha256,

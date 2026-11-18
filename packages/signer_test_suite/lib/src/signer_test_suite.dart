@@ -100,6 +100,15 @@ void runSignerTestSuite({
         });
       }
 
+      for (final id in ['00' * 32, 'not an id']) {
+        test('signs the payload of an event whose id is "$id"', () async {
+          final signed = await signer.sign(note().copyWith(id: id));
+
+          expect(signed.hasValidId, isTrue);
+          expect(await verifier.verify(signed), isTrue);
+        });
+      }
+
       test('throws an ArgumentError for an event of another pubkey', () async {
         await expectLater(
           () => signer.sign(note(pubkey: peer.publicKey)),

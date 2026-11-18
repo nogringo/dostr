@@ -23,10 +23,10 @@ void main() {
     await server.start();
     await server2.start();
 
-    KeyPair key1 = Bip340.generatePrivateKey();
+    KeyPair key1 = Bip340.generateKeyPair();
 
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key1.privateKey!);
+    accounts.loginPrivateKey(privkey: key1.privateKey);
 
     loggedAccount = accounts.getLoggedAccount()!;
     client = Files(blossomFor(accounts));

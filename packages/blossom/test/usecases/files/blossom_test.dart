@@ -32,10 +32,10 @@ void main() {
     await server.start();
     await server2.start();
 
-    KeyPair key1 = Bip340.generatePrivateKey();
+    KeyPair key1 = Bip340.generateKeyPair();
 
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key1.privateKey!);
+    accounts.loginPrivateKey(privkey: key1.privateKey);
 
     loggedAccount = accounts.getLoggedAccount()!;
     client = blossomFor(accounts);
@@ -975,8 +975,8 @@ void main() {
   test('Get blobs with a logged account', () async {
     final accounts = Accounts(const Bip340SignerFactory());
 
-    final keyPair = Bip340.generatePrivateKey();
-    accounts.loginPrivateKey(privkey: keyPair.privateKey!);
+    final keyPair = Bip340.generateKeyPair();
+    accounts.loginPrivateKey(privkey: keyPair.privateKey);
 
     await blossomFor(accounts).listBlobs(
       pubkey: accounts.loggedPubkey!,

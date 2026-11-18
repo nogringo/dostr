@@ -1,13 +1,10 @@
+/// A private key and its x-only public key, both 32 bytes in hex.
 class KeyPair {
-  /// [privateKey] is a 32-bytes hex-encoded string
-  String? privateKey;
+  final String privateKey;
 
-  /// [publicKey] is a 32-bytes hex-encoded string
   final String publicKey;
 
-  KeyPair(this.privateKey, this.publicKey);
-
-  KeyPair.justPublicKey(this.publicKey);
+  const KeyPair(this.privateKey, this.publicKey);
 
   @override
   bool operator ==(Object other) =>

@@ -8,9 +8,9 @@ Future<void> main() async {
     (account) => print('logged in: ${account?.publicKey}'),
   );
 
-  final writer = Bip340.generatePrivateKey();
-  final reader = Bip340.generatePrivateKey();
-  accounts.loginPrivateKey(privkey: writer.privateKey!);
+  final writer = Bip340.generateKeyPair();
+  final reader = Bip340.generateKeyPair();
+  accounts.loginPrivateKey(privkey: writer.privateKey);
   accounts.loginPublicKey(pubkey: reader.publicKey);
   print('can sign as the read-only account? ${accounts.canSign}');
 

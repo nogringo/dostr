@@ -30,7 +30,7 @@ final zaps = Zaps(
 
 final zapRequest = await zaps.createZapRequest(
   amountSats: 21,
-  signer: Bip340Signer(privateKey: key.privateKey, publicKey: key.publicKey),
+  signer: Bip340Signer(key.privateKey),
   pubkey: recipient,
   relays: [RelayUrl.parse('wss://relay.example.com')],
 );

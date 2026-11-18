@@ -128,18 +128,19 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
         'is not the pubkey of the signer, $publicKey',
       );
     }
+    final toSign = event.copyWith(id: event.payloadId);
 
     return _trackRequest(
       (id) => PendingSignRequest(
         id: id,
         createdAt: DateTime.now(),
         signerPubkey: publicKey,
-        event: event,
+        event: toSign,
       ),
       (requestId) async {
         final map = await signerApp.signEvent(
           currentUser: publicKey,
-          eventJson: event.toJsonString(),
+          eventJson: toSign.toJsonString(),
           id: requestId,
         );
         final signature = _extractResult(map, requestId);
@@ -147,7 +148,7 @@ class Nip55Signer with ConcurrencyLimiterMixin implements NostrSigner {
         // Prefer the event the signer actually signed, when it returns one.
         final signedEventJson = map['event'] as String?;
         if (signedEventJson == null || signedEventJson.isEmpty) {
-          return event.copyWith(sig: signature);
+          return toSign.copyWith(sig: signature);
         }
         return _checkSigned(signedEventJson, requestId);
       },

@@ -12,11 +12,10 @@ import '../../mocks/mock_blossom_server.dart';
 
 const int policyPort = 30040;
 
-NostrSigner _signable(KeyPair keyPair) =>
-    Bip340Signer(privateKey: keyPair.privateKey, publicKey: keyPair.publicKey);
+NostrSigner _signable(KeyPair keyPair) => Bip340Signer(keyPair.privateKey);
 
 NostrSigner _watchOnly(KeyPair keyPair) =>
-    Bip340Signer(privateKey: null, publicKey: keyPair.publicKey);
+    Bip340Signer.readOnly(keyPair.publicKey);
 
 void main() {
   late MockBlossomServer server;
@@ -30,12 +29,12 @@ void main() {
     await server.start();
     serverUrl = 'http://localhost:$policyPort';
 
-    final key = Bip340.generatePrivateKey();
+    final key = Bip340.generateKeyPair();
     loggedIn = _signable(key);
-    other = _signable(Bip340.generatePrivateKey());
+    other = _signable(Bip340.generateKeyPair());
 
     final accounts = Accounts(const Bip340SignerFactory());
-    accounts.loginPrivateKey(privkey: key.privateKey!);
+    accounts.loginPrivateKey(privkey: key.privateKey);
     client = blossomFor(accounts);
   });
 
@@ -136,7 +135,7 @@ void main() {
     });
 
     test('require() with an account that cannot sign sends nothing', () async {
-      final watcher = _watchOnly(Bip340.generatePrivateKey());
+      final watcher = _watchOnly(Bip340.generateKeyPair());
 
       await expectLater(
         client.getBlob(
@@ -157,7 +156,7 @@ void main() {
     test(
       'allow() with an account that cannot sign behaves as never()',
       () async {
-        final watcher = _watchOnly(Bip340.generatePrivateKey());
+        final watcher = _watchOnly(Bip340.generateKeyPair());
 
         await expectLater(
           client.getBlob(
@@ -232,10 +231,10 @@ void main() {
       );
       await ranged.start();
 
-      final key = Bip340.generatePrivateKey();
-      rangedOther = _signable(Bip340.generatePrivateKey());
+      final key = Bip340.generateKeyPair();
+      rangedOther = _signable(Bip340.generateKeyPair());
       final accounts = Accounts(const Bip340SignerFactory());
-      accounts.loginPrivateKey(privkey: key.privateKey!);
+      accounts.loginPrivateKey(privkey: key.privateKey);
       rangedClient = blossomFor(accounts);
     });
 
@@ -301,7 +300,7 @@ void main() {
     test(
       'under require() with an account that cannot sign sends nothing',
       () async {
-        final watcher = _watchOnly(Bip340.generatePrivateKey());
+        final watcher = _watchOnly(Bip340.generateKeyPair());
 
         await expectLater(
           report(auth: AuthPolicy.require(watcher)),
@@ -315,7 +314,7 @@ void main() {
     test(
       'under allow() with an account that cannot sign stays anonymous',
       () async {
-        final watcher = _watchOnly(Bip340.generatePrivateKey());
+        final watcher = _watchOnly(Bip340.generateKeyPair());
 
         await report(auth: AuthPolicy.allow(watcher));
 

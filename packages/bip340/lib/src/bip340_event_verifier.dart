@@ -14,6 +14,10 @@ class Bip340EventVerifier implements EventVerifier {
         !event.hasValidId) {
       return false;
     }
-    return Bip340.verify(event.id, sig, event.pubkey);
+    return Bip340.verify(
+      message: event.id,
+      signature: sig,
+      publicKey: event.pubkey,
+    );
   }
 }
