@@ -75,15 +75,18 @@ Each account is the `NostrSigner` of its pubkey.
 
 ## Relay authentication
 
-Give `Accounts` to the `RelayManager` of [`dostr_core`](https://pub.dev/packages/dostr_core), with an `AuthHandler`, and relays that ask for NIP-42 authentication get the logged account where the handler agrees:
+[`dostr_core`](https://pub.dev/packages/dostr_core) authenticates to a relay (NIP-42) only as the account a request names, never as the logged one on its own.
+Name the logged account in the `AuthPolicy` of the request:
 
 ```dart
-final relayManager = RelayManager(
-  nostrTransportFactory: webSocketTransportFactory(),
-  accounts: accounts,
-  authHandler: (url, pubkey) async => url == 'wss://relay.example.com',
+final req = reqs.req(
+  relays: {relay: [filter]},
+  auth: AuthPolicy.allow(accounts.getLoggedAccount()!),
 );
 ```
+
+Give `Accounts` to the `RelayManager` as `accounts` too.
+A connection bound to one of its accounts then signs each AUTH with the signer `Accounts` holds at that moment, such as the new one of an account logged in again.
 
 See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication) of `dostr_core`.
 

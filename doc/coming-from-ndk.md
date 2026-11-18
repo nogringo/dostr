@@ -99,6 +99,11 @@ Send any message other than a REQ or an EVENT with `send`, from `package:dostr_c
 `RelayManager.connectRelay` returns a `({bool connected, RelayFailure? failure})` record, with a null `failure` once connected.
 It no longer takes an `authPubkey` and only opens the anonymous connection: open one bound to an identity with `RelayManager.openConnectionAs`, which asks the `AuthHandler` first.
 
+A REQ, a publish or a negentropy sync without `auth` no longer authenticates, even where the `AuthHandler` agrees: `dostr_core` never picks an identity on its own.
+It used to authenticate as the logged account, and a publish as the author of its event when that author was an account.
+Name the identity instead, such as `auth: AuthPolicy.allow(accounts.getLoggedAccount()!)`.
+`authHandler: (_, _) async => true` no longer brings that behavior back.
+
 `isRelayConnecting`, `isConnectionConnecting`, `reconnectRelays`, `reconnectRelay`, `reconnectConnection`, `resetTransport`, the `resetConnection` of a single connection and `waitForRequestSent` are gone.
 Open a connection with `connectRelay` or `openConnectionAs`, and close one with `closeConnection` or `closeConnectionsTo`.
 `connectedRelays`, `connectedAnonymousRelays`, `isRelayConnected`, `isConnectionOpen`, `getRelayConnectivity` and `getConnectivity` are gone too: read `RelayManager.connectivities`, keyed by `RelayConnectionKey`.

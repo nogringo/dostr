@@ -77,7 +77,7 @@ final response = nip77.reconcile(
 | `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses | who you are, but only after that relay asked |
 | `AuthPolicy.require(a)` | bound to `a` from the start | who you are, as soon as it sends a challenge |
 
-Without `auth`, a negotiation reveals no identity, unless the `RelayManager` has `accounts` and an `authHandler`: a refused negotiation then authenticates as the logged account where the handler agrees.
+Without `auth`, a negotiation reveals no identity, as with `AuthPolicy.never()`.
 See the [NIP-42 authentication](https://pub.dev/packages/dostr_core#nip-42-authentication) of `dostr_core`.
 
 If `require` names an account that cannot sign, no connection can carry the reconciliation.

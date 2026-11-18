@@ -204,39 +204,39 @@ void main() {
 
       expect(outcomes[relay.url]!.status, RelayRequestStatus.eose);
     });
+  });
 
-    group('without a policy', () {
-      late FakeAuthAccounts accounts;
-
-      setUp(() {
-        accounts = FakeAuthAccounts()
+  group('without a policy', () {
+    setUp(
+      () => build(
+        accounts: FakeAuthAccounts()
           ..accounts[alice] = fakeAccount(alice)
-          ..loggedPubkey = alice;
-      });
+          ..loggedPubkey = alice,
+        authHandler: (_, _) async => true,
+      ),
+    );
 
-      test('stays anonymous without an AuthHandler', () async {
-        build(accounts: accounts);
-        final relay = await startRelay(requireAuthForRequests: true);
+    test('a REQ never authenticates as the logged account', () async {
+      final relay = await startRelay(requireAuthForRequests: true);
 
-        final outcomes = await reqs.req(relays: {relay.url: notes}).done;
+      final outcomes = await reqs.req(relays: {relay.url: notes}).done;
 
-        expect(outcomes[relay.url]!.status, RelayRequestStatus.closed);
-        expect(relay.received('AUTH'), isEmpty);
-      });
+      expect(outcomes[relay.url]!.status, RelayRequestStatus.closed);
+      expect(relay.clients, hasLength(1));
+      expect(relay.received('AUTH'), isEmpty);
+    });
 
-      test('authenticates as the logged account once agreed to', () async {
-        build(accounts: accounts, authHandler: (_, _) async => true);
-        final relay = await startRelay(requireAuthForRequests: true);
-        relay.events.add(signedEvent(createdAt: 1));
+    test('a publish never authenticates, even as its author', () async {
+      final relay = await startRelay(requireAuthForEvents: true);
 
-        final events = await reqs
-            .req(relays: {relay.url: notes})
-            .events
-            .toList();
+      final responses = await publishes
+          .publish(signedEvent(pubkey: alice), relays: [relay.url])
+          .done;
 
-        expect(events, hasLength(1));
-        expect(relay.clients.last.authenticatedAs, alice);
-      });
+      final failure = responses.values.single.failure!;
+      expect(failure.kind, RelayFailureKind.identityNotAllowed);
+      expect(relay.clients, hasLength(1));
+      expect(relay.received('AUTH'), isEmpty);
     });
   });
 

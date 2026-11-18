@@ -275,7 +275,7 @@ class PublishesInFlight {
     // the refusal of another publish of the same event reaches this one too
     if (relay.progress == RelayPublishProgress.retryingAuth) return;
 
-    final account = _auth.accountForPublish(state.auth, state.event);
+    final account = _auth.accountForAuth(state.auth);
     if (account == null) {
       logger.fine(
         () =>

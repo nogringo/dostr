@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../connections/relay_connection.dart';
@@ -105,44 +104,10 @@ class RelayAuth {
   }
 
   /// Account [auth] authenticates as, null when it must stay unattributable.
-  NostrSigner? accountForAuth(AuthPolicy? auth) {
-    switch (auth) {
-      case AuthPolicyNever():
-        return null;
-      case AuthPolicyAllow(:final signer):
-      case AuthPolicyRequire(:final signer):
-        return signer.canSign ? signer : null;
-      case null:
-        // a request that says nothing reveals nothing unless an AuthHandler is
-        // there to agree to it
-        return authHandler == null ? null : _loggedSigner();
-    }
-  }
-
-  NostrSigner? _loggedSigner() {
-    final logged = _accounts?.getLoggedAccount();
-    return logged != null && logged.canSign ? logged : null;
-  }
-
-  /// Account a publish under [auth] authenticates as, null when it must stay
-  /// unattributable.
-  ///
-  /// A caller that named an identity gets that one. A publish without [auth]
-  /// authenticates only when an [AuthHandler] is there to agree to it. It then
-  /// prefers the author of the event, and falls back to the logged-in account
-  /// for gift wraps and other events whose author has no account.
-  NostrSigner? accountForPublish(AuthPolicy? auth, Nip01Event event) {
-    if (auth != null) {
-      return accountForAuth(auth);
-    }
-    if (authHandler == null) {
-      return null;
-    }
-
-    final author = _accounts?.getAccount(event.pubkey);
-    if (author != null && author.canSign) {
-      return author;
-    }
-    return _loggedSigner();
-  }
+  /// Without [auth], it is: dostr_core never picks an identity on its own.
+  NostrSigner? accountForAuth(AuthPolicy? auth) => switch (auth) {
+    AuthPolicyAllow(:final signer) ||
+    AuthPolicyRequire(:final signer) => signer.canSign ? signer : null,
+    AuthPolicyNever() || null => null,
+  };
 }

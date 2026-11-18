@@ -156,8 +156,8 @@ class Nip77 {
   /// [localIds] - Optional pre-computed list of local event IDs to use.
   ///              If not provided, will query the cache using the filter.
   /// [auth] - which identity this reconciliation may be attributed to, see
-  ///          [AuthPolicy]. Without it, a relay that refuses the negotiation
-  ///          without an identity is answered as the logged-in account.
+  ///          [AuthPolicy]. Without it, it reveals no identity, as with
+  ///          [AuthPolicy.never].
   ///
   /// Returns a [Nip77Response] with streams for real-time updates and
   /// a future that completes with the final result.

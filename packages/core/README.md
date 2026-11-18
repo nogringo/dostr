@@ -167,28 +167,29 @@ final req = reqs.req(
 
 `RelayReqs`, `RelayPublishes` and the negentropy sync of [`dostr_nip77`](https://pub.dev/packages/dostr_nip77) all take `auth`.
 
-A request without `auth` authenticates only where the `AuthHandler` agrees.
-It then uses the logged-in account of the `RelayManager`'s `accounts`, an `AuthAccounts` such as `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
+A request without `auth` is `AuthPolicy.never()`.
+`dostr_core` never picks an identity on its own, neither the logged-in account nor the author of the event it publishes.
+To authenticate as the logged-in account, name it: `AuthPolicy.allow(accounts.getLoggedAccount()!)`.
+
+The `RelayManager` can take `accounts`, an `AuthAccounts` such as `Accounts` from [`dostr_accounts`](https://pub.dev/packages/dostr_accounts).
+A connection bound to a pubkey it holds signs its AUTH with that account, rather than with the signer of the `AuthPolicy`.
 
 ### AuthHandler
 
 Asked before a pubkey authenticates on a relay or a Blossom server.
-Without one, a request that does not pass `auth` reveals no identity.
+Without one, `allow` and `require` authenticate wherever a relay asks.
 
 ```dart
 final relays = RelayManager(
   nostrTransportFactory: webSocketTransportFactory(),
-  accounts: accounts,
   authHandler: (url, pubkey) => askUser(url, pubkey),
 );
 ```
 
-- `never()` is never asked about. `allow(a)`, `require(a)` and a request without `auth` authenticate only where the handler returns true.
-- `require` asks before sending, so a relay or server it refuses receives nothing. The others ask once a relay or server refused them.
+- `allow(a)` and `require(a)` authenticate only where the handler returns true. `never()` is never asked about.
+- `require` asks before sending, so a relay or server it refuses receives nothing. `allow` asks once a relay or server refused it.
 - The handler is asked about a relay when a connection bound to that pubkey opens, and about a Blossom server once per operation.
 - The time spent waiting on the handler does not count against the request timeout.
-
-`authHandler: (_, _) async => true` authenticates as the logged-in account wherever asked.
 
 ## Connectivity
 

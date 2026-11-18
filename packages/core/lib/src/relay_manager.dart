@@ -72,9 +72,10 @@ final class RelayManager {
   ///
   /// [nostrTransportFactory] opens the sockets, usually websockets.
   ///
-  /// NIP-42 authentication:
-  /// - [accounts] gives the signer of each pubkey, and the logged-in account
-  ///   that a request without an `AuthPolicy` may authenticate as.
+  /// NIP-42 authentication, only ever as the identity a request names in its
+  /// `AuthPolicy`:
+  /// - [accounts] gives the signer of each pubkey it holds, which signs the
+  ///   AUTH of a connection bound to that pubkey.
   /// - [authHandler] is asked before a connection bound to an identity opens.
   /// - [authChallengeTimeout] is how long to wait for the relay's challenge
   ///   once a request needs one.
