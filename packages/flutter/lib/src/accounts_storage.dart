@@ -10,11 +10,13 @@ import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'config.dart';
-import 'models/accounts.dart';
 
 /// Writes the logged accounts of [accounts] to [storage] under [accountsKey],
 /// and logs them in again. A restored NIP-46 signer reaches its bunker through
 /// [relayReqs] and [relayPublishes].
+///
+/// Each account is saved as `ndk_flutter` saved it, so that its users stay
+/// logged in.
 class AccountsStorage {
   final FlutterSecureStorage storage;
   final Accounts accounts;
@@ -28,128 +30,95 @@ class AccountsStorage {
     required this.relayPublishes,
   });
 
-  Future<void> save() async {
-    final stored = NostrWidgetsAccounts(accounts: []);
+  Future<void> save() => storage.write(
+    key: accountsKey,
+    value: jsonEncode({
+      'loggedAccount': accounts.loggedPubkey,
+      'accounts': [
+        for (final signer in accounts.accounts.values) ?_saved(signer),
+      ],
+    }),
+  );
 
-    for (var account in accounts.accounts.values) {
-      if (account is Nip07Signer) {
-        stored.accounts.add(
-          NostrAccount(kind: AccountKinds.nip07, pubkey: account.publicKey),
-        );
-        continue;
-      }
-
-      if (account is Nip55Signer) {
-        // `signerSeed` holds the signer app package so
-        // silent signing keeps working after restart.
-        stored.accounts.add(
-          NostrAccount(
-            kind: AccountKinds.nip55,
-            pubkey: account.publicKey,
-            signerSeed: account.signerApp.package,
-          ),
-        );
-        continue;
-      }
-
-      if (account is Nip46Signer) {
-        stored.accounts.add(
-          NostrAccount(
-            kind: AccountKinds.bunker,
-            pubkey: account.publicKey,
-            signerSeed: jsonEncode(account.connection),
-          ),
-        );
-        continue;
-      }
-
-      if (account
-          case Bip340Signer(:final privateKey) ||
-              WebSigner(:final privateKey)) {
-        stored.accounts.add(
-          privateKey == null
-              ? NostrAccount(
-                  kind: AccountKinds.pubkey,
-                  pubkey: account.publicKey,
-                )
-              : NostrAccount(
-                  kind: AccountKinds.privkey,
-                  pubkey: account.publicKey,
-                  signerSeed: privateKey,
-                ),
-        );
-      }
-    }
-
-    stored.loggedAccount = accounts.loggedPubkey;
-
-    await storage.write(key: accountsKey, value: jsonEncode(stored));
-  }
-
+  /// Skips an account it cannot read back, such as one of a kind it does not
+  /// know, and one that is already logged in.
   Future<void> restore() async {
-    final storedAccounts = await storage.read(key: accountsKey);
+    final saved = await storage.read(key: accountsKey);
+    if (saved == null) return;
+    final state = jsonDecode(saved);
 
-    if (storedAccounts == null) return;
-
-    final stored = NostrWidgetsAccounts.fromJson(jsonDecode(storedAccounts));
-
-    for (var account in stored.accounts) {
-      if (accounts.hasAccount(account.pubkey)) continue;
-
-      if (account.kind == AccountKinds.nip07) {
-        final signer = Nip07Signer(publicKey: account.pubkey);
-        accounts.addAccount(signer: signer);
-        continue;
-      }
-
-      if (account.kind == AccountKinds.nip55) {
-        accounts.addAccount(
-          signer: Nip55Signer(
-            publicKey: account.pubkey,
-            // restore the signer app package captured at login (null for
-            // legacy accounts -> Android routes through a compatible signer).
-            signerApp: Nip55SignerApp(package: account.signerSeed),
-          ),
-        );
-        continue;
-      }
-
-      if (account.kind == AccountKinds.bunker) {
-        final signer = Nip46Signer(
-          connection: BunkerConnection.fromJson(
-            jsonDecode(account.signerSeed!),
-          ),
-          publicKey: account.pubkey,
-          relayReqs: relayReqs,
-          relayPublishes: relayPublishes,
-          signerFactory: accounts.signerFactory,
-        );
-        accounts.addAccount(signer: signer);
-        continue;
-      }
-
-      if (account.kind == AccountKinds.pubkey) {
-        accounts.addAccount(
-          signer: accounts.signerFactory.readOnly(account.pubkey),
-        );
-        continue;
-      }
-
-      if (account.kind == AccountKinds.privkey) {
-        accounts.addAccount(
-          signer: accounts.signerFactory.create(account.signerSeed!),
-        );
-        continue;
+    if (state case {'accounts': final List<Object?> savedAccounts}) {
+      for (final account in savedAccounts) {
+        final signer = _restored(account);
+        if (signer != null && !accounts.hasAccount(signer.publicKey)) {
+          accounts.addAccount(signer: signer);
+        }
       }
     }
 
-    if (stored.loggedAccount == null) return;
-    if (!accounts.hasAccount(stored.loggedAccount!)) return;
-    try {
-      accounts.switchAccount(pubkey: stored.loggedAccount!);
-    } catch (_) {
-      // stored logged account could not be restored (e.g. stale/corrupted
-      // state); ignore rather than crash app startup.
+    if (state case {
+      'loggedAccount': final String pubkey,
+    } when accounts.hasAccount(pubkey)) {
+      accounts.switchAccount(pubkey: pubkey);
     }
   }
+
+  static Map<String, String?>? _saved(NostrSigner signer) {
+    Map<String, String?> saved(String kind, [String? signerSeed]) => {
+      'kind': kind,
+      'pubkey': signer.publicKey,
+      'signerSeed': signerSeed,
+    };
+
+    return switch (signer) {
+      Nip07Signer() => saved('nip07'),
+      Nip55Signer(:final signerApp) => saved('nip55', signerApp.package),
+      Nip46Signer(:final connection) => saved('bunker', jsonEncode(connection)),
+      Bip340Signer(privateKey: final String privateKey) ||
+      WebSigner(
+        privateKey: final String privateKey,
+      ) => saved('privkey', privateKey),
+      Bip340Signer() || WebSigner() => saved('pubkey'),
+      _ => null,
+    };
+  }
+
+  NostrSigner? _restored(Object? account) => switch (account) {
+    // checked first, since a NIP-46 signer listens to its relays once built
+    {'pubkey': final String pubkey} when accounts.hasAccount(pubkey) => null,
+    {'kind': 'nip07', 'pubkey': final String pubkey} => Nip07Signer(
+      publicKey: pubkey,
+    ),
+    // `amber` is what NIP-55 accounts were saved as before
+    {
+      'kind': 'nip55' || 'amber',
+      'pubkey': final String pubkey,
+      'signerSeed': final String package,
+    } =>
+      Nip55Signer(
+        publicKey: pubkey,
+        signerApp: Nip55SignerApp(package: package),
+      ),
+    {'kind': 'nip55' || 'amber', 'pubkey': final String pubkey} => Nip55Signer(
+      publicKey: pubkey,
+      signerApp: const Nip55SignerApp(),
+    ),
+    {
+      'kind': 'bunker',
+      'pubkey': final String pubkey,
+      'signerSeed': final String connection,
+    } =>
+      Nip46Signer(
+        connection: BunkerConnection.fromJson(jsonDecode(connection)),
+        publicKey: pubkey,
+        relayReqs: relayReqs,
+        relayPublishes: relayPublishes,
+        signerFactory: accounts.signerFactory,
+      ),
+    {'kind': 'pubkey', 'pubkey': final String pubkey} =>
+      accounts.signerFactory.readOnly(pubkey),
+    {'kind': 'privkey', 'signerSeed': final String privateKey} =>
+      accounts.signerFactory.create(privateKey),
+    _ => null,
+  };
 }

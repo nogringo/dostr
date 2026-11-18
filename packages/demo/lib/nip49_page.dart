@@ -38,8 +38,9 @@ class _Nip49PageState extends State<Nip49Page> {
   }
 
   void _generatePrivateKey() {
-    _privateKeyController.text =
-        Nsec(Bip340.generateKeyPair().privateKey).encode();
+    _privateKeyController.text = Nsec(
+      Bip340.generateKeyPair().privateKey,
+    ).encode();
   }
 
   Future<void> _encrypt() async {

@@ -71,7 +71,7 @@ import 'demo_localizations_zh.dart';
 /// property.
 abstract class DemoLocalizations {
   DemoLocalizations(String locale)
-      : localeName = intl.Intl.canonicalizedLocale(locale.toString());
+    : localeName = intl.Intl.canonicalizedLocale(locale.toString());
 
   final String localeName;
 
@@ -94,11 +94,11 @@ abstract class DemoLocalizations {
   /// of delegates is preferred or required.
   static const List<LocalizationsDelegate<dynamic>> localizationsDelegates =
       <LocalizationsDelegate<dynamic>>[
-    delegate,
-    GlobalMaterialLocalizations.delegate,
-    GlobalCupertinoLocalizations.delegate,
-    GlobalWidgetsLocalizations.delegate,
-  ];
+        delegate,
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ];
 
   /// A list of this localizations delegate's supported locales.
   static const List<Locale> supportedLocales = <Locale>[
@@ -110,7 +110,7 @@ abstract class DemoLocalizations {
     Locale('ja'),
     Locale('pl'),
     Locale('ru'),
-    Locale('zh')
+    Locale('zh'),
   ];
 
   /// App title used by the OS, for example in the task switcher or the browser tab.
@@ -775,21 +775,22 @@ class _DemoLocalizationsDelegate
   @override
   Future<DemoLocalizations> load(Locale locale) {
     return SynchronousFuture<DemoLocalizations>(
-        lookupDemoLocalizations(locale));
+      lookupDemoLocalizations(locale),
+    );
   }
 
   @override
   bool isSupported(Locale locale) => <String>[
-        'de',
-        'en',
-        'es',
-        'fr',
-        'it',
-        'ja',
-        'pl',
-        'ru',
-        'zh'
-      ].contains(locale.languageCode);
+    'de',
+    'en',
+    'es',
+    'fr',
+    'it',
+    'ja',
+    'pl',
+    'ru',
+    'zh',
+  ].contains(locale.languageCode);
 
   @override
   bool shouldReload(_DemoLocalizationsDelegate old) => false;
@@ -819,8 +820,9 @@ DemoLocalizations lookupDemoLocalizations(Locale locale) {
   }
 
   throw FlutterError(
-      'DemoLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
-      'an issue with the localizations generation tool. Please file an issue '
-      'on GitHub with a reproducible sample app and the gen-l10n configuration '
-      'that was used.');
+    'DemoLocalizations.delegate failed to load unsupported locale "$locale". This is likely '
+    'an issue with the localizations generation tool. Please file an issue '
+    'on GitHub with a reproducible sample app and the gen-l10n configuration '
+    'that was used.',
+  );
 }

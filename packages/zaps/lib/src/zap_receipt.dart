@@ -2,117 +2,139 @@ import 'dart:convert';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-import 'lnurl.dart';
-import 'logger.dart';
+import 'bolt11.dart';
+import 'zap_request.dart';
 
-class ZapReceipt {
-  /// zap receipt kind
+/// A NIP-57 zap receipt: the event of kind [kKind] that the recipient's LNURL
+/// server publishes once the invoice of a zap request is paid.
+///
+/// Anyone can publish one, see [isValid].
+final class ZapReceipt {
   static const kKind = 9735;
 
-  /// time payment happend
-  int? paidAt;
+  /// the LNURL server that signed the receipt
+  final String pubkey;
 
-  /// amount in sats
-  int? amountSats;
+  /// when the invoice was paid, in seconds since the epoch
+  final int paidAt;
 
-  /// pubkey
-  String? pubkey;
+  /// the paid invoice, from the `bolt11` tag
+  final String? bolt11;
 
-  /// invoice
-  String? bolt11;
+  /// the amount of [bolt11], in millisats
+  final int? amountMsats;
 
-  /// invoice preimage
-  String? preimage;
+  /// the preimage of [bolt11], which proves nothing (NIP-57)
+  final String? preimage;
 
-  /// pubkey of recipient
-  String? recipient;
+  /// the pubkey of the recipient, from the `p` tag
+  final String? recipient;
 
-  /// nostr eventId
-  String? eventId;
+  /// the zapped event, from the `e` tag
+  final String? eventId;
 
-  /// user defined comment
-  String? comment;
+  /// the `anon` tag, as the receipt has it
+  final String? anon;
 
-  /// pubkey sender
-  String? sender;
+  /// the zap request the invoice was for, from the `description` tag
+  final ZapRequest? zapRequest;
 
+  const ZapReceipt._({
+    required this.pubkey,
+    required this.paidAt,
+    required this.bolt11,
+    required this.amountMsats,
+    required this.preimage,
+    required this.recipient,
+    required this.eventId,
+    required this.anon,
+    required this.zapRequest,
+  });
+
+  /// The receipt [event] holds, whatever its tags.
   ///
-  String? anon;
-
-  /// lnurl
-  String? lnurl;
-
-  ZapReceipt.fromEvent(Nip01Event event) {
-    String? zapRequestJson;
-    pubkey = event.pubkey;
-    if (event.kind == 9735) {
-      for (var tag in event.tags) {
-        if (tag[0] == 'bolt11') bolt11 = tag[1];
-        if (tag[0] == 'preimage') preimage = tag[1];
-        if (tag[0] == 'description') zapRequestJson = tag[1];
-        if (tag[0] == 'p') recipient = tag[1];
-        if (tag[0] == 'e') eventId = tag[1];
-        if (tag[0] == 'anon') anon = tag[1];
-        if (tag[0] == 'P') sender = tag[1];
-      }
-      paidAt = event.createdAt;
-      final zapRequest = zapRequestJson == null || zapRequestJson.isEmpty
-          ? null
-          : Nip01Event.tryFromJson(jsonDecode(zapRequestJson));
-      if (zapRequest != null) {
-        comment = zapRequest.content;
-        sender = zapRequest.pubkey;
-        lnurl = zapRequest.getFirstTag('lnurl');
-        String? amountString = zapRequest.getFirstTag('amount');
-        if (amountString != null && amountString.isNotEmpty) {
-          try {
-            double? amount = double.tryParse(amountString);
-            if (amount != null) {
-              amountSats = (amount / 1000).round();
-            }
-          } catch (e) {
-            logger.warning(() => e);
-          }
-        }
-      }
-      if (amountSats == null && bolt11 != null) {
-        amountSats = Lnurl.getAmountFromBolt11(bolt11!);
-      }
-      List<String>? splitStrings = anon?.split('_');
-      if (splitStrings != null && splitStrings.length == 2) {
-        // TODO decrypt private zap
-      }
-    } else {
-      throw Exception("${event.kind} is not nip57 compatible");
+  /// Throws an [ArgumentError] when [event] is not of kind [kKind].
+  factory ZapReceipt.fromEvent(Nip01Event event) {
+    if (event.kind != kKind) {
+      throw ArgumentError.value(
+        event.kind,
+        'event.kind',
+        'is not a zap receipt ($kKind)',
+      );
     }
+    final bolt11 = event.getFirstTag('bolt11');
+    return ZapReceipt._(
+      pubkey: event.pubkey,
+      paidAt: event.createdAt,
+      bolt11: bolt11,
+      amountMsats: bolt11 == null ? null : bolt11AmountMsats(bolt11),
+      preimage: event.getFirstTag('preimage'),
+      recipient: event.getFirstTag('p'),
+      eventId: event.getFirstTag('e'),
+      anon: event.getFirstTag('anon'),
+      zapRequest: _zapRequestOf(event.getFirstTag('description')),
+    );
   }
 
-  /// is valid
-  bool isValid({required String nostrPubkey, required String recipientLnurl}) {
-    //  - The zap receipt event's pubkey MUST be the same as the recipient's lnurl provider's nostrPubkey (retrieved in step 1 of the protocol flow).
-    if (pubkey != nostrPubkey) {
+  /// [amountMsats] in sats, rounded
+  int? get amountSats => switch (amountMsats) {
+    final int msats => (msats / 1000).round(),
+    null => null,
+  };
+
+  /// the pubkey of the sender, who signed [zapRequest]
+  String? get sender => zapRequest?.pubkey;
+
+  /// the sender's message, the content of [zapRequest]
+  String? get comment => zapRequest?.content;
+
+  /// the `lnurl` tag of [zapRequest]
+  String? get lnurl => zapRequest?.getFirstTag('lnurl');
+
+  /// Whether the receipt passes the checks of NIP-57 (appendix F) for a
+  /// recipient whose LNURL server signs with [nostrPubkey]:
+  /// - [nostrPubkey] signed it, and it names the recipient of [zapRequest].
+  /// - [bolt11] has an amount, the `amount` of [zapRequest] when it has one.
+  /// - The `lnurl` of [zapRequest] is [recipientLnurl], ignoring case, when
+  ///   both are there.
+  ///
+  /// Checking the receipt's signature is left to the caller. A valid receipt
+  /// proves that the server says the invoice was paid, not that it was.
+  bool isValid({required String nostrPubkey, String? recipientLnurl}) {
+    final zapRequest = this.zapRequest;
+    if (pubkey != nostrPubkey || zapRequest == null || amountMsats == null) {
       return false;
     }
-    //  - The invoiceAmount contained in the bolt11 tag of the zap receipt MUST equal the amount tag of the zap request (if present).
-    if (bolt11 != null && bolt11!.isNotEmpty) {
-      if (amountSats != Lnurl.getAmountFromBolt11(bolt11!)) {
-        return false;
-      }
+    if (recipient == null || zapRequest.getFirstTag('p') != recipient) {
+      return false;
     }
-    //  - The lnurl tag of the zap request (if present) SHOULD equal the recipient's lnurl.
-    if (lnurl != null && lnurl!.isNotEmpty) {
-      if (lnurl != recipientLnurl) {
-        return false;
-      }
+    if (zapRequest.getFirstTag('amount') case final String amount
+        when int.tryParse(amount) != amountMsats) {
+      return false;
+    }
+    if ((lnurl, recipientLnurl) case (
+      final String requested,
+      final String expected,
+    ) when requested.toLowerCase() != expected.toLowerCase()) {
+      return false;
     }
     return true;
   }
 
-  // coverage:ignore-start
-  @override
-  String toString() {
-    return 'ZapReceipt(paidAt: $paidAt, pubkey: $pubkey, bolt11: $bolt11, preimage: $preimage, amount: $amountSats, recipient: $recipient, eventId: $eventId, comment: $comment, sender: $sender, anon: $anon)';
+  static ZapRequest? _zapRequestOf(String? description) {
+    if (description == null) return null;
+    try {
+      return switch (Nip01Event.tryFromJson(jsonDecode(description))) {
+        final Nip01Event event when event.kind == ZapRequest.kZapRequestKind =>
+          ZapRequest.nip01Event(event: event),
+        _ => null,
+      };
+    } on FormatException {
+      return null;
+    }
   }
 
-  // coverage:ignore-end
+  @override
+  String toString() =>
+      'ZapReceipt(pubkey: $pubkey, paidAt: $paidAt, amountMsats: $amountMsats, recipient: $recipient, eventId: $eventId, sender: $sender, comment: $comment)';
 }

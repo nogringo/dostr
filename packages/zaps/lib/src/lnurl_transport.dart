@@ -1,10 +1,12 @@
 import 'lnurl_response.dart';
 
-/// transport to get the lnurl response
+/// Reaches the LNURL-pay servers for `Lnurl`.
 abstract class LnurlTransport {
-  ///  network request to get theLnurl response and invoices
+  /// What the LNURL-pay server at [lnurl] answers, or null when it cannot be
+  /// reached or does not answer as one.
   Future<LnurlResponse?> requestLnurlResponse(String lnurl);
 
-  /// fetch an invoice from lnurl callback endpoint
+  /// The JSON object that [callbacklink] answers, or null when it cannot be
+  /// reached.
   Future<Map<String, dynamic>?> fetchInvoice(String callbacklink);
 }

@@ -69,8 +69,9 @@ class _HomePageState extends State<HomePage> {
               final profileIcon = loggedPubkey == null
                   ? CircleAvatar(
                       radius: 14,
-                      backgroundColor:
-                          Theme.of(context).colorScheme.surfaceContainerHighest,
+                      backgroundColor: Theme.of(
+                        context,
+                      ).colorScheme.surfaceContainerHighest,
                       child: Icon(
                         Icons.person_outline,
                         size: 16,
@@ -78,7 +79,9 @@ class _HomePageState extends State<HomePage> {
                       ),
                     )
                   : NPicture(
-                      dostrFlutter: dostrFlutter, circleAvatarRadius: 14);
+                      dostrFlutter: dostrFlutter,
+                      circleAvatarRadius: 14,
+                    );
               return IconButton(
                 tooltip: l10n.profileTooltip,
                 onPressed: () {

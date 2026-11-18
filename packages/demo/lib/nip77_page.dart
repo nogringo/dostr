@@ -120,12 +120,12 @@ class _Nip77PageState extends State<Nip77Page> {
   }
 
   String _describe(Object error) => switch (error) {
-        Nip77NotSupportedException(:final relayUrl) =>
-          '$relayUrl does not support NIP-77',
-        Nip77TimeoutException(:final timeout) =>
-          'Reconciliation timed out after ${timeout.inSeconds}s',
-        _ => '$error',
-      };
+    Nip77NotSupportedException(:final relayUrl) =>
+      '$relayUrl does not support NIP-77',
+    Nip77TimeoutException(:final timeout) =>
+      'Reconciliation timed out after ${timeout.inSeconds}s',
+    _ => '$error',
+  };
 
   Future<void> _fetchMissing() async {
     final needIds = _result!.needIds;
@@ -182,9 +182,7 @@ class _Nip77PageState extends State<Nip77Page> {
           ),
         );
         accepted += responses
-            .where(
-              (outcomes) => outcomes.values.any((r) => r.accepted),
-            )
+            .where((outcomes) => outcomes.values.any((r) => r.accepted))
             .length;
       }
       status = 'The relay accepted $accepted of ${events.length} events';

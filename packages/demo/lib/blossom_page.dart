@@ -25,12 +25,11 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
   late final Blossom _blossom = Blossom(
     accounts: accounts,
     signerFactory: accounts.signerFactory,
-    getUserServerList: (pubkey) async => switch (await _serverLists.fetch(
-      pubkey,
-    )) {
-      final list? => blossomServersOf(list),
-      null => null,
-    },
+    getUserServerList: (pubkey) async =>
+        switch (await _serverLists.fetch(pubkey)) {
+          final list? => blossomServersOf(list),
+          null => null,
+        },
   );
   late final Files _files = Files(_blossom);
 
@@ -239,8 +238,9 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
       );
 
       setState(() {
-        _downloadedFilePath =
-            kIsWeb ? context.l10n.blossomDownloadedToBrowser : outputPath;
+        _downloadedFilePath = kIsWeb
+            ? context.l10n.blossomDownloadedToBrowser
+            : outputPath;
       });
     } catch (e) {
       setState(() {
@@ -391,8 +391,9 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           ElevatedButton(
-                            onPressed:
-                                _isLoadingVideo ? null : _checkAndInitVideo,
+                            onPressed: _isLoadingVideo
+                                ? null
+                                : _checkAndInitVideo,
                             child: Text(l10n.blossomLoadVideo),
                           ),
                           ElevatedButton(

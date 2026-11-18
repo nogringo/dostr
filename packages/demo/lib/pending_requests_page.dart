@@ -194,9 +194,7 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
         recipientPubkey: pubkey,
       );
       _ciphertext = result;
-      _showResult(
-        l10n.pendingEncryptedResult('${result.substring(0, 30)}...'),
-      );
+      _showResult(l10n.pendingEncryptedResult('${result.substring(0, 30)}...'));
     } catch (e) {
       _showError(l10n.pendingEncryptFailed(e.toString()));
     }
@@ -365,10 +363,9 @@ class _PendingRequestsPageState extends State<PendingRequestsPage> {
           const SizedBox(height: 8),
           Text(
             l10n.pendingDescription,
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: Colors.grey),
+            style: Theme.of(
+              context,
+            ).textTheme.bodyMedium?.copyWith(color: Colors.grey),
           ),
           const SizedBox(height: 16),
 
@@ -492,16 +489,16 @@ class _PendingRequestCard extends StatelessWidget {
   const _PendingRequestCard({required this.request, required this.onCancel});
 
   IconData get _icon => switch (request) {
-        PendingSignRequest() => Icons.edit,
-        PendingEncryptRequest() => Icons.lock,
-        PendingDecryptRequest() => Icons.lock_open,
-      };
+    PendingSignRequest() => Icons.edit,
+    PendingEncryptRequest() => Icons.lock,
+    PendingDecryptRequest() => Icons.lock_open,
+  };
 
   Color get _color => switch (request) {
-        PendingSignRequest() => Colors.blue,
-        PendingEncryptRequest() => Colors.green,
-        PendingDecryptRequest() => Colors.orange,
-      };
+    PendingSignRequest() => Colors.blue,
+    PendingEncryptRequest() => Colors.green,
+    PendingDecryptRequest() => Colors.orange,
+  };
 
   String _displayName(BuildContext context) {
     final l10n = context.l10n;
@@ -534,13 +531,13 @@ class _PendingRequestCard extends StatelessWidget {
     final duration = DateTime.now().difference(request.createdAt);
     final details = switch (request) {
       PendingEncryptRequest(:final recipientPubkey, :final plaintext) => (
-          recipientPubkey,
-          context.l10n.pendingPlaintext(_truncate(plaintext, 100)),
-        ),
+        recipientPubkey,
+        context.l10n.pendingPlaintext(_truncate(plaintext, 100)),
+      ),
       PendingDecryptRequest(:final senderPubkey, :final ciphertext) => (
-          senderPubkey,
-          context.l10n.pendingCiphertext(_truncate(ciphertext, 50)),
-        ),
+        senderPubkey,
+        context.l10n.pendingCiphertext(_truncate(ciphertext, 50)),
+      ),
       PendingSignRequest() => null,
     };
 
@@ -555,10 +552,7 @@ class _PendingRequestCard extends StatelessWidget {
               children: [
                 CircleAvatar(
                   backgroundColor: _color.withValues(alpha: 0.2),
-                  child: Icon(
-                    _icon,
-                    color: _color,
-                  ),
+                  child: Icon(_icon, color: _color),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -631,10 +625,7 @@ class _PendingRequestCard extends StatelessWidget {
                       style: const TextStyle(fontFamily: 'monospace'),
                     ),
                     const SizedBox(height: 4),
-                    Text(
-                      text,
-                      style: const TextStyle(fontFamily: 'monospace'),
-                    ),
+                    Text(text, style: const TextStyle(fontFamily: 'monospace')),
                   ],
                 ),
               ),

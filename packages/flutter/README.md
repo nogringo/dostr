@@ -120,6 +120,7 @@ An account with any other external signer is not saved.
 `NdkFlutter` is now `DostrFlutter`, and the widgets take it as `dostrFlutter` instead of `ndkFlutter`.
 `NdkEventSigner`, `NdkEventSignerFactory` and `NdkEventVerifier` are now `DostrSigner`, `DostrSignerFactory` and `DostrEventVerifier`.
 Saved accounts are still read from `ndk_flutter_accounts`, so users stay logged in.
+`restoreAccountsState` skips a saved account of a kind it does not know, instead of throwing a `StateError`.
 `Metadata.pubKey` is now `pubkey`.
 
 The other files are internal: import `package:dostr_flutter/dostr_flutter.dart` instead of `main/`, `models/`, `signers/`, `utils/`, `verifiers/` or `widgets/`.

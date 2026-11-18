@@ -7,10 +7,13 @@
 ///   subscribe: subscribe,
 ///   lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
 /// );
-/// final receipts = await zaps.fetchZappedReceipts(pubkey: pubkey).toList();
+/// final receipts = await zaps
+///     .fetchZappedReceipts(pubkey: pubkey, nostrPubkey: nostrPubkey)
+///     .toList();
 /// ```
 library;
 
+export 'src/bolt11.dart';
 export 'src/http_lnurl_transport.dart';
 export 'src/invoice_response.dart';
 export 'src/lnurl.dart';

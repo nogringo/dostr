@@ -233,37 +233,87 @@ void main() {
       expect(zapRequest.sig, isNull);
     });
 
-    Nip01Event receipt(String recipient, String bolt11) => Nip01Event(
-      pubkey: key.publicKey,
+    const server = 'serverPubkey';
+
+    /// A receipt of [server] for a zap of 21 sats to [recipient], whose
+    /// invoice is [bolt11].
+    Nip01Event receipt({
+      String pubkey = server,
+      String recipient = 'recipient',
+      String bolt11 = 'lnbc21u1p',
+      List<List<String>> tags = const [],
+    }) => Nip01Event(
+      pubkey: pubkey,
       kind: ZapReceipt.kKind,
       tags: [
         ['p', recipient],
         ['bolt11', bolt11],
+        [
+          'description',
+          jsonEncode({
+            'pubkey': key.publicKey,
+            'kind': ZapRequest.kZapRequestKind,
+            'created_at': 1234567880,
+            'content': '',
+            'tags': [
+              ['p', recipient],
+              ['amount', '2100000'],
+            ],
+          }),
+        ],
+        ...tags,
       ],
       content: '',
     );
 
-    test('fetchZappedReceipts queries the receipts of an event', () async {
-      relays.events.add(receipt('recipient', 'lnbc21u1p'));
+    test('fetchZappedReceipts asks the receipts the server signed', () async {
+      relays.events.add(
+        receipt(
+          tags: [
+            ['e', 'eventId'],
+          ],
+        ),
+      );
 
       final receipts = await zaps
-          .fetchZappedReceipts(pubkey: 'recipient', eventId: 'eventId')
+          .fetchZappedReceipts(
+            pubkey: 'recipient',
+            nostrPubkey: server,
+            eventId: 'eventId',
+          )
           .toList();
 
       expect(receipts.single.recipient, 'recipient');
       expect(receipts.single.amountSats, 2100);
       final query = relays.queries.single;
       expect(query.filter.kinds, [ZapReceipt.kKind]);
+      expect(query.filter.authors, [server]);
       expect(query.filter.pTags, ['recipient']);
       expect(query.filter.eTags, ['eventId']);
       expect(query.filter.aTags, isNull);
       expect(query.timeout, const Duration(seconds: 10));
     });
 
+    test('fetchZappedReceipts drops the receipts that are not valid', () async {
+      relays.events.addAll([
+        receipt(),
+        receipt(pubkey: 'otherServer'),
+        receipt(recipient: 'someoneElse'),
+        receipt(bolt11: 'lnbc1u1p'),
+      ]);
+
+      final receipts = await zaps
+          .fetchZappedReceipts(pubkey: 'recipient', nostrPubkey: server)
+          .toList();
+
+      expect(receipts.single.amountMsats, 2100000);
+    });
+
     test('fetchZappedReceipts passes its timeout and addressable id', () async {
       await zaps
           .fetchZappedReceipts(
             pubkey: 'recipient',
+            nostrPubkey: server,
             addressableId: '30023:pubkey:d',
             timeout: const Duration(seconds: 3),
           )
@@ -275,17 +325,25 @@ void main() {
       expect(query.timeout, const Duration(seconds: 3));
     });
 
-    test('subscribeToZapReceipts streams receipts until closed', () async {
-      final subscription = zaps.subscribeToZapReceipts(pubkey: 'recipient');
-      final events = subscription.events.toList();
+    test(
+      'subscribeToZapReceipts streams valid receipts until closed',
+      () async {
+        final subscription = zaps.subscribeToZapReceipts(
+          pubkey: 'recipient',
+          nostrPubkey: server,
+        );
+        final receipts = subscription.receipts.toList();
 
-      relays.push(receipt('recipient', 'lnbc1u1p'));
-      await subscription.close();
+        relays.push(receipt(pubkey: 'otherServer'));
+        relays.push(receipt());
+        await subscription.close();
 
-      expect((await events).single.getFirstTag('p'), 'recipient');
-      expect(relays.subscriptions.single.kinds, [ZapReceipt.kKind]);
-      expect(relays.subscriptions.single.pTags, ['recipient']);
-      expect(relays.closed, 1);
-    });
+        expect((await receipts).single.pubkey, server);
+        expect(relays.subscriptions.single.kinds, [ZapReceipt.kKind]);
+        expect(relays.subscriptions.single.authors, [server]);
+        expect(relays.subscriptions.single.pTags, ['recipient']);
+        expect(relays.closed, 1);
+      },
+    );
   });
 }

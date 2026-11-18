@@ -3,13 +3,15 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_zaps/dostr_zaps.dart';
 import 'package:http/http.dart' as http;
 
-/// `dart run example/dostr_zaps_example.dart wss://relay.example.com <hex pubkey> [name@domain.com]`
+/// `dart run example/dostr_zaps_example.dart wss://relay.example.com <hex pubkey> name@domain.com`
 ///
-/// Lists the zap receipts of the pubkey, then fetches a 21 sat zap invoice
-/// for the lightning address when one is given.
+/// Lists the valid zap receipts of the pubkey, whose lightning address is
+/// `name@domain.com`, then fetches a 21 sat zap invoice for it.
 Future<void> main(List<String> args) async {
   final relay = RelayUrl.parse(args[0]);
   final recipient = args[1];
+  final lud16Link = Lnurl.getLud16LinkFromLud16(args[2])!;
+  final lnurl = Lnurl(transport: HttpLnurlTransport(http.Client()));
   final relayManager = RelayManager(
     nostrTransportFactory: webSocketTransportFactory(),
   );
@@ -40,30 +42,37 @@ Future<void> main(List<String> args) async {
         close: req.close,
       );
     },
-    lnurl: Lnurl(transport: HttpLnurlTransport(http.Client())),
+    lnurl: lnurl,
   );
 
-  await for (final receipt in zaps.fetchZappedReceipts(pubkey: recipient)) {
-    print(
-      '${receipt.amountSats} sats from ${receipt.sender}: ${receipt.comment}',
+  final nostrPubkey = (await lnurl.getLnurlResponse(lud16Link))?.nostrPubkey;
+  if (nostrPubkey == null) {
+    print('${args[2]} does not take zaps');
+  } else {
+    final receipts = zaps.fetchZappedReceipts(
+      pubkey: recipient,
+      nostrPubkey: nostrPubkey,
     );
+    await for (final receipt in receipts) {
+      print(
+        '${receipt.amountSats} sats from ${receipt.sender}: ${receipt.comment}',
+      );
+    }
   }
 
-  if (args.length > 2) {
-    final key = Bip340.generateKeyPair();
-    final zapRequest = await zaps.createZapRequest(
-      amountSats: 21,
-      signer: Bip340Signer(key.privateKey),
-      pubkey: recipient,
-      relays: [relay],
-    );
-    final invoice = await zaps.fetchInvoice(
-      lud16Link: Lnurl.getLud16LinkFromLud16(args[2])!,
-      amountSats: 21,
-      zapRequest: zapRequest,
-    );
-    print(invoice?.invoice ?? 'no invoice from ${args[2]}');
-  }
+  final key = Bip340.generateKeyPair();
+  final zapRequest = await zaps.createZapRequest(
+    amountSats: 21,
+    signer: Bip340Signer(key.privateKey),
+    pubkey: recipient,
+    relays: [relay],
+  );
+  final invoice = await zaps.fetchInvoice(
+    lud16Link: lud16Link,
+    amountSats: 21,
+    zapRequest: zapRequest,
+  );
+  print(invoice?.invoice ?? 'no invoice from ${args[2]}');
 
   await relayManager.dispose();
 }

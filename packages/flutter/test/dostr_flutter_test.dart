@@ -247,6 +247,54 @@ void main() {
       expect(restored.accounts.loggedPubkey, alicePubkey);
     });
 
+    test('skips an account of a kind it does not know', () async {
+      final restored = TestDostrFlutter(
+        storage: {
+          accountsKey: jsonEncode({
+            'loggedAccount': bobPubkey,
+            'accounts': [
+              {'kind': 'future', 'pubkey': carolPubkey, 'signerSeed': 'seed'},
+              {'kind': 'nip55', 'pubkey': bobPubkey, 'signerSeed': null},
+            ],
+          }),
+        },
+      );
+      addTearDown(restored.dispose);
+
+      await restored.dostrFlutter.restoreAccountsState();
+
+      expect(restored.accounts.accounts.keys, [bobPubkey]);
+      expect(
+        (restored.accounts.getLoggedAccount()! as Nip55Signer)
+            .signerApp
+            .package,
+        isNull,
+      );
+    });
+
+    test('keeps an account that is already logged in', () async {
+      final restored = TestDostrFlutter(
+        storage: {
+          accountsKey: jsonEncode({
+            'loggedAccount': alicePubkey,
+            'accounts': [
+              {
+                'kind': 'privkey',
+                'pubkey': alicePubkey,
+                'signerSeed': alicePrivateKey,
+              },
+            ],
+          }),
+        },
+      );
+      addTearDown(restored.dispose);
+      restored.accounts.loginPublicKey(pubkey: alicePubkey);
+
+      await restored.dostrFlutter.restoreAccountsState();
+
+      expect(restored.accounts.getAccount(alicePubkey)!.canSign, isFalse);
+    });
+
     test('stays logged out when the logged account is not saved', () async {
       final restored = TestDostrFlutter(
         storage: {

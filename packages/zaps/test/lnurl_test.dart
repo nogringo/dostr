@@ -50,16 +50,56 @@ void main() {
       expect(lnurlResponse, isNull);
     });
 
-    test('getAmountFromBolt11 returns correct amount for valid input', () {
-      final amount = Lnurl.getAmountFromBolt11(
-        'lnbc15u1p3xnhl2pp5jptserfk3zk4qy42tlucycrfwxhydvlemu9pqr93tuzlv9cc7g3sdqsvfhkcap3xyhx7un8cqzpgxqzjcsp5f8c52y2stc300gl6s4xswtjpc37hrnnr3c9wvtgjfuvqmpm35evq9qyyssqy4lgd8tj637qcjp05rdpxxykjenthxftej7a2zzmwrmrl70fyj9hvj0rewhzj7jfyuwkwcg9g2jpwtk3wkjtwnkdks84hsnu8xps5vsq4gj5hs',
-      ); // Replace with a valid Bolt11 string
-      expect(amount, 1500); // Replace with the expected amount
+    test('getLnurlResponse returns null without a callback', () async {
+      final client = MockClient(
+        (_) async => http.Response(
+          jsonEncode({'status': 'ERROR', 'reason': 'unknown user'}),
+          200,
+        ),
+      );
+      final lnurl = Lnurl(transport: HttpLnurlTransport(client));
+
+      expect(await lnurl.getLnurlResponse('https://domain.com'), isNull);
+    });
+  });
+
+  group('LnurlResponse.fromJson', () {
+    test('reads the NIP-57 fields', () {
+      final response = LnurlResponse.fromJson({
+        'callback': 'https://domain.com/callback',
+        'minSendable': 1000,
+        'maxSendable': 100000000,
+        'commentAllowed': 255,
+        'tag': 'payRequest',
+        'allowsNostr': true,
+        'nostrPubkey': 'serverPubkey',
+      });
+
+      expect(response.callback, 'https://domain.com/callback');
+      expect(response.minSendable, 1000);
+      expect(response.maxSendable, 100000000);
+      expect(response.commentAllowed, 255);
+      expect(response.tag, 'payRequest');
+      expect(response.allowsNostr, isTrue);
+      expect(response.nostrPubkey, 'serverPubkey');
     });
 
-    test('getAmountFromBolt11 returns null for invalid input', () {
-      final amount = Lnurl.getAmountFromBolt11('invalid_bolt11_string');
-      expect(amount, 0);
+    test('reads a field of the wrong type as null', () {
+      final response = LnurlResponse.fromJson({
+        'callback': 'https://domain.com/callback',
+        'commentAllowed': '255',
+        'allowsNostr': 'true',
+      });
+
+      expect(response.commentAllowed, isNull);
+      expect(response.allowsNostr, isFalse);
+    });
+
+    test('throws a FormatException without a callback', () {
+      expect(
+        () => LnurlResponse.fromJson({'status': 'ERROR'}),
+        throwsFormatException,
+      );
     });
   });
 }

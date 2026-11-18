@@ -6,11 +6,10 @@ import 'lnurl_response.dart';
 import 'lnurl_transport.dart';
 import 'logger.dart';
 
-/// implementation of the [LnurlTransport] interface with http
+/// A [LnurlTransport] that sends its requests over HTTPS with [client].
 class HttpLnurlTransport implements LnurlTransport {
   final http.Client client;
 
-  /// constructor
   HttpLnurlTransport(this.client);
 
   @override
