@@ -24,7 +24,7 @@ void main() {
   test('DostrSignerFactory derives the BIP-340 public key', () {
     expect(signerFactory.create(alicePrivateKey).publicKey, alicePubkey);
 
-    final (privateKey, publicKey) = signerFactory.generateKeyPair();
+    final (:privateKey, :publicKey) = signerFactory.generateKeyPair();
     expect(Bip340.getPublicKey(privateKey), publicKey);
   });
 

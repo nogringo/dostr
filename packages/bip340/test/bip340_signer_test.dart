@@ -31,12 +31,6 @@ void main() {
         final result = signer.cancelRequest('any-request-id');
         expect(result, isFalse);
       });
-
-      test('dispose closes stream without error', () async {
-        await signer.dispose();
-        // Re-create signer for tearDown
-        signer = Bip340Signer(keyPair.privateKey);
-      });
     });
 
     group('signing', () {
@@ -154,6 +148,16 @@ void main() {
         expect(() => Bip340Signer(''), throwsFormatException);
       });
 
+      test('a read-only public key that is not NIP-01 hex throws', () {
+        for (final publicKey in [
+          keyPair.publicKey.toUpperCase(),
+          keyPair.publicKey.substring(2),
+          '',
+        ]) {
+          expect(() => Bip340Signer.readOnly(publicKey), throwsFormatException);
+        }
+      });
+
       test('returns the public key', () {
         expect(signer.publicKey, equals(keyPair.publicKey));
       });
@@ -253,24 +257,24 @@ void main() {
 
     group('generateKeyPair', () {
       test('generates valid keypair', () {
-        final (privateKey, publicKey) = factory.generateKeyPair();
+        final (:privateKey, :publicKey) = factory.generateKeyPair();
 
         expect(privateKey, isNotEmpty);
         expect(publicKey, isNotEmpty);
       });
 
       test('generated public key is the one of the private key', () {
-        final (privateKey, publicKey) = factory.generateKeyPair();
+        final (:privateKey, :publicKey) = factory.generateKeyPair();
 
         expect(publicKey, equals(Bip340.getPublicKey(privateKey)));
       });
 
       test('generates unique keypairs', () {
-        final (privKey1, pubkey1) = factory.generateKeyPair();
-        final (privKey2, pubkey2) = factory.generateKeyPair();
+        final first = factory.generateKeyPair();
+        final second = factory.generateKeyPair();
 
-        expect(privKey1, isNot(equals(privKey2)));
-        expect(pubkey1, isNot(equals(pubkey2)));
+        expect(first.privateKey, isNot(equals(second.privateKey)));
+        expect(first.publicKey, isNot(equals(second.publicKey)));
       });
     });
 

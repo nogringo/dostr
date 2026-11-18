@@ -8,13 +8,16 @@
  - `sign` throws an `ArgumentError` for an event of another pubkey, and every operation of a read-only `Bip340Signer` throws a `StateError`.
  - `sign` signs the payload and sets the id, as `Bip340.signEvent` does, whatever id the event holds.
  - `Bip340Signer` keeps the NIP-44 conversation keys of its last 256 peers, so `encryptNip44` and `decryptNip44` run the key agreement once per peer instead of once per message.
- - **BREAKING** `Bip340Signer(privateKey)` derives the public key, and `Bip340Signer.readOnly(publicKey)` makes a read-only signer. `Bip340EventSigner(privateKey:, publicKey:)` took any pair of keys, and a null or blank private key for a read-only signer. `privateKey` and `publicKey` are final.
- - As in `LocalSignerFactory`, `Bip340SignerFactory.create` takes the private key alone, `readOnly` takes a public key, and `derivePublicKey` is gone.
+ - `Bip340Signer(privateKey)` derives the public key, and `Bip340Signer.readOnly(publicKey)` makes a read-only signer. `Bip340EventSigner(privateKey:, publicKey:)` took any pair of keys, and a null or blank private key for a read-only signer. `privateKey` and `publicKey` are final.
+ - `Bip340Signer.readOnly` throws a `FormatException` for a public key that is not the 64 lowercase hex characters NIP-01 requires.
+ - As in `LocalSignerFactory`, `Bip340SignerFactory.create` takes the private key alone, `readOnly` takes a public key, `generateKeyPair` returns a `KeyPair`, and `derivePublicKey` is gone.
+ - `Bip340` can no longer be instantiated, extended or implemented: it only holds static members.
  - `Bip340` runs on the `Schnorr` signatures of `dostr_secp256k1` instead of the `bip340` package and the pointycastle curve: on native platforms, `verify` is about 12 times faster, and `sign`, `getPublicKey` and `generateKeyPair` about 23 times.
  - `Bip340.sign` and `Bip340.verify` take a message of any length, as BIP-340 allows since 2022, instead of reading its first 32 bytes only, and `Bip340.sign` takes an optional `auxRand` for test vectors.
- - **BREAKING** `Bip340.sign` and `Bip340.verify` take named parameters, since the message, the key and the signature are all hex strings, and the `publicKey` of `verify` is not nullable.
- - **BREAKING** `Bip340.generatePrivateKey` is now `Bip340.generateKeyPair`, and the `privateKey` of a `KeyPair` is final and never null: `KeyPair.justPublicKey` is gone.
+ - `Bip340.sign` and `Bip340.verify` take named parameters, since the message, the key and the signature are all hex strings, and the `publicKey` of `verify` is not nullable.
+ - `Bip340.generatePrivateKey` is now `Bip340.generateKeyPair`, which returns the `KeyPair` record of `dostr_signer`, exported here too, whose `privateKey` is never null. The `KeyPair` class is gone, with its `justPublicKey` and its `==` that only compared the public keys.
  - `Bip340.sign` and `Bip340.getPublicKey` throw a `FormatException` for a private key that is not 64 hex characters or not between 1 and n - 1, and `Bip340.verify` returns false instead of throwing on malformed input.
- - **BREAKING** `Bip340EventVerifier` verifies on the calling isolate: `useIsolate` is gone.
+ - `Nip01Utils.signWithPrivateKey` is now `Bip340.signEvent`, which throws an `ArgumentError` for an event whose pubkey is not the one of the private key, as `sign` does.
+ - `Bip340EventVerifier` verifies on the calling isolate: `useIsolate` is gone. Its constructor is `const`.
  - `Bip340EventVerifier` returns false, instead of throwing, on a malformed event, and rejects a sig or a pubkey that is not lowercase hex of the length NIP-01 sets. It used to accept a sig with extra characters after the first 128, and an uppercase pubkey.
  - `dostr_bip340` no longer depends on `rxdart`: the `pendingRequestsStream` of a `Bip340Signer` emits an empty list and closes.

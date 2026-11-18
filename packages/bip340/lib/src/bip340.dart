@@ -3,8 +3,7 @@ import 'dart:math';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_secp256k1/dostr_secp256k1.dart';
-
-import 'key_pair.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 
 final _keyPattern = RegExp(r'^[0-9a-fA-F]{64}$');
 final _signaturePattern = RegExp(r'^[0-9a-fA-F]{128}$');
@@ -12,7 +11,7 @@ final _hexPattern = RegExp(r'^(?:[0-9a-fA-F]{2})*$');
 
 /// BIP-340 Schnorr signatures, with keys, messages and signatures in hex, on
 /// the [Schnorr] of `dostr_secp256k1`.
-class Bip340 {
+abstract final class Bip340 {
   /// Signs [message] with [privateKey] and returns the 64-byte signature.
   ///
   /// Throws a [FormatException] when [privateKey] is not a valid private key
@@ -64,23 +63,37 @@ class Bip340 {
     do {
       privateKey = bytesToHex(_secureRandomBytes(32));
     } while (!_isPrivateKey(privateKey));
-    return KeyPair(privateKey, getPublicKey(privateKey));
+    return (privateKey: privateKey, publicKey: getPublicKey(privateKey));
   }
 
   /// [event] with the id of its payload, whatever id it holds, signed with
   /// [privateKey].
   ///
-  /// Throws a [FormatException] when [privateKey] is not a valid private key.
+  /// Throws a [FormatException] when [privateKey] is not a valid private key,
+  /// and an [ArgumentError] when the pubkey of [event] is not its public key.
   static Nip01Event signEvent({
     required Nip01Event event,
     required String privateKey,
   }) {
-    final id = event.payloadId;
-    return event.copyWith(
-      id: id,
-      sig: sign(message: id, privateKey: privateKey),
-    );
+    final publicKey = getPublicKey(privateKey);
+    if (event.pubkey != publicKey) {
+      throw ArgumentError.value(
+        event.pubkey,
+        'event.pubkey',
+        'is not the pubkey of the private key, $publicKey',
+      );
+    }
+    return signPayload(event, privateKey);
   }
+}
+
+// For a caller that checked the pubkey of the event.
+Nip01Event signPayload(Nip01Event event, String privateKey) {
+  final id = event.payloadId;
+  return event.copyWith(
+    id: id,
+    sig: Bip340.sign(message: id, privateKey: privateKey),
+  );
 }
 
 bool _isPrivateKey(String privateKey) {

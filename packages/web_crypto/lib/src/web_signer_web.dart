@@ -3,6 +3,7 @@ import 'dart:js_interop';
 import 'dart:math';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:web/web.dart' as web;
@@ -23,18 +24,18 @@ class WebSignerFactory implements LocalSignerFactory {
       WebSigner(privateKey: null, publicKey: publicKey);
 
   @override
-  (String, String) generateKeyPair() {
+  KeyPair generateKeyPair() {
     final random = Random.secure();
     final privateKey = List.generate(
       32,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    return (privateKey, _publicKeyOf(privateKey));
+    return (privateKey: privateKey, publicKey: _publicKeyOf(privateKey));
   }
 
   @override
   NostrSigner createWithNewKeyPair() {
-    final (privateKey, publicKey) = generateKeyPair();
+    final (:privateKey, :publicKey) = generateKeyPair();
     return WebSigner(privateKey: privateKey, publicKey: publicKey);
   }
 
@@ -62,7 +63,13 @@ class WebSigner implements NostrSigner {
   final _conversationKeys = <String, JSUint8Array>{};
 
   /// Get a new web signer with the given keys
-  WebSigner({required this.privateKey, required this.publicKey}) {
+  ///
+  /// Throws a [FormatException] when [publicKey] is not 64 lowercase hex
+  /// characters.
+  WebSigner({required this.privateKey, required String publicKey})
+    : publicKey = isLowercaseHex(publicKey, length: 64)
+          ? publicKey
+          : throw const FormatException('Not a valid public key') {
     _init();
   }
 

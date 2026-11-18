@@ -1,6 +1,9 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'pending_signer_request.dart';
 
+/// A private key and its x-only public key, both 32 bytes in lowercase hex.
+typedef KeyPair = ({String privateKey, String publicKey});
+
 /// Makes the [NostrSigner]s that hold their key, with the crypto of one
 /// platform.
 abstract interface class LocalSignerFactory {
@@ -8,10 +11,13 @@ abstract interface class LocalSignerFactory {
   NostrSigner create(String privateKey);
 
   /// A read-only signer for [publicKey], whose [NostrSigner.canSign] is false.
+  ///
+  /// Throws a [FormatException] when [publicKey] is not the 64 lowercase hex
+  /// characters NIP-01 requires.
   NostrSigner readOnly(String publicKey);
 
   /// A new random key pair, for a caller that keeps the private key.
-  (String privateKey, String publicKey) generateKeyPair();
+  KeyPair generateKeyPair();
 
   /// A signer for a new random key pair.
   NostrSigner createWithNewKeyPair();

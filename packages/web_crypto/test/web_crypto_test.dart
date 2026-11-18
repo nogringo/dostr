@@ -307,7 +307,7 @@ void main() {
     });
 
     test('generateKeyPair returns a matching key pair', () {
-      final (privateKey, publicKey) = factory.generateKeyPair();
+      final (:privateKey, :publicKey) = factory.generateKeyPair();
       expect(privateKey, hasLength(64));
       expect(publicKey, equals(Bip340.getPublicKey(privateKey)));
     });

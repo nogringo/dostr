@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_nip44/dostr_nip44.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
@@ -17,15 +18,12 @@ class Bip340SignerFactory implements LocalSignerFactory {
   NostrSigner readOnly(String publicKey) => Bip340Signer.readOnly(publicKey);
 
   @override
-  (String, String) generateKeyPair() {
-    final keyPair = Bip340.generateKeyPair();
-    return (keyPair.privateKey, keyPair.publicKey);
-  }
+  KeyPair generateKeyPair() => Bip340.generateKeyPair();
 
   @override
   NostrSigner createWithNewKeyPair() {
-    final keyPair = Bip340.generateKeyPair();
-    return Bip340Signer._(keyPair.privateKey, keyPair.publicKey);
+    final (:privateKey, :publicKey) = Bip340.generateKeyPair();
+    return Bip340Signer._(privateKey, publicKey);
   }
 }
 
@@ -49,9 +47,18 @@ class Bip340Signer implements NostrSigner {
 
   /// A signer that knows [publicKey] only: [canSign] is false, and every
   /// other operation throws a [StateError].
-  Bip340Signer.readOnly(String publicKey) : this._(null, publicKey);
+  ///
+  /// Throws a [FormatException] when [publicKey] is not 64 lowercase hex
+  /// characters.
+  Bip340Signer.readOnly(String publicKey)
+    : this._(null, _checkedPublicKey(publicKey));
 
   Bip340Signer._(this.privateKey, this.publicKey);
+
+  static String _checkedPublicKey(String publicKey) =>
+      isLowercaseHex(publicKey, length: 64)
+      ? publicKey
+      : throw const FormatException('Not a valid public key');
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
@@ -63,7 +70,7 @@ class Bip340Signer implements NostrSigner {
         'is not the pubkey of the signer, $publicKey',
       );
     }
-    return Bip340.signEvent(event: event, privateKey: key);
+    return signPayload(event, key);
   }
 
   @override

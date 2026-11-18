@@ -18,7 +18,7 @@ class WebSignerFactory implements LocalSignerFactory {
   NostrSigner readOnly(String publicKey) => _unsupported();
 
   @override
-  (String, String) generateKeyPair() => _unsupported();
+  KeyPair generateKeyPair() => _unsupported();
 
   @override
   NostrSigner createWithNewKeyPair() => _unsupported();

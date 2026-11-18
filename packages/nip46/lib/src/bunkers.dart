@@ -53,7 +53,7 @@ class Bunkers {
       throw ArgumentError('Secret parameter is required in bunker URL');
     }
 
-    final (privateKey, _) = _signerFactory.generateKeyPair();
+    final privateKey = _signerFactory.generateKeyPair().privateKey;
 
     final localSigner = _signerFactory.create(privateKey);
 
@@ -138,7 +138,7 @@ class Bunkers {
     required List<RelayUrl> relays,
     Nip46ClientMetadata? clientMetadata,
   }) {
-    final (privateKey, publicKey) = _signerFactory.generateKeyPair();
+    final (:privateKey, :publicKey) = _signerFactory.generateKeyPair();
     return NostrConnect(
       relays: relays,
       privateKey: privateKey,

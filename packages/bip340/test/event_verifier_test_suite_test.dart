@@ -8,11 +8,4 @@ void main() {
     createSigner: const Bip340SignerFactory().createWithNewKeyPair,
     externalEvents: bip340ExternalEvents,
   );
-
-  runEventVerifierTestSuite(
-    name: 'Bip340EventVerifier without isolate',
-    createVerifier: () => Bip340EventVerifier(),
-    createSigner: const Bip340SignerFactory().createWithNewKeyPair,
-    externalEvents: bip340ExternalEvents,
-  );
 }

@@ -111,8 +111,8 @@ void main() {
     final author = Bip340.generateKeyPair();
     final other = Bip340.generateKeyPair();
 
-    Nip01Event listEvent(String pubkey, KeyPair signer) => Bip340.signEvent(
-      event: Nip01Event(
+    Nip01Event listEvent(String pubkey, KeyPair signer) {
+      final event = Nip01Event(
         pubkey: pubkey,
         kind: 36205,
         tags: [
@@ -120,9 +120,11 @@ void main() {
           ['relay', 'wss://a.example.com'],
         ],
         content: '',
-      ),
-      privateKey: signer.privateKey,
-    );
+      );
+      return event.copyWith(
+        sig: Bip340.sign(message: event.id, privateKey: signer.privateKey),
+      );
+    }
 
     Future<HomeRelayList> fetch(Nip01Event event) async => HomeRelayList.fetch(
       verifier: verifier,

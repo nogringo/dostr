@@ -28,13 +28,25 @@ void main() {
     expect(await Bip340EventVerifier().verify(signed), isTrue);
   });
 
+  test('signEvent throws for an event of another pubkey', () {
+    expect(
+      () => Bip340.signEvent(
+        event: event,
+        privateKey: Bip340.generateKeyPair().privateKey,
+      ),
+      throwsArgumentError,
+    );
+  });
+
   test('verifier rejects an event signed by another key', () async {
-    final signed = Bip340.signEvent(
-      event: event,
-      privateKey: Bip340.generateKeyPair().privateKey,
+    final forged = event.copyWith(
+      sig: Bip340.sign(
+        message: event.id,
+        privateKey: Bip340.generateKeyPair().privateKey,
+      ),
     );
 
-    expect(await Bip340EventVerifier().verify(signed), isFalse);
+    expect(await Bip340EventVerifier().verify(forged), isFalse);
   });
 
   test('signs and verifies BIP-340 test vector 0 in hex', () {

@@ -8,5 +8,6 @@
  - `decryptNip04` and `decryptNip44` throw when the plaintext is not valid UTF-8, as `dostr_nip44` does, instead of replacing the invalid bytes with U+FFFD.
  - `WebSigner` keeps the NIP-44 conversation keys of its last 256 peers, so `encryptNip44` and `decryptNip44` run the key agreement once per peer instead of once per message.
  - **BREAKING** `privateKey` and `publicKey` of `WebSigner` are final.
- - As in `LocalSignerFactory`, `WebSignerFactory.create` takes the private key alone, `readOnly` takes a public key, and `derivePublicKey` is gone.
+ - As in `LocalSignerFactory`, `WebSignerFactory.create` takes the private key alone, `readOnly` takes a public key, `generateKeyPair` returns a `KeyPair`, and `derivePublicKey` is gone.
+ - `WebSigner` throws a `FormatException` for a public key that is not 64 lowercase hex characters, and so does `WebSignerFactory.readOnly`, as `LocalSignerFactory` says.
  - As `NostrSigner` says, an encryption or a decryption that fails throws a `SignerRequestFailedException`, `sign` throws an `ArgumentError` for an event of another pubkey, and every operation of a read-only `WebSigner` throws a `StateError`.

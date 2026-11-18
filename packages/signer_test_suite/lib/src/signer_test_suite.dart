@@ -443,8 +443,9 @@ void runLocalSignerFactoryTestSuite({
 }) {
   group(name, () {
     test('generateKeyPair makes a new lowercase hex key pair each time', () {
-      final (privateKey, publicKey) = factory.generateKeyPair();
-      final (otherPrivateKey, otherPublicKey) = factory.generateKeyPair();
+      final (:privateKey, :publicKey) = factory.generateKeyPair();
+      final (privateKey: otherPrivateKey, publicKey: otherPublicKey) = factory
+          .generateKeyPair();
 
       expect(privateKey, matches(_lowercaseHex));
       expect(publicKey, matches(_lowercaseHex));
@@ -453,7 +454,7 @@ void runLocalSignerFactoryTestSuite({
     });
 
     test('create derives the public key of the private key', () async {
-      final (privateKey, publicKey) = factory.generateKeyPair();
+      final (:privateKey, :publicKey) = factory.generateKeyPair();
       final signer = factory.create(privateKey);
       addTearDown(signer.dispose);
 
@@ -462,12 +463,23 @@ void runLocalSignerFactoryTestSuite({
     });
 
     test('readOnly keeps the public key', () async {
-      final (_, publicKey) = factory.generateKeyPair();
+      final publicKey = factory.generateKeyPair().publicKey;
       final signer = factory.readOnly(publicKey);
       addTearDown(signer.dispose);
 
       expect(signer.publicKey, publicKey);
       expect(signer.canSign, isFalse);
+    });
+
+    test('readOnly rejects a public key that is not NIP-01 hex', () {
+      final publicKey = factory.generateKeyPair().publicKey;
+      for (final invalid in [
+        publicKey.toUpperCase(),
+        publicKey.substring(2),
+        '',
+      ]) {
+        expect(() => factory.readOnly(invalid), throwsFormatException);
+      }
     });
 
     test('createWithNewKeyPair makes a new key each time', () async {
@@ -482,11 +494,11 @@ void runLocalSignerFactoryTestSuite({
 
     runSignerTestSuite(
       name: 'its signers',
-      createSigner: () => factory.create(factory.generateKeyPair().$1),
+      createSigner: () => factory.create(factory.generateKeyPair().privateKey),
       createPeer: createPeer ?? factory.createWithNewKeyPair,
       verifier: verifier,
       createReadOnlySigner: () =>
-          factory.readOnly(factory.generateKeyPair().$2),
+          factory.readOnly(factory.generateKeyPair().publicKey),
     );
   });
 }

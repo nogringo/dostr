@@ -5,6 +5,8 @@ import 'bip340.dart';
 
 /// Pure Dart event verifier, on the calling isolate.
 class Bip340EventVerifier implements EventVerifier {
+  const Bip340EventVerifier();
+
   @override
   Future<bool> verify(Nip01Event event) async {
     final sig = event.sig;
