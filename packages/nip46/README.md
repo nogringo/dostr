@@ -104,6 +104,9 @@ The remote signer may ask the user to approve each request.
 While it waits, the request is in `pendingRequests` and `pendingRequestsStream`, and `cancelRequest` drops it.
 A refusal throws a `SignerRequestRejectedException`, and an answer the signer cannot use, such as an event signed by another pubkey, a `SignerRequestFailedException`.
 A request that every relay refuses or never gets also fails with a `SignerRequestFailedException`, at once.
+A request goes out once a relay serves the subscription that gets its answer: the answer is an ephemeral event, which no relay keeps for a subscription that comes later.
+It fails at once when no relay serves that subscription, and fails once every relay drops it before the bunker answers.
+The next request subscribes again.
 Give the signer a `verifier`, such as a `Bip340EventVerifier`, to also check the signature of every event the bunker signs.
 At most `maxConcurrentRequests` requests (100 by default) go out at once.
 The rest wait in a queue.
@@ -113,6 +116,7 @@ The rest wait in a queue.
 `logout()` tells the bunker the session is over, then disposes the signer.
 It returns whether the bunker acknowledged.
 A `dispose()` meanwhile waits for it, so an `Accounts` can remove the account right away.
+After either, a request fails at once with a `SignerRequestFailedException`.
 Delete the stored `BunkerConnection` either way: NIP-46 makes `logout` a courtesy, and the bunker may still accept requests from its key.
 
 ## Coming from `ndk`

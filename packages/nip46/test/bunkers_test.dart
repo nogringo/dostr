@@ -6,6 +6,8 @@ import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:test/test.dart';
 
+import 'serve_requests_late.dart';
+
 void main() {
   group('bunker connect', () {
     late MockRelay relay;
@@ -179,6 +181,17 @@ void main() {
         bunkers.connectWithBunkerUrl(bunkerUrl()),
         throwsA(isA<SignerRequestFailedException>()),
       );
+    });
+
+    test('connect waits for a relay to serve its subscription', () async {
+      serveRequestsLate(relay, const Duration(milliseconds: 300));
+
+      final connection = await bunkers.connectWithBunkerUrl(
+        bunkerUrl(),
+        timeout: const Duration(seconds: 2),
+      );
+
+      expect(connection.remotePubkey, equals(MockRemoteSigner.publicKey));
     });
 
     test('connect skips the messages it cannot read', () async {

@@ -85,6 +85,13 @@ class Bunkers {
     );
 
     Future<BunkerConnection> accepted() async {
+      if (!await isServed(subscription)) {
+        throw SignerRequestFailedException(
+          'No relay took the subscription for the answer',
+          requestId: request.id,
+          cause: subscription.outcomes,
+        );
+      }
       final outcomes = await _relayPublishes
           .publish(
             await signedRequestEvent(

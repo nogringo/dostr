@@ -15,7 +15,19 @@ class _RemoteRequest {
   /// null for a request the user does not approve, such as a ping
   final PendingSignerRequest? pending;
 
+  bool sent = false;
+
   _RemoteRequest(this.pending);
+}
+
+/// The REQ the bunker answers on.
+class _Subscription {
+  final RelayReq req;
+
+  /// whether a relay serves [req], once one does or none will
+  final Future<bool> served;
+
+  _Subscription(this.req) : served = isServed(req);
 }
 
 class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
@@ -32,7 +44,8 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   /// signs, and fails on an invalid one.
   final EventVerifier? verifier;
 
-  RelayReq? _subscription;
+  /// null once every relay dropped it, until the next request
+  _Subscription? _subscription;
   bool _closed = false;
 
   // every relay of the bunker delivers each response
@@ -156,17 +169,46 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       kinds: [BunkerRequest.kKind],
       pTags: [_localSigner.publicKey],
     );
-    final subscription = _subscription = _relayReqs.req(
+    final req = _relayReqs.req(
       relays: {
         for (final relay in _connection.relays) relay: [filter],
       },
       closeOnEose: false,
     );
+    _subscription = _Subscription(req);
 
-    subscription.events
+    req.events
         .map((received) => received.event)
         .where((event) => _seenResponseIds.add(event.id))
-        .listen(_onEvent);
+        .listen(_onEvent, onDone: () => _lost(req));
+  }
+
+  /// Every relay dropped [req], so no answer can come to what was sent on it.
+  /// The next request subscribes again.
+  void _lost(RelayReq req) {
+    if (_closed || !identical(req, _subscription?.req)) return;
+    _subscription = null;
+    for (final MapEntry(key: id, value: request)
+        in _requests.entries.toList()) {
+      if (!request.sent) continue;
+      _fail(
+        id,
+        SignerRequestFailedException(
+          'Every relay dropped the subscription before the bunker answered',
+          requestId: id,
+          cause: req.outcomes,
+        ),
+      );
+    }
+  }
+
+  /// The REQ the bunker answers on, once a relay serves it, or null when none
+  /// does.
+  Future<RelayReq?> _servedSubscription() async {
+    if (_subscription == null) _listen();
+    final subscription = _subscription;
+    if (subscription == null || !await subscription.served) return null;
+    return subscription.req;
   }
 
   Future<void> _onEvent(Nip01Event event) async {
@@ -208,11 +250,26 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
   /// Sends [request] to the bunker, and completes with its result. A request
   /// with a [pending] description waits in [pendingRequests] meanwhile.
   Future<String> _send(BunkerRequest request, {PendingSignerRequest? pending}) {
+    if (_closed) {
+      return Future.error(
+        SignerRequestFailedException(
+          'The signer is disposed',
+          requestId: request.id,
+        ),
+      );
+    }
     final entry = _RemoteRequest(pending);
     _requests[request.id] = entry;
     if (pending != null) _notifyPendingRequestsChange();
 
     runThrottled(() async {
+      final subscription = await _servedSubscription();
+      if (subscription == null) {
+        throw SignerRequestFailedException(
+          'No relay took the subscription for the answer',
+          requestId: request.id,
+        );
+      }
       final signedEvent = await signedRequestEvent(
         _localSigner,
         request,
@@ -220,6 +277,14 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       );
       // cancelled or disposed meanwhile: don't broadcast what nobody waits for
       if (!_requests.containsKey(request.id)) return;
+      // dropped by every relay, or replaced by switchRelays, meanwhile
+      if (!identical(subscription, _subscription?.req)) {
+        throw SignerRequestFailedException(
+          'The subscription for the answer ended before the request went out',
+          requestId: request.id,
+        );
+      }
+      entry.sent = true;
       // not awaiting the broadcast: the slowest relay's OK would delay a
       // response already received through a faster one
       _relayPublishes
@@ -476,7 +541,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       relays: relays,
     );
     _listen();
-    await previousSubscription?.close();
+    await previousSubscription?.req.close();
 
     return relays;
   }
@@ -542,7 +607,7 @@ class Nip46Signer with ConcurrencyLimiterMixin implements NostrSigner {
       );
     }
     cancelAllQueued();
-    await _subscription?.close();
+    await _subscription?.req.close();
     await _pendingRequestsController.close();
   }
 }

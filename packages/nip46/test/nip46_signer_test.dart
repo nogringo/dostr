@@ -7,6 +7,8 @@ import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:test/test.dart';
 
+import 'serve_requests_late.dart';
+
 const _clientPrivateKey =
     '7a8317f947fff0526749e9fe53f79def8eb0afd378c01058f37140cc8732fecc';
 
@@ -151,6 +153,23 @@ void main() {
 
       expect(signer.pendingRequests, isEmpty);
       expect(await pinging, 'pong');
+    });
+
+    test('a request after dispose fails at once', () async {
+      await signer.dispose();
+
+      await expectLater(
+        signer
+            .sign(
+              Nip01Event(
+                pubkey: MockRemoteSigner.publicKey,
+                kind: 1,
+                content: 'too late',
+              ),
+            )
+            .timeout(const Duration(seconds: 1)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
     });
 
     test('connect asks the bunker for the user pubkey', () async {
@@ -530,7 +549,72 @@ void main() {
       await Future.wait(requests);
       expect(signer.pendingRequests, isEmpty);
     });
+
+    test('fails what it sent once every relay drops its subscription, and '
+        'subscribes again for the next request', () async {
+      addTearDown(signer.dispose);
+      final sent = Completer<void>();
+      silentRelay.onEvent = (_) {
+        if (!sent.isCompleted) sent.complete();
+      };
+      final lost = expectLater(
+        signer.sign(note('lost')).timeout(const Duration(seconds: 2)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      await sent.future;
+
+      for (final client in silentRelay.openClients) {
+        for (final id in client.subscriptions.keys.toList()) {
+          client.subscriptions.remove(id);
+          client.send(['CLOSED', id, 'error: shutting down']);
+        }
+      }
+      await lost;
+
+      MockRemoteSigner([silentRelay]);
+      expect(await signer.ping(), 'pong');
+    });
   });
+
+  test('sends a request once a relay serves its subscription', () async {
+    final relay = MockRelay();
+    await relay.start();
+    addTearDown(relay.stop);
+    MockRemoteSigner([relay]);
+    serveRequestsLate(relay, const Duration(milliseconds: 300));
+
+    final signer = newSigner([relay.url]);
+    addTearDown(signer.dispose);
+
+    expect(await signer.ping(timeout: const Duration(seconds: 2)), 'pong');
+  });
+
+  test(
+    'a request fails at once when no relay serves its subscription',
+    () async {
+      final relay = MockRelay(closeRequestsWith: 'error: not here');
+      await relay.start();
+      addTearDown(relay.stop);
+      MockRemoteSigner([relay]);
+
+      final signer = newSigner([relay.url]);
+      addTearDown(signer.dispose);
+
+      await expectLater(
+        signer
+            .sign(
+              Nip01Event(
+                pubkey: MockRemoteSigner.publicKey,
+                kind: 1,
+                content: 'unheard',
+              ),
+            )
+            .timeout(const Duration(seconds: 1)),
+        throwsA(isA<SignerRequestFailedException>()),
+      );
+      expect(relay.received('EVENT'), isEmpty);
+    },
+  );
 
   test('response is not held back by a slow transport relay', () async {
     final fastRelay = MockRelay();

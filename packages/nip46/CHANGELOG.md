@@ -25,3 +25,6 @@
  - `switchRelays` throws a `SignerRequestFailedException` for an answer that is neither a list nor null, where it threw a `FormatException` or kept the relays. Disposing the signer as it gets its answer no longer reopens a subscription.
  - `authCallback` only gets https urls, as a `bunker://` url can come from anyone, and `Nip46Signer` only calls it for a request it waits for.
  - `connectWithBunkerUrl` throws an `ArgumentError` for a url whose pubkey is not in hex, before it sends anything.
+ - `Nip46Signer` and `connectWithBunkerUrl` send a request once a relay serves the subscription that gets its answer, where an answer to a REQ held back by a full connection or an AUTH was lost, as no relay keeps an ephemeral event. A request fails at once with a `SignerRequestFailedException` when no relay serves that subscription.
+ - A request already sent when every relay dropped the subscription of `Nip46Signer` fails with a `SignerRequestFailedException`, where it waited forever, and the next request subscribes again.
+ - A request to a disposed `Nip46Signer` fails at once with a `SignerRequestFailedException`, where it waited forever.

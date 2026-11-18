@@ -49,6 +49,21 @@ bool noRelayTook(Map<RelayUrl, RelayPublishOutcome> outcomes) =>
           outcome.status == RelayPublishStatus.failed,
     );
 
+/// Whether a relay serves [subscription], once one does or none will.
+///
+/// Only then does it get what is published: kind 24133 is ephemeral, so no
+/// relay keeps it for a REQ that comes later.
+Future<bool> isServed(RelayReq subscription) async {
+  await for (final outcomes in subscription.outcomesStream) {
+    if (outcomes.values.any(
+      (outcome) => outcome.status == RelayRequestStatus.eose,
+    )) {
+      return true;
+    }
+  }
+  return false;
+}
+
 /// The NIP-46 message [event] carries to [localSigner], or null when it does
 /// not decrypt to a JSON object.
 Future<Map<String, dynamic>?> readMessage(
