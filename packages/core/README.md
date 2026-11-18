@@ -99,6 +99,7 @@ await listener.cancel();
 
 A subscription has no timeout unless it is given one.
 Once closed, it reports `eose` on the relays that caught up and `cancelled` on the others.
+A relay where it still waited for a slot reports `notSent`, with `RelayFailureKind.connectionFull`, see [Relay limits](#relay-limits).
 
 ### What you get
 
@@ -106,7 +107,7 @@ Once closed, it reports `eose` on the relays that caught up and `cancelled` on t
 - Events are signature-checked, and invalid ones are dropped.
 - An event that matches none of the filters sent to its relay is dropped too. `search` is not checked, since each relay reads it its own way.
 - Each event comes as a `RelayReqEvent`: the `event`, and the `relayUrl` that sent it.
-- The events of a relay come in the order it sent them, even when the `EventVerifier` checks several at once.
+- The events of a relay come in the order it sent them, even when the `EventVerifier` checks several at once. An event that is slow to check holds back the later events of its relay, never those of the others.
 - Events are not deduplicated: an event that two relays hold arrives twice. `events.map((e) => e.event).distinctUnique()` from rxdart keeps each one once.
 - `events` is a single-subscription stream. It keeps every event until it is listened to, without a limit, so listen to a subscription right away or close it.
 - `auth` takes an `AuthPolicy`, see [NIP-42 authentication](#nip-42-authentication).
@@ -289,7 +290,7 @@ Opening a connection, a REQ or a publish on a disposed manager throws a `StateEr
 
 `RelayManager` asks two callbacks each time a socket opens, and waits up to 2 seconds for them:
 
-- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot. Subscriptions leave a quarter of the slots to queries, and at least one when there are several. Without an answer, the limit is 20, a tenth of what strfry accepts, so answer it from the NIP-11 document as below.
+- `subscriptionLimit`: how many REQs the relay keeps open on one socket. The others wait for a slot. A REQ closed or timed out while it waits ends there as `notSent`, with `RelayFailureKind.connectionFull`. Subscriptions leave a quarter of the slots to queries, and at least one when there are several. Without an answer, the limit is 20, a tenth of what strfry accepts, so answer it from the NIP-11 document as below.
 - `messageLengthLimit`: how many bytes the relay reads in one message. A longer message is not sent: a REQ ends there as `notSent`, and an EVENT fails, both with `RelayFailureKind.messageTooLong`.
 
 Both are in the NIP-11 document of the relay, which [`dostr_nip11`](https://pub.dev/packages/dostr_nip11) fetches.

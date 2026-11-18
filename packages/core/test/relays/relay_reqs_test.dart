@@ -505,6 +505,33 @@ void main() {
       await req.close();
     });
 
+    test('do not wait for a slow verification on another relay', () async {
+      final slow = signedEvent(content: 'slow');
+      final afterSlow = signedEvent(content: 'after the slow one');
+      final elsewhere = signedEvent(content: 'from the other relay');
+      final verifier = _ScriptedVerifier(held: {slow.id});
+      final first = await startRelay();
+      final second = await startRelay();
+      final req = RelayReqs(
+        relayManager: manager,
+        eventVerifier: verifier,
+      ).req(relays: {first.url: notes, second.url: notes}, closeOnEose: false);
+      final received = <Nip01Event>[];
+      req.events.listen((e) => received.add(e.event));
+      await eventually(() => subscribed(first, req) && subscribed(second, req));
+
+      send(first, req, [slow, afterSlow]);
+      await eventually(() => verifier.verifying.length == 2);
+      send(second, req, [elsewhere]);
+      await eventually(() => received.isNotEmpty);
+      expect(received.map((e) => e.id), [elsewhere.id]);
+
+      verifier.release.complete();
+      await eventually(() => received.length == 3);
+      expect(received.map((e) => e.id), [elsewhere.id, slow.id, afterSlow.id]);
+      await req.close();
+    });
+
     test('are dropped when their verifier throws, and the next ones still '
         'come', () async {
       final failing = signedEvent(content: 'failing');

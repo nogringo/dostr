@@ -119,24 +119,22 @@ final class RelayReq {
     _state.onTimeout = (_) => close();
     _done = _state.ended.then((_) => _state.relayOutcomes);
 
-    final deliveries = Queue<Future<void>>();
-    Future<void> delivered = Future.value();
+    final verifying = _Slots(_maxVerifying);
+    // ordered within each relay only, so a slow check holds back no other relay
+    final delivered = <RelayUrl, Future<void>>{};
     _state.received.listen(
       (received) {
-        // waits for the event _maxVerifying places earlier to be handed over,
-        // so at most that many are checked at once
-        final slot = deliveries.length < _maxVerifying
-            ? Future<void>.value()
-            : deliveries.removeFirst();
-        final verified = slot.then(
-          (_) => _verify(received, eventVerifier, verifiedEventCache),
+        final verified = verifying.run(
+          () => _verify(received, eventVerifier, verifiedEventCache),
         );
-        delivered = delivered.then((_) => verified).then((event) {
-          if (event != null && !_events.isClosed) _events.add(event);
-        });
-        deliveries.add(delivered);
+        final url = received.relayUrl;
+        delivered[url] = (delivered[url] ?? Future<void>.value())
+            .then((_) => verified)
+            .then((event) {
+              if (event != null && !_events.isClosed) _events.add(event);
+            });
       },
-      onDone: () => delivered.then((_) {
+      onDone: () => Future.wait(delivered.values).then((_) {
         unawaited(_events.close());
         _state.end();
         if (identical(inFlight[id], _state)) inFlight.remove(id);
@@ -194,6 +192,38 @@ final class RelayReq {
   /// Sends a CLOSE to the relays still serving the request, then ends it.
   ///
   /// A relay that had yet to end it reports [RelayRequestStatus.cancelled], or
-  /// [RelayRequestStatus.eose] for a subscription that caught up there.
+  /// [RelayRequestStatus.eose] for a subscription that caught up there. One
+  /// where the request still waited for a slot reports
+  /// [RelayRequestStatus.notSent], with `RelayFailureKind.connectionFull`.
   Future<void> close() => _closing ??= _requests.close(_state);
+}
+
+/// Runs at most [limit] tasks at once. The others start in the order they
+/// came, each as soon as one ends.
+final class _Slots {
+  _Slots(this.limit);
+
+  final int limit;
+  int _running = 0;
+  final _waiting = Queue<Completer<void>>();
+
+  Future<T> run<T>(Future<T> Function() task) async {
+    if (_running < limit) {
+      _running++;
+    } else {
+      final turn = Completer<void>();
+      _waiting.add(turn);
+      await turn.future;
+    }
+    try {
+      return await task();
+    } finally {
+      // the slot passes straight to the next task, if one waits
+      if (_waiting.isEmpty) {
+        _running--;
+      } else {
+        _waiting.removeFirst().complete();
+      }
+    }
+  }
 }
