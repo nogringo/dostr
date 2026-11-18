@@ -7,23 +7,26 @@ The verifiers of Dostr (`dostr_bip340`, `dostr_rust_verifier`, `dostr_web_crypto
 
 ## Usage
 
-Add `dostr_event_verifier_test_suite` as a **dev dependency**:
+Add `dostr_event_verifier_test_suite` as a **dev dependency**, with [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) for the signer of the example below:
 
 ```yaml
 dev_dependencies:
+  dostr_bip340: ^0.1.0
   dostr_event_verifier_test_suite: ^0.1.0
 ```
 
 Then in your test file:
 
 ```dart
+import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_event_verifier_test_suite/dostr_event_verifier_test_suite.dart';
 
 void main() {
   runEventVerifierTestSuite(
     name: 'MyEventVerifier',
     createVerifier: MyEventVerifier.new,
-    createSigner: () => MySigner.withNewKey(),
+    createSigner: const Bip340SignerFactory().createWithNewKeyPair,
+    externalEvents: bip340ExternalEvents,
   );
 }
 ```
@@ -31,7 +34,7 @@ void main() {
 `createSigner` must return a signer with a fresh key on each call, using the signature scheme the verifier checks.
 That is how a non-BIP-340 verifier, such as ML-DSA, runs the same suite.
 
-A BIP-340 verifier also passes `externalEvents: bip340ExternalEvents`.
+A BIP-340 verifier passes `externalEvents: bip340ExternalEvents`.
 The suite signs its own events, so a signer and a verifier sharing a serialization bug would still agree: these events, signed by other clients, catch it.
 
 ## What's tested
@@ -41,4 +44,5 @@ The suite signs its own events, so a signer and a verifier sharing a serializati
 | **Accepts an event signed by another implementation** | Each of `externalEvents` |
 | **Accepts a signed event** | Empty content and tags, empty tag values, quotes, unicode, every control character (NUL included) in content and tags, kinds 0 and 65535, a large event |
 | **Rejects an event changed after signing** | Content, tag values (NUL suffixes included), tags added or removed, kind and created_at shifted (by 1, 65536, 2^32), another pubkey, a flipped sig bit |
-| **Rejects an event whose** | sig is missing; sig, id or pubkey is empty, cut in half, one byte short or long, of odd length, or not hex; sig, id or pubkey is not lowercase, or has a `+` sign. The verifier must return `false`, never throw |
+| **Rejects an event whose** | sig is missing; sig, id or pubkey is empty, cut in half, one byte short or long, of odd length, not hex, or has every bit set (out of range for secp256k1); sig, id or pubkey is not lowercase, or has a `+` sign. The verifier must return `false`, never throw |
+| **Concurrent calls** | Answers 16 calls at once, half of them with a flipped sig bit, each for its own event |

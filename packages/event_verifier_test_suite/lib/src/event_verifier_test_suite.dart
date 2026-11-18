@@ -217,6 +217,8 @@ void runEventVerifierTestSuite({
         'is one byte long': (hex) => '${hex}00',
         'has an odd length': (hex) => hex.substring(0, hex.length - 1),
         'has a non-hex character': _putNonHexInNonZeroByte,
+        // Out of range for secp256k1: a pubkey and r above p, s above n.
+        'has every bit set': (hex) => 'f' * hex.length,
       };
 
       for (final MapEntry(key: malformation, value: malform)
@@ -264,37 +266,71 @@ void runEventVerifierTestSuite({
       });
 
       // Lenient decoders such as int.parse and JS parseInt read "+X" as the
-      // byte 0X. Re-signing other content finds a sig with such a byte.
-      test('sig has a + sign', () async {
+      // byte 0X. Re-signing other content finds a value with such a byte.
+      Future<(Nip01Event, String)> signWithPlusSign(
+        String Function(Nip01Event) hexOf,
+      ) async {
         var signed = event;
-        var index = _zeroHighNibbleIndex(signed.sig!);
-        for (var attempt = 1; index < 0; attempt++) {
+        for (var attempt = 1; ; attempt++) {
+          if (_withPlusSign(hexOf(signed)) case final malformed?) {
+            return (signed, malformed);
+          }
           signed = await sign(content: 'hello $attempt');
-          index = _zeroHighNibbleIndex(signed.sig!);
         }
-        final malformed = signed.copyWith(
-          sig: signed.sig!.replaceRange(index, index + 1, '+'),
-        );
+      }
+
+      test('sig has a + sign', () async {
+        final (signed, sig) = await signWithPlusSign((e) => e.sig!);
+
+        expect(await verifier.verify(signed.copyWith(sig: sig)), isFalse);
+      });
+
+      test('id has a + sign', () async {
+        final (signed, id) = await signWithPlusSign((e) => e.id);
+        final malformed = signed.copyWith(id: id, sig: signed.sig);
 
         expect(await verifier.verify(malformed), isFalse);
       });
 
-      // a signer refuses an event whose pubkey differs from its own, even by
-      // case, so this one was signed once with Bip340
+      // A signer refuses an event whose pubkey is not exactly its own, so
+      // these two were signed once with Bip340.
       test('pubkey is uppercase, signed as such', () async {
         final signed = Nip01Event.fromJson(_uppercasePubkeyEvent);
 
         expect(await verifier.verify(signed), isFalse);
       });
+
+      test('pubkey has a + sign, signed as such', () async {
+        final signed = Nip01Event.fromJson(_plusSignPubkeyEvent);
+
+        expect(await verifier.verify(signed), isFalse);
+      });
+    });
+
+    test('answers concurrent calls each for its own event', () async {
+      final signed = [
+        for (var index = 0; index < 16; index++)
+          await sign(content: 'event $index'),
+      ];
+      final events = [
+        for (final (index, event) in signed.indexed)
+          index.isEven
+              ? event
+              : event.copyWith(sig: _flipLastHexDigit(event.sig!)),
+      ];
+
+      expect(await Future.wait(events.map(verifier.verify)), [
+        for (var index = 0; index < events.length; index++) index.isEven,
+      ]);
     });
   });
 }
 
-int _zeroHighNibbleIndex(String hex) {
+String? _withPlusSign(String hex) {
   for (var index = 0; index < hex.length; index += 2) {
-    if (hex[index] == '0') return index;
+    if (hex[index] == '0') return hex.replaceRange(index, index + 1, '+');
   }
-  return -1;
+  return null;
 }
 
 /// A BIP-340 signature over the id of this payload, with the pubkey in
@@ -308,6 +344,19 @@ const _uppercasePubkeyEvent = <String, Object>{
   'content': 'hello',
   'sig':
       '9e87f4f29eae4627c3a2514215cfac25d11eb690909bbd3f17a322f92e10b6cf75690b19804a76480a3d1b274f17d952516520d67d61abf4aab8e79dcf965784',
+};
+
+/// A BIP-340 signature over the id of this payload, with a `+` for the 0 that
+/// starts a byte of the pubkey: it verifies against the pubkey with that 0.
+const _plusSignPubkeyEvent = <String, Object>{
+  'id': 'ccead610fb881b7635f3d90a874c40078c50bef5843b19186e0e804508504524',
+  'pubkey': '578fe3dd493c+d426da429d1cc77d62d94b505c65c4d7fcd070ebee9b58e1699',
+  'created_at': 1726215220,
+  'kind': 1,
+  'tags': <List<String>>[],
+  'content': 'hello',
+  'sig':
+      '8483d7379b629becd78cb456cb2fffeebb4579cb79b5b6cc1b7277a8f5281cdc3e1108e7a29a9fd2f60ea2265c41b48b9e645141121dd76b7a04943b9ffe00c2',
 };
 
 String _flipLastHexDigit(String hex) {
