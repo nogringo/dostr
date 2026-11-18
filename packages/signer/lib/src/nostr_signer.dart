@@ -29,8 +29,10 @@ abstract interface class LocalSignerFactory {
 /// [cancelRequest], a [SignerRequestFailedException] when no valid result came
 /// back.
 ///
-/// Misusing a signer throws an [Error] instead: [sign] with an event of another
-/// pubkey, or any operation while [canSign] is false.
+/// Misusing a signer throws an [Error] instead: an [ArgumentError] for [sign]
+/// with an event of another pubkey, a [StateError] for any operation while
+/// [canSign] is false. A signer used on a platform it does not run on throws
+/// an [UnsupportedError].
 abstract interface class NostrSigner {
   /// Signs [event], which must have the pubkey of [publicKey], or this
   /// throws an [ArgumentError].

@@ -44,9 +44,9 @@ Its `createPeer` defaults to signers of the factory: pass those of another imple
 
 | Group | What it verifies |
 |-------|-----------------|
-| **Signer** | `publicKey` is lowercase hex, `canSign` is true |
+| **Signer** | `publicKey` is 64 lowercase hex characters, `canSign` is true |
 | **sign** | Signs events with empty content, quotes, unicode, control characters and kind 0, with its pubkey and a valid signature; throws an `ArgumentError` for an event of another pubkey, or of its own in uppercase, and lists nothing as pending |
 | **NIP-44, NIP-04** | Encrypts for and decrypts from a peer, both ways, a short, a unicode and a long text; decrypts concurrent requests each to its plaintext; throws a `SignerRequestException` for a ciphertext that does not decrypt, and for a NIP-44 ciphertext of another sender |
 | **pendingRequests** | Empty once a request completes; `cancelRequest` is false for an unknown request. A local signer lists nothing while a request runs. An interactive signer lists each signature, encryption and decryption with what it waits for, gives each its own id, emits it on `pendingRequestsStream` then an empty list, and `cancelRequest` fails the request it drops with a `SignerRequestCancelledException`, and is false once it completed |
-| **read-only** | `canSign` is false, `publicKey` is lowercase hex, and signing, encrypting and decrypting throw an `Error` and list nothing as pending |
+| **read-only** | `canSign` is false, `publicKey` is 64 lowercase hex characters, and signing, encrypting and decrypting throw a `StateError` and list nothing as pending |
 | **LocalSignerFactory** | `generateKeyPair` makes a new lowercase hex key pair each time, `create` derives the public key of the private key, `readOnly` keeps the public key and cannot sign, and throws a `FormatException` for a public key that is not lowercase hex of 64 characters, `createWithNewKeyPair` makes a new key each time |

@@ -7,7 +7,9 @@ import 'package:test/test.dart';
 /// Runs the contract every [NostrSigner] must keep against one
 /// implementation: sign events of its pubkey and refuse those of another,
 /// encrypt for and decrypt from any peer, throw a [SignerRequestException]
-/// when a request gets no valid result, and an [Error] when it is misused.
+/// when a request gets no valid result, and an [Error] when it is misused:
+/// an [ArgumentError] for an event of another pubkey, a [StateError] when it
+/// cannot sign.
 ///
 /// [createSigner] returns a signer that can sign, and [verifier] checks its
 /// signatures. [createPeer] returns a signer with a fresh key on each call,
@@ -63,8 +65,8 @@ void runSignerTestSuite({
       content: content,
     );
 
-    test('publicKey is lowercase hex', () {
-      expect(signer.publicKey, matches(_lowercaseHex));
+    test('publicKey is 64 lowercase hex characters', () {
+      expect(signer.publicKey, matches(_hexKey));
     });
 
     test('canSign is true', () {
@@ -392,8 +394,8 @@ void runSignerTestSuite({
           expect(readOnly.canSign, isFalse);
         });
 
-        test('publicKey is lowercase hex', () {
-          expect(readOnly.publicKey, matches(_lowercaseHex));
+        test('publicKey is 64 lowercase hex characters', () {
+          expect(readOnly.publicKey, matches(_hexKey));
         });
 
         final operations = <String, Future<Object?> Function()>{
@@ -410,8 +412,8 @@ void runSignerTestSuite({
         };
 
         for (final MapEntry(key: operation, value: run) in operations.entries) {
-          test('$operation throws an Error', () async {
-            await expectLater(run, throwsA(isA<Error>()));
+          test('$operation throws a StateError', () async {
+            await expectLater(run, throwsStateError);
             expect(readOnly.pendingRequests, isEmpty);
           });
         }
@@ -447,8 +449,8 @@ void runLocalSignerFactoryTestSuite({
       final (privateKey: otherPrivateKey, publicKey: otherPublicKey) = factory
           .generateKeyPair();
 
-      expect(privateKey, matches(_lowercaseHex));
-      expect(publicKey, matches(_lowercaseHex));
+      expect(privateKey, matches(_hexKey));
+      expect(publicKey, matches(_hexKey));
       expect(otherPrivateKey, isNot(privateKey));
       expect(otherPublicKey, isNot(publicKey));
     });
@@ -503,7 +505,7 @@ void runLocalSignerFactoryTestSuite({
   });
 }
 
-final _lowercaseHex = RegExp(r'^(?:[0-9a-f]{2})+$');
+final _hexKey = RegExp(r'^[0-9a-f]{64}$');
 
 final _plaintexts = {
   'a text': 'hello',
