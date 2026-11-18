@@ -182,8 +182,7 @@ void main() {
       subscription.addRequest(authenticated, [
         Filter(kinds: [1]),
       ]);
-      subscription.requests[authenticated]!.markClosed('auth-required');
-      subscription.requests[authenticated]!.markRetryingAuth();
+      subscription.requests[authenticated]!.markRetryingAuth('auth-required');
       await manager.closeIdleConnections();
       expect(anonTransport.closed, isTrue);
       expect(authTransport.closed, isFalse);

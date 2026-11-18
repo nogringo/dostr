@@ -164,9 +164,7 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!
-        ..markClosed(null)
-        ..markRetryingAuth();
+      state.requests[key]!.markRetryingAuth('auth-required: x');
 
       expect(state.relayOutcomes, {
         url: RelayRequestOutcome(RelayRequestStatus.pending),
@@ -177,9 +175,7 @@ void main() {
       final state = buildState();
       final key = RelayConnectionKey.anonymous(url);
       state.addRequest(key, [filter]);
-      state.requests[key]!
-        ..markClosed(null)
-        ..markRetryingAuth();
+      state.requests[key]!.markRetryingAuth('auth-required: x');
       state.timedOut = true;
 
       expect(state.relayOutcomes, {

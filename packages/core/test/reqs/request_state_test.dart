@@ -65,9 +65,7 @@ void main() {
 
   test('an authentication in progress counts as pending', () {
     state.addRequest(bound, notes);
-    state.requests[bound]!
-      ..markClosed('auth-required: x')
-      ..markRetryingAuth();
+    state.requests[bound]!.markRetryingAuth('auth-required: x');
 
     expect(statusOf(url), RelayRequestStatus.pending);
     expect(state.didAllRequestsFinish, isFalse);

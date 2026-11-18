@@ -62,8 +62,7 @@ void main() {
       );
       state.addRequest(key, _filters);
 
-      state.requests[key]!.markClosed(null);
-      state.requests[key]!.markRetryingAuth();
+      state.requests[key]!.markRetryingAuth('auth-required: x');
       expect(state.didAllRequestsFinish, isFalse);
 
       state.requests[key]!.endAuthRetry();

@@ -80,6 +80,34 @@ void main() {
       );
     }
 
+    for (final (name, policy) in [
+      ('allow', AuthPolicy.allow),
+      ('require', AuthPolicy.require),
+    ]) {
+      test('a REQ under AuthPolicy.$name never shows as closed while it '
+          'authenticates', () async {
+        final relay = await startRelay(
+          requireAuthForRequests: true,
+          challengeOnConnect: false,
+        );
+        relay.events.add(signedEvent(createdAt: 1));
+
+        final req = reqs.req(
+          relays: {relay.url: notes},
+          auth: policy(fakeAccount(alice)),
+        );
+        final statuses = req.outcomesStream
+            .map((outcomes) => outcomes[relay.url]!.status)
+            .toList();
+        await req.events.toList();
+
+        expect(await statuses, [
+          RelayRequestStatus.pending,
+          RelayRequestStatus.eose,
+        ]);
+      });
+    }
+
     test(
       'a REQ handed over to a bound connection reports how it ended there',
       () async {

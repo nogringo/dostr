@@ -169,11 +169,11 @@ class RelayRequestState {
     if (!isDone) _moveTo(RelayReqProgress.closed, closedMessage: message);
   }
 
-  /// The relay closed the request for want of an authentication, which is now
-  /// under way.
-  void markRetryingAuth() {
-    if (_progress == RelayReqProgress.closed) {
-      _moveTo(RelayReqProgress.retryingAuth, closedMessage: _closedMessage);
+  /// The relay closed the request with [message] for want of an
+  /// authentication, which is now under way.
+  void markRetryingAuth(String message) {
+    if (!isDone) {
+      _moveTo(RelayReqProgress.retryingAuth, closedMessage: message);
     }
   }
 

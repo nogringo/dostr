@@ -311,6 +311,11 @@ class RelayRequests {
     String? message,
   ) {
     request.markClosed(message);
+    _freeSlot(connection, reqId);
+  }
+
+  /// Frees the slot of the REQ [reqId], which the relay ended on [connection].
+  void _freeSlot(RelayConnection connection, String reqId) {
     if (connection.slots.ended(reqId)) {
       admitQueuedOn(connection);
     }
@@ -372,45 +377,57 @@ class RelayRequests {
       return;
     }
 
-    _endRequestOnRelay(connection, reqId, request, message);
-    if (request.progress != RelayReqProgress.closed) {
+    _freeSlot(connection, reqId);
+    if (!_retryAuth(state, connection, request, message)) {
+      request.markClosed(message);
       _finishIfDone(state);
-      return;
     }
+  }
 
+  /// Moves [request] on after [connection] refused it with [refusal] for want
+  /// of an identity, and says whether it did. It moves before it is marked
+  /// refused, so its relay never shows as closed on the way.
+  bool _retryAuth(
+    RequestState state,
+    RelayConnection connection,
+    RelayRequestState request,
+    String refusal,
+  ) {
+    if (request.isDone) return false;
+    final key = connection.key;
     if (!key.isAnonymous) {
       final session = _auth.sessionOf(connection);
       if (session.authenticated) {
         // refused while authenticated as the only identity this connection
         // may ever take: there is nothing left to try
-        logger.fine(() => "REQ $reqId refused on authenticated $key");
-        _finishIfDone(state);
-        return;
+        logger.fine(() => "REQ ${state.id} refused on authenticated $key");
+        return false;
       }
 
-      logger.fine(() => "Authenticating $key to satisfy REQ $reqId");
-      request.markRetryingAuth();
+      logger.fine(() => "Authenticating $key to satisfy REQ ${state.id}");
+      request.markRetryingAuth(refusal);
       unawaited(_authenticateAndRetry(state, connection, request, session));
-      return;
+      return true;
     }
 
     final account = _auth.accountForAuth(state.auth);
     if (account == null) {
       logger.fine(
-        () => "No identity to answer auth-required for REQ $reqId on $key",
+        () => "No identity to answer auth-required for REQ ${state.id} on $key",
       );
-      _finishIfDone(state);
-      return;
+      return false;
     }
 
     final target = RelayConnectionKey.authenticated(key.url, account.publicKey);
     final retry = state.addRequest(target, request.filters);
+    request.markClosed(refusal);
 
     logger.fine(
-      () => "AUTH required for REQ $reqId on $key, retrying on $target",
+      () => "AUTH required for REQ ${state.id} on $key, retrying on $target",
     );
 
-    unawaited(_retryOnBound(state, retry, account, refusal: message));
+    unawaited(_retryOnBound(state, retry, account, refusal: refusal));
+    return true;
   }
 
   /// Answers the challenge of the bound [connection] that refused [request],
