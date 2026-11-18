@@ -7,16 +7,18 @@ The signers of Dostr (`dostr_bip340`, `dostr_web_crypto`, `dostr_nip46`, `dostr_
 
 ## Usage
 
-Add `dostr_signer_test_suite` as a **dev dependency**:
+Add `dostr_signer_test_suite` as a **dev dependency**, with [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) for the peer and the verifier of the example below:
 
 ```yaml
 dev_dependencies:
+  dostr_bip340: ^0.1.0
   dostr_signer_test_suite: ^0.1.0
 ```
 
 Then in your test file:
 
 ```dart
+import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_signer_test_suite/dostr_signer_test_suite.dart';
 
 void main() {
