@@ -302,7 +302,6 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    final extension = _extension();
     if (event.pubkey != publicKey) {
       throw ArgumentError.value(
         event.pubkey,
@@ -310,6 +309,7 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         'is not the pubkey of the signer, $publicKey',
       );
     }
+    final extension = _extension();
 
     return _trackRequest(
       (id) => PendingSignRequest(

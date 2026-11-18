@@ -191,6 +191,15 @@ void main() {
       expect(signer.pendingRequests, isEmpty);
       expect(extension.requests, isEmpty);
     });
+
+    test('throws the ArgumentError even without an extension', () async {
+      findNip07Extension = () => null;
+
+      await expectLater(
+        signer.sign(note(pubkey: peer.publicKey)),
+        throwsArgumentError,
+      );
+    });
   });
 
   group('encryption', () {

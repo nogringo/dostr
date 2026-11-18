@@ -24,6 +24,8 @@ jobs:
         include:
           - package: core
             test_command: dart test -j 1 && dart test -p chrome test/transport/websocket_client_transport_browser_test.dart
+          - package: nip07
+            test_command: dart test && dart test -p chrome -c dart2wasm
           - package: nip55
             test_command: flutter test
           - package: flutter

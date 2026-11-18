@@ -48,6 +48,10 @@ Give it a `verifier`, such as the `Bip340EventVerifier` of [`dostr_bip340`](http
 final signer = await Nip07Signer.connect(verifier: Bip340EventVerifier());
 ```
 
+A ciphertext does not tell which account made it, so encryption has no such check.
+After the user switches accounts in the extension, `encryptNip04` and `encryptNip44` encrypt as the account now selected there, without an error.
+Signing the event that carries the ciphertext, such as a NIP-04 DM or a NIP-17 seal, then fails, but a ciphertext sent unsigned goes out from that other account.
+
 At most `maxConcurrentRequests` requests (100 by default) go to the extension at once.
 The rest wait in a queue.
 
