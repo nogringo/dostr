@@ -21,7 +21,7 @@ class Nip44InvalidMacException implements Exception {
 /// Keys are hex strings. A public key is x-only (64 characters, as in Nostr
 /// events) or SEC1 encoded. A key that is not valid on secp256k1 throws a
 /// [FormatException].
-class Nip44 {
+abstract final class Nip44 {
   /// The conversation key between the hex [privateKey] and the hex
   /// [publicKey]: both peers get the same one.
   ///

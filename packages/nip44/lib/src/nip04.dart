@@ -12,7 +12,7 @@ import 'utils.dart';
 ///
 /// Keys are hex strings, as for `Nip44`, and an invalid one throws a
 /// [FormatException].
-class Nip04 {
+abstract final class Nip04 {
   /// Encrypts [plaintext] from [senderPrivateKey] to [recipientPublicKey], as
   /// `<ciphertext>?iv=<iv>`.
   static String encrypt(
