@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:dostr_accounts/dostr_accounts.dart';
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip05/dostr_nip05.dart';
@@ -54,6 +56,12 @@ class NLogin extends StatefulWidget {
 class _NLoginState extends State<NLogin> {
   late LoginController controller;
 
+  bool _hasExtension = Nip07Signer.isAvailable;
+
+  // An extension may add window.nostr a moment after the page loads. Unlike
+  // Nip07Signer.waitForExtension, this timer stops with the widget.
+  Timer? _extensionWatch;
+
   Accounts get _accounts => widget.dostrFlutter.accounts;
 
   @override
@@ -66,10 +74,23 @@ class _NLoginState extends State<NLogin> {
       nostrConnect: widget.nostrConnect,
     );
     controller.addListener(_updateUI);
+    if (kIsWeb && widget.enableNip07Login && !_hasExtension) {
+      _extensionWatch = Timer.periodic(const Duration(milliseconds: 50), (
+        timer,
+      ) {
+        if (Nip07Signer.isAvailable) {
+          timer.cancel();
+          setState(() => _hasExtension = true);
+        } else if (timer.tick >= 20) {
+          timer.cancel();
+        }
+      });
+    }
   }
 
   @override
   void dispose() {
+    _extensionWatch?.cancel();
     controller.removeListener(_updateUI);
     controller.dispose();
     super.dispose();
@@ -200,7 +221,7 @@ class _NLoginState extends State<NLogin> {
           FilledButton.icon(
             onPressed: loginWithNip07,
             label: Text(
-              Nip07Signer.isAvailable
+              _hasExtension
                   ? AppLocalizations.of(context)!.connect
                   : AppLocalizations.of(context)!.install,
             ),

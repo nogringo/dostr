@@ -272,6 +272,27 @@ void main() {
       );
     });
 
+    test('skips an account with an invalid key', () async {
+      final restored = TestDostrFlutter(
+        storage: {
+          accountsKey: jsonEncode({
+            'loggedAccount': bobPubkey,
+            'accounts': [
+              {'kind': 'nip07', 'pubkey': 'pubkey', 'signerSeed': null},
+              {'kind': 'pubkey', 'pubkey': 'pubkey', 'signerSeed': null},
+              {'kind': 'nip07', 'pubkey': bobPubkey, 'signerSeed': null},
+            ],
+          }),
+        },
+      );
+      addTearDown(restored.dispose);
+
+      await restored.dostrFlutter.restoreAccountsState();
+
+      expect(restored.accounts.accounts.keys, [bobPubkey]);
+      expect(restored.accounts.loggedPubkey, bobPubkey);
+    });
+
     test('keeps an account that is already logged in', () async {
       final restored = TestDostrFlutter(
         storage: {

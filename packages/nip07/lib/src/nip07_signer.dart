@@ -1,11 +1,17 @@
 import 'dart:async';
-import 'dart:js_interop';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_nip01/hex.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:rxdart/rxdart.dart';
 
-import 'nip07_js_interop.dart' as js;
+import 'nip07_extension.dart';
+import 'nip07_extension_stub.dart'
+    if (dart.library.js_interop) 'nip07_extension_web.dart';
+
+/// The extension in `window.nostr`, null without one. Tests swap it for a
+/// fake.
+Nip07Extension? Function() findNip07Extension = windowNostr;
 
 class _PendingRequestEntry {
   final Completer<dynamic> completer;
@@ -15,10 +21,23 @@ class _PendingRequestEntry {
   _PendingRequestEntry(this.completer, this.request);
 }
 
+/// Signs and encrypts with the user's NIP-07 browser extension, through
+/// `window.nostr`.
+///
+/// The extension asks the user to approve each request. It turns a request
+/// down, or fails it, by rejecting it, and NIP-07 does not tell the two apart:
+/// both throw a [SignerRequestRejectedException].
+///
+/// Outside a browser, [isAvailable] and [canSign] are false and every request
+/// throws an [UnsupportedError].
 class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   /// the pubkey of the extension account this signer signs as
   @override
   final String publicKey;
+
+  /// When set, [sign] checks the signature of every event the extension
+  /// signs, and fails on an invalid one.
+  final EventVerifier? verifier;
 
   final _pendingRequests = <String, _PendingRequestEntry>{};
   final _pendingRequestsController =
@@ -32,28 +51,65 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
 
   static const int defaultMaxConcurrentRequests = 100;
 
+  static const Duration defaultPublicKeyTimeout = Duration(minutes: 10);
+
   /// A signer for the extension account [publicKey], such as one restored
   /// from storage. [connect] asks the extension for it.
+  ///
+  /// Throws a [FormatException] when [publicKey] is not 64 lowercase hex
+  /// characters.
   Nip07Signer({
-    required this.publicKey,
+    required String publicKey,
+    this.verifier,
     this.maxConcurrentRequests = defaultMaxConcurrentRequests,
-  }) : assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
+  }) : publicKey = isLowercaseHex(publicKey, length: 64)
+           ? publicKey
+           : throw FormatException('Not a valid public key', publicKey),
+       assert(maxConcurrentRequests > 0, 'maxConcurrentRequests must be > 0');
 
   /// Whether the browser has a NIP-07 extension, in `window.nostr`.
-  static bool get isAvailable => js.nostr != null;
+  ///
+  /// An extension may add it a moment after the page loads, so read it once
+  /// the app runs, or use [waitForExtension].
+  static bool get isAvailable => findNip07Extension() != null;
+
+  /// Whether the browser has a NIP-07 extension, waiting up to [timeout] for
+  /// one that adds `window.nostr` after the page loads.
+  ///
+  /// Completes with false at once outside a browser.
+  static Future<bool> waitForExtension({
+    Duration timeout = const Duration(seconds: 1),
+  }) async {
+    final waited = Stopwatch()..start();
+    while (!isAvailable) {
+      if (!supportsNip07 || waited.elapsed >= timeout) return false;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+    }
+    return true;
+  }
 
   /// Asks the extension for the user's pubkey, which it may ask the user to
   /// approve first, and completes with a signer for it.
   ///
-  /// Throws a [StateError] without an extension, see [isAvailable], and a
-  /// [SignerRequestRejectedException] when the extension refuses.
+  /// Throws a [StateError] without an extension, see [isAvailable], a
+  /// [SignerRequestRejectedException] when the extension refuses, and a
+  /// [SignerRequestFailedException] when no valid pubkey came within
+  /// [timeout].
   static Future<Nip07Signer> connect({
+    EventVerifier? verifier,
     int maxConcurrentRequests = defaultMaxConcurrentRequests,
+    Duration timeout = defaultPublicKeyTimeout,
   }) async {
-    final nostr = _extension();
-    final publicKey = (await _ask(() => nostr.getPublicKey())).dartify();
-    if (publicKey is! String ||
-        !RegExp(r'^[0-9a-f]{64}$').hasMatch(publicKey)) {
+    final extension = _extension();
+    final Object? publicKey;
+    try {
+      publicKey = await _ask(extension.getPublicKey).timeout(timeout);
+    } on TimeoutException {
+      throw SignerRequestFailedException(
+        'The extension sent no pubkey within $timeout',
+      );
+    }
+    if (publicKey is! String || !isLowercaseHex(publicKey, length: 64)) {
       throw SignerRequestFailedException(
         'The extension sent an invalid pubkey',
         cause: publicKey,
@@ -61,20 +117,24 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
     }
     return Nip07Signer(
       publicKey: publicKey,
+      verifier: verifier,
       maxConcurrentRequests: maxConcurrentRequests,
     );
   }
 
-  static js.Nostr _extension() =>
-      js.nostr ?? (throw StateError('No NIP-07 extension in window.nostr'));
+  static Nip07Extension _extension() =>
+      findNip07Extension() ??
+      (throw supportsNip07
+          ? StateError('No NIP-07 extension in window.nostr')
+          : UnsupportedError('NIP-07 is not available on this platform'));
 
   /// The answer of the extension. It turns a request down by rejecting it.
-  static Future<JSAny?> _ask(
-    JSPromise<JSAny?> Function() request, {
+  static Future<Object?> _ask(
+    Future<Object?> Function() request, {
     String? requestId,
   }) async {
     try {
-      return await request().toDart;
+      return await request();
     } catch (error) {
       throw SignerRequestRejectedException(
         requestId: requestId,
@@ -84,10 +144,10 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
   }
 
   static Future<String> _askText(
-    JSPromise<JSAny?> Function() request,
+    Future<Object?> Function() request,
     String requestId,
   ) async {
-    final text = (await _ask(request, requestId: requestId)).dartify();
+    final text = await _ask(request, requestId: requestId);
     if (text is! String) {
       throw SignerRequestFailedException(
         'The extension sent no text',
@@ -174,10 +234,8 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         ciphertext: ciphertext,
         senderPubkey: senderPubkey,
       ),
-      (requestId) => _askText(
-        () => nip04.decrypt(senderPubkey.toJS, ciphertext.toJS),
-        requestId,
-      ),
+      (requestId) =>
+          _askText(() => nip04.decrypt(senderPubkey, ciphertext), requestId),
     );
   }
 
@@ -195,10 +253,8 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         ciphertext: ciphertext,
         senderPubkey: senderPubkey,
       ),
-      (requestId) => _askText(
-        () => nip44.decrypt(senderPubkey.toJS, ciphertext.toJS),
-        requestId,
-      ),
+      (requestId) =>
+          _askText(() => nip44.decrypt(senderPubkey, ciphertext), requestId),
     );
   }
 
@@ -216,10 +272,8 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         plaintext: plaintext,
         recipientPubkey: recipientPubkey,
       ),
-      (requestId) => _askText(
-        () => nip04.encrypt(recipientPubkey.toJS, plaintext.toJS),
-        requestId,
-      ),
+      (requestId) =>
+          _askText(() => nip04.encrypt(recipientPubkey, plaintext), requestId),
     );
   }
 
@@ -237,20 +291,18 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         plaintext: plaintext,
         recipientPubkey: recipientPubkey,
       ),
-      (requestId) => _askText(
-        () => nip44.encrypt(recipientPubkey.toJS, plaintext.toJS),
-        requestId,
-      ),
+      (requestId) =>
+          _askText(() => nip44.encrypt(recipientPubkey, plaintext), requestId),
     );
   }
 
-  static T _scheme<T>(T? scheme, String name) =>
+  static Nip07Cipher _scheme(Nip07Cipher? scheme, String name) =>
       scheme ??
       (throw SignerRequestFailedException('The extension has no $name'));
 
   @override
   Future<Nip01Event> sign(Nip01Event event) async {
-    final nostr = _extension();
+    final extension = _extension();
     if (event.pubkey != publicKey) {
       throw ArgumentError.value(
         event.pubkey,
@@ -267,51 +319,55 @@ class Nip07Signer with ConcurrencyLimiterMixin implements NostrSigner {
         event: event,
       ),
       (requestId) async {
-        final jsEvent = js.NostrEvent()
-          ..pubkey = event.pubkey
-          ..createdAt = event.createdAt
-          ..kind = event.kind
-          ..content = event.content
-          ..tags = event.tags
-              .map((tag) => tag.map((item) => item.toJS).toList().toJS)
-              .toList()
-              .toJS;
-
         final answer = await _ask(
-          () => nostr.signEvent(jsEvent),
+          () => extension.signEvent({
+            'pubkey': event.pubkey,
+            'created_at': event.createdAt,
+            'kind': event.kind,
+            'tags': event.tags,
+            'content': event.content,
+          }),
           requestId: requestId,
         );
-        final signed = answer.isA<JSObject>() ? answer as js.NostrEvent : null;
-        final id = signed?.id;
-        final sig = signed?.sig;
-        final signedEvent = signed == null || id == null || sig == null
-            ? null
-            : event.copyWith(
-                id: id,
-                sig: sig,
-                pubkey: signed.pubkey,
-                createdAt: signed.createdAt,
-                kind: signed.kind,
-                content: signed.content,
-                tags: signed.tagsList,
-              );
-        if (signedEvent == null || !signedEvent.hasValidId) {
+        final signed = _readEvent(answer);
+        if (signed == null || signed.sig == null || !signed.hasValidId) {
           throw SignerRequestFailedException(
             'The extension returned an invalid event',
             requestId: requestId,
+            cause: answer,
           );
         }
-        if (signedEvent.pubkey != publicKey) {
+        if (signed.pubkey != publicKey) {
           throw SignerRequestFailedException(
-            'The extension signed as ${signedEvent.pubkey} instead of '
-            '$publicKey',
+            'The extension signed as ${signed.pubkey} instead of $publicKey',
             requestId: requestId,
           );
         }
-        return signedEvent;
+        final verifier = this.verifier;
+        if (verifier != null && !await verifier.verify(signed)) {
+          throw SignerRequestFailedException(
+            'The extension returned an invalid signature',
+            requestId: requestId,
+          );
+        }
+        return signed;
       },
     );
   }
+
+  // dart2wasm turns every JS number into a double
+  static Nip01Event? _readEvent(Object? answer) => answer is Map
+      ? Nip01Event.tryFromJson({
+          ...answer,
+          'created_at': _integer(answer['created_at']),
+          'kind': _integer(answer['kind']),
+        })
+      : null;
+
+  static Object? _integer(Object? value) =>
+      value is double && value.isFinite && value == value.truncateToDouble()
+      ? value.toInt()
+      : value;
 
   @override
   Stream<List<PendingSignerRequest>> get pendingRequestsStream =>

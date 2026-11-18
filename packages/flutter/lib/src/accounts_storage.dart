@@ -41,7 +41,7 @@ class AccountsStorage {
   );
 
   /// Skips an account it cannot read back, such as one of a kind it does not
-  /// know, and one that is already logged in.
+  /// know or with an invalid key, and one that is already logged in.
   Future<void> restore() async {
     final saved = await storage.read(key: accountsKey);
     if (saved == null) return;
@@ -49,7 +49,12 @@ class AccountsStorage {
 
     if (state case {'accounts': final List<Object?> savedAccounts}) {
       for (final account in savedAccounts) {
-        final signer = _restored(account);
+        final NostrSigner? signer;
+        try {
+          signer = _restored(account);
+        } on FormatException {
+          continue;
+        }
         if (signer != null && !accounts.hasAccount(signer.publicKey)) {
           accounts.addAccount(signer: signer);
         }
