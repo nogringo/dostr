@@ -22,6 +22,16 @@ class Nip05Found extends Nip05ResolveResult {
   final DateTime fetchedAt;
 
   const Nip05Found(this.data, {required this.fetchedAt});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Nip05Found && other.data == data && other.fetchedAt == fetchedAt;
+
+  @override
+  int get hashCode => Object.hash(data, fetchedAt);
+
+  @override
+  String toString() => 'Nip05Found($data, fetchedAt: $fetchedAt)';
 }
 
 /// The identifier points to the pubkey it was checked against.
@@ -32,6 +42,18 @@ class Nip05Verified extends Nip05CheckResult {
   final DateTime fetchedAt;
 
   const Nip05Verified(this.data, {required this.fetchedAt});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Nip05Verified &&
+      other.data == data &&
+      other.fetchedAt == fetchedAt;
+
+  @override
+  int get hashCode => Object.hash(data, fetchedAt);
+
+  @override
+  String toString() => 'Nip05Verified($data, fetchedAt: $fetchedAt)';
 }
 
 /// The identifier points to another pubkey, [data]'s.
@@ -42,6 +64,18 @@ class Nip05Mismatch extends Nip05CheckResult {
   final DateTime fetchedAt;
 
   const Nip05Mismatch(this.data, {required this.fetchedAt});
+
+  @override
+  bool operator ==(Object other) =>
+      other is Nip05Mismatch &&
+      other.data == data &&
+      other.fetchedAt == fetchedAt;
+
+  @override
+  int get hashCode => Object.hash(data, fetchedAt);
+
+  @override
+  String toString() => 'Nip05Mismatch($data, fetchedAt: $fetchedAt)';
 }
 
 /// The identifier does not exist: the `.well-known/nostr.json` of its domain
@@ -49,6 +83,15 @@ class Nip05Mismatch extends Nip05CheckResult {
 /// identifier, in which case no request was sent.
 class Nip05NotFound extends Nip05ResolveResult implements Nip05CheckResult {
   const Nip05NotFound();
+
+  @override
+  bool operator ==(Object other) => other is Nip05NotFound;
+
+  @override
+  int get hashCode => (Nip05NotFound).hashCode;
+
+  @override
+  String toString() => 'Nip05NotFound()';
 }
 
 /// Whether the identifier exists could not be determined.

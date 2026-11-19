@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import 'hex_pubkey.dart';
 import 'http_nip_05_repository.dart';
+import 'memory_nip_05_cache.dart';
 import 'nip_05.dart';
 import 'nip_05_cache.dart';
 import 'nip_05_defaults.dart';
@@ -31,6 +32,10 @@ class Nip05Resolver {
   /// request, for every identifier of the domain that could not be reached
   final Duration networkErrorDuration;
 
+  /// how long [resolve] gives a [Nip05ResolveInvalidResponse] again, without a
+  /// request, for the identifier it came for
+  final Duration invalidResponseDuration;
+
   /// the client this instance made, which [close] closes
   final http.Client? _ownedClient;
 
@@ -38,16 +43,19 @@ class Nip05Resolver {
   // may use different repositories and caches for the same NIP-05.
   final Map<String, _Flight> _flights = {};
 
-  final Map<String, ({Nip05ResolveNetworkError error, DateTime until})>
-  _failedDomains = {};
+  /// keyed by domain
+  final _RecentErrors<Nip05ResolveNetworkError> _failedDomains;
+
+  /// keyed by identifier
+  final _RecentErrors<Nip05ResolveInvalidResponse> _invalidResponses;
 
   /// how many times [abortPending] ran
   int _aborts = 0;
 
   bool _closed = false;
 
-  /// [cache] keeps the resolved identifiers, in memory for the life of this
-  /// resolver when null.
+  /// [cache] keeps the resolved identifiers, in memory when null, until they
+  /// are older than both [validDuration] and [notFoundDuration].
   ///
   /// It fetches them over HTTP with [httpClient], or with a client of its own
   /// that [close] closes. [nip05Repository] replaces that HTTP layer, and the
@@ -59,6 +67,7 @@ class Nip05Resolver {
     Duration validDuration = nip05ValidDuration,
     Duration notFoundDuration = nip05NotFoundDuration,
     Duration networkErrorDuration = nip05NetworkErrorDuration,
+    Duration invalidResponseDuration = nip05InvalidResponseDuration,
   }) {
     if (httpClient != null && nip05Repository != null) {
       throw ArgumentError(
@@ -69,13 +78,19 @@ class Nip05Resolver {
         ? http.Client()
         : null;
     return Nip05Resolver._(
-      cache ?? _MemoryNip05Cache(),
+      cache ??
+          MemoryNip05Cache(
+            maxAge: validDuration > notFoundDuration
+                ? validDuration
+                : notFoundDuration,
+          ),
       nip05Repository ??
           HttpNip05Repository(client: httpClient ?? ownedClient!),
       ownedClient,
       validDuration: validDuration,
       notFoundDuration: notFoundDuration,
       networkErrorDuration: networkErrorDuration,
+      invalidResponseDuration: invalidResponseDuration,
     );
   }
 
@@ -86,7 +101,9 @@ class Nip05Resolver {
     required this.validDuration,
     required this.notFoundDuration,
     required this.networkErrorDuration,
-  });
+    required this.invalidResponseDuration,
+  }) : _failedDomains = _RecentErrors(networkErrorDuration),
+       _invalidResponses = _RecentErrors(invalidResponseDuration);
 
   /// Ends the calls in flight with a `RequestAbortedException` (from
   /// `package:http`), including those still reading the cache: none sends a
@@ -143,9 +160,9 @@ class Nip05Resolver {
   /// A [Nip05Found] is remembered for [validDuration] and a [Nip05NotFound]
   /// for [notFoundDuration], in the cache. A [Nip05ResolveNetworkError] is
   /// given again for [networkErrorDuration] to every identifier of its domain,
-  /// and a [Nip05ResolveInvalidResponse] is not remembered. [refresh] asks the
-  /// domain whatever was remembered, such as when the user fixed their
-  /// nostr.json.
+  /// and a [Nip05ResolveInvalidResponse] for [invalidResponseDuration] to its
+  /// identifier. [refresh] asks the domain whatever was remembered, such as
+  /// when the user fixed their nostr.json.
   ///
   /// Concurrent calls for one identifier share one request. An error of the
   /// cache is not caught when it reads, and ignored when it saves. Throws a
@@ -171,7 +188,8 @@ class Nip05Resolver {
 
     final domain = identifier.split('@').last;
     if (!refresh && !_flights.containsKey(identifier)) {
-      if (_recentFailure(domain) case final error?) {
+      if (_invalidResponses[identifier] ?? _failedDomains[domain]
+          case final error?) {
         return error;
       }
     }
@@ -212,25 +230,6 @@ class Nip05Resolver {
     };
   }
 
-  Nip05ResolveNetworkError? _recentFailure(String domain) {
-    final failure = _failedDomains[domain];
-    if (failure == null) {
-      return null;
-    }
-    if (clock.now().isBefore(failure.until)) {
-      return failure.error;
-    }
-    _failedDomains.remove(domain);
-    return null;
-  }
-
-  void _rememberFailure(String domain, Nip05ResolveNetworkError error) {
-    final now = clock.now();
-    _failedDomains
-      ..removeWhere((_, failure) => !now.isBefore(failure.until))
-      ..[domain] = (error: error, until: now.add(networkErrorDuration));
-  }
-
   _Flight _start(String identifier, String domain) {
     late final _Flight flight;
     void forget() {
@@ -256,16 +255,20 @@ class Nip05Resolver {
         abortTrigger: flight.abortTrigger,
       );
     } on FormatException catch (e) {
-      _failedDomains.remove(domain);
-      return Nip05ResolveInvalidResponse(e);
+      final error = Nip05ResolveInvalidResponse(e);
+      _failedDomains.forget(domain);
+      _invalidResponses.remember(identifier, error);
+      return error;
     } on Exception catch (e) {
       final error = Nip05ResolveNetworkError(e);
       if (!flight.isAborted) {
-        _rememberFailure(domain, error);
+        _failedDomains.remember(domain, error);
+        _invalidResponses.forget(identifier);
       }
       return error;
     }
-    _failedDomains.remove(domain);
+    _failedDomains.forget(domain);
+    _invalidResponses.forget(identifier);
 
     final record = Nip05Record(
       identifier: identifier,
@@ -353,15 +356,31 @@ class _Flight {
   }
 }
 
-class _MemoryNip05Cache implements Nip05Cache {
-  final Map<String, Nip05Record> _records = {};
+/// Errors given again, without a request, for [duration]
+class _RecentErrors<E extends Nip05ResolveError> {
+  final Duration duration;
 
-  @override
-  Future<void> saveNip05(Nip05Record record) async {
-    _records[record.identifier] = record;
+  // in the order they were last remembered, so the expired ones come first
+  final Map<String, ({E error, DateTime until})> _errors = {};
+
+  _RecentErrors(this.duration);
+
+  E? operator [](String key) {
+    final entry = _errors[key];
+    return entry != null && clock.now().isBefore(entry.until)
+        ? entry.error
+        : null;
   }
 
-  @override
-  Future<Nip05Record?> loadNip05(String identifier) async =>
-      _records[identifier];
+  void remember(String key, E error) {
+    final now = clock.now();
+    _errors
+      ..remove(key)
+      ..[key] = (error: error, until: now.add(duration));
+    while (_errors.isNotEmpty && !now.isBefore(_errors.values.first.until)) {
+      _errors.remove(_errors.keys.first);
+    }
+  }
+
+  void forget(String key) => _errors.remove(key);
 }

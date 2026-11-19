@@ -54,11 +54,11 @@ switch (await nip05.check(nip05: 'bob@example.com', pubkey: pubkey)) {
 
 ## Cache
 
-Without a `cache`, the resolver keeps what it resolved in memory.
+Without a `cache`, the resolver keeps what it resolved in memory, until it is older than both `validDuration` and `notFoundDuration`.
 To keep it across restarts, pass a `Nip05Cache` on your storage: it saves `Nip05Record`s, keyed by their `identifier`, which `toJson` and `fromJson` turn into JSON and back.
 A found identifier is kept for `validDuration`, 24 hours (`nip05ValidDuration`) by default, and a missing one for `notFoundDuration`, 1 hour (`nip05NotFoundDuration`) by default.
 A domain that could not be reached gives its `Nip05ResolveNetworkError` again, without a request, to every identifier on it for `networkErrorDuration`, 1 minute (`nip05NetworkErrorDuration`) by default, so a feed does not wait on a dead domain for each of its authors.
-A `Nip05ResolveInvalidResponse` is not remembered.
+A `Nip05ResolveInvalidResponse` is given again, without a request, to its identifier for `invalidResponseDuration`, 10 minutes (`nip05InvalidResponseDuration`) by default, so a `nostr.json` that gives an npub is not asked again on every call.
 `refresh: true` asks the domain whatever was remembered, such as when the user just fixed their `nostr.json`:
 
 ```dart

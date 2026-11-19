@@ -574,15 +574,26 @@ void main() {
       }, initialTime: answeredAt);
     });
 
-    test('does not remember a Nip05ResolveInvalidResponse', () async {
-      final (:resolver, cache: _, :requests) = setup(
-        (_) => http.Response('not json', 200),
-      );
+    test('keeps a record in memory for the longer of validDuration and '
+        'notFoundDuration', () {
+      fakeAsync((async) {
+        var requests = 0;
+        final resolver = Nip05Resolver(
+          httpClient: MockClient((_) async {
+            requests++;
+            return nostrJson(usernameJson);
+          }),
+          validDuration: const Duration(minutes: 1),
+        );
 
-      await resolver.resolve('username@example.com');
-      await resolver.resolve('username@example.com');
+        settled(async, resolver.resolve('ghost@example.com'));
+        async.elapse(const Duration(minutes: 30));
+        settled(async, resolver.resolve('username@example.com'));
+        final ghost = settled(async, resolver.resolve('ghost@example.com'));
 
-      expect(requests, hasLength(2));
+        expect(ghost, isA<Nip05NotFound>());
+        expect(requests, 2);
+      });
     });
 
     test('gives the answer when the cache cannot save it', () async {
@@ -659,6 +670,67 @@ void main() {
         expect(requests, hasLength(3));
       },
     );
+  });
+
+  group('invalid responses', () {
+    test('are given again to their identifier for invalidResponseDuration', () {
+      fakeAsync((async) {
+        final (:resolver, cache: _, :requests) = setup(
+          (_) => http.Response('not json', 200),
+        );
+
+        final first = settled(async, resolver.resolve('alice@example.com'));
+        final second = settled(async, resolver.resolve('alice@example.com'));
+        settled(async, resolver.resolve('bob@example.com'));
+        async.elapse(nip05InvalidResponseDuration - const Duration(seconds: 1));
+        settled(async, resolver.resolve('alice@example.com'));
+
+        expect(first, isA<Nip05ResolveInvalidResponse>());
+        expect(second, same(first));
+        expect(requests, hasLength(2));
+
+        async.elapse(const Duration(seconds: 1));
+        settled(async, resolver.resolve('alice@example.com'));
+        expect(requests, hasLength(3));
+      });
+    });
+
+    test('refresh asks the domain, whose next answer replaces it', () {
+      fakeAsync((async) {
+        var status = 200;
+        final (:resolver, cache: _, :requests) = setup(
+          (_) => http.Response('not json', status),
+        );
+
+        settled(async, resolver.resolve('username@example.com'));
+        status = 500;
+        final refreshed = settled(
+          async,
+          resolver.resolve('username@example.com', refresh: true),
+        );
+        async.elapse(nip05NetworkErrorDuration);
+        settled(async, resolver.resolve('username@example.com'));
+
+        expect(refreshed, isA<Nip05ResolveNetworkError>());
+        expect(requests, hasLength(3));
+      });
+    });
+
+    test('takes invalidResponseDuration from the constructor', () async {
+      var requests = 0;
+      final resolver = Nip05Resolver(
+        httpClient: MockClient((_) async {
+          requests++;
+          return http.Response('not json', 200);
+        }),
+        invalidResponseDuration: Duration.zero,
+      );
+
+      await resolver.resolve('username@example.com');
+      await resolver.resolve('username@example.com');
+
+      expect(requests, 2);
+    });
   });
 
   group('concurrent calls', () {
