@@ -7,7 +7,6 @@ import 'package:dostr_nip05/dostr_nip05.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:http/http.dart' as http;
 
 import 'accounts_storage.dart';
 import 'models/metadata.dart';
@@ -51,11 +50,7 @@ class DostrFlutter {
              reqs: relayReqs,
              nip65Fetcher: Nip65Fetcher(reqs: relayReqs),
            ),
-       nip05Resolver =
-           nip05Resolver ??
-           Nip05Resolver(
-             nip05Repository: HttpNip05Repository(client: http.Client()),
-           ),
+       nip05Resolver = nip05Resolver ?? Nip05Resolver(),
        bunkers = Bunkers(
          relayReqs: relayReqs,
          relayPublishes: relayPublishes,

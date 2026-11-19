@@ -56,9 +56,7 @@ class TestDostrFlutter {
       relayPublishes: RelayPublishes(relayManager: _relayManager),
       metadataFetcher: metadata,
       nip05Resolver: Nip05Resolver(
-        nip05Repository: HttpNip05Repository(
-          client: MockClient((_) async => nip05Response),
-        ),
+        httpClient: MockClient((_) async => nip05Response),
       ),
       npubSeparator: '...',
     );

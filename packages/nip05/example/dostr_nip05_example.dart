@@ -1,12 +1,8 @@
 import 'package:dostr_nip05/dostr_nip05.dart';
-import 'package:http/http.dart' as http;
 
 /// `dart run example/dostr_nip05_example.dart bob@example.com`
 Future<void> main(List<String> args) async {
-  final client = http.Client();
-  final nip05 = Nip05Resolver(
-    nip05Repository: HttpNip05Repository(client: client),
-  );
+  final nip05 = Nip05Resolver();
 
   final result = await nip05.resolve(args.first);
   switch (result) {
@@ -18,5 +14,5 @@ Future<void> main(List<String> args) async {
       print('could not resolve ${args.first}: $cause');
   }
 
-  client.close();
+  nip05.close();
 }

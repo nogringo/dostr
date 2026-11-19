@@ -1,9 +1,10 @@
-import '../entities/nip_05.dart';
+import '../entities/nip_05_record.dart';
 
-/// Where [Nip05Resolver] keeps the identifiers it resolved, keyed by
-/// [Nip05.canonicalIdentifier].
+/// Where [Nip05Resolver] keeps what it resolved, keyed by
+/// [Nip05Record.identifier].
 abstract interface class Nip05Cache {
-  Future<void> saveNip05(Nip05 nip05);
+  /// replaces the record of its identifier
+  Future<void> saveNip05(Nip05Record record);
 
-  Future<Nip05?> loadNip05(String identifier);
+  Future<Nip05Record?> loadNip05(String identifier);
 }

@@ -1,13 +1,14 @@
 import 'package:dostr_nip05/dostr_nip05.dart';
 
 class MemoryNip05Cache implements Nip05Cache {
-  final Map<String, Nip05> nip05s = {};
+  final Map<String, Nip05Record> records = {};
 
   @override
-  Future<void> saveNip05(Nip05 nip05) async {
-    nip05s[nip05.identifier] = nip05;
+  Future<void> saveNip05(Nip05Record record) async {
+    records[record.identifier] = record;
   }
 
   @override
-  Future<Nip05?> loadNip05(String identifier) async => nip05s[identifier];
+  Future<Nip05Record?> loadNip05(String identifier) async =>
+      records[identifier];
 }

@@ -1,4 +1,4 @@
-/// marks the duration in seconds for which a NIP05 is considered valid
+/// how long resolve() remembers an identifier it found
 const nip05ValidDuration = Duration(hours: 24);
 
 /// how long resolve() remembers an identifier that does not exist

@@ -1,11 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:http/http.dart' as http;
 
 import '../../config/nip_05_defaults.dart';
 import '../../domain_layer/entities/nip_05.dart';
 import '../../domain_layer/repositories/nip_05_repository.dart';
+
+final _hexPubkey = RegExp(r'^[0-9a-fA-F]{64}$');
 
 /// implementation of the [Nip05Repository] interface with http
 class HttpNip05Repository implements Nip05Repository {
@@ -21,45 +24,61 @@ class HttpNip05Repository implements Nip05Repository {
   });
 
   @override
-  Future<Nip05?> fetchNip05(String nip05) async {
-    final identifier = _parseIdentifier(nip05);
-    if (identifier == null) {
+  Future<Nip05?> fetchNip05(
+    String identifier, {
+    Future<void>? abortTrigger,
+  }) async {
+    final canonical = Nip05.canonicalIdentifier(identifier);
+    if (canonical == null) {
       return null;
     }
+    final [name, domain] = canonical.split('@');
 
-    final json = await _getJson(identifier.url);
+    final json = await _getJson(
+      Uri.https(domain, '/.well-known/nostr.json', {'name': name}),
+      abortTrigger,
+    );
     if (json == null) {
       return null;
     }
 
-    Map names = json["names"];
-    Map relays = json["relays"] ?? {};
-
-    String? pubkey = names[identifier.name];
-
+    final names = json['names'];
+    if (names is! Map) {
+      throw const FormatException('names is not an object');
+    }
+    final pubkey = names[name];
     if (pubkey == null) {
       return null;
     }
-
-    List<String> pRelays = [];
-    if (relays[pubkey] != null) {
-      pRelays = List<String>.from(relays[pubkey]);
+    if (pubkey is! String || !_hexPubkey.hasMatch(pubkey)) {
+      throw FormatException('names.$name is not a hex pubkey', '$pubkey');
     }
 
     return Nip05(
-      pubkey: pubkey,
-      identifier: nip05,
-      valid: true,
-      networkFetchTime: DateTime.now().millisecondsSinceEpoch ~/ 1000,
-      relays: pRelays,
+      identifier: canonical,
+      pubkey: pubkey.toLowerCase(),
+      relays: _relaysOf(json['relays'], pubkey),
     );
   }
 
   /// null on a 404. NIP-05 forbids redirects, so a 3xx throws like any other
   /// error status
-  Future<Map<String, dynamic>?> _getJson(Uri url) async {
+  Future<Map<String, dynamic>?> _getJson(
+    Uri url,
+    Future<void>? abortTrigger,
+  ) async {
     final abort = Completer<void>();
-    final timer = Timer(timeout, abort.complete);
+    var timedOut = false;
+    final timer = Timer(timeout, () {
+      if (abort.isCompleted) return;
+      timedOut = true;
+      abort.complete();
+    });
+    void stop() {
+      if (!abort.isCompleted) abort.complete();
+    }
+
+    unawaited(abortTrigger?.then((_) => stop(), onError: (Object _) => stop()));
     final request =
         http.AbortableRequest('GET', url, abortTrigger: abort.future)
           ..followRedirects = false
@@ -68,7 +87,8 @@ class HttpNip05Repository implements Nip05Repository {
     try {
       response = await http.Response.fromStream(await client.send(request));
     } on http.RequestAbortedException {
-      throw TimeoutException('$url', timeout);
+      if (timedOut) throw TimeoutException('$url', timeout);
+      rethrow;
     } finally {
       timer.cancel();
     }
@@ -89,13 +109,12 @@ class HttpNip05Repository implements Nip05Repository {
   }
 }
 
-({String name, Uri url})? _parseIdentifier(String nip05) {
-  final canonical = Nip05.canonicalIdentifier(nip05);
-  if (canonical == null) {
-    return null;
-  }
-  final [name, domain] = canonical.split("@");
-
-  final url = Uri.https(domain, "/.well-known/nostr.json", {"name": name});
-  return (name: name, url: url);
+/// NIP-05 makes the relays optional, so a missing or mistyped entry gives none
+List<RelayUrl> _relaysOf(Object? relays, String pubkey) {
+  final urls = relays is Map ? relays[pubkey] : null;
+  if (urls is! List) return const [];
+  return {
+    for (final url in urls)
+      if (url is String) ?RelayUrl.tryParse(url),
+  }.toList();
 }
