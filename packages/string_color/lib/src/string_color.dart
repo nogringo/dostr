@@ -21,11 +21,12 @@ final class StringColor {
   static const neutralGrey = StringColor(128, 128, 128);
 
   /// The color of [text], such as a name, hashed from the UTF-16 code units of
-  /// its trimmed form, uppercased as JavaScript's `toUpperCase` does.
+  /// its form trimmed and uppercased as JavaScript's `trim` and `toUpperCase`
+  /// do.
   ///
   /// A [text] that is empty once trimmed gets [neutralGrey].
   factory StringColor.fromText(String text) {
-    final normalized = _upperCase(text.trim());
+    final normalized = _upperCase(text.replaceAll(_surroundingWhitespace, ''));
     if (normalized.isEmpty) return neutralGrey;
 
     // Reduced mod 360 at each step: the spec's BigInt hue, without the BigInt.
@@ -51,6 +52,10 @@ final class StringColor {
     }
     return _fromHue(hue, warmValue: 0.75);
   }
+
+  // Not String.trim, which also removes U+0085: `\s` is JavaScript's
+  // whitespace on every platform.
+  static final _surroundingWhitespace = RegExp(r'^\s+|\s+$');
 
   // Not String.toUpperCase: the Dart VM keeps ß and uses older Unicode data,
   // where JavaScript, and so Dart on the web, gives SS.

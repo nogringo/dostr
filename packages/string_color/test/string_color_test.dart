@@ -35,6 +35,15 @@ void main() {
       expect(StringColor.fromText('😀'), const StringColor(73, 105, 245));
     });
 
+    test('trims as JavaScript does, on every platform', () {
+      final bob = StringColor.fromText('Bob');
+      expect(StringColor.fromText('\u{3000}Bob\u{FEFF}'), bob);
+      expect(
+        StringColor.fromText('Bob\u{85}'),
+        const StringColor(54, 149, 179),
+      );
+    });
+
     test('uppercases as JavaScript does, on every platform', () {
       expect(StringColor.fromText('Straße'), const StringColor(230, 69, 125));
       expect(StringColor.fromText('ﬁ'), const StringColor(179, 133, 54));
