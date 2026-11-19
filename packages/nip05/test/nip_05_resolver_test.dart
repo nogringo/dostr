@@ -2,11 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:dostr_nip05/dostr_nip05.dart';
+import 'package:fake_async/fake_async.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
-import '../mocks/memory_nip05_cache.dart';
+import 'mocks/memory_nip05_cache.dart';
 
 const pubkey =
     '3bf0c63fcb93463407af97a5e5ee64fa883d107ef9e558472c4eb9aaaefa459d';
@@ -32,6 +33,8 @@ http.Response nostrJson(Object? json) => http.Response(jsonEncode(json), 200);
 setup(
   FutureOr<http.Response> Function(http.Request request) handler, {
   MemoryNip05Cache? cache,
+  Duration validDuration = nip05ValidDuration,
+  Duration notFoundDuration = nip05NotFoundDuration,
 }) {
   final requests = <http.Request>[];
   final usedCache = cache ?? MemoryNip05Cache();
@@ -41,8 +44,18 @@ setup(
       requests.add(request);
       return handler(request);
     }),
+    validDuration: validDuration,
+    notFoundDuration: notFoundDuration,
   );
   return (resolver: resolver, cache: usedCache, requests: requests);
+}
+
+/// what [future] gives once the microtasks of [async] ran
+T settled<T>(FakeAsync async, Future<T> future) {
+  late final T value;
+  future.then((result) => value = result);
+  async.flushMicrotasks();
+  return value;
 }
 
 Nip05Record record(
@@ -234,7 +247,41 @@ void main() {
       final result = await resolver.resolve('username@example.com');
 
       expect(requests.single.followRedirects, false);
-      expect(result, isA<Nip05ResolveNetworkError>());
+      expect(result, isA<Nip05ResolveInvalidResponse>());
+    });
+
+    test('returns Nip05ResolveInvalidResponse for a body over '
+        'maxResponseBytes', () async {
+      final body = jsonEncode(usernameJson);
+      Nip05Resolver reading(int maxResponseBytes) => Nip05Resolver(
+        nip05Repository: HttpNip05Repository(
+          client: MockClient((_) async => http.Response(body, 200)),
+          maxResponseBytes: maxResponseBytes,
+        ),
+      );
+
+      expect(
+        await reading(body.length).resolve('username@example.com'),
+        isA<Nip05Found>(),
+      );
+      expect(
+        await reading(body.length - 1).resolve('username@example.com'),
+        isA<Nip05ResolveInvalidResponse>(),
+      );
+    });
+
+    test('reads the status before the body', () async {
+      final resolver = Nip05Resolver(
+        nip05Repository: HttpNip05Repository(
+          client: MockClient((_) async => http.Response('Not Found', 404)),
+          maxResponseBytes: 0,
+        ),
+      );
+
+      expect(
+        await resolver.resolve('username@example.com'),
+        isA<Nip05NotFound>(),
+      );
     });
 
     test('reads missing or mistyped relays as none', () async {
@@ -453,9 +500,83 @@ void main() {
       expect(requests, hasLength(2));
     });
 
-    test('does not remember a Nip05ResolveError', () async {
+    test('takes its durations from the constructor', () async {
+      final cache = MemoryNip05Cache();
+      for (final (identifier, pubkey) in [
+        ('found@example.com', otherPubkey),
+        ('ghost@example.com', null),
+      ]) {
+        cache.records[identifier] = record(
+          identifier,
+          pubkey,
+          age: const Duration(minutes: 2),
+        );
+      }
       final (:resolver, cache: _, :requests) = setup(
-        (_) => http.Response('', 500),
+        (_) => nostrJson({
+          'names': {'found': pubkey, 'ghost': pubkey},
+        }),
+        cache: cache,
+        validDuration: const Duration(minutes: 1),
+        notFoundDuration: const Duration(minutes: 1),
+      );
+
+      expect(await resolver.resolve('found@example.com'), isA<Nip05Found>());
+      expect(await resolver.resolve('ghost@example.com'), isA<Nip05Found>());
+      expect(requests, hasLength(2));
+    });
+
+    test('refresh asks the domain whatever the cache holds', () async {
+      final cache = MemoryNip05Cache();
+      cache.records['username@example.com'] = record(
+        'username@example.com',
+        null,
+        age: Duration.zero,
+      );
+      final (:resolver, cache: _, :requests) = setup(
+        (_) => nostrJson(usernameJson),
+        cache: cache,
+      );
+
+      expect(
+        await resolver.resolve('username@example.com'),
+        isA<Nip05NotFound>(),
+      );
+      expect(
+        await resolver.resolve('username@example.com', refresh: true),
+        isA<Nip05Found>(),
+      );
+      expect(await resolver.resolve('username@example.com'), isA<Nip05Found>());
+      expect(requests, hasLength(1));
+    });
+
+    test('gives when the domain answered', () {
+      final answeredAt = DateTime.utc(2026, 11, 19, 12);
+      fakeAsync((async) {
+        final (:resolver, cache: _, requests: _) = setup(
+          (_) => nostrJson(usernameJson),
+        );
+
+        final fetched = settled(
+          async,
+          resolver.resolve('username@example.com'),
+        );
+        async.elapse(const Duration(hours: 1));
+        final cached = settled(async, resolver.resolve('username@example.com'));
+        final checked = settled(
+          async,
+          resolver.check(nip05: 'username@example.com', pubkey: pubkey),
+        );
+
+        expect((fetched as Nip05Found).fetchedAt, answeredAt);
+        expect((cached as Nip05Found).fetchedAt, answeredAt);
+        expect((checked as Nip05Verified).fetchedAt, answeredAt);
+      }, initialTime: answeredAt);
+    });
+
+    test('does not remember a Nip05ResolveInvalidResponse', () async {
+      final (:resolver, cache: _, :requests) = setup(
+        (_) => http.Response('not json', 200),
       );
 
       await resolver.resolve('username@example.com');
@@ -464,25 +585,80 @@ void main() {
       expect(requests, hasLength(2));
     });
 
-    test('lets an error of the cache through', () async {
-      final saving = Nip05Resolver(
+    test('gives the answer when the cache cannot save it', () async {
+      final resolver = Nip05Resolver(
         cache: _FailingCache(),
         httpClient: MockClient((_) async => nostrJson(usernameJson)),
       );
-      final loading = Nip05Resolver(
+
+      expect(await resolver.resolve('username@example.com'), isA<Nip05Found>());
+    });
+
+    test('lets an error of the cache through when it reads', () async {
+      final resolver = Nip05Resolver(
         cache: _FailingCache(failLoad: true),
         httpClient: MockClient((_) async => nostrJson(usernameJson)),
       );
 
       await expectLater(
-        saving.resolve('username@example.com'),
-        throwsA(isA<StateError>()),
-      );
-      await expectLater(
-        loading.resolve('username@example.com'),
+        resolver.resolve('username@example.com'),
         throwsA(isA<StateError>()),
       );
     });
+  });
+
+  group('network errors', () {
+    test('are given again to the whole domain for networkErrorDuration', () {
+      fakeAsync((async) {
+        final (:resolver, cache: _, :requests) = setup(
+          (_) => http.Response('', 500),
+        );
+
+        final first = settled(async, resolver.resolve('alice@example.com'));
+        final second = settled(async, resolver.resolve('bob@example.com'));
+        settled(async, resolver.resolve('alice@other.test'));
+        async.elapse(nip05NetworkErrorDuration - const Duration(seconds: 1));
+        settled(async, resolver.resolve('bob@example.com'));
+
+        expect(first, isA<Nip05ResolveNetworkError>());
+        expect(second, same(first));
+        expect(
+          [for (final request in requests) request.url.host],
+          ['example.com', 'other.test'],
+        );
+
+        async.elapse(const Duration(seconds: 1));
+        settled(async, resolver.resolve('bob@example.com'));
+        expect(requests, hasLength(3));
+      });
+    });
+
+    test(
+      'refresh asks the domain, which is forgotten once it answers',
+      () async {
+        var down = true;
+        final (:resolver, cache: _, :requests) = setup(
+          (_) => down ? http.Response('', 500) : nostrJson(usernameJson),
+        );
+
+        await resolver.resolve('alice@example.com');
+        down = false;
+
+        expect(
+          await resolver.resolve('username@example.com'),
+          isA<Nip05ResolveNetworkError>(),
+        );
+        expect(
+          await resolver.resolve('username@example.com', refresh: true),
+          isA<Nip05Found>(),
+        );
+        expect(
+          await resolver.resolve('alice@example.com'),
+          isA<Nip05NotFound>(),
+        );
+        expect(requests, hasLength(3));
+      },
+    );
   });
 
   group('concurrent calls', () {
@@ -543,6 +719,32 @@ void main() {
 
       expect(
         await resolver.check(nip05: '_@domain.test', pubkey: pubkey),
+        isA<Nip05Verified>(),
+      );
+    });
+
+    test('takes refresh as resolve does', () async {
+      final cache = MemoryNip05Cache();
+      cache.records['username@example.com'] = record(
+        'username@example.com',
+        otherPubkey,
+        age: Duration.zero,
+      );
+      final (:resolver, cache: _, requests: _) = setup(
+        (_) => nostrJson(usernameJson),
+        cache: cache,
+      );
+
+      expect(
+        await resolver.check(nip05: 'username@example.com', pubkey: pubkey),
+        isA<Nip05Mismatch>(),
+      );
+      expect(
+        await resolver.check(
+          nip05: 'username@example.com',
+          pubkey: pubkey,
+          refresh: true,
+        ),
         isA<Nip05Verified>(),
       );
     });
@@ -662,6 +864,7 @@ void main() {
           client: client,
           timeout: const Duration(milliseconds: 50),
         ),
+        networkErrorDuration: Duration.zero,
       );
 
       final resolved = await resolver.resolve('username@example.com');

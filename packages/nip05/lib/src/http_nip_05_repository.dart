@@ -1,14 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:dostr_relay_url/dostr_relay_url.dart';
 import 'package:http/http.dart' as http;
 
-import '../../config/nip_05_defaults.dart';
-import '../../domain_layer/entities/nip_05.dart';
-import '../../domain_layer/repositories/nip_05_repository.dart';
-
-final _hexPubkey = RegExp(r'^[0-9a-fA-F]{64}$');
+import 'hex_pubkey.dart';
+import 'nip_05.dart';
+import 'nip_05_defaults.dart';
+import 'nip_05_repository.dart';
 
 /// implementation of the [Nip05Repository] interface with http
 class HttpNip05Repository implements Nip05Repository {
@@ -17,10 +17,14 @@ class HttpNip05Repository implements Nip05Repository {
   /// how long to wait for a nostr.json response
   final Duration timeout;
 
+  /// the largest body read, in bytes. A larger one throws a [FormatException]
+  final int maxResponseBytes;
+
   /// creates a new [HttpNip05Repository] instance
   HttpNip05Repository({
     required this.client,
     this.timeout = nip05RequestTimeout,
+    this.maxResponseBytes = nip05MaxResponseBytes,
   });
 
   @override
@@ -50,7 +54,7 @@ class HttpNip05Repository implements Nip05Repository {
     if (pubkey == null) {
       return null;
     }
-    if (pubkey is! String || !_hexPubkey.hasMatch(pubkey)) {
+    if (pubkey is! String || !hexPubkey.hasMatch(pubkey)) {
       throw FormatException('names.$name is not a hex pubkey', '$pubkey');
     }
 
@@ -61,8 +65,8 @@ class HttpNip05Repository implements Nip05Repository {
     );
   }
 
-  /// null on a 404. NIP-05 forbids redirects, so a 3xx throws like any other
-  /// error status
+  /// null on a 404. NIP-05 forbids redirects, so a 3xx throws a
+  /// [FormatException]
   Future<Map<String, dynamic>?> _getJson(
     Uri url,
     Future<void>? abortTrigger,
@@ -83,29 +87,43 @@ class HttpNip05Repository implements Nip05Repository {
         http.AbortableRequest('GET', url, abortTrigger: abort.future)
           ..followRedirects = false
           ..headers['Accept'] = 'application/json';
-    final http.Response response;
+    final Uint8List body;
     try {
-      response = await http.Response.fromStream(await client.send(request));
+      final response = await client.send(request);
+      final status = response.statusCode;
+      if (status < 200 || status >= 300) {
+        response.stream.listen(null).cancel().ignore();
+        if (status == 404) {
+          return null;
+        }
+        if (status < 400) {
+          throw FormatException('GET $url redirects ($status)');
+        }
+        throw http.ClientException('GET $url returned $status', url);
+      }
+      body = await _read(response.stream, url);
     } on http.RequestAbortedException {
       if (timedOut) throw TimeoutException('$url', timeout);
       rethrow;
     } finally {
       timer.cancel();
     }
-    if (response.statusCode == 404) {
-      return null;
-    }
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      throw http.ClientException(
-        'GET $url returned ${response.statusCode}',
-        url,
-      );
-    }
-    final json = jsonDecode(utf8.decode(response.bodyBytes));
+    final json = jsonDecode(utf8.decode(body));
     if (json is! Map<String, dynamic>) {
       throw FormatException('$url did not return a JSON object');
     }
     return json;
+  }
+
+  Future<Uint8List> _read(Stream<List<int>> stream, Uri url) async {
+    final body = BytesBuilder(copy: false);
+    await for (final chunk in stream) {
+      body.add(chunk);
+      if (body.length > maxResponseBytes) {
+        throw FormatException('$url is larger than $maxResponseBytes bytes');
+      }
+    }
+    return body.takeBytes();
   }
 }
 

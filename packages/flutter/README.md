@@ -80,6 +80,7 @@ To send the challenges of a `Nip46Signer` you log in yourself to the same stream
 The widgets read profiles through `dostrFlutter.loadMetadata`, which asks the write relays of each pubkey with a `MetadataFetcher` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers).
 Pass your own `metadataFetcher` to share its cache and its `Nip65Fetcher` with the rest of the app.
 `NLogin` resolves NIP-05 addresses with `nip05Resolver`, a `Nip05Resolver` of [`dostr_nip05`](https://pub.dev/packages/dostr_nip05) that keeps them in memory unless you pass your own.
+It asks the domain again on every login, so an address fixed after a failed attempt is found.
 
 To answer NIP-42 authentication, give the same `Accounts` to the `RelayManager`, see the relay authentication of [`dostr_accounts`](https://pub.dev/packages/dostr_accounts#relay-authentication).
 

@@ -1,4 +1,4 @@
-import '../entities/nip_05_record.dart';
+import 'nip_05_record.dart';
 
 /// Where [Nip05Resolver] keeps what it resolved, keyed by
 /// [Nip05Record.identifier].

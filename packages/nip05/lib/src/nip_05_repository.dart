@@ -1,4 +1,4 @@
-import '../entities/nip_05.dart';
+import 'nip_05.dart';
 
 /// Reads NIP-05 identifiers from the `.well-known/nostr.json` of their domain.
 abstract interface class Nip05Repository {

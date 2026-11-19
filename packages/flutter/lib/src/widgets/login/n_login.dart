@@ -346,7 +346,10 @@ class _NLoginState extends State<NLogin> {
     controller.isFetchingNip05 = true;
     final Nip05ResolveResult result;
     try {
-      result = await widget.dostrFlutter.nip05Resolver.resolve(nip05);
+      result = await widget.dostrFlutter.nip05Resolver.resolve(
+        nip05,
+        refresh: true,
+      );
     } finally {
       controller.isFetchingNip05 = false;
     }

@@ -17,19 +17,31 @@ sealed class Nip05CheckResult {
 /// network.
 class Nip05Found extends Nip05ResolveResult {
   final Nip05 data;
-  const Nip05Found(this.data);
+
+  /// when the domain gave [data], in UTC
+  final DateTime fetchedAt;
+
+  const Nip05Found(this.data, {required this.fetchedAt});
 }
 
 /// The identifier points to the pubkey it was checked against.
 class Nip05Verified extends Nip05CheckResult {
   final Nip05 data;
-  const Nip05Verified(this.data);
+
+  /// when the domain gave [data], in UTC
+  final DateTime fetchedAt;
+
+  const Nip05Verified(this.data, {required this.fetchedAt});
 }
 
 /// The identifier points to another pubkey, [data]'s.
 class Nip05Mismatch extends Nip05CheckResult {
   final Nip05 data;
-  const Nip05Mismatch(this.data);
+
+  /// when the domain gave [data], in UTC
+  final DateTime fetchedAt;
+
+  const Nip05Mismatch(this.data, {required this.fetchedAt});
 }
 
 /// The identifier does not exist: the `.well-known/nostr.json` of its domain
@@ -53,8 +65,8 @@ sealed class Nip05ResolveError extends Nip05ResolveResult
 
 /// The `.well-known/nostr.json` file could not be fetched.
 ///
-/// Covers DNS failures, timeouts, refused connections and non-2xx HTTP
-/// responses other than 404. Often transient, so worth retrying later.
+/// Covers DNS failures, timeouts, refused connections and HTTP error statuses
+/// other than 404. Often transient, so worth retrying later.
 class Nip05ResolveNetworkError extends Nip05ResolveError implements Exception {
   @override
   final Exception cause;
@@ -65,9 +77,10 @@ class Nip05ResolveNetworkError extends Nip05ResolveError implements Exception {
       'Nip05ResolveNetworkError: failed to fetch nostr.json: $cause';
 }
 
-/// The file was fetched but is not a valid nostr.json: its body is not a JSON
-/// object, its `names` is not an object, or the entry for the name is not a
-/// hex pubkey, such as an npub. The server is misconfigured.
+/// The file was fetched but is not a valid nostr.json: the server redirects,
+/// which NIP-05 forbids, its body is larger than the repository reads, is not a
+/// JSON object or has a `names` that is not one, or the entry for the name is
+/// not a hex pubkey, such as an npub. The server is misconfigured.
 class Nip05ResolveInvalidResponse extends Nip05ResolveError
     implements Exception {
   @override

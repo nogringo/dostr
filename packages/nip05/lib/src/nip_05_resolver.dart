@@ -1,16 +1,16 @@
 import 'dart:async';
 
+import 'package:clock/clock.dart';
 import 'package:http/http.dart' as http;
 
-import '../../config/nip_05_defaults.dart';
-import '../../data_layer/repositories/http_nip_05_repository.dart';
-import '../entities/nip_05.dart';
-import '../entities/nip_05_record.dart';
-import '../entities/nip_05_results.dart';
-import '../repositories/nip_05_cache.dart';
-import '../repositories/nip_05_repository.dart';
-
-final _hexPubkey = RegExp(r'^[0-9a-fA-F]{64}$');
+import 'hex_pubkey.dart';
+import 'http_nip_05_repository.dart';
+import 'nip_05.dart';
+import 'nip_05_cache.dart';
+import 'nip_05_defaults.dart';
+import 'nip_05_record.dart';
+import 'nip_05_repository.dart';
+import 'nip_05_results.dart';
 
 /// Resolves and verifies NIP-05 identifiers.
 ///
@@ -21,12 +21,25 @@ class Nip05Resolver {
   final Nip05Cache _cache;
   final Nip05Repository _nip05Repository;
 
+  /// how long [resolve] remembers an identifier it found
+  final Duration validDuration;
+
+  /// how long [resolve] remembers an identifier that does not exist
+  final Duration notFoundDuration;
+
+  /// how long [resolve] gives a [Nip05ResolveNetworkError] again, without a
+  /// request, for every identifier of the domain that could not be reached
+  final Duration networkErrorDuration;
+
   /// the client this instance made, which [close] closes
   final http.Client? _ownedClient;
 
   // Keep request deduplication local to this instance. Different instances
   // may use different repositories and caches for the same NIP-05.
   final Map<String, _Flight> _flights = {};
+
+  final Map<String, ({Nip05ResolveNetworkError error, DateTime until})>
+  _failedDomains = {};
 
   /// how many times [abortPending] ran
   int _aborts = 0;
@@ -43,6 +56,9 @@ class Nip05Resolver {
     Nip05Cache? cache,
     http.Client? httpClient,
     Nip05Repository? nip05Repository,
+    Duration validDuration = nip05ValidDuration,
+    Duration notFoundDuration = nip05NotFoundDuration,
+    Duration networkErrorDuration = nip05NetworkErrorDuration,
   }) {
     if (httpClient != null && nip05Repository != null) {
       throw ArgumentError(
@@ -57,10 +73,20 @@ class Nip05Resolver {
       nip05Repository ??
           HttpNip05Repository(client: httpClient ?? ownedClient!),
       ownedClient,
+      validDuration: validDuration,
+      notFoundDuration: notFoundDuration,
+      networkErrorDuration: networkErrorDuration,
     );
   }
 
-  Nip05Resolver._(this._cache, this._nip05Repository, this._ownedClient);
+  Nip05Resolver._(
+    this._cache,
+    this._nip05Repository,
+    this._ownedClient, {
+    required this.validDuration,
+    required this.notFoundDuration,
+    required this.networkErrorDuration,
+  });
 
   /// Ends the calls in flight with a `RequestAbortedException` (from
   /// `package:http`), including those still reading the cache: none sends a
@@ -88,16 +114,25 @@ class Nip05Resolver {
   Future<Nip05CheckResult> check({
     required String nip05,
     required String pubkey,
+    bool refresh = false,
     Future<void>? abortTrigger,
   }) async {
-    if (!_hexPubkey.hasMatch(pubkey)) {
+    if (!hexPubkey.hasMatch(pubkey)) {
       throw ArgumentError.value(pubkey, 'pubkey', 'not a hex pubkey');
     }
-    final result = await resolve(nip05, abortTrigger: abortTrigger);
+    final result = await resolve(
+      nip05,
+      refresh: refresh,
+      abortTrigger: abortTrigger,
+    );
     return switch (result) {
-      Nip05Found(:final data) when data.pubkey == pubkey.toLowerCase() =>
-        Nip05Verified(data),
-      Nip05Found(:final data) => Nip05Mismatch(data),
+      Nip05Found(:final data, :final fetchedAt)
+          when data.pubkey == pubkey.toLowerCase() =>
+        Nip05Verified(data, fetchedAt: fetchedAt),
+      Nip05Found(:final data, :final fetchedAt) => Nip05Mismatch(
+        data,
+        fetchedAt: fetchedAt,
+      ),
       Nip05NotFound notFound => notFound,
       Nip05ResolveError error => error,
     };
@@ -105,12 +140,19 @@ class Nip05Resolver {
 
   /// The pubkey and relays [nip05] (e.g. "username@example.com") points to.
   ///
-  /// A [Nip05Found] is remembered for [nip05ValidDuration], a [Nip05NotFound]
-  /// for [nip05NotFoundDuration], and a [Nip05ResolveError] not at all.
+  /// A [Nip05Found] is remembered for [validDuration] and a [Nip05NotFound]
+  /// for [notFoundDuration], in the cache. A [Nip05ResolveNetworkError] is
+  /// given again for [networkErrorDuration] to every identifier of its domain,
+  /// and a [Nip05ResolveInvalidResponse] is not remembered. [refresh] asks the
+  /// domain whatever was remembered, such as when the user fixed their
+  /// nostr.json.
+  ///
   /// Concurrent calls for one identifier share one request. An error of the
-  /// cache is not caught. Throws a [StateError] once [close] ran.
+  /// cache is not caught when it reads, and ignored when it saves. Throws a
+  /// [StateError] once [close] ran.
   Future<Nip05ResolveResult> resolve(
     String nip05, {
+    bool refresh = false,
     Future<void>? abortTrigger,
   }) async {
     if (_closed) {
@@ -121,6 +163,29 @@ class Nip05Resolver {
       return const Nip05NotFound();
     }
 
+    if (!refresh) {
+      if (await _cached(identifier, abortTrigger) case final cached?) {
+        return cached;
+      }
+    }
+
+    final domain = identifier.split('@').last;
+    if (!refresh && !_flights.containsKey(identifier)) {
+      if (_recentFailure(domain) case final error?) {
+        return error;
+      }
+    }
+    final flight = _flights[identifier] ??= _start(identifier, domain);
+    return flight.join(abortTrigger);
+  }
+
+  /// what the cache holds for [identifier] while it is fresh. Throws a
+  /// `RequestAbortedException` when [abortTrigger] or [abortPending] ran
+  /// during the read
+  Future<Nip05ResolveResult?> _cached(
+    String identifier,
+    Future<void>? abortTrigger,
+  ) async {
     final abortsAtStart = _aborts;
     var triggered = false;
     unawaited(
@@ -130,31 +195,43 @@ class Nip05Resolver {
       ),
     );
 
-    final cached = _fresh(await _cache.loadNip05(identifier));
+    final record = await _cache.loadNip05(identifier);
     if (triggered || _aborts != abortsAtStart) {
       throw http.RequestAbortedException();
     }
-    if (cached != null) {
-      return cached;
-    }
-
-    final flight = _flights[identifier] ??= _start(identifier);
-    return flight.join(abortTrigger);
-  }
-
-  Nip05ResolveResult? _fresh(Nip05Record? record) {
     if (record == null) {
       return null;
     }
-    final age = DateTime.now().difference(record.fetchedAt);
-    final nip05 = record.nip05;
-    if (nip05 == null) {
-      return age < nip05NotFoundDuration ? const Nip05NotFound() : null;
-    }
-    return age < nip05ValidDuration ? Nip05Found(nip05) : null;
+    final age = clock.now().difference(record.fetchedAt);
+    return switch (record.nip05) {
+      null => age < notFoundDuration ? const Nip05NotFound() : null,
+      final nip05 =>
+        age < validDuration
+            ? Nip05Found(nip05, fetchedAt: record.fetchedAt)
+            : null,
+    };
   }
 
-  _Flight _start(String identifier) {
+  Nip05ResolveNetworkError? _recentFailure(String domain) {
+    final failure = _failedDomains[domain];
+    if (failure == null) {
+      return null;
+    }
+    if (clock.now().isBefore(failure.until)) {
+      return failure.error;
+    }
+    _failedDomains.remove(domain);
+    return null;
+  }
+
+  void _rememberFailure(String domain, Nip05ResolveNetworkError error) {
+    final now = clock.now();
+    _failedDomains
+      ..removeWhere((_, failure) => !now.isBefore(failure.until))
+      ..[domain] = (error: error, until: now.add(networkErrorDuration));
+  }
+
+  _Flight _start(String identifier, String domain) {
     late final _Flight flight;
     void forget() {
       if (identical(_flights[identifier], flight)) {
@@ -163,33 +240,46 @@ class Nip05Resolver {
     }
 
     flight = _Flight(forget);
-    flight.settle(_fetch(identifier, flight.abortTrigger).whenComplete(forget));
+    flight.settle(_fetch(identifier, domain, flight).whenComplete(forget));
     return flight;
   }
 
   Future<Nip05ResolveResult> _fetch(
     String identifier,
-    Future<void> abortTrigger,
+    String domain,
+    _Flight flight,
   ) async {
     final Nip05? nip05;
     try {
       nip05 = await _nip05Repository.fetchNip05(
         identifier,
-        abortTrigger: abortTrigger,
+        abortTrigger: flight.abortTrigger,
       );
     } on FormatException catch (e) {
+      _failedDomains.remove(domain);
       return Nip05ResolveInvalidResponse(e);
     } on Exception catch (e) {
-      return Nip05ResolveNetworkError(e);
+      final error = Nip05ResolveNetworkError(e);
+      if (!flight.isAborted) {
+        _rememberFailure(domain, error);
+      }
+      return error;
     }
-    await _cache.saveNip05(
-      Nip05Record(
-        identifier: identifier,
-        nip05: nip05,
-        fetchedAt: DateTime.now(),
-      ),
+    _failedDomains.remove(domain);
+
+    final record = Nip05Record(
+      identifier: identifier,
+      nip05: nip05,
+      fetchedAt: clock.now(),
     );
-    return nip05 == null ? const Nip05NotFound() : Nip05Found(nip05);
+    try {
+      await _cache.saveNip05(record);
+    } catch (_) {
+      // a cache that cannot save costs a request later, not this answer
+    }
+    return nip05 == null
+        ? const Nip05NotFound()
+        : Nip05Found(nip05, fetchedAt: record.fetchedAt);
   }
 }
 
@@ -205,6 +295,8 @@ class _Flight {
 
   /// completes once no call waits on the request any more
   Future<void> get abortTrigger => _abort.future;
+
+  bool get isAborted => _abort.isCompleted;
 
   /// what the request gives, or a `RequestAbortedException` once [trigger]
   /// completes

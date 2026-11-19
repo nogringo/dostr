@@ -28,8 +28,11 @@ switch (await nip05.resolve('bob@example.com')) {
 An address that is not a NIP-05 identifier, such as one whose name holds a character outside `a-z0-9-_.` or whose domain has no dot, is a `Nip05NotFound` too, and sends no request.
 Names are case-insensitive, so a `nostr.json` that lists `Bob` answers `bob@example.com` too.
 `pubkey` is in lowercase hex: a `nostr.json` that gives anything else for the name, such as an npub, is a `Nip05ResolveInvalidResponse`.
+So is a server that redirects, which NIP-05 forbids, or whose `nostr.json` is larger than `nip05MaxResponseBytes` (5 MiB).
+In a browser, which hides the redirect, it is a `Nip05ResolveNetworkError`.
 `relays` lists the relays the domain gives for the pubkey, normalized and each once, as `RelayUrl`s of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which this package exports.
 NIP-05 makes them optional, so a missing or mistyped list gives none rather than failing.
+`fetchedAt` tells when the domain gave them, in UTC.
 
 To check an address against a pubkey you already have:
 
@@ -47,13 +50,24 @@ switch (await nip05.check(nip05: 'bob@example.com', pubkey: pubkey)) {
 ```
 
 `check` throws an `ArgumentError` when `pubkey` is not in hex, such as an npub.
+`Nip05Verified` and `Nip05Mismatch` give `fetchedAt` too, such as to tell how old a verification is.
 
 ## Cache
 
 Without a `cache`, the resolver keeps what it resolved in memory.
 To keep it across restarts, pass a `Nip05Cache` on your storage: it saves `Nip05Record`s, keyed by their `identifier`, which `toJson` and `fromJson` turn into JSON and back.
-A found identifier is kept for `nip05ValidDuration` (24 hours), a missing one for `nip05NotFoundDuration` (1 hour), and an error not at all.
-An error of the cache is not caught: `resolve` and `check` throw it.
+A found identifier is kept for `validDuration`, 24 hours (`nip05ValidDuration`) by default, and a missing one for `notFoundDuration`, 1 hour (`nip05NotFoundDuration`) by default.
+A domain that could not be reached gives its `Nip05ResolveNetworkError` again, without a request, to every identifier on it for `networkErrorDuration`, 1 minute (`nip05NetworkErrorDuration`) by default, so a feed does not wait on a dead domain for each of its authors.
+A `Nip05ResolveInvalidResponse` is not remembered.
+`refresh: true` asks the domain whatever was remembered, such as when the user just fixed their `nostr.json`:
+
+```dart
+final nip05 = Nip05Resolver(notFoundDuration: const Duration(minutes: 10));
+final result = await nip05.resolve('bob@example.com', refresh: true);
+```
+
+An error of the cache is not caught when it reads: `resolve` and `check` throw it.
+One when it saves is ignored, so the call still gives what the domain answered.
 Concurrent calls for the same identifier share one request.
 
 ## Cancelling
@@ -76,7 +90,7 @@ A request gives up after `nip05RequestTimeout` (5 seconds), which gives a `Nip05
 `Nip05Resolver` talks to the domains through an `http.Client` of its own, or through the `httpClient` you give it, such as a `cupertino_http` or `cronet_http` client in a Flutter app.
 `nip05.close()` ends what is in flight and closes the client it made, after which `resolve` and `check` throw a `StateError`.
 A client you gave it stays open, since it is yours to close.
-`nip05Repository` replaces the HTTP layer, such as an `HttpNip05Repository` with another `timeout`, and cannot be given with `httpClient`.
+`nip05Repository` replaces the HTTP layer, such as an `HttpNip05Repository` with another `timeout` or `maxResponseBytes`, and cannot be given with `httpClient`.
 
 More in [example/](example/).
 
@@ -87,4 +101,5 @@ The other classes keep their names.
 The deep imports under `package:ndk/` (`config/nip_05_defaults.dart`, `data_layer/repositories/nip_05_http_impl.dart`, `domain_layer/entities/nip_05.dart`, `domain_layer/entities/nip_05_resolve_result.dart`, `domain_layer/repositories/nip_05_repo.dart` and `domain_layer/usecases/nip05/nip_05.dart`) are now `package:dostr_nip05/dostr_nip05.dart`.
 `Nip05Resolver` takes `cache` instead of `database`, which saves `Nip05Record`s, and `Nip05Model` is gone.
 `check` returns a `Nip05CheckResult` to switch on, rather than a `Nip05` whose `valid` was false whether the address pointed elsewhere, did not exist or could not be reached.
-`Nip05` holds only what the domain gives: `valid`, `networkFetchTime` and `copyWith` are gone, `pubKey` is now `pubkey` and never null, and `relays` are `RelayUrl`s.
+`Nip05` holds only what the domain gives: `valid` and `copyWith` are gone, `networkFetchTime` is now the `fetchedAt` of `Nip05Found`, `Nip05Verified` and `Nip05Mismatch`, `pubKey` is now `pubkey` and never null, and `relays` are `RelayUrl`s.
+A redirect is no longer followed, since NIP-05 forbids it.
