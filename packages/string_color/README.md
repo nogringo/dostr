@@ -19,7 +19,7 @@ final name = StringColor.fromText('alice'); // rgb(230, 69, 216)
 final author = StringColor.fromHex(pubkey);
 ```
 
-- `fromText` hashes a name, a label or any other text. It ignores case and surrounding whitespace, and hashes UTF-16 code units, as JavaScript's `charCodeAt` reads them.
+- `fromText` hashes a name, a label or any other text. It ignores case and surrounding whitespace, and hashes UTF-16 code units, as JavaScript's `charCodeAt` reads them. It uppercases as JavaScript's `toUpperCase` does, with Unicode 17, on every platform: `Straße` gets the color of `STRASSE` on the Dart VM too.
 - `fromHex` reads a hex string, such as a pubkey, as one number.
 
 Call the one that matches what you have: `fromText('Dad')` and `fromHex('Dad')` are two different colors.

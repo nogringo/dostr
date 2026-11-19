@@ -35,6 +35,12 @@ void main() {
       expect(StringColor.fromText('😀'), const StringColor(73, 105, 245));
     });
 
+    test('uppercases as JavaScript does, on every platform', () {
+      expect(StringColor.fromText('Straße'), const StringColor(230, 69, 125));
+      expect(StringColor.fromText('ﬁ'), const StringColor(179, 133, 54));
+      expect(StringColor.fromText('ნინო'), const StringColor(54, 179, 112));
+    });
+
     test('matches the big integer hash on a long text', () {
       expect(
         StringColor.fromText(

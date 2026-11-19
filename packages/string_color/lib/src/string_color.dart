@@ -1,3 +1,5 @@
+import 'upper_case_mapping.dart';
+
 /// A color derived from a string as the String Color spec describes, as 8-bit
 /// red, green and blue channels.
 ///
@@ -19,11 +21,11 @@ final class StringColor {
   static const neutralGrey = StringColor(128, 128, 128);
 
   /// The color of [text], such as a name, hashed from the UTF-16 code units of
-  /// its trimmed uppercase form.
+  /// its trimmed form, uppercased as JavaScript's `toUpperCase` does.
   ///
   /// A [text] that is empty once trimmed gets [neutralGrey].
   factory StringColor.fromText(String text) {
-    final normalized = text.trim().toUpperCase();
+    final normalized = _upperCase(text.trim());
     if (normalized.isEmpty) return neutralGrey;
 
     // Reduced mod 360 at each step: the spec's BigInt hue, without the BigInt.
@@ -49,6 +51,12 @@ final class StringColor {
     }
     return _fromHue(hue, warmValue: 0.75);
   }
+
+  // Not String.toUpperCase: the Dart VM keeps ß and uses older Unicode data,
+  // where JavaScript, and so Dart on the web, gives SS.
+  static String _upperCase(String text) => text.runes
+      .map((rune) => upperCaseMapping[rune] ?? String.fromCharCode(rune))
+      .join();
 
   static final _hexDigits = RegExp(r'^[0-9a-fA-F]+$');
 
