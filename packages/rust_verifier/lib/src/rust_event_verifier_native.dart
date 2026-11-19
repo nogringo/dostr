@@ -1,4 +1,5 @@
 import 'dart:ffi';
+import 'dart:typed_data';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip01/hex.dart';
@@ -6,14 +7,8 @@ import 'package:ffi/ffi.dart';
 
 import 'rust_lib.dart' as rust_lib;
 
-/// An implementation of [EventVerifier] that uses native Rust for event verification.
-///
-/// This class provides a bridge between Dart and Rust via FFI using native assets,
-/// allowing for efficient verification of Nostr events using Rust's performance capabilities.
+/// An [EventVerifier] that checks the id and the sig in one native Rust call.
 class RustEventVerifier implements EventVerifier {
-  /// Creates a new instance of [RustEventVerifier].
-  RustEventVerifier();
-
   @override
   Future<bool> verify(Nip01Event event) async {
     final signature = event.sig;
@@ -67,9 +62,9 @@ class RustEventVerifier implements EventVerifier {
       }
 
       final bytes = packed.asTypedList(packedLength);
-      _copyCodeUnits(event.id, bytes, 0);
-      _copyCodeUnits(event.pubkey, bytes, 64);
-      _copyCodeUnits(signature, bytes, 128);
+      _copyHex(event.id, bytes, 0);
+      _copyHex(event.pubkey, bytes, 64);
+      _copyHex(signature, bytes, 128);
 
       return rust_lib.verifyNostrEventPackedNative(
             packed,
@@ -92,7 +87,14 @@ class RustEventVerifier implements EventVerifier {
     }
   }
 
-  static void _copyCodeUnits(String source, List<int> target, int offset) {
+  // Typed targets and plain loops: List<int> or codeUnits copy 3x slower in AOT.
+  static void _copyCodeUnits(String source, Uint16List target, int offset) {
+    for (var index = 0; index < source.length; index++) {
+      target[offset + index] = source.codeUnitAt(index);
+    }
+  }
+
+  static void _copyHex(String source, Uint8List target, int offset) {
     for (var index = 0; index < source.length; index++) {
       target[offset + index] = source.codeUnitAt(index);
     }

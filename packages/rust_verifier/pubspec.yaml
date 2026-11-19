@@ -15,6 +15,13 @@ environment:
 
 resolution: workspace
 
+platforms:
+  android:
+  ios:
+  linux:
+  macos:
+  windows:
+
 dependencies:
   dostr_nip01: ^0.1.0
   hooks: ">=1.0.0 <3.0.0"

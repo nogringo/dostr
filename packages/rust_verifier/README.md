@@ -2,7 +2,8 @@
 
 A fast Nostr event verifier, written in Rust and called through `dart:ffi`.
 `RustEventVerifier` checks the event id and the BIP-340 signature in one native call.
-With `dart run` on an Apple Silicon Mac, it verifies a short note about 25 times faster than `Bip340EventVerifier`, and an event with 264 KiB of tags and content about 5 times faster (`tool/benchmark_rust_event_verifier.dart`).
+On an Apple Silicon Mac, it verifies a short note about 25 times faster than `Bip340EventVerifier` with `dart run`, and about 30 times faster compiled AOT, as in a Flutter release build.
+An event with 264 KiB of tags and content verifies about 9 times faster with `dart run`, and about 6 times faster AOT (`tool/benchmark_rust_event_verifier.dart`, built AOT with `dart build cli`).
 
 Native platforms only (Android, iOS, Linux, macOS, Windows).
 On web, `RustEventVerifier()` throws `UnsupportedError`: use `Bip340EventVerifier`, or `DostrEventVerifier` from `dostr_flutter`, which picks `WebEventVerifier` from `dostr_noble` there.

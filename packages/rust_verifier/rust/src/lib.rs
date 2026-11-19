@@ -49,9 +49,6 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
     {
         return 0;
     }
-    let Ok(pub_key_str) = std::str::from_utf8(pub_key_hex) else {
-        return 0;
-    };
 
     let (content, tag_items) =
         unsafe { slice::from_raw_parts(text, text_len) }.split_at(content_len);
@@ -60,7 +57,7 @@ pub unsafe extern "C" fn verify_nostr_event_packed(
         return 0;
     };
 
-    if compute_event_id(pub_key_str, created_at, kind, &tags, content) != event_id {
+    if compute_event_id(pub_key_hex, created_at, kind, &tags, content) != event_id {
         return 0;
     }
 
@@ -130,33 +127,58 @@ fn verify_schnorr(pub_key: [u8; 32], message: &[u8; 32], signature: [u8; 64]) ->
 
 /// Appends JSON string contents with the escapes of Dart's `json.encode`, which
 /// `JSON.stringify` shares: a lone surrogate becomes `\udxxx`.
-fn push_json_escaped(output: &mut String, value: &[u16]) {
-    for unit in char::decode_utf16(value.iter().copied()) {
-        match unit {
-            Ok('"') => output.push_str("\\\""),
-            Ok('\\') => output.push_str("\\\\"),
-            Ok('\u{08}') => output.push_str("\\b"),
-            Ok('\u{0c}') => output.push_str("\\f"),
-            Ok('\n') => output.push_str("\\n"),
-            Ok('\r') => output.push_str("\\r"),
-            Ok('\t') => output.push_str("\\t"),
-            Ok(c @ '\u{00}'..='\u{1f}') => push_unicode_escape(output, c as u16),
-            Ok(c) => output.push(c),
-            Err(error) => push_unicode_escape(output, error.unpaired_surrogate()),
+fn push_json_escaped(output: &mut Vec<u8>, value: &[u16]) {
+    let mut rest = value;
+    while !rest.is_empty() {
+        let verbatim = rest
+            .iter()
+            .position(|&unit| !is_verbatim_ascii(unit))
+            .unwrap_or(rest.len());
+        output.extend(rest[..verbatim].iter().map(|&unit| unit as u8));
+        rest = &rest[verbatim..];
+
+        match char::decode_utf16(rest.iter().copied()).next() {
+            Some(Ok(c)) => {
+                push_escaped_char(output, c);
+                rest = &rest[c.len_utf16()..];
+            }
+            Some(Err(error)) => {
+                push_unicode_escape(output, error.unpaired_surrogate());
+                rest = &rest[1..];
+            }
+            None => {}
         }
     }
 }
 
-fn push_unicode_escape(output: &mut String, unit: u16) {
+fn is_verbatim_ascii(unit: u16) -> bool {
+    matches!(unit, 0x20..=0x7f) && unit != u16::from(b'"') && unit != u16::from(b'\\')
+}
+
+fn push_escaped_char(output: &mut Vec<u8>, c: char) {
+    match c {
+        '"' => output.extend_from_slice(b"\\\""),
+        '\\' => output.extend_from_slice(b"\\\\"),
+        '\u{08}' => output.extend_from_slice(b"\\b"),
+        '\u{0c}' => output.extend_from_slice(b"\\f"),
+        '\n' => output.extend_from_slice(b"\\n"),
+        '\r' => output.extend_from_slice(b"\\r"),
+        '\t' => output.extend_from_slice(b"\\t"),
+        '\u{00}'..='\u{1f}' => push_unicode_escape(output, c as u16),
+        _ => output.extend_from_slice(c.encode_utf8(&mut [0; 4]).as_bytes()),
+    }
+}
+
+fn push_unicode_escape(output: &mut Vec<u8>, unit: u16) {
     const HEX: &[u8; 16] = b"0123456789abcdef";
-    output.push_str("\\u");
+    output.extend_from_slice(b"\\u");
     for shift in [12, 8, 4, 0] {
-        output.push(HEX[usize::from((unit >> shift) & 0xf)] as char);
+        output.push(HEX[usize::from((unit >> shift) & 0xf)]);
     }
 }
 
 fn compute_event_id(
-    pubkey: &str,
+    pubkey_hex: &[u8],
     created_at: i64,
     kind: i64,
     tags: &[Vec<&[u16]>],
@@ -168,37 +190,37 @@ fn compute_event_id(
             .flatten()
             .map(|item| item.len() + 3)
             .sum::<usize>();
-    let mut serialized_event = String::with_capacity(128 + text_len);
-    serialized_event.push_str("[0,\"");
-    serialized_event.push_str(pubkey);
-    serialized_event.push_str("\",");
-    serialized_event.push_str(&created_at.to_string());
-    serialized_event.push(',');
-    serialized_event.push_str(&kind.to_string());
-    serialized_event.push_str(",[");
+    let mut serialized_event = Vec::with_capacity(128 + text_len);
+    serialized_event.extend_from_slice(b"[0,\"");
+    serialized_event.extend_from_slice(pubkey_hex);
+    serialized_event.extend_from_slice(b"\",");
+    serialized_event.extend_from_slice(created_at.to_string().as_bytes());
+    serialized_event.push(b',');
+    serialized_event.extend_from_slice(kind.to_string().as_bytes());
+    serialized_event.extend_from_slice(b",[");
 
     for (i, tag) in tags.iter().enumerate() {
         if i > 0 {
-            serialized_event.push(',');
+            serialized_event.push(b',');
         }
-        serialized_event.push('[');
+        serialized_event.push(b'[');
         for (j, item) in tag.iter().enumerate() {
             if j > 0 {
-                serialized_event.push(',');
+                serialized_event.push(b',');
             }
-            serialized_event.push('"');
+            serialized_event.push(b'"');
             push_json_escaped(&mut serialized_event, item);
-            serialized_event.push('"');
+            serialized_event.push(b'"');
         }
-        serialized_event.push(']');
+        serialized_event.push(b']');
     }
 
-    serialized_event.push_str("],\"");
+    serialized_event.extend_from_slice(b"],\"");
     push_json_escaped(&mut serialized_event, content);
-    serialized_event.push_str("\"]");
+    serialized_event.extend_from_slice(b"\"]");
 
     let mut event_id = [0u8; 32];
-    event_id.copy_from_slice(Sha256::digest(serialized_event.as_bytes()).as_slice());
+    event_id.copy_from_slice(Sha256::digest(&serialized_event).as_slice());
     event_id
 }
 
@@ -239,12 +261,25 @@ mod tests {
             .map(|tag| tag.iter().map(Vec::as_slice).collect())
             .collect();
         hex::encode(compute_event_id(
-            PUBKEY,
+            PUBKEY.as_bytes(),
             1726215220,
             1,
             &tags,
             &utf16(content),
         ))
+    }
+
+    fn serde_json_event_id(tags: &[Vec<&str>], content: &str) -> String {
+        let serialized = serde_json::to_vec(&serde_json::json!([
+            0,
+            PUBKEY,
+            1726215220u64,
+            1,
+            tags,
+            content
+        ]))
+        .unwrap();
+        hex::encode(Sha256::digest(serialized))
     }
 
     fn verify_note(id: &str, pubkey: &str, sig: &str, content: &str) -> i32 {
@@ -316,19 +351,31 @@ mod tests {
                 (vec![], value.as_str()),
                 (vec![vec!["t", value.as_str()]], ""),
             ] {
-                let serialized = serde_json::to_vec(&serde_json::json!([
-                    0,
-                    PUBKEY,
-                    1726215220u64,
-                    1,
-                    tags,
-                    content
-                ]))
-                .unwrap();
                 assert_eq!(
                     event_id_of(&tags, content),
-                    hex::encode(Sha256::digest(serialized)),
+                    serde_json_event_id(&tags, content),
                     "control character {code:#04x}, tags: {tags:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn hash_event_data_writes_non_ascii_text_as_utf8_between_ascii_runs() {
+        for value in [
+            "café",
+            "日本語",
+            "🌍",
+            "Привет мир",
+            "a\"b\\c",
+            "x\u{7f}y\u{2028}z",
+            "mixed 日本 🌍 \"q\" \\ end\n",
+        ] {
+            for (tags, content) in [(vec![], value), (vec![vec!["t", value]], "")] {
+                assert_eq!(
+                    event_id_of(&tags, content),
+                    serde_json_event_id(&tags, content),
+                    "value: {value:?}, tags: {tags:?}"
                 );
             }
         }
@@ -344,9 +391,13 @@ mod tests {
             (&[0xd800, 0xd83c, 0xdf0d], "\\ud800🌍"),
             (&[0xd83c, 0xdf0d], "🌍"),
         ] {
-            let mut output = String::new();
+            let mut output = Vec::new();
             push_json_escaped(&mut output, units);
-            assert_eq!(output, expected, "code units {units:04x?}");
+            assert_eq!(
+                String::from_utf8(output).unwrap(),
+                expected,
+                "code units {units:04x?}"
+            );
         }
     }
 
