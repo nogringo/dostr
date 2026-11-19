@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:convert';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
@@ -45,6 +47,14 @@ class HomeRelayList {
   /// Loads the list event served as JSON at [url], once [verifier] checked it
   /// is signed by [author] (hex).
   ///
+  /// The request goes through [client], which stays open, or through a client
+  /// of its own when none is given.
+  ///
+  /// Throws a [TimeoutException] past [timeout], which covers the whole
+  /// response and aborts the request, so it does not hold a socket of
+  /// [client]. It holds with a client that ignores `abortTrigger` too, which
+  /// then keeps its socket.
+  ///
   /// Throws a [FormatException] for a list of another author, since anyone
   /// can sign a forged one, or with an invalid id or signature.
   static Future<HomeRelayList> fetch({
@@ -52,20 +62,32 @@ class HomeRelayList {
     String url = defaultHomeRelayListUrl,
     String author = defaultHomeRelayListAuthor,
     Duration timeout = const Duration(seconds: 5),
+    http.Client? client,
   }) async {
     final uri = Uri.parse(url);
-    final client = http.Client();
+    final httpClient = client ?? http.Client();
+    final abort = Completer<void>();
+    final timer = Timer(timeout, abort.complete);
+    final request = http.AbortableRequest(
+      'GET',
+      uri,
+      abortTrigger: abort.future,
+    );
     final Nip01Event event;
     try {
-      final response = await client.get(uri).timeout(timeout);
-      if (response.statusCode != 200) {
-        throw http.ClientException('HTTP ${response.statusCode}', uri);
+      final (statusCode, body) = await _send(httpClient, request, abort.future);
+      if (statusCode != 200) {
+        throw http.ClientException('HTTP $statusCode', uri);
       }
       event =
-          Nip01Event.tryFromJson(jsonDecode(utf8.decode(response.bodyBytes))) ??
+          Nip01Event.tryFromJson(jsonDecode(utf8.decode(body))) ??
           (throw FormatException('the list at $url is not a Nostr event'));
+    } on http.RequestAbortedException {
+      if (abort.isCompleted) throw TimeoutException('$uri', timeout);
+      rethrow;
     } finally {
-      client.close();
+      timer.cancel();
+      if (client == null) httpClient.close();
     }
     if (event.pubkey != author) {
       throw FormatException('the list at $url is not signed by $author');
@@ -74,6 +96,48 @@ class HomeRelayList {
       throw FormatException('the list at $url has an invalid signature');
     }
     return HomeRelayList.fromEvent(event);
+  }
+
+  /// The status and body of the response to [request], or a
+  /// [http.RequestAbortedException] once [abort] completes, from a client
+  /// that ignores it too.
+  static Future<(int, Uint8List)> _send(
+    http.Client client,
+    http.BaseRequest request,
+    Future<void> abort,
+  ) {
+    final result = Completer<(int, Uint8List)>();
+    void fail(Object error, StackTrace stackTrace) {
+      if (!result.isCompleted) result.completeError(error, stackTrace);
+    }
+
+    StreamSubscription<List<int>>? body;
+    unawaited(
+      abort.then((_) {
+        body?.cancel().ignore();
+        fail(http.RequestAbortedException(request.url), StackTrace.current);
+      }),
+    );
+    unawaited(
+      client.send(request).then((response) {
+        if (result.isCompleted) {
+          response.stream.listen(null).cancel().ignore();
+          return;
+        }
+        final bytes = BytesBuilder(copy: false);
+        body = response.stream.listen(
+          bytes.add,
+          onError: fail,
+          onDone: () {
+            if (!result.isCompleted) {
+              result.complete((response.statusCode, bytes.takeBytes()));
+            }
+          },
+          cancelOnError: true,
+        );
+      }, onError: fail),
+    );
+    return result.future;
   }
 
   /// The home relays of [pubkey] (hex): the [count] candidates closest to it,

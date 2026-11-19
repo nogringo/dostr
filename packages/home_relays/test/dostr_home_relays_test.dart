@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,7 +7,32 @@ import 'package:dostr_home_relays/dostr_home_relays.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:test/test.dart';
+
+class ClosingClient extends MockClient {
+  var closed = false;
+
+  ClosingClient(super.fn);
+
+  ClosingClient.streaming(super.fn) : super.streaming();
+
+  @override
+  void close() {
+    closed = true;
+    super.close();
+  }
+}
+
+/// A client that ignores the abort trigger, as one written before it.
+class IgnoringAbort extends http.BaseClient {
+  final Future<http.StreamedResponse> response;
+
+  IgnoringAbort(this.response);
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) => response;
+}
 
 Nip01Event list(List<List<String>> tags) => Nip01Event(
   pubkey: 'a' * 64,
@@ -107,6 +133,8 @@ void main() {
   });
 
   group('fetch', () {
+    const listUrl = 'https://home-relays.example.com/list.json';
+    const timeout = Duration(milliseconds: 50);
     final verifier = Bip340EventVerifier();
     final author = Bip340.generateKeyPair();
     final other = Bip340.generateKeyPair();
@@ -137,6 +165,29 @@ void main() {
 
       expect(list.candidates, ['wss://a.example.com']);
     });
+
+    test(
+      'sends the request with the given client and leaves it open',
+      () async {
+        final event = listEvent(author.publicKey, author);
+        final requested = <Uri>[];
+        final client = ClosingClient((request) async {
+          requested.add(request.url);
+          return http.Response(jsonEncode(event.toJson()), 200);
+        });
+
+        final list = await HomeRelayList.fetch(
+          verifier: verifier,
+          url: listUrl,
+          author: author.publicKey,
+          client: client,
+        );
+
+        expect(list.candidates, ['wss://a.example.com']);
+        expect(requested, [Uri.parse(listUrl)]);
+        expect(client.closed, isFalse);
+      },
+    );
 
     test('rejects a list of another author', () {
       expect(fetch(listEvent(other.publicKey, other)), throwsFormatException);
@@ -180,6 +231,70 @@ void main() {
         HomeRelayList.fetch(verifier: verifier, url: url),
         throwsA(isA<http.ClientException>()),
       );
+    });
+
+    test('aborts the request of the given client past the timeout', () async {
+      var aborted = false;
+      final client = ClosingClient.streaming((request, _) async {
+        await (request as http.Abortable).abortTrigger!;
+        aborted = true;
+        throw http.RequestAbortedException(request.url);
+      });
+
+      await expectLater(
+        HomeRelayList.fetch(
+          verifier: verifier,
+          url: listUrl,
+          timeout: timeout,
+          client: client,
+        ),
+        throwsA(isA<TimeoutException>()),
+      );
+      expect(aborted, isTrue);
+      expect(client.closed, isFalse);
+    });
+
+    group('with a client that ignores the abort trigger', () {
+      test('the timeout holds, and a later response is cancelled', () async {
+        final response = Completer<http.StreamedResponse>();
+        var cancelled = false;
+        final body = StreamController<List<int>>(
+          onCancel: () => cancelled = true,
+        );
+
+        await expectLater(
+          HomeRelayList.fetch(
+            verifier: verifier,
+            url: listUrl,
+            timeout: timeout,
+            client: IgnoringAbort(response.future),
+          ),
+          throwsA(isA<TimeoutException>()),
+        );
+        response.complete(http.StreamedResponse(body.stream, 200));
+        await pumpEventQueue();
+        expect(cancelled, isTrue);
+      });
+
+      test('the timeout cancels a body that never ends', () async {
+        var cancelled = false;
+        final body = StreamController<List<int>>(
+          onCancel: () => cancelled = true,
+        );
+
+        await expectLater(
+          HomeRelayList.fetch(
+            verifier: verifier,
+            url: listUrl,
+            timeout: timeout,
+            client: IgnoringAbort(
+              Future.value(http.StreamedResponse(body.stream, 200)),
+            ),
+          ),
+          throwsA(isA<TimeoutException>()),
+        );
+        expect(cancelled, isTrue);
+      });
     });
   });
 }

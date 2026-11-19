@@ -27,7 +27,9 @@ final homeRelays = list.homeRelaysOf(pubkey);
 
 `HomeRelayList.fetch` loads the list nmail.li serves at `defaultHomeRelayListUrl` and checks it is signed by `defaultHomeRelayListAuthor`.
 Pass `url` and `author` to load another one.
+Pass `client` to send the request with your own `http.Client`, which it leaves open.
 It throws a `FormatException` for a list of another author or with an invalid signature, and an `http.ClientException` when the server fails.
+Past `timeout`, 5 seconds by default, it aborts the request and throws a `TimeoutException`.
 
 A list read from relays goes through `HomeRelayList.fromEvent`, and a list of urls through `HomeRelayList(urls)`.
 Either way the candidates are normalized and kept once.
