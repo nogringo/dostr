@@ -90,12 +90,24 @@ class HttpRelayInfoRepository implements RelayInfoRepository {
     }
 
     if ((response.contentLength ?? 0) > maxBytes) return tooLarge();
+    // not an `await for`: on DDC, leaving one escapes the fake async zone of
+    // testWidgets, so pump never ends the read
     final bytes = BytesBuilder(copy: false);
-    await for (final chunk in response.stream) {
-      bytes.add(chunk);
-      if (bytes.length > maxBytes) return tooLarge();
-    }
-    return bytes.takeBytes();
+    final read = Completer<Uint8List?>();
+    late final StreamSubscription<List<int>> subscription;
+    subscription = response.stream.listen(
+      (chunk) {
+        bytes.add(chunk);
+        if (bytes.length > maxBytes) {
+          subscription.cancel().ignore();
+          read.complete(tooLarge());
+        }
+      },
+      onError: read.completeError,
+      onDone: () => read.complete(bytes.takeBytes()),
+      cancelOnError: true,
+    );
+    return read.future;
   }
 }
 
