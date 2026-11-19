@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:ffi';
 
 import 'package:dostr_nip01/dostr_nip01.dart';
@@ -26,53 +25,51 @@ class RustEventVerifier implements EventVerifier {
     }
 
     // Id derivation and Schnorr verification both happen in one native call.
-    // Strings cross as bytes with explicit lengths: as C strings, a NUL would
-    // cut what Rust hashes.
-    final content = utf8.encode(event.content);
-    final tagItems = [
-      for (final tag in event.tags)
-        for (final item in tag) utf8.encode(item),
-    ];
+    // Strings cross as UTF-16 code units with explicit lengths: as UTF-8, a
+    // lone surrogate would turn into U+FFFD, and as C strings a NUL would cut
+    // what Rust hashes.
+    final content = event.content;
+    final tags = event.tags;
     var textLength = content.length;
-    for (final item in tagItems) {
-      textLength += item.length;
+    var itemCount = 0;
+    for (final tag in tags) {
+      itemCount += tag.length;
+      for (final item in tag) {
+        textLength += item.length;
+      }
     }
 
     const packedLength = 64 + 64 + 128;
     final packed = malloc<Uint8>(packedLength);
-    Pointer<Uint8> text = nullptr;
+    Pointer<Uint16> text = nullptr;
     Pointer<Uint32> tagSizes = nullptr;
     Pointer<Uint32> tagItemLengths = nullptr;
 
     // Every allocation below must happen inside the try block: if one throws
     // (e.g. native OOM) partway through, prior allocations must still be freed.
     try {
-      text = malloc<Uint8>(textLength > 0 ? textLength : 1);
-      final textBytes = text.asTypedList(textLength)..setAll(0, content);
+      text = malloc<Uint16>(textLength > 0 ? textLength : 1);
+      final units = text.asTypedList(textLength);
+      _copyCodeUnits(content, units, 0);
       var offset = content.length;
-      for (final item in tagItems) {
-        textBytes.setAll(offset, item);
-        offset += item.length;
-      }
 
-      final tagsCount = event.tags.length;
-      if (tagsCount > 0) {
-        tagSizes = malloc<Uint32>(tagsCount);
-        for (var i = 0; i < tagsCount; i++) {
-          tagSizes[i] = event.tags[i].length;
-        }
-      }
-      if (tagItems.isNotEmpty) {
-        tagItemLengths = malloc<Uint32>(tagItems.length);
-        for (var i = 0; i < tagItems.length; i++) {
-          tagItemLengths[i] = tagItems[i].length;
+      if (tags.isNotEmpty) tagSizes = malloc<Uint32>(tags.length);
+      if (itemCount > 0) tagItemLengths = malloc<Uint32>(itemCount);
+      var itemIndex = 0;
+      for (var tagIndex = 0; tagIndex < tags.length; tagIndex++) {
+        final tag = tags[tagIndex];
+        tagSizes[tagIndex] = tag.length;
+        for (final item in tag) {
+          tagItemLengths[itemIndex++] = item.length;
+          _copyCodeUnits(item, units, offset);
+          offset += item.length;
         }
       }
 
       final bytes = packed.asTypedList(packedLength);
-      _copyAscii(event.id, bytes, 0);
-      _copyAscii(event.pubkey, bytes, 64);
-      _copyAscii(signature, bytes, 128);
+      _copyCodeUnits(event.id, bytes, 0);
+      _copyCodeUnits(event.pubkey, bytes, 64);
+      _copyCodeUnits(signature, bytes, 128);
 
       return rust_lib.verifyNostrEventPackedNative(
             packed,
@@ -84,7 +81,7 @@ class RustEventVerifier implements EventVerifier {
             content.length,
             tagSizes,
             tagItemLengths,
-            tagsCount,
+            tags.length,
           ) ==
           1;
     } finally {
@@ -95,10 +92,9 @@ class RustEventVerifier implements EventVerifier {
     }
   }
 
-  static void _copyAscii(String source, List<int> target, int offset) {
-    final codeUnits = source.codeUnits;
-    for (var index = 0; index < codeUnits.length; index++) {
-      target[offset + index] = codeUnits[index];
+  static void _copyCodeUnits(String source, List<int> target, int offset) {
+    for (var index = 0; index < source.length; index++) {
+      target[offset + index] = source.codeUnitAt(index);
     }
   }
 }

@@ -11,14 +11,14 @@ topics:
   - ffi
 
 environment:
-  sdk: ">=3.9.0 <4.0.0"
+  sdk: ">=3.10.0 <4.0.0"
 
 resolution: workspace
 
 dependencies:
   dostr_nip01: ^0.1.0
   hooks: ">=1.0.0 <3.0.0"
-  native_toolchain_rust: ^1.0.7
+  native_toolchain_rust: ^1.1.1
   ffi: ^2.2.0
 
 dev_dependencies:

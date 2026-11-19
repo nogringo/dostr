@@ -1,22 +1,19 @@
 import 'dart:ffi';
 
-/// Verifies id derivation and the Schnorr signature of a Nostr event from one
-/// packed ASCII buffer containing event id (64 bytes), pubkey (64 bytes), and
-/// signature (128 bytes), plus the remaining fields needed to recompute the id
-/// hash. Replaces the previous
-/// `Nip01Event.hasValidId` (Dart-side JSON re-serialization and re-hashing) with
-/// a single native call.
+/// Verifies the id and the Schnorr signature of a Nostr event in one call.
 ///
-/// [text] holds the UTF-8 content (its first [contentLength] bytes) followed by
-/// every tag item. [tagSizes] gives the item count of each tag and
-/// [tagItemLengths] the byte length of each item.
+/// [packed] holds the id (64 bytes), the pubkey (64 bytes) and the signature
+/// (128 bytes) as lowercase hex. [text] holds the UTF-16 content (its first
+/// [contentLength] code units) followed by every tag item. [tagSizes] gives the
+/// item count of each tag and [tagItemLengths] the length of each item, in
+/// code units.
 @Native<
   Int32 Function(
     Pointer<Uint8>, // packed
     IntPtr, // packedLength
     Int64, // createdAt
     Int64, // kind
-    Pointer<Uint8>, // text
+    Pointer<Uint16>, // text
     IntPtr, // textLength
     IntPtr, // contentLength
     Pointer<Uint32>, // tagSizes
@@ -29,7 +26,7 @@ external int verifyNostrEventPackedNative(
   int packedLength,
   int createdAt,
   int kind,
-  Pointer<Uint8> text,
+  Pointer<Uint16> text,
   int textLength,
   int contentLength,
   Pointer<Uint32> tagSizes,

@@ -25,9 +25,18 @@ Future<void> main() async {
     ),
   );
   final verifier = RustEventVerifier();
+  const bip340Verifier = Bip340EventVerifier();
 
   final results = <Map<String, Object>>[
     await _benchmark(verifier, event, name: 'RustEventVerifier.verify'),
+    // The baseline the README compares against, verified in Dart.
+    await _benchmark(
+      bip340Verifier,
+      event,
+      name: 'Bip340EventVerifier.verify',
+      warmupIterations: 50,
+      sampleIterations: 200,
+    ),
   ];
 
   // Build and sign the larger fixture outside the timed verification loops.
@@ -45,39 +54,55 @@ Future<void> main() async {
       content: largeContent,
     ),
   );
-  results.add(
+  const largeDetails = '; 200 tags with 1 KiB values, 64 KiB content';
+  results.addAll([
     await _benchmark(
       verifier,
       largeEvent,
       name: 'RustEventVerifier.verify.large_event',
       warmupIterations: 100,
       sampleIterations: 500,
-      details: '; 200 tags with 1 KiB values, 64 KiB content',
+      details: largeDetails,
     ),
-  );
+    await _benchmark(
+      bip340Verifier,
+      largeEvent,
+      name: 'Bip340EventVerifier.verify.large_event',
+      warmupIterations: 20,
+      sampleIterations: 100,
+      details: largeDetails,
+    ),
+  ]);
 
   print(jsonEncode(results));
 }
 
 Future<Map<String, Object>> _benchmark(
-  RustEventVerifier verifier,
+  EventVerifier verifier,
   Nip01Event event, {
   required String name,
   int warmupIterations = _warmupIterations,
   int sampleIterations = _sampleIterations,
   String details = '',
 }) async {
-  for (var iteration = 0; iteration < warmupIterations; iteration++) {
-    if (!await verifier.verify(event)) {
+  // Nip01Event caches its payload id, so verifying the same instance again
+  // would skip the hashing: each operation gets a fresh event, as from a relay.
+  final json = event.toJson();
+  List<Nip01Event> freshEvents(int count) =>
+      List.generate(count, (_) => Nip01Event.fromJson(json));
+
+  for (final fresh in freshEvents(warmupIterations)) {
+    if (!await verifier.verify(fresh)) {
       throw StateError('$name warmup verification failed.');
     }
   }
 
   final samples = <double>[];
   for (var sample = 0; sample < _sampleCount; sample++) {
+    final events = freshEvents(sampleIterations);
     final stopwatch = Stopwatch()..start();
-    for (var iteration = 0; iteration < sampleIterations; iteration++) {
-      if (!await verifier.verify(event)) {
+    for (final fresh in events) {
+      if (!await verifier.verify(fresh)) {
         throw StateError('$name verification failed.');
       }
     }

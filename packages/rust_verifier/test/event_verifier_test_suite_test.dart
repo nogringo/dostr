@@ -1,6 +1,10 @@
+@TestOn('vm')
+library;
+
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_event_verifier_test_suite/dostr_event_verifier_test_suite.dart';
 import 'package:dostr_rust_verifier/dostr_rust_verifier.dart';
+import 'package:test/test.dart';
 
 void main() {
   runEventVerifierTestSuite(

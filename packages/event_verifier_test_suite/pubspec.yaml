@@ -1,6 +1,6 @@
 name: dostr_event_verifier_test_suite
 description: Shared test suite for Nostr EventVerifier implementations, so every verifier accepts and rejects the same events.
-version: 0.1.0
+version: 0.1.1
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
 

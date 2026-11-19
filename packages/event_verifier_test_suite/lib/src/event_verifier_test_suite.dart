@@ -103,6 +103,26 @@ void runEventVerifierTestSuite({
             ],
           ),
         },
+        for (final (name, value) in _loneSurrogates) ...{
+          'with $name in its content': () =>
+              sign(content: 'before${value}after'),
+          'with $name in a tag': () => sign(
+            tags: [
+              ['t', 'before${value}after'],
+            ],
+          ),
+        },
+        'with a surrogate pair split between two tag items': () => sign(
+          tags: [
+            ['\uD83C', '\uDF0D'],
+          ],
+        ),
+        'with a surrogate pair split between its content and a tag': () => sign(
+          tags: [
+            ['\uDF0D'],
+          ],
+          content: '\uD83C',
+        ),
       };
 
       for (final MapEntry(key: shape, value: signEvent) in shapes.entries) {
@@ -187,6 +207,36 @@ void runEventVerifierTestSuite({
         final forged = event.copyWith(id: event.id, pubkey: other.publicKey);
 
         expect(await verifier.verify(forged), isFalse);
+      });
+
+      // As UTF-8, a lone surrogate turns into the U+FFFD that was signed.
+      test(
+        'with a U+FFFD in its content swapped for a lone surrogate',
+        () async {
+          final signed = await sign(content: 'before�after');
+          final swapped = signed.copyWith(
+            id: signed.id,
+            content: 'before\uD800after',
+          );
+
+          expect(await verifier.verify(swapped), isFalse);
+        },
+      );
+
+      test('with a U+FFFD in a tag swapped for a lone surrogate', () async {
+        final signed = await sign(
+          tags: [
+            ['t', 'before�after'],
+          ],
+        );
+        final swapped = signed.copyWith(
+          id: signed.id,
+          tags: [
+            ['t', 'before\uD800after'],
+          ],
+        );
+
+        expect(await verifier.verify(swapped), isFalse);
       });
     });
 
@@ -325,6 +375,13 @@ void runEventVerifierTestSuite({
     });
   });
 }
+
+// JSON.stringify and json.encode write each of these as \udxxx escapes.
+const _loneSurrogates = [
+  ('a lone lead surrogate', '\uD800'),
+  ('a lone trail surrogate', '\uDFFF'),
+  ('a surrogate pair in reverse order', '\uDF0D\uD83C'),
+];
 
 String? _withPlusSign(String hex) {
   for (var index = 0; index < hex.length; index += 2) {

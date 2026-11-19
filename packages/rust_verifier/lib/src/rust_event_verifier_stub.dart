@@ -1,21 +1,16 @@
 import 'package:dostr_nip01/dostr_nip01.dart';
 
-/// Stub implementation of [RustEventVerifier] for platforms that don't support FFI (e.g., web).
-///
-/// This class throws [UnsupportedError] for all operations since Rust FFI
-/// is not available on web platforms.
+const _unsupported =
+    'RustEventVerifier needs dart:ffi, which this platform lacks: use '
+    'Bip340EventVerifier, or DostrEventVerifier from dostr_flutter.';
+
+/// [RustEventVerifier] on platforms without `dart:ffi`, such as the web.
 class RustEventVerifier implements EventVerifier {
-  /// Creates a new instance of [RustEventVerifier].
-  ///
-  /// Note: On web platforms, this verifier is not functional and will throw
-  /// [UnsupportedError] when [verify] is called.
-  RustEventVerifier();
+  /// Throws [UnsupportedError]: this platform cannot call native code.
+  RustEventVerifier() {
+    throw UnsupportedError(_unsupported);
+  }
 
   @override
-  Future<bool> verify(Nip01Event event) async {
-    throw UnsupportedError(
-      'RustEventVerifier is not available on this platform. '
-      'Use Bip340EventVerifier instead for web platforms.',
-    );
-  }
+  Future<bool> verify(Nip01Event event) => throw UnsupportedError(_unsupported);
 }

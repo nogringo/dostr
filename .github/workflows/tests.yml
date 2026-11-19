@@ -28,6 +28,8 @@ jobs:
             test_command: dart test && dart test -p chrome -c dart2wasm
           - package: noble
             test_command: dart test && dart test -p chrome -c dart2wasm
+          - package: rust_verifier
+            test_command: dart test && dart test -p chrome && dart test -p chrome -c dart2wasm
           - package: string_color
             test_command: dart test && dart test -p chrome && dart test -p chrome -c dart2wasm
           - package: nip55

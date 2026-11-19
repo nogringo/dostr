@@ -1,3 +1,6 @@
+@TestOn('vm')
+library;
+
 import 'dart:ffi';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
@@ -26,7 +29,7 @@ void main() {
       const oversizedLength = packedLength + 10;
       final truncatedPacked = calloc<Uint8>(packedLength - 10);
       final packed = malloc<Uint8>(oversizedLength);
-      final text = calloc<Uint8>(1);
+      final text = calloc<Uint16>(1);
 
       try {
         packed.asTypedList(packedLength).fillRange(0, packedLength, 0x7a);
