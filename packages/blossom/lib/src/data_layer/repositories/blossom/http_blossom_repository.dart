@@ -31,7 +31,7 @@ Uri _endpoint(BlossomServerUrl serverUrl, String path) =>
 /// the error for [serverUrl] serving bytes that hash to [actual] when asked for
 /// the blob [sha256], null when they are that blob
 BlossomHashMismatchException? _mismatch(
-  String serverUrl,
+  BlossomServerUrl serverUrl,
   String sha256,
   String actual,
 ) => actual == sha256.toLowerCase()
@@ -47,7 +47,7 @@ BlossomHashMismatchException? _mismatch(
 Stream<BlobResponse> _verified(
   Stream<BlobResponse> chunks,
   String sha256,
-  String serverUrl,
+  BlossomServerUrl serverUrl,
 ) {
   late crypto.Digest digest;
   final hashing = crypto.sha256.startChunkedConversion(
@@ -86,7 +86,7 @@ int? _statusCode(Object error) =>
 String? _reason(Object error) =>
     error is HttpRequestException ? error.headers['x-reason'] : null;
 
-BlobUploadResult _uploadFailure(String serverUrl, Object error) =>
+BlobUploadResult _uploadFailure(BlossomServerUrl serverUrl, Object error) =>
     BlobUploadResult(
       serverUrl: serverUrl,
       success: false,
@@ -95,13 +95,15 @@ BlobUploadResult _uploadFailure(String serverUrl, Object error) =>
       reason: _reason(error),
     );
 
-BlobUploadResult _uploadSuccess(String serverUrl, http.Response response) =>
-    BlobUploadResult(
-      serverUrl: serverUrl,
-      success: true,
-      descriptor: BlobDescriptor.fromJson(jsonDecode(response.body)),
-      statusCode: response.statusCode,
-    );
+BlobUploadResult _uploadSuccess(
+  BlossomServerUrl serverUrl,
+  http.Response response,
+) => BlobUploadResult(
+  serverUrl: serverUrl,
+  success: true,
+  descriptor: BlobDescriptor.fromJson(jsonDecode(response.body)),
+  statusCode: response.statusCode,
+);
 
 /// The first error of a stream delegated with `yield*`. Unlike `await for`,
 /// which only notices a cancelled listener at the next event, `yield*` cancels
@@ -121,7 +123,10 @@ class _Caught {
 
   /// Adds the failed upload to [results], unless it was aborted, which ends
   /// the whole operation instead.
-  void recordUploadFailure(String serverUrl, List<BlobUploadResult> results) {
+  void recordUploadFailure(
+    BlossomServerUrl serverUrl,
+    List<BlobUploadResult> results,
+  ) {
     final error = this.error;
     if (error == null) return;
     if (error is http.RequestAbortedException) raise();
@@ -292,9 +297,7 @@ class HttpBlossomRepository implements BlossomRepository {
     // If we found a working server, mirror to all other servers that haven't been tried yet
     final uploaded = successfulUpload;
     if (uploaded != null) {
-      final successIndex = serverUrls.indexWhere(
-        (url) => url == uploaded.serverUrl,
-      );
+      final successIndex = serverUrls.indexOf(uploaded.serverUrl);
       final remainingServers = serverUrls.sublist(successIndex + 1);
 
       if (remainingServers.isNotEmpty) {
@@ -683,7 +686,7 @@ class HttpBlossomRepository implements BlossomRepository {
     int? start,
     int? end,
   }) async {
-    final errors = <String, Object>{};
+    final errors = <BlossomServerUrl, Object>{};
 
     Map<String, String> headersFor(Nip01Event? authEvent) => {
       // Create range header in format "bytes=start-end"
@@ -733,7 +736,7 @@ class HttpBlossomRepository implements BlossomRepository {
     required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
-    final errors = <String, Object>{};
+    final errors = <BlossomServerUrl, Object>{};
 
     for (final url in serverUrls) {
       final blobUrl = _endpoint(url, sha256);
@@ -878,7 +881,7 @@ class HttpBlossomRepository implements BlossomRepository {
     required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
   }) async {
-    final errors = <String, Object>{};
+    final errors = <BlossomServerUrl, Object>{};
 
     for (final url in serverUrls) {
       try {
@@ -922,7 +925,7 @@ class HttpBlossomRepository implements BlossomRepository {
     DateTime? until,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
-    final errors = <String, Object>{};
+    final errors = <BlossomServerUrl, Object>{};
     final queryParams = <String, String>{
       if (since != null) 'since': '${since.millisecondsSinceEpoch ~/ 1000}',
       if (until != null) 'until': '${until.millisecondsSinceEpoch ~/ 1000}',

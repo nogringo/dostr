@@ -1,3 +1,5 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
+
 import '../../data_layer/http/blossom_http.dart';
 
 /// Thrown when no server served a read: each one failed or refused it.
@@ -7,7 +9,7 @@ class BlossomRequestException implements Exception {
 
   /// why each server failed, by server url, in the order they were tried. An
   /// [HttpRequestException] carries the status the server answered with.
-  final Map<String, Object> errors;
+  final Map<BlossomServerUrl, Object> errors;
 
   BlossomRequestException(this.operation, this.errors);
 

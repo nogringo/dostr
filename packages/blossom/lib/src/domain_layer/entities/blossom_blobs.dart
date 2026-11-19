@@ -1,5 +1,7 @@
 import 'dart:typed_data';
 
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
+
 int _parseSize(dynamic size) {
   if (size is int) {
     return size;
@@ -60,7 +62,7 @@ class BlobDescriptor {
 
 /// Result of a blob upload
 class BlobUploadResult {
-  final String serverUrl;
+  final BlossomServerUrl serverUrl;
   final bool success;
   final BlobDescriptor? descriptor;
   final String? error;
@@ -86,7 +88,7 @@ class BlobUploadResult {
 /// A server's answer to whether it would accept an upload, before the blob is
 /// sent [BUD-06]
 class BlobUploadCheck {
-  final String serverUrl;
+  final BlossomServerUrl serverUrl;
 
   /// HTTP status the server answered with, such as 413 for a blob over its
   /// size limit. Null when no answer came back, see [error].
@@ -109,7 +111,7 @@ class BlobUploadCheck {
 
 /// Result of a blob delete
 class BlobDeleteResult {
-  final String serverUrl;
+  final BlossomServerUrl serverUrl;
   final bool success;
   final String? error;
 

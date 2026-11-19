@@ -83,7 +83,7 @@ Cancelling the subscription to an upload stream, such as `uploadBlobFromFile`, a
 ## Errors
 
 A read that no server served (`getBlob`, `checkBlob`, `getBlobStream`, `downloadBlobToFile`, `listBlobs`) throws a `BlossomRequestException`.
-Its `errors` say why each server failed, in the order they were tried: an `HttpRequestException` carries the status the server answered with.
+Its `errors` say why each server failed, by server url, in the order they were tried: an `HttpRequestException` carries the status the server answered with.
 
 ```dart
 try {
@@ -102,6 +102,8 @@ An operation with no server to talk to throws a `BlossomNoServerListException` b
 Its `pubkey` says whose list is missing.
 
 Writes report each server in their results instead: `BlobUploadResult` and `BlobDeleteResult` say whether that server succeeded, and why not.
+
+Every server url these results and exceptions give is a `BlossomServerUrl`, normalized, so it compares equal to the url `BlossomServerUrl.tryParse` makes from any spelling of that server.
 
 ## Server authentication (BUD-01)
 

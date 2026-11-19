@@ -103,6 +103,18 @@ void main() {
     );
   });
 
+  test('the results name each server normalized', () async {
+    final results = await blossom.deleteBlob(
+      sha256: _hash,
+      serverUrls: ['HTTPS://A.example:443/', 'https://b.example/'],
+    );
+
+    expect(results.map((result) => result.serverUrl), [
+      'https://a.example',
+      'https://b.example',
+    ]);
+  });
+
   test('a server url it refuses is never asked', () async {
     await blossom.deleteBlob(
       sha256: _hash,
