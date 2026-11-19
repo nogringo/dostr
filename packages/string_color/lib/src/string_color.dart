@@ -26,7 +26,7 @@ final class StringColor {
   ///
   /// A [text] that is empty once trimmed gets [neutralGrey].
   factory StringColor.fromText(String text) {
-    final normalized = _upperCase(text.replaceAll(_surroundingWhitespace, ''));
+    final normalized = _upperCase(_trim(text));
     if (normalized.isEmpty) return neutralGrey;
 
     // Reduced mod 360 at each step: the spec's BigInt hue, without the BigInt.
@@ -53,9 +53,35 @@ final class StringColor {
     return _fromHue(hue, warmValue: 0.75);
   }
 
-  // Not String.trim, which also removes U+0085: `\s` is JavaScript's
-  // whitespace on every platform.
-  static final _surroundingWhitespace = RegExp(r'^\s+|\s+$');
+  // Not String.trim, which also removes U+0085, and not a `\s+$` regex, which
+  // takes quadratic time on a long run of inner whitespace.
+  static String _trim(String text) {
+    var start = 0;
+    var end = text.length;
+    while (start < end && _isWhitespace(text.codeUnitAt(start))) {
+      start++;
+    }
+    while (end > start && _isWhitespace(text.codeUnitAt(end - 1))) {
+      end--;
+    }
+    return text.substring(start, end);
+  }
+
+  // ECMAScript's WhiteSpace and LineTerminator, what JavaScript's trim removes.
+  static bool _isWhitespace(int unit) => switch (unit) {
+    >= 0x09 && <= 0x0D ||
+    0x20 ||
+    0xA0 ||
+    0x1680 ||
+    >= 0x2000 && <= 0x200A ||
+    0x2028 ||
+    0x2029 ||
+    0x202F ||
+    0x205F ||
+    0x3000 ||
+    0xFEFF => true,
+    _ => false,
+  };
 
   // Not String.toUpperCase: the Dart VM keeps ß and uses older Unicode data,
   // where JavaScript, and so Dart on the web, gives SS.

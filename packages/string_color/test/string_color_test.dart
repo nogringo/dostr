@@ -44,6 +44,29 @@ void main() {
       );
     });
 
+    test('trims every JavaScript whitespace, and only those', () {
+      final bob = StringColor.fromText('Bob');
+      const whitespace =
+          '\t\n\v\f\r \u{A0}\u{1680}\u{2000}\u{2001}\u{2002}\u{2003}\u{2004}'
+          '\u{2005}\u{2006}\u{2007}\u{2008}\u{2009}\u{200A}\u{2028}\u{2029}'
+          '\u{202F}\u{205F}\u{3000}\u{FEFF}';
+      for (final space in whitespace.split('')) {
+        final reason = space.codeUnitAt(0).toRadixString(16);
+        expect(StringColor.fromText('${space}Bob$space'), bob, reason: reason);
+      }
+      for (final kept in '\u{85}\u{180E}\u{200B}'.split('')) {
+        final reason = kept.codeUnitAt(0).toRadixString(16);
+        expect(StringColor.fromText('Bob$kept'), isNot(bob), reason: reason);
+      }
+    });
+
+    test('keeps a long run of inner whitespace, in linear time', () {
+      expect(
+        StringColor.fromText('Bob${' ' * 100000}Bob'),
+        const StringColor(54, 133, 179),
+      );
+    });
+
     test('uppercases as JavaScript does, on every platform', () {
       expect(StringColor.fromText('Straße'), const StringColor(230, 69, 125));
       expect(StringColor.fromText('ﬁ'), const StringColor(179, 133, 54));
@@ -79,6 +102,23 @@ void main() {
 
     test('matches the big integer on a long hex', () {
       expect(StringColor.fromHex('f' * 1000), const StringColor(230, 109, 69));
+    });
+
+    test('takes the value of each hue range up to its bounds', () {
+      // A short hex is its own hue.
+      const colors = {
+        '1f': StringColor(230, 152, 69),
+        '20': StringColor(191, 129, 57),
+        'cc': StringColor(57, 138, 191),
+        'cd': StringColor(69, 163, 230),
+        'd7': StringColor(69, 136, 230),
+        'd8': StringColor(73, 142, 245),
+        '111': StringColor(168, 73, 245),
+        '112': StringColor(160, 69, 230),
+      };
+      colors.forEach((hex, color) {
+        expect(StringColor.fromHex(hex), color, reason: hex);
+      });
     });
 
     test('gives neutral grey to an empty or invalid hex', () {
