@@ -7,17 +7,27 @@ import 'nostr_crypto_js.dart';
 @JS('DostrNoble')
 external NostrCrypto? get _loadedNostrCrypto;
 
+@JS('document')
+external JSObject? get _document;
+
 NostrCrypto? _nostrCrypto;
 var _injected = false;
 
 /// The bundle of `js/nostr_crypto.src.js`, injected into the page on first
-/// use unless the page already loaded it.
+/// use unless the page or the Web Worker already loaded it.
 ///
-/// Throws a [StateError] when the bundle did not run, or when the page loaded
-/// one of another version.
+/// Throws a [StateError] when the bundle did not run, when a Web Worker did
+/// not load it, or when the page loaded one of another version.
 NostrCrypto get nostrCrypto => _nostrCrypto ??= _loadNostrCrypto();
 
 NostrCrypto _loadNostrCrypto() {
+  if (_loadedNostrCrypto == null && _document == null) {
+    throw StateError(
+      'The DostrNoble bundle is not loaded, and there is no page to inject it '
+      'into: in a Web Worker, run importScripts on the js/nostr_crypto.js of '
+      'the version you depend on, see the dostr_noble README',
+    );
+  }
   if (_loadedNostrCrypto == null && !_injected) {
     // once: under a Content-Security-Policy, each try adds a script and a report
     _injected = true;

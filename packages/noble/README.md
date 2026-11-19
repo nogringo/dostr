@@ -54,7 +54,16 @@ On such a page, serve the `js/nostr_crypto.js` of the version you depend on, and
 The classes then use the `DostrNoble` it defines and inject nothing.
 Copy the file again on every upgrade of `dostr_noble`, since it must match the Dart side: when it does not, the classes throw a `StateError` that gives both versions.
 
-A Web Worker has no page to inject the bundle into, so the classes are not supported there.
+## Web Workers
+
+A Web Worker has no page to inject the bundle into.
+Serve the `js/nostr_crypto.js` of the version you depend on, as for a Content Security Policy, and load it at the top of the worker script, before the classes are used:
+
+```js
+importScripts('nostr_crypto.js');
+```
+
+Without it, the classes throw a `StateError` that says so.
 
 ## Coming from `ndk_flutter`
 

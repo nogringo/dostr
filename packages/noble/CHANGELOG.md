@@ -20,3 +20,4 @@
  - The JS bundle carries the MIT notice of @noble/hashes, as it already did for @noble/curves and @noble/ciphers.
  - `decryptNip04` and `decryptNip44` read base64 as `dostr_nip44` does, with the rules of Dart's `base64.decode` instead of those of `atob`: whitespace, a missing padding and stray bits before the padding fail, NIP-04 also takes the URL-safe alphabet and a `%3D` padding, and NIP-44 takes standard base64 only.
  - `decryptNip04` rejects a payload with more than one `?iv=`, as `dostr_nip44` does.
+ - The classes work in a Web Worker that loads the JS bundle with `importScripts`, and throw a `StateError` that says so when it did not, instead of a `TypeError`.
