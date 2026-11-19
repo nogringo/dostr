@@ -1,154 +1,60 @@
-import 'dart:async';
-
-import 'package:dostr_core/dostr_core.dart';
-import 'package:rxdart/rxdart.dart';
-
 import 'nip65_fetcher.dart';
-import 'replaceable_asks.dart';
-import 'replaceable_events.dart';
+import 'replaceable_fetcher.dart';
 import 'replaceable_lookup.dart';
-import 'url_list_checks.dart';
 
 /// Fetches users' [kind] replaceable events, or addressable ones named
 /// [dTag], from their write relays, which [nip65Fetcher] finds, and from
 /// [relays].
-class OutboxFetcher {
-  final RelayReqs _reqs;
-  final int kind;
-  final String? dTag;
+///
+/// NIP-65 puts them on the write relays, asked as soon as a relay list
+/// arrives. [relays] are asked meanwhile, since many clients also publish
+/// there.
+class OutboxFetcher extends ReplaceableFetcher {
   final Nip65Fetcher? nip65Fetcher;
 
-  /// [defaultIndexerRelays] unless given.
-  final List<RelayUrl> relays;
-  final Duration timeout;
-
-  /// Where the events found are kept. [watch] starts on the one it holds.
-  final ReplaceableEventCache? cache;
-
-  /// When the relays last answered for each event. A lookup a relay answered
-  /// less than [maxAge] ago is answered from [cache] alone, unless the event
-  /// it found is gone from it. Past [maxAge] the relays are asked again, and
-  /// while none answers the last known state holds: the cached event, or
-  /// [EventNotFound] when there was none.
-  final UrlListCheckStore? checks;
-
-  /// How long a finished lookup is trusted. Without [checks], its result is
-  /// reused that long. With them, each lookup reads [cache] again, so an
-  /// event saved there since is seen, and the checks spare the relays across
-  /// restarts too.
-  final Duration maxAge;
-
-  /// Only shows in logs.
-  final String name;
-
-  /// How long the pubkeys looked up are gathered into one REQ per relay.
-  final Duration batchWindow;
-
-  late final SharedLookups _lookups = SharedLookups(
-    _lookUp,
-    reuseFor: checks == null ? maxAge : Duration.zero,
-  );
-
-  late final _asks = ReplaceableAsks(
-    _reqs,
-    kind: kind,
-    dTag: dTag,
-    name: name,
-    timeout: timeout,
-    window: batchWindow,
-  );
-
   OutboxFetcher({
-    required RelayReqs reqs,
-    required this.kind,
-    this.dTag,
+    required super.reqs,
+    required super.kind,
+    super.dTag,
     this.nip65Fetcher,
-    List<RelayUrl>? relays,
-    this.timeout = const Duration(seconds: 5),
-    this.cache,
-    this.checks,
-    this.maxAge = const Duration(minutes: 10),
-    this.batchWindow = defaultBatchWindow,
+    super.relays,
+    super.timeout,
+    super.cache,
+    super.checks,
+    super.maxAge,
+    super.batchWindow,
     String? name,
-  }) : _reqs = reqs,
-       relays = relays ?? defaultIndexerRelays,
-       name = name ?? 'kind-$kind';
+  }) : super(name: name ?? 'kind-$kind');
 
-  /// Each [kind] event of [pubkey] (hex) found on its write relays and on
-  /// [relays], as soon as it arrives, if newer than the ones before it. The
-  /// one in [cache] comes first, and [checks] may spare the relays.
-  ///
-  /// NIP-65 puts it on the write relays, asked as soon as a relay list
-  /// arrives. [relays] are asked meanwhile, since many clients also publish
-  /// there. Each relay is asked once.
-  ///
-  /// A lookup still running is reused, starting on the newest event it found
-  /// so far, and so is one finished less than [maxAge] ago when there are no
-  /// [checks]. Once started, a lookup runs until every relay answered or
-  /// [timeout], even with no one listening.
-  Stream<Nip01Event> watch(String pubkey) => _lookups.watch(pubkey);
-
-  /// The newest [kind] event of [pubkey] (hex) found on its write relays and
-  /// on [relays], or null if none has one.
-  Future<Nip01Event?> fetch(String pubkey) => lastVersion(watch(pubkey));
-
-  /// How the lookup [watch] runs for [pubkey] ended.
-  ///
-  /// While no relay answers [nip65Fetcher], the write relays are unknown, and
-  /// [relays] lacking the event does not make it [EventNotFound].
-  Future<EventLookup> lookup(String pubkey) => _lookups.lookup(pubkey);
-
-  /// [fetch] for each of [pubkeys]. Their REQs to [relays] and for their
-  /// relay lists go out once each lookup asked for them, without waiting for
-  /// the end of [batchWindow]. Their write relays are asked as for [fetch].
-  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubkeys) async =>
-      foundEvents(await lookupAll(pubkeys));
-
-  /// [lookup] for each of [pubkeys], their REQs sent as [fetchAll] does.
-  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubkeys) =>
-      _lookups.lookupAll(
-        pubkeys,
-        onAsked: (asking) {
-          _asks.flush();
-          // their lookups started the relay list lookups this one reuses
-          nip65Fetcher?.lookupAll(asking).ignore();
-        },
+  /// The write relays [nip65Fetcher] finds for [pubkey]. While no relay
+  /// answers it they stay unknown, and [relays] lacking the event does not
+  /// make it [EventNotFound].
+  @override
+  EventLocation locate(String pubkey) {
+    final nip65Fetcher = this.nip65Fetcher;
+    if (nip65Fetcher == null) {
+      return (
+        relays: const [],
+        found: const Stream.empty(),
+        unlocated: Future.value(),
       );
-
-  ReplaceableLookup _lookUp(String pubkey) {
-    Future<EventLookup>? nip65Lookup;
-    return lookUpReplaceable(
-      kind: kind,
-      pubkey: pubkey,
-      dTag: dTag,
-      cache: cache,
-      checks: checks,
-      maxAge: maxAge,
-      ask: (outcomes) {
-        final asked = <RelayUrl>{};
-        Stream<Nip01Event> askOn(List<RelayUrl> urls) => _asks.ask(
-          pubkey,
-          relays: [
-            for (final url in urls)
-              if (asked.add(url)) url,
-          ],
-          outcomes: outcomes,
-        );
-
-        final nip65Fetcher = this.nip65Fetcher;
-        // a lookup failing before its end never awaits it
-        nip65Lookup = nip65Fetcher?.lookup(pubkey)?..ignore();
-        return MergeStream([
-          askOn(relays),
-          ?nip65Fetcher
-              ?.watch(pubkey)
-              .flatMap((relayList) => askOn(writeRelaysOf(relayList))),
-        ]);
-      },
-      unlocated: () async => switch (await nip65Lookup) {
-        EventUnavailable(:final reason) => 'relay list unavailable: $reason',
-        _ => null,
-      },
+    }
+    final relayList = nip65Fetcher.lookup(pubkey);
+    return (
+      relays: const [],
+      found: nip65Fetcher.watch(pubkey).map(writeRelaysOf),
+      unlocated: relayList.then(
+        (lookup) => switch (lookup) {
+          EventUnavailable(:final reason) => 'relay list unavailable: $reason',
+          _ => null,
+        },
+      ),
     );
   }
+
+  /// Sends now the REQs for the relay lists of [pubkeys]: their lookups
+  /// started those this one reuses.
+  @override
+  void locateAll(List<String> pubkeys) =>
+      nip65Fetcher?.lookupAll(pubkeys).ignore();
 }

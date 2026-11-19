@@ -1,5 +1,5 @@
 name: dostr_fetchers
-description: Fetches a user's kind:0 metadata, NIP-65 relay list, NIP-17 DM relay list, Blossom server list and home-relays list on top of dostr_core, and resolves a UrlSet with them.
+description: Fetches a user's metadata, relay lists, Blossom servers and home-relays list from their outbox, resolves a UrlSet with them, and fetches any filter from where it resolves.
 version: 0.1.0
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
@@ -20,6 +20,7 @@ dependencies:
   dostr_core: ^0.1.0
   dostr_home_relays: ^0.1.0
   dostr_url_set: ^0.1.0
+  meta: ^1.15.0
   rxdart: ^0.28.0
 
 dev_dependencies:

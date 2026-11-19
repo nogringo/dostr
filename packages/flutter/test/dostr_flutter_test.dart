@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_flutter/dostr_flutter.dart';
 import 'package:dostr_nip19/dostr_nip19.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,6 +134,30 @@ void main() {
       );
       expect(await dostr.dostrFlutter.loadMetadata(bobPubkey), isNull);
       expect(dostr.metadata.fetched, [alicePubkey, bobPubkey]);
+    });
+
+    test('finds write relays with the nip65Fetcher it is given', () {
+      final reqs = dostr.dostrFlutter.relayReqs;
+      final nip65 = Nip65Fetcher(reqs: reqs);
+      DostrFlutter build({MetadataFetcher? metadataFetcher}) => DostrFlutter(
+        accounts: dostr.accounts,
+        relayReqs: reqs,
+        relayPublishes: dostr.dostrFlutter.relayPublishes,
+        nip65Fetcher: nip65,
+        metadataFetcher: metadataFetcher,
+      );
+
+      expect(build().nip65Fetcher, same(nip65));
+      expect(
+        build(
+          metadataFetcher: MetadataFetcher(reqs: reqs, nip65Fetcher: nip65),
+        ).nip65Fetcher,
+        same(nip65),
+      );
+      expect(
+        () => build(metadataFetcher: MetadataFetcher(reqs: reqs)),
+        throwsArgumentError,
+      );
     });
   });
 

@@ -4,8 +4,8 @@ import 'dart:math';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:rxdart/rxdart.dart';
 
+import 'lookup_checks.dart';
 import 'replaceable_events.dart';
-import 'url_list_checks.dart';
 
 /// Where the fetchers keep the events they found, so a cold start does not
 /// ask the relays for each of them again.
@@ -89,7 +89,7 @@ ReplaceableLookup lookUpReplaceable({
   ask,
   Future<String?> Function()? unlocated,
   ReplaceableEventCache? cache,
-  UrlListCheckStore? checks,
+  LookupCheckStore? checks,
   required Duration maxAge,
 }) {
   final asked = Completer<bool>();
@@ -97,7 +97,7 @@ ReplaceableLookup lookUpReplaceable({
 
   Stream<Nip01Event> versions() async* {
     final cached = await cache?.load(kind: kind, pubkey: pubkey, dTag: dTag);
-    final check = await checks?.read(pubkey, kind, dTag: dTag);
+    final check = await checks?.read(kind: kind, pubkey: pubkey, dTag: dTag);
     final now = DateTime.now().toUtc();
     if (cached != null) yield cached;
     if (_isFresh(check, cached != null, now, maxAge)) {
@@ -131,7 +131,7 @@ ReplaceableLookup lookUpReplaceable({
         );
     if (answered) {
       await checks?.write(
-        UrlListCheck(
+        LookupCheck(
           pubkey: pubkey,
           kind: kind,
           dTag: dTag,
@@ -162,7 +162,7 @@ ReplaceableLookup lookUpReplaceable({
 /// A check vouches for the cache while it is younger than [maxAge], unless
 /// the event it found is no longer there. One from the future is a clock set
 /// back since, and vouches for nothing.
-bool _isFresh(UrlListCheck? check, bool cached, DateTime now, Duration maxAge) {
+bool _isFresh(LookupCheck? check, bool cached, DateTime now, Duration maxAge) {
   if (check == null || check.checkedAt.isAfter(now)) return false;
   if (check.found && !cached) return false;
   return now.difference(check.checkedAt) < maxAge;

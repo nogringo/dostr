@@ -19,6 +19,10 @@ class DostrFlutter {
   /// reads the profiles the widgets show
   final MetadataFetcher metadataFetcher;
 
+  /// finds the write relays [metadataFetcher] asks: give it to the other
+  /// fetchers of the app so they share its lookups
+  Nip65Fetcher? get nip65Fetcher => metadataFetcher.nip65Fetcher;
+
   /// resolves the NIP-05 addresses `NLogin` logs in with
   final Nip05Resolver nip05Resolver;
 
@@ -32,24 +36,26 @@ class DostrFlutter {
   final _bunkerAuthUrls = StreamController<String>.broadcast();
 
   /// [metadataFetcher] defaults to one that asks the write relays of each
-  /// pubkey, found by its own [Nip65Fetcher], and [nip05Resolver] to one that
-  /// keeps what it resolved in memory.
+  /// pubkey, found by [nip65Fetcher], a new [Nip65Fetcher] unless given. A
+  /// [metadataFetcher] given with a [nip65Fetcher] must find its write relays
+  /// with it. [nip05Resolver] defaults to one that keeps what it resolved in
+  /// memory.
   DostrFlutter({
     required this.accounts,
     required this.relayReqs,
     required this.relayPublishes,
+    Nip65Fetcher? nip65Fetcher,
     MetadataFetcher? metadataFetcher,
     Nip05Resolver? nip05Resolver,
     this.npubSeparator = '…',
     this.npubPrefixLength = 10,
     this.npubSuffixLength = 4,
     FlutterSecureStorage? storage,
-  }) : metadataFetcher =
-           metadataFetcher ??
-           MetadataFetcher(
-             reqs: relayReqs,
-             nip65Fetcher: Nip65Fetcher(reqs: relayReqs),
-           ),
+  }) : metadataFetcher = _metadataFetcher(
+         relayReqs,
+         nip65Fetcher,
+         metadataFetcher,
+       ),
        nip05Resolver = nip05Resolver ?? Nip05Resolver(),
        bunkers = Bunkers(
          relayReqs: relayReqs,
@@ -63,6 +69,28 @@ class DostrFlutter {
       relayPublishes: relayPublishes,
       bunkerAuthCallback: addBunkerAuthUrl,
     );
+  }
+
+  static MetadataFetcher _metadataFetcher(
+    RelayReqs relayReqs,
+    Nip65Fetcher? nip65Fetcher,
+    MetadataFetcher? metadataFetcher,
+  ) {
+    if (metadataFetcher == null) {
+      return MetadataFetcher(
+        reqs: relayReqs,
+        nip65Fetcher: nip65Fetcher ?? Nip65Fetcher(reqs: relayReqs),
+      );
+    }
+    if (nip65Fetcher != null &&
+        !identical(metadataFetcher.nip65Fetcher, nip65Fetcher)) {
+      throw ArgumentError.value(
+        metadataFetcher,
+        'metadataFetcher',
+        'does not find write relays with nip65Fetcher',
+      );
+    }
+    return metadataFetcher;
   }
 
   /// The auth challenges of the bunker accounts: https urls where the user

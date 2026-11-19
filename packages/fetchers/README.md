@@ -25,6 +25,8 @@ dependencies:
 `Nip65Fetcher` asks its `relays`, `defaultIndexerRelays` unless given, and the account's home relays when it has a `homeRelayList`.
 The others extend `OutboxFetcher`: they ask the write relays their `nip65Fetcher` finds, and their `relays` while the relay list is on its way.
 Give them all the same `Nip65Fetcher` and they share its lookups.
+All of them extend `ReplaceableFetcher`, so code that reads any of them can take that type.
+For another replaceable or addressable kind, create an `OutboxFetcher` with its `kind` and `dTag`.
 
 ```dart
 import 'package:dostr_bip340/dostr_bip340.dart';
@@ -74,7 +76,10 @@ The pubkeys a fetcher looks up within `batchWindow`, 50 ms unless given, share t
 Each filter holds up to 100 of them in `authors`, with their number as `limit`, since a relay returns only the latest version of each. 100 is the lowest `max_limit` seen in relays' NIP-11, so a relay that clamps `limit` still returns every author.
 A REQ holds up to 9 such filters, about 61 KB: under 65,535 bytes and under the 10 filters nostream accepts by default.
 
-A relay that refuses a REQ with a CLOSED is asked again for each of its filters alone, then for each pubkey alone, unless the CLOSED starts with `auth-required:`, `restricted:`, `rate-limited:` or `blocked:`, which refuse a REQ whatever its size.
+A relay that refuses a REQ with a CLOSED is asked for one of its pubkeys alone.
+If it answers, the size was the problem: it is asked again for each of the other filters alone, then for each pubkey alone.
+If it refuses that one too, the refusal stands for every pubkey of the REQ.
+A CLOSED that starts with `auth-required:`, `restricted:`, `rate-limited:` or `blocked:` refuses a REQ whatever its size, so it stands for every pubkey at once.
 
 `fetchAll` and `lookupAll` know their pubkeys up front: their REQs go out as soon as each of their lookups read the cache, without waiting for the end of `batchWindow`.
 An `OutboxFetcher` sends those for the relay lists the same way, while the write relays, asked as each relay list arrives, still wait for the window.
@@ -84,14 +89,14 @@ An `OutboxFetcher` sends those for the relay lists the same way, while the write
 Without a cache, a cold start asks the relays for every list again.
 Give the fetchers a `ReplaceableEventCache` and a `watch` starts on the event it holds, then stores each newer one.
 
-Give them a `UrlListCheckStore` too, and a lookup a relay answered less than `maxAge` ago is answered from the cache alone, an absent event included.
+Give them a `LookupCheckStore` too, and a lookup a relay answered less than `maxAge` ago is answered from the cache alone, an absent event included.
 Past `maxAge` the relays are asked again, and while none answers the last known state holds.
 
-A `UrlListCheck` says when the relays last answered a query for one replaceable event of an account, and whether they held it.
+A `LookupCheck` says when the relays last answered a query for one replaceable event of an account, and whether they held it.
 Addressable events are told apart by their `dTag`.
 
-`MemoryUrlListCheckStore` forgets everything on restart.
-To keep the checks, implement `UrlListCheckStore` on your database, one check per pubkey, kind and `dTag`: `UrlListCheck.toMap()` gives a JSON-compatible record.
+`MemoryLookupCheckStore` forgets everything on restart.
+To keep the checks, implement `LookupCheckStore` on your database, one check per pubkey, kind and `dTag`: `LookupCheck.toMap()` gives a JSON-compatible record.
 
 ## Resolving a `UrlSet`
 
@@ -155,7 +160,7 @@ if (!result.complete) print('partial: ${result.unavailable}');
 `urlLists` reads the lists the set names, here the NIP-65 of `alice`.
 `EventFetcher` does not build these fetchers itself: give it the ones the rest of the app uses, so each list is looked up once and kept in one cache.
 
-`events` gives each matching event once, as soon as a relay sends it.
+`events` gives each matching event once, as soon as a relay sends it, and a listener that comes late first gets those that came before it.
 `done` says how the fetch ended: the events, what each relay did, and the lists that were unavailable.
 `complete` is true only when every list was available and every relay sent its EOSE, so an empty result is then known to be empty.
 Each relay applies the filter's `limit` on its own.

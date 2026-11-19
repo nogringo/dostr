@@ -4,7 +4,7 @@ There are two main constraints that we aim for: battery/compute and network band
 
 **network**\
 The outbox model is our main pillar to avoid unnecessary requests: [Fetchers](../packages/fetchers/README.md) ask each account's write relays rather than every relay.
-They batch the pubkeys looked up together into one REQ per relay, share lookups between fetchers, and with a cache and a `UrlListCheckStore` skip the relays entirely for a list checked recently.
+They batch the pubkeys looked up together into one REQ per relay, share lookups between fetchers, and with a cache and a `LookupCheckStore` skip the relays entirely for a list checked recently.
 `EventFetcher` asks each relay as soon as a list names it, so one slow relay does not hold back the others.
 
 **compute**\

@@ -412,11 +412,11 @@ void main() {
 
     group('with a cache and checks', () {
       late MemoryCache cache;
-      late MemoryUrlListCheckStore checks;
+      late MemoryLookupCheckStore checks;
 
       setUp(() {
         cache = MemoryCache();
-        checks = MemoryUrlListCheckStore();
+        checks = MemoryLookupCheckStore();
       });
 
       /// A new fetcher each time, as after a restart.
@@ -430,7 +430,7 @@ void main() {
 
       Future<void> checked({required bool found, required Duration ago}) =>
           checks.write(
-            UrlListCheck(
+            LookupCheck(
               pubkey: alice,
               kind: 10002,
               checkedAt: DateTime.now().toUtc().subtract(ago),
@@ -461,7 +461,7 @@ void main() {
 
         expect(await fetcherOn([relay.url]).fetch(alice), isNotNull);
         expect(relay.reqCount, 1);
-        expect((await checks.read(alice, 10002))?.found, isTrue);
+        expect((await checks.read(kind: 10002, pubkey: alice))?.found, isTrue);
       });
 
       test('a freshly checked missing list needs no relay', () async {
@@ -517,7 +517,7 @@ void main() {
             await fetcherOn([await startSilentRelay()]).lookup(alice),
             isA<EventUnavailable>(),
           );
-          expect(await checks.read(alice, 10002), isNull);
+          expect(await checks.read(kind: 10002, pubkey: alice), isNull);
         },
       );
 
@@ -733,7 +733,7 @@ void main() {
     });
 
     test('keeps a check for each d tag of a kind', () async {
-      final checks = MemoryUrlListCheckStore();
+      final checks = MemoryLookupCheckStore();
       final relay = await startRelay([
         relayList([
           ['d', 'b'],
@@ -749,8 +749,14 @@ void main() {
 
       expect(await fetcherOf('a').lookup(alice), isA<EventNotFound>());
       expect(await fetcherOf('b').lookup(alice), isA<EventFound>());
-      expect((await checks.read(alice, 30000, dTag: 'a'))?.found, isFalse);
-      expect((await checks.read(alice, 30000, dTag: 'b'))?.found, isTrue);
+      expect(
+        (await checks.read(kind: 30000, pubkey: alice, dTag: 'a'))?.found,
+        isFalse,
+      );
+      expect(
+        (await checks.read(kind: 30000, pubkey: alice, dTag: 'b'))?.found,
+        isTrue,
+      );
     });
   });
 
@@ -843,7 +849,29 @@ void main() {
       expect(lookups.values, everyElement(isA<EventNotFound>()));
       expect(relay.reqLotSizes, [
         [maxAuthorsPerFilter, 1],
-        [maxAuthorsPerFilter],
+        [1],
+        [maxAuthorsPerFilter - 1],
+        [1],
+      ]);
+    });
+
+    test('asks one pubkey alone on a relay that refuses any REQ', () async {
+      final relay = LocalRelay(
+        [],
+        maxAuthors: 0,
+        refusal: 'error: shutting down',
+      );
+      await relay.start();
+      relays.add(relay);
+      final fetcher = MetadataFetcher(reqs: reqs, relays: [relay.url]);
+
+      final lookups = await fetcher.lookupAll(
+        pubkeysOf(maxAuthorsPerFilter + 1),
+      );
+
+      expect(lookups.values, everyElement(isA<EventUnavailable>()));
+      expect(relay.reqLotSizes, [
+        [maxAuthorsPerFilter, 1],
         [1],
       ]);
     });
@@ -942,11 +970,11 @@ void main() {
 
     test('does not wait for a pubkey the cache answers', () async {
       final cache = MemoryCache();
-      final checks = MemoryUrlListCheckStore();
+      final checks = MemoryLookupCheckStore();
       final cached = relayList([]);
       await cache.save(cached);
       await checks.write(
-        UrlListCheck(
+        LookupCheck(
           pubkey: alice,
           kind: 10002,
           checkedAt: DateTime.now().toUtc(),
@@ -1080,7 +1108,7 @@ void main() {
 
     test('is unavailable while no relay answers for the relay list', () async {
       const timeout = Duration(milliseconds: 200);
-      final checks = MemoryUrlListCheckStore();
+      final checks = MemoryLookupCheckStore();
 
       final lookup = await DmRelaysFetcher(
         reqs: reqs,
@@ -1095,12 +1123,12 @@ void main() {
       ).lookup(alice);
 
       expect((lookup as EventUnavailable).reason, contains('relay list'));
-      expect(await checks.read(alice, 10050), isNull);
+      expect(await checks.read(kind: 10050, pubkey: alice), isNull);
     });
 
     test('reads a freshly checked list from the cache', () async {
       final cache = MemoryCache();
-      final checks = MemoryUrlListCheckStore();
+      final checks = MemoryLookupCheckStore();
       final relay = await startCountedRelay([
         dmRelayList('wss://dm.example.com'),
       ]);
@@ -1383,7 +1411,7 @@ void main() {
       required List<RelayUrl> nip65Relays,
       required List<RelayUrl> relays,
       ReplaceableEventCache? cache,
-      UrlListCheckStore? checks,
+      LookupCheckStore? checks,
     }) {
       final nip65 = Nip65Fetcher(
         reqs: reqs,
@@ -1533,7 +1561,7 @@ void main() {
       final watch = watchesOn(
         nip65Relays: [relay.url],
         relays: [],
-        checks: MemoryUrlListCheckStore(),
+        checks: MemoryLookupCheckStore(),
       );
 
       final lookups = await watch(alice, UrlListKind.outbox).toList();
@@ -1738,6 +1766,31 @@ void main() {
 
       await expectLater(fetch.done, throwsStateError);
       await expectLater(streamed, throwsStateError);
+    });
+
+    test('gives a late listener the events that came before it', () async {
+      final url = await startRelay([note('early')]);
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: UrlSet.explicit([url]),
+      );
+
+      final result = await fetch.done;
+
+      expect(contents(result.events), ['early']);
+      expect(contents(await fetch.events.toList()), ['early']);
+    });
+
+    test('gives a late listener the error of a list', () async {
+      final fetch = fetcher().fetch(
+        Filter(kinds: [1]),
+        from: const UrlSet.outbox(alice),
+      );
+
+      lists['outbox|$alice']!.addError(StateError('broken'));
+
+      await expectLater(fetch.done, throwsStateError);
+      await expectLater(fetch.events.toList(), throwsStateError);
     });
 
     test('fetches from the write relays the fetchers find', () async {

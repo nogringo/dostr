@@ -19,8 +19,10 @@ const int maxFiltersPerReq = 9;
 /// relay: up to [maxFiltersPerReq] filters of up to [maxAuthorsPerFilter]
 /// authors, each filter's `limit` their number, since a relay returns only
 /// the latest version of each (NIP-01). A relay that closes a REQ, or that
-/// the REQ is too long for, gets each of its filters alone, then each pubkey,
-/// unless its CLOSED refuses a REQ whatever its size.
+/// the REQ is too long for, is asked for one of its pubkeys alone. Once it
+/// answered, it gets each of the other filters alone, then each pubkey. When
+/// it refuses that one too, or its CLOSED refuses a REQ whatever its size,
+/// the refusal stands for every pubkey of the REQ.
 class ReplaceableAsks {
   final RelayReqs _reqs;
   final int kind;
@@ -90,7 +92,8 @@ class ReplaceableAsks {
     return waiter;
   }
 
-  Future<void> _send(RelayUrl url, List<_Lot> lots) async {
+  /// Sends one REQ for [lots] to [url], and gives what it ended in.
+  Future<RelayRequestOutcome?> _send(RelayUrl url, List<_Lot> lots) async {
     final byPubkey = {for (final lot in lots) ...lot};
     final waiters = [for (final list in byPubkey.values) ...list];
     try {
@@ -116,23 +119,56 @@ class ReplaceableAsks {
       }
       final outcome = (await req.done)[url];
       if (byPubkey.length > 1 && _mayBeTooBig(outcome)) {
-        await Future.wait([
-          for (final smaller in _smaller(lots)) _send(url, smaller),
-        ]);
-        return;
+        await _retry(url, lots, outcome);
+        return outcome;
       }
       for (final waiter in waiters) {
         waiter.outcome = outcome;
       }
+      return outcome;
     } catch (error, stackTrace) {
       for (final waiter in waiters) {
         if (!waiter.events.isClosed) waiter.events.addError(error, stackTrace);
       }
+      return null;
     } finally {
       for (final waiter in waiters) {
         unawaited(waiter.events.close());
       }
     }
+  }
+
+  /// Asks again for what [lots] asked, after their REQ ended in [refused]:
+  /// the first pubkey alone, then, once the relay answered it, the others in
+  /// smaller REQs. A REQ for one pubkey is the smallest there is, so a refusal
+  /// of it is not about size, and [refused] then stands for the others.
+  Future<void> _retry(
+    RelayUrl url,
+    List<_Lot> lots,
+    RelayRequestOutcome? refused,
+  ) async {
+    final first = lots.first.entries.first;
+    final probe = await _send(url, [
+      Map.fromEntries([first]),
+    ]);
+    final rest = [
+      for (final lot in lots)
+        {
+          for (final MapEntry(:key, :value) in lot.entries)
+            if (key != first.key) key: value,
+        },
+    ]..removeWhere((lot) => lot.isEmpty);
+    if (probe?.status != RelayRequestStatus.eose) {
+      for (final lot in rest) {
+        for (final waiter in lot.values.expand((waiters) => waiters)) {
+          waiter.outcome = refused;
+        }
+      }
+      return;
+    }
+    await Future.wait([
+      for (final smaller in _smaller(rest)) _send(url, smaller),
+    ]);
   }
 }
 

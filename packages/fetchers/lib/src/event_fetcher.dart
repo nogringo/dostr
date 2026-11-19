@@ -47,8 +47,10 @@ class EventFetch {
   final EventFetcher _fetcher;
   final Filter _filter;
   late final StreamController<Nip01Event> _events = StreamController(
+    onListen: _replay,
     onCancel: close,
   );
+  (Object, StackTrace)? _error;
   final _done = Completer<EventFetchResult>();
   late final StreamSubscription<UrlSetSnapshot> _snapshots;
   UrlSetSnapshot? _last;
@@ -73,7 +75,8 @@ class EventFetch {
     );
   }
 
-  /// Each event matching the filter, once, as soon as a relay sends it.
+  /// Each event matching the filter, once, as soon as a relay sends it. A
+  /// listener that comes late first gets those that came before it.
   /// Single-subscription: cancelling it closes the fetch, like [close].
   Stream<Nip01Event> get events => _events.stream;
 
@@ -121,7 +124,21 @@ class EventFetch {
       return;
     }
     _received.add(event);
-    _events.add(event);
+    // a late listener gets it from [_replay]
+    if (_events.hasListener) _events.add(event);
+  }
+
+  void _replay() {
+    _received.forEach(_events.add);
+    if (_done.isCompleted) _endEvents();
+  }
+
+  void _endEvents() {
+    if (!_events.hasListener) return;
+    if (_error case (final error, final stackTrace)) {
+      _events.addError(error, stackTrace);
+    }
+    unawaited(_events.close());
   }
 
   void _endIfOver() {
@@ -145,14 +162,14 @@ class EventFetch {
             ),
       ),
     );
-    unawaited(_events.close());
+    _endEvents();
   }
 
   void _fail(Object error, StackTrace stackTrace) {
     if (_done.isCompleted) return;
     _done.completeError(error, stackTrace);
-    _events.addError(error, stackTrace);
-    unawaited(_events.close());
+    _error = (error, stackTrace);
+    _endEvents();
     for (final req in _running.values) {
       unawaited(req.close());
     }

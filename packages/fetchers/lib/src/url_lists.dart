@@ -5,6 +5,7 @@ import 'package:rxdart/rxdart.dart';
 import 'blossom_servers_fetcher.dart';
 import 'dm_relays_fetcher.dart';
 import 'nip65_fetcher.dart';
+import 'replaceable_fetcher.dart';
 import 'replaceable_lookup.dart';
 
 /// A [UrlListFn] that reads the lists with these fetchers, their cache and
@@ -47,36 +48,11 @@ UrlListWatchFn fetcherUrlListWatchFn({
 }) {
   _requireNip65(nip65, dmRelays, blossomServers);
   return (pubkey, kind) => switch (kind) {
-    UrlListKind.outbox => _watchUrls(
-      pubkey,
-      nip65.watch,
-      nip65.lookup,
-      writeRelaysOf,
-    ),
-    UrlListKind.inbox => _watchUrls(
-      pubkey,
-      nip65.watch,
-      nip65.lookup,
-      readRelaysOf,
-    ),
-    UrlListKind.nip65 => _watchUrls(
-      pubkey,
-      nip65.watch,
-      nip65.lookup,
-      allRelaysOf,
-    ),
-    UrlListKind.dm => _watchUrls(
-      pubkey,
-      dmRelays.watch,
-      dmRelays.lookup,
-      dmRelaysOf,
-    ),
-    UrlListKind.blossom => _watchUrls(
-      pubkey,
-      blossomServers.watch,
-      blossomServers.lookup,
-      blossomServersOf,
-    ),
+    UrlListKind.outbox => _watchUrls(pubkey, nip65, writeRelaysOf),
+    UrlListKind.inbox => _watchUrls(pubkey, nip65, readRelaysOf),
+    UrlListKind.nip65 => _watchUrls(pubkey, nip65, allRelaysOf),
+    UrlListKind.dm => _watchUrls(pubkey, dmRelays, dmRelaysOf),
+    UrlListKind.blossom => _watchUrls(pubkey, blossomServers, blossomServersOf),
     UrlListKind.private => Stream.error(
       UnsupportedError('private relay lists are not supported'),
     ),
@@ -104,15 +80,14 @@ void _requireNip65(
 
 Stream<UrlListLookup> _watchUrls(
   String pubkey,
-  Stream<Nip01Event> Function(String pubkey) watch,
-  Future<EventLookup> Function(String pubkey) lookup,
+  ReplaceableFetcher fetcher,
   List<String> Function(Nip01Event list) urlsOf,
 ) {
   // taken together: once ended, a lookup with checks is not reused
-  final result = lookup(pubkey)..ignore();
-  final versions = watch(
-    pubkey,
-  ).map<UrlListLookup>((list) => UrlListLookup.found(urlsOf(list)));
+  final result = fetcher.lookup(pubkey)..ignore();
+  final versions = fetcher
+      .watch(pubkey)
+      .map<UrlListLookup>((list) => UrlListLookup.found(urlsOf(list)));
   return versions.concatWith([
     Stream.fromFuture(result).expand(
       (lookup) => switch (lookup) {

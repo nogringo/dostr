@@ -127,5 +127,5 @@ Two sets are equal when they describe the same tree, so a queue can spot two rec
 `UrlSet`, `resolveUrlSet` and the lookup types moved here.
 `UrlsUnavailable` held only a `reason` string: it now names the unavailable lists in `lists` and keeps the URLs found in `urls`, and `reason` joins the lists.
 `UrlListFn` no longer takes `outboxRelays`, and `UrlListKind.onOutbox` is gone: the lookup finds the write relays of a DM, private or Blossom list itself, where the resolver looked up the NIP-65 first and passed them on.
-`UrlListCheck` and `UrlListCheckStore` moved to [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers), next to the lookups that keep them.
+`UrlListCheck` and `UrlListCheckStore` moved to [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers), next to the lookups that keep them, as `LookupCheck` and `LookupCheckStore`.
 `ndkUrlListFn` and `defaultIndexerRelays` are not here: [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) has `fetcherUrlListFn`, which builds the lookup from its fetchers, and `defaultIndexerRelays`.

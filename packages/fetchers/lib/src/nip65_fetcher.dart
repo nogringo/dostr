@@ -1,106 +1,32 @@
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_home_relays/dostr_home_relays.dart';
 
-import 'replaceable_asks.dart';
-import 'replaceable_events.dart';
-import 'replaceable_lookup.dart';
-import 'url_list_checks.dart';
+import 'replaceable_fetcher.dart';
 
-const int _kind = 10002;
-
-/// Fetches NIP-65 relay lists from [relays], and from the user's home relays
-/// when a [homeRelayList] is given.
+/// Fetches NIP-65 relay lists, `kind:10002`, from [relays], and from the
+/// user's home relays when a [homeRelayList] is given.
 ///
 /// The fetchers given the same [Nip65Fetcher] share its lookups.
-class Nip65Fetcher {
-  final RelayReqs _reqs;
-
-  /// [defaultIndexerRelays] unless given.
-  final List<RelayUrl> relays;
+class Nip65Fetcher extends ReplaceableFetcher {
   final HomeRelayList? homeRelayList;
-  final Duration timeout;
-
-  /// Where the lists found are kept. [watch] starts on the one it holds.
-  final ReplaceableEventCache? cache;
-
-  /// When the relays last answered for each list. A lookup a relay answered
-  /// less than [maxAge] ago is answered from [cache] alone, unless the list it
-  /// found is gone from it. Past [maxAge] the relays are asked again, and while
-  /// none answers the last known state holds: the cached list, or
-  /// [EventNotFound] when there was none.
-  final UrlListCheckStore? checks;
-
-  /// How long a finished lookup is trusted. Without [checks], its result is
-  /// reused that long.
-  /// With them, each lookup reads [cache] again, so a list saved there since
-  /// is seen, and the checks spare the relays across restarts too.
-  final Duration maxAge;
-
-  /// How long the pubkeys looked up are gathered into one REQ per relay.
-  final Duration batchWindow;
-
-  late final SharedLookups _lookups = SharedLookups(
-    _lookUp,
-    reuseFor: checks == null ? maxAge : Duration.zero,
-  );
-
-  late final _asks = ReplaceableAsks(
-    _reqs,
-    kind: _kind,
-    name: 'nip65',
-    timeout: timeout,
-    window: batchWindow,
-  );
 
   Nip65Fetcher({
-    required RelayReqs reqs,
-    List<RelayUrl>? relays,
+    required super.reqs,
+    super.relays,
     this.homeRelayList,
-    this.timeout = const Duration(seconds: 5),
-    this.cache,
-    this.checks,
-    this.maxAge = const Duration(minutes: 10),
-    this.batchWindow = defaultBatchWindow,
-  }) : _reqs = reqs,
-       relays = relays ?? defaultIndexerRelays;
+    super.timeout,
+    super.cache,
+    super.checks,
+    super.maxAge,
+    super.batchWindow,
+  }) : super(kind: 10002, name: 'nip65');
 
-  /// Each `kind:10002` event of [pubkey] (hex) found on [relays] and on its
-  /// home relays, as soon as it arrives, if newer than the ones before it.
-  /// The one in [cache] comes first, and [checks] may spare the relays.
-  ///
-  /// A lookup still running is reused, starting on the newest list it found
-  /// so far, and so is one finished less than [maxAge] ago when there are no
-  /// [checks]. Once started, a lookup runs until every relay answered or
-  /// [timeout], even with no one listening.
-  Stream<Nip01Event> watch(String pubkey) => _lookups.watch(pubkey);
-
-  /// The newest `kind:10002` event of [pubkey] (hex) found on [relays] and on
-  /// its home relays, or null if none has one.
-  Future<Nip01Event?> fetch(String pubkey) => lastVersion(watch(pubkey));
-
-  /// How the lookup [watch] runs for [pubkey] ended.
-  Future<EventLookup> lookup(String pubkey) => _lookups.lookup(pubkey);
-
-  /// [fetch] for each of [pubkeys]. Their REQs go out once each lookup asked
-  /// for them, without waiting for the end of [batchWindow].
-  Future<Map<String, Nip01Event?>> fetchAll(Iterable<String> pubkeys) async =>
-      foundEvents(await lookupAll(pubkeys));
-
-  /// [lookup] for each of [pubkeys], their REQs sent as [fetchAll] does.
-  Future<Map<String, EventLookup>> lookupAll(Iterable<String> pubkeys) =>
-      _lookups.lookupAll(pubkeys, onAsked: (_) => _asks.flush());
-
-  ReplaceableLookup _lookUp(String pubkey) => lookUpReplaceable(
-    kind: _kind,
-    pubkey: pubkey,
-    cache: cache,
-    checks: checks,
-    maxAge: maxAge,
-    ask: (outcomes) => _asks.ask(
-      pubkey,
-      relays: [...relays, ...?homeRelayList?.homeRelaysOf(pubkey)],
-      outcomes: outcomes,
-    ),
+  /// The home relays of [pubkey], asked with [relays].
+  @override
+  EventLocation locate(String pubkey) => (
+    relays: homeRelayList?.homeRelaysOf(pubkey) ?? const [],
+    found: const Stream.empty(),
+    unlocated: Future.value(),
   );
 }
 
