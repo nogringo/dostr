@@ -10,6 +10,8 @@ import '../entities/nip_05_results.dart';
 import '../repositories/nip_05_cache.dart';
 import '../repositories/nip_05_repository.dart';
 
+final _hexPubkey = RegExp(r'^[0-9a-fA-F]{64}$');
+
 /// Resolves and verifies NIP-05 identifiers.
 ///
 /// [resolve] and [check] take an `abortTrigger`. Once it completes, with a
@@ -28,6 +30,8 @@ class Nip05Resolver {
 
   /// how many times [abortPending] ran
   int _aborts = 0;
+
+  bool _closed = false;
 
   /// [cache] keeps the resolved identifiers, in memory for the life of this
   /// resolver when null.
@@ -70,18 +74,25 @@ class Nip05Resolver {
 
   /// Ends the calls in flight, as [abortPending] does, and closes the HTTP
   /// client this instance made. A client given to the constructor stays open:
-  /// it is the caller's to close. This instance is unusable afterwards.
+  /// it is the caller's to close. [resolve] and [check] throw a [StateError]
+  /// afterwards.
   void close() {
+    _closed = true;
     abortPending();
     _ownedClient?.close();
   }
 
   /// Whether [nip05] points to [pubkey], in hex, resolved as [resolve] does.
+  ///
+  /// Throws an [ArgumentError] when [pubkey] is not in hex, such as an npub.
   Future<Nip05CheckResult> check({
     required String nip05,
     required String pubkey,
     Future<void>? abortTrigger,
   }) async {
+    if (!_hexPubkey.hasMatch(pubkey)) {
+      throw ArgumentError.value(pubkey, 'pubkey', 'not a hex pubkey');
+    }
     final result = await resolve(nip05, abortTrigger: abortTrigger);
     return switch (result) {
       Nip05Found(:final data) when data.pubkey == pubkey.toLowerCase() =>
@@ -97,11 +108,14 @@ class Nip05Resolver {
   /// A [Nip05Found] is remembered for [nip05ValidDuration], a [Nip05NotFound]
   /// for [nip05NotFoundDuration], and a [Nip05ResolveError] not at all.
   /// Concurrent calls for one identifier share one request. An error of the
-  /// cache is not caught.
+  /// cache is not caught. Throws a [StateError] once [close] ran.
   Future<Nip05ResolveResult> resolve(
     String nip05, {
     Future<void>? abortTrigger,
   }) async {
+    if (_closed) {
+      throw StateError('the Nip05Resolver was closed');
+    }
     final identifier = Nip05.canonicalIdentifier(nip05);
     if (identifier == null) {
       return const Nip05NotFound();

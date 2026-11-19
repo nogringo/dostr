@@ -41,6 +41,9 @@ class AppLocalizationsRu extends AppLocalizations {
   String get unableToConnect => 'Не удается подключиться';
 
   @override
+  String get addressNotFound => 'Адрес не найден';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

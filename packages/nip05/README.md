@@ -25,7 +25,8 @@ switch (await nip05.resolve('bob@example.com')) {
 ```
 
 `resolve` tells a missing address (`Nip05NotFound`) apart from a server that could not be reached or gave a broken `nostr.json` (`Nip05ResolveError`).
-An address that is not a NIP-05 identifier, such as one whose name holds a character outside `a-z0-9-_.`, is a `Nip05NotFound` too, and sends no request.
+An address that is not a NIP-05 identifier, such as one whose name holds a character outside `a-z0-9-_.` or whose domain has no dot, is a `Nip05NotFound` too, and sends no request.
+Names are case-insensitive, so a `nostr.json` that lists `Bob` answers `bob@example.com` too.
 `pubkey` is in lowercase hex: a `nostr.json` that gives anything else for the name, such as an npub, is a `Nip05ResolveInvalidResponse`.
 `relays` lists the relays the domain gives for the pubkey, normalized and each once, as `RelayUrl`s of [`dostr_relay_url`](https://pub.dev/packages/dostr_relay_url), which this package exports.
 NIP-05 makes them optional, so a missing or mistyped list gives none rather than failing.
@@ -44,6 +45,8 @@ switch (await nip05.check(nip05: 'bob@example.com', pubkey: pubkey)) {
     print('could not check, try again later');
 }
 ```
+
+`check` throws an `ArgumentError` when `pubkey` is not in hex, such as an npub.
 
 ## Cache
 
@@ -71,7 +74,7 @@ A request gives up after `nip05RequestTimeout` (5 seconds), which gives a `Nip05
 ## HTTP client
 
 `Nip05Resolver` talks to the domains through an `http.Client` of its own, or through the `httpClient` you give it, such as a `cupertino_http` or `cronet_http` client in a Flutter app.
-`nip05.close()` ends what is in flight and closes the client it made.
+`nip05.close()` ends what is in flight and closes the client it made, after which `resolve` and `check` throw a `StateError`.
 A client you gave it stays open, since it is yours to close.
 `nip05Repository` replaces the HTTP layer, such as an `HttpNip05Repository` with another `timeout`, and cannot be given with `httpClient`.
 

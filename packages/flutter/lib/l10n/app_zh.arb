@@ -10,6 +10,7 @@
   "nostrAddressHint": "name@example.com",
   "invalidAddress": "无效地址",
   "unableToConnect": "无法连接",
+  "addressNotFound": "未找到地址",
   "publicKeyHint": "npub1...",
   "privateKeyHint": "nsec1...",
   "newToNostr": "初次使用 Nostr？",

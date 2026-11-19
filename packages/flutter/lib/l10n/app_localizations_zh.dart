@@ -41,6 +41,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get unableToConnect => '无法连接';
 
   @override
+  String get addressNotFound => '未找到地址';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

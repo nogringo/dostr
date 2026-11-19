@@ -180,6 +180,12 @@ abstract class AppLocalizations {
   /// **'Unable to connect'**
   String get unableToConnect;
 
+  /// Error message when the domain of a nostr address has no such name
+  ///
+  /// In en, this message translates to:
+  /// **'Address not found'**
+  String get addressNotFound;
+
   /// Placeholder text for public key input field
   ///
   /// In en, this message translates to:

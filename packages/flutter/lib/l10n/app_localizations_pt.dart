@@ -41,6 +41,9 @@ class AppLocalizationsPt extends AppLocalizations {
   String get unableToConnect => 'Não foi possível estabelecer ligação';
 
   @override
+  String get addressNotFound => 'Endereço não encontrado';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override
@@ -677,6 +680,9 @@ class AppLocalizationsPtBr extends AppLocalizationsPt {
 
   @override
   String get unableToConnect => 'Não foi possível conectar';
+
+  @override
+  String get addressNotFound => 'Endereço não encontrado';
 
   @override
   String get publicKeyHint => 'npub1...';

@@ -46,7 +46,7 @@ class HttpNip05Repository implements Nip05Repository {
     if (names is! Map) {
       throw const FormatException('names is not an object');
     }
-    final pubkey = names[name];
+    final pubkey = _entryOf(names, name);
     if (pubkey == null) {
       return null;
     }
@@ -107,6 +107,16 @@ class HttpNip05Repository implements Nip05Repository {
     }
     return json;
   }
+}
+
+/// NIP-05 names are case-insensitive, so another case is a fallback for
+/// [name], which is lowercase
+Object? _entryOf(Map names, String name) {
+  if (names.containsKey(name)) return names[name];
+  for (final MapEntry(:key, :value) in names.entries) {
+    if (key is String && key.toLowerCase() == name) return value;
+  }
+  return null;
 }
 
 /// NIP-05 makes the relays optional, so a missing or mistyped entry gives none

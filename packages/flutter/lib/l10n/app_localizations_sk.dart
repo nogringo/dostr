@@ -41,6 +41,9 @@ class AppLocalizationsSk extends AppLocalizations {
   String get unableToConnect => 'Nepodarilo sa pripojiť';
 
   @override
+  String get addressNotFound => 'Adresa sa nenašla';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

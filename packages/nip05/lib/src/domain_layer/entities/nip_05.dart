@@ -3,7 +3,7 @@ import 'package:dostr_relay_url/dostr_relay_url.dart';
 final _name = RegExp(r'^[a-z0-9._-]+$');
 
 final _domain = RegExp(
-  r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)*$',
+  r'^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$',
 );
 
 /// A NIP-05 identifier and what its domain gives for it.
@@ -41,8 +41,9 @@ class Nip05 {
 
   /// Lowercased `name@domain` form of [identifier], or null when it is not a
   /// NIP-05 identifier: the name holds only `a-z0-9-_.`, as NIP-05 allows, and
-  /// the domain is a host name.
-  /// A bare `domain` is the display form of the root identifier `_@domain`.
+  /// the domain is a host name with at least one dot.
+  /// A bare `domain` is the display form of the root identifier `_@domain`, so
+  /// a bare `bob` is not one.
   static String? canonicalIdentifier(String identifier) {
     final parts = identifier.trim().toLowerCase().split('@');
     if (parts.length == 1) {

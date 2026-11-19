@@ -10,6 +10,7 @@
   "nostrAddressHint": "name@example.com",
   "invalidAddress": "無効なアドレス",
   "unableToConnect": "接続できません",
+  "addressNotFound": "アドレスが見つかりません",
   "publicKeyHint": "npub1...",
   "privateKeyHint": "nsec1...",
   "newToNostr": "Nostrは初めてですか？",

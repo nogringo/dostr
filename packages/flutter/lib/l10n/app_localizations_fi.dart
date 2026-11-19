@@ -41,6 +41,9 @@ class AppLocalizationsFi extends AppLocalizations {
   String get unableToConnect => 'Yhdistäminen epäonnistui';
 
   @override
+  String get addressNotFound => 'Osoitetta ei löytynyt';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

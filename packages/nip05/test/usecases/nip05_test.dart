@@ -132,6 +132,32 @@ void main() {
       expect((result as Nip05Found).data.pubkey, pubkey);
     });
 
+    test('finds a name the domain gives in another case', () async {
+      final (:resolver, cache: _, requests: _) = setup(
+        (_) => nostrJson({
+          'names': {'UserName': pubkey},
+        }),
+      );
+
+      final result = await resolver.resolve('username@example.com');
+
+      final data = (result as Nip05Found).data;
+      expect(data.identifier, 'username@example.com');
+      expect(data.pubkey, pubkey);
+    });
+
+    test('prefers the name in lowercase to one in another case', () async {
+      final (:resolver, cache: _, requests: _) = setup(
+        (_) => nostrJson({
+          'names': {'UserName': otherPubkey, 'username': pubkey},
+        }),
+      );
+
+      final result = await resolver.resolve('username@example.com');
+
+      expect((result as Nip05Found).data.pubkey, pubkey);
+    });
+
     test(
       'returns Nip05ResolveInvalidResponse for a pubkey that is not hex',
       () async {
@@ -267,6 +293,8 @@ void main() {
 
       for (final identifier in [
         '',
+        'bob',
+        'bob@localhost',
         'a@b@example.com',
         'a&name=_@example.com',
         'bob+tag@example.com',
@@ -532,6 +560,26 @@ void main() {
       expect((result as Nip05Mismatch).data.pubkey, pubkey);
     });
 
+    test('throws an ArgumentError for a pubkey that is not in hex, without a '
+        'request', () async {
+      final (:resolver, cache: _, :requests) = setup(
+        (_) => nostrJson(usernameJson),
+      );
+
+      for (final other in [
+        'npub180cvv07tjdrrgpa0j7j7tmnyl2yr6yr7l8j4s3evf6u64th6gkwsyjh6w6',
+        '',
+        '${pubkey}00',
+      ]) {
+        await expectLater(
+          resolver.check(nip05: 'username@example.com', pubkey: other),
+          throwsArgumentError,
+          reason: other,
+        );
+      }
+      expect(requests, isEmpty);
+    });
+
     test(
       'returns Nip05NotFound for a missing or malformed identifier',
       () async {
@@ -759,6 +807,24 @@ void main() {
         expect(client.closed, isFalse);
       },
     );
+
+    test('resolve() and check() throw a StateError after close()', () async {
+      for (final resolver in [
+        Nip05Resolver(),
+        Nip05Resolver(httpClient: _GatedClient()),
+      ]) {
+        resolver.close();
+
+        await expectLater(
+          resolver.resolve('username@example.com'),
+          throwsStateError,
+        );
+        await expectLater(
+          resolver.check(nip05: 'username@example.com', pubkey: pubkey),
+          throwsStateError,
+        );
+      }
+    });
   });
 
   test('takes an httpClient or a nip05Repository, not both', () {

@@ -41,6 +41,9 @@ class AppLocalizationsJa extends AppLocalizations {
   String get unableToConnect => '接続できません';
 
   @override
+  String get addressNotFound => 'アドレスが見つかりません';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

@@ -10,6 +10,7 @@
   "nostrAddressHint": "name@example.com",
   "invalidAddress": "Nieprawidłowy adres",
   "unableToConnect": "Nie można nawiązać połączenia",
+  "addressNotFound": "Nie znaleziono adresu",
   "publicKeyHint": "npub1...",
   "privateKeyHint": "nsec1...",
   "newToNostr": "Nowy w Nostr?",

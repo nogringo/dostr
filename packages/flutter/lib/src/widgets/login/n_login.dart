@@ -161,6 +161,7 @@ class _NLoginState extends State<NLogin> {
                 null,
                 AppLocalizations.of(context)!.invalidAddress,
                 AppLocalizations.of(context)!.unableToConnect,
+                AppLocalizations.of(context)!.addressNotFound,
               ][controller.nip05LoginError],
             ),
             onChanged: nip05Change,
@@ -337,24 +338,29 @@ class _NLoginState extends State<NLogin> {
   }
 
   Future<void> loginWithNip05(String nip05) async {
-    if (!RegExp(
-      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-    ).hasMatch(nip05)) {
+    if (Nip05.canonicalIdentifier(nip05) == null) {
       controller.nip05LoginError = 1;
       return;
     }
 
     controller.isFetchingNip05 = true;
-    final result = await widget.dostrFlutter.nip05Resolver.resolve(nip05);
-    controller.isFetchingNip05 = false;
+    final Nip05ResolveResult result;
+    try {
+      result = await widget.dostrFlutter.nip05Resolver.resolve(nip05);
+    } finally {
+      controller.isFetchingNip05 = false;
+    }
 
-    final pubkey = switch (result) {
-      Nip05Found(:final data) => data.pubkey,
-      _ => null,
-    };
-    if (pubkey == null) {
-      controller.nip05LoginError = 2;
-      return;
+    final String pubkey;
+    switch (result) {
+      case Nip05Found(:final data):
+        pubkey = data.pubkey;
+      case Nip05ResolveError():
+        controller.nip05LoginError = 2;
+        return;
+      case Nip05NotFound():
+        controller.nip05LoginError = 3;
+        return;
     }
 
     if (_accounts.hasAccount(pubkey)) {

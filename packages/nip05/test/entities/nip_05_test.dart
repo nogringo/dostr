@@ -26,6 +26,8 @@ void main() {
     test('rejects malformed identifiers', () {
       for (final identifier in [
         '',
+        'bob',
+        'bob@localhost',
         '@example.com',
         'bob@',
         'a@b@example.com',

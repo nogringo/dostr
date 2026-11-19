@@ -41,6 +41,9 @@ class AppLocalizationsPl extends AppLocalizations {
   String get unableToConnect => 'Nie można nawiązać połączenia';
 
   @override
+  String get addressNotFound => 'Nie znaleziono adresu';
+
+  @override
   String get publicKeyHint => 'npub1...';
 
   @override

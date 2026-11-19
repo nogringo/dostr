@@ -281,14 +281,46 @@ void main() {
       expect(find.byType(CircularProgressIndicator), findsNothing);
     });
 
-    testWidgets('says so when the address does not resolve', (tester) async {
+    testWidgets('logs in with the root identifier of a bare domain', (
+      tester,
+    ) async {
+      await tester.pumpWidget(login());
+
+      await submit(
+        tester,
+        'example.com',
+        http.Response(
+          jsonEncode({
+            'names': {'_': bobPubkey},
+          }),
+          200,
+        ),
+      );
+
+      expect(dostr.accounts.getLoggedAccount()!.publicKey, bobPubkey);
+      expect(loggedIn, 1);
+    });
+
+    testWidgets('says so when the address does not exist', (tester) async {
       await tester.pumpWidget(login());
 
       await submit(tester, 'bob@example.com', http.Response('', 404));
 
-      expect(find.text('Unable to connect'), findsOneWidget);
+      expect(find.text('Address not found'), findsOneWidget);
+      expect(find.text('Unable to connect'), findsNothing);
       expect(dostr.accounts.isNotLoggedIn, isTrue);
       expect(loggedIn, 0);
+    });
+
+    testWidgets('says so when the domain cannot be reached', (tester) async {
+      await tester.pumpWidget(login());
+
+      await submit(tester, 'bob@example.com', http.Response('', 500));
+
+      expect(find.text('Unable to connect'), findsOneWidget);
+      expect(find.text('Address not found'), findsNothing);
+      expect(dostr.accounts.isNotLoggedIn, isTrue);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
     });
   });
 

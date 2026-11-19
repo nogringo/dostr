@@ -40,6 +40,10 @@
   "@unableToConnect": {
     "description": "Error message when unable to connect to nostr address"
   },
+  "addressNotFound": "Address not found",
+  "@addressNotFound": {
+    "description": "Error message when the domain of a nostr address has no such name"
+  },
   "publicKeyHint": "npub1...",
   "@publicKeyHint": {
     "description": "Placeholder text for public key input field"
