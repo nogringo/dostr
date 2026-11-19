@@ -20,28 +20,20 @@ enum UrlListKind {
   private,
 
   /// Blossom servers (kind 10063, BUD-03).
-  blossom;
-
-  /// Whether the list is published on the owner's NIP-65 write relays.
-  bool get onOutbox => this == dm || this == private || this == blossom;
+  blossom,
 }
 
 /// Looks up one list of [pubkey]. Called by a queue worker, never at enqueue
 /// time, so it may hit the network.
 ///
-/// [outboxRelays] are the NIP-65 write relays of [pubkey], where it publishes
-/// its own lists. They are given when [UrlListKind.onOutbox] (empty when
-/// [pubkey] has no NIP-65) and should be queried along with any discovery
-/// relays. They are always empty for the NIP-65 kinds.
+/// DM, private and Blossom lists are published on the NIP-65 write relays of
+/// [pubkey], which the lookup finds itself. While they stay unknown, a list
+/// that no relay holds is unavailable, not [UrlListLookup.notFound].
 ///
 /// Resolution never times a lookup out: bound the network part, but let a
 /// signer take as long as it needs.
 typedef UrlListFn =
-    Future<UrlListLookup> Function(
-      String pubkey,
-      UrlListKind kind,
-      List<String> outboxRelays,
-    );
+    Future<UrlListLookup> Function(String pubkey, UrlListKind kind);
 
 /// Outcome of a single list lookup.
 sealed class UrlListLookup {
@@ -480,8 +472,7 @@ final class UnavailableUrlList {
   /// Which list of [pubkey] it is.
   final UrlListKind kind;
 
-  /// Why, if known. It starts with `NIP-65` when the list is published on the
-  /// outbox and the NIP-65 of [pubkey] was the unavailable one.
+  /// Why, if known.
   final String? reason;
 
   /// Creates an unavailable list.
@@ -505,17 +496,13 @@ final class UnavailableUrlList {
 
 /// Resolves [set] with [lookup]. Each `(pubkey, kind)` pair is looked up at
 /// most once per call, and [UrlSet.fallback] never looks up the sets after
-/// the first non-empty one. A list published on the owner's outbox (DM,
-/// private, Blossom) is looked up after the NIP-65 of the same pubkey, on its
-/// write relays.
+/// the first non-empty one.
 Future<UrlResolution> resolveUrlSet(UrlSet set, UrlListFn lookup) {
   final memo = <String, Future<UrlListLookup>>{};
   return _resolve(
     set,
-    (pubkey, kind, outboxRelays) => memo.putIfAbsent(
-      '${kind.name}|$pubkey',
-      () => lookup(pubkey, kind, outboxRelays),
-    ),
+    (pubkey, kind) =>
+        memo.putIfAbsent('${kind.name}|$pubkey', () => lookup(pubkey, kind)),
   );
 }
 
@@ -524,7 +511,13 @@ Future<UrlResolution> _resolve(UrlSet set, UrlListFn lookup) async {
     case ExplicitUrls(:final urls):
       return UrlsResolved(urls);
     case _ListUrls(:final pubkey, :final _kind):
-      return _resolveList(pubkey, _kind, lookup);
+      return switch (await lookup(pubkey, _kind)) {
+        UrlListFound(:final urls) => UrlsResolved(urls),
+        UrlListNotFound() => const UrlsResolved([]),
+        UrlListUnavailable(:final reason) => UrlsUnavailable([
+          UnavailableUrlList(pubkey, _kind, reason),
+        ]),
+      };
     case UnionUrls(:final sets):
       return _merge(
         await Future.wait([for (final s in sets) _resolve(s, lookup)]),
@@ -548,35 +541,6 @@ Future<UrlResolution> _resolve(UrlSet set, UrlListFn lookup) async {
       };
   }
 }
-
-Future<UrlResolution> _resolveList(
-  String pubkey,
-  UrlListKind kind,
-  UrlListFn lookup,
-) async {
-  UrlResolution unavailable(String? reason) =>
-      UrlsUnavailable([UnavailableUrlList(pubkey, kind, reason)]);
-
-  var outboxRelays = const <String>[];
-  if (kind.onOutbox) {
-    switch (await lookup(pubkey, UrlListKind.outbox, const [])) {
-      case UrlListFound(:final urls):
-        outboxRelays = urls;
-      case UrlListNotFound():
-        break;
-      case UrlListUnavailable(:final reason):
-        return unavailable(_nip65Reason(reason));
-    }
-  }
-
-  return switch (await lookup(pubkey, kind, outboxRelays)) {
-    UrlListFound(:final urls) => UrlsResolved(urls),
-    UrlListNotFound() => const UrlsResolved([]),
-    UrlListUnavailable(:final reason) => unavailable(reason),
-  };
-}
-
-String _nip65Reason(String? reason) => 'NIP-65 ${reason ?? 'unavailable'}';
 
 List<String> _firstDistinct(int count, List<String> urls) =>
     urls.toSet().take(count).toList();

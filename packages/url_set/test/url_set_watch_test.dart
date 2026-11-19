@@ -5,14 +5,12 @@ import 'package:test/test.dart';
 
 class FakeUrlListWatches {
   final Map<String, StreamController<UrlListLookup>> lists = {};
-  final Map<String, Future<List<String>>> outboxRelays = {};
   final List<String> calls = [];
   final Set<String> cancelled = {};
 
-  UrlListWatchFn get fn => (pubkey, kind, outboxRelays) {
+  UrlListWatchFn get fn => (pubkey, kind) {
     final id = '${kind.name}|$pubkey';
     calls.add(id);
-    this.outboxRelays[id] = outboxRelays;
     final list = lists[id] = StreamController(
       onCancel: () => cancelled.add(id),
     );
@@ -284,53 +282,16 @@ void main() {
       expect(lists.calls, isEmpty);
     });
 
-    test('watches a DM list without waiting for the NIP-65', () async {
+    test('watches a DM list alone', () async {
       final lists = FakeUrlListWatches();
       final w = await watching(const UrlSet.dm('p'), lists);
-      expect(lists.calls, ['outbox|p', 'dm|p']);
+      expect(lists.calls, ['dm|p']);
 
       await lists.answer('dm|p', const UrlListLookup.found(['wss://dm']));
       await lists.end('dm|p');
       expect(w.last.urls, ['wss://dm']);
-      expect(w.last.done, isFalse);
-
-      await lists.answer('outbox|p', const UrlListLookup.found(['wss://w']));
-      await lists.end('outbox|p');
-      expect(w.last.urls, ['wss://dm']);
       expect(w.last.done, isTrue);
-      expect(await lists.outboxRelays['dm|p'], ['wss://w']);
-      expect(await lists.outboxRelays['outbox|p'], isEmpty);
     });
-
-    test('a DM list not found waits for the NIP-65', () async {
-      final lists = FakeUrlListWatches();
-      final w = await watching(const UrlSet.dm('p'), lists);
-      await lists.answer('dm|p', const UrlListLookup.notFound());
-      expect(w.last.done, isFalse);
-      await lists.answer('outbox|p', const UrlListLookup.notFound());
-      expect(w.last.urls, isEmpty);
-      expect(w.last.done, isTrue);
-      expect(await lists.outboxRelays['dm|p'], isEmpty);
-    });
-
-    test(
-      'DM relays are unavailable while NIP-65 is, with the urls found',
-      () async {
-        final lists = FakeUrlListWatches();
-        final w = await watching(const UrlSet.dm('p'), lists);
-        await lists.answer('dm|p', const UrlListLookup.found(['wss://dm']));
-        await lists.end('dm|p');
-        await lists.answer(
-          'outbox|p',
-          const UrlListLookup.unavailable('offline'),
-        );
-        expect(w.last.done, isTrue);
-        expect(w.last.urls, ['wss://dm']);
-        expect(w.last.unavailable, [
-          const UnavailableUrlList('p', UrlListKind.dm, 'NIP-65 offline'),
-        ]);
-      },
-    );
 
     test('watches each pubkey and kind once', () async {
       final lists = FakeUrlListWatches();
@@ -378,7 +339,6 @@ void main() {
         UrlSet.outbox('p3'),
       ]);
       const answers = {
-        'outbox|p1': UrlListLookup.found(['wss://w1']),
         'dm|p1': UrlListLookup.notFound(),
         'inbox|p2': UrlListLookup.found(['wss://r1', 'wss://r2']),
         'outbox|p3': UrlListLookup.unavailable('offline'),
@@ -392,14 +352,12 @@ void main() {
       }
       final resolved = await resolveUrlSet(
         set,
-        (pubkey, kind, _) async => answers['${kind.name}|$pubkey']!,
+        (pubkey, kind) async => answers['${kind.name}|$pubkey']!,
       );
 
       expect(w.last.done, isTrue);
       expect(w.last.urls, ['wss://d', 'wss://r1']);
-      final watched = w.last.resolution as UrlsUnavailable;
-      expect(watched.lists, (resolved as UrlsUnavailable).lists);
-      expect(watched.urls, resolved.urls);
+      expect(w.last.resolution, resolved);
     });
   });
 }

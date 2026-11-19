@@ -50,11 +50,8 @@ A consumer checks `set.kinds` and rejects the leaves it cannot use: a broadcast 
 ```dart
 import 'package:dostr_url_set/dostr_url_set.dart';
 
-Future<UrlListLookup> lookup(
-  String pubkey,
-  UrlListKind kind,
-  List<String> outboxRelays,
-) async => const UrlListLookup.notFound();
+Future<UrlListLookup> lookup(String pubkey, UrlListKind kind) async =>
+    const UrlListLookup.notFound();
 
 final resolution = await resolveUrlSet(
   UrlSet.fallback([
@@ -78,12 +75,14 @@ Every lookup ends in one of three states:
 - `notFound`: at least one relay answered (EOSE) and none holds the list.
 - `unavailable`: no relay answered, so nothing is known.
 
+The lookup finds where a list is published.
+DM, private and Blossom lists live on their owner's NIP-65 write relays: while those stay unknown, a list that no relay holds is `unavailable`, not `notFound`.
+
 Resolution follows from that:
 
 - A union is unavailable as soon as one of its parts is.
 - A fallback treats `notFound` as empty and moves on, but stops on `unavailable`. An offline device never falls through to the defaults while the real list might exist.
 - Each `(pubkey, kind)` pair is looked up once per resolution.
-- DM, private and Blossom lists are published on their owner's NIP-65 write relays, so their NIP-65 is looked up first and its write relays are passed to the lookup as `outboxRelays`.
 
 `UrlsUnavailable.lists` names each unavailable list as an `UnavailableUrlList`, with its pubkey, kind and reason.
 `UrlsUnavailable.urls` is what the set resolves to with those lists counted as empty, a fallback still stopping at them: where to send now, while the rest waits.
@@ -113,8 +112,6 @@ Each `UrlSetSnapshot` holds the URLs known so far and the lists found unavailabl
 A later one may drop URLs: a newer version of a list replaces the one before, and a fallback moves past a set whose list turns out empty.
 The last one is `done`, and its `resolution` is what `resolveUrlSet` gives with the lists as they ended.
 
-A DM, private or Blossom list is watched along with the NIP-65 of its owner, whose write relays come later as the `outboxRelays` future, so a lookup that finds them itself starts right away.
-
 ## Storage
 
 `toMap()` gives a JSON-compatible map and `UrlSet.fromMap()` reads it back.
@@ -129,5 +126,6 @@ Two sets are equal when they describe the same tree, so a queue can spot two rec
 
 `UrlSet`, `resolveUrlSet` and the lookup types moved here.
 `UrlsUnavailable` held only a `reason` string: it now names the unavailable lists in `lists` and keeps the URLs found in `urls`, and `reason` joins the lists.
+`UrlListFn` no longer takes `outboxRelays`, and `UrlListKind.onOutbox` is gone: the lookup finds the write relays of a DM, private or Blossom list itself, where the resolver looked up the NIP-65 first and passed them on.
 `UrlListCheck` and `UrlListCheckStore` moved to [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers), next to the lookups that keep them.
 `ndkUrlListFn` and `defaultIndexerRelays` are not here: [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers) has `fetcherUrlListFn`, which builds the lookup from its fetchers, and `defaultIndexerRelays`.

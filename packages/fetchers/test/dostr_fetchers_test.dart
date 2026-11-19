@@ -1313,7 +1313,7 @@ void main() {
         ]),
       );
       Future<List<String>> urlsOf(String pubkey, UrlListKind kind) async =>
-          (await lists(pubkey, kind, const []) as UrlListFound).urls;
+          (await lists(pubkey, kind) as UrlListFound).urls;
 
       expect(await urlsOf(alice, UrlListKind.outbox), [
         'wss://both.example.com',
@@ -1356,10 +1356,7 @@ void main() {
     test('rejects private relay lists', () async {
       final lists = listsOn(await startRelay([]));
 
-      expect(
-        lists(alice, UrlListKind.private, const []),
-        throwsUnsupportedError,
-      );
+      expect(lists(alice, UrlListKind.private), throwsUnsupportedError);
     });
 
     test('requires the fetchers to find write relays with nip65', () {
@@ -1381,7 +1378,6 @@ void main() {
 
   group('fetcherUrlListWatchFn', () {
     const timeout = Duration(milliseconds: 500);
-    final noRelays = Future.value(const <String>[]);
 
     UrlListWatchFn watchesOn({
       required List<RelayUrl> nip65Relays,
@@ -1482,10 +1478,9 @@ void main() {
       final found = snapshots.firstWhere((s) => s.urls.isNotEmpty);
       expect(found.urls, ['wss://dm.example.com']);
       expect(found.done, isFalse);
-      expect(snapshots.last.urls, ['wss://dm.example.com']);
       expect(
-        (snapshots.last.resolution as UrlsUnavailable).reason,
-        contains('NIP-65'),
+        snapshots.last.resolution,
+        const UrlsResolved(['wss://dm.example.com']),
       );
     });
 
@@ -1508,7 +1503,7 @@ void main() {
         cache: cache,
       );
 
-      final lookups = await watch(alice, UrlListKind.outbox, noRelays).toList();
+      final lookups = await watch(alice, UrlListKind.outbox).toList();
 
       expect(
         [for (final lookup in lookups) (lookup as UrlListFound).urls],
@@ -1523,7 +1518,7 @@ void main() {
       Future<List<UrlListLookup>> lookupsOn(RelayUrl url) => watchesOn(
         nip65Relays: [url],
         relays: [],
-      )(alice, UrlListKind.outbox, noRelays).toList();
+      )(alice, UrlListKind.outbox).toList();
 
       expect(await lookupsOn(await startRelay([])), [isA<UrlListNotFound>()]);
       expect(await lookupsOn(await startSilentRelay()), [
@@ -1541,7 +1536,7 @@ void main() {
         checks: MemoryUrlListCheckStore(),
       );
 
-      final lookups = await watch(alice, UrlListKind.outbox, noRelays).toList();
+      final lookups = await watch(alice, UrlListKind.outbox).toList();
 
       expect(lookups, [isA<UrlListUnavailable>()]);
       expect(relay.reqCount, 1);
@@ -1550,10 +1545,7 @@ void main() {
     test('rejects private relay lists', () async {
       final watch = watchesOn(nip65Relays: [], relays: []);
 
-      expect(
-        watch(alice, UrlListKind.private, noRelays),
-        emitsError(isUnsupportedError),
-      );
+      expect(watch(alice, UrlListKind.private), emitsError(isUnsupportedError));
     });
 
     test('requires the fetchers to find write relays with nip65', () {
@@ -1590,7 +1582,7 @@ void main() {
     EventFetcher fetcher({Duration timeout = const Duration(seconds: 5)}) =>
         EventFetcher(
           reqs: reqs,
-          urlLists: (pubkey, kind, _) =>
+          urlLists: (pubkey, kind) =>
               (lists['${kind.name}|$pubkey'] = StreamController()).stream,
           timeout: timeout,
         );

@@ -4,15 +4,13 @@ import 'package:test/test.dart';
 class FakeUrlLists {
   final Map<String, UrlListLookup> answers = {};
   final List<String> calls = [];
-  final Map<String, List<String>> outboxRelaysSeen = {};
 
   void set(String pubkey, UrlListKind kind, UrlListLookup answer) =>
       answers['${kind.name}|$pubkey'] = answer;
 
-  UrlListFn get fn => (pubkey, kind, outboxRelays) async {
+  UrlListFn get fn => (pubkey, kind) async {
     final id = '${kind.name}|$pubkey';
     calls.add(id);
-    outboxRelaysSeen[id] = outboxRelays;
     return answers[id] ?? const UrlListLookup.unavailable('offline');
   };
 }
@@ -220,13 +218,13 @@ void main() {
         expect(r, isA<UrlsUnavailable>());
         final unavailable = r as UrlsUnavailable;
         expect(unavailable.lists, [
-          const UnavailableUrlList('p2', UrlListKind.dm, 'NIP-65 offline'),
+          const UnavailableUrlList('p2', UrlListKind.dm, 'offline'),
           const UnavailableUrlList('p4', UrlListKind.inbox, 'offline'),
         ]);
         expect(unavailable.urls, ['wss://w', 'wss://r']);
         expect(
           unavailable.reason,
-          'dm list of p2 unavailable: NIP-65 offline; '
+          'dm list of p2 unavailable: offline; '
           'inbox list of p4 unavailable: offline',
         );
       },
@@ -318,72 +316,28 @@ void main() {
       expect(lists.calls, ['nip65|p']);
     });
 
-    test('looks up DM relays on the NIP-65 write relays', () async {
+    test('looks up DM, private and Blossom lists alone', () async {
       final lists = FakeUrlLists()
-        ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w']))
-        ..set('p', UrlListKind.dm, const UrlListLookup.found(['wss://dm']));
-      final r = await resolveUrlSet(const UrlSet.dm('p'), lists.fn);
-      expect(resolvedUrls(r), ['wss://dm']);
-      expect(lists.calls, ['outbox|p', 'dm|p']);
-      expect(lists.outboxRelaysSeen['outbox|p'], isEmpty);
-      expect(lists.outboxRelaysSeen['dm|p'], ['wss://w']);
-    });
-
-    test(
-      'looks up DM relays without write relays when NIP-65 is not found',
-      () async {
-        final lists = FakeUrlLists()
-          ..set('p', UrlListKind.outbox, const UrlListLookup.notFound())
-          ..set('p', UrlListKind.dm, const UrlListLookup.found(['wss://dm']));
-        final r = await resolveUrlSet(const UrlSet.dm('p'), lists.fn);
-        expect(resolvedUrls(r), ['wss://dm']);
-        expect(lists.outboxRelaysSeen['dm|p'], isEmpty);
-      },
-    );
-
-    test('looks up private relays on the NIP-65 write relays', () async {
-      final lists = FakeUrlLists()
-        ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w']))
-        ..set('p', UrlListKind.private, const UrlListLookup.found(['wss://s']));
-      final r = await resolveUrlSet(const UrlSet.private('p'), lists.fn);
-      expect(resolvedUrls(r), ['wss://s']);
-      expect(lists.calls, ['outbox|p', 'private|p']);
-      expect(lists.outboxRelaysSeen['private|p'], ['wss://w']);
-    });
-
-    test('looks up Blossom servers on the NIP-65 write relays', () async {
-      final lists = FakeUrlLists()
-        ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w']))
+        ..set('p', UrlListKind.dm, const UrlListLookup.found(['wss://dm']))
+        ..set('p', UrlListKind.private, const UrlListLookup.found(['wss://s']))
         ..set(
           'p',
           UrlListKind.blossom,
           const UrlListLookup.found(['https://cdn.example']),
         );
-      final r = await resolveUrlSet(const UrlSet.blossom('p'), lists.fn);
-      expect(resolvedUrls(r), ['https://cdn.example']);
-      expect(lists.calls, ['outbox|p', 'blossom|p']);
-      expect(lists.outboxRelaysSeen['blossom|p'], ['wss://w']);
-    });
-
-    test('DM relays are unavailable while NIP-65 is', () async {
-      final lists = FakeUrlLists()
-        ..set('p', UrlListKind.dm, const UrlListLookup.found(['wss://dm']));
-      final r = await resolveUrlSet(const UrlSet.dm('p'), lists.fn);
-      expect(r, isA<UrlsUnavailable>());
-      expect((r as UrlsUnavailable).reason, contains('NIP-65'));
-      expect(lists.calls, ['outbox|p']);
-    });
-
-    test('shares the NIP-65 lookup between outbox and DM sets', () async {
-      final lists = FakeUrlLists()
-        ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w']))
-        ..set('p', UrlListKind.dm, const UrlListLookup.found(['wss://dm']));
       final r = await resolveUrlSet(
-        const UrlSet.union([UrlSet.outbox('p'), UrlSet.dm('p')]),
+        const UrlSet.union([
+          UrlSet.dm('p'),
+          UrlSet.private('p'),
+          UrlSet.blossom('p'),
+        ]),
         lists.fn,
       );
-      expect(resolvedUrls(r), ['wss://w', 'wss://dm']);
-      expect(lists.calls, ['outbox|p', 'dm|p']);
+      expect(
+        r,
+        const UrlsResolved(['wss://dm', 'wss://s', 'https://cdn.example']),
+      );
+      expect(lists.calls, ['dm|p', 'private|p', 'blossom|p']);
     });
 
     test('fallback skips empty and notFound sets', () async {
@@ -406,7 +360,6 @@ void main() {
 
     test('fallback to defaults when there is no Blossom list', () async {
       final lists = FakeUrlLists()
-        ..set('p', UrlListKind.outbox, const UrlListLookup.notFound())
         ..set('p', UrlListKind.blossom, const UrlListLookup.notFound());
       final r = await resolveUrlSet(
         const UrlSet.fallback([

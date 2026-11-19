@@ -13,11 +13,8 @@ Future<void> main() async {
   final stored = servers.toMap();
 
   // A real lookup reads the lists from relays: this account has none.
-  Future<UrlListLookup> lookup(
-    String pubkey,
-    UrlListKind kind,
-    List<String> outboxRelays,
-  ) async => const UrlListLookup.notFound();
+  Future<UrlListLookup> lookup(String pubkey, UrlListKind kind) async =>
+      const UrlListLookup.notFound();
 
   final resolution = await resolveUrlSet(UrlSet.fromMap(stored), lookup);
   switch (resolution) {

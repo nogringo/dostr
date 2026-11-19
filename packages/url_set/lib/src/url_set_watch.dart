@@ -8,17 +8,9 @@ part of 'url_set.dart';
 /// without emitting counts as unavailable. Report a list that cannot be read
 /// as [UrlListUnavailable]: an error ends the whole [watchUrlSet] with it.
 ///
-/// [outboxRelays] gives the NIP-65 write relays of [pubkey] once their lookup
-/// ended, when [UrlListKind.onOutbox]: empty when [pubkey] has no NIP-65 or
-/// it is unavailable. [watchUrlSet] calls this before they are known, so a
-/// lookup that finds them itself starts right away. Always empty for the
-/// NIP-65 kinds.
+/// It finds where a list is published, as a [UrlListFn] does.
 typedef UrlListWatchFn =
-    Stream<UrlListLookup> Function(
-      String pubkey,
-      UrlListKind kind,
-      Future<List<String>> outboxRelays,
-    );
+    Stream<UrlListLookup> Function(String pubkey, UrlListKind kind);
 
 /// What a [UrlSet] resolves to so far, as [watchUrlSet] gives it.
 final class UrlSetSnapshot {
@@ -45,9 +37,7 @@ final class UrlSetSnapshot {
   });
 
   /// [urls], or [unavailable] with them when there is one. Once [done], it is
-  /// what [resolveUrlSet] gives with the lists as they ended, except that its
-  /// [UrlsUnavailable.urls] keep a list found while the NIP-65 of its owner
-  /// was unavailable.
+  /// what [resolveUrlSet] gives with the lists as they ended.
   UrlResolution get resolution => unavailable.isEmpty
       ? UrlsResolved(urls)
       : UrlsUnavailable(unavailable, urls: urls);
@@ -73,10 +63,7 @@ final class UrlSetSnapshot {
 /// the stream ends after the [UrlSetSnapshot.done] one.
 ///
 /// Each `(pubkey, kind)` pair is watched at most once, and [UrlSet.fallback]
-/// watches a set only once the ones before it ended empty. A list published
-/// on the owner's outbox (DM, private, Blossom) is watched along with the
-/// NIP-65 of the same pubkey, and ends with it: while that one is
-/// unavailable, so is the list, which keeps the URLs it found.
+/// watches a set only once the ones before it ended empty.
 ///
 /// The lookups are cancelled once done, or when the stream is.
 Stream<UrlSetSnapshot> watchUrlSet(UrlSet set, UrlListWatchFn watch) {
@@ -186,20 +173,10 @@ class _UrlSetWatch {
   }
 
   UrlSetSnapshot _evaluateList(String pubkey, UrlListKind kind) {
-    final outbox = kind.onOutbox ? _list(pubkey, UrlListKind.outbox) : null;
     final list = _list(pubkey, kind);
     final latest = list.latest;
     final urls = latest is UrlListFound ? latest.urls : const <String>[];
-    if (!list.ended || !(outbox?.ended ?? true)) {
-      return UrlSetSnapshot(urls: urls, done: false);
-    }
-    if (outbox?.latest case UrlListUnavailable(:final reason)) {
-      return UrlSetSnapshot(
-        urls: urls,
-        unavailable: [UnavailableUrlList(pubkey, kind, _nip65Reason(reason))],
-        done: true,
-      );
-    }
+    if (!list.ended) return UrlSetSnapshot(urls: urls, done: false);
     if (latest case UrlListUnavailable(:final reason)) {
       return UrlSetSnapshot(
         urls: const [],
@@ -214,14 +191,8 @@ class _UrlSetWatch {
     final key = '${kind.name}|$pubkey';
     if (_lists[key] case final list?) return list;
 
-    final outbox = kind.onOutbox ? _list(pubkey, UrlListKind.outbox) : null;
     final list = _lists[key] = _ListWatch();
-    final outboxRelays = outbox == null
-        ? Future.value(const <String>[])
-        : outbox.result.then(
-            (lookup) => lookup is UrlListFound ? lookup.urls : const <String>[],
-          );
-    list.subscription = _watch(pubkey, kind, outboxRelays).listen(
+    list.subscription = _watch(pubkey, kind).listen(
       (lookup) {
         list.answer(lookup);
         update();
@@ -239,20 +210,17 @@ class _UrlSetWatch {
 class _ListWatch {
   UrlListLookup? latest;
   StreamSubscription<UrlListLookup>? subscription;
-  final _result = Completer<UrlListLookup>();
-
-  /// How the lookup ended.
-  Future<UrlListLookup> get result => _result.future;
-
-  bool get ended => _result.isCompleted;
+  bool ended = false;
 
   void answer(UrlListLookup lookup) {
     if (ended) return;
     latest = lookup;
-    if (lookup is! UrlListFound) end();
+    if (lookup is! UrlListFound) ended = true;
   }
 
   void end() {
-    if (!ended) _result.complete(latest ??= const UrlListLookup.unavailable());
+    if (ended) return;
+    ended = true;
+    latest ??= const UrlListLookup.unavailable();
   }
 }

@@ -10,16 +10,16 @@ import 'replaceable_lookup.dart';
 /// A [UrlListFn] that reads the lists with these fetchers, their cache and
 /// checks included.
 ///
-/// The `outboxRelays` it is given go unused: [dmRelays] and [blossomServers]
-/// find the write relays with [nip65], which must be their `nip65Fetcher`.
-/// Private relay lists (kind 10013) are not supported.
+/// [dmRelays] and [blossomServers] find the write relays with [nip65], which
+/// must be their `nip65Fetcher`. Private relay lists (kind 10013) are not
+/// supported.
 UrlListFn fetcherUrlListFn({
   required Nip65Fetcher nip65,
   required DmRelaysFetcher dmRelays,
   required BlossomServersFetcher blossomServers,
 }) {
   _requireNip65(nip65, dmRelays, blossomServers);
-  return (pubkey, kind, _) async => switch (kind) {
+  return (pubkey, kind) async => switch (kind) {
     UrlListKind.outbox => _urls(await nip65.lookup(pubkey), writeRelaysOf),
     UrlListKind.inbox => _urls(await nip65.lookup(pubkey), readRelaysOf),
     UrlListKind.nip65 => _urls(await nip65.lookup(pubkey), allRelaysOf),
@@ -38,7 +38,6 @@ UrlListFn fetcherUrlListFn({
 /// fetchers, their cache and checks included: each version they find comes
 /// as found, the cached one first.
 ///
-/// The `outboxRelays` it is given go unused, as for [fetcherUrlListFn]:
 /// [dmRelays] and [blossomServers] ask the write relays as soon as [nip65]
 /// finds them. Private relay lists (kind 10013) are not supported.
 UrlListWatchFn fetcherUrlListWatchFn({
@@ -47,7 +46,7 @@ UrlListWatchFn fetcherUrlListWatchFn({
   required BlossomServersFetcher blossomServers,
 }) {
   _requireNip65(nip65, dmRelays, blossomServers);
-  return (pubkey, kind, _) => switch (kind) {
+  return (pubkey, kind) => switch (kind) {
     UrlListKind.outbox => _watchUrls(
       pubkey,
       nip65.watch,
