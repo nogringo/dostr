@@ -551,7 +551,6 @@ class Blossom {
       // Compute file hash without loading entire file into memory
       await for (final hashProgress in _blossomImpl.computeFileHash(filePath)) {
         yield BlobUploadProgress(
-          currentServer: '',
           sentBytes: hashProgress.processedBytes,
           totalBytes: hashProgress.totalBytes,
           completedUploads: const [],

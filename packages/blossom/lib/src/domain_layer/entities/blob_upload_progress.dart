@@ -1,10 +1,14 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
+
 import 'blossom_blobs.dart';
 
 enum UploadPhase { hashing, uploading, mirroring }
 
 /// Progress information for blob uploads
 class BlobUploadProgress {
-  final String currentServer;
+  /// the server this progress is about, null while hashing and in the
+  /// progress about no server, such as the first and the last of an upload
+  final BlossomServerUrl? currentServer;
   final int sentBytes;
   final int totalBytes;
   final List<BlobUploadResult> completedUploads;
@@ -25,7 +29,7 @@ class BlobUploadProgress {
   final int mirrorsCompleted;
 
   BlobUploadProgress({
-    required this.currentServer,
+    this.currentServer,
     required this.sentBytes,
     required this.totalBytes,
     required this.completedUploads,

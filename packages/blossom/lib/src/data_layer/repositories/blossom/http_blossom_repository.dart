@@ -362,7 +362,6 @@ class HttpBlossomRepository implements BlossomRepository {
 
     // Emit final progress
     yield BlobUploadProgress(
-      currentServer: '',
       sentBytes: uploaded != null ? contentLength : 0,
       totalBytes: contentLength,
       completedUploads: results,
@@ -424,7 +423,6 @@ class HttpBlossomRepository implements BlossomRepository {
     }
 
     yield BlobUploadProgress(
-      currentServer: '',
       sentBytes: 0,
       totalBytes: contentLength,
       completedUploads: [],
@@ -439,7 +437,6 @@ class HttpBlossomRepository implements BlossomRepository {
     if (caught.error != null) caught.raise();
 
     yield BlobUploadProgress(
-      currentServer: '',
       sentBytes: contentLength,
       totalBytes: contentLength,
       completedUploads: List.from(results),
@@ -497,7 +494,6 @@ class HttpBlossomRepository implements BlossomRepository {
 
     // All servers failed
     yield BlobUploadProgress(
-      currentServer: '',
       sentBytes: 0,
       totalBytes: contentLength,
       completedUploads: results,

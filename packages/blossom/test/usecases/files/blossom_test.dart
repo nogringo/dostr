@@ -1116,6 +1116,20 @@ void main() {
         expect(lastEvent.phase, equals(UploadPhase.mirroring));
         expect(lastEvent.percentage, closeTo(100, 0.000001));
         expect(lastEvent.completedUploads.any((u) => u.success), isTrue);
+
+        expect(
+          events
+              .where((e) => e.phase == UploadPhase.hashing)
+              .map((e) => e.currentServer),
+          everyElement(isNull),
+        );
+        expect(
+          events
+              .where((e) => e.phase == UploadPhase.uploading)
+              .map((e) => e.currentServer),
+          everyElement('http://localhost:$primaryServerPort'),
+        );
+        expect(lastEvent.currentServer, isNull);
       },
     );
 
