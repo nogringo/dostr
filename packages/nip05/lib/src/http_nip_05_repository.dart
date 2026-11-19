@@ -14,7 +14,8 @@ import 'nip_05_repository.dart';
 class HttpNip05Repository implements Nip05Repository {
   final http.Client client;
 
-  /// how long to wait for a nostr.json response
+  /// how long to wait for a nostr.json response, even from a [client] that
+  /// cannot abort a request
   final Duration timeout;
 
   /// the largest body read, in bytes. A larger one throws a [FormatException]
@@ -87,32 +88,45 @@ class HttpNip05Repository implements Nip05Repository {
         http.AbortableRequest('GET', url, abortTrigger: abort.future)
           ..followRedirects = false
           ..headers['Accept'] = 'application/json';
-    final Uint8List body;
+    final Uint8List? body;
     try {
-      final response = await client.send(request);
-      final status = response.statusCode;
-      if (status < 200 || status >= 300) {
-        response.stream.listen(null).cancel().ignore();
-        if (status == 404) {
-          return null;
-        }
-        if (status < 400) {
-          throw FormatException('GET $url redirects ($status)');
-        }
-        throw http.ClientException('GET $url returned $status', url);
-      }
-      body = await _read(response.stream, url);
+      // some clients ignore the abortTrigger, and the timeout holds with them
+      body = await Future.any([
+        _send(request),
+        abort.future.then((_) => throw http.RequestAbortedException(url)),
+      ]);
     } on http.RequestAbortedException {
       if (timedOut) throw TimeoutException('$url', timeout);
       rethrow;
     } finally {
       timer.cancel();
     }
+    if (body == null) {
+      return null;
+    }
     final json = jsonDecode(utf8.decode(body));
     if (json is! Map<String, dynamic>) {
       throw FormatException('$url did not return a JSON object');
     }
     return json;
+  }
+
+  /// the body, or null on a 404
+  Future<Uint8List?> _send(http.BaseRequest request) async {
+    final url = request.url;
+    final response = await client.send(request);
+    final status = response.statusCode;
+    if (status < 200 || status >= 300) {
+      response.stream.listen(null).cancel().ignore();
+      if (status == 404) {
+        return null;
+      }
+      if (status < 400) {
+        throw FormatException('GET $url redirects ($status)');
+      }
+      throw http.ClientException('GET $url returned $status', url);
+    }
+    return _read(response.stream, url);
   }
 
   Future<Uint8List> _read(Stream<List<int>> stream, Uri url) async {

@@ -66,9 +66,10 @@ final nip05 = Nip05Resolver(notFoundDuration: const Duration(minutes: 10));
 final result = await nip05.resolve('bob@example.com', refresh: true);
 ```
 
-An error of the cache is not caught when it reads: `resolve` and `check` throw it.
-One when it saves is ignored, so the call still gives what the domain answered.
+An error of the cache is ignored: when it cannot read, the call asks the domain, and when it cannot save, the call still gives what the domain answered.
 Concurrent calls for the same identifier share one request.
+At most `maxConcurrentRequests` requests run at once, 16 (`nip05MaxConcurrentRequests`) by default, and the others wait their turn, so a feed of 500 authors does not open 500 connections at once.
+One that waits on a domain found unreachable meanwhile gives that `Nip05ResolveNetworkError` without a request.
 
 ## Cancelling
 
@@ -83,11 +84,12 @@ cancel.complete(); // the screen showing it closed
 
 A request shared by several calls is aborted once none of them waits on it any more.
 `nip05.abortPending()` ends every call in flight the same way, and the resolver stays usable.
-A request gives up after `nip05RequestTimeout` (5 seconds), which gives a `Nip05ResolveNetworkError`.
+A request gives up after `nip05RequestTimeout` (5 seconds), counted from when it is sent, which gives a `Nip05ResolveNetworkError`.
 
 ## HTTP client
 
 `Nip05Resolver` talks to the domains through an `http.Client` of its own, or through the `httpClient` you give it, such as a `cupertino_http` or `cronet_http` client in a Flutter app.
+The timeout and an `abortTrigger` end the call even through a client that cannot abort a request, such as `cupertino_http` before 2.3.0 or `cronet_http` before 1.5.0, whose request then goes on in the background.
 `nip05.close()` ends what is in flight and closes the client it made, after which `resolve` and `check` throw a `StateError`.
 A client you gave it stays open, since it is yours to close.
 `nip05Repository` replaces the HTTP layer, such as an `HttpNip05Repository` with another `timeout` or `maxResponseBytes`, and cannot be given with `httpClient`.

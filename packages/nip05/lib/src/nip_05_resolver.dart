@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:collection';
 
 import 'package:clock/clock.dart';
 import 'package:http/http.dart' as http;
@@ -36,6 +37,9 @@ class Nip05Resolver {
   /// request, for the identifier it came for
   final Duration invalidResponseDuration;
 
+  /// how many requests run at once, at least 1. The others wait their turn
+  final int maxConcurrentRequests;
+
   /// the client this instance made, which [close] closes
   final http.Client? _ownedClient;
 
@@ -48,6 +52,8 @@ class Nip05Resolver {
 
   /// keyed by identifier
   final _RecentErrors<Nip05ResolveInvalidResponse> _invalidResponses;
+
+  final _Slots _requests;
 
   /// how many times [abortPending] ran
   int _aborts = 0;
@@ -68,10 +74,18 @@ class Nip05Resolver {
     Duration notFoundDuration = nip05NotFoundDuration,
     Duration networkErrorDuration = nip05NetworkErrorDuration,
     Duration invalidResponseDuration = nip05InvalidResponseDuration,
+    int maxConcurrentRequests = nip05MaxConcurrentRequests,
   }) {
     if (httpClient != null && nip05Repository != null) {
       throw ArgumentError(
         'Nip05Resolver takes an httpClient or a nip05Repository, not both',
+      );
+    }
+    if (maxConcurrentRequests < 1) {
+      throw ArgumentError.value(
+        maxConcurrentRequests,
+        'maxConcurrentRequests',
+        'must be at least 1',
       );
     }
     final ownedClient = httpClient == null && nip05Repository == null
@@ -91,6 +105,7 @@ class Nip05Resolver {
       notFoundDuration: notFoundDuration,
       networkErrorDuration: networkErrorDuration,
       invalidResponseDuration: invalidResponseDuration,
+      maxConcurrentRequests: maxConcurrentRequests,
     );
   }
 
@@ -102,12 +117,14 @@ class Nip05Resolver {
     required this.notFoundDuration,
     required this.networkErrorDuration,
     required this.invalidResponseDuration,
+    required this.maxConcurrentRequests,
   }) : _failedDomains = _RecentErrors(networkErrorDuration),
-       _invalidResponses = _RecentErrors(invalidResponseDuration);
+       _invalidResponses = _RecentErrors(invalidResponseDuration),
+       _requests = _Slots(maxConcurrentRequests);
 
   /// Ends the calls in flight with a `RequestAbortedException` (from
-  /// `package:http`), including those still reading the cache: none sends a
-  /// request afterwards. This instance stays usable.
+  /// `package:http`), including those still reading the cache or waiting
+  /// their turn: none sends a request afterwards. This instance stays usable.
   void abortPending() {
     _aborts++;
     for (final flight in _flights.values.toList()) {
@@ -164,9 +181,13 @@ class Nip05Resolver {
   /// identifier. [refresh] asks the domain whatever was remembered, such as
   /// when the user fixed their nostr.json.
   ///
-  /// Concurrent calls for one identifier share one request. An error of the
-  /// cache is not caught when it reads, and ignored when it saves. Throws a
-  /// [StateError] once [close] ran.
+  /// Concurrent calls for one identifier share one request, and at most
+  /// [maxConcurrentRequests] requests run at once while the others wait their
+  /// turn. One that waits on a domain found unreachable meanwhile gives that
+  /// [Nip05ResolveNetworkError] without a request. An error of the cache is
+  /// ignored: the call asks the domain when the cache cannot read, and gives
+  /// what the domain answered when it cannot save. Throws a [StateError] once
+  /// [close] ran.
   Future<Nip05ResolveResult> resolve(
     String nip05, {
     bool refresh = false,
@@ -213,7 +234,12 @@ class Nip05Resolver {
       ),
     );
 
-    final record = await _cache.loadNip05(identifier);
+    Nip05Record? record;
+    try {
+      record = await _cache.loadNip05(identifier);
+    } catch (_) {
+      // a cache that cannot read costs a request, not the answer
+    }
     if (triggered || _aborts != abortsAtStart) {
       throw http.RequestAbortedException();
     }
@@ -244,6 +270,28 @@ class Nip05Resolver {
   }
 
   Future<Nip05ResolveResult> _fetch(
+    String identifier,
+    String domain,
+    _Flight flight,
+  ) async {
+    final knownError = _failedDomains[domain];
+    await _requests.take(flight.abortTrigger);
+    try {
+      if (flight.isAborted) {
+        throw http.RequestAbortedException();
+      }
+      // only an error found while it waited, so that refresh still asks
+      if (_failedDomains[domain] case final error?
+          when !identical(error, knownError)) {
+        return error;
+      }
+      return await _request(identifier, domain, flight);
+    } finally {
+      _requests.release();
+    }
+  }
+
+  Future<Nip05ResolveResult> _request(
     String identifier,
     String domain,
     _Flight flight,
@@ -353,6 +401,48 @@ class _Flight {
     final waiters = _waiters.toList();
     _waiters.clear();
     return waiters;
+  }
+}
+
+/// Lets [max] requests run at once, and the others wait their turn in order
+class _Slots {
+  final int max;
+  int _taken = 0;
+
+  /// an aborted turn stays until [release] skips it
+  final _turns = Queue<Completer<void>>();
+
+  _Slots(this.max);
+
+  /// completes once a request may run, or throws a `RequestAbortedException`
+  /// when [abortTrigger] completes while it waits
+  Future<void> take(Future<void> abortTrigger) {
+    if (_taken < max) {
+      _taken++;
+      return Future.value();
+    }
+    final turn = Completer<void>();
+    _turns.add(turn);
+    unawaited(
+      abortTrigger.then((_) {
+        if (!turn.isCompleted) {
+          turn.completeError(http.RequestAbortedException());
+        }
+      }),
+    );
+    return turn.future;
+  }
+
+  /// hands the slot to the next request waiting, if any
+  void release() {
+    while (_turns.isNotEmpty) {
+      final turn = _turns.removeFirst();
+      if (!turn.isCompleted) {
+        turn.complete();
+        return;
+      }
+    }
+    _taken--;
   }
 }
 

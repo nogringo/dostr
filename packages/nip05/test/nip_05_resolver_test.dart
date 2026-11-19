@@ -605,16 +605,13 @@ void main() {
       expect(await resolver.resolve('username@example.com'), isA<Nip05Found>());
     });
 
-    test('lets an error of the cache through when it reads', () async {
+    test('asks the domain when the cache cannot read', () async {
       final resolver = Nip05Resolver(
         cache: _FailingCache(failLoad: true),
         httpClient: MockClient((_) async => nostrJson(usernameJson)),
       );
 
-      await expectLater(
-        resolver.resolve('username@example.com'),
-        throwsA(isA<StateError>()),
-      );
+      expect(await resolver.resolve('username@example.com'), isA<Nip05Found>());
     });
   });
 
@@ -762,6 +759,135 @@ void main() {
       ]);
 
       expect(requests, hasLength(2));
+    });
+  });
+
+  group('request limit', () {
+    test('sends at most maxConcurrentRequests requests at once', () async {
+      final client = _HeldClient();
+      final resolver = Nip05Resolver(
+        httpClient: client,
+        maxConcurrentRequests: 2,
+      );
+
+      final calls = [
+        for (final name in ['alice', 'bob', 'carol'])
+          resolver.resolve('$name@example.com'),
+      ];
+      await pumpEventQueue();
+      expect(client.names, ['alice', 'bob']);
+
+      client.answer(0, http.Response('', 404));
+      await pumpEventQueue();
+      expect(client.names, ['alice', 'bob', 'carol']);
+
+      client.answer(1, http.Response('', 404));
+      client.answer(2, http.Response('', 404));
+      expect(await Future.wait(calls), everyElement(isA<Nip05NotFound>()));
+    });
+
+    test(
+      'a request waiting on a domain found unreachable meanwhile is not sent',
+      () async {
+        final client = _HeldClient();
+        final resolver = Nip05Resolver(
+          httpClient: client,
+          maxConcurrentRequests: 1,
+        );
+
+        final first = resolver.resolve('alice@example.com');
+        final second = resolver.resolve('bob@example.com');
+        await pumpEventQueue();
+        client.answer(0, http.Response('', 500));
+
+        expect(await first, isA<Nip05ResolveNetworkError>());
+        expect(await second, same(await first));
+        expect(client.names, ['alice']);
+      },
+    );
+
+    test('refresh asks a domain found unreachable before it waited', () async {
+      final client = _HeldClient();
+      final resolver = Nip05Resolver(
+        httpClient: client,
+        maxConcurrentRequests: 1,
+      );
+
+      final failing = resolver.resolve('alice@example.com');
+      await pumpEventQueue();
+      client.answer(0, http.Response('', 500));
+      await failing;
+      final busy = resolver.resolve('alice@other.test');
+      await pumpEventQueue();
+      final refreshed = resolver.resolve('username@example.com', refresh: true);
+      await pumpEventQueue();
+      client.answer(1, http.Response('', 404));
+      await busy;
+      await pumpEventQueue();
+      client.answer(2, nostrJson(usernameJson));
+
+      expect(await refreshed, isA<Nip05Found>());
+      expect(client.names, ['alice', 'alice', 'username']);
+    });
+
+    test('an abortTrigger ends a call waiting its turn, never sent', () async {
+      final client = _HeldClient();
+      final resolver = Nip05Resolver(
+        httpClient: client,
+        maxConcurrentRequests: 1,
+      );
+      final cancel = Completer<void>();
+
+      final running = resolver.resolve('alice@example.com');
+      final waiting = resolver.resolve(
+        'bob@example.com',
+        abortTrigger: cancel.future,
+      );
+      final next = resolver.resolve('carol@example.com');
+      await pumpEventQueue();
+      cancel.complete();
+      await expectLater(waiting, throwsA(isA<http.RequestAbortedException>()));
+      client.answer(0, http.Response('', 404));
+      await running;
+      await pumpEventQueue();
+      client.answer(1, http.Response('', 404));
+
+      expect(await next, isA<Nip05NotFound>());
+      expect(client.names, ['alice', 'carol']);
+    });
+
+    test('abortPending() ends the calls waiting their turn too', () async {
+      final client = _HeldClient();
+      final resolver = Nip05Resolver(
+        httpClient: client,
+        maxConcurrentRequests: 1,
+      );
+
+      final calls = [
+        resolver.resolve('alice@example.com'),
+        resolver.resolve('bob@example.com'),
+      ];
+      await pumpEventQueue();
+      resolver.abortPending();
+
+      for (final call in calls) {
+        await expectLater(call, throwsA(isA<http.RequestAbortedException>()));
+      }
+      await pumpEventQueue();
+      expect(client.names, ['alice']);
+
+      final next = resolver.resolve('carol@example.com');
+      await pumpEventQueue();
+      client.answer(1, http.Response('', 404));
+      expect(await next, isA<Nip05NotFound>());
+      expect(client.names, ['alice', 'carol']);
+    });
+
+    test('takes a maxConcurrentRequests of at least 1', () {
+      expect(
+        () => Nip05Resolver(maxConcurrentRequests: 0),
+        throwsArgumentError,
+      );
     });
   });
 
@@ -949,6 +1075,38 @@ void main() {
       expect(checked, isA<Nip05ResolveNetworkError>());
       expect(client.aborted, 2);
     });
+
+    test('gives up through a client that cannot abort a request', () async {
+      final resolver = Nip05Resolver(
+        nip05Repository: HttpNip05Repository(
+          client: _SilentClient(),
+          timeout: const Duration(milliseconds: 50),
+        ),
+      );
+
+      final resolved = await resolver.resolve('username@example.com');
+
+      expect((resolved as Nip05ResolveError).cause, isA<TimeoutException>());
+    });
+
+    test(
+      'an abortTrigger ends a fetch through a client that cannot abort it',
+      () async {
+        final repository = HttpNip05Repository(client: _SilentClient());
+        final cancel = Completer<void>();
+
+        final fetching = repository.fetchNip05(
+          'username@example.com',
+          abortTrigger: cancel.future,
+        );
+        cancel.complete();
+
+        await expectLater(
+          fetching,
+          throwsA(isA<http.RequestAbortedException>()),
+        );
+      },
+    );
 
     test(
       'an abortTrigger ends its call and the request it was alone on',
@@ -1143,6 +1301,41 @@ class _GatedClient extends http.BaseClient {
 
   @override
   void close() => closed = true;
+}
+
+/// Never answers, and ignores the abortTrigger
+class _SilentClient extends http.BaseClient {
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) =>
+      Completer<http.StreamedResponse>().future;
+}
+
+/// Holds each request until [answer] gives its response, and ignores the
+/// abortTrigger
+class _HeldClient extends http.BaseClient {
+  final _requests = <http.BaseRequest>[];
+  final _answers = <Completer<http.Response>>[];
+
+  /// the name each request asked for, in the order they were sent
+  List<String?> get names => [
+    for (final request in _requests) request.url.queryParameters['name'],
+  ];
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) async {
+    _requests.add(request);
+    final answer = Completer<http.Response>();
+    _answers.add(answer);
+    final response = await answer.future;
+    return http.StreamedResponse(
+      Stream.value(response.bodyBytes),
+      response.statusCode,
+    );
+  }
+
+  /// answers the request sent at [index]
+  void answer(int index, http.Response response) =>
+      _answers[index].complete(response);
 }
 
 /// Holds nothing, and reads [blocked] only once [release] completes

@@ -14,5 +14,8 @@ const nip05InvalidResponseDuration = Duration(minutes: 10);
 /// how long to wait for a nostr.json response before giving up
 const nip05RequestTimeout = Duration(seconds: 5);
 
+/// how many nostr.json requests a resolver sends at once
+const nip05MaxConcurrentRequests = 16;
+
 /// the largest nostr.json body read, in bytes
 const nip05MaxResponseBytes = 5 * 1024 * 1024;
