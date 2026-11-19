@@ -6,8 +6,6 @@ import 'package:test/test.dart';
 
 void main() {
   late Accounts accounts;
-  late List<Nip01Event> relayEvents;
-  late List<({List<String> authors, int kind, Duration timeout})> queries;
   late List<Nip01Event> published;
   late BlossomUserServerList<
     List<({String relayUrl, bool broadcastSuccessful})>
@@ -16,68 +14,14 @@ void main() {
 
   setUp(() {
     accounts = Accounts(const Bip340SignerFactory());
-    relayEvents = [];
-    queries = [];
     published = [];
     serverList = BlossomUserServerList(
-      query: ({required authors, required kind, required timeout}) async {
-        queries.add((authors: authors, kind: kind, timeout: timeout));
-        return relayEvents;
-      },
       publish: (event) async {
         published.add(event);
         return [(relayUrl: 'wss://relay.example', broadcastSuccessful: true)];
       },
       accounts: accounts,
     );
-  });
-
-  Nip01Event listOf(List<String> servers, {required int createdAt}) =>
-      Nip01Event(
-        pubkey: 'alice',
-        kind: BlossomUserServerList.kBlossomUserServerList,
-        tags: [
-          for (final server in servers) ['server', server],
-        ],
-        content: '',
-        createdAt: createdAt,
-      );
-
-  group('getUserServerList', () {
-    test('reads the servers of the newest list, in order', () async {
-      relayEvents.addAll([
-        listOf(['https://old.example'], createdAt: 1),
-        listOf(['https://b.example', 'https://a.example'], createdAt: 2),
-      ]);
-
-      expect(await serverList.getUserServerList(pubkeys: ['alice']), [
-        'https://b.example',
-        'https://a.example',
-      ]);
-      expect(queries.single.authors, ['alice']);
-      expect(queries.single.kind, BlossomUserServerList.kBlossomUserServerList);
-    });
-
-    test('normalizes the servers, each once, and drops the others', () async {
-      relayEvents.add(
-        listOf([
-          'HTTPS://B.example:443/',
-          'wss://relay.example',
-          'https://cdn.example@evil.example',
-          'https://b.example',
-          'https://a.example',
-        ], createdAt: 1),
-      );
-
-      expect(await serverList.getUserServerList(pubkeys: ['alice']), [
-        'https://b.example',
-        'https://a.example',
-      ]);
-    });
-
-    test('returns null when the user has no list', () async {
-      expect(await serverList.getUserServerList(pubkeys: ['alice']), isNull);
-    });
   });
 
   group('publishUserServerList', () {

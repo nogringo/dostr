@@ -343,19 +343,15 @@ Future<int> report({
 })
 ```
 
-## Reading and publishing a server list
+## Publishing a server list
 
-`BlossomUserServerList` reads a user's server list and publishes the logged account's, the most trusted server first.
-It takes a `query` that returns the events of a kind by some authors, and a `publish` that signs an event as the logged account and sends it to its author's write relays:
+`BlossomUserServerList` publishes the logged account's server list, the most trusted server first.
+It takes a `publish` that signs an event as the logged account and sends it to its author's write relays:
 
 ```dart
 final publishes = RelayPublishes(relayManager: relayManager);
 
 final serverList = BlossomUserServerList(
-  query: ({required authors, required kind, required timeout}) async => [
-    for (final event in (await serverLists.fetchAll(authors)).values)
-      if (event != null) event,
-  ],
   publish: (event) async {
     final signed = await accounts.sign(event);
     final relayList = await nip65.fetch(signed.pubkey);
@@ -369,11 +365,11 @@ final serverList = BlossomUserServerList(
   accounts: accounts,
 );
 
-final servers = await serverList.getUserServerList(pubkeys: [pubkey]);
-
 await serverList.publishUserServerList(
   serverUrlsOrdered: ['https://blossom.example.com', 'https://cdn.example.com'],
 );
 ```
 
 `publishUserServerList` completes with whatever `publish` returns, here the answer of each relay.
+
+To read a user's server list, use `BlossomServersFetcher` and `blossomServersOf`, as in [Usage](#usage).
