@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 import 'package:clock/clock.dart';
 
@@ -13,8 +12,9 @@ import 'relay_info_repository.dart';
 /// after a restart. Concurrent calls share the request. An answer older than
 /// [maxAge] is served while the relay is fetched again in the background. A
 /// fetch that throws serves the last answer of the relay, or throws when it
-/// never answered, and is asked again on the next call, or once
-/// [failureMaxAge] passes. Urls are keys as given, so normalize them first.
+/// never answered, and is asked again once [failureMaxAge] passes. It keeps
+/// the [maxRelays] most recently asked relays in memory. Urls are keys as
+/// given, so normalize them first.
 class CachedRelayInfoRepository implements RelayInfoRepository {
   final RelayInfoRepository _repo;
 
@@ -29,17 +29,18 @@ class CachedRelayInfoRepository implements RelayInfoRepository {
   final Duration? maxAge;
 
   /// how long a fetch that throws is not asked again, so a relay that is down
-  /// or rate limits is not asked on every call; null asks again on the next
-  /// call
-  final Duration? failureMaxAge;
+  /// or rate limits is not asked on every call; [Duration.zero] asks again on
+  /// the next call
+  final Duration failureMaxAge;
+
+  /// how many relays are kept in memory. Past it, the least recently asked is
+  /// forgotten, and read back from [cache] or fetched again on its next call
+  final int maxRelays;
 
   final Stopwatch _clock;
 
+  /// least recently asked first
   final Map<String, _Entry> _entries = {};
-
-  var _sweepAt = _minSweep;
-
-  static const _minSweep = 64;
 
   /// [stopwatch] measures the age of answers, a new one by default, which a
   /// change of the system clock does not move. A test can pass
@@ -49,18 +50,22 @@ class CachedRelayInfoRepository implements RelayInfoRepository {
     this._repo, {
     this.cache,
     this.maxAge,
-    this.failureMaxAge,
+    this.failureMaxAge = const Duration(minutes: 1),
+    this.maxRelays = 1000,
     Stopwatch? stopwatch,
-  }) : _clock = (stopwatch ?? Stopwatch())..start();
+  }) : _clock = (stopwatch ?? Stopwatch())..start() {
+    if (maxRelays < 1) throw RangeError.range(maxRelays, 1, null, 'maxRelays');
+  }
 
   @override
   Future<RelayInfo?> getRelayInfo(String url) {
-    final cached = _entries[url];
+    final cached = _entries.remove(url);
     if (cached != null && !cached.isExpiredAt(_clock.elapsed)) {
+      _entries[url] = cached;
       return cached.info;
     }
-    _sweep();
     final entry = _entries[url] = _Entry(cached?.answer);
+    _trim();
     if (cached == null && cache != null) return entry.info = _load(url, entry);
     if (entry.answer case final answer?) {
       return _refresh(url, entry, answer.info);
@@ -105,7 +110,7 @@ class CachedRelayInfoRepository implements RelayInfoRepository {
     try {
       info = await _repo.getRelayInfo(url);
     } catch (_) {
-      entry.expiresAt = _after(failureMaxAge ?? Duration.zero);
+      entry.expiresAt = _after(failureMaxAge);
       if (entry.answer case final answer?) return answer.info;
       rethrow;
     }
@@ -136,15 +141,10 @@ class CachedRelayInfoRepository implements RelayInfoRepository {
 
   Duration? _after(Duration? age) => age == null ? null : _clock.elapsed + age;
 
-  /// once the cache doubled since the last sweep, so a miss costs O(1)
-  /// amortized. An answer stays, to serve when its relay cannot be reached
-  void _sweep() {
-    if (_entries.length < _sweepAt) return;
-    final now = _clock.elapsed;
-    _entries.removeWhere(
-      (_, entry) => entry.answer == null && entry.isExpiredAt(now),
-    );
-    _sweepAt = max(_minSweep, _entries.length * 2);
+  void _trim() {
+    while (_entries.length > maxRelays) {
+      _entries.remove(_entries.keys.first);
+    }
   }
 
   /// forgets [url], in [cache] too, so the next call fetches it again

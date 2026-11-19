@@ -142,8 +142,8 @@ class RelayInfo with _Document {
     'fees': ?fees?.toJson(),
   };
 
-  /// does this relay support given nip, e.g. "1", "01", "77" or "EE"
-  bool supportsNip(String nip) {
+  /// does this relay support given nip, e.g. 1, "01", "77" or "EE"
+  bool supportsNip(Object nip) {
     return nips.contains(normalizeNip(nip));
   }
 

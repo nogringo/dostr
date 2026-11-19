@@ -12,7 +12,7 @@ Future<void> main(List<String> args) async {
       print('${args.first} serves no NIP-11 document');
     } else {
       print('${info.name} runs ${info.software} ${info.version}');
-      print('NIP-50 search: ${info.supportsNip('50')}');
+      print('NIP-50 search: ${info.supportsNip(50)}');
       print('max subscriptions: ${info.limitation?.maxSubscriptions}');
     }
   } on Exception catch (error) {

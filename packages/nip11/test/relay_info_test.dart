@@ -324,6 +324,8 @@ void main() {
         "supported_nips": [1, "11", "7D", "ee"],
       });
 
+      expect(relayInfo.supportsNip(1), isTrue);
+      expect(relayInfo.supportsNip(11), isTrue);
       expect(relayInfo.supportsNip('1'), isTrue);
       expect(relayInfo.supportsNip('01'), isTrue);
       expect(relayInfo.supportsNip('11'), isTrue);

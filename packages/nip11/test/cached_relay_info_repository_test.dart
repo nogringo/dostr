@@ -82,7 +82,7 @@ void main() {
     void Function(FakeAsync async) body, {
     RelayInfoCache? cache,
     Duration? maxAge,
-    Duration? failureMaxAge,
+    Duration failureMaxAge = Duration.zero,
   }) => fakeAsync((async) {
     cached = CachedRelayInfoRepository(
       repo,
@@ -157,7 +157,8 @@ void main() {
     });
   });
 
-  test('a throwing repo is retried on the next call', () async {
+  test('a zero failureMaxAge asks again on the next call', () async {
+    cached = CachedRelayInfoRepository(repo, failureMaxAge: Duration.zero);
     repo.next.completeError(StateError('offline'));
     await expectLater(cached.getRelayInfo(url), throwsStateError);
 
@@ -165,8 +166,9 @@ void main() {
     expect(await cached.getRelayInfo(url), same(info));
   });
 
-  test('a fetch that throws keeps throwing for failureMaxAge', () {
-    fake(failureMaxAge: minute, (async) {
+  test('a fetch that throws keeps throwing for a minute by default', () {
+    fakeAsync((async) {
+      cached = CachedRelayInfoRepository(repo, stopwatch: clock.stopwatch());
       repo.fail();
       expect(_outcome(async, cached.getRelayInfo(url)), isStateError);
       async.elapse(minute - const Duration(seconds: 1));
@@ -214,18 +216,22 @@ void main() {
     });
   });
 
-  test('sweeping the failures of other relays keeps the answers', () {
-    fake(maxAge: minute, (async) {
-      repo.answer(info);
-      _outcome(async, cached.getRelayInfo(url));
-      async.elapse(minute);
+  test('past maxRelays, the least recently asked relay is forgotten', () async {
+    const a = 'wss://a.example', b = 'wss://b.example', c = 'wss://c.example';
+    cached = CachedRelayInfoRepository(repo, maxRelays: 2);
+    repo.answer(info);
+    for (final relay in [a, b, a, c, a, b]) {
+      await cached.getRelayInfo(relay);
+    }
 
-      repo.fail();
-      for (var i = 0; i < 300; i++) {
-        _outcome(async, cached.getRelayInfo('wss://down$i.example'));
-      }
-      expect(_outcome(async, cached.getRelayInfo(url)), same(info));
-    });
+    expect(repo.requested, [a, b, c, b]);
+  });
+
+  test('maxRelays below 1 throws', () {
+    expect(
+      () => CachedRelayInfoRepository(repo, maxRelays: 0),
+      throwsRangeError,
+    );
   });
 
   test('evict forgets one relay and clear forgets them all', () async {
@@ -282,7 +288,7 @@ void main() {
     });
 
     /// a new instance on the same cache, as after a restart
-    void restart({Duration? maxAge, Duration? failureMaxAge}) =>
+    void restart({Duration? maxAge, Duration failureMaxAge = Duration.zero}) =>
         cached = CachedRelayInfoRepository(
           repo,
           cache: cache,
@@ -392,6 +398,17 @@ void main() {
         expect(_outcome(async, cached.getRelayInfo(url)), info);
         expect(_outcome(async, cached.getRelayInfo(url)), updated);
       });
+    });
+
+    test('a relay forgotten past maxRelays is read back from it', () async {
+      const other = 'wss://other.example';
+      cached = CachedRelayInfoRepository(repo, cache: cache, maxRelays: 1);
+      repo.answer(info);
+      await cached.getRelayInfo(url);
+      await cached.getRelayInfo(other);
+
+      expect(await cached.getRelayInfo(url), info);
+      expect(repo.requested, [url, other]);
     });
 
     test('a failure is not saved', () async {

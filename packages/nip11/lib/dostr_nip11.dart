@@ -3,7 +3,7 @@
 /// ```dart
 /// final repo = HttpRelayInfoRepository(http.Client());
 /// final info = await repo.getRelayInfo('wss://relay.example.com');
-/// print(info?.supportsNip('50'));
+/// print(info?.supportsNip(50));
 /// ```
 library;
 
