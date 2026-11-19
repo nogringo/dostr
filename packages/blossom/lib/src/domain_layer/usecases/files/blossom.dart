@@ -27,16 +27,20 @@ typedef BlossomServerListResolver =
 typedef _AuthEventBuilder = Nip01Event Function(String pubkey);
 
 /// [servers] less those an [AuthHandler] keeps an upfront authorization from
-typedef _ServerFilter = Future<List<String>> Function(List<String> servers);
+typedef _ServerFilter =
+    Future<List<BlossomServerUrl>> Function(List<BlossomServerUrl> servers);
 
-/// [servers] less those [seen] or an earlier one already names once
-/// [cleanBlossomServerUrl] normalized them. The ones it keeps join [seen], and
-/// are kept as given.
-List<String> _distinctServers(Iterable<String> servers, [Set<String>? seen]) {
+/// The servers of [servers] that [BlossomServerUrl.tryParse] accepts,
+/// normalized, less those [seen] or an earlier one already names. The ones it
+/// keeps join [seen].
+List<BlossomServerUrl> _distinctServers(
+  Iterable<String> servers, [
+  Set<BlossomServerUrl>? seen,
+]) {
   final named = seen ?? {};
   return [
-    for (final server in servers)
-      if (named.add(cleanBlossomServerUrl(server) ?? server)) server,
+    for (final server in servers.map(BlossomServerUrl.tryParse).nonNulls)
+      if (named.add(server)) server,
   ];
 }
 
@@ -47,11 +51,11 @@ class _BlossomAuthPlan {
 
   /// the resolved servers, less those an [AuthHandler] kept an upfront
   /// authorization from
-  final List<String> servers;
+  final List<BlossomServerUrl> servers;
 
   /// the servers to try once none of [servers] served the operation, resolved
   /// only then and filtered the same way, null when there are none
-  final Future<List<String>> Function()? nextServers;
+  final Future<List<BlossomServerUrl>> Function()? nextServers;
 
   /// the same identity authorising another event, for the same [servers],
   /// without asking the [AuthHandler] again
@@ -195,8 +199,8 @@ class Blossom {
     required bool authorisesByDefault,
     required String operation,
     required _AuthEventBuilder buildEvent,
-    required Future<List<String>> Function() resolveServers,
-    Future<List<String>> Function()? resolveNextServers,
+    required Future<List<BlossomServerUrl>> Function() resolveServers,
+    Future<List<BlossomServerUrl>> Function()? resolveNextServers,
   }) async {
     final aborts = _aborts;
     final fallback = authorisesByDefault ? _defaultAccount() : null;
@@ -209,7 +213,7 @@ class Blossom {
 
     var resolveNext = resolveNextServers;
     _ServerFilter admit = (servers) async => servers;
-    final List<String> servers;
+    final List<BlossomServerUrl> servers;
     final Future<BlossomAuthorization> Function(_AuthEventBuilder) authorize;
     switch (policy) {
       case AuthPolicyNever():
@@ -264,8 +268,8 @@ class Blossom {
     );
   }
 
-  Future<List<String>> _serversAllowing(
-    List<String> servers,
+  Future<List<BlossomServerUrl>> _serversAllowing(
+    List<BlossomServerUrl> servers,
     String pubkey,
   ) async {
     if (_authHandler == null) return servers;
@@ -292,7 +296,7 @@ class Blossom {
     required String? pubkeyToFetchUserServerList,
   }) {
     final owner = pubkeyToFetchUserServerList;
-    final tried = <String>{};
+    final tried = <BlossomServerUrl>{};
     return _planAuth(
       auth: auth,
       authorisesByDefault: false,
@@ -319,7 +323,10 @@ class Blossom {
   /// none of the first served the blob.
   Future<T> _read<T>(
     _BlossomAuthPlan plan,
-    Future<T> Function(BlossomAuthorization authorization, List<String> servers)
+    Future<T> Function(
+      BlossomAuthorization authorization,
+      List<BlossomServerUrl> servers,
+    )
     read,
   ) async {
     final aborts = _aborts;
@@ -392,7 +399,7 @@ class Blossom {
   /// public kind 10063 from relays tells the blossom servers nothing, and
   /// never() is a statement about the `Authorization` header, not about which
   /// nostr list may be read.
-  Future<List<String>> _resolveWriteServers({
+  Future<List<BlossomServerUrl>> _resolveWriteServers({
     required List<String>? serverUrls,
     required String? explicitPubkey,
     required String? listOwner,
@@ -402,15 +409,14 @@ class Blossom {
     final owner =
         explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.publicKey;
     if (owner == null) throw const BlossomNoServerListException();
-    return _distinctServers(await _userServerList(owner));
+    return _userServerList(owner);
   }
 
-  /// [pubkey]'s servers, or a [BlossomNoServerListException] when it has none
-  Future<List<String>> _userServerList(String pubkey) async {
-    final servers = await _getUserServerList(pubkey);
-    if (servers == null || servers.isEmpty) {
-      throw BlossomNoServerListException(pubkey);
-    }
+  /// [pubkey]'s servers, normalized and each once, or a
+  /// [BlossomNoServerListException] when it has none
+  Future<List<BlossomServerUrl>> _userServerList(String pubkey) async {
+    final servers = _distinctServers(await _getUserServerList(pubkey) ?? []);
+    if (servers.isEmpty) throw BlossomNoServerListException(pubkey);
     return servers;
   }
 
@@ -871,6 +877,8 @@ class Blossom {
   ///
   /// Throws [BlossomAuthUnavailableException] if [auth] requires an identity
   /// that cannot sign, or the [AuthHandler] keeps a named one from [serverUrl].
+  /// Throws a [FormatException], before anything is signed, if [serverUrl] is
+  /// not a Blossom server url.
   Future<int> report({
     required String sha256,
     required String eventId,
@@ -879,6 +887,7 @@ class Blossom {
     required String serverUrl,
     AuthPolicy? auth,
   }) async {
+    final server = BlossomServerUrl.parse(serverUrl);
     final aborts = _aborts;
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
@@ -888,7 +897,7 @@ class Blossom {
         final account = _defaultAccount();
         if (account == null) {
           signer = _throwawaySigner();
-        } else if (await _consent(serverUrl, account.publicKey)) {
+        } else if (await _consent(server, account.publicKey)) {
           signer = account;
         } else {
           throw BlossomAuthUnavailableException(account.publicKey, "report");
@@ -898,7 +907,7 @@ class Blossom {
         signer = _throwawaySigner();
 
       case AuthPolicyRequire(signer: final account):
-        if (!account.canSign || !await _consent(serverUrl, account.publicKey)) {
+        if (!account.canSign || !await _consent(server, account.publicKey)) {
           throw BlossomAuthUnavailableException(account.publicKey, "report");
         }
         signer = account;
@@ -906,7 +915,7 @@ class Blossom {
       case AuthPolicyAllow(signer: final account):
         // allow never promised a signature, so an account that cannot give one
         // reports anonymously rather than as whoever happens to be logged in
-        signer = account.canSign && await _consent(serverUrl, account.publicKey)
+        signer = account.canSign && await _consent(server, account.publicKey)
             ? account
             : _throwawaySigner();
     }
@@ -919,7 +928,7 @@ class Blossom {
       tags: [
         ["x", sha256, reportType.toLowerCase()],
         ["e", eventId, reportType.toLowerCase()],
-        ["server", serverUrl],
+        ["server", server],
       ],
     );
 
@@ -929,7 +938,7 @@ class Blossom {
     return _blossomImpl.report(
       sha256: sha256,
       reportEvent: signedReport,
-      serverUrl: serverUrl,
+      serverUrl: server,
     );
   }
 }

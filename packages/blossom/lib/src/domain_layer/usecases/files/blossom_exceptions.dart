@@ -20,8 +20,9 @@ class BlossomAuthUnavailableException implements Exception {
 }
 
 /// Thrown, before anything is sent, when an operation has no server to talk
-/// to: [pubkey]'s Blossom server list (kind 10063) is missing or empty, or the
-/// call gave no server and nobody whose list could be read.
+/// to: [pubkey]'s Blossom server list (kind 10063) is missing or names no
+/// server that `BlossomServerUrl.tryParse` accepts, or the call gave no server
+/// and nobody whose list could be read.
 class BlossomNoServerListException implements Exception {
   /// whose list is missing, null when there was nobody to read one for
   final String? pubkey;

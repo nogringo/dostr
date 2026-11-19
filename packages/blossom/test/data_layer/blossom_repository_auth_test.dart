@@ -39,7 +39,9 @@ void main() {
           dataStreamFactory: () => Stream.value(data),
           contentLength: data.length,
           authorization: BlossomAuthorization.upfront(_authEvent('upload')),
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
         )
         .last;
     expect(uploaded.completedUploads.first.success, true);
@@ -66,7 +68,9 @@ void main() {
       await expectLater(
         repo.getBlob(
           sha256: sha256,
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
         ),
         throwsA(isA<Exception>()),
       );
@@ -80,7 +84,7 @@ void main() {
 
       final blob = await repo.getBlob(
         sha256: sha256,
-        serverUrls: ['http://localhost:${server.port}'],
+        serverUrls: [BlossomServerUrl.parse('http://localhost:${server.port}')],
         authorization: BlossomAuthorization.onRefusal(() async {
           signatures++;
           return _authEvent('get');
@@ -99,7 +103,7 @@ void main() {
     test('goes out authorised from the start when required', () async {
       await repo.getBlob(
         sha256: sha256,
-        serverUrls: ['http://localhost:${server.port}'],
+        serverUrls: [BlossomServerUrl.parse('http://localhost:${server.port}')],
         authorization: BlossomAuthorization.upfront(_authEvent('get')),
       );
 
@@ -127,7 +131,9 @@ void main() {
 
         await repo.getBlob(
           sha256: sha256,
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
           authorization: BlossomAuthorization.onRefusal(() async {
             signatures++;
             return _authEvent('get');
@@ -151,8 +157,8 @@ void main() {
       await repo.getBlob(
         sha256: sha256,
         serverUrls: [
-          'http://localhost:${refusing.port}',
-          'http://localhost:${server.port}',
+          BlossomServerUrl.parse('http://localhost:${refusing.port}'),
+          BlossomServerUrl.parse('http://localhost:${server.port}'),
         ],
         authorization: BlossomAuthorization.onRefusal(
           () async => _authEvent('get'),
@@ -202,8 +208,8 @@ void main() {
       final results = await repo.deleteBlob(
         sha256: sha256,
         serverUrls: [
-          'http://localhost:${first.port}',
-          'http://localhost:${second.port}',
+          BlossomServerUrl.parse('http://localhost:${first.port}'),
+          BlossomServerUrl.parse('http://localhost:${second.port}'),
         ],
         authorization: BlossomAuthorization.onRefusal(() async {
           signatures++;
@@ -225,7 +231,7 @@ void main() {
     late MockBlossomServer server;
     late Uint8List data;
     late String sha256;
-    late String url;
+    late BlossomServerUrl url;
 
     Nip01Event getEvent({required int expiresIn}) => Nip01Event(
       pubkey: _authEvent('get').pubkey,
@@ -247,7 +253,7 @@ void main() {
         supportRangeRequests: true,
       );
       await server.start();
-      url = 'http://localhost:${server.port}';
+      url = BlossomServerUrl.parse('http://localhost:${server.port}');
       data = Uint8List.fromList(utf8.encode('a long stream. ' * 100));
       sha256 = await seed(server, data);
       server.requireAuthForReads = true;
@@ -332,8 +338,8 @@ void main() {
             contentLength: data.length,
             authorization: BlossomAuthorization.upfront(_authEvent('upload')),
             serverUrls: [
-              'http://localhost:${first.port}',
-              'http://localhost:${second.port}',
+              BlossomServerUrl.parse('http://localhost:${first.port}'),
+              BlossomServerUrl.parse('http://localhost:${second.port}'),
             ],
             mirrorAuthorization: (_) async => throw Exception('declined'),
           )
@@ -363,7 +369,9 @@ void main() {
           .uploadBlob(
             dataStreamFactory: () => Stream.value(data),
             contentLength: data.length,
-            serverUrls: ['http://localhost:${server.port}'],
+            serverUrls: [
+              BlossomServerUrl.parse('http://localhost:${server.port}'),
+            ],
             authorization: BlossomAuthorization.onRefusal(
               () async => _authEvent('upload'),
             ),
@@ -381,7 +389,7 @@ void main() {
       // the server stores by hash, so a truncated replay could not match
       final served = await repo.getBlob(
         sha256: result.descriptor!.sha256,
-        serverUrls: ['http://localhost:${server.port}'],
+        serverUrls: [BlossomServerUrl.parse('http://localhost:${server.port}')],
       );
       expect(served.data, data);
     });

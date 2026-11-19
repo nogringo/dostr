@@ -11,7 +11,10 @@ import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 import 'package:test/test.dart';
 
-const _servers = ['https://a.example', 'https://b.example'];
+final _servers = [
+  BlossomServerUrl.parse('https://a.example'),
+  BlossomServerUrl.parse('https://b.example'),
+];
 final _sha256 = 'ab' * 32;
 
 /// Records each request, and answers none until it is aborted.

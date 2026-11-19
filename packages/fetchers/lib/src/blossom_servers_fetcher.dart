@@ -19,8 +19,10 @@ class BlossomServersFetcher extends OutboxFetcher {
 }
 
 /// The servers of [serverList], a `kind:10063`: its `server` tags that
-/// [cleanBlossomServerUrl] accepts, normalized, each once, most trusted first.
+/// [BlossomServerUrl.tryParse] accepts, normalized, each once, most trusted
+/// first.
 List<BlossomServerUrl> blossomServersOf(Nip01Event serverList) => {
   for (final tag in serverList.tags)
-    if (tag.length > 1 && tag[0] == 'server') ?cleanBlossomServerUrl(tag[1]),
+    if (tag.length > 1 && tag[0] == 'server')
+      ?BlossomServerUrl.tryParse(tag[1]),
 }.toList();

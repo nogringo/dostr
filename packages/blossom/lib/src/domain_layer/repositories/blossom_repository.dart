@@ -1,3 +1,4 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 
 import '../entities/blob_upload_progress.dart';
@@ -31,7 +32,7 @@ abstract class BlossomRepository {
     required int contentLength,
     required BlossomAuthorization authorization,
     String? contentType,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
@@ -42,7 +43,7 @@ abstract class BlossomRepository {
   Future<List<BlobUploadCheck>> checkUpload({
     required String sha256,
     required int contentLength,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
     bool serverMediaOptimisation = false,
@@ -58,7 +59,7 @@ abstract class BlossomRepository {
     required String filePath,
     required BlossomAuthorization authorization,
     String? contentType,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
@@ -74,7 +75,7 @@ abstract class BlossomRepository {
   /// checked, @see MDN HTTP range requests
   Future<BlobResponse> getBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int? start,
     int? end,
@@ -88,7 +89,7 @@ abstract class BlossomRepository {
   Future<void> downloadBlobToFile({
     required String sha256,
     required String outputPath,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   });
 
@@ -99,7 +100,7 @@ abstract class BlossomRepository {
   /// [BlossomRequestException]
   Future<String> checkBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   });
 
@@ -119,7 +120,7 @@ abstract class BlossomRepository {
   /// @see MDN HTTP range requests
   Future<Stream<BlobResponse>> getBlobStream({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int chunkSize = 1024 * 1024, // 1MB chunks
   });
@@ -128,7 +129,7 @@ abstract class BlossomRepository {
   /// content length in bytes when the server gives it
   Future<({bool supported, int? contentLength})> supportsRangeRequests({
     required String sha256,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   });
 
@@ -136,7 +137,7 @@ abstract class BlossomRepository {
   /// [BlossomRequestException]
   Future<List<BlobDescriptor>> listBlobs({
     required String pubkey,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     DateTime? since,
     DateTime? until,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
@@ -145,7 +146,7 @@ abstract class BlossomRepository {
   /// Attempts to delete blob from all servers
   Future<List<BlobDeleteResult>> deleteBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
   });
 
@@ -157,7 +158,7 @@ abstract class BlossomRepository {
   Future<int> report({
     required String sha256,
     required Nip01Event reportEvent,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
   });
 
   /// Mirrors a blob from one server to another using the /mirror endpoint
@@ -167,7 +168,7 @@ abstract class BlossomRepository {
   /// [authorization] is the signed authorization event
   Future<BlobUploadResult> mirrorToServer({
     required String fileUrl,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required String sha256,
     required BlossomAuthorization authorization,
   });

@@ -602,7 +602,9 @@ void main() {
         // Now test the streaming download
         final stream = await blossomRepo.getBlobStream(
           sha256: sha256,
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
           chunkSize: 1024 * 1024, // 1MB chunks
         );
 
@@ -652,7 +654,9 @@ void main() {
 
         final stream = await blossomRepo.getBlobStream(
           sha256: sha256,
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
         );
 
         final chunks = <BlobResponse>[];
@@ -674,7 +678,9 @@ void main() {
       expect(
         () => blossomRepo.getBlobStream(
           sha256: 'nonexistent_sha256',
-          serverUrls: ['http://localhost:${server.port}'],
+          serverUrls: [
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+          ],
         ),
         throwsException,
       );
@@ -698,9 +704,9 @@ void main() {
         final stream = await blossomRepo.getBlobStream(
           sha256: sha256,
           serverUrls: [
-            'http://nonexistent-server:${server.port}',
-            'http://localhost:${server.port}',
-            'http://another-nonexistent:${server.port}',
+            BlossomServerUrl.parse('http://nonexistent-server:${server.port}'),
+            BlossomServerUrl.parse('http://localhost:${server.port}'),
+            BlossomServerUrl.parse('http://another-nonexistent:${server.port}'),
           ],
         );
 

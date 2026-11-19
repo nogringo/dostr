@@ -19,13 +19,14 @@ dependencies:
 ```dart
 import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 
-cleanBlossomServerUrl('HTTPS://Blossom.Primal.NET:443/'); // https://blossom.primal.net
-cleanBlossomServerUrl('wss://relay.primal.net'); // null
-cleanBlossomServerUrls(['https://cdn.example.com/', 'not a url']); // [https://cdn.example.com]
+BlossomServerUrl.tryParse('HTTPS://Blossom.Primal.NET:443/'); // https://blossom.primal.net
+BlossomServerUrl.tryParse('wss://relay.primal.net'); // null
 BlossomServerUrl.parse('wss://relay.primal.net'); // throws a FormatException
+BlossomServerUrl.fromUserInput('blossom.primal.net'); // https://blossom.primal.net
+BlossomServerUrl.fromUserInput('npub1abc'); // null
 ```
 
-`cleanBlossomServerUrl` normalizes an `http` or `https` url, or returns null if it is not one:
+`BlossomServerUrl.tryParse` normalizes an `http` or `https` url, or returns null if it is not one:
 
 - The scheme and host are lowercased, dot segments removed and percent-encodings normalized, as RFC 3986 section 6 describes.
 - The default port (443 for `https`, 80 for `http`) is dropped.
@@ -34,19 +35,22 @@ BlossomServerUrl.parse('wss://relay.primal.net'); // throws a FormatException
 - The trailing dot of a fully qualified host, as in `https://cdn.example.com.`, is dropped.
 - Extra slashes after the scheme, as in `https:///cdn.example.com`, are fixed.
 - IPv6 addresses and paths are kept, although BUD-01 serves every endpoint from the root of the domain.
+- A host name may hold `_`, as browsers allow, although RFC 1123 forbids it.
 
 It rejects two kinds of urls a client could still send requests to:
 
 - A url with user info, as in `https://user:pass@cdn.example.com`: RFC 9110 section 4.2.4 asks a client to treat it as an error in a url from someone else, such as a server list, since it can hide the real host.
 - A url with a query, as in `https://cdn.example.com?token=abc`: the endpoint paths could not follow it.
 
-`cleanBlossomServerUrls` keeps the urls of a list that `cleanBlossomServerUrl` accepts, normalized, in their order.
-It does not deduplicate them.
+`BlossomServerUrl.parse` does the same, but throws a `FormatException` where `BlossomServerUrl.tryParse` returns null.
+
+For a list, `urls.map(BlossomServerUrl.tryParse).nonNulls` keeps the server urls, normalized, in their order.
+It does not deduplicate them: `toSet()` does.
 
 ## The `BlossomServerUrl` type
 
-`cleanBlossomServerUrl` returns a `BlossomServerUrl`, an extension type on `String`.
-It goes wherever a `String` does, but a `String` becomes one only through `cleanBlossomServerUrl` or `BlossomServerUrl.parse`.
+`BlossomServerUrl.tryParse` and `BlossomServerUrl.parse` return a `BlossomServerUrl`, an extension type on `String`.
+A `BlossomServerUrl` goes wherever a `String` does, but a `String` becomes one only through `BlossomServerUrl.tryParse`, `BlossomServerUrl.parse` and `BlossomServerUrl.fromUserInput`.
 An API that takes a `BlossomServerUrl` thus never needs to normalize it again.
 
 ```dart
@@ -56,11 +60,24 @@ upload(BlossomServerUrl.parse('https://cdn.example.com/'));
 upload('https://cdn.example.com'); // compile error
 ```
 
+A cast is the one way around it, and nothing checks it, since an extension type is gone at run time: `'HTTPS://CDN.Example.COM' as BlossomServerUrl` succeeds.
+
+## Text a person typed
+
+`BlossomServerUrl.fromUserInput` is for a server url a person typed in a text field.
+It reads a url without a scheme as an `https` url, then normalizes it as `BlossomServerUrl.tryParse` does.
+Do not use it on urls from events or other programs: there, a url without a scheme is not a server url.
+
+Without a scheme, the host must be `localhost`, an IP address or a name holding a dot.
+So a key pasted in the wrong field, or a scheme missing its colon as in `https//cdn.example.com`, gives null rather than a server on host `npub1...` or `https`.
+With a scheme, as in `http://blossom:3000`, a single-label host is kept.
+
 ## Limits
 
 Some spellings of one server still give two urls:
 
 - An IPv6 address is not rewritten in its RFC 5952 form: `https://[2001:0db8::1]` and `https://[2001:db8::1]` stay apart.
+- An IPv4 address is not rewritten in its canonical form, as browsers do: `https://127.000.000.001`, `https://2130706433` and `https://127.0.0.1` stay apart.
 - Repeated slashes in the path, as in `https://cdn.example.com//media`, are kept.
 
 Some urls are rejected although a client could reach them:

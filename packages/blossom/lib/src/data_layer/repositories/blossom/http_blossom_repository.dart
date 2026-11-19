@@ -4,6 +4,7 @@ import 'dart:typed_data';
 
 import 'package:async/async.dart' show StreamGroup;
 import 'package:crypto/crypto.dart' as crypto;
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,14 +25,8 @@ Uint8List _bytes(List<int> chunk) =>
 String _authHeader(Nip01Event event) =>
     "Nostr ${base64Encode(utf8.encode(event.toJsonString()))}";
 
-/// [path] on [serverUrl], less the trailing slash kind 10063 lists often have
-Uri _endpoint(String serverUrl, String path) {
-  var base = serverUrl;
-  while (base.endsWith('/')) {
-    base = base.substring(0, base.length - 1);
-  }
-  return Uri.parse('$base/$path');
-}
+Uri _endpoint(BlossomServerUrl serverUrl, String path) =>
+    Uri.parse('$serverUrl/$path');
 
 /// the error for [serverUrl] serving bytes that hash to [actual] when asked for
 /// the blob [sha256], null when they are that blob
@@ -194,7 +189,7 @@ class HttpBlossomRepository implements BlossomRepository {
     required int contentLength,
     required BlossomAuthorization authorization,
     String? contentType,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
@@ -236,7 +231,7 @@ class HttpBlossomRepository implements BlossomRepository {
     required String filePath,
     required BlossomAuthorization authorization,
     String? contentType,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
@@ -260,7 +255,7 @@ class HttpBlossomRepository implements BlossomRepository {
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
     required BlossomAuthorization authorization,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     String? contentType,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
@@ -297,7 +292,9 @@ class HttpBlossomRepository implements BlossomRepository {
     // If we found a working server, mirror to all other servers that haven't been tried yet
     final uploaded = successfulUpload;
     if (uploaded != null) {
-      final successIndex = serverUrls.indexOf(uploaded.serverUrl);
+      final successIndex = serverUrls.indexWhere(
+        (url) => url == uploaded.serverUrl,
+      );
       final remainingServers = serverUrls.sublist(successIndex + 1);
 
       if (remainingServers.isNotEmpty) {
@@ -376,7 +373,7 @@ class HttpBlossomRepository implements BlossomRepository {
   Stream<BlobUploadProgress> _uploadToAllServers({
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
     bool serverMediaOptimisation = false,
@@ -384,7 +381,7 @@ class HttpBlossomRepository implements BlossomRepository {
     const phases = [UploadPhase.uploading];
     final results = <BlobUploadResult>[];
 
-    Stream<BlobUploadProgress> uploadTo(String serverUrl) async* {
+    Stream<BlobUploadProgress> uploadTo(BlossomServerUrl serverUrl) async* {
       final caught = _Caught();
       yield* caught.from(
         _uploadToServer(
@@ -453,7 +450,7 @@ class HttpBlossomRepository implements BlossomRepository {
   Stream<BlobUploadProgress> _uploadToFirstSuccess({
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
     bool serverMediaOptimisation = false,
@@ -511,7 +508,7 @@ class HttpBlossomRepository implements BlossomRepository {
   /// One server's turn in a sequential upload. Its result goes to [results],
   /// and to [onSuccess] when the server took the blob.
   Stream<BlobUploadProgress> _uploadAttempt({
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required List<BlobUploadResult> results,
     required void Function(BlobUploadResult result) onSuccess,
     required Stream<List<int>> Function() dataStreamFactory,
@@ -549,7 +546,7 @@ class HttpBlossomRepository implements BlossomRepository {
   /// Upload a file to a server \
   /// If [serverMediaOptimisation] is true, the server will optimise the file for media streaming using the /media endpoint [BUD-05]
   Stream<UploadProgress> _uploadToServer({
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required Stream<List<int>> Function() dataStreamFactory,
     required int contentLength,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
@@ -592,7 +589,7 @@ class HttpBlossomRepository implements BlossomRepository {
   Future<List<BlobUploadCheck>> checkUpload({
     required String sha256,
     required int contentLength,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
     String? contentType,
     bool serverMediaOptimisation = false,
@@ -610,7 +607,7 @@ class HttpBlossomRepository implements BlossomRepository {
   );
 
   Future<BlobUploadCheck> _checkUploadOnServer({
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required String sha256,
     required int contentLength,
     required BlossomAuthorization authorization,
@@ -652,7 +649,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<BlobUploadResult> mirrorToServer({
     required String fileUrl,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required String sha256,
     required BlossomAuthorization authorization,
   }) async {
@@ -681,7 +678,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<BlobResponse> getBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int? start,
     int? end,
@@ -733,7 +730,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<String> checkBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
     final errors = <String, Object>{};
@@ -765,7 +762,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<({bool supported, int? contentLength})> supportsRangeRequests({
     required String sha256,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
     try {
@@ -798,12 +795,12 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<Stream<BlobResponse>> getBlobStream({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int chunkSize = 1024 * 1024, // 1MB chunks
   }) async {
     // Find a server that supports range requests
-    String? supportedServer;
+    BlossomServerUrl? supportedServer;
     int? contentLength;
 
     for (final url in serverUrls) {
@@ -850,7 +847,7 @@ class HttpBlossomRepository implements BlossomRepository {
   /// never held whole in memory.
   Stream<BlobResponse> _chunkedBlobStream({
     required String sha256,
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required int contentLength,
     required int chunkSize,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
@@ -878,7 +875,7 @@ class HttpBlossomRepository implements BlossomRepository {
   /// reads, for servers without range requests.
   Future<Stream<BlobResponse>> _wholeBlobStream({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
   }) async {
     final errors = <String, Object>{};
@@ -920,7 +917,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<List<BlobDescriptor>> listBlobs({
     required String pubkey,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     DateTime? since,
     DateTime? until,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
@@ -962,7 +959,7 @@ class HttpBlossomRepository implements BlossomRepository {
   @override
   Future<List<BlobDeleteResult>> deleteBlob({
     required String sha256,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
   }) => Future.wait(
     serverUrls.map(
@@ -975,7 +972,7 @@ class HttpBlossomRepository implements BlossomRepository {
   );
 
   Future<BlobDeleteResult> _deleteFromServer({
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required String sha256,
     required BlossomAuthorization authorization,
   }) async {
@@ -1026,7 +1023,7 @@ class HttpBlossomRepository implements BlossomRepository {
   Future<void> downloadBlobToFile({
     required String sha256,
     required String outputPath,
-    required List<String> serverUrls,
+    required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
   }) async {
     // Use the streaming method to download and write to file
@@ -1044,7 +1041,7 @@ class HttpBlossomRepository implements BlossomRepository {
 
   @override
   Future<int> report({
-    required String serverUrl,
+    required BlossomServerUrl serverUrl,
     required String sha256,
     required Nip01Event reportEvent,
   }) async {

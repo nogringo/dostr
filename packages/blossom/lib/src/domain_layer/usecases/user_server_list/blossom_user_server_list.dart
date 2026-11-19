@@ -1,3 +1,4 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
@@ -37,10 +38,10 @@ class BlossomUserServerList<R> {
        _publish = publish,
        _accounts = accounts;
 
-  /// Get user server list \
-  /// returns list of server urls \
-  /// returns null if the user has no server list
-  Future<List<String>?> getUserServerList({
+  /// The servers of the newest server list of [pubkeys]: its `server` tags
+  /// that [BlossomServerUrl.tryParse] accepts, normalized, each once, most
+  /// trusted first. Null if they have no server list.
+  Future<List<BlossomServerUrl>?> getUserServerList({
     required List<String> pubkeys,
   }) async {
     final data = [
@@ -55,23 +56,26 @@ class BlossomUserServerList<R> {
       return null;
     }
 
-    final List<String> foundServers = [];
-
-    for (final tag in data.first.tags) {
-      if (tag.length > 1 && tag[0] == 'server') {
-        foundServers.add(tag[1]);
-      }
-    }
-
-    return foundServers;
+    return {
+      for (final tag in data.first.tags)
+        if (tag.length > 1 && tag[0] == 'server')
+          ?BlossomServerUrl.tryParse(tag[1]),
+    }.toList();
   }
 
   /// Publish user server list \
   /// order of [serverUrlsOrdered] is important, the first server is the most trusted server
+  ///
+  /// The urls are published normalized, and two spellings of one server once.
+  /// Throws a [FormatException], before anything is signed, if one of
+  /// [serverUrlsOrdered] is not a Blossom server url.
   Future<R> publishUserServerList({
     required List<String> serverUrlsOrdered,
   }) async {
-    if (serverUrlsOrdered.isEmpty) {
+    final servers = {
+      for (final url in serverUrlsOrdered) BlossomServerUrl.parse(url),
+    }.toList();
+    if (servers.isEmpty) {
       throw Exception("serverUrlsOrdered is empty");
     }
 
@@ -88,8 +92,7 @@ class BlossomUserServerList<R> {
       kind: kBlossomUserServerList,
       createdAt: now,
       tags: [
-        for (var i = 0; i < serverUrlsOrdered.length; i++)
-          ["server", serverUrlsOrdered[i]],
+        for (final server in servers) ["server", server],
       ],
     );
 

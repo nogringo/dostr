@@ -1,3 +1,4 @@
+import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
 import '../../entities/blob_upload_progress.dart';
@@ -175,6 +176,7 @@ class Files {
       auth: auth,
     );
     // the url as given keeps its extension
-    return alive == '${blob.server}/${blob.sha256}' ? url : alive;
+    final server = BlossomServerUrl.tryParse(blob.server);
+    return alive == '$server/${blob.sha256}' ? url : alive;
   }
 }

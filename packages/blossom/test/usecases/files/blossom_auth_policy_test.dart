@@ -275,12 +275,12 @@ void main() {
 
     setUp(() async => sha256 = await seed('reported blob'));
 
-    Future<int> report({AuthPolicy? auth}) => client.report(
+    Future<int> report({AuthPolicy? auth, String? to}) => client.report(
       sha256: sha256,
       eventId: 'e' * 64,
       reportType: 'malware',
       reportMsg: 'this blob is malware',
-      serverUrl: serverUrl,
+      serverUrl: to ?? serverUrl,
       auth: auth,
     );
 
@@ -327,6 +327,24 @@ void main() {
       await report();
 
       expect(server.reports.single['pubkey'], isNot(loggedIn.publicKey));
+    });
+
+    test('names the server normalized', () async {
+      await report(to: 'HTTP://LocalHost:$policyPort/');
+
+      expect(
+        server.reports.single['tags'],
+        contains(equals(['server', serverUrl])),
+      );
+    });
+
+    test('to a url that is not a server url sends nothing', () async {
+      await expectLater(
+        report(to: 'http://user@localhost:$policyPort'),
+        throwsFormatException,
+      );
+
+      expect(server.reports, isEmpty);
     });
   });
 }

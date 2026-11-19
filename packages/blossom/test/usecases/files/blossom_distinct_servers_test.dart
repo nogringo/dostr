@@ -103,6 +103,34 @@ void main() {
     );
   });
 
+  test('a server url it refuses is never asked', () async {
+    await blossom.deleteBlob(
+      sha256: _hash,
+      serverUrls: [
+        'https://user:pass@a.example',
+        'https://a.example@evil.example',
+        'wss://b.example',
+        'https://b.example?token=1',
+        'https://b.example',
+      ],
+    );
+
+    expect(requests, ['DELETE b.example/$_hash']);
+  });
+
+  test('a server list holding no server url it accepts is none', () async {
+    final blossom = Blossom(
+      accounts: accounts,
+      signerFactory: const Bip340SignerFactory(),
+      getUserServerList: (_) async => ['https://a.example@evil.example'],
+    );
+
+    await expectLater(
+      blossom.listBlobs(pubkey: _owner),
+      throwsA(isA<BlossomNoServerListException>()),
+    );
+  });
+
   test('a listing asks each server of the list once', () async {
     await blossom.listBlobs(pubkey: _owner);
 

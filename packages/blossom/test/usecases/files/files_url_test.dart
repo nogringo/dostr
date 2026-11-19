@@ -200,6 +200,15 @@ void main() {
     expect(await filesOn(_Servers({'a.example'})).checkUrl(url: url), url);
   });
 
+  test(
+    'checkUrl answers the url as given in any spelling of its server',
+    () async {
+      final url = 'HTTPS://A.example:443/$_hash.mp4';
+
+      expect(await filesOn(_Servers({'a.example'})).checkUrl(url: url), url);
+    },
+  );
+
   test('checkUrl answers where the blob is when its url is broken', () async {
     final alive = await filesOn(_Servers({'b.example'})).checkUrl(
       url: 'https://a.example/$_hash.mp4',

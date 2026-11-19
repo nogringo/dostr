@@ -58,6 +58,23 @@ void main() {
       expect(queries.single.kind, BlossomUserServerList.kBlossomUserServerList);
     });
 
+    test('normalizes the servers, each once, and drops the others', () async {
+      relayEvents.add(
+        listOf([
+          'HTTPS://B.example:443/',
+          'wss://relay.example',
+          'https://cdn.example@evil.example',
+          'https://b.example',
+          'https://a.example',
+        ], createdAt: 1),
+      );
+
+      expect(await serverList.getUserServerList(pubkeys: ['alice']), [
+        'https://b.example',
+        'https://a.example',
+      ]);
+    });
+
     test('returns null when the user has no list', () async {
       expect(await serverList.getUserServerList(pubkeys: ['alice']), isNull);
     });
@@ -80,6 +97,35 @@ void main() {
         ['server', 'https://b.example'],
         ['server', 'https://a.example'],
       ]);
+    });
+
+    test('publishes the urls normalized, each once', () async {
+      accounts.loginPrivateKey(privkey: Bip340.generateKeyPair().privateKey);
+
+      await serverList.publishUserServerList(
+        serverUrlsOrdered: [
+          'HTTPS://B.example:443/',
+          'https://a.example',
+          'https://b.example',
+        ],
+      );
+
+      expect(published.single.tags, [
+        ['server', 'https://b.example'],
+        ['server', 'https://a.example'],
+      ]);
+    });
+
+    test('throws on a url that is not a server url', () async {
+      accounts.loginPrivateKey(privkey: Bip340.generateKeyPair().privateKey);
+
+      await expectLater(
+        serverList.publishUserServerList(
+          serverUrlsOrdered: ['https://a.example', 'wss://relay.example'],
+        ),
+        throwsFormatException,
+      );
+      expect(published, isEmpty);
     });
 
     test('throws without a logged account', () async {

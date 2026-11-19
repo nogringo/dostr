@@ -71,7 +71,8 @@ Upload, list and delete use the user's server list (kind `10063`) when no `serve
 A read tries `serverUrls` first.
 Given `pubkeyToFetchUserServerList` too, it reads that user's server list only once none of `serverUrls` had the blob, and then tries the servers it did not try yet.
 
-A server url may end with a slash, as kind `10063` lists often write it.
+Every server url is normalized with `BlossomServerUrl.tryParse`, from [`dostr_blossom_url`](https://pub.dev/packages/dostr_blossom_url), so an operation talks to each server once however the urls spell it, and a trailing slash, as kind `10063` lists often write it, changes nothing.
+A url it refuses is skipped, as if it were not there: one with user info, which can hide the real host, one with a query, or one whose scheme is not `http` or `https`.
 
 The authorization events are signed automatically and are valid for five minutes (`Blossom.defaultAuthExpiration`), or for the `authExpiration` passed to the `Blossom` constructor.
 An operation that outlives it, such as a long streamed download, signs a new event when a server refuses the expired one.
@@ -97,7 +98,7 @@ try {
 A download checks that the bytes hash to the sha256 it asked for.
 A server that serves anything else fails with a `BlossomHashMismatchException`: `getBlob` moves on to the next server, while `getBlobStream` ends with it and `downloadBlobToFile` throws it without saving anything.
 
-An operation with no server to talk to throws a `BlossomNoServerListException` before sending anything: the user has no server list (kind `10063`), or an empty one, or the call gave neither servers nor a pubkey.
+An operation with no server to talk to throws a `BlossomNoServerListException` before sending anything: the user has no server list (kind `10063`), or one without a server url `BlossomServerUrl.tryParse` accepts, or the call gave neither servers nor a pubkey.
 Its `pubkey` says whose list is missing.
 
 Writes report each server in their results instead: `BlobUploadResult` and `BlobDeleteResult` say whether that server succeeded, and why not.

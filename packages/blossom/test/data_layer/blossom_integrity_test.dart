@@ -48,8 +48,8 @@ HttpBlossomRepository _repo(
   fileIO: createFileIO(),
 );
 
-const _a = 'https://a.example';
-const _b = 'https://b.example';
+final _a = BlossomServerUrl.parse('https://a.example');
+final _b = BlossomServerUrl.parse('https://b.example');
 
 void main() {
   test('getBlob moves on from a server whose bytes are not the blob', () async {
