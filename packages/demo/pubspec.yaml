@@ -110,8 +110,8 @@ dependency_overrides:
     path: ../string_color
   dostr_url_set:
     path: ../url_set
-  dostr_web_crypto:
-    path: ../web_crypto
+  dostr_noble:
+    path: ../noble
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
   # activated in the `analysis_options.yaml` file located at the root of your

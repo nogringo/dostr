@@ -3,7 +3,7 @@
 A shared test suite for implementations of the `NostrSigner` and `LocalSignerFactory` of [`dostr_signer`](https://pub.dev/packages/dostr_signer).
 Every signer runs the same cases, so they all keep the contract that `NostrSigner` documents.
 
-The signers of Dostr (`dostr_bip340`, `dostr_web_crypto`, `dostr_nip46`, `dostr_nip07`, `dostr_nip55`) run it, and so can any other signer.
+The signers of Dostr (`dostr_bip340`, `dostr_noble`, `dostr_nip46`, `dostr_nip07`, `dostr_nip55`) run it, and so can any other signer.
 
 ## Usage
 

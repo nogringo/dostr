@@ -7,7 +7,7 @@ import 'dostr_event_verifier_stub.dart'
 /// A platform-aware event verifier that automatically selects the best
 /// implementation for the current platform.
 ///
-/// - On **web**: uses `WebEventVerifier` from `dostr_web_crypto`, which calls
+/// - On **web**: uses `WebEventVerifier` from `dostr_noble`, which calls
 ///   @noble/curves through JS interop for fast signature verification.
 /// - On **native platforms** (Android, iOS, desktop): uses `Bip340EventVerifier`
 ///   from `dostr_bip340`, in pure Dart. For faster checks, pass

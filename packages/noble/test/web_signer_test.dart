@@ -3,8 +3,8 @@ library;
 
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
+import 'package:dostr_noble/dostr_noble.dart';
 import 'package:dostr_signer/dostr_signer.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -288,6 +288,96 @@ void main() {
       });
     });
 
+    group('reads a payload as Bip340Signer does', () {
+      // 70 bytes: one `=` of padding for NIP-04, two for NIP-44
+      final message = 'a' * 70;
+      late Bip340Signer peer;
+      late Bip340Signer dartSigner;
+
+      setUp(() {
+        peer =
+            const Bip340SignerFactory().createWithNewKeyPair() as Bip340Signer;
+        dartSigner = Bip340Signer(keyPair.privateKey);
+      });
+
+      tearDown(() async {
+        await peer.dispose();
+        await dartSigner.dispose();
+      });
+
+      Future<String?> decryption(Future<String> Function() decrypt) async {
+        try {
+          return await decrypt();
+        } on SignerRequestFailedException {
+          return null;
+        }
+      }
+
+      Future<void> expectSameOutcome(
+        String payload,
+        Future<String> Function(NostrSigner signer, String payload) decrypt,
+      ) async {
+        expect(
+          await decryption(() => decrypt(signer, payload)),
+          await decryption(() => decrypt(dartSigner, payload)),
+        );
+      }
+
+      Future<String> nip44Decrypt(NostrSigner signer, String payload) => signer
+          .decryptNip44(ciphertext: payload, senderPubkey: peer.publicKey);
+
+      Future<String> nip04Decrypt(NostrSigner signer, String payload) =>
+          // ignore: deprecated_member_use
+          signer.decryptNip04(
+            ciphertext: payload,
+            senderPubkey: peer.publicKey,
+          );
+
+      Future<String> nip04Payload() async {
+        String payload;
+        do {
+          payload = await peer.encryptNip04(
+            plaintext: message,
+            recipientPubkey: keyPair.publicKey,
+          );
+        } while (!payload.split('?iv=').first.contains(RegExp('[+/]')));
+        return payload;
+      }
+
+      for (final (variant, rewrite) in _base64Variants) {
+        test('NIP-44 with $variant', () async {
+          String payload;
+          do {
+            payload = await peer.encryptNip44(
+              plaintext: message,
+              recipientPubkey: keyPair.publicKey,
+            );
+          } while (!payload.contains(RegExp('[+/]')));
+          final rewritten = rewrite(payload);
+          expect(rewritten, isNot(payload));
+
+          await expectSameOutcome(rewritten, nip44Decrypt);
+        });
+
+        test('NIP-04 with $variant', () async {
+          final [ciphertext, iv] = (await nip04Payload()).split('?iv=');
+          final rewritten = rewrite(ciphertext);
+          expect(rewritten, isNot(ciphertext));
+
+          await expectSameOutcome('$rewritten?iv=$iv', nip04Decrypt);
+        });
+      }
+
+      test('NIP-04 with two ?iv=', () async {
+        final payload = await nip04Payload();
+
+        await expectSameOutcome(
+          '$payload?iv=${payload.split('?iv=').last}',
+          nip04Decrypt,
+        );
+      });
+    });
+
     group('pending requests (local signer)', () {
       test('pendingRequests returns empty list', () {
         expect(signer.pendingRequests, isEmpty);
@@ -331,4 +421,23 @@ void main() {
       expect(publicKey, equals(Bip340.getPublicKey(privateKey)));
     });
   });
+}
+
+const _base64Alphabet =
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+final _base64Variants = <(String, String Function(String))>[
+  ('the URL-safe alphabet', (b) => b.replaceAll('+', '-').replaceAll('/', '_')),
+  ('a %3D padding', (b) => b.replaceAll('=', '%3D')),
+  ('a space', (b) => '${b.substring(0, 8)} ${b.substring(8)}'),
+  ('a line break', (b) => '${b.substring(0, 8)}\n${b.substring(8)}'),
+  ('no padding', (b) => b.replaceAll('=', '')),
+  ('a stray bit before the padding', _withStrayBit),
+];
+
+// Sets a bit that encodes no byte, which canonical base64 leaves at zero.
+String _withStrayBit(String base64) {
+  final last = base64.lastIndexOf(RegExp('[^=]'));
+  final value = _base64Alphabet.indexOf(base64[last]);
+  return base64.replaceRange(last, last + 1, _base64Alphabet[value + 1]);
 }

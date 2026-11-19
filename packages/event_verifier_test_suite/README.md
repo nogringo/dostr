@@ -3,7 +3,7 @@
 A shared test suite for implementations of the `EventVerifier` of [`dostr_nip01`](https://pub.dev/packages/dostr_nip01).
 Every verifier runs the same cases, so they cannot drift apart on what they accept.
 
-The verifiers of Dostr (`dostr_bip340`, `dostr_rust_verifier`, `dostr_web_crypto`) run it, and so can any other verifier.
+The verifiers of Dostr (`dostr_bip340`, `dostr_rust_verifier`, `dostr_noble`) run it, and so can any other verifier.
 
 ## Usage
 

@@ -15,7 +15,9 @@ version=$(node -e '
 ' nostr_crypto.src.js package-lock.json build.sh)
 
 echo "Building JS bundle $version..."
+# @noble/hashes has no license comment for esbuild to keep, unlike the others
 npx esbuild nostr_crypto.src.js --bundle --minify --format=iife \
+  "--banner:js=/*! noble-hashes - MIT License (c) 2022 Paul Miller (paulmillr.com) */" \
   "--define:BUNDLE_VERSION=\"$version\"" --outfile=nostr_crypto.js
 
 echo "Updating nostr_crypto_js.dart..."

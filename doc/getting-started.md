@@ -80,4 +80,4 @@ To read an account's events from the relays it writes to, and publish where its 
 `Bip340EventVerifier` checks signatures in pure Dart, on the calling isolate.
 On native platforms `RustEventVerifier` from [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) is much faster.
 It needs the Rust toolchain, see its README.
-On the web, `WebEventVerifier` from [`dostr_web_crypto`](https://pub.dev/packages/dostr_web_crypto) is much faster.
+On the web, `WebEventVerifier` from [`dostr_noble`](https://pub.dev/packages/dostr_noble) is much faster.

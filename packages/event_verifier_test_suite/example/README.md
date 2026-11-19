@@ -28,7 +28,7 @@ void main() {
 
 ## A verifier with its own signer
 
-A package that ships both a signer and a verifier, such as `dostr_web_crypto`, signs with its own signer.
+A package that ships both a signer and a verifier, such as `dostr_noble`, signs with its own signer.
 The two could share a serialization bug and still agree: the events of `bip340ExternalEvents`, which other clients signed, catch it.
 
 ```dart

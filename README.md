@@ -67,9 +67,9 @@ Start here.
 `dostr_rust_verifier`: fast BIP-340 event verifier in native Rust, through FFI.
 Needs the Rust toolchain.
 
-#### [🔗 Web crypto](./packages/web_crypto/)
+#### [🔗 Noble](./packages/noble/)
 
-`dostr_web_crypto`: fast BIP-340 signer and event verifier for the web, with @noble/curves through JS interop.
+`dostr_noble`: fast BIP-340 signer and event verifier for the web, with @noble/curves through JS interop.
 Pure Dart, no Flutter needed.
 
 #### [🔗 Accounts](./packages/accounts/)

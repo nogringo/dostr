@@ -42,7 +42,7 @@ dependencies:
   dostr_nip55: ^0.1.0
   dostr_signer: ^0.2.0
   dostr_string_color: ^0.1.0
-  dostr_web_crypto: ^0.1.0
+  dostr_noble: ^0.1.0
   qr: ^4.0.1
   url_launcher: ">=6.1.0 <7.0.0"
 

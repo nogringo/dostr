@@ -5,8 +5,8 @@ import 'dart:js_interop';
 import 'dart:js_interop_unsafe';
 
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
-import 'package:dostr_web_crypto/src/nostr_crypto_js.dart';
+import 'package:dostr_noble/dostr_noble.dart';
+import 'package:dostr_noble/src/nostr_crypto_js.dart';
 import 'package:test/test.dart';
 import 'package:web/web.dart' as web;
 
@@ -20,7 +20,7 @@ void main() {
   // The tests share the page and the loader state, so they run in this order.
   test('a bundle of another version on the page throws a StateError', () {
     final scripts = _scriptCount;
-    _runJs('globalThis.DostrWebCrypto = { version: "stale" };');
+    _runJs('globalThis.DostrNoble = { version: "stale" };');
 
     expect(() => WebSigner(privateKey), throwsStateError);
     expect(_scriptCount, scripts);
@@ -28,8 +28,8 @@ void main() {
 
   test('a bundle that does not run is injected once', () {
     _runJs('''
-      delete globalThis.DostrWebCrypto;
-      Object.defineProperty(globalThis, 'DostrWebCrypto', {
+      delete globalThis.DostrNoble;
+      Object.defineProperty(globalThis, 'DostrNoble', {
         get: () => undefined,
         set: () => {},
         configurable: true,
@@ -43,7 +43,7 @@ void main() {
   });
 
   test('a bundle the page loads later is used', () {
-    _runJs('delete globalThis.DostrWebCrypto;');
+    _runJs('delete globalThis.DostrNoble;');
     _runJs(nostrCryptoJs);
 
     expect(WebSigner(privateKey).publicKey, Bip340.getPublicKey(privateKey));

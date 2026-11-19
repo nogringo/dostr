@@ -256,6 +256,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  dostr_noble:
+    dependency: "direct overridden"
+    description:
+      path: "../noble"
+      relative: true
+    source: path
+    version: "0.1.0"
   dostr_relay_url:
     dependency: "direct overridden"
     description:
@@ -295,13 +302,6 @@ packages:
     dependency: "direct overridden"
     description:
       path: "../url_set"
-      relative: true
-    source: path
-    version: "0.1.0"
-  dostr_web_crypto:
-    dependency: "direct overridden"
-    description:
-      path: "../web_crypto"
       relative: true
     source: path
     version: "0.1.0"

@@ -1,4 +1,4 @@
-# dostr_web_crypto
+# dostr_noble
 
 Fast [BIP-340](https://github.com/bitcoin/bips/blob/master/bip-0340.mediawiki) Schnorr signatures for Nostr events on the web: a `NostrSigner` that holds a private key, its `LocalSignerFactory`, and an `EventVerifier`.
 They call [@noble/curves](https://github.com/paulmillr/noble-curves) through JS interop, which is much faster than pure Dart in the browser.
@@ -14,14 +14,14 @@ The JS bundle is embedded and injected into the page the first time a class need
 
 ```yaml
 dependencies:
-  dostr_web_crypto: ^0.1.0
+  dostr_noble: ^0.1.0
 ```
 
 ## Usage
 
 ```dart
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
+import 'package:dostr_noble/dostr_noble.dart';
 
 final signer = const WebSignerFactory().createWithNewKeyPair();
 final event = await signer.sign(
@@ -51,8 +51,8 @@ On such a page, serve the `js/nostr_crypto.js` of the version you depend on, and
 <script src="nostr_crypto.js"></script>
 ```
 
-The classes then use the `DostrWebCrypto` it defines and inject nothing.
-Copy the file again on every upgrade of `dostr_web_crypto`, since it must match the Dart side: when it does not, the classes throw a `StateError` that gives both versions.
+The classes then use the `DostrNoble` it defines and inject nothing.
+Copy the file again on every upgrade of `dostr_noble`, since it must match the Dart side: when it does not, the classes throw a `StateError` that gives both versions.
 
 A Web Worker has no page to inject the bundle into, so the classes are not supported there.
 

@@ -2,7 +2,7 @@
 
 Ready-made Nostr widgets for Flutter apps (login, profiles, account switcher, pending signer requests), and logged in accounts kept across restarts.
 
-It re-exports [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), [`dostr_nip55`](https://pub.dev/packages/dostr_nip55) and [`dostr_web_crypto`](https://pub.dev/packages/dostr_web_crypto).
+It re-exports [`dostr_nip07`](https://pub.dev/packages/dostr_nip07), [`dostr_nip55`](https://pub.dev/packages/dostr_nip55) and [`dostr_noble`](https://pub.dev/packages/dostr_noble).
 
 ## Install
 
@@ -67,7 +67,7 @@ Future<void> main() async {
 ```
 
 `DostrSignerFactory` and `DostrEventVerifier` pick an implementation per platform.
-On the web they are `WebSignerFactory` and `WebEventVerifier` from `dostr_web_crypto`.
+On the web they are `WebSignerFactory` and `WebEventVerifier` from `dostr_noble`.
 Elsewhere they are `Bip340SignerFactory` and `Bip340EventVerifier` from [`dostr_bip340`](https://pub.dev/packages/dostr_bip340), in pure Dart, so the app builds without any native toolchain.
 To verify faster on Android, iOS or desktop, give `RelayReqs` the `RustEventVerifier` of [`dostr_rust_verifier`](https://pub.dev/packages/dostr_rust_verifier) instead.
 Its build hook compiles Rust, so it needs the [Rust toolchain](https://rustup.rs).

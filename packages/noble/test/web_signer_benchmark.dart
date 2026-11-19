@@ -3,13 +3,20 @@ library;
 
 import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_nip01/dostr_nip01.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
+import 'package:dostr_noble/dostr_noble.dart';
+import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-void _report(String label, int count, int ms) {
-  final perOp = count > 0 ? (ms / count).toStringAsFixed(2) : '0';
-  print('[$label] $count ops in ${ms}ms ($perOp ms/op)');
+void _report(String label, int count, Duration elapsed) {
+  final ms = elapsed.inMicroseconds / 1000;
+  final perOp = (ms / count).toStringAsFixed(3);
+  print('[$label] $count ops in ${ms.toStringAsFixed(1)}ms ($perOp ms/op)');
 }
+
+List<(String, NostrSigner)> _signers(String privateKey) => [
+  ('WebSigner', WebSigner(privateKey)),
+  ('Bip340Signer', Bip340Signer(privateKey)),
+];
 
 void main() {
   group('WebSigner benchmark', () {
@@ -46,7 +53,7 @@ void main() {
         await webSigner.sign(event);
       }
       sw.stop();
-      _report('WebSigner.sign', count, sw.elapsedMilliseconds);
+      _report('WebSigner.sign', count, sw.elapsed);
 
       // Dart
       sw = Stopwatch()..start();
@@ -54,7 +61,7 @@ void main() {
         await dartSigner.sign(event);
       }
       sw.stop();
-      _report('Bip340Signer.sign', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.sign', count, sw.elapsed);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -84,7 +91,7 @@ void main() {
         await webVerifier.verify(signedEvent);
       }
       sw.stop();
-      _report('WebEventVerifier.verify', count, sw.elapsedMilliseconds);
+      _report('WebEventVerifier.verify', count, sw.elapsed);
 
       // Dart
       sw = Stopwatch()..start();
@@ -92,7 +99,7 @@ void main() {
         await dartVerifier.verify(signedEvent);
       }
       sw.stop();
-      _report('Bip340EventVerifier.verify', count, sw.elapsedMilliseconds);
+      _report('Bip340EventVerifier.verify', count, sw.elapsed);
     });
 
     test('benchmark nip04 encrypt', () async {
@@ -126,7 +133,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('WebSigner.nip04Encrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip04Encrypt', count, sw.elapsed);
 
       // Dart
       sw = Stopwatch()..start();
@@ -137,7 +144,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('Bip340Signer.nip04Encrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip04Encrypt', count, sw.elapsed);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -146,49 +153,33 @@ void main() {
     test('benchmark nip44 encrypt', () async {
       const count = 10;
       const message = 'Hello, NIP-44 benchmark!';
-      final otherKeyPair = Bip340.generateKeyPair();
+      final peers = [
+        for (var i = 0; i < count + 3; i++) Bip340.generateKeyPair().publicKey,
+      ];
 
-      final webSigner = WebSigner(keyPair.privateKey);
-      final dartSigner = Bip340Signer(keyPair.privateKey);
+      for (final (name, signer) in _signers(keyPair.privateKey)) {
+        Future<String> encrypt(String peer) =>
+            signer.encryptNip44(plaintext: message, recipientPubkey: peer);
 
-      // Warmup
-      for (var i = 0; i < 3; i++) {
-        await webSigner.encryptNip44(
-          plaintext: message,
-          recipientPubkey: otherKeyPair.publicKey,
-        );
+        for (final peer in peers.take(3)) {
+          await encrypt(peer);
+        }
+
+        // a new peer runs the key agreement, as each gift wrap does
+        var sw = Stopwatch()..start();
+        for (final peer in peers.skip(3)) {
+          await encrypt(peer);
+        }
+        _report('$name.nip44Encrypt, new peer', count, sw.elapsed);
+
+        sw = Stopwatch()..start();
+        for (var i = 0; i < count; i++) {
+          await encrypt(peers.last);
+        }
+        _report('$name.nip44Encrypt, same peer', count, sw.elapsed);
+
+        await signer.dispose();
       }
-      for (var i = 0; i < 3; i++) {
-        await dartSigner.encryptNip44(
-          plaintext: message,
-          recipientPubkey: otherKeyPair.publicKey,
-        );
-      }
-
-      // Web
-      var sw = Stopwatch()..start();
-      for (var i = 0; i < count; i++) {
-        await webSigner.encryptNip44(
-          plaintext: message,
-          recipientPubkey: otherKeyPair.publicKey,
-        );
-      }
-      sw.stop();
-      _report('WebSigner.nip44Encrypt', count, sw.elapsedMilliseconds);
-
-      // Dart
-      sw = Stopwatch()..start();
-      for (var i = 0; i < count; i++) {
-        await dartSigner.encryptNip44(
-          plaintext: message,
-          recipientPubkey: otherKeyPair.publicKey,
-        );
-      }
-      sw.stop();
-      _report('Bip340Signer.nip44Encrypt', count, sw.elapsedMilliseconds);
-
-      await webSigner.dispose();
-      await dartSigner.dispose();
     });
 
     test('benchmark nip04 decrypt', () async {
@@ -227,7 +218,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('Bip340Signer.nip04Decrypt', count, sw.elapsedMilliseconds);
+      _report('Bip340Signer.nip04Decrypt', count, sw.elapsed);
 
       // Web decrypt
       sw = Stopwatch()..start();
@@ -238,7 +229,7 @@ void main() {
         );
       }
       sw.stop();
-      _report('WebSigner.nip04Decrypt', count, sw.elapsedMilliseconds);
+      _report('WebSigner.nip04Decrypt', count, sw.elapsed);
 
       await webSigner.dispose();
       await dartSigner.dispose();
@@ -247,54 +238,39 @@ void main() {
     test('benchmark nip44 decrypt', () async {
       const count = 10;
       const message = 'Hello, NIP-44 decrypt benchmark!';
-      final otherKeyPair = Bip340.generateKeyPair();
-
-      final webSigner = WebSigner(keyPair.privateKey);
-      final dartSigner = Bip340Signer(otherKeyPair.privateKey);
-
-      final encrypted = await webSigner.encryptNip44(
-        plaintext: message,
-        recipientPubkey: otherKeyPair.publicKey,
-      );
-
-      // Warmup
-      for (var i = 0; i < 3; i++) {
-        await dartSigner.decryptNip44(
-          ciphertext: encrypted,
-          senderPubkey: keyPair.publicKey,
+      final ciphertextBySender = <String, String>{};
+      for (var i = 0; i < count + 3; i++) {
+        final sender = const Bip340SignerFactory().createWithNewKeyPair();
+        ciphertextBySender[sender.publicKey] = await sender.encryptNip44(
+          plaintext: message,
+          recipientPubkey: keyPair.publicKey,
         );
+        await sender.dispose();
       }
-      for (var i = 0; i < 3; i++) {
-        await webSigner.decryptNip44(
-          ciphertext: encrypted,
-          senderPubkey: otherKeyPair.publicKey,
-        );
-      }
+      final received = ciphertextBySender.entries.toList();
 
-      // Dart decrypt
-      var sw = Stopwatch()..start();
-      for (var i = 0; i < count; i++) {
-        await dartSigner.decryptNip44(
-          ciphertext: encrypted,
-          senderPubkey: keyPair.publicKey,
-        );
-      }
-      sw.stop();
-      _report('Bip340Signer.nip44Decrypt', count, sw.elapsedMilliseconds);
+      for (final (name, signer) in _signers(keyPair.privateKey)) {
+        Future<String> decrypt(MapEntry<String, String> message) => signer
+            .decryptNip44(ciphertext: message.value, senderPubkey: message.key);
 
-      // Web decrypt
-      sw = Stopwatch()..start();
-      for (var i = 0; i < count; i++) {
-        await webSigner.decryptNip44(
-          ciphertext: encrypted,
-          senderPubkey: otherKeyPair.publicKey,
-        );
-      }
-      sw.stop();
-      _report('WebSigner.nip44Decrypt', count, sw.elapsedMilliseconds);
+        for (final message in received.take(3)) {
+          await decrypt(message);
+        }
 
-      await webSigner.dispose();
-      await dartSigner.dispose();
+        var sw = Stopwatch()..start();
+        for (final message in received.skip(3)) {
+          await decrypt(message);
+        }
+        _report('$name.nip44Decrypt, new sender', count, sw.elapsed);
+
+        sw = Stopwatch()..start();
+        for (var i = 0; i < count; i++) {
+          await decrypt(received.last);
+        }
+        _report('$name.nip44Decrypt, same sender', count, sw.elapsed);
+
+        await signer.dispose();
+      }
     });
   });
 }

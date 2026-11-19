@@ -1,7 +1,7 @@
 /// Auto-platform Nostr signer that uses the best implementation
 /// for the current platform.
 ///
-/// On web: uses [WebSigner] from `dostr_web_crypto` (fast JS crypto via @noble/curves)
+/// On web: uses [WebSigner] from `dostr_noble` (fast JS crypto via @noble/curves)
 /// On native (mobile/desktop): uses [Bip340Signer] (pure Dart)
 ///
 /// Give [DostrSignerFactory] to `Accounts` so the accounts it logs in sign

@@ -40,11 +40,11 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 2 | `dostr_nip07` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_nip55` | `dostr_nip01`, `dostr_nip19`, `dostr_signer` | 1 |
 | 2 | `dostr_nip59` | `dostr_nip01`, `dostr_signer` | 0 |
+| 2 | `dostr_noble` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_signer_test_suite` | `dostr_nip01`, `dostr_signer` | 0 |
-| 2 | `dostr_web_crypto` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_zaps` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 0 |
 | 3 | `dostr_fetchers` | `dostr_blossom_url`, `dostr_core`, `dostr_home_relays`, `dostr_url_set` | 1 |
 | 3 | `dostr_nip46` | `dostr_core` | 1 |
 | 3 | `dostr_nip77` | `dostr_core` | 1 |
-| 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip05`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_signer`, `dostr_string_color`, `dostr_web_crypto` | 0 |
+| 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip05`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_noble`, `dostr_signer`, `dostr_string_color` | 0 |
 | 4 | `dostr_mock_relay` | `dostr_bip340`, `dostr_core`, `dostr_nip44`, `dostr_nip77` | 0 |

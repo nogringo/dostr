@@ -6,7 +6,7 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_nip07/dostr_nip07.dart';
 import 'package:dostr_nip46/dostr_nip46.dart';
 import 'package:dostr_nip55/dostr_nip55.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
+import 'package:dostr_noble/dostr_noble.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import 'config.dart';

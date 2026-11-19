@@ -1,7 +1,7 @@
 export 'package:dostr_nip07/dostr_nip07.dart';
 export 'package:dostr_nip55/dostr_nip55.dart';
+export 'package:dostr_noble/dostr_noble.dart';
 export 'package:dostr_string_color/dostr_string_color.dart';
-export 'package:dostr_web_crypto/dostr_web_crypto.dart';
 export 'src/config.dart';
 export 'src/dostr_flutter.dart';
 export 'src/models/metadata.dart';

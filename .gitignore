@@ -41,8 +41,8 @@ pubspec_overrides.yaml
 # Node.js build tools
 **/node_modules/
 **/package-lock.json
-# pins the @noble versions of the committed web_crypto bundle
-!packages/web_crypto/js/package-lock.json
+# pins the @noble versions of the committed dostr_noble bundle
+!packages/noble/js/package-lock.json
 
 # Claude Code agent worktrees
 .claude/worktrees/

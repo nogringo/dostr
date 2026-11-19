@@ -20,13 +20,13 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        package: [core, nip01, signer, nip19, bip340, nip44, nip49, nip77, rust_verifier, web_crypto, url_set, relay_url, blossom_url, fetchers, home_relays, cashu_protocol, blossom, nip59, nip13, nip07, nip46, nip05, accounts, zaps, nip11, mock_relay, string_color, nip55, flutter]
+        package: [core, nip01, signer, nip19, bip340, nip44, nip49, nip77, rust_verifier, noble, url_set, relay_url, blossom_url, fetchers, home_relays, cashu_protocol, blossom, nip59, nip13, nip07, nip46, nip05, accounts, zaps, nip11, mock_relay, string_color, nip55, flutter]
         include:
           - package: core
             test_command: dart test -j 1 && dart test -p chrome test/transport/websocket_client_transport_browser_test.dart
           - package: nip07
             test_command: dart test && dart test -p chrome -c dart2wasm
-          - package: web_crypto
+          - package: noble
             test_command: dart test && dart test -p chrome -c dart2wasm
           - package: nip55
             test_command: flutter test
@@ -44,8 +44,8 @@ jobs:
           cache: true
       - run: dart pub get
       - name: Check that the JS bundle is the one its sources build
-        if: matrix.package == 'web_crypto'
-        working-directory: ./packages/web_crypto/js
+        if: matrix.package == 'noble'
+        working-directory: ./packages/noble/js
         run: npm ci && ./build.sh && git diff --stat --exit-code -- nostr_crypto.js ../lib/src/nostr_crypto_js.dart
       - run: ${{ matrix.test_command || 'dart test' }}
 

@@ -63,8 +63,25 @@ function bytesToBase64(bytes) {
   return btoa(binary);
 }
 
+const BASE64_ALPHABET =
+  'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+
+// What Dart's base64.decode reads, as dostr_nip44 does: both alphabets, `=`
+// or `%3D` padding, no whitespace, and no stray bits before the padding.
 function base64ToBytes(base64) {
-  const binary = atob(base64);
+  const encoded = base64
+    .replace(/%3d/gi, '=')
+    .replace(/-/g, '+')
+    .replace(/_/g, '/');
+  const padding = /^[A-Za-z0-9+/]*(={0,2})$/.exec(encoded)?.[1].length;
+  if (padding === undefined || encoded.length % 4 !== 0) {
+    throw new Error('Invalid base64');
+  }
+  if (padding > 0) {
+    const last = BASE64_ALPHABET.indexOf(encoded[encoded.length - padding - 1]);
+    if (last & (padding === 2 ? 0x0f : 0x03)) throw new Error('Invalid base64');
+  }
+  const binary = atob(encoded);
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
@@ -106,8 +123,11 @@ function nip04Encrypt(privateKeyHex, publicKeyHex, plaintext) {
  * @returns {string}
  */
 function nip04Decrypt(privateKeyHex, publicKeyHex, ciphertext) {
-  const [dataB64, ivB64] = ciphertext.split('?iv=');
-  if (!ivB64) throw new Error('Invalid NIP-04 ciphertext');
+  const parts = ciphertext.split('?iv=');
+  if (parts.length !== 2) {
+    throw new Error('Not a NIP-04 payload: it needs one ?iv=');
+  }
+  const [dataB64, ivB64] = parts;
 
   const key = sharedX(privateKeyHex, publicKeyHex);
   const plaintext = cbc(key, base64ToBytes(ivB64)).decrypt(base64ToBytes(dataB64));
@@ -201,6 +221,9 @@ function nip44Encrypt(conversationKey, plaintext, nonce = randomBytes(32)) {
 function nip44Decrypt(conversationKey, payloadB64) {
   if (payloadB64.startsWith('#')) throw new Error('Unsupported version');
   if (payloadB64.length < 132) throw new Error('Invalid payload size');
+  if (!/^[A-Za-z0-9+/]*={0,2}$/.test(payloadB64)) {
+    throw new Error('Not standard base64 with padding');
+  }
   const payload = base64ToBytes(payloadB64);
   if (payload.length < 99) throw new Error('Invalid data size');
   if (payload[0] !== 2) throw new Error('Unsupported version');
@@ -216,7 +239,7 @@ function nip44Decrypt(conversationKey, payloadB64) {
   return utf8Decoder.decode(unpad(chacha20(chachaKey, chachaNonce, ciphertext)));
 }
 
-globalThis.DostrWebCrypto = {
+globalThis.DostrNoble = {
   // build.sh defines BUNDLE_VERSION, which the Dart side checks
   version: BUNDLE_VERSION,
   verifySignature,

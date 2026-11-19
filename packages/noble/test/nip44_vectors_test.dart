@@ -6,8 +6,8 @@ import 'dart:js_interop';
 
 import 'package:crypto/crypto.dart';
 import 'package:dostr_nip01/hex.dart';
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
-import 'package:dostr_web_crypto/src/js_interop.dart';
+import 'package:dostr_noble/dostr_noble.dart';
+import 'package:dostr_noble/src/js_interop.dart';
 import 'package:test/test.dart';
 
 // The browser cannot read files: the VM side of the test reads the vectors

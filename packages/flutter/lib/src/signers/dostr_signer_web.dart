@@ -1,4 +1,4 @@
-import 'package:dostr_web_crypto/dostr_web_crypto.dart';
+import 'package:dostr_noble/dostr_noble.dart';
 
 /// Web alias of [DostrSigner]: fast [WebSigner] via JS interop.
 typedef DostrSigner = WebSigner;

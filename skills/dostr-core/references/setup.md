@@ -8,7 +8,7 @@ dart pub add dostr_core dostr_bip340
 dart pub add dostr_fetchers dostr_url_set
 ```
 
-`dostr_core` has no signing or verification code: it takes any `EventVerifier`, and `dostr_bip340` gives a pure Dart one (`Bip340EventVerifier`). `RustEventVerifier` from `dostr_rust_verifier` is faster on native platforms but needs the Rust toolchain. On the web, `WebEventVerifier` from `dostr_web_crypto` is faster.
+`dostr_core` has no signing or verification code: it takes any `EventVerifier`, and `dostr_bip340` gives a pure Dart one (`Bip340EventVerifier`). `RustEventVerifier` from `dostr_rust_verifier` is faster on native platforms but needs the Rust toolchain. On the web, `WebEventVerifier` from `dostr_noble` is faster.
 
 ## Minimum init
 

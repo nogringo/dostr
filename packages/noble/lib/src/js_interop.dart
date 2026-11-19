@@ -4,7 +4,7 @@ import 'package:web/web.dart' as web;
 
 import 'nostr_crypto_js.dart';
 
-@JS('DostrWebCrypto')
+@JS('DostrNoble')
 external NostrCrypto? get _loadedNostrCrypto;
 
 NostrCrypto? _nostrCrypto;
@@ -28,15 +28,15 @@ NostrCrypto _loadNostrCrypto() {
   final loaded =
       _loadedNostrCrypto ??
       (throw StateError(
-        'The DostrWebCrypto bundle did not run: a Content-Security-Policy may '
-        'block inline scripts, see the dostr_web_crypto README',
+        'The DostrNoble bundle did not run: a Content-Security-Policy may '
+        'block inline scripts, see the dostr_noble README',
       ));
   final version = loaded.version?.toDart;
   if (version != nostrCryptoVersion) {
     throw StateError(
-      'The page loaded the DostrWebCrypto bundle $version, but this '
-      'dostr_web_crypto needs $nostrCryptoVersion: serve the js/nostr_crypto.js '
-      'of the version you depend on, see the dostr_web_crypto README',
+      'The page loaded the DostrNoble bundle $version, but this '
+      'dostr_noble needs $nostrCryptoVersion: serve the js/nostr_crypto.js '
+      'of the version you depend on, see the dostr_noble README',
     );
   }
   return loaded;
