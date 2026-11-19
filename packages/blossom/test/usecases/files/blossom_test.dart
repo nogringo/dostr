@@ -913,7 +913,7 @@ void main() {
           blossomUrl: invalidUrl,
           targetServerUrls: ['http://localhost:$secondaryServerPort'],
         ),
-        throwsException,
+        throwsFormatException,
       );
     });
 
@@ -1163,6 +1163,96 @@ void main() {
           expect(event.percentage, inInclusiveRange(0, 50));
         }
         expect(events.last.percentage, 100);
+      },
+    );
+
+    test(
+      'uploadBlobFromStream hashes what openRead reads, then uploads it',
+      () async {
+        final data = utf8.encode('streamed upload payload');
+        var reads = 0;
+
+        final events = await client
+            .uploadBlobFromStream(
+              openRead: () {
+                reads++;
+                return Stream.fromIterable([
+                  data.sublist(0, 8),
+                  data.sublist(8),
+                ]);
+              },
+              contentLength: data.length,
+              serverUrls: ['http://localhost:$primaryServerPort'],
+            )
+            .toList();
+
+        expect(events.first.phase, UploadPhase.hashing);
+        expect(events.first.phases, [
+          UploadPhase.hashing,
+          UploadPhase.uploading,
+        ]);
+        expect(events.last.percentage, 100);
+        final result = events.last.completedUploads.single;
+        expect(result.success, isTrue);
+        expect(
+          result.descriptor!.sha256,
+          crypto.sha256.convert(data).toString(),
+        );
+        expect(reads, 2, reason: 'once to hash, once to upload');
+
+        final blob = await client.getBlob(
+          sha256: result.descriptor!.sha256,
+          serverUrls: ['http://localhost:$primaryServerPort'],
+        );
+        expect(blob.data, data);
+      },
+    );
+
+    test(
+      'uploadBlobFromStream with a precomputed hash reads once per server',
+      () async {
+        final data = utf8.encode('precomputed stream');
+        var reads = 0;
+
+        final events = await client
+            .uploadBlobFromStream(
+              openRead: () {
+                reads++;
+                return Stream.value(data);
+              },
+              contentLength: data.length,
+              serverUrls: [
+                'http://localhost:$primaryServerPort',
+                'http://localhost:$secondaryServerPort',
+              ],
+              strategy: UploadStrategy.allSimultaneous,
+              precomputedSha256: crypto.sha256.convert(data).toString(),
+            )
+            .toList();
+
+        expect(events.where((e) => e.phase == UploadPhase.hashing), isEmpty);
+        expect(
+          events.last.completedUploads.where((r) => r.success),
+          hasLength(2),
+        );
+        expect(reads, 2);
+      },
+    );
+
+    test(
+      'uploadBlobFromStream refuses a contentLength openRead does not read',
+      () async {
+        await expectLater(
+          client
+              .uploadBlobFromStream(
+                openRead: () => Stream.value([1, 2, 3]),
+                contentLength: 4,
+                serverUrls: ['http://localhost:$primaryServerPort'],
+              )
+              .toList(),
+          throwsArgumentError,
+        );
+        expect(server.requests, isEmpty);
       },
     );
 

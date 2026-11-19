@@ -1,15 +1,7 @@
-import 'package:dostr_accounts/dostr_accounts.dart';
-import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_blossom/dostr_blossom.dart';
 import 'package:test/test.dart';
 
-Files _files() => Files(
-  Blossom(
-    accounts: Accounts(const Bip340SignerFactory()),
-    signerFactory: const Bip340SignerFactory(),
-    getUserServerList: (_) async => null,
-  ),
-);
+Files _files() => Files(Blossom());
 
 void main() async {
   test('download test - blossom', () async {

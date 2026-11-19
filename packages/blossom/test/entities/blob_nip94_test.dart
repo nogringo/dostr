@@ -180,4 +180,52 @@ void main() async {
       expect(result.nip94!.mimeType, isEmpty);
     });
   });
+
+  group('BlobDescriptor fields a server leaves out or mistypes', () {
+    test('a missing size or upload time is null', () {
+      final result = BlobDescriptor.fromJson({
+        "url": "https://a.example/aaaa",
+        "sha256": "aaaa",
+      });
+
+      expect(result.size, isNull);
+      expect(result.uploaded, isNull);
+    });
+
+    test('an upload time may be a numeric string', () {
+      final result = BlobDescriptor.fromJson({"uploaded": "1700000000"});
+
+      expect(
+        result.uploaded,
+        DateTime.fromMillisecondsSinceEpoch(1700000000 * 1000),
+      );
+    });
+
+    test('a mistyped field is dropped rather than thrown on', () {
+      final result = BlobDescriptor.fromJson({
+        "url": 42,
+        "sha256": ["aaaa"],
+        "type": 1,
+        "size": "big",
+        "uploaded": "soon",
+        "nip94": {
+          "m": 3,
+          "thumb": 1,
+          "image": ["https://a.example/image.png"],
+          "fallback": ["https://b.example/aaaa", 2],
+        },
+      });
+
+      expect(result.url, isEmpty);
+      expect(result.sha256, isEmpty);
+      expect(result.type, isNull);
+      expect(result.size, isNull);
+      expect(result.uploaded, isNull);
+      final nip94 = result.nip94!;
+      expect(nip94.mimeType, isEmpty);
+      expect(nip94.thumbnail, isNull);
+      expect(nip94.image, ["https://a.example/image.png"]);
+      expect(nip94.fallback, ["https://b.example/aaaa"]);
+    });
+  });
 }

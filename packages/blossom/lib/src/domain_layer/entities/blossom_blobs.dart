@@ -2,15 +2,22 @@ import 'dart:typed_data';
 
 import 'package:dostr_blossom_url/dostr_blossom_url.dart';
 
-int _parseSize(dynamic size) {
-  if (size is int) {
-    return size;
-  } else if (size is String) {
-    return int.tryParse(size) ?? 0;
-  } else {
-    return 0;
-  }
-}
+/// [value] as an int, from a number or a numeric string, null otherwise
+int? _parseInt(Object? value) => switch (value) {
+  int number => number,
+  String text => int.tryParse(text),
+  _ => null,
+};
+
+String? _string(Object? value) => value is String ? value : null;
+
+/// [value] as strings: a single string, or the strings of a list
+List<String>? _strings(Object? value) => switch (value) {
+  String text => [text],
+  List list when list.whereType<String>().isNotEmpty =>
+    list.whereType<String>().toList(),
+  _ => null,
+};
 
 /// Descriptor of a blob - when getting a blob from a server
 class BlobDescriptor {
@@ -26,8 +33,8 @@ class BlobDescriptor {
   /// mime type of the file
   final String? type;
 
-  /// time of upload
-  final DateTime uploaded;
+  /// time of upload, null when the server did not give it
+  final DateTime? uploaded;
 
   /// NIP-94 metadata
   final BlobNip94? nip94;
@@ -43,14 +50,15 @@ class BlobDescriptor {
 
   /// converts json response to BlobDescriptor
   factory BlobDescriptor.fromJson(Map<String, dynamic> json) {
+    final uploaded = _parseInt(json['uploaded']);
     return BlobDescriptor(
-      url: json['url'] ?? '',
-      sha256: json['sha256'] ?? '',
-      size: _parseSize(json['size']),
-      type: json['type'],
-      uploaded: json['uploaded'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(json['uploaded'] * 1000)
-          : DateTime.now(),
+      url: _string(json['url']) ?? '',
+      sha256: _string(json['sha256']) ?? '',
+      size: _parseInt(json['size']),
+      type: _string(json['type']),
+      uploaded: uploaded == null
+          ? null
+          : DateTime.fromMillisecondsSinceEpoch(uploaded * 1000),
       nip94: switch (json['nip94']) {
         List tags => BlobNip94.fromTags(tags),
         Map<String, dynamic> map => BlobNip94.fromJson(map),
@@ -208,24 +216,23 @@ class BlobNip94 {
   /// converts json response to BlobNip94, \
   ///  does not work with nostr events! (tags)
   factory BlobNip94.fromJson(Map<String, dynamic> json) {
+    // servers can't be trusted to send the types they should
     return BlobNip94(
-      //? servers can't be trusted
-      content: json['content'] ?? '',
-      url: json['url'] ?? '',
-      mimeType: json['m'] ?? '',
-      sha256: json['x'] ?? '',
-      // parse int from string
-      size: _parseSize(json['size']),
+      content: _string(json['content']) ?? '',
+      url: _string(json['url']) ?? '',
+      mimeType: _string(json['m']) ?? '',
+      sha256: _string(json['x']) ?? '',
+      size: _parseInt(json['size']),
       dimensions: json['dim']?.toString(),
-      magnet: json['magnet'],
-      torrentInfoHash: json['i'],
-      blurhash: json['blurhash'],
-      thumbnail: json['thumb'] != null ? [json['thumb'] as String] : null,
-      image: json['image'] != null ? [json['image'] as String] : null,
-      summary: json['summary'],
-      alt: json['alt'],
-      fallback: json['fallback'] != null ? [json['fallback'] as String] : null,
-      service: json['service'],
+      magnet: _string(json['magnet']),
+      torrentInfoHash: _string(json['i']),
+      blurhash: _string(json['blurhash']),
+      thumbnail: _strings(json['thumb']),
+      image: _strings(json['image']),
+      summary: _string(json['summary']),
+      alt: _string(json['alt']),
+      fallback: _strings(json['fallback']),
+      service: _string(json['service']),
     );
   }
 
@@ -245,7 +252,7 @@ class BlobNip94 {
       url: value('url') ?? '',
       mimeType: value('m') ?? '',
       sha256: value('x') ?? '',
-      size: _parseSize(value('size')),
+      size: _parseInt(value('size')),
       dimensions: value('dim'),
       magnet: value('magnet'),
       torrentInfoHash: value('i'),

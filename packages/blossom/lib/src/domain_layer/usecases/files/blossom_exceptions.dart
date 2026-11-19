@@ -21,8 +21,8 @@ class BlossomAuthUnavailableException implements Exception {
 
 /// Thrown, before anything is sent, when an operation has no server to talk
 /// to: [pubkey]'s Blossom server list (kind 10063) is missing or names no
-/// server that `BlossomServerUrl.tryParse` accepts, or the call gave no server
-/// and nobody whose list could be read.
+/// server that `BlossomServerUrl.tryParse` accepts, or the call named no such
+/// server and nobody whose list could be read.
 class BlossomNoServerListException implements Exception {
   /// whose list is missing, null when there was nobody to read one for
   final String? pubkey;
@@ -31,7 +31,7 @@ class BlossomNoServerListException implements Exception {
 
   @override
   String toString() => pubkey == null
-      ? 'BlossomNoServerListException: no serverUrls, and no pubkey to read '
-            'a server list for'
+      ? 'BlossomNoServerListException: no server url to talk to, and no '
+            'pubkey to read a server list for'
       : 'BlossomNoServerListException: $pubkey has no Blossom server list';
 }

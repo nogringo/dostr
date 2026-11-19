@@ -8,6 +8,8 @@ import '../../entities/blossom_strategies.dart';
 import 'blossom.dart';
 
 /// high level usecase to manage files on nostr
+///
+/// Every method takes the `abortTrigger` of [Blossom].
 class Files {
   final Blossom _blossom;
 
@@ -34,6 +36,7 @@ class Files {
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) {
     return _blossom.uploadBlob(
       data: file.data,
@@ -43,12 +46,13 @@ class Files {
       serverMediaOptimisation: serverMediaOptimisation,
       auth: auth,
       precomputedSha256: file.sha256,
+      abortTrigger: abortTrigger,
     );
   }
 
   /// Upload a file from disk path
-  /// For native platforms (Windows, macOS, Linux, Android, iOS): uses actual file system paths
-  /// For web: prompts user to select a file using File System Access API (modern browsers)
+  /// Native platforms only (Windows, macOS, Linux, Android, iOS), see
+  /// [Blossom.uploadBlobFromFile]. In a browser, use [uploadFromStream].
   ///
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
   /// if no serverUrls (param or nostr) are found, throws an error
@@ -62,6 +66,7 @@ class Files {
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) {
     return _blossom.uploadBlobFromFile(
       filePath: filePath,
@@ -70,6 +75,35 @@ class Files {
       strategy: strategy,
       serverMediaOptimisation: serverMediaOptimisation,
       auth: auth,
+      abortTrigger: abortTrigger,
+    );
+  }
+
+  /// Uploads the [contentLength] bytes [openRead] reads, on every platform,
+  /// such as a file the app picked, see [Blossom.uploadBlobFromStream].
+  ///
+  /// if [serverUrls] is null, the userServerList is fetched from nostr. \
+  /// [auth] says which identity the upload may be attributed to, see
+  /// [AuthPolicy].
+  Stream<BlobUploadProgress> uploadFromStream({
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    List<String>? serverUrls,
+    String? contentType,
+    UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
+    bool serverMediaOptimisation = false,
+    AuthPolicy? auth,
+    Future<void>? abortTrigger,
+  }) {
+    return _blossom.uploadBlobFromStream(
+      openRead: openRead,
+      contentLength: contentLength,
+      serverUrls: serverUrls,
+      contentType: contentType,
+      strategy: strategy,
+      serverMediaOptimisation: serverMediaOptimisation,
+      auth: auth,
+      abortTrigger: abortTrigger,
     );
   }
 
@@ -81,11 +115,13 @@ class Files {
     required String sha256,
     List<String>? serverUrls,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) {
     return _blossom.deleteBlob(
       sha256: sha256,
       serverUrls: serverUrls,
       auth: auth,
+      abortTrigger: abortTrigger,
     );
   }
 
@@ -94,32 +130,39 @@ class Files {
   /// if its a public url, the file is downloaded directly \
   /// \
   /// A blossom url is read from its own server first, then from [serverUrls],
-  /// then from [pubkey]'s server list (kind 10063), which is read only once
-  /// none of the others had the blob. Bytes that do not hash to the url's
-  /// sha256 are refused, see [Blossom.getBlob].
+  /// then from [pubkeyToFetchUserServerList]'s server list (kind 10063), which
+  /// is read only once none of the others had the blob. Bytes that do not
+  /// hash to the url's sha256 are refused, see [Blossom.getBlob].
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. It is ignored for a plain url, which is fetched directly
   /// and never speaks blossom.
   Future<BlobResponse> download({
     required String url,
     List<String>? serverUrls,
-    String? pubkey,
+    String? pubkeyToFetchUserServerList,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) async {
     final blob = _blobOf(url);
-    if (blob == null) return _blossom.directDownload(url: Uri.parse(url));
+    if (blob == null) {
+      return _blossom.directDownload(
+        url: Uri.parse(url),
+        abortTrigger: abortTrigger,
+      );
+    }
 
     return _blossom.getBlob(
       sha256: blob.sha256,
       serverUrls: [blob.server, ...?serverUrls],
-      pubkeyToFetchUserServerList: pubkey,
+      pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
       auth: auth,
+      abortTrigger: abortTrigger,
     );
   }
 
   /// Downloads a file directly to disk path (without loading whole file into memory)
   /// For native platforms (Windows, macOS, Linux, Android, iOS): uses actual file system paths
-  /// For web: triggers browser download dialog to save the file
+  /// For web: triggers browser download dialog to save the file, named [outputPath]
   ///
   /// if its a blossom url (sha256 in url), blossom is used to download \
   /// if its a public url, the file is downloaded directly \
@@ -133,13 +176,15 @@ class Files {
     required String outputPath,
     AuthPolicy? auth,
     List<String>? serverUrls,
-    String? pubkey,
+    String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
     final blob = _blobOf(url);
     if (blob == null) {
       return _blossom.directDownloadToFile(
         url: Uri.parse(url),
         outputPath: outputPath,
+        abortTrigger: abortTrigger,
       );
     }
 
@@ -148,7 +193,8 @@ class Files {
       outputPath: outputPath,
       auth: auth,
       serverUrls: [blob.server, ...?serverUrls],
-      pubkeyToFetchUserServerList: pubkey,
+      pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abortTrigger: abortTrigger,
     );
   }
 
@@ -163,8 +209,9 @@ class Files {
   Future<String> checkUrl({
     required String url,
     List<String>? serverUrls,
-    String? pubkey,
+    String? pubkeyToFetchUserServerList,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) async {
     final blob = _blobOf(url);
     if (blob == null) return url;
@@ -172,8 +219,9 @@ class Files {
     final alive = await _blossom.checkBlob(
       sha256: blob.sha256,
       serverUrls: [blob.server, ...?serverUrls],
-      pubkeyToFetchUserServerList: pubkey,
+      pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
       auth: auth,
+      abortTrigger: abortTrigger,
     );
     // the url as given keeps its extension
     final server = BlossomServerUrl.tryParse(blob.server);

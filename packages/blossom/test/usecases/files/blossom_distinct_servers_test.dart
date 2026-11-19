@@ -143,6 +143,17 @@ void main() {
     );
   });
 
+  test('a read naming only urls it refuses goes to the list', () async {
+    final url = await blossom.checkBlob(
+      sha256: _hash,
+      serverUrls: ['https://user@a.example'],
+      pubkeyToFetchUserServerList: _owner,
+    );
+
+    expect(url, 'https://a.example/$_hash');
+    expect(requests, ['HEAD a.example/$_hash']);
+  });
+
   test('a listing asks each server of the list once', () async {
     await blossom.listBlobs(pubkey: _owner);
 

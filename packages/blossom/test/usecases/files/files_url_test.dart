@@ -109,13 +109,17 @@ void main() {
     final servers = _Servers({'b.example'});
     final asked = <String>[];
 
-    final blob = await filesOn(
-      servers,
-      lists: {
-        _author: ['https://a.example/', 'https://b.example'],
-      },
-      asked: asked,
-    ).download(url: 'https://a.example/$_hash', pubkey: _author);
+    final blob =
+        await filesOn(
+          servers,
+          lists: {
+            _author: ['https://a.example/', 'https://b.example'],
+          },
+          asked: asked,
+        ).download(
+          url: 'https://a.example/$_hash',
+          pubkeyToFetchUserServerList: _author,
+        );
 
     expect(blob.data, _blob);
     expect(asked, [_author]);
@@ -131,7 +135,10 @@ void main() {
         _author: ['https://b.example'],
       },
       asked: asked,
-    ).download(url: 'https://a.example/$_hash', pubkey: _author);
+    ).download(
+      url: 'https://a.example/$_hash',
+      pubkeyToFetchUserServerList: _author,
+    );
 
     expect(asked, isEmpty);
   });
@@ -143,7 +150,10 @@ void main() {
         lists: {
           _author: ['https://b.example'],
         },
-      ).download(url: 'https://a.example/$_hash', pubkey: _author),
+      ).download(
+        url: 'https://a.example/$_hash',
+        pubkeyToFetchUserServerList: _author,
+      ),
       throwsA(
         isA<BlossomRequestException>()
             .having((e) => e.errors.keys, 'servers', [
@@ -157,9 +167,10 @@ void main() {
 
   test('an author without a list leaves the url server failure', () async {
     await expectLater(
-      filesOn(
-        _Servers({}),
-      ).download(url: 'https://a.example/$_hash', pubkey: _author),
+      filesOn(_Servers({})).download(
+        url: 'https://a.example/$_hash',
+        pubkeyToFetchUserServerList: _author,
+      ),
       throwsA(
         isA<BlossomRequestException>().having((e) => e.errors.keys, 'servers', [
           'https://a.example',
@@ -185,7 +196,7 @@ void main() {
           authHandler: (url, _) async => url != 'https://a.example',
         ).download(
           url: 'https://a.example/$_hash',
-          pubkey: _author,
+          pubkeyToFetchUserServerList: _author,
           auth: AuthPolicy.require(account),
         );
 

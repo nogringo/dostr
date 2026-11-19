@@ -108,6 +108,9 @@ class _StreamedResponse extends http.StreamedResponse {
 
 /// Turns a non-2xx response into an [HttpRequestException], streams uploads
 /// and downloads, and aborts every request in flight on [abortPending].
+///
+/// Every request also ends once its `abortTrigger` completes, with a value or
+/// an error.
 class BlossomHttp {
   final http.Client _client;
   final Set<Completer<void>> _pending = {};
@@ -126,13 +129,28 @@ class BlossomHttp {
     if (!abort.isCompleted) abort.complete();
   }
 
+  /// the abort of one request, which [trigger] fires too
+  static Completer<void> _abortOn(Future<void>? trigger) {
+    final abort = Completer<void>();
+    if (trigger != null) {
+      unawaited(
+        trigger.then(
+          (_) => _abort(abort),
+          onError: (Object _) => _abort(abort),
+        ),
+      );
+    }
+    return abort;
+  }
+
   Future<http.Response> _send(
     String method,
     Uri url, {
     Map<String, String> headers = const {},
     String? body,
+    Future<void>? abortTrigger,
   }) async {
-    final abort = Completer<void>();
+    final abort = _abortOn(abortTrigger);
     final request = http.AbortableRequest(
       method,
       url,
@@ -158,22 +176,32 @@ class BlossomHttp {
     required Uri url,
     required String body,
     Map<String, String> headers = const {},
-  }) => _send('PUT', url, headers: headers, body: body);
+    Future<void>? abortTrigger,
+  }) => _send(
+    'PUT',
+    url,
+    headers: headers,
+    body: body,
+    abortTrigger: abortTrigger,
+  );
 
   Future<http.Response> head({
     required Uri url,
     Map<String, String> headers = const {},
-  }) => _send('HEAD', url, headers: headers);
+    Future<void>? abortTrigger,
+  }) => _send('HEAD', url, headers: headers, abortTrigger: abortTrigger);
 
   Future<http.Response> get({
     required Uri url,
     Map<String, String> headers = const {},
-  }) => _send('GET', url, headers: headers);
+    Future<void>? abortTrigger,
+  }) => _send('GET', url, headers: headers, abortTrigger: abortTrigger);
 
   Future<http.Response> delete({
     required Uri url,
     Map<String, String> headers = const {},
-  }) => _send('DELETE', url, headers: headers);
+    Future<void>? abortTrigger,
+  }) => _send('DELETE', url, headers: headers, abortTrigger: abortTrigger);
 
   /// Uploads [body] without loading it into memory: the body is read as the
   /// connection sends it. The upload starts on listen, and cancelling the
@@ -183,8 +211,9 @@ class BlossomHttp {
     required Stream<List<int>> body,
     required int contentLength,
     Map<String, String> headers = const {},
+    Future<void>? abortTrigger,
   }) {
-    final abort = Completer<void>();
+    final abort = _abortOn(abortTrigger);
     late final StreamController<UploadProgress> progress;
 
     Future<void> upload() async {
@@ -251,8 +280,9 @@ class BlossomHttp {
   Future<http.StreamedResponse> getStream({
     required Uri url,
     Map<String, String> headers = const {},
+    Future<void>? abortTrigger,
   }) async {
-    final abort = Completer<void>();
+    final abort = _abortOn(abortTrigger);
     final request = http.AbortableRequest(
       'GET',
       url,

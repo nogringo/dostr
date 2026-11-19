@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dostr_accounts/dostr_accounts.dart';
@@ -189,6 +190,129 @@ void main() {
     final read = blossom.getBlob(sha256: _sha256, serverUrls: _servers);
     await _settle();
     blossom.abortPending();
+
+    await expectLater(read, _aborted);
+    expect(servers.requests, ['GET a.example']);
+  });
+
+  test('an abortTrigger aborts its own read and no other', () async {
+    final servers = _StalledServers();
+    final repo = _repo(servers.client);
+    final trigger = Completer<void>();
+
+    final aborted = repo.getBlob(
+      sha256: _sha256,
+      serverUrls: _servers,
+      abortTrigger: trigger.future,
+    );
+    final other = repo.getBlob(sha256: _sha256, serverUrls: [_servers.last]);
+    await _settle();
+    trigger.complete();
+
+    await expectLater(aborted, _aborted);
+    expect(servers.aborted, ['GET a.example']);
+    expect(servers.requests, ['GET a.example', 'GET b.example']);
+
+    repo.abortPending();
+    await expectLater(other, _aborted);
+  });
+
+  test('an abortTrigger that completes with an error aborts too', () async {
+    final servers = _StalledServers();
+    final trigger = Completer<void>();
+
+    final read = _repo(servers.client).getBlob(
+      sha256: _sha256,
+      serverUrls: _servers,
+      abortTrigger: trigger.future,
+    );
+    await _settle();
+    trigger.completeError(StateError('screen closed'));
+
+    await expectLater(read, _aborted);
+  });
+
+  test(
+    'an abortTrigger aborts an upload, which tries no other server',
+    () async {
+      final servers = _StalledServers();
+      final blossom = blossomFor(
+        (_) async => null,
+        repository: _repo(servers.client),
+      );
+      final trigger = Completer<void>();
+
+      final upload = blossom.uploadBlob(
+        data: Uint8List.fromList([1, 2, 3]),
+        serverUrls: _servers,
+        abortTrigger: trigger.future,
+      );
+      await _settle();
+      trigger.complete();
+
+      await expectLater(upload, _aborted);
+      expect(servers.requests, ['PUT a.example']);
+    },
+  );
+
+  test('an abortTrigger fired while Blossom resolves the servers', () async {
+    final servers = _StalledServers();
+    final serverList = Completer<List<String>?>();
+    final blossom = blossomFor(
+      (_) => serverList.future,
+      repository: _repo(servers.client),
+    );
+    final trigger = Completer<void>();
+
+    final read = blossom.getBlob(
+      sha256: _sha256,
+      pubkeyToFetchUserServerList: 'a' * 64,
+      abortTrigger: trigger.future,
+    );
+    await _settle();
+    trigger.complete();
+    await _settle();
+    serverList.complete(_servers);
+
+    await expectLater(read, _aborted);
+    expect(servers.requests, isEmpty);
+  });
+
+  test('an abortTrigger fired while hashing ends the upload', () async {
+    final servers = _StalledServers();
+    final blossom = blossomFor(
+      (_) async => null,
+      repository: _repo(servers.client),
+    );
+    final trigger = Completer<void>();
+    final data = StreamController<List<int>>();
+
+    final upload = blossom
+        .uploadBlobFromStream(
+          openRead: () => data.stream,
+          contentLength: 6,
+          serverUrls: _servers,
+          abortTrigger: trigger.future,
+        )
+        .toList();
+    data.add([1, 2, 3]);
+    await _settle();
+    trigger.complete();
+    await _settle();
+    data.add([4, 5, 6]);
+    unawaited(data.close());
+
+    await expectLater(upload, _aborted);
+    expect(servers.requests, isEmpty);
+  });
+
+  test('close aborts the operations in flight', () async {
+    final servers = _StalledServers();
+    final blossom = Blossom(httpClient: servers.client);
+
+    final read = blossom.getBlob(sha256: _sha256, serverUrls: _servers);
+    await _settle();
+    blossom.close();
 
     await expectLater(read, _aborted);
     expect(servers.requests, ['GET a.example']);

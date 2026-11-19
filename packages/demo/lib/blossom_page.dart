@@ -64,7 +64,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
 
   @override
   void dispose() {
-    _blossom.abortPending();
+    _blossom.close();
     _player.dispose();
     super.dispose();
   }
@@ -142,12 +142,7 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
       return;
     }
 
-    // On web, path is null but bytes are available
-    if (!kIsWeb && file.path == null) {
-      return;
-    }
-
-    final filePath = file.path ?? file.name;
+    final filePath = file.path;
 
     setState(() {
       _isUploading = true;
@@ -158,13 +153,15 @@ class _BlossomMediaPageState extends State<BlossomMediaPage> {
     });
 
     try {
-      // Use the uploadFromFile method with stream
-      final stream = _files.uploadFromFile(
-        filePath: filePath,
-        serverUrls: ["https://nostr.download", "https://cdn.hzrd149.com"],
-        strategy: UploadStrategy.mirrorAfterSuccess,
-        serverMediaOptimisation: false,
-      );
+      const serverUrls = ["https://nostr.download", "https://cdn.hzrd149.com"];
+      // a browser has no file paths: the picked file is read as a stream there
+      final stream = filePath == null
+          ? _files.uploadFromStream(
+              openRead: file.readAsByteStream,
+              contentLength: await file.length(),
+              serverUrls: serverUrls,
+            )
+          : _files.uploadFromFile(filePath: filePath, serverUrls: serverUrls);
 
       await for (final progress in stream) {
         setState(() {

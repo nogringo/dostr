@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -6,6 +7,7 @@ import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:http/http.dart' as http;
 
+import '../../../data_layer/http/operation_abort.dart';
 import '../../../data_layer/io/file_io_platform.dart';
 import '../../../data_layer/repositories/blossom/http_blossom_repository.dart';
 import '../../entities/blob_upload_progress.dart';
@@ -14,6 +16,7 @@ import '../../entities/blossom_blobs.dart';
 import '../../entities/blossom_hash_mismatch_exception.dart';
 import '../../entities/blossom_request_exception.dart';
 import '../../entities/blossom_strategies.dart';
+import '../../entities/file_hash_progress.dart';
 import '../../repositories/blossom_repository.dart';
 import 'blossom_exceptions.dart';
 
@@ -44,6 +47,52 @@ List<BlossomServerUrl> _distinctServers(
   ];
 }
 
+/// The servers a call named, as [_distinctServers] keeps them, or a
+/// [BlossomNoServerListException] when it keeps none
+List<BlossomServerUrl> _givenServers(Iterable<String> servers) {
+  final kept = _distinctServers(servers);
+  if (kept.isEmpty) throw const BlossomNoServerListException();
+  return kept;
+}
+
+/// The sha256 of [data], which must be [contentLength] bytes long, reported
+/// as it is read
+Stream<FileHashProgress> _hashOf(
+  Stream<List<int>> data,
+  int contentLength,
+) async* {
+  late Digest digest;
+  final hashing = sha256.startChunkedConversion(
+    ChunkedConversionSink<Digest>.withCallback(
+      (digests) => digest = digests.single,
+    ),
+  );
+  var processedBytes = 0;
+  yield FileHashProgress(processedBytes: 0, totalBytes: contentLength);
+  await for (final chunk in data) {
+    hashing.add(chunk);
+    processedBytes += chunk.length;
+    yield FileHashProgress(
+      processedBytes: processedBytes,
+      totalBytes: contentLength,
+    );
+  }
+  hashing.close();
+  if (processedBytes != contentLength) {
+    throw ArgumentError.value(
+      contentLength,
+      'contentLength',
+      'is not the $processedBytes bytes openRead read',
+    );
+  }
+  yield FileHashProgress(
+    processedBytes: processedBytes,
+    totalBytes: contentLength,
+    isComplete: true,
+    hash: digest.toString(),
+  );
+}
+
 /// What one blossom operation does about its authorization, and the servers
 /// it may talk to.
 class _BlossomAuthPlan {
@@ -72,9 +121,13 @@ class _BlossomAuthPlan {
 
 /// direct access usecase to blossom \
 /// use files usecase for a more convenient way to manage files
+///
+/// Every operation takes an `abortTrigger`. Once it completes, with a value
+/// or an error, that operation ends with a `RequestAbortedException` (from
+/// `package:http`) as [abortPending] would end it, and the others go on.
 class Blossom {
   /// kind of the authorization events [BUD-11]
-  static const kBlossom = 24242;
+  static const kBlossomAuthorization = 24242;
 
   /// kind for reports NIP56
   static const int kReport = 1984;
@@ -90,35 +143,77 @@ class Blossom {
   /// says otherwise
   static const defaultAuthExpiration = Duration(minutes: 5);
 
-  final BlossomServerListResolver _getUserServerList;
+  final BlossomServerListResolver? _getUserServerList;
   final BlossomRepository _blossomImpl;
-  final AuthAccounts _accounts;
-  final LocalSignerFactory _signerFactory;
+  final AuthAccounts? _accounts;
+  final LocalSignerFactory? _signerFactory;
   final AuthHandler? _authHandler;
   final Duration _authExpiration;
 
+  /// the client this instance made, which [close] closes
+  final http.Client? _ownedClient;
+
   /// [accounts] gives the logged-in account, [signerFactory] makes the
   /// throwaway keys, and [getUserServerList] reads a user's kind 10063 list.
-  /// Without [blossomRepository], it talks to the servers over HTTP.
+  /// A read needs none of them: without [accounts] nobody is logged in, and
+  /// without [getUserServerList] nobody has a list. An operation that signs
+  /// with a throwaway key throws a [StateError] without [signerFactory].
+  ///
+  /// It talks to the servers over HTTP with [httpClient], or with a client of
+  /// its own that [close] closes. [blossomRepository] replaces that HTTP
+  /// layer, and the two cannot be given together.
   ///
   /// [authExpiration] is how long a signed kind 24242 event stays valid. An
   /// operation that outlives it signs a new one when a server refuses the
   /// expired one.
-  Blossom({
-    required AuthAccounts accounts,
-    required LocalSignerFactory signerFactory,
-    required BlossomServerListResolver getUserServerList,
+  factory Blossom({
+    AuthAccounts? accounts,
+    LocalSignerFactory? signerFactory,
+    BlossomServerListResolver? getUserServerList,
     AuthHandler? authHandler,
+    http.Client? httpClient,
     BlossomRepository? blossomRepository,
     Duration authExpiration = defaultAuthExpiration,
+  }) {
+    if (httpClient != null && blossomRepository != null) {
+      throw ArgumentError(
+        'Blossom takes an httpClient or a blossomRepository, not both',
+      );
+    }
+    final ownedClient = httpClient == null && blossomRepository == null
+        ? http.Client()
+        : null;
+    return Blossom._(
+      accounts: accounts,
+      signerFactory: signerFactory,
+      getUserServerList: getUserServerList,
+      authHandler: authHandler,
+      blossomRepository:
+          blossomRepository ??
+          HttpBlossomRepository(
+            client: httpClient ?? ownedClient!,
+            fileIO: createFileIO(),
+          ),
+      ownedClient: ownedClient,
+      authExpiration: authExpiration,
+    );
+  }
+
+  Blossom._({
+    required AuthAccounts? accounts,
+    required LocalSignerFactory? signerFactory,
+    required BlossomServerListResolver? getUserServerList,
+    required AuthHandler? authHandler,
+    required BlossomRepository blossomRepository,
+    required http.Client? ownedClient,
+    required Duration authExpiration,
   }) : _accounts = accounts,
-       _authExpiration = authExpiration,
-       _getUserServerList = getUserServerList,
-       _blossomImpl =
-           blossomRepository ??
-           HttpBlossomRepository(client: http.Client(), fileIO: createFileIO()),
        _signerFactory = signerFactory,
-       _authHandler = authHandler;
+       _getUserServerList = getUserServerList,
+       _authHandler = authHandler,
+       _blossomImpl = blossomRepository,
+       _ownedClient = ownedClient,
+       _authExpiration = authExpiration;
 
   /// how many times [abortPending] ran
   int _aborts = 0;
@@ -132,9 +227,18 @@ class Blossom {
     _blossomImpl.abortPending();
   }
 
-  void _throwIfAbortedSince(int aborts) {
-    if (_aborts != aborts) throw http.RequestAbortedException();
+  /// Ends the operations in flight, as [abortPending] does, and closes the
+  /// HTTP client this instance made. A client given to the constructor stays
+  /// open: it is the caller's to close. This instance is unusable afterwards.
+  void close() {
+    abortPending();
+    _ownedClient?.close();
   }
+
+  /// An operation makes its abort when it starts, and checks it after it
+  /// waited on something other than a request, such as a signer.
+  OperationAbort _abortFor(Future<void>? trigger) =>
+      OperationAbort(() => _aborts, trigger);
 
   /// The kind 24242 event an operation authorises itself with. Built when it
   /// is needed rather than when the call is made, so an event signed after a
@@ -150,7 +254,7 @@ class Blossom {
     return Nip01Event(
       content: content,
       pubkey: pubkey,
-      kind: kBlossom,
+      kind: kBlossomAuthorization,
       createdAt: now,
       tags: [
         ["t", type],
@@ -163,7 +267,7 @@ class Blossom {
   /// The logged-in account when an [AuthHandler] may agree to revealing it.
   /// Without one, an operation that names nobody reveals nobody.
   NostrSigner? _defaultAccount() {
-    final account = _accounts.getLoggedAccount();
+    final account = _accounts?.getLoggedAccount();
     return _authHandler != null && account != null && account.canSign
         ? account
         : null;
@@ -200,9 +304,9 @@ class Blossom {
     required String operation,
     required _AuthEventBuilder buildEvent,
     required Future<List<BlossomServerUrl>> Function() resolveServers,
+    required OperationAbort abort,
     Future<List<BlossomServerUrl>> Function()? resolveNextServers,
   }) async {
-    final aborts = _aborts;
     final fallback = authorisesByDefault ? _defaultAccount() : null;
     final throwaway = auth == null && authorisesByDefault && fallback == null;
     final policy =
@@ -258,7 +362,7 @@ class Blossom {
             : const BlossomAuthorization.none();
     }
     final authorization = await authorize(buildEvent);
-    _throwIfAbortedSince(aborts);
+    abort.throwIfAborted();
     final next = resolveNext;
     return _BlossomAuthPlan(
       authorization,
@@ -287,16 +391,19 @@ class Blossom {
   ///
   /// They start with [serverUrls], else with [pubkeyToFetchUserServerList]'s
   /// list. Given both, that list is read only once none of [serverUrls] served
-  /// the blob. Unlike a write, a read is about somebody else's blob as often
-  /// as not, so it never guesses whose list to read.
+  /// the blob, or right away when [serverUrls] names no server. Unlike a
+  /// write, a read is about somebody else's blob as often as not, so it never
+  /// guesses whose list to read.
   Future<_BlossomAuthPlan> _readAuthPlan({
     required AuthPolicy? auth,
     required String sha256,
     required List<String>? serverUrls,
     required String? pubkeyToFetchUserServerList,
+    required OperationAbort abort,
   }) {
     final owner = pubkeyToFetchUserServerList;
     final tried = <BlossomServerUrl>{};
+    var listRead = false;
     return _planAuth(
       auth: auth,
       authorisesByDefault: false,
@@ -308,14 +415,18 @@ class Blossom {
         blobSha256: sha256,
       ),
       resolveServers: () async {
-        if (serverUrls != null) return _distinctServers(serverUrls, tried);
+        final given = _distinctServers(serverUrls ?? const [], tried);
+        if (given.isNotEmpty) return given;
         if (owner == null) throw const BlossomNoServerListException();
+        listRead = true;
         return _distinctServers(await _userServerList(owner), tried);
       },
       resolveNextServers: serverUrls == null || owner == null
           ? null
-          : () async =>
-                _distinctServers(await _getUserServerList(owner) ?? [], tried),
+          : () async => listRead
+                ? const []
+                : _distinctServers(await _serverListOf(owner) ?? [], tried),
+      abort: abort,
     );
   }
 
@@ -323,20 +434,20 @@ class Blossom {
   /// none of the first served the blob.
   Future<T> _read<T>(
     _BlossomAuthPlan plan,
+    OperationAbort abort,
     Future<T> Function(
       BlossomAuthorization authorization,
       List<BlossomServerUrl> servers,
     )
     read,
   ) async {
-    final aborts = _aborts;
     try {
       return await read(plan.authorization, plan.servers);
     } on BlossomRequestException catch (first) {
       final nextServers = plan.nextServers;
       if (nextServers == null) rethrow;
       final servers = await nextServers();
-      _throwIfAbortedSince(aborts);
+      abort.throwIfAborted();
       if (servers.isEmpty) rethrow;
       try {
         return await read(plan.authorization, servers);
@@ -367,6 +478,7 @@ class Blossom {
     required bool media,
     required List<String>? serverUrls,
     required String? pubkeyToFetchUserServerList,
+    required OperationAbort abort,
   }) {
     final authType = media ? "media" : "upload";
     return _planAuth(
@@ -379,6 +491,7 @@ class Blossom {
         explicitPubkey: pubkeyToFetchUserServerList,
         listOwner: auth?.signer?.publicKey,
       ),
+      abort: abort,
     );
   }
 
@@ -404,24 +517,37 @@ class Blossom {
     required String? explicitPubkey,
     required String? listOwner,
   }) async {
-    if (serverUrls != null) return _distinctServers(serverUrls);
+    if (serverUrls != null) return _givenServers(serverUrls);
 
     final owner =
-        explicitPubkey ?? listOwner ?? _accounts.getLoggedAccount()?.publicKey;
+        explicitPubkey ?? listOwner ?? _accounts?.getLoggedAccount()?.publicKey;
     if (owner == null) throw const BlossomNoServerListException();
     return _userServerList(owner);
   }
 
+  /// [pubkey]'s server list as [getUserServerList] reads it, null without one
+  Future<List<String>?> _serverListOf(String pubkey) async =>
+      await _getUserServerList?.call(pubkey);
+
   /// [pubkey]'s servers, normalized and each once, or a
   /// [BlossomNoServerListException] when it has none
   Future<List<BlossomServerUrl>> _userServerList(String pubkey) async {
-    final servers = _distinctServers(await _getUserServerList(pubkey) ?? []);
+    final servers = _distinctServers(await _serverListOf(pubkey) ?? []);
     if (servers.isEmpty) throw BlossomNoServerListException(pubkey);
     return servers;
   }
 
   /// A fresh key, for something that has to be signed but names nobody.
-  NostrSigner _throwawaySigner() => _signerFactory.createWithNewKeyPair();
+  NostrSigner _throwawaySigner() {
+    final factory = _signerFactory;
+    if (factory == null) {
+      throw StateError(
+        'Blossom signs with a throwaway key here, and has no signerFactory '
+        'to make one: give it one, or name the identity with auth',
+      );
+    }
+    return factory.createWithNewKeyPair();
+  }
 
   /// Asks each server whether it would accept this upload, before any byte of
   /// the blob is sent [BUD-06]. Servers and authorization resolve as in
@@ -437,6 +563,7 @@ class Blossom {
     bool serverMediaOptimisation = false,
     AuthPolicy? auth,
     String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
     final plan = await _uploadAuthPlan(
       auth: auth,
@@ -444,6 +571,7 @@ class Blossom {
       media: serverMediaOptimisation,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: _abortFor(abortTrigger),
     );
 
     return _blossomImpl.checkUpload(
@@ -453,6 +581,7 @@ class Blossom {
       authorization: plan.authorization,
       contentType: contentType,
       serverMediaOptimisation: serverMediaOptimisation,
+      abortTrigger: abortTrigger,
     );
   }
 
@@ -479,6 +608,7 @@ class Blossom {
     AuthPolicy? auth,
     String? pubkeyToFetchUserServerList,
     String? precomputedSha256,
+    Future<void>? abortTrigger,
   }) async {
     /// sha256 of the data
     final dataSha256 = precomputedSha256 ?? sha256.convert(data).toString();
@@ -489,6 +619,7 @@ class Blossom {
       media: serverMediaOptimisation,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: _abortFor(abortTrigger),
     );
 
     final stream = _blossomImpl.uploadBlob(
@@ -503,6 +634,7 @@ class Blossom {
         plan,
         media: serverMediaOptimisation,
       ),
+      abortTrigger: abortTrigger,
     );
 
     final done = await stream.last;
@@ -510,9 +642,11 @@ class Blossom {
     return done.completedUploads;
   }
 
-  /// Upload a blob from a file path
-  /// For native platforms (Windows, macOS, Linux, Android, iOS): uses actual file system paths
-  /// For web: prompts user to select a file using File System Access API (modern browsers)
+  /// Upload a blob from a file path, read in chunks so a large file is never
+  /// held whole in memory.
+  /// Native platforms only (Windows, macOS, Linux, Android, iOS): a browser
+  /// has no file paths, so there the stream fails with an [UnsupportedError].
+  /// Upload the file the app picked with [uploadBlobFromStream] instead.
   ///
   /// if [serverUrls] is null, the userServerList is fetched from nostr. \
   /// if it has none, or an empty one, throws a [BlossomNoServerListException] \
@@ -533,10 +667,96 @@ class Blossom {
     AuthPolicy? auth,
     String? pubkeyToFetchUserServerList,
     String? precomputedSha256,
+    Future<void>? abortTrigger,
+  }) => _uploadWithProgress(
+    hash: () => _blossomImpl.computeFileHash(filePath),
+    upload: (plan) => _blossomImpl.uploadBlobFromFile(
+      filePath: filePath,
+      serverUrls: plan.servers,
+      authorization: plan.authorization,
+      contentType: contentType,
+      strategy: strategy,
+      serverMediaOptimisation: serverMediaOptimisation,
+      mirrorAuthorization: _mirrorAuthorization(
+        plan,
+        media: serverMediaOptimisation,
+      ),
+      abortTrigger: abortTrigger,
+    ),
+    serverUrls: serverUrls,
+    strategy: strategy,
+    serverMediaOptimisation: serverMediaOptimisation,
+    auth: auth,
+    pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+    precomputedSha256: precomputedSha256,
+    abortTrigger: abortTrigger,
+  );
+
+  /// Uploads the [contentLength] bytes [openRead] reads, without holding them
+  /// in memory, on every platform. It takes what a file picker gives, such as
+  /// `PlatformFile.readAsByteStream` of `file_picker` or `XFile.openRead`.
+  ///
+  /// [openRead] must read the same bytes from the start on every call: it is
+  /// called once to hash them, unless [precomputedSha256] is given, then once
+  /// per server, and once more when a server asks the upload to authorise
+  /// itself. Hashing fails with an [ArgumentError] when it reads another
+  /// length than [contentLength].
+  ///
+  /// The other parameters and the progress are those of
+  /// [uploadBlobFromFile].
+  Stream<BlobUploadProgress> uploadBlobFromStream({
+    required Stream<List<int>> Function() openRead,
+    required int contentLength,
+    List<String>? serverUrls,
+    String? contentType,
+    UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
+    bool serverMediaOptimisation = false,
+    AuthPolicy? auth,
+    String? pubkeyToFetchUserServerList,
+    String? precomputedSha256,
+    Future<void>? abortTrigger,
+  }) => _uploadWithProgress(
+    hash: () => _hashOf(openRead(), contentLength),
+    upload: (plan) => _blossomImpl.uploadBlob(
+      dataStreamFactory: openRead,
+      contentLength: contentLength,
+      serverUrls: plan.servers,
+      authorization: plan.authorization,
+      contentType: contentType,
+      strategy: strategy,
+      serverMediaOptimisation: serverMediaOptimisation,
+      mirrorAuthorization: _mirrorAuthorization(
+        plan,
+        media: serverMediaOptimisation,
+      ),
+      abortTrigger: abortTrigger,
+    ),
+    serverUrls: serverUrls,
+    strategy: strategy,
+    serverMediaOptimisation: serverMediaOptimisation,
+    auth: auth,
+    pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+    precomputedSha256: precomputedSha256,
+    abortTrigger: abortTrigger,
+  );
+
+  /// Hashes with [hash] unless [precomputedSha256] is given, then runs
+  /// [upload] on the servers and authorization the hash resolves, the hashing
+  /// taking the first share of the progress.
+  Stream<BlobUploadProgress> _uploadWithProgress({
+    required Stream<FileHashProgress> Function() hash,
+    required Stream<BlobUploadProgress> Function(_BlossomAuthPlan plan) upload,
+    required List<String>? serverUrls,
+    required UploadStrategy strategy,
+    required bool serverMediaOptimisation,
+    required AuthPolicy? auth,
+    required String? pubkeyToFetchUserServerList,
+    required String? precomputedSha256,
+    required Future<void>? abortTrigger,
   }) async* {
-    final aborts = _aborts;
-    String? fileHash = precomputedSha256;
-    final hashes = fileHash == null;
+    final abort = _abortFor(abortTrigger);
+    String? blobHash = precomputedSha256;
+    final hashes = blobHash == null;
 
     if (hashes) {
       // the servers are not resolved yet, so assume the mirrors take place:
@@ -548,8 +768,8 @@ class Blossom {
             (serverUrls == null || _distinctServers(serverUrls).length > 1))
           UploadPhase.mirroring,
       ];
-      // Compute file hash without loading entire file into memory
-      await for (final hashProgress in _blossomImpl.computeFileHash(filePath)) {
+      await for (final hashProgress in hash()) {
+        abort.throwIfAborted();
         yield BlobUploadProgress(
           sentBytes: hashProgress.processedBytes,
           totalBytes: hashProgress.totalBytes,
@@ -560,42 +780,32 @@ class Blossom {
         );
 
         if (hashProgress.isComplete && hashProgress.hash != null) {
-          fileHash = hashProgress.hash;
+          blobHash = hashProgress.hash;
         }
       }
 
-      if (fileHash == null) {
-        throw Exception('Failed to compute file hash');
+      if (blobHash == null) {
+        throw StateError('hashing ended without giving the hash');
       }
     }
-    _throwIfAbortedSince(aborts);
+    abort.throwIfAborted();
 
     final plan = await _uploadAuthPlan(
       auth: auth,
-      sha256: fileHash,
+      sha256: blobHash,
       media: serverMediaOptimisation,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: abort,
     );
 
-    final upload = _blossomImpl.uploadBlobFromFile(
-      filePath: filePath,
-      serverUrls: plan.servers,
-      authorization: plan.authorization,
-      contentType: contentType,
-      strategy: strategy,
-      serverMediaOptimisation: serverMediaOptimisation,
-      mirrorAuthorization: _mirrorAuthorization(
-        plan,
-        media: serverMediaOptimisation,
-      ),
-    );
+    final uploading = upload(plan);
     yield* hashes
-        ? upload.map(
+        ? uploading.map(
             (progress) =>
                 progress.withPhases([UploadPhase.hashing, ...progress.phases]),
           )
-        : upload;
+        : uploading;
   }
 
   /// Mirror a blob from a blossom URL to specified servers using the blossom /mirror endpoint
@@ -608,18 +818,18 @@ class Blossom {
   /// on the servers an [AuthHandler] agrees to, or as a throwaway key when
   /// there is no handler or no account.
   ///
-  /// Throws an [Exception] if no SHA256 hash is detected in the URL
+  /// Throws a [FormatException] if no SHA256 hash is detected in the URL, and
+  /// a [BlossomNoServerListException] if [targetServerUrls] names no server
+  /// [BlossomServerUrl.tryParse] accepts.
   Future<List<BlobUploadResult>> mirrorToServers({
     required Uri blossomUrl,
     required List<String> targetServerUrls,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) async {
-    // Extract sha256 from the URL
     final sha256Match = sha256Regex.firstMatch(blossomUrl.toString());
     if (sha256Match == null) {
-      throw Exception(
-        "No SHA256 hash detected in URL: ${blossomUrl.toString()}",
-      );
+      throw FormatException('No sha256 in the blob url', blossomUrl.toString());
     }
 
     final sha256 = sha256Match.group(1)!;
@@ -629,7 +839,8 @@ class Blossom {
       authorisesByDefault: true,
       operation: "upload",
       buildEvent: _writeEvent("upload", sha256),
-      resolveServers: () async => _distinctServers(targetServerUrls),
+      resolveServers: () async => _givenServers(targetServerUrls),
+      abort: _abortFor(abortTrigger),
     );
 
     // Mirror to all target servers
@@ -640,6 +851,7 @@ class Blossom {
           serverUrl: serverUrl,
           sha256: sha256,
           authorization: plan.authorization,
+          abortTrigger: abortTrigger,
         ),
       ),
     );
@@ -652,9 +864,9 @@ class Blossom {
   /// bytes do not hash to [sha256] fails with a [BlossomHashMismatchException].
   ///
   /// [serverUrls] are tried first. [pubkeyToFetchUserServerList]'s server
-  /// list (kind 10063) is read when [serverUrls] is null, or once none of them
-  /// served the blob. Throws [BlossomNoServerListException] when there is no
-  /// server to try.
+  /// list (kind 10063) is read when [serverUrls] names no server, or once none
+  /// of them served the blob. Throws [BlossomNoServerListException] when there
+  /// is no server to try.
   ///
   /// [auth] says which identity the download may be attributed to, see
   /// [AuthPolicy]. Without it the download stays anonymous.
@@ -663,27 +875,32 @@ class Blossom {
     AuthPolicy? auth,
     List<String>? serverUrls,
     String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
+    final abort = _abortFor(abortTrigger);
     final plan = await _readAuthPlan(
       auth: auth,
       sha256: sha256,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: abort,
     );
 
     return _read(
       plan,
+      abort,
       (authorization, servers) => _blossomImpl.getBlob(
         sha256: sha256,
         authorization: authorization,
         serverUrls: servers,
+        abortTrigger: abortTrigger,
       ),
     );
   }
 
   /// Downloads a blob directly to a file path (without loading into memory)
   /// For native platforms (Windows, macOS, Linux, Android, iOS): uses actual file system paths
-  /// For web: triggers browser download dialog to save the file
+  /// For web: triggers browser download dialog to save the file, named [outputPath]
   ///
   /// Servers resolve as in [getBlob]. Bytes that do not hash to [sha256] fail
   /// with a [BlossomHashMismatchException] and are not saved.
@@ -695,21 +912,26 @@ class Blossom {
     AuthPolicy? auth,
     List<String>? serverUrls,
     String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
+    final abort = _abortFor(abortTrigger);
     final plan = await _readAuthPlan(
       auth: auth,
       sha256: sha256,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: abort,
     );
 
     return _read(
       plan,
+      abort,
       (authorization, servers) => _blossomImpl.downloadBlobToFile(
         sha256: sha256,
         outputPath: outputPath,
         authorization: authorization,
         serverUrls: servers,
+        abortTrigger: abortTrigger,
       ),
     );
   }
@@ -726,20 +948,25 @@ class Blossom {
     AuthPolicy? auth,
     List<String>? serverUrls,
     String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
+    final abort = _abortFor(abortTrigger);
     final plan = await _readAuthPlan(
       auth: auth,
       sha256: sha256,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: abort,
     );
 
     return _read(
       plan,
+      abort,
       (authorization, servers) => _blossomImpl.checkBlob(
         sha256: sha256,
         authorization: authorization,
         serverUrls: servers,
+        abortTrigger: abortTrigger,
       ),
     );
   }
@@ -755,21 +982,26 @@ class Blossom {
     List<String>? serverUrls,
     String? pubkeyToFetchUserServerList,
     int chunkSize = 1024 * 1024, // 1MB chunks,
+    Future<void>? abortTrigger,
   }) async {
+    final abort = _abortFor(abortTrigger);
     final plan = await _readAuthPlan(
       auth: auth,
       sha256: sha256,
       serverUrls: serverUrls,
       pubkeyToFetchUserServerList: pubkeyToFetchUserServerList,
+      abort: abort,
     );
 
     return _read(
       plan,
+      abort,
       (authorization, servers) => _blossomImpl.getBlobStream(
         sha256: sha256,
         authorization: authorization,
         serverUrls: servers,
         chunkSize: chunkSize,
+        abortTrigger: abortTrigger,
       ),
     );
   }
@@ -789,6 +1021,7 @@ class Blossom {
     AuthPolicy? auth,
     DateTime? since,
     DateTime? until,
+    Future<void>? abortTrigger,
   }) async {
     final plan = await _planAuth(
       auth: auth,
@@ -796,8 +1029,10 @@ class Blossom {
       operation: "list",
       buildEvent: (owner) =>
           _blossomAuthEvent(content: "List Blobs", pubkey: owner, type: "list"),
-      resolveServers: () async =>
-          _distinctServers(serverUrls ?? await _userServerList(pubkey)),
+      resolveServers: () async => serverUrls == null
+          ? await _userServerList(pubkey)
+          : _givenServers(serverUrls),
+      abort: _abortFor(abortTrigger),
     );
 
     return _blossomImpl.listBlobs(
@@ -806,6 +1041,7 @@ class Blossom {
       until: until,
       serverUrls: plan.servers,
       authorization: plan.authorization,
+      abortTrigger: abortTrigger,
     );
   }
 
@@ -821,6 +1057,7 @@ class Blossom {
     List<String>? serverUrls,
     AuthPolicy? auth,
     String? pubkeyToFetchUserServerList,
+    Future<void>? abortTrigger,
   }) async {
     final plan = await _planAuth(
       auth: auth,
@@ -837,26 +1074,36 @@ class Blossom {
         explicitPubkey: pubkeyToFetchUserServerList,
         listOwner: auth?.signer?.publicKey,
       ),
+      abort: _abortFor(abortTrigger),
     );
 
     return _blossomImpl.deleteBlob(
       sha256: sha256,
       authorization: plan.authorization,
       serverUrls: plan.servers,
+      abortTrigger: abortTrigger,
     );
   }
 
   /// Directly downloads a blob from the url, without blossom
-  Future<BlobResponse> directDownload({required Uri url}) {
-    return _blossomImpl.directDownload(url: url);
+  Future<BlobResponse> directDownload({
+    required Uri url,
+    Future<void>? abortTrigger,
+  }) {
+    return _blossomImpl.directDownload(url: url, abortTrigger: abortTrigger);
   }
 
   /// Directly downloads a blob from the url to a file, without blossom
   Future<void> directDownloadToFile({
     required Uri url,
     required String outputPath,
+    Future<void>? abortTrigger,
   }) {
-    return _blossomImpl.directDownloadToFile(url: url, outputPath: outputPath);
+    return _blossomImpl.directDownloadToFile(
+      url: url,
+      outputPath: outputPath,
+      abortTrigger: abortTrigger,
+    );
   }
 
   /// Reports a blob to the server
@@ -885,9 +1132,10 @@ class Blossom {
     required String reportMsg,
     required String serverUrl,
     AuthPolicy? auth,
+    Future<void>? abortTrigger,
   }) async {
     final server = BlossomServerUrl.parse(serverUrl);
-    final aborts = _aborts;
+    final abort = _abortFor(abortTrigger);
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;
 
     final NostrSigner signer;
@@ -932,12 +1180,13 @@ class Blossom {
     );
 
     final signedReport = await signer.sign(reportEvent);
-    _throwIfAbortedSince(aborts);
+    abort.throwIfAborted();
 
     return _blossomImpl.report(
       sha256: sha256,
       reportEvent: signedReport,
       serverUrl: server,
+      abortTrigger: abortTrigger,
     );
   }
 }

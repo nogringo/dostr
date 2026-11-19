@@ -31,8 +31,9 @@ class BlossomUserServerList<R> {
   /// order of [serverUrlsOrdered] is important, the first server is the most trusted server
   ///
   /// The urls are published normalized, and two spellings of one server once.
-  /// Throws a [FormatException], before anything is signed, if one of
-  /// [serverUrlsOrdered] is not a Blossom server url.
+  /// Throws, before anything is signed, a [FormatException] if one of
+  /// [serverUrlsOrdered] is not a Blossom server url, an [ArgumentError] if it
+  /// is empty, and a [StateError] if nobody is logged in.
   Future<R> publishUserServerList({
     required List<String> serverUrlsOrdered,
   }) async {
@@ -40,12 +41,16 @@ class BlossomUserServerList<R> {
       for (final url in serverUrlsOrdered) BlossomServerUrl.parse(url),
     }.toList();
     if (servers.isEmpty) {
-      throw Exception("serverUrlsOrdered is empty");
+      throw ArgumentError.value(
+        serverUrlsOrdered,
+        'serverUrlsOrdered',
+        'is empty',
+      );
     }
 
     final account = _accounts.getLoggedAccount();
     if (account == null) {
-      throw "Not logged in";
+      throw StateError('Nobody is logged in to publish a server list as');
     }
 
     final now = DateTime.now().millisecondsSinceEpoch ~/ 1000;

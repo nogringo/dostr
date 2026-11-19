@@ -77,7 +77,7 @@ void main() {
         serverList.publishUserServerList(
           serverUrlsOrdered: ['https://a.example'],
         ),
-        throwsA('Not logged in'),
+        throwsStateError,
       );
       expect(published, isEmpty);
     });
@@ -85,7 +85,7 @@ void main() {
     test('throws on an empty list', () async {
       await expectLater(
         serverList.publishUserServerList(serverUrlsOrdered: []),
-        throwsA(isA<Exception>()),
+        throwsArgumentError,
       );
       expect(published, isEmpty);
     });

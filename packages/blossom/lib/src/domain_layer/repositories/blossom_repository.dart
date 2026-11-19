@@ -14,6 +14,9 @@ import '../entities/file_hash_progress.dart';
 typedef BlossomMirrorAuthorization =
     Future<BlossomAuthorization> Function(String sha256);
 
+/// Every operation ends with a `RequestAbortedException` once its
+/// `abortTrigger` completes, with a value or an error, as [abortPending] ends
+/// them all: the request it waits on is aborted, and no other server is tried.
 abstract class BlossomRepository {
   /// Uploads a blob using the specified strategy
   /// Returns a stream of progress updates
@@ -36,6 +39,7 @@ abstract class BlossomRepository {
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
+    Future<void>? abortTrigger,
   });
 
   /// Asks each server whether it would accept the upload, without sending the
@@ -47,14 +51,15 @@ abstract class BlossomRepository {
     required BlossomAuthorization authorization,
     String? contentType,
     bool serverMediaOptimisation = false,
+    Future<void>? abortTrigger,
   });
 
-  /// Uploads a blob from a file path using the specified strategy
-  /// Reads the file in chunks to minimize memory usage
-  /// For web: prompts user to select a file via File System Access API
-  /// For native: filePath is the actual file system path
-  /// Returns a stream of progress updates, see [uploadBlob] for
-  /// [mirrorAuthorization]
+  /// Uploads the file at [filePath] using the specified strategy, reading it
+  /// in chunks to minimize memory usage. Returns a stream of progress
+  /// updates, see [uploadBlob] for [mirrorAuthorization].
+  ///
+  /// Native platforms only: a browser has no file paths, so there it fails
+  /// with an [UnsupportedError]. Upload with [uploadBlob] instead.
   Stream<BlobUploadProgress> uploadBlobFromFile({
     required String filePath,
     required BlossomAuthorization authorization,
@@ -63,6 +68,7 @@ abstract class BlossomRepository {
     UploadStrategy strategy = UploadStrategy.mirrorAfterSuccess,
     bool serverMediaOptimisation = false,
     BlossomMirrorAuthorization? mirrorAuthorization,
+    Future<void>? abortTrigger,
   });
 
   /// Gets a blob by trying servers sequentially until success, or throws a
@@ -79,10 +85,11 @@ abstract class BlossomRepository {
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int? start,
     int? end,
+    Future<void>? abortTrigger,
   });
 
   /// Downloads a blob directly to a file path
-  /// For web: triggers browser download dialog with the file
+  /// For web: triggers browser download dialog, [outputPath] naming the file
   /// For native: saves to the file system at the given path
   /// Fails with a [BlossomHashMismatchException], and saves nothing, when the
   /// bytes do not hash to [sha256]
@@ -91,6 +98,7 @@ abstract class BlossomRepository {
     required String outputPath,
     required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
+    Future<void>? abortTrigger,
   });
 
   /// Checks if the blob exists on the server
@@ -102,15 +110,20 @@ abstract class BlossomRepository {
     required String sha256,
     required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
+    Future<void>? abortTrigger,
   });
 
   /// Directly downloads a blob from the url, without blossom
-  Future<BlobResponse> directDownload({required Uri url});
+  Future<BlobResponse> directDownload({
+    required Uri url,
+    Future<void>? abortTrigger,
+  });
 
   /// Directly downloads a blob from the url to a file, without blossom
   Future<void> directDownloadToFile({
     required Uri url,
     required String outputPath,
+    Future<void>? abortTrigger,
   });
 
   /// fetches the blob in ranges of [chunkSize] from a server that supports range
@@ -123,6 +136,7 @@ abstract class BlossomRepository {
     required List<BlossomServerUrl> serverUrls,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
     int chunkSize = 1024 * 1024, // 1MB chunks
+    Future<void>? abortTrigger,
   });
 
   /// Whether the server supports range requests for the blob, and the blob's
@@ -131,6 +145,7 @@ abstract class BlossomRepository {
     required String sha256,
     required BlossomServerUrl serverUrl,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
+    Future<void>? abortTrigger,
   });
 
   /// Lists blobs from the first successful server, or throws a
@@ -141,6 +156,7 @@ abstract class BlossomRepository {
     DateTime? since,
     DateTime? until,
     BlossomAuthorization authorization = const BlossomAuthorization.none(),
+    Future<void>? abortTrigger,
   });
 
   /// Attempts to delete blob from all servers
@@ -148,6 +164,7 @@ abstract class BlossomRepository {
     required String sha256,
     required List<BlossomServerUrl> serverUrls,
     required BlossomAuthorization authorization,
+    Future<void>? abortTrigger,
   });
 
   /// Reports a blob to the server \
@@ -159,6 +176,7 @@ abstract class BlossomRepository {
     required String sha256,
     required Nip01Event reportEvent,
     required BlossomServerUrl serverUrl,
+    Future<void>? abortTrigger,
   });
 
   /// Mirrors a blob from one server to another using the /mirror endpoint
@@ -171,10 +189,12 @@ abstract class BlossomRepository {
     required BlossomServerUrl serverUrl,
     required String sha256,
     required BlossomAuthorization authorization,
+    Future<void>? abortTrigger,
   });
 
   /// Computes SHA256 hash of a file by reading it in chunks
   /// Returns stream updates with progress and a final event containing [FileHashProgress.hash]
+  /// Native platforms only, as [uploadBlobFromFile].
   Stream<FileHashProgress> computeFileHash(String filePath);
 
   /// Ends the operations in flight with a `RequestAbortedException`: the

@@ -201,6 +201,22 @@ void main() {
       }
     });
 
+    test('uploadFromStream uploads what openRead reads', () async {
+      final data = utf8.encode('Files stream upload');
+
+      final done = await client
+          .uploadFromStream(
+            openRead: () => Stream.value(data),
+            contentLength: data.length,
+            serverUrls: ['http://localhost:3010'],
+          )
+          .last;
+
+      final descriptor = done.completedUploads.single.descriptor!;
+      final file = await client.download(url: descriptor.url);
+      expect(file.data, data);
+    });
+
     test('uploadFromFile should upload a file from disk', () async {
       // Create a test file
       final testFile = File('${tempDir.path}/test_upload.txt');
