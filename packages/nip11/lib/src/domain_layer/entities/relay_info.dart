@@ -377,9 +377,8 @@ const _equality = DeepCollectionEquality();
 String? _string(Object? value) => value is String ? value : null;
 
 int? _int(Object? value) => switch (value) {
-  int() => value,
-  // jsonDecode reads 1e400 as infinity, whose toInt throws
-  double() when value.isFinite && value % 1 == 0 => value.toInt(),
+  // jsonDecode reads 1e400 as infinity, an int on the web whose toInt throws
+  num() when value.isFinite && value % 1 == 0 => value.toInt(),
   _ => null,
 };
 
