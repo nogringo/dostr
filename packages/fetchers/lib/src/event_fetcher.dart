@@ -33,7 +33,7 @@ class EventFetcher {
   EventFetch fetch(Filter filter, {required UrlSet from}) {
     if (from.kinds.contains(UrlListKind.blossom)) {
       throw ArgumentError.value(
-        from.toMap(),
+        from,
         'from',
         'names Blossom servers, not relays',
       );

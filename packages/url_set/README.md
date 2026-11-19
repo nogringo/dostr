@@ -28,7 +28,7 @@ dependencies:
 | `UrlSet.blossom(pubkey)` | BUD-03 Blossom servers (kind 10063) |
 | `UrlSet.union(sets)` | every URL of every set |
 | `UrlSet.fallback(sets)` | the first set that resolves to a non-empty list |
-| `UrlSet.first(count, set)` | the first `count` URLs of `set` |
+| `UrlSet.first(count, set)` | the first `count` distinct URLs of `set` |
 
 Every leaf reads the list of one account.
 Combine several with `union`, such as for a reply, which goes to the write relays of its author and the read relays of everyone it tags:
@@ -89,6 +89,9 @@ Resolution follows from that:
 `UrlsUnavailable.urls` is what the set resolves to with those lists counted as empty, a fallback still stopping at them: where to send now, while the rest waits.
 
 `urls` keeps tree order and is not deduplicated or normalized: that is up to the consumer.
+`UrlSet.first` alone counts each URL once, compared as written, so `wss://a` and `wss://a/` still count as two.
+
+Lookups and resolutions are equal when they hold the same URLs and lists, and `toString` shows them.
 
 ## Watching
 
@@ -120,6 +123,7 @@ The format is the one `RelaySet` used in `broadcast_queue_shim_for_ndk` 0.7.0, s
 `fromMap` throws a `FormatException` on any map it did not write, so a queue can skip a corrupt record.
 
 Two sets are equal when they describe the same tree, so a queue can spot two records with the same target.
+`toString` writes a set as the constructors that build it, such as `UrlSet.first(2, UrlSet.inbox(<pubkey>))`.
 
 ## Coming from `url_set_for_ndk`
 

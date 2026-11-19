@@ -259,6 +259,23 @@ void main() {
       expect(w.done.last, isTrue);
     });
 
+    test('first counts each url once', () async {
+      final lists = FakeUrlListWatches();
+      final w = await watching(
+        const UrlSet.first(
+          2,
+          UrlSet.union([UrlSet.inbox('p1'), UrlSet.inbox('p2')]),
+        ),
+        lists,
+      );
+      await lists.answer('inbox|p1', const UrlListLookup.found(['wss://a']));
+      await lists.answer(
+        'inbox|p2',
+        const UrlListLookup.found(['wss://a', 'wss://b']),
+      );
+      expect(w.last.urls, ['wss://a', 'wss://b']);
+    });
+
     test('first of none watches nothing', () async {
       final lists = FakeUrlListWatches();
       final w = await watching(const UrlSet.first(0, UrlSet.inbox('p')), lists);

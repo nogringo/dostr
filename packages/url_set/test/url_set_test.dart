@@ -127,6 +127,11 @@ void main() {
       expect(build('p').hashCode, build('p').hashCode);
       expect(UrlSet.fromMap(build('p').toMap()), build('p'));
       expect(build('p'), isNot(build('q')));
+      expect(
+        build('p').toString(),
+        'UrlSet.fallback([UrlSet.union([UrlSet.explicit([wss://a]), '
+        'UrlSet.dm(p)]), UrlSet.first(2, UrlSet.inbox(p))])',
+      );
       expect(const UrlSet.dm('p'), isNot(const UrlSet.inbox('p')));
       expect(
         const UrlSet.union([UrlSet.outbox('p')]),
@@ -242,6 +247,24 @@ void main() {
       expect(resolvedUrls(await first(2)), ['wss://a', 'wss://b']);
       expect(resolvedUrls(await first(5)), ['wss://a', 'wss://b', 'wss://c']);
       expect(resolvedUrls(await first(0)), isEmpty);
+    });
+
+    test('first counts each url once, compared as written', () async {
+      final lists = FakeUrlLists()
+        ..set('p1', UrlListKind.outbox, const UrlListLookup.found(['wss://a']))
+        ..set(
+          'p2',
+          UrlListKind.outbox,
+          const UrlListLookup.found(['wss://a', 'wss://b', 'wss://a/']),
+        );
+      final r = await resolveUrlSet(
+        const UrlSet.first(
+          3,
+          UrlSet.union([UrlSet.outbox('p1'), UrlSet.outbox('p2')]),
+        ),
+        lists.fn,
+      );
+      expect(r, const UrlsResolved(['wss://a', 'wss://b', 'wss://a/']));
     });
 
     test('first is unavailable when its set is', () async {
@@ -425,6 +448,73 @@ void main() {
         lists.fn,
       );
       expect(lists.calls, ['outbox|p1', 'inbox|p1']);
+    });
+  });
+
+  group('results', () {
+    const unavailable = UnavailableUrlList('p', UrlListKind.dm, 'offline');
+
+    test('lookups, resolutions and snapshots compare by value', () {
+      expect(UrlListFound(['wss://a']), UrlListFound(['wss://a']));
+      expect(UrlListFound(['wss://a']), isNot(UrlListFound(['wss://b'])));
+      expect(UrlListNotFound(), UrlListNotFound());
+      expect(UrlListUnavailable('x'), UrlListUnavailable('x'));
+      expect(UrlListUnavailable('x'), isNot(UrlListUnavailable()));
+      expect(UrlsResolved(['wss://a']), UrlsResolved(['wss://a']));
+      expect(
+        UrlsResolved(['wss://a']).hashCode,
+        UrlsResolved(['wss://a']).hashCode,
+      );
+      expect(UrlsResolved(['wss://a']), isNot(UrlsResolved(['wss://b'])));
+      expect(
+        UrlsUnavailable([unavailable], urls: ['wss://a']),
+        UrlsUnavailable([unavailable], urls: ['wss://a']),
+      );
+      expect(
+        UrlsUnavailable([unavailable]),
+        isNot(UrlsUnavailable([unavailable], urls: ['wss://a'])),
+      );
+      expect(UrlsResolved([]), isNot(UrlsUnavailable([])));
+      expect(
+        UrlSetSnapshot(
+          urls: ['wss://a'],
+          unavailable: [unavailable],
+          done: true,
+        ),
+        UrlSetSnapshot(
+          urls: ['wss://a'],
+          unavailable: [unavailable],
+          done: true,
+        ),
+      );
+      expect(
+        UrlSetSnapshot(urls: ['wss://a'], done: true),
+        isNot(UrlSetSnapshot(urls: ['wss://a'], done: false)),
+      );
+    });
+
+    test('toString shows what they hold', () {
+      expect(UrlListFound(['wss://a']).toString(), 'UrlListFound([wss://a])');
+      expect(UrlListNotFound().toString(), 'UrlListNotFound()');
+      expect(
+        UrlListUnavailable('offline').toString(),
+        'UrlListUnavailable(offline)',
+      );
+      expect(UrlListUnavailable().toString(), 'UrlListUnavailable()');
+      expect(UrlsResolved(['wss://a']).toString(), 'UrlsResolved([wss://a])');
+      expect(
+        UrlsUnavailable([unavailable], urls: ['wss://a']).toString(),
+        'UrlsUnavailable([dm list of p unavailable: offline], urls: [wss://a])',
+      );
+      expect(
+        UrlSetSnapshot(
+          urls: ['wss://a'],
+          unavailable: [unavailable],
+          done: true,
+        ).toString(),
+        'UrlSetSnapshot(urls: [wss://a], '
+        'unavailable: [dm list of p unavailable: offline], done: true)',
+      );
     });
   });
 }

@@ -26,7 +26,8 @@ final class UrlSetSnapshot {
   ///
   /// A later snapshot may drop some: a newer version of a list replaces the
   /// one before, a fallback moves past a set whose list turns out empty, and
-  /// [UrlSet.first] keeps the first URLs of the lists known at the time.
+  /// [UrlSet.first] keeps the first distinct URLs of the lists known at the
+  /// time.
   final List<String> urls;
 
   /// Each unavailable list the set depends on, in tree order.
@@ -51,10 +52,20 @@ final class UrlSetSnapshot {
       ? UrlsResolved(urls)
       : UrlsUnavailable(unavailable, urls: urls);
 
-  bool _sameAs(UrlSetSnapshot other) =>
-      done == other.done &&
+  @override
+  bool operator ==(Object other) =>
+      other is UrlSetSnapshot &&
+      other.done == done &&
       _listEquals(urls, other.urls) &&
       _listEquals(unavailable, other.unavailable);
+
+  @override
+  int get hashCode =>
+      Object.hash(Object.hashAll(urls), Object.hashAll(unavailable), done);
+
+  @override
+  String toString() =>
+      'UrlSetSnapshot(urls: $urls, unavailable: $unavailable, done: $done)';
 }
 
 /// Resolves [set] with [watch] as its lists arrive, where [resolveUrlSet]
@@ -108,7 +119,7 @@ class _UrlSetWatch {
       _updating = false;
     }
     if (_ended) return;
-    if (!(_last?._sameAs(snapshot) ?? false)) {
+    if (_last != snapshot) {
       _last = snapshot;
       _snapshots.add(snapshot);
     }
@@ -151,7 +162,7 @@ class _UrlSetWatch {
   };
 
   UrlSetSnapshot _first(int count, UrlSetSnapshot set) => UrlSetSnapshot(
-    urls: set.urls.take(count).toList(),
+    urls: _firstDistinct(count, set.urls),
     unavailable: set.unavailable,
     done: set.done,
   );

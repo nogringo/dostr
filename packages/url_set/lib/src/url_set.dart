@@ -65,12 +65,31 @@ final class UrlListFound extends UrlListLookup {
 
   /// Creates a found lookup.
   const UrlListFound(this.urls);
+
+  @override
+  bool operator ==(Object other) =>
+      other is UrlListFound && _listEquals(urls, other.urls);
+
+  @override
+  int get hashCode => Object.hashAll(urls);
+
+  @override
+  String toString() => 'UrlListFound($urls)';
 }
 
 /// See [UrlListLookup.notFound].
 final class UrlListNotFound extends UrlListLookup {
   /// Creates a not-found lookup.
   const UrlListNotFound();
+
+  @override
+  bool operator ==(Object other) => other is UrlListNotFound;
+
+  @override
+  int get hashCode => (UrlListNotFound).hashCode;
+
+  @override
+  String toString() => 'UrlListNotFound()';
 }
 
 /// See [UrlListLookup.unavailable].
@@ -80,6 +99,16 @@ final class UrlListUnavailable extends UrlListLookup {
 
   /// Creates an unavailable lookup.
   const UrlListUnavailable([this.reason]);
+
+  @override
+  bool operator ==(Object other) =>
+      other is UrlListUnavailable && other.reason == reason;
+
+  @override
+  int get hashCode => Object.hash(UrlListUnavailable, reason);
+
+  @override
+  String toString() => 'UrlListUnavailable(${reason ?? ''})';
 }
 
 /// Where something should be sent, described rather than listed so it can be
@@ -121,8 +150,9 @@ sealed class UrlSet {
   /// resolution, so an offline lookup never falls through to the next set.
   const factory UrlSet.fallback(List<UrlSet> sets) = FallbackUrls;
 
-  /// The first [count] URLs [set] resolves to, such as a few of the many
-  /// inbox relays of an account. With a [count] of 0, [set] is not resolved.
+  /// The first [count] distinct URLs [set] resolves to, compared as written,
+  /// such as a few of the many inbox relays of an account. With a [count] of
+  /// 0, [set] is not resolved.
   const factory UrlSet.first(int count, UrlSet set) = FirstUrls;
 
   /// Whether resolving this set calls a [UrlListFn].
@@ -202,6 +232,9 @@ final class ExplicitUrls extends UrlSet {
 
   @override
   int get hashCode => Object.hashAll(urls);
+
+  @override
+  String toString() => 'UrlSet.explicit($urls)';
 }
 
 /// A leaf that reads one list of one account.
@@ -228,6 +261,9 @@ sealed class _ListUrls extends UrlSet {
 
   @override
   int get hashCode => Object.hash(_kind, pubkey);
+
+  @override
+  String toString() => 'UrlSet.${_kind.name}($pubkey)';
 }
 
 /// See [UrlSet.outbox].
@@ -310,6 +346,9 @@ final class UnionUrls extends UrlSet {
 
   @override
   int get hashCode => Object.hash(UnionUrls, Object.hashAll(sets));
+
+  @override
+  String toString() => 'UrlSet.union($sets)';
 }
 
 /// See [UrlSet.fallback].
@@ -338,6 +377,9 @@ final class FallbackUrls extends UrlSet {
 
   @override
   int get hashCode => Object.hash(FallbackUrls, Object.hashAll(sets));
+
+  @override
+  String toString() => 'UrlSet.fallback($sets)';
 }
 
 /// See [UrlSet.first].
@@ -348,7 +390,7 @@ final class FirstUrls extends UrlSet {
   /// Set the URLs come from.
   final UrlSet set;
 
-  /// Creates a set of the first [count] URLs of [set].
+  /// Creates a set of the first [count] distinct URLs of [set].
   const FirstUrls(this.count, this.set) : assert(count >= 0);
 
   @override
@@ -372,6 +414,9 @@ final class FirstUrls extends UrlSet {
 
   @override
   int get hashCode => Object.hash(count, set);
+
+  @override
+  String toString() => 'UrlSet.first($count, $set)';
 }
 
 /// Result of resolving a whole [UrlSet] tree.
@@ -386,6 +431,16 @@ final class UrlsResolved extends UrlResolution {
 
   /// Creates a resolved result.
   const UrlsResolved(this.urls);
+
+  @override
+  bool operator ==(Object other) =>
+      other is UrlsResolved && _listEquals(urls, other.urls);
+
+  @override
+  int get hashCode => Object.hashAll(urls);
+
+  @override
+  String toString() => 'UrlsResolved($urls)';
 }
 
 /// At least one lookup that the result depends on was unavailable.
@@ -403,6 +458,18 @@ final class UrlsUnavailable extends UrlResolution {
 
   /// [lists], joined for a log.
   String get reason => lists.join('; ');
+
+  @override
+  bool operator ==(Object other) =>
+      other is UrlsUnavailable &&
+      _listEquals(lists, other.lists) &&
+      _listEquals(urls, other.urls);
+
+  @override
+  int get hashCode => Object.hash(Object.hashAll(lists), Object.hashAll(urls));
+
+  @override
+  String toString() => 'UrlsUnavailable($lists, urls: $urls)';
 }
 
 /// A list a [UrlSet] depends on that could not be looked up.
@@ -473,10 +540,10 @@ Future<UrlResolution> _resolve(UrlSet set, UrlListFn lookup) async {
       return const UrlsResolved([]);
     case FirstUrls(:final count, :final set):
       return switch (await _resolve(set, lookup)) {
-        UrlsResolved(:final urls) => UrlsResolved(urls.take(count).toList()),
+        UrlsResolved(:final urls) => UrlsResolved(_firstDistinct(count, urls)),
         UrlsUnavailable(:final lists, :final urls) => UrlsUnavailable(
           lists,
-          urls: urls.take(count).toList(),
+          urls: _firstDistinct(count, urls),
         ),
       };
   }
@@ -510,6 +577,9 @@ Future<UrlResolution> _resolveList(
 }
 
 String _nip65Reason(String? reason) => 'NIP-65 ${reason ?? 'unavailable'}';
+
+List<String> _firstDistinct(int count, List<String> urls) =>
+    urls.toSet().take(count).toList();
 
 UrlResolution _merge(List<UrlResolution> parts) {
   final urls = [
