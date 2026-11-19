@@ -129,15 +129,27 @@ class HttpNip05Repository implements Nip05Repository {
     return _read(response.stream, url);
   }
 
-  Future<Uint8List> _read(Stream<List<int>> stream, Uri url) async {
+  // not an `await for`: on DDC, leaving one escapes the fake async zone of
+  // testWidgets, so pump never ends the read
+  Future<Uint8List> _read(Stream<List<int>> stream, Uri url) {
     final body = BytesBuilder(copy: false);
-    await for (final chunk in stream) {
-      body.add(chunk);
-      if (body.length > maxResponseBytes) {
-        throw FormatException('$url is larger than $maxResponseBytes bytes');
-      }
-    }
-    return body.takeBytes();
+    final read = Completer<Uint8List>();
+    late final StreamSubscription<List<int>> subscription;
+    subscription = stream.listen(
+      (chunk) {
+        body.add(chunk);
+        if (body.length > maxResponseBytes) {
+          subscription.cancel().ignore();
+          read.completeError(
+            FormatException('$url is larger than $maxResponseBytes bytes'),
+          );
+        }
+      },
+      onError: read.completeError,
+      onDone: () => read.complete(body.takeBytes()),
+      cancelOnError: true,
+    );
+    return read.future;
   }
 }
 
