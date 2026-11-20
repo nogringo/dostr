@@ -1,4 +1,5 @@
 /// NIP-49 private key encryption (`ncryptsec`).
 library;
 
-export 'src/nip49.dart';
+export 'src/ncryptsec.dart';
+export 'src/nip49_exception.dart';

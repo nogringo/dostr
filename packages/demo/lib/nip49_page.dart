@@ -16,7 +16,7 @@ class _Nip49PageState extends State<Nip49Page> {
   final _ncryptsecController = TextEditingController();
   final _decryptPasswordController = TextEditingController();
 
-  int _logN = Nip49.defaultLogN;
+  int _logN = Ncryptsec.defaultLogN;
 
   bool _encrypting = false;
   String? _ncryptsec;
@@ -24,6 +24,7 @@ class _Nip49PageState extends State<Nip49Page> {
   String? _encryptError;
 
   bool _decrypting = false;
+  Ncryptsec? _decrypted;
   String? _decryptedPrivateKey;
   Duration? _decryptDuration;
   String? _decryptError;
@@ -52,11 +53,11 @@ class _Nip49PageState extends State<Nip49Page> {
     final stopwatch = Stopwatch()..start();
     try {
       final input = _privateKeyController.text.trim();
-      final ncryptsec = await Nip49.encrypt(
+      final ncryptsec = (await Ncryptsec.encrypt(
         Nsec.tryDecode(input)?.privateKey ?? input,
         _encryptPasswordController.text,
         logN: _logN,
-      );
+      )).encode();
       if (!mounted) return;
       _ncryptsec = ncryptsec;
       _encryptDuration = stopwatch.elapsed;
@@ -76,10 +77,11 @@ class _Nip49PageState extends State<Nip49Page> {
     });
     final stopwatch = Stopwatch()..start();
     try {
-      _decryptedPrivateKey = await Nip49.decrypt(
-        _ncryptsecController.text.trim(),
+      final ncryptsec = Ncryptsec.decode(_ncryptsecController.text);
+      _decryptedPrivateKey = await ncryptsec.decrypt(
         _decryptPasswordController.text,
       );
+      _decrypted = ncryptsec;
       _decryptDuration = stopwatch.elapsed;
     } catch (e) {
       _decryptError = '$e';
@@ -173,7 +175,9 @@ class _Nip49PageState extends State<Nip49Page> {
                 _Result(
                   value: Nsec(_decryptedPrivateKey!).encode(),
                   caption:
-                      'Decrypted in ${_decryptDuration!.inMilliseconds} ms',
+                      'Decrypted in ${_decryptDuration!.inMilliseconds} ms, '
+                      'logN ${_decrypted!.logN}, '
+                      'key ${_decrypted!.keySecurity.name}',
                 ),
               if (_decryptError != null) _Error(_decryptError!),
             ],
