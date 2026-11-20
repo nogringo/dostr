@@ -23,6 +23,7 @@ enum Nip49KeySecurity {
   /// The client does not track it.
   unknown(0x02);
 
+  /// The byte that stores it in an ncryptsec.
   final int value;
 
   const Nip49KeySecurity(this.value);
