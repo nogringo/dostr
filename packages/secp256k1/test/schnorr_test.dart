@@ -1,8 +1,9 @@
-import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:dostr_secp256k1/dostr_secp256k1.dart';
 import 'package:test/test.dart';
+
+import 'bip340_vectors.dart';
 
 Uint8List _bytes(String hex) => Uint8List.fromList([
   for (var i = 0; i < hex.length; i += 2)
@@ -10,9 +11,8 @@ Uint8List _bytes(String hex) => Uint8List.fromList([
 ]);
 
 void main() {
-  // https://github.com/bitcoin/bips/blob/master/bip-0340/test-vectors.csv
-  final rows = File('test/bip340.vectors.csv')
-      .readAsLinesSync()
+  final rows = bip340Vectors
+      .split('\n')
       .skip(1)
       .where((line) => line.isNotEmpty)
       .map((line) => line.toLowerCase().split(','));
