@@ -125,11 +125,11 @@ void main() {
     test('throws on truncated varint', () {
       expect(
         () => NegentropyEncoder.decodeVarint(Uint8List.fromList([0x81])),
-        throwsArgumentError,
+        throwsFormatException,
       );
       expect(
         () => NegentropyEncoder.decodeVarint(Uint8List(0)),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
 
@@ -146,7 +146,10 @@ void main() {
         0xFF,
         0x7F,
       ]);
-      expect(() => NegentropyEncoder.decodeVarint(tooBig), throwsArgumentError);
+      expect(
+        () => NegentropyEncoder.decodeVarint(tooBig),
+        throwsFormatException,
+      );
     });
   });
 
@@ -333,7 +336,7 @@ void main() {
         () => NegentropyEncoder.decodeBound(
           Uint8List.fromList([2, 33, ...List.filled(33, 0)]),
         ),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
   });
@@ -353,6 +356,16 @@ void main() {
         () => NegentropyItem.fromHex(timestamp: 1000, idHex: 'aabb'),
         throwsArgumentError,
       );
+    });
+
+    test('rejects IDs that are not hex', () {
+      for (final idHex in ['z' * 64, 'a' * 63]) {
+        expect(
+          () => NegentropyItem.fromHex(timestamp: 1000, idHex: idHex),
+          throwsArgumentError,
+          reason: idHex,
+        );
+      }
     });
   });
 
@@ -426,7 +439,7 @@ void main() {
           Uint8List.fromList([0x62, 0x00, 0x00, 0x02, 0x00]),
           [],
         ),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
 
@@ -436,7 +449,7 @@ void main() {
           Uint8List.fromList([0x61, 0x00, 0x00, 0x07]),
           [],
         ),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
 
@@ -446,7 +459,7 @@ void main() {
           Uint8List.fromList([0x61, 0x00, 0x00, 0x02, 0x02, 0xAA]),
           [],
         ),
-        throwsArgumentError,
+        throwsFormatException,
       );
     });
   });
@@ -628,6 +641,21 @@ void main() {
 
       expect(result.haveIds, hasLength(20));
     });
+
+    test('prepared items reconcile as the list they came from', () {
+      final initiator = [..._items(300).reversed, ..._items(10)];
+      final responder = _items(200, step: 5);
+
+      final prepared = _syncToCompletion(
+        prepareNegentropyItems(initiator),
+        prepareNegentropyItems(responder),
+      );
+      final plain = _syncToCompletion(initiator, responder);
+
+      expect(prepared.needIds.toSet(), plain.needIds.toSet());
+      expect(prepared.haveIds.toSet(), plain.haveIds.toSet());
+      expect(prepareNegentropyItems(initiator), hasLength(300));
+    });
   });
 
   group('NegentropyEncoder frame size limit', () {
@@ -761,7 +789,7 @@ void main() {
     });
 
     test('hexToBytes throws on odd length', () {
-      expect(() => NegentropyEncoder.hexToBytes('ABC'), throwsArgumentError);
+      expect(() => NegentropyEncoder.hexToBytes('ABC'), throwsFormatException);
     });
 
     test('hexToBytes rejects what is not a hex digit', () {

@@ -41,6 +41,7 @@ Pass them to `reconcile` as `localIds` instead to compare another set.
 Each keeps its ids until it is listened to, and closes when the reconciliation ends, whatever the outcome: `future` tells which.
 Listen to `future` even when only the streams matter, since a failure nobody listens to is reported as an uncaught error.
 `nip77.close(response.subscriptionId)` ends a reconciliation early: its future completes with what the rounds so far found, and `isComplete` false.
+`nip77.dispose()` ends every reconciliation the same way, and stops listening to the `RelayManager`, which several `Nip77` can share.
 
 Fetch `result.needIds` with the `RelayReqs` of `dostr_core`, and publish `result.haveIds` with its `RelayPublishes`.
 
@@ -91,7 +92,7 @@ final response = nip77.reconcile(
 | policy | connection | what a relay learns |
 | --- | --- | --- |
 | `AuthPolicy.never()` | anonymous, always | nothing. A relay that refuses the negotiation without an identity simply does not reconcile |
-| `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses | who you are, but only after that relay asked |
+| `AuthPolicy.allow(a)` | anonymous, moves to one bound to `a` once the relay refuses with `auth-required` | who you are, but only after that relay asked |
 | `AuthPolicy.require(a)` | bound to `a` from the start | who you are, as soon as it sends a challenge |
 
 Without `auth`, a negotiation reveals no identity, as with `AuthPolicy.never()`.
@@ -110,13 +111,15 @@ Every failure of `future` is a `Nip77Exception`:
 | `Nip77RefusedException` | the relay sent a NEG-ERR, or a CLOSED that asks for no identity |
 | `Nip77TimeoutException` | the relay stopped answering, see [Timeouts](#timeouts) |
 | `Nip77AuthRequiredException` | the relay asked for an identity `auth` rules out |
-| `Nip77ConnectionException` | no connection to the relay opened, or the `AuthHandler` refused to bind one |
+| `Nip77ConnectionException` | no connection to the relay opened, the `AuthHandler` refused to bind one, or, with `lost` true, the connection dropped or was closed before the end |
 | `Nip77MalformedMessageException` | the relay sent a NEG-MSG the codec cannot read |
 
-Errors thrown by `loadEventIds` come through as they are.
+Errors thrown by `loadEventIds` come through as they are, and so does the `ArgumentError` for an entry it returns whose id is not 64 hex digits or whose creation time is out of range.
+The same entry in `localIds` makes `reconcile` itself throw that `ArgumentError`, before anything is sent.
 
 `Nip77RefusedException.code` gives the prefix of the reason.
 NIP-77 suggests `blocked`, for a query too big or too old, with `maxRecords` when the relay says how many records it processes, and `closed`, for a negotiation the relay timed out.
+A `restricted` refusal is one too: the relay knows the identity and does not accept it.
 
 A relay that ignores NEG-OPEN only fails with `Nip77TimeoutException` once `openTimeout` runs out (30 s by default).
 Pass a shorter `openTimeout` if that wait is too long:

@@ -36,6 +36,10 @@ class Nip77State implements TimeoutPausable {
   /// whether AUTH was already sent for the bound connection after a refusal
   bool authenticatedAfterRefusal = false;
 
+  /// whether the connection behind [connectionKey] is open for this session,
+  /// false while it opens or while the session moves to a bound one
+  bool connected = false;
+
   /// whether a NEG-OPEN went out
   bool negOpenSent = false;
 

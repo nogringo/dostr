@@ -66,7 +66,8 @@ class NegentropyEncoder {
     return Uint8List.fromList(bytes);
   }
 
-  /// Decodes a varint from bytes, returns (value, bytesConsumed)
+  /// Decodes a varint from bytes, returns (value, bytesConsumed). Throws a
+  /// [FormatException] for one that is truncated or too large.
   static (int value, int bytesConsumed) decodeVarint(
     Uint8List data, [
     int offset = 0,
@@ -76,7 +77,7 @@ class NegentropyEncoder {
 
     while (true) {
       if (offset + bytesConsumed >= data.length) {
-        throw ArgumentError('Truncated varint');
+        throw FormatException('Truncated varint', data, offset);
       }
 
       final byte = data[offset + bytesConsumed];
@@ -84,7 +85,11 @@ class NegentropyEncoder {
 
       final digit = byte & 0x7F;
       if (value > (infiniteTimestamp - digit) ~/ 128) {
-        throw ArgumentError('Varint exceeds the supported integer range');
+        throw FormatException(
+          'Varint exceeds the supported integer range',
+          data,
+          offset,
+        );
       }
       value = value * 128 + digit;
 
@@ -162,6 +167,7 @@ class NegentropyEncoder {
 
   /// Decodes a bound. [lastTimestamp] is the timestamp of the previously
   /// decoded bound in the same message (0 at the start of every message).
+  /// Throws a [FormatException] for a bound it cannot read.
   static (int timestamp, Uint8List idPrefix, int bytesConsumed) decodeBound(
     Uint8List data, [
     int offset = 0,
@@ -178,7 +184,7 @@ class NegentropyEncoder {
     } else {
       timestamp = lastTimestamp + encodedTimestamp - 1;
       if (timestamp >= infiniteTimestamp) {
-        throw ArgumentError('Bound timestamp out of range');
+        throw FormatException('Bound timestamp out of range', data, offset);
       }
     }
 
@@ -186,10 +192,14 @@ class NegentropyEncoder {
     pos += lengthBytes;
 
     if (prefixLength > idSize) {
-      throw ArgumentError('Bound ID prefix too long: $prefixLength');
+      throw FormatException(
+        'Bound ID prefix too long: $prefixLength',
+        data,
+        offset,
+      );
     }
     if (pos + prefixLength > data.length) {
-      throw ArgumentError('Truncated bound ID prefix');
+      throw FormatException('Truncated bound ID prefix', data, offset);
     }
 
     final idPrefix = Uint8List.fromList(data.sublist(pos, pos + prefixLength));
@@ -198,11 +208,11 @@ class NegentropyEncoder {
     return (timestamp, idPrefix, pos - offset);
   }
 
-  /// Parses a hex string to bytes. Throws an [ArgumentError] for an odd
-  /// length and a [FormatException] for a character that is not a hex digit.
+  /// Parses a hex string to bytes. Throws a [FormatException] for an odd
+  /// length or a character that is not a hex digit.
   static Uint8List hexToBytes(String hex) {
     if (hex.length.isOdd) {
-      throw ArgumentError('Hex string must have even length');
+      throw FormatException('Hex string must have even length', hex);
     }
     final result = Uint8List(hex.length ~/ 2);
     for (var i = 0; i < result.length; i++) {
@@ -210,7 +220,9 @@ class NegentropyEncoder {
       final low = _hexValue(hex.codeUnitAt(2 * i + 1));
       if (high < 0 || low < 0) {
         throw FormatException(
-          'Not a hex digit at offset ${high < 0 ? 2 * i : 2 * i + 1}',
+          'Not a hex digit',
+          hex,
+          high < 0 ? 2 * i : 2 * i + 1,
         );
       }
       result[i] = high << 4 | low;
@@ -240,14 +252,7 @@ class NegentropyEncoder {
   static const String _hexDigits = '0123456789abcdef';
 
   /// Creates the initial message an initiator sends in `NEG-OPEN`.
-  static Uint8List createInitialMessage(
-    List<NegentropyItem> items, [
-    int itemIdSize = idSize,
-  ]) {
-    if (itemIdSize != idSize) {
-      throw ArgumentError('Negentropy v1 requires $idSize byte IDs');
-    }
-
+  static Uint8List createInitialMessage(List<NegentropyItem> items) {
     final sorted = _prepare(items);
     final output = _MessageWriter()..addByte(protocolVersion);
     _splitRange(sorted, 0, sorted.length, _infinityBound, output);
@@ -265,7 +270,10 @@ class NegentropyEncoder {
   /// A [frameSizeLimit] other than 0 keeps the response within that many
   /// bytes, and is at least [minFrameSizeLimit]. A response cut short ends on
   /// one fingerprint for the rest of the set, which the next rounds split
-  /// again. [items] can come in any order, and are not changed.
+  /// again. [items] can come in any order, and are not changed. Pass them
+  /// through [prepareNegentropyItems] to sort them once for every round.
+  ///
+  /// Throws a [FormatException] for a [message] it cannot read.
   static (Uint8List response, List<String> needIds, List<String> haveIds)
   reconcile(
     Uint8List message,
@@ -288,7 +296,8 @@ class NegentropyEncoder {
   /// Reconciles a message received from an initiator, as the responding side.
   ///
   /// Only the initiator learns the have/need sets, so this returns just the
-  /// response message. [frameSizeLimit] works as in [reconcile].
+  /// response message. [frameSizeLimit] and [items] work as in [reconcile],
+  /// and so does a [message] it cannot read.
   static Uint8List respond(
     Uint8List message,
     List<NegentropyItem> items, {
@@ -314,12 +323,14 @@ class NegentropyEncoder {
   }) {
     checkFrameSizeLimit(frameSizeLimit);
     if (message.isEmpty) {
-      throw ArgumentError('Empty negentropy message');
+      throw const FormatException('Empty negentropy message');
     }
     if (message[0] != protocolVersion) {
-      throw ArgumentError(
+      throw FormatException(
         'Unsupported negentropy protocol version: '
         '0x${message[0].toRadixString(16)}',
+        message,
+        0,
       );
     }
 
@@ -354,7 +365,7 @@ class NegentropyEncoder {
       final currBound = _Bound(timestamp, idPrefix);
 
       if (offset >= message.length) {
-        throw ArgumentError('Truncated range: missing mode');
+        throw FormatException('Truncated range: missing mode', message, offset);
       }
       final (mode, modeBytes) = decodeVarint(message, offset);
       offset += modeBytes;
@@ -371,7 +382,7 @@ class NegentropyEncoder {
 
         case modeFingerprint:
           if (offset + fingerprintSize > message.length) {
-            throw ArgumentError('Truncated fingerprint');
+            throw FormatException('Truncated fingerprint', message, offset);
           }
           final theirFingerprint = Uint8List.sublistView(
             message,
@@ -394,7 +405,7 @@ class NegentropyEncoder {
           final (count, countBytes) = decodeVarint(message, offset);
           offset += countBytes;
           if (count > (message.length - offset) ~/ idSize) {
-            throw ArgumentError('Truncated ID list');
+            throw FormatException('Truncated ID list', message, offset);
           }
 
           final theirIds = <String>{};
@@ -438,7 +449,11 @@ class NegentropyEncoder {
           }
 
         default:
-          throw ArgumentError('Unknown negentropy mode: $mode');
+          throw FormatException(
+            'Unknown negentropy mode: $mode',
+            message,
+            offset,
+          );
       }
 
       if (exceedsFrame(output.length + (range?.length ?? 0))) {
@@ -611,8 +626,9 @@ void checkFrameSizeLimit(int frameSizeLimit) {
   }
 }
 
-/// [items] sorted and without duplicates once, so a session that reconciles
-/// them over many rounds does not sort them again each round.
+/// [items] sorted and without duplicates, which [NegentropyEncoder.reconcile]
+/// and [NegentropyEncoder.respond] take as they are instead of sorting them
+/// again every round.
 List<NegentropyItem> prepareNegentropyItems(Iterable<NegentropyItem> items) =>
     _PreparedItems(NegentropyEncoder._sortedUnique(items));
 
@@ -639,14 +655,19 @@ class NegentropyItem {
     }
   }
 
+  /// Throws an [ArgumentError] for an [idHex] that is not 64 hex digits, or a
+  /// [timestamp] out of range.
   factory NegentropyItem.fromHex({
     required int timestamp,
     required String idHex,
   }) {
-    return NegentropyItem(
-      timestamp: timestamp,
-      id: NegentropyEncoder.hexToBytes(idHex),
-    );
+    final Uint8List id;
+    try {
+      id = NegentropyEncoder.hexToBytes(idHex);
+    } on FormatException catch (e) {
+      throw ArgumentError.value(idHex, 'idHex', e.message);
+    }
+    return NegentropyItem(timestamp: timestamp, id: id);
   }
 }
 

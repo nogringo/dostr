@@ -16,7 +16,9 @@ typedef Nip77LoadEventIds =
     Future<List<({String id, int createdAt})>> Function(Filter filter);
 
 /// What a reconciliation fails with. Errors thrown by [Nip77LoadEventIds]
-/// come through as they are.
+/// come through as they are, and so does the [ArgumentError] for an entry it
+/// returns whose id is not 64 hex digits or whose creation time is out of
+/// range.
 sealed class Nip77Exception implements Exception {
   /// relay the reconciliation was meant for
   final RelayUrl relayUrl;
@@ -64,14 +66,21 @@ final class Nip77RefusedException extends Nip77Exception {
       '${maxRecords != null ? ' (at most $maxRecords records)' : ''}';
 }
 
-/// Exception thrown when no connection to the relay could be opened, or the
-/// [AuthHandler] refused to bind one
+/// Exception thrown when no connection to the relay could be opened, the
+/// [AuthHandler] refused to bind one, or the connection dropped or was closed
+/// before the reconciliation ended
 final class Nip77ConnectionException extends Nip77Exception {
-  Nip77ConnectionException(super.relayUrl);
+  /// whether the connection was open, and dropped or was closed before the
+  /// reconciliation ended
+  final bool lost;
+
+  Nip77ConnectionException(super.relayUrl, {this.lost = false});
 
   @override
-  String toString() =>
-      'Nip77ConnectionException: could not open a connection to $relayUrl';
+  String toString() => lost
+      ? 'Nip77ConnectionException: the connection to $relayUrl closed before '
+            'the reconciliation ended'
+      : 'Nip77ConnectionException: could not open a connection to $relayUrl';
 }
 
 /// Exception thrown when a relay sends a NEG-MSG the Negentropy V1 codec
@@ -206,6 +215,12 @@ class Nip77 {
     _internal.closeAll();
   }
 
+  /// Closes all active negotiations, as [closeAll] does, and stops listening
+  /// to the relay manager. [reconcile] throws a [StateError] afterwards.
+  void dispose() {
+    _internal.dispose();
+  }
+
   /// Start a negentropy reconciliation with a relay
   ///
   /// [relayUrl] - The relay to reconcile with
@@ -229,9 +244,10 @@ class Nip77 {
   /// a future that completes with the final result.
   ///
   /// Throws from the call itself, before anything is sent, an [ArgumentError]
-  /// for a [frameSizeLimit] it does not take, and a
+  /// for a [frameSizeLimit] it does not take, or a [localIds] entry whose id
+  /// is not 64 hex digits or whose creation time is out of range, a
   /// [Nip77AuthUnavailableException] if [auth] requires an identity that
-  /// cannot sign.
+  /// cannot sign, and a [StateError] once [dispose] was called.
   ///
   /// The returned future fails with:
   /// - [Nip77NotSupportedException] if the relay doesn't support NIP-77,
@@ -239,7 +255,8 @@ class Nip77 {
   /// - [Nip77TimeoutException] if the relay stops answering,
   /// - [Nip77AuthRequiredException] if the relay asks for an identity [auth]
   ///   rules out,
-  /// - [Nip77ConnectionException] if no connection to the relay opens,
+  /// - [Nip77ConnectionException] if no connection to the relay opens, or it
+  ///   drops or is closed before the end,
   /// - [Nip77MalformedMessageException] if the relay sends a message the
   ///   codec cannot read.
   Nip77Response reconcile({

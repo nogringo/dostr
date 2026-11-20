@@ -360,6 +360,7 @@ Browser WebSocket APIs do not expose compression negotiation controls, so this s
 
 A protocol that runs over the relay connections besides REQs and EVENTs, such as the NIP-77 negentropy of [`dostr_nip77`](https://pub.dev/packages/dostr_nip77), imports `package:dostr_core/protocol.dart`.
 Its `RelayProtocolHandler`, added with `addProtocolHandler`, receives the messages, CLOSED and NOTICE the `RelayManager` does not handle itself, and sends its own with `send`.
+Its `onDisconnected` tells it when a socket drops, or is closed or suspended: the relay forgot what it held for that socket, even once a new one replaces it.
 
 ## Logging
 

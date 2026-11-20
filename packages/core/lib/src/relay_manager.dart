@@ -451,6 +451,22 @@ final class _ConnectionWork implements ConnectionListener {
   @override
   bool hasWorkOn(RelayConnectionKey key) => _manager._connectionHasWork(key);
 
+  // called from socket callbacks, where a throw would stop the revival
+  @override
+  void onDisconnected(RelayConnectionKey key) {
+    for (final handler in List.of(_manager._protocolHandlers)) {
+      try {
+        handler.onDisconnected(key);
+      } catch (error, stackTrace) {
+        logger.severe(
+          () => "A protocol handler failed on the disconnection of $key",
+          error,
+          stackTrace,
+        );
+      }
+    }
+  }
+
   @override
   void onBack(RelayConnection connection) {
     _manager._requests.replayOn(connection);

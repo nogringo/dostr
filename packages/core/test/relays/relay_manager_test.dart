@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_core/protocol.dart';
+import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:test/test.dart';
 
 import '../mocks/fakes.dart';
@@ -10,6 +11,10 @@ class _Recorder extends RelayProtocolHandler {
   final messages = <List<dynamic>>[];
   final notices = <String>[];
   final closed = <String>[];
+  final disconnected = <RelayConnectionKey>[];
+
+  @override
+  void onDisconnected(RelayConnectionKey key) => disconnected.add(key);
 
   @override
   bool onMessage(RelayConnectionKey key, List<dynamic> message) {
@@ -306,6 +311,51 @@ void main() {
     relay.sendToAll(['NEG-MSG', 'neg-1', 'efgh']);
     await Future<void>.delayed(const Duration(milliseconds: 200));
     expect(recorder.messages, hasLength(1));
+  });
+
+  group('tells protocol handlers a socket ended', () {
+    late MockRelay relay;
+    late RelayConnectionKey key;
+    late _Recorder recorder;
+    late ClaimConnections claim;
+
+    setUp(() async {
+      relay = await startRelay();
+      key = RelayConnectionKey.anonymous(relay.url);
+      recorder = _Recorder();
+      claim = ClaimConnections({key});
+      manager.addProtocolHandler(recorder);
+      manager.addProtocolHandler(claim);
+      await manager.connectRelay(relay.url);
+    });
+
+    test('when the relay drops it', () async {
+      await relay.dropConnections();
+
+      await eventually(() => recorder.disconnected.isNotEmpty);
+      expect(recorder.disconnected, [key]);
+    });
+
+    test('when the connection is closed', () async {
+      await manager.closeConnection(key);
+
+      expect(recorder.disconnected, [key]);
+    });
+
+    test('when the manager is suspended', () async {
+      await manager.suspend();
+
+      expect(recorder.disconnected, [key]);
+    });
+
+    test('once, when a drop leaves nothing on the connection', () async {
+      manager.removeProtocolHandler(claim);
+
+      await relay.dropConnections();
+
+      await eventually(() => manager.connectivities.isEmpty);
+      expect(recorder.disconnected, [key]);
+    });
   });
 
   test('sends a raw message on the connection of a key', () async {

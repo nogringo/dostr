@@ -437,6 +437,134 @@ void main() {
         ),
       );
     });
+
+    test(
+      'one that only mentions an identity reveals none under allow',
+      () async {
+        final relay = await refusingRelay(
+          (id) => ['NEG-ERR', id, 'blocked: restricted, see auth-required'],
+        );
+
+        await expectLater(
+          nip77
+              .reconcile(
+                relayUrl: relay.url,
+                filter: notes,
+                auth: AuthPolicy.allow(TestSigner(alice)),
+              )
+              .future,
+          throwsA(
+            isA<Nip77RefusedException>().having(
+              (e) => e.code,
+              'code',
+              'blocked',
+            ),
+          ),
+        );
+        expect(relay.clients, hasLength(1), reason: 'no bound connection');
+        expect(relay.received('AUTH'), isEmpty);
+      },
+    );
+
+    test('a restricted one on a bound connection is a refusal', () async {
+      final relay = await startRelay(requireAuth: true);
+      relay.onMessage = (client, message) {
+        if (message[0] != 'NEG-OPEN') return false;
+        client.send(['NEG-ERR', message[1], 'restricted: not a member']);
+        return true;
+      };
+
+      await expectLater(
+        nip77
+            .reconcile(
+              relayUrl: relay.url,
+              filter: notes,
+              auth: AuthPolicy.require(TestSigner(alice)),
+            )
+            .future,
+        throwsA(
+          isA<Nip77RefusedException>().having(
+            (e) => e.code,
+            'code',
+            'restricted',
+          ),
+        ),
+      );
+      expect(relay.receivedNegOpens, hasLength(1), reason: 'not tried again');
+    });
+  });
+
+  group('several Nip77', () {
+    test('share a RelayManager, each getting its answers', () async {
+      final relay = await startRelay();
+      final other = Nip77(relayManager: manager, loadEventIds: (_) async => []);
+      addTearDown(other.dispose);
+
+      final results = await Future.wait([
+        nip77.reconcile(relayUrl: relay.url, filter: notes).future,
+        other
+            .reconcile(
+              relayUrl: relay.url,
+              filter: notes,
+              openTimeout: const Duration(seconds: 2),
+            )
+            .future,
+      ]);
+
+      expect(results.map((r) => r.needIds), everyElement([onRelay]));
+    });
+
+    test('dispose closes the reconciliations and refuses new ones', () async {
+      final relay = await startRelay();
+      relay.silenceNegentropyAfter = 0;
+
+      final response = nip77.reconcile(relayUrl: relay.url, filter: notes);
+      await eventually(() => relay.receivedNegOpens.isNotEmpty);
+      nip77.dispose();
+
+      expect((await response.future).isComplete, isFalse);
+      await eventually(() => relay.received('NEG-CLOSE').isNotEmpty);
+      expect(
+        () => nip77.reconcile(relayUrl: relay.url, filter: notes),
+        throwsStateError,
+      );
+    });
+  });
+
+  group('connection loss', () {
+    Future<(MockRelay, Nip77Response)> waitingOnRelay() async {
+      final relay = await startRelay();
+      relay.silenceNegentropyAfter = 0;
+      final response = nip77.reconcile(
+        relayUrl: relay.url,
+        filter: notes,
+        openTimeout: const Duration(minutes: 1),
+      );
+      await eventually(() => relay.receivedNegOpens.isNotEmpty);
+      return (relay, response);
+    }
+
+    final lost = throwsA(
+      isA<Nip77ConnectionException>().having((e) => e.lost, 'lost', isTrue),
+    );
+
+    test('a dropped socket fails the reconciliation at once', () async {
+      final (relay, response) = await waitingOnRelay();
+      final failed = expectLater(response.future, lost);
+
+      await relay.dropConnections();
+
+      await failed;
+    }, timeout: const Timeout(Duration(seconds: 10)));
+
+    test('a closed connection fails the reconciliation at once', () async {
+      final (relay, response) = await waitingOnRelay();
+      final failed = expectLater(response.future, lost);
+
+      await manager.closeConnection(RelayConnectionKey.anonymous(relay.url));
+
+      await failed;
+    }, timeout: const Timeout(Duration(seconds: 10)));
   });
 
   group('NOTICE', () {
@@ -651,6 +779,40 @@ void main() {
       expect(result.needIds, isEmpty);
       expect(result.haveIds, isEmpty);
       expect(loads, 1);
+    });
+
+    test(
+      'a localIds entry that is not an event throws and sends nothing',
+      () async {
+        final relay = await startRelay();
+
+        for (final entry in [
+          (id: 'xyz', createdAt: 1000),
+          (id: onRelay, createdAt: -1),
+        ]) {
+          expect(
+            () => nip77.reconcile(
+              relayUrl: relay.url,
+              filter: notes,
+              localIds: [entry],
+            ),
+            throwsArgumentError,
+            reason: '$entry',
+          );
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 200));
+        expect(relay.clients, isEmpty);
+      },
+    );
+
+    test('an entry of loadEventIds that is not an event fails it', () async {
+      final relay = await startRelay();
+      local['xyz'] = 1000;
+
+      await expectLater(
+        nip77.reconcile(relayUrl: relay.url, filter: notes).future,
+        throwsArgumentError,
+      );
     });
   });
 

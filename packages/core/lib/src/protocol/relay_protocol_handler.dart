@@ -22,6 +22,10 @@ abstract class RelayProtocolHandler {
   /// A NOTICE from the relay behind [key].
   void onNotice(RelayConnectionKey key, String message) {}
 
+  /// The socket behind [key] dropped, or was closed or suspended. The relay
+  /// forgot what it held for it, even if a new socket replaces it.
+  void onDisconnected(RelayConnectionKey key) {}
+
   /// Whether this handler still needs the connection behind [key]. A
   /// connection it needs is not closed as idle.
   bool hasWorkOn(RelayConnectionKey key) => false;

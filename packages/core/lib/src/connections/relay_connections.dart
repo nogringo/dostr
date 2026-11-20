@@ -36,6 +36,11 @@ abstract interface class ConnectionListener {
   /// nothing needs is forgotten when it drops, rather than brought back.
   bool hasWorkOn(RelayConnectionKey key);
 
+  /// The socket of the connection behind [key] ended, and the relay forgot
+  /// what it carried. [onBack] follows when a new socket replaces it, [onGone]
+  /// when nothing will.
+  void onDisconnected(RelayConnectionKey key);
+
   /// [connection] has a new socket, which must get again what the old one
   /// still owed.
   void onBack(RelayConnection connection);
@@ -480,7 +485,7 @@ class RelayConnections {
         continue;
       }
       _revivals.stop(connection);
-      closing.add(connection.close());
+      closing.add(_endSocket(connection));
     }
     notifyChanged();
     await Future.wait(closing);
@@ -656,7 +661,7 @@ class RelayConnections {
     }
     // the AUTH the relay accepted died with the socket, and so did any still
     // waiting for its OK
-    final retired = connection.close();
+    final retired = _endSocket(connection);
     if (!hasWorkOn(key)) {
       logger.info(() => "Lost $key, nothing left on it");
       unawaited(closeConnection(key));
@@ -702,8 +707,16 @@ class RelayConnections {
     notifyChanged();
     logger.fine(() => "Closing $key");
     _revivals.stop(connection);
-    final closing = connection.close();
+    final closing = _endSocket(connection);
     listener.onGone(key);
+    return closing;
+  }
+
+  /// Closes the socket of [connection], telling the listener when it had one.
+  Future<void> _endSocket(RelayConnection connection) {
+    final hadSocket = connection.relayTransport != null;
+    final closing = connection.close();
+    if (hadSocket) listener.onDisconnected(connection.key);
     return closing;
   }
 

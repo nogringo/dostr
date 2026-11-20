@@ -12,19 +12,24 @@ class _Nip77Internal extends RelayProtocolHandler {
 
   static final Random _random = Random.secure();
 
+  bool _disposed = false;
+
   _Nip77Internal({
     required RelayManager relayManager,
     required Nip77LoadEventIds loadEventIds,
   }) : _relayManager = relayManager,
        _loadEventIds = loadEventIds;
 
+  // the RelayManager stops at the first handler that takes a message
   @override
   bool onMessage(RelayConnectionKey key, List<dynamic> message) {
     switch (message) {
-      case ['NEG-MSG', final String subscriptionId, final String payload, ...]:
+      case ['NEG-MSG', final String subscriptionId, final String payload, ...]
+          when _sessions.containsKey(subscriptionId):
         _processNegMsg(subscriptionId, key, payload);
         return true;
-      case ['NEG-ERR', final String subscriptionId, final String error, ...]:
+      case ['NEG-ERR', final String subscriptionId, final String error, ...]
+          when _sessions.containsKey(subscriptionId):
         final maxRecords = message.length > 3 ? message[3] : null;
         _processNegErr(
           subscriptionId,
@@ -71,6 +76,17 @@ class _Nip77Internal extends RelayProtocolHandler {
     }
   }
 
+  /// The relay forgot the negotiations of that socket, so they cannot go on,
+  /// not even on the socket that replaces it.
+  @override
+  void onDisconnected(RelayConnectionKey key) {
+    for (final state in _sessions.values.toList()) {
+      if (state.connectionKey == key && state.connected) {
+        _fail(state, Nip77ConnectionException(key.url, lost: true));
+      }
+    }
+  }
+
   @override
   bool hasWorkOn(RelayConnectionKey key) => _sessions.values.any(
     (state) => !state.isCompleted && state.connectionKey == key,
@@ -85,6 +101,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     List<({String id, int createdAt})>? localIds,
     AuthPolicy? auth,
   }) {
+    if (_disposed) throw StateError('Nip77 was disposed');
     neg.checkFrameSizeLimit(frameSizeLimit);
     // nothing can carry this reconciliation, and nothing is sent. Raised from
     // the call rather than through a future the caller has had no chance to
@@ -93,6 +110,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     if (connectionKey == null) {
       throw Nip77AuthUnavailableException(relayUrl, auth!.signer!.publicKey);
     }
+    final localItems = localIds == null ? null : _negentropyItems(localIds);
 
     final state = Nip77State(
       subscriptionId: _newSubscriptionId(),
@@ -105,10 +123,19 @@ class _Nip77Internal extends RelayProtocolHandler {
     );
     _sessions[state.subscriptionId] = state;
 
-    _startReconciliation(state, localIds: localIds);
+    _startReconciliation(state, localItems: localItems);
 
     return Nip77Response(state);
   }
+
+  /// Throws an [ArgumentError] for an id that is not 64 hex digits, or a
+  /// creation time out of range.
+  static List<neg.NegentropyItem> _negentropyItems(
+    List<({String id, int createdAt})> events,
+  ) => neg.prepareNegentropyItems([
+    for (final e in events)
+      neg.NegentropyItem.fromHex(timestamp: e.createdAt, idHex: e.id),
+  ]);
 
   /// Random, so reconciliations started in the same instant do not share one.
   /// A clock reading does: on the web it only changes every millisecond.
@@ -119,7 +146,7 @@ class _Nip77Internal extends RelayProtocolHandler {
 
   Future<void> _startReconciliation(
     Nip77State state, {
-    List<({String id, int createdAt})>? localIds,
+    List<neg.NegentropyItem>? localItems,
   }) async {
     try {
       final connectivity = await _openConnection(state);
@@ -130,15 +157,14 @@ class _Nip77Internal extends RelayProtocolHandler {
         _fail(state, Nip77ConnectionException(state.relayUrl));
         return;
       }
+      state.connected = true;
 
-      final local = localIds ?? await _loadEventIds(state.filter);
+      final items =
+          localItems ?? _negentropyItems(await _loadEventIds(state.filter));
       if (state.isCompleted) {
         return; // Guard: the session may have been closed during await
       }
-      state.localItems = neg.prepareNegentropyItems([
-        for (final e in local)
-          neg.NegentropyItem.fromHex(timestamp: e.createdAt, idHex: e.id),
-      ]);
+      state.localItems = items;
 
       _sendNegOpen(state);
     } catch (e) {
@@ -214,12 +240,7 @@ class _Nip77Internal extends RelayProtocolHandler {
     String messageType,
   ) {
     final state = _sessions[subscriptionId];
-    if (state == null) {
-      logger.warning(
-        () => 'Received $messageType for unknown session: $subscriptionId',
-      );
-      return null;
-    }
+    if (state == null) return null;
     if (state.connectionKey != key) {
       logger.warning(
         () =>
@@ -319,13 +340,10 @@ class _Nip77Internal extends RelayProtocolHandler {
     _fail(state, Nip77RefusedException(key.url, reason));
   }
 
-  /// NIP-77 only suggests `blocked` and `closed`, so a relay that gates the
-  /// negotiation behind an identity says so in the machine-readable prefixes
-  /// NIP-01 defines for CLOSED.
-  bool _isAuthRefusal(String message) {
-    final lower = message.toLowerCase();
-    return lower.contains('auth-required') || lower.contains('restricted');
-  }
+  /// NIP-77 only suggests `blocked` and `closed`, so a relay that wants an
+  /// identity says so with the `auth-required` prefix of NIP-42, as for a
+  /// REQ. A `restricted` one already knows the identity, and refuses it.
+  bool _isAuthRefusal(String message) => message.startsWith('auth-required');
 
   void _fail(Nip77State state, Object error) {
     state.completeWithError(error);
@@ -410,6 +428,7 @@ class _Nip77Internal extends RelayProtocolHandler {
   ) async {
     final url = state.connectionKey.url;
     state.movedToBoundConnection = true;
+    state.connected = false;
 
     logger.fine(
       () =>
@@ -435,6 +454,7 @@ class _Nip77Internal extends RelayProtocolHandler {
       return;
     }
     state.connectionKey = bound.key;
+    state.connected = true;
     // sent without waiting for the AUTH: a relay that only challenges on
     // demand needs this NEG-OPEN as the trigger, and the challenge it then
     // sends authenticates the bound connection on its own
@@ -461,5 +481,12 @@ class _Nip77Internal extends RelayProtocolHandler {
       entry.value.close();
     }
     _sessions.clear();
+  }
+
+  void dispose() {
+    if (_disposed) return;
+    _disposed = true;
+    closeAll();
+    _relayManager.removeProtocolHandler(this);
   }
 }
