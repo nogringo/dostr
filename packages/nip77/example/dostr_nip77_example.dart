@@ -7,11 +7,7 @@ Future<void> main() async {
   );
 
   // nothing is stored yet, so every matching event on the relay is needed
-  final nip77 = Nip77(
-    relayManager: relays,
-    loadEventIds: (filter) async => [],
-    loadEvent: (id) async => null,
-  );
+  final nip77 = Nip77(relayManager: relays, loadEventIds: (filter) async => []);
 
   final response = nip77.reconcile(
     relayUrl: RelayUrl.parse('wss://relay.example.com'),

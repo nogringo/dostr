@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
@@ -25,6 +26,14 @@ class NegentropyEncoder {
   /// integer on both native and web, and never touches the wire (infinity is
   /// always encoded as `0`).
   static const int infiniteTimestamp = 9007199254740991;
+
+  /// Smallest frame size limit [reconcile] and [respond] take, other than 0.
+  /// The first range of a message always fits in it.
+  static const int minFrameSizeLimit = 4096;
+
+  /// Room a frame size limit keeps for the fingerprint that ends a message
+  /// cut short, as in the reference implementation
+  static const int _frameSizeMargin = 200;
 
   /// Number of sub-ranges a mismatching range is split into
   static const int _buckets = 16;
@@ -89,21 +98,36 @@ class NegentropyEncoder {
   /// `SHA256(sum of the IDs mod 2^256, little-endian || varint(count))`.
   static Uint8List calculateFingerprint(List<Uint8List> ids) {
     final accumulator = Uint8List(idSize);
-
     for (final id in ids) {
-      var carry = 0;
-      for (var i = 0; i < idSize; i++) {
-        final sum = accumulator[i] + (i < id.length ? id[i] : 0) + carry;
-        accumulator[i] = sum & 0xFF;
-        carry = sum >> 8;
-      }
+      _addId(accumulator, id);
     }
+    return _digest(accumulator, ids.length);
+  }
 
-    final digest = sha256.convert([
-      ...accumulator,
-      ...encodeVarint(ids.length),
-    ]);
+  /// [calculateFingerprint] of the ids of `items[lower..upper)`
+  static Uint8List _fingerprint(
+    List<NegentropyItem> items,
+    int lower,
+    int upper,
+  ) {
+    final accumulator = Uint8List(idSize);
+    for (var i = lower; i < upper; i++) {
+      _addId(accumulator, items[i].id);
+    }
+    return _digest(accumulator, upper - lower);
+  }
 
+  static void _addId(Uint8List accumulator, Uint8List id) {
+    var carry = 0;
+    for (var i = 0; i < idSize; i++) {
+      final sum = accumulator[i] + (i < id.length ? id[i] : 0) + carry;
+      accumulator[i] = sum & 0xFF;
+      carry = sum >> 8;
+    }
+  }
+
+  static Uint8List _digest(Uint8List accumulator, int count) {
+    final digest = sha256.convert([...accumulator, ...encodeVarint(count)]);
     return Uint8List.fromList(digest.bytes.sublist(0, fingerprintSize));
   }
 
@@ -174,22 +198,46 @@ class NegentropyEncoder {
     return (timestamp, idPrefix, pos - offset);
   }
 
-  /// Parses a hex string to bytes
+  /// Parses a hex string to bytes. Throws an [ArgumentError] for an odd
+  /// length and a [FormatException] for a character that is not a hex digit.
   static Uint8List hexToBytes(String hex) {
-    if (hex.length % 2 != 0) {
+    if (hex.length.isOdd) {
       throw ArgumentError('Hex string must have even length');
     }
     final result = Uint8List(hex.length ~/ 2);
     for (var i = 0; i < result.length; i++) {
-      result[i] = int.parse(hex.substring(i * 2, i * 2 + 2), radix: 16);
+      final high = _hexValue(hex.codeUnitAt(2 * i));
+      final low = _hexValue(hex.codeUnitAt(2 * i + 1));
+      if (high < 0 || low < 0) {
+        throw FormatException(
+          'Not a hex digit at offset ${high < 0 ? 2 * i : 2 * i + 1}',
+        );
+      }
+      result[i] = high << 4 | low;
     }
     return result;
   }
 
+  /// Value of the hex digit [codeUnit], or -1
+  static int _hexValue(int codeUnit) {
+    if (codeUnit >= 0x30 && codeUnit <= 0x39) return codeUnit - 0x30;
+    final lower = codeUnit | 0x20;
+    if (lower >= 0x61 && lower <= 0x66) return lower - 0x57;
+    return -1;
+  }
+
   /// Converts bytes to hex string
   static String bytesToHex(List<int> bytes) {
-    return bytes.map((b) => b.toRadixString(16).padLeft(2, '0')).join();
+    final codeUnits = Uint8List(bytes.length * 2);
+    for (var i = 0; i < bytes.length; i++) {
+      final byte = bytes[i];
+      codeUnits[2 * i] = _hexDigits.codeUnitAt(byte >> 4);
+      codeUnits[2 * i + 1] = _hexDigits.codeUnitAt(byte & 0x0F);
+    }
+    return String.fromCharCodes(codeUnits);
   }
+
+  static const String _hexDigits = '0123456789abcdef';
 
   /// Creates the initial message an initiator sends in `NEG-OPEN`.
   static Uint8List createInitialMessage(
@@ -213,14 +261,24 @@ class NegentropyEncoder {
   /// [needIds] are held by the other side only, [haveIds] by us only. A
   /// response consisting of nothing but the version byte means the
   /// reconciliation has converged.
+  ///
+  /// A [frameSizeLimit] other than 0 keeps the response within that many
+  /// bytes, and is at least [minFrameSizeLimit]. A response cut short ends on
+  /// one fingerprint for the rest of the set, which the next rounds split
+  /// again. [items] can come in any order, and are not changed.
   static (Uint8List response, List<String> needIds, List<String> haveIds)
-  reconcile(Uint8List message, List<NegentropyItem> items) {
+  reconcile(
+    Uint8List message,
+    List<NegentropyItem> items, {
+    int frameSizeLimit = 0,
+  }) {
     final needIds = <String>[];
     final haveIds = <String>[];
     final response = _reconcileAux(
       message,
       items,
       isInitiator: true,
+      frameSizeLimit: frameSizeLimit,
       needIds: needIds,
       haveIds: haveIds,
     );
@@ -230,12 +288,17 @@ class NegentropyEncoder {
   /// Reconciles a message received from an initiator, as the responding side.
   ///
   /// Only the initiator learns the have/need sets, so this returns just the
-  /// response message.
-  static Uint8List respond(Uint8List message, List<NegentropyItem> items) {
+  /// response message. [frameSizeLimit] works as in [reconcile].
+  static Uint8List respond(
+    Uint8List message,
+    List<NegentropyItem> items, {
+    int frameSizeLimit = 0,
+  }) {
     return _reconcileAux(
       message,
       items,
       isInitiator: false,
+      frameSizeLimit: frameSizeLimit,
       needIds: [],
       haveIds: [],
     );
@@ -245,9 +308,11 @@ class NegentropyEncoder {
     Uint8List message,
     List<NegentropyItem> items, {
     required bool isInitiator,
+    required int frameSizeLimit,
     required List<String> needIds,
     required List<String> haveIds,
   }) {
+    checkFrameSizeLimit(frameSizeLimit);
     if (message.isEmpty) {
       throw ArgumentError('Empty negentropy message');
     }
@@ -260,6 +325,8 @@ class NegentropyEncoder {
 
     final sorted = _prepare(items);
     final output = _MessageWriter()..addByte(protocolVersion);
+    bool exceedsFrame(int length) =>
+        frameSizeLimit != 0 && length > frameSizeLimit - _frameSizeMargin;
 
     var offset = 1;
     var lastTimestampIn = 0;
@@ -293,7 +360,10 @@ class NegentropyEncoder {
       offset += modeBytes;
 
       final lower = prevIndex;
-      final upper = _lowerBound(sorted, prevIndex, currBound);
+      var upper = _lowerBound(sorted, prevIndex, currBound);
+
+      // what this range adds to the response, dropped if it does not fit
+      _MessageWriter? range;
 
       switch (mode) {
         case modeSkip:
@@ -310,15 +380,14 @@ class NegentropyEncoder {
           );
           offset += fingerprintSize;
 
-          final ourFingerprint = calculateFingerprint([
-            for (var i = lower; i < upper; i++) sorted[i].id,
-          ]);
+          final ourFingerprint = _fingerprint(sorted, lower, upper);
 
           if (_bytesEqual(theirFingerprint, ourFingerprint)) {
             pendingSkip = true;
           } else {
             flushSkip();
-            _splitRange(sorted, lower, upper, currBound, output);
+            range = output.continuation();
+            _splitRange(sorted, lower, upper, currBound, range);
           }
 
         case modeIdList:
@@ -349,17 +418,38 @@ class NegentropyEncoder {
             pendingSkip = true;
           } else {
             flushSkip();
-            output.addBound(currBound);
+            // as many ids as fit, the rest goes to the fingerprint below
+            var end = lower;
+            while (end < upper &&
+                !exceedsFrame(output.length + (end - lower + 1) * idSize)) {
+              end++;
+            }
+            output.addBound(
+              end == upper
+                  ? currBound
+                  : _Bound(sorted[end].timestamp, sorted[end].id),
+            );
             output.addVarint(modeIdList);
-            output.addVarint(upper - lower);
-            for (var i = lower; i < upper; i++) {
+            output.addVarint(end - lower);
+            for (var i = lower; i < end; i++) {
               output.addBytes(sorted[i].id);
             }
+            upper = end;
           }
 
         default:
           throw ArgumentError('Unknown negentropy mode: $mode');
       }
+
+      if (exceedsFrame(output.length + (range?.length ?? 0))) {
+        output.addBound(_infinityBound);
+        output.addVarint(modeFingerprint);
+        output.addBytes(
+          _fingerprint(sorted, range == null ? upper : lower, sorted.length),
+        );
+        return output.toBytes();
+      }
+      if (range != null) output.append(range);
 
       prevBound = currBound;
       prevIndex = upper;
@@ -405,9 +495,7 @@ class NegentropyEncoder {
 
       output.addBound(bound);
       output.addVarint(modeFingerprint);
-      output.addBytes(
-        calculateFingerprint([for (var j = curr; j < next; j++) items[j].id]),
-      );
+      output.addBytes(_fingerprint(items, curr, next));
 
       curr = next;
     }
@@ -449,19 +537,23 @@ class NegentropyEncoder {
     return low;
   }
 
-  /// Sorts by (timestamp, id) ascending and drops duplicates
-  static List<NegentropyItem> _prepare(List<NegentropyItem> items) {
-    items.sort(_compareItems);
+  /// [items] sorted by (timestamp, id) ascending without duplicates, as is
+  /// when [prepareNegentropyItems] already did it
+  static List<NegentropyItem> _prepare(List<NegentropyItem> items) =>
+      items is _PreparedItems ? items._items : _sortedUnique(items);
 
-    final prepared = <NegentropyItem>[];
-    for (final item in items) {
-      if (prepared.isNotEmpty && _compareItems(prepared.last, item) == 0) {
+  static List<NegentropyItem> _sortedUnique(Iterable<NegentropyItem> items) {
+    final sorted = [...items]..sort(_compareItems);
+
+    final unique = <NegentropyItem>[];
+    for (final item in sorted) {
+      if (unique.isNotEmpty && _compareItems(unique.last, item) == 0) {
         continue;
       }
-      prepared.add(item);
+      unique.add(item);
     }
 
-    return prepared;
+    return unique;
   }
 
   static int _compareItems(NegentropyItem a, NegentropyItem b) {
@@ -506,6 +598,30 @@ class NegentropyEncoder {
   static final _Bound _infinityBound = _Bound(infiniteTimestamp, Uint8List(0));
 }
 
+/// Throws an [ArgumentError] for a frame size limit
+/// [NegentropyEncoder.reconcile] and [NegentropyEncoder.respond] do not take.
+void checkFrameSizeLimit(int frameSizeLimit) {
+  if (frameSizeLimit != 0 &&
+      frameSizeLimit < NegentropyEncoder.minFrameSizeLimit) {
+    throw ArgumentError.value(
+      frameSizeLimit,
+      'frameSizeLimit',
+      'must be 0 or at least ${NegentropyEncoder.minFrameSizeLimit}',
+    );
+  }
+}
+
+/// [items] sorted and without duplicates once, so a session that reconciles
+/// them over many rounds does not sort them again each round.
+List<NegentropyItem> prepareNegentropyItems(Iterable<NegentropyItem> items) =>
+    _PreparedItems(NegentropyEncoder._sortedUnique(items));
+
+final class _PreparedItems extends UnmodifiableListView<NegentropyItem> {
+  _PreparedItems(this._items) : super(_items);
+
+  final List<NegentropyItem> _items;
+}
+
 /// Represents an item for negentropy reconciliation
 class NegentropyItem {
   final int timestamp;
@@ -537,8 +653,21 @@ class NegentropyItem {
 /// Accumulates a message while delta encoding bound timestamps against the
 /// previously written bound.
 class _MessageWriter {
-  final BytesBuilder _output = BytesBuilder();
-  int _lastTimestamp = 0;
+  _MessageWriter([this._lastTimestamp = 0]);
+
+  final BytesBuilder _output = BytesBuilder(copy: false);
+  int _lastTimestamp;
+
+  int get length => _output.length;
+
+  /// A writer whose bounds follow the ones written here so far, for
+  /// [append] to add back
+  _MessageWriter continuation() => _MessageWriter(_lastTimestamp);
+
+  void append(_MessageWriter continued) {
+    _output.add(continued._output.takeBytes());
+    _lastTimestamp = continued._lastTimestamp;
+  }
 
   void addByte(int byte) => _output.addByte(byte);
 

@@ -6,18 +6,17 @@ part of 'nip77.dart';
 class _Nip77Internal extends RelayProtocolHandler {
   final RelayManager _relayManager;
   final Nip77LoadEventIds _loadEventIds;
-  final Nip77LoadEvent _loadEvent;
 
   /// in-flight reconciliations, by subscription id
   final Map<String, Nip77State> _sessions = {};
 
+  static final Random _random = Random.secure();
+
   _Nip77Internal({
     required RelayManager relayManager,
     required Nip77LoadEventIds loadEventIds,
-    required Nip77LoadEvent loadEvent,
   }) : _relayManager = relayManager,
-       _loadEventIds = loadEventIds,
-       _loadEvent = loadEvent;
+       _loadEventIds = loadEventIds;
 
   @override
   bool onMessage(RelayConnectionKey key, List<dynamic> message) {
@@ -26,7 +25,13 @@ class _Nip77Internal extends RelayProtocolHandler {
         _processNegMsg(subscriptionId, key, payload);
         return true;
       case ['NEG-ERR', final String subscriptionId, final String error, ...]:
-        _processNegErr(subscriptionId, key, error);
+        final maxRecords = message.length > 3 ? message[3] : null;
+        _processNegErr(
+          subscriptionId,
+          key,
+          error,
+          maxRecords: maxRecords is num ? maxRecords.toInt() : null,
+        );
         return true;
     }
     return false;
@@ -44,7 +49,8 @@ class _Nip77Internal extends RelayProtocolHandler {
   }
 
   /// Some relays answer a NEG-OPEN they do not understand with a NOTICE, so
-  /// one that looks like a refusal fails every negotiation on that relay.
+  /// one that looks like a refusal fails the negotiations of that connection
+  /// still waiting for their first answer.
   @override
   void onNotice(RelayConnectionKey key, String message) {
     final lower = message.toLowerCase();
@@ -57,12 +63,11 @@ class _Nip77Internal extends RelayProtocolHandler {
         lower.contains('nip-77');
     if (!refusesNegentropy) return;
 
-    for (final entry in _sessions.entries.toList()) {
-      if (entry.value.relayUrl != key.url) continue;
-      entry.value.completeWithError(
-        Exception('Relay does not support NIP-77: $message'),
-      );
-      _sessions.remove(entry.key);
+    for (final state in _sessions.values.toList()) {
+      if (state.connectionKey != key || !state.negOpenSent || state.answered) {
+        continue;
+      }
+      _fail(state, Nip77NotSupportedException(key.url, message));
     }
   }
 
@@ -74,11 +79,13 @@ class _Nip77Internal extends RelayProtocolHandler {
   Nip77Response reconcile({
     required RelayUrl relayUrl,
     required Filter filter,
-    Duration openTimeout = Nip77.defaultOpenTimeout,
-    Duration idleTimeout = Nip77.defaultIdleTimeout,
-    List<String>? localIds,
+    required Duration openTimeout,
+    required Duration idleTimeout,
+    required int frameSizeLimit,
+    List<({String id, int createdAt})>? localIds,
     AuthPolicy? auth,
   }) {
+    neg.checkFrameSizeLimit(frameSizeLimit);
     // nothing can carry this reconciliation, and nothing is sent. Raised from
     // the call rather than through a future the caller has had no chance to
     // listen to yet
@@ -87,37 +94,32 @@ class _Nip77Internal extends RelayProtocolHandler {
       throw Nip77AuthUnavailableException(relayUrl, auth!.signer!.publicKey);
     }
 
-    // Generate subscription ID
-    final subscriptionId = 'neg-${DateTime.now().microsecondsSinceEpoch}';
-
-    // Create session state (starts with empty items, will be populated async)
     final state = Nip77State(
-      subscriptionId: subscriptionId,
+      subscriptionId: _newSubscriptionId(),
       connectionKey: connectionKey,
       filter: filter,
-      localItems: [],
       openTimeout: openTimeout,
       idleTimeout: idleTimeout,
+      frameSizeLimit: frameSizeLimit,
       auth: auth,
     );
+    _sessions[state.subscriptionId] = state;
 
-    // Register in global state
-    _sessions[subscriptionId] = state;
-
-    // Start async initialization
-    _startReconciliation(
-      localIds: localIds,
-      subscriptionId: subscriptionId,
-      state: state,
-    );
+    _startReconciliation(state, localIds: localIds);
 
     return Nip77Response(state);
   }
 
-  Future<void> _startReconciliation({
-    required String subscriptionId,
-    required Nip77State state,
-    List<String>? localIds,
+  /// Random, so reconciliations started in the same instant do not share one.
+  /// A clock reading does: on the web it only changes every millisecond.
+  String _newSubscriptionId() {
+    final bytes = List.generate(16, (_) => _random.nextInt(256));
+    return 'neg-${neg.NegentropyEncoder.bytesToHex(bytes)}';
+  }
+
+  Future<void> _startReconciliation(
+    Nip77State state, {
+    List<({String id, int createdAt})>? localIds,
   }) async {
     try {
       final connectivity = await _openConnection(state);
@@ -125,31 +127,22 @@ class _Nip77Internal extends RelayProtocolHandler {
         return; // Guard: the session may have been closed during await
       }
       if (connectivity == null) {
-        state.completeWithError(
-          Exception('Failed to connect to relay: ${state.connectionKey}'),
-        );
-        _sessions.remove(subscriptionId);
+        _fail(state, Nip77ConnectionException(state.relayUrl));
         return;
       }
 
-      // Build local items from cache or provided IDs
-      List<neg.NegentropyItem> localItems;
-      if (localIds != null) {
-        localItems = await _buildItemsFromIds(localIds);
-      } else {
-        localItems = await _buildItemsFromFilter(state.filter);
-      }
+      final local = localIds ?? await _loadEventIds(state.filter);
       if (state.isCompleted) {
         return; // Guard: the session may have been closed during await
       }
-
-      // Update state with local items
-      state.localItems.addAll(localItems);
+      state.localItems = neg.prepareNegentropyItems([
+        for (final e in local)
+          neg.NegentropyItem.fromHex(timestamp: e.createdAt, idHex: e.id),
+      ]);
 
       _sendNegOpen(state);
     } catch (e) {
-      state.completeWithError(e);
-      _sessions.remove(subscriptionId);
+      _fail(state, e);
     }
   }
 
@@ -174,7 +167,6 @@ class _Nip77Internal extends RelayProtocolHandler {
 
     final initialMessage = neg.NegentropyEncoder.createInitialMessage(
       state.localItems,
-      neg.NegentropyEncoder.idSize,
     );
     final negOpen = [
       'NEG-OPEN',
@@ -183,6 +175,7 @@ class _Nip77Internal extends RelayProtocolHandler {
       neg.NegentropyEncoder.bytesToHex(initialMessage),
     ];
     _relayManager.send(state.connectionKey, negOpen);
+    state.negOpenSent = true;
     _awaitAnswer(state, state.openTimeout, openUnanswered: true);
 
     logger.fine(
@@ -209,31 +202,6 @@ class _Nip77Internal extends RelayProtocolHandler {
         ),
       );
     });
-  }
-
-  Future<List<neg.NegentropyItem>> _buildItemsFromIds(List<String> ids) async {
-    final items = <neg.NegentropyItem>[];
-
-    for (final id in ids) {
-      final event = await _loadEvent(id);
-      if (event != null) {
-        items.add(
-          neg.NegentropyItem.fromHex(timestamp: event.createdAt, idHex: id),
-        );
-      } else {
-        items.add(neg.NegentropyItem.fromHex(timestamp: 0, idHex: id));
-      }
-    }
-
-    return items;
-  }
-
-  Future<List<neg.NegentropyItem>> _buildItemsFromFilter(Filter filter) async {
-    final events = await _loadEventIds(filter);
-    return [
-      for (final e in events)
-        neg.NegentropyItem.fromHex(timestamp: e.createdAt, idHex: e.id),
-    ];
   }
 
   /// The session [subscriptionId] belongs to, when the message really came
@@ -271,42 +239,47 @@ class _Nip77Internal extends RelayProtocolHandler {
   ) {
     final state = _sessionFor(subscriptionId, key, 'NEG-MSG');
     if (state == null) return;
+    state.answered = true;
 
+    final Uint8List? response;
     try {
-      final messageBytes = neg.NegentropyEncoder.hexToBytes(payload);
-      final response = state.processMessage(messageBytes);
-
-      if (response == null) {
-        // Reconciliation complete
-        _sendNegClose(key, subscriptionId);
-        state.complete();
-        _sessions.remove(subscriptionId);
-        logger.fine(
-          () =>
-              'NEG reconciliation complete: need=${state.needIds.length}, have=${state.haveIds.length}',
-        );
-      } else {
-        // Send response (hex encoded)
-        final responsePayload = neg.NegentropyEncoder.bytesToHex(response);
-        _relayManager.send(key, ['NEG-MSG', subscriptionId, responsePayload]);
-        _awaitAnswer(state, state.idleTimeout, openUnanswered: false);
-        logger.fine(() => 'NEG-MSG sent to $key');
-      }
+      response = state.processMessage(
+        neg.NegentropyEncoder.hexToBytes(payload),
+      );
     } catch (e) {
       logger.severe(() => 'Error processing NEG-MSG: $e');
-      state.completeWithError(e);
-      _sessions.remove(subscriptionId);
+      _sendNegClose(key, subscriptionId);
+      _fail(state, Nip77MalformedMessageException(key.url, e));
+      return;
     }
+
+    if (response == null) {
+      _sendNegClose(key, subscriptionId);
+      state.complete();
+      _sessions.remove(subscriptionId);
+      logger.fine(
+        () =>
+            'NEG reconciliation complete: need=${state.needIds.length}, have=${state.haveIds.length}',
+      );
+      return;
+    }
+
+    final responsePayload = neg.NegentropyEncoder.bytesToHex(response);
+    _relayManager.send(key, ['NEG-MSG', subscriptionId, responsePayload]);
+    _awaitAnswer(state, state.idleTimeout, openUnanswered: false);
+    logger.fine(() => 'NEG-MSG sent to $key');
   }
 
   /// Process incoming NEG-ERR from a relay
   void _processNegErr(
     String subscriptionId,
     RelayConnectionKey key,
-    String errorMsg,
-  ) {
+    String errorMsg, {
+    int? maxRecords,
+  }) {
     final state = _sessionFor(subscriptionId, key, 'NEG-ERR');
     if (state == null) return;
+    state.answered = true;
 
     logger.severe(() => 'NEG-ERR from $key: $errorMsg');
 
@@ -315,13 +288,10 @@ class _Nip77Internal extends RelayProtocolHandler {
       return;
     }
 
-    if (errorMsg.contains('CLOSED')) {
-      state.completeWithError(Nip77NotSupportedException(key.url, errorMsg));
-    } else {
-      state.completeWithError(Exception(errorMsg));
-    }
-
-    _sessions.remove(subscriptionId);
+    _fail(
+      state,
+      Nip77RefusedException(key.url, errorMsg, maxRecords: maxRecords),
+    );
   }
 
   /// Process a CLOSED that ends a negotiation. NIP-77 only names NEG-ERR, but
@@ -334,6 +304,7 @@ class _Nip77Internal extends RelayProtocolHandler {
   ) {
     final state = _sessionFor(subscriptionId, key, 'CLOSED');
     if (state == null) return;
+    state.answered = true;
 
     final reason = message ?? '';
     logger.fine(
@@ -345,8 +316,7 @@ class _Nip77Internal extends RelayProtocolHandler {
       return;
     }
 
-    state.completeWithError(Exception(reason.isEmpty ? 'closed' : reason));
-    _sessions.remove(subscriptionId);
+    _fail(state, Nip77RefusedException(key.url, reason));
   }
 
   /// NIP-77 only suggests `blocked` and `closed`, so a relay that gates the

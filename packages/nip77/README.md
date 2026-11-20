@@ -22,7 +22,6 @@ import 'package:dostr_nip77/dostr_nip77.dart';
 final nip77 = Nip77(
   relayManager: relays,
   loadEventIds: store.loadEventIdsWithCreatedAt,
-  loadEvent: store.loadEvent,
 );
 
 final relay = RelayUrl.parse('wss://relay.example.com');
@@ -36,8 +35,12 @@ final result = await response.future;
 ```
 
 `loadEventIds` returns the id and creation time of the local events matching a filter.
-`loadEvent` reads one local event, for the ids you pass to `reconcile` as `localIds`.
+Pass them to `reconcile` as `localIds` instead to compare another set.
+
 `needStream` and `haveStream` emit ids as rounds complete.
+Each keeps its ids until it is listened to, and closes when the reconciliation ends, whatever the outcome: `future` tells which.
+Listen to `future` even when only the streams matter, since a failure nobody listens to is reported as an uncaught error.
+`nip77.close(response.subscriptionId)` ends a reconciliation early: its future completes with what the rounds so far found, and `isComplete` false.
 
 Fetch `result.needIds` with the `RelayReqs` of `dostr_core`, and publish `result.haveIds` with its `RelayPublishes`.
 
@@ -57,6 +60,20 @@ final response = nip77.reconcile(
 
 There is no overall deadline: a large sync runs for as long as the relay keeps answering.
 When one of the two runs out, the future fails with `Nip77TimeoutException`, whose `openUnanswered` tells which.
+
+## Frame size
+
+Each NEG-MSG holds at most `frameSizeLimit` bytes before hex encoding, 60000 by default, so it stays under 128 KiB on the wire.
+A larger difference takes more rounds instead of one message a relay may refuse.
+Pass 0 for no limit, or at least 4096 (`NegentropyEncoder.minFrameSizeLimit`), the room the first range of a message needs.
+
+```dart
+final response = nip77.reconcile(
+  relayUrl: relay,
+  filter: filter,
+  frameSizeLimit: 16000,
+);
+```
 
 ## Relay authentication (NIP-42)
 
@@ -85,8 +102,23 @@ Rather than fall back to the anonymous one, which is what `require` rules out, n
 
 ## Errors
 
-A relay that refuses the negotiation with a `NEG-ERR` naming `CLOSED` fails it with `Nip77NotSupportedException`.
-One that ignores `NEG-OPEN` only fails with `Nip77TimeoutException` once `openTimeout` runs out (30 s by default).
+Every failure of `future` is a `Nip77Exception`:
+
+| exception | what happened |
+| --- | --- |
+| `Nip77NotSupportedException` | the relay answered NEG-OPEN with a NOTICE that says it does not support NIP-77 |
+| `Nip77RefusedException` | the relay sent a NEG-ERR, or a CLOSED that asks for no identity |
+| `Nip77TimeoutException` | the relay stopped answering, see [Timeouts](#timeouts) |
+| `Nip77AuthRequiredException` | the relay asked for an identity `auth` rules out |
+| `Nip77ConnectionException` | no connection to the relay opened, or the `AuthHandler` refused to bind one |
+| `Nip77MalformedMessageException` | the relay sent a NEG-MSG the codec cannot read |
+
+Errors thrown by `loadEventIds` come through as they are.
+
+`Nip77RefusedException.code` gives the prefix of the reason.
+NIP-77 suggests `blocked`, for a query too big or too old, with `maxRecords` when the relay says how many records it processes, and `closed`, for a negotiation the relay timed out.
+
+A relay that ignores NEG-OPEN only fails with `Nip77TimeoutException` once `openTimeout` runs out (30 s by default).
 Pass a shorter `openTimeout` if that wait is too long:
 
 ```dart
@@ -100,12 +132,17 @@ try {
 } on Nip77NotSupportedException catch (e) {
   print('Relay does not support NIP-77: ${e.message}');
   // fall back to a plain REQ
+} on Nip77RefusedException catch (e) {
+  if (e.code == 'blocked') {
+    // narrow the filter, or fall back to a plain REQ
+  }
 } on Nip77TimeoutException catch (e) {
   print('Reconciliation timed out: ${e.timeout}');
 }
 ```
 
-A relay that requires an identity you did not give it fails with `Nip77AuthRequiredException`:
+A relay that requires an identity you did not give it fails with `Nip77AuthRequiredException`.
+An `auth` whose account cannot sign throws `Nip77AuthUnavailableException` from `reconcile` itself, before anything is sent:
 
 ```dart
 try {
@@ -124,4 +161,5 @@ try {
 ## Coming from `ndk` or `dostr_core`
 
 `package:dostr_core/shared/nips/nip77/negentropy.dart` and the `Nip77`, `Nip77Response` and `Nip77Result` classes are now all in `package:dostr_nip77/dostr_nip77.dart`.
-`Nip77` takes the `RelayManager` and two cache reads instead of `GlobalState` and a `CacheManager`, and no longer has `processNegMsg`, `processNegErr` or `processNegClosed`: it registers itself on the `RelayManager`.
+`Nip77` takes the `RelayManager` and `loadEventIds` instead of `GlobalState` and a `CacheManager`, and no longer has `processNegMsg`, `processNegErr` or `processNegClosed`: it registers itself on the `RelayManager`.
+`localIds` takes each id with its creation time, and `needStream` and `haveStream` are single-subscription streams.

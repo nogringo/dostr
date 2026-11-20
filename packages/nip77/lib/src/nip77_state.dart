@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:typed_data';
 
 import 'package:dostr_core/dostr_core.dart';
-import 'package:rxdart/rxdart.dart';
 
 import 'negentropy.dart';
 
@@ -27,6 +26,9 @@ class Nip77State implements TimeoutPausable {
   /// how long the relay may stay silent between two rounds
   final Duration idleTimeout;
 
+  /// most bytes of one message sent to the relay, 0 for no limit
+  final int frameSizeLimit;
+
   /// whether the negotiation already moved from the anonymous connection to a
   /// bound one
   bool movedToBoundConnection = false;
@@ -34,17 +36,22 @@ class Nip77State implements TimeoutPausable {
   /// whether AUTH was already sent for the bound connection after a refusal
   bool authenticatedAfterRefusal = false;
 
+  /// whether a NEG-OPEN went out
+  bool negOpenSent = false;
+
+  /// whether the relay answered a NEG-OPEN, even with a refusal, which shows
+  /// it supports NIP-77
+  bool answered = false;
+
   /// Relay this session is connected to
   RelayUrl get relayUrl => connectionKey.url;
 
-  /// Local items for reconciliation
-  final List<NegentropyItem> localItems;
+  /// Local items for reconciliation, sorted once by [prepareNegentropyItems]
+  List<NegentropyItem> localItems = const [];
 
-  /// Stream controller for IDs we need from the relay
-  final _needController = BehaviorSubject<String>();
+  final _needController = StreamController<String>();
 
-  /// Stream controller for IDs we have that the relay doesn't
-  final _haveController = BehaviorSubject<String>();
+  final _haveController = StreamController<String>();
 
   /// All need IDs accumulated
   final List<String> needIds = [];
@@ -52,22 +59,17 @@ class Nip77State implements TimeoutPausable {
   /// All have IDs accumulated
   final List<String> haveIds = [];
 
-  /// Completer for session completion
   final Completer<Nip77Result> _completer = Completer<Nip77Result>();
 
-  /// Whether the session has completed
   bool _isCompleted = false;
-
-  /// Error if any
-  String? error;
 
   Nip77State({
     required this.subscriptionId,
     required this.connectionKey,
     required this.filter,
-    required this.localItems,
     required this.openTimeout,
     required this.idleTimeout,
+    required this.frameSizeLimit,
     this.auth,
   });
 
@@ -141,36 +143,46 @@ class Nip77State implements TimeoutPausable {
   /// Process an incoming NEG-MSG from relay
   /// Returns the response message bytes to send back, or null if done
   Uint8List? processMessage(Uint8List messageBytes) {
-    try {
-      final (response, newNeedIds, newHaveIds) = NegentropyEncoder.reconcile(
-        messageBytes,
-        localItems,
-      );
+    final (response, newNeedIds, newHaveIds) = NegentropyEncoder.reconcile(
+      messageBytes,
+      localItems,
+      frameSizeLimit: frameSizeLimit,
+    );
 
-      // Add newly discovered IDs
-      for (final id in newNeedIds) {
-        needIds.add(id);
-        _needController.add(id);
-      }
-      for (final id in newHaveIds) {
-        haveIds.add(id);
-        _haveController.add(id);
-      }
-
-      // Check if we're done (response only has version byte)
-      if (response.length <= 1) {
-        return null;
-      }
-
-      return response;
-    } catch (e) {
-      error = e.toString();
-      rethrow;
+    for (final id in newNeedIds) {
+      needIds.add(id);
+      _needController.add(id);
     }
+    for (final id in newHaveIds) {
+      haveIds.add(id);
+      _haveController.add(id);
+    }
+
+    // Check if we're done (response only has version byte)
+    if (response.length <= 1) {
+      return null;
+    }
+
+    return response;
   }
 
   /// Complete the session successfully
-  void complete() {
+  void complete() => _end(isComplete: true);
+
+  /// Complete the session with an error
+  void completeWithError(Object error) {
+    if (_isCompleted) return;
+    _isCompleted = true;
+    cancelTimeout();
+    _needController.close();
+    _haveController.close();
+    _completer.completeError(error);
+  }
+
+  /// Ends the session before it converged, with what it found so far
+  void close() => _end(isComplete: false);
+
+  void _end({required bool isComplete}) {
     if (_isCompleted) return;
     _isCompleted = true;
     cancelTimeout();
@@ -180,36 +192,9 @@ class Nip77State implements TimeoutPausable {
       Nip77Result(
         needIds: List.unmodifiable(needIds),
         haveIds: List.unmodifiable(haveIds),
+        isComplete: isComplete,
       ),
     );
-  }
-
-  /// Complete the session with an error
-  void completeWithError(Object error) {
-    if (_isCompleted) return;
-    _isCompleted = true;
-    cancelTimeout();
-    this.error = error.toString();
-    _needController.close();
-    _haveController.close();
-    _completer.completeError(error);
-  }
-
-  /// Close the session without completing
-  void close() {
-    if (_isCompleted) return;
-    _isCompleted = true;
-    cancelTimeout();
-    _needController.close();
-    _haveController.close();
-    if (!_completer.isCompleted) {
-      _completer.complete(
-        Nip77Result(
-          needIds: List.unmodifiable(needIds),
-          haveIds: List.unmodifiable(haveIds),
-        ),
-      );
-    }
   }
 }
 
@@ -221,9 +206,19 @@ class Nip77Result {
   /// IDs that we have that the relay doesn't
   final List<String> haveIds;
 
-  Nip77Result({required this.needIds, required this.haveIds});
+  /// Whether the reconciliation ran until both sides agreed. It is false when
+  /// `Nip77.close` or `Nip77.closeAll` ended it first: [needIds] and
+  /// [haveIds] then hold only what the rounds so far found.
+  final bool isComplete;
+
+  Nip77Result({
+    required this.needIds,
+    required this.haveIds,
+    required this.isComplete,
+  });
 
   @override
   String toString() =>
-      'Nip77Result(need: ${needIds.length}, have: ${haveIds.length})';
+      'Nip77Result(need: ${needIds.length}, have: ${haveIds.length}'
+      '${isComplete ? '' : ', closed early'})';
 }

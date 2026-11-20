@@ -17,37 +17,60 @@ List<NegentropyItem> _items(
 ];
 
 /// Drives a full reconciliation to convergence and returns what the initiator
-/// learned.
-({List<String> needIds, List<String> haveIds, int rounds}) _syncToCompletion(
+/// learned, and the longest message either side sent.
+({List<String> needIds, List<String> haveIds, int rounds, int longestMessage})
+_syncToCompletion(
   List<NegentropyItem> initiator,
   List<NegentropyItem> responder, {
   int maxRounds = 50,
+  int initiatorFrameSizeLimit = 0,
+  int responderFrameSizeLimit = 0,
 }) {
   final needIds = <String>[];
   final haveIds = <String>[];
   var message = NegentropyEncoder.createInitialMessage(initiator);
+  var longestMessage = message.length;
 
   for (var round = 1; round <= maxRounds; round++) {
-    final response = NegentropyEncoder.respond(message, responder);
+    final response = NegentropyEncoder.respond(
+      message,
+      responder,
+      frameSizeLimit: responderFrameSizeLimit,
+    );
+    longestMessage = max(longestMessage, response.length);
     if (response.length == 1) {
-      return (needIds: needIds, haveIds: haveIds, rounds: round);
+      return (
+        needIds: needIds,
+        haveIds: haveIds,
+        rounds: round,
+        longestMessage: longestMessage,
+      );
     }
 
     final (next, newNeed, newHave) = NegentropyEncoder.reconcile(
       response,
       initiator,
+      frameSizeLimit: initiatorFrameSizeLimit,
     );
     needIds.addAll(newNeed);
     haveIds.addAll(newHave);
+    longestMessage = max(longestMessage, next.length);
 
     if (next.length == 1) {
-      return (needIds: needIds, haveIds: haveIds, rounds: round);
+      return (
+        needIds: needIds,
+        haveIds: haveIds,
+        rounds: round,
+        longestMessage: longestMessage,
+      );
     }
     message = next;
   }
 
   fail('reconciliation did not converge within $maxRounds rounds');
 }
+
+String _hex(NegentropyItem item) => NegentropyEncoder.bytesToHex(item.id);
 
 void main() {
   group('NegentropyEncoder Varint', () {
@@ -584,6 +607,120 @@ void main() {
     });
   });
 
+  group('NegentropyEncoder items', () {
+    test('leaves the caller\'s list in its order', () {
+      final items = _items(40).reversed.toList();
+      final before = [...items];
+
+      final message = NegentropyEncoder.createInitialMessage(items);
+      NegentropyEncoder.reconcile(
+        NegentropyEncoder.respond(message, _items(20)),
+        items,
+      );
+
+      expect(items, orderedEquals(before));
+    });
+
+    test('takes a read-only list', () {
+      final items = List<NegentropyItem>.unmodifiable(_items(40).reversed);
+
+      final result = _syncToCompletion(items, _items(20));
+
+      expect(result.haveIds, hasLength(20));
+    });
+  });
+
+  group('NegentropyEncoder frame size limit', () {
+    // _id repeats every 256 values
+    Uint8List idOf(int i) =>
+        Uint8List.fromList(sha256.convert('$i'.codeUnits).bytes);
+
+    // a third of the set on one side only, a third on the other, in a set
+    // large enough that a round without a limit sends far more than one frame
+    final local = [
+      for (var i = 0; i < 6000; i++)
+        if (i % 3 != 0)
+          NegentropyItem(timestamp: 1700000000 + i ~/ 7, id: idOf(i)),
+    ];
+    final remote = [
+      for (var i = 0; i < 6000; i++)
+        if (i % 3 != 1)
+          NegentropyItem(timestamp: 1700000000 + i ~/ 7, id: idOf(i)),
+    ];
+    final onlyLocal = local
+        .map(_hex)
+        .toSet()
+        .difference(remote.map(_hex).toSet());
+    final onlyRemote = remote
+        .map(_hex)
+        .toSet()
+        .difference(local.map(_hex).toSet());
+
+    test('a round without a limit sends more than one frame', () {
+      final result = _syncToCompletion(local, remote);
+
+      expect(result.longestMessage, greaterThan(4096));
+    });
+
+    for (final (initiatorLimit, responderLimit) in [
+      (4096, 0),
+      (0, 4096),
+      (4096, 4096),
+      (5000, 12000),
+    ]) {
+      test('keeps every message within the limits of its side '
+          '($initiatorLimit, $responderLimit) and reconciles exactly', () {
+        final needIds = <String>[];
+        final haveIds = <String>[];
+        var message = NegentropyEncoder.createInitialMessage(local);
+
+        for (var round = 1; ; round++) {
+          expect(round, lessThan(500), reason: 'it converges');
+          final response = NegentropyEncoder.respond(
+            message,
+            remote,
+            frameSizeLimit: responderLimit,
+          );
+          if (responderLimit != 0) {
+            expect(response.length, lessThanOrEqualTo(responderLimit));
+          }
+          if (response.length == 1) break;
+
+          final (next, newNeed, newHave) = NegentropyEncoder.reconcile(
+            response,
+            local,
+            frameSizeLimit: initiatorLimit,
+          );
+          needIds.addAll(newNeed);
+          haveIds.addAll(newHave);
+          if (initiatorLimit != 0) {
+            expect(next.length, lessThanOrEqualTo(initiatorLimit));
+          }
+          if (next.length == 1) break;
+          message = next;
+        }
+
+        expect(needIds, hasLength(onlyRemote.length), reason: 'no repeats');
+        expect(needIds.toSet(), equals(onlyRemote));
+        expect(haveIds, hasLength(onlyLocal.length), reason: 'no repeats');
+        expect(haveIds.toSet(), equals(onlyLocal));
+      });
+    }
+
+    test('rejects a limit too small to hold one range', () {
+      final message = NegentropyEncoder.createInitialMessage(_items(3));
+
+      expect(
+        () => NegentropyEncoder.reconcile(message, [], frameSizeLimit: 4095),
+        throwsArgumentError,
+      );
+      expect(
+        () => NegentropyEncoder.respond(message, [], frameSizeLimit: -1),
+        throwsArgumentError,
+      );
+    });
+  });
+
   group('NegentropyEncoder Varint Edge Cases', () {
     test('encodes large timestamps', () {
       // Unix timestamp in seconds (current era)
@@ -625,6 +762,16 @@ void main() {
 
     test('hexToBytes throws on odd length', () {
       expect(() => NegentropyEncoder.hexToBytes('ABC'), throwsArgumentError);
+    });
+
+    test('hexToBytes rejects what is not a hex digit', () {
+      for (final hex in ['zz', '+f', '-1', ' a', 'g0']) {
+        expect(
+          () => NegentropyEncoder.hexToBytes(hex),
+          throwsFormatException,
+          reason: hex,
+        );
+      }
     });
 
     test('bytesToHex always lowercase', () {

@@ -18,8 +18,6 @@ class LocalEvents {
       if (filter.matches(event)) (id: event.id, createdAt: event.createdAt),
   ];
 
-  Future<Nip01Event?> loadEvent(String id) async => _events[id];
-
   List<Nip01Event> eventsWithIds(Iterable<String> ids) => [
     for (final id in ids)
       if (_events[id] case final event?) event,

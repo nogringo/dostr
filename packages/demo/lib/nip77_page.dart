@@ -124,6 +124,8 @@ class _Nip77PageState extends State<Nip77Page> {
       '$relayUrl does not support NIP-77',
     Nip77TimeoutException(:final timeout) =>
       'Reconciliation timed out after ${timeout.inSeconds}s',
+    Nip77RefusedException(:final relayUrl, :final reason) =>
+      '$relayUrl refused the reconciliation: $reason',
     _ => '$error',
   };
 

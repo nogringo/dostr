@@ -54,7 +54,6 @@ Future<void> main() async {
   nip77 = Nip77(
     relayManager: relayManager,
     loadEventIds: localEvents.loadEventIds,
-    loadEvent: localEvents.loadEvent,
   );
 
   // The default data protection keychain needs an entitlement ad-hoc signing can't grant.
