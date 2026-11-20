@@ -1,7 +1,7 @@
 # dostr_nip77
 
 [NIP-77](https://github.com/nostr-protocol/nips/blob/master/77.md) negentropy sync for Nostr: finds which events a relay has that you don't, and the other way around, without downloading either set.
-It runs on the connections of an [`dostr_core`](https://pub.dev/packages/dostr_core) `RelayManager`, NIP-42 authentication included, with the [Negentropy V1](https://github.com/hoytech/negentropy/blob/master/docs/negentropy-protocol-v1.md) codec under it.
+It runs on the connections of a [`dostr_core`](https://pub.dev/packages/dostr_core) `RelayManager`, NIP-42 authentication included, with the [Negentropy V1](https://github.com/hoytech/negentropy/blob/master/docs/negentropy-protocol-v1.md) codec under it.
 
 Add it next to `dostr_core`.
 
@@ -9,7 +9,7 @@ Add it next to `dostr_core`.
 
 ```yaml
 dependencies:
-  dostr_core: ^0.1.0
+  dostr_core: ^0.1.1
   dostr_nip77: ^0.1.0
 ```
 

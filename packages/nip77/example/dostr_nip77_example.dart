@@ -16,5 +16,6 @@ Future<void> main() async {
   final result = await response.future;
   print('need ${result.needIds.length}, have ${result.haveIds.length}');
 
+  nip77.dispose();
   await relays.dispose();
 }
