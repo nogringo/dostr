@@ -50,6 +50,10 @@ Start here.
 
 `dostr_nip01`: the NIP-01 event (`Nip01Event`), its id computation, and the `EventVerifier` interface, in pure Dart.
 
+#### [🔗 Event store](./packages/event_store/)
+
+`dostr_event_store`: keeps the events a client received by the rules of a relay (NIP-01 replacement, NIP-09 deletion, NIP-40 expiration) and reads them back by filter, with an in-memory store, in pure Dart.
+
 #### [🔗 Signer](./packages/signer/)
 
 `dostr_signer`: the `NostrSigner` interface that signers implement, with their pending requests and errors, and the accounts a request may authenticate as, with the `AuthPolicy` and `AuthHandler` that decide when one is revealed to a relay (NIP-42) or a Blossom server, in pure Dart.

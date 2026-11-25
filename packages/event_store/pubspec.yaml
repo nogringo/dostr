@@ -1,0 +1,24 @@
+name: dostr_event_store
+description: Keeps Nostr events by the rules of a relay (NIP-01 replacement, NIP-09 deletion, NIP-40 expiration) and reads them back by filter, with an in-memory store.
+version: 0.1.0
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
+
+topics:
+  - nostr
+  - dostr
+  - cache
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  clock: ^1.1.2
+  dostr_nip01: ^0.1.1
+
+dev_dependencies:
+  dostr_event_store_test_suite: ^0.1.0
+  lints: ^6.1.0
+  test: ^1.31.1
