@@ -1,11 +1,11 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 
-/// Test double for [BroadcastFn]. Records every call and lets a test dictate
+/// Test double for [PublishFn]. Records every call and lets a test dictate
 /// each relay's answer, throw, or park an attempt mid-flight.
-class FakeBroadcaster {
+class FakePublisher {
   /// What each relay answers. A relay without one is left out of the result,
   /// as one that did not answer.
   final Map<String, RelayPublishOutcome> responders = {};
@@ -20,7 +20,7 @@ class FakeBroadcaster {
   /// test drive an attempt that is mid-flight.
   Completer<Map<RelayUrl, RelayPublishOutcome>>? gate;
 
-  BroadcastFn get fn => (event, relays, {account}) async {
+  PublishFn get fn => (event, relays, {account}) async {
     calls.add((event: event, relays: List.of(relays), account: account));
     if (error != null) throw error!;
     if (gate != null) return gate!.future;

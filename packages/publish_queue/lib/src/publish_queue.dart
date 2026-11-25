@@ -8,16 +8,16 @@ import 'package:sembast/sembast.dart' show Database;
 import 'backoff.dart';
 import 'publish_slots.dart';
 import 'queue_store.dart';
-import 'queued_broadcast.dart';
+import 'queued_publish.dart';
 import 'relay_reachability.dart';
 
 /// Sends [event] to [relays] once and gives what each relay did with it, as
 /// `RelayPublishes.publish` of dostr_core does. [account] is the account the
-/// event was queued under, see [BroadcastQueue.broadcast].
+/// event was queued under, see [PublishQueue.publish].
 ///
 /// It must complete: `RelayPublishes.publish` does once its timeout runs out.
 /// A relay missing from the result counts as one that did not answer.
-typedef BroadcastFn =
+typedef PublishFn =
     Future<Map<RelayUrl, RelayPublishOutcome>> Function(
       Nip01Event event,
       List<RelayUrl> relays, {
@@ -27,7 +27,7 @@ typedef BroadcastFn =
 /// An offline-first queue of events to publish.
 ///
 /// Contract:
-///  - `broadcast(event, relaySet: ...)` persists the event before returning,
+///  - `publish(event, relaySet: ...)` persists the event before returning,
 ///    without touching the network.
 ///  - A [UrlSet] is resolved by the worker, once, then frozen into the
 ///    record's relays.
@@ -35,10 +35,10 @@ typedef BroadcastFn =
 ///    each `pending` entry until every relay has accepted it or refused it for
 ///    good.
 ///  - Records are never auto-deleted. A terminal entry stays in the store for
-///    manual `rebroadcast` or inspection. Explicit removal is available via
+///    manual `republish` or inspection. Explicit removal is available via
 ///    `clearLocalAccountData` and `clearAllLocalData`.
-class BroadcastQueue {
-  final BroadcastFn _broadcastFn;
+class PublishQueue {
+  final PublishFn _publishFn;
   final UrlListFn? _relayListFn;
   final QueueStore _store;
   final Duration _tickInterval;
@@ -59,8 +59,8 @@ class BroadcastQueue {
   bool _disposed = false;
   final Completer<void> _disposal = Completer<void>();
 
-  BroadcastQueue._({
-    required BroadcastFn broadcastFn,
+  PublishQueue._({
+    required PublishFn publishFn,
     required UrlListFn? relayListFn,
     required Database db,
     required String storeName,
@@ -73,7 +73,7 @@ class BroadcastQueue {
     required bool pauseWhileOffline,
     Random? random,
     int Function()? now,
-  }) : _broadcastFn = broadcastFn,
+  }) : _publishFn = publishFn,
        _relayListFn = relayListFn,
        _store = QueueStore(db: db, storeName: storeName),
        _tickInterval = tickInterval,
@@ -101,7 +101,7 @@ class BroadcastQueue {
     }
   }
 
-  /// A queue that sends with [broadcastFn], for tests or for callers who
+  /// A queue that sends with [publishFn], for tests or for callers who
   /// publish their own way.
   ///
   /// Pass [onlineSignal] to make the periodic retry loop connectivity-aware:
@@ -115,7 +115,7 @@ class BroadcastQueue {
   /// as terminally failed for the event. An attempt counts as online when
   /// [onlineSignal] said so both when it started and when it ended, or when
   /// one of its relays answered. Offline attempts and exceptions thrown by
-  /// [broadcastFn] do not increment this counter, and an offline attempt is
+  /// [publishFn] do not increment this counter, and an offline attempt is
   /// retried after [initialBackoff] without growing the backoff.
   ///
   /// [maxConcurrentPublishes] caps the attempts publishing at once. The others
@@ -124,10 +124,10 @@ class BroadcastQueue {
   ///
   /// [relayListFn] resolves the relay lists a [UrlSet] refers to, such as
   /// `fetcherUrlListFn` of dostr_fetchers. Without it, only sets that need no
-  /// lookup can be broadcast. The queue puts no timeout on it: bound the
+  /// lookup can be published. The queue puts no timeout on it: bound the
   /// network part yourself, and let a signer take as long as it needs.
-  BroadcastQueue({
-    required BroadcastFn broadcastFn,
+  PublishQueue({
+    required PublishFn publishFn,
     UrlListFn? relayListFn,
     required Database db,
     String storeName = 'broadcasts',
@@ -140,7 +140,7 @@ class BroadcastQueue {
     Random? random,
     int Function()? now,
   }) : this._(
-         broadcastFn: broadcastFn,
+         publishFn: publishFn,
          relayListFn: relayListFn,
          db: db,
          storeName: storeName,
@@ -174,7 +174,7 @@ class BroadcastQueue {
   /// [onlineSignal] to pause them, as the default constructor does.
   ///
   /// The other parameters are those of the default constructor.
-  factory BroadcastQueue.withDostr(
+  factory PublishQueue.withDostr(
     RelayManager relayManager, {
     required Database db,
     UrlListFn? relayListFn,
@@ -189,8 +189,8 @@ class BroadcastQueue {
     int maxConcurrentPublishes = 10,
   }) {
     final publishes = RelayPublishes(relayManager: relayManager);
-    return BroadcastQueue._(
-      broadcastFn: (event, relays, {account}) => publishes
+    return PublishQueue._(
+      publishFn: (event, relays, {account}) => publishes
           .publish(
             event,
             relays: relays,
@@ -214,7 +214,7 @@ class BroadcastQueue {
   }
 
   /// Persists [event] for delivery, then fires the first attempt in the
-  /// background. The returned [QueuedBroadcast] reflects the persisted state,
+  /// background. The returned [QueuedPublish] reflects the persisted state,
   /// not the attempt outcome. [event] must be signed: the queue never signs.
   ///
   /// A [relaySet] that needs a lookup is stored unresolved and resolved by the
@@ -225,7 +225,7 @@ class BroadcastQueue {
   ///
   /// [account] is the pubkey of the local account the entry is queued under,
   /// so it can later be dropped by [clearLocalAccountData], and is handed to
-  /// the [BroadcastFn]. It need not be `event.pubkey`: for a gift wrap (kind
+  /// the [PublishFn]. It need not be `event.pubkey`: for a gift wrap (kind
   /// 1059) it is the real sender, not the event's ephemeral key. Leave it
   /// `null` and the entry is unattributed: retried like any other, but never
   /// removed by an account-scoped clear.
@@ -240,10 +240,11 @@ class BroadcastQueue {
   ///
   /// For a replaceable or addressable [event], relays only keep the latest
   /// version, so a record of an older version that is still pending becomes
-  /// [BroadcastStatus.superseded] once newer versions hold, or are headed to,
-  /// every relay it owes, whatever their [account]. It is no longer retried.
-  /// This holds for a version older than one already in the store too.
-  Future<QueuedBroadcast> broadcast(
+  /// [QueuedPublishStatus.superseded] once newer versions hold, or are headed
+  /// to, every relay it owes, whatever their [account]. It is no longer
+  /// retried. This holds for a version older than one already in the store
+  /// too.
+  Future<QueuedPublish> publish(
     Nip01Event event, {
     required UrlSet relaySet,
     String? account,
@@ -263,10 +264,10 @@ class BroadcastQueue {
       throw StateError('this relaySet needs a relayListFn to resolve');
     }
     final now = _now();
-    final key = QueuedBroadcast.keyFor(eventId: event.id, account: account);
+    final key = QueuedPublish.keyFor(eventId: event.id, account: account);
 
     final existing = await _store.get(key);
-    final QueuedBroadcast record;
+    final QueuedPublish record;
     if (relaySet.needsLookup) {
       final pending = existing?.pendingRelaySet;
       record =
@@ -321,13 +322,13 @@ class BroadcastQueue {
     return stored;
   }
 
-  QueuedBroadcast _newRecord(
+  QueuedPublish _newRecord(
     Nip01Event event,
     String? account,
     int now, {
     required List<RelayUrl> relays,
     UrlSet? pendingRelaySet,
-  }) => QueuedBroadcast(
+  }) => QueuedPublish(
     id: event.id,
     account: account,
     event: event,
@@ -352,7 +353,7 @@ class BroadcastQueue {
   /// Re-pushes a queued event without rewriting its delivery history.
   ///
   /// `ackedRelays` is monotonic and append-only over an entry's lifetime:
-  /// a relay that has confirmed receipt stays confirmed forever. `rebroadcast`
+  /// a relay that has confirmed receipt stays confirmed forever. `republish`
   /// never clears acks; it sets a one-shot `forcedRelays` override that the
   /// next attempt consumes.
   ///
@@ -369,9 +370,9 @@ class BroadcastQueue {
   /// A superseded or cancelled record still gets this one push, but keeps its
   /// status.
   ///
-  /// [account] selects which record to rebroadcast, matching the value passed
-  /// to [broadcast]. Returns `null` if no such record exists.
-  Future<QueuedBroadcast?> rebroadcast(
+  /// [account] selects which record to republish, matching the value passed
+  /// to [publish]. Returns `null` if no such record exists.
+  Future<QueuedPublish?> republish(
     String eventId, {
     String? account,
     String? relay,
@@ -386,7 +387,7 @@ class BroadcastQueue {
           (throw ArgumentError.value(relay, 'relay', 'is not a relay url'));
     }
     final now = _now();
-    final key = QueuedBroadcast.keyFor(eventId: eventId, account: account);
+    final key = QueuedPublish.keyFor(eventId: eventId, account: account);
     final updated = await _store.update(key, (current) {
       if (relayUrl == null) {
         return current.copyWith(
@@ -412,22 +413,23 @@ class BroadcastQueue {
   }
 
   /// Stops the retries of a pending record: it becomes
-  /// [BroadcastStatus.cancelled], leaves [watchPending] and stays in [listAll].
-  /// Its unresolved relay set and any push queued by [rebroadcast] are dropped.
+  /// [QueuedPublishStatus.cancelled], leaves [watchPending] and stays in
+  /// [listAll].
+  /// Its unresolved relay set and any push queued by [republish] are dropped.
   /// A delivered, failed or superseded record keeps its status and only loses
-  /// a queued [rebroadcast] push.
+  /// a queued [republish] push.
   ///
   /// An attempt already in flight still completes and records its acks. Relays
   /// that acked keep the event; cancelling does not delete it from them.
-  /// Calling [broadcast] again for the same record reopens it.
+  /// Calling [publish] again for the same record reopens it.
   ///
   /// [account] selects which record to cancel, matching the value passed to
-  /// [broadcast]. Returns `null` if no such record exists.
-  Future<QueuedBroadcast?> cancel(String eventId, {String? account}) async {
+  /// [publish]. Returns `null` if no such record exists.
+  Future<QueuedPublish?> cancel(String eventId, {String? account}) async {
     _ensureNotDisposed();
-    final key = QueuedBroadcast.keyFor(eventId: eventId, account: account);
+    final key = QueuedPublish.keyFor(eventId: eventId, account: account);
     return _store.update(key, (current) {
-      if (current.status == BroadcastStatus.pending) {
+      if (current.status == QueuedPublishStatus.pending) {
         return current.copyWith(
           cancelledAt: _now(),
           clearPendingRelaySet: true,
@@ -448,37 +450,37 @@ class BroadcastQueue {
 
   /// Returns the currently persisted record for `(eventId, account)`, or
   /// `null` if none exists.
-  Future<QueuedBroadcast?> get(String eventId, {String? account}) =>
-      _store.get(QueuedBroadcast.keyFor(eventId: eventId, account: account));
+  Future<QueuedPublish?> get(String eventId, {String? account}) =>
+      _store.get(QueuedPublish.keyFor(eventId: eventId, account: account));
 
   /// Live snapshot of the record for `(eventId, account)`. Emits `null`
   /// if/while the record is absent.
-  Stream<QueuedBroadcast?> watch(String eventId, {String? account}) =>
-      _store.watch(QueuedBroadcast.keyFor(eventId: eventId, account: account));
+  Stream<QueuedPublish?> watch(String eventId, {String? account}) =>
+      _store.watch(QueuedPublish.keyFor(eventId: eventId, account: account));
 
   /// Live snapshot of every record that still has retryable relays, across all
-  /// accounts. Filter on [QueuedBroadcast.account] for a single account.
-  Stream<List<QueuedBroadcast>> watchPending() => _store.watchPending();
+  /// accounts. Filter on [QueuedPublish.account] for a single account.
+  Stream<List<QueuedPublish>> watchPending() => _store.watchPending();
 
   /// One-shot read of every record in the store, delivered or not, across all
   /// accounts.
-  Future<List<QueuedBroadcast>> listAll() => _store.findAll();
+  Future<List<QueuedPublish>> listAll() => _store.findAll();
 
-  /// Removes every queued broadcast attributed to [account], delivered or
+  /// Removes every entry queued under [account], delivered or
   /// not. Pending entries are dropped for good and will never be retried.
-  /// Entries queued without an account (see [broadcast]) are left untouched;
+  /// Entries queued without an account (see [publish]) are left untouched;
   /// use [clearAllLocalData] to remove those.
   ///
   /// Safe to call while attempts are in flight: a concurrent attempt writes
   /// through a sembast transaction that no-ops once the record is gone, so it
-  /// cannot resurrect a cleared entry. A [broadcast] call for the same account
+  /// cannot resurrect a cleared entry. A [publish] call for the same account
   /// that overlaps this clear may still re-create its record; do not enqueue
   /// for an account you are clearing.
   Future<void> clearLocalAccountData({required String account}) async {
     await _store.deleteByAccount(account);
   }
 
-  /// Removes every queued broadcast, all accounts and unattributed entries
+  /// Removes every entry, all accounts and unattributed entries
   /// included. Leaves other sembast stores in the same database untouched.
   Future<void> clearAllLocalData() async {
     await _store.deleteAll();
@@ -564,7 +566,7 @@ class BroadcastQueue {
       final release = await _untilDisposed(_publishSlots.acquire());
       if (release == null) return;
       try {
-        await _publish(key);
+        await _push(key);
       } finally {
         release();
       }
@@ -576,11 +578,11 @@ class BroadcastQueue {
 
   /// Pushes the record at [key] to the relays it is owed, then records what
   /// each relay did.
-  Future<void> _publish(String key) async {
+  Future<void> _push(String key) async {
     final record = await _store.get(key);
     if (record == null) return;
     // A terminal entry only re-enters _attempt if a force-push is queued.
-    if (record.status != BroadcastStatus.pending &&
+    if (record.status != QueuedPublishStatus.pending &&
         record.forcedRelays == null) {
       return;
     }
@@ -617,10 +619,10 @@ class BroadcastQueue {
     final attemptStart = _now();
     final startedOnline = _isOnline;
     Map<RelayUrl, RelayPublishOutcome> outcomes;
-    String? broadcastError;
+    String? publishError;
     try {
       final sent = await _untilDisposed(
-        _broadcastFn(record.event, targets, account: record.account),
+        _publishFn(record.event, targets, account: record.account),
       );
       if (sent == null) return;
       outcomes = {
@@ -629,7 +631,7 @@ class BroadcastQueue {
       };
     } catch (e) {
       if (_disposed) return;
-      broadcastError = e.toString();
+      publishError = e.toString();
       outcomes = const {};
     }
     final answered = targets.any((relay) => _answered(outcomes[relay]));
@@ -664,11 +666,11 @@ class BroadcastQueue {
           // Acks are monotonic: a transient failure does not invalidate
           // historical confirmation. We only surface errors for relays
           // that have never confirmed or terminally failed.
-          final error = _retryableError(outcome, broadcastError);
+          final error = _retryableError(outcome, publishError);
           if (_answered(outcome)) {
             newInaccessibleAttempts.remove(relay);
             newErrors[relay] = error;
-          } else if (online && _isInaccessible(outcome, broadcastError)) {
+          } else if (online && _isInaccessible(outcome, publishError)) {
             final count = (newInaccessibleAttempts[relay] ?? 0) + 1;
             newInaccessibleAttempts[relay] = count;
             if (count >= _maxInaccessibleAttemptsPerRelay) {
@@ -736,10 +738,8 @@ class BroadcastQueue {
 
   /// Resolves [record]'s pending relay set and freezes the result. Returns the
   /// resolved record, or `null` when the set stays pending: a lookup was
-  /// unavailable, or `broadcast` changed the set meanwhile.
-  Future<QueuedBroadcast?> _resolvePendingRelaySet(
-    QueuedBroadcast record,
-  ) async {
+  /// unavailable, or `publish` changed the set meanwhile.
+  Future<QueuedPublish?> _resolvePendingRelaySet(QueuedPublish record) async {
     final set = record.pendingRelaySet!;
     final resolution = await _untilDisposed(_resolve(set));
     if (resolution == null) return null;
@@ -811,7 +811,7 @@ class BroadcastQueue {
 
   void _ensureNotDisposed() {
     if (_disposed) {
-      throw StateError('the BroadcastQueue was disposed');
+      throw StateError('the PublishQueue was disposed');
     }
   }
 
@@ -849,10 +849,10 @@ class BroadcastQueue {
 
   static String _retryableError(
     RelayPublishOutcome? outcome,
-    String? broadcastError,
+    String? publishError,
   ) => switch (outcome) {
     null || RelayPublishOutcome(status: RelayPublishStatus.pending) =>
-      broadcastError ?? 'no response',
+      publishError ?? 'no response',
     RelayPublishOutcome(status: RelayPublishStatus.timedOut) => 'timed out',
     RelayPublishOutcome(status: RelayPublishStatus.failed, :final failure) =>
       '${failure ?? 'failed'}',
@@ -864,9 +864,9 @@ class BroadcastQueue {
   /// relay that answered or an identity it could not use.
   static bool _isInaccessible(
     RelayPublishOutcome? outcome,
-    String? broadcastError,
+    String? publishError,
   ) => switch (outcome) {
-    null => broadcastError == null,
+    null => publishError == null,
     RelayPublishOutcome(
       status: RelayPublishStatus.pending || RelayPublishStatus.timedOut,
     ) =>

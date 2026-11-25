@@ -1,8 +1,8 @@
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 
-/// Status of a queued broadcast.
-enum BroadcastStatus {
+/// Status of a queued publish.
+enum QueuedPublishStatus {
   /// At least one targeted relay has not accepted the event yet.
   pending,
 
@@ -18,42 +18,42 @@ enum BroadcastStatus {
 
   /// Newer versions of the same replaceable or addressable event hold, or are
   /// headed to, every relay this one still owed, so it is no longer retried.
-  /// See [QueuedBroadcast.supersededBy].
+  /// See [QueuedPublish.supersededBy].
   superseded,
 
-  /// The caller stopped its retries with `BroadcastQueue.cancel` before it
-  /// was settled. See [QueuedBroadcast.cancelledAt].
+  /// The caller stopped its retries with `PublishQueue.cancel` before it
+  /// was settled. See [QueuedPublish.cancelledAt].
   cancelled,
 }
 
-/// A single broadcast tracked by `BroadcastQueue`.
+/// A single publish tracked by `PublishQueue`.
 ///
 /// Immutable from the caller's perspective: every mutation goes through the
 /// store and yields a fresh instance.
-class QueuedBroadcast {
+class QueuedPublish {
   /// Nostr event id. Combined with [account] it forms the sembast record
   /// [key].
   final String id;
 
-  /// Pubkey of the local account this broadcast was queued under, or `null`
+  /// Pubkey of the local account this publish was queued under, or `null`
   /// if the caller did not attribute it. It need not be `event.pubkey`: an
   /// event can be queued under an account that did not sign it
-  /// (rebroadcasting someone else's note), and for a gift wrap (kind 1059)
+  /// (republishing someone else's note), and for a gift wrap (kind 1059)
   /// `event.pubkey` is an ephemeral throwaway key. It is part of the record's
   /// identity, so the same event queued under two accounts is two independent
-  /// records. `BroadcastQueue.clearLocalAccountData` matches on this field.
+  /// records. `PublishQueue.clearLocalAccountData` matches on this field.
   final String? account;
 
-  /// The full event as it will be (re-)broadcast.
+  /// The full event, as it is published.
   final Nip01Event event;
 
   /// The relays this event must reach. Grows when [pendingRelaySet]
-  /// resolves, when `broadcast` merges more relays, or when
-  /// `rebroadcast(id, relay: ...)` introduces a new relay.
+  /// resolves, when `publish` merges more relays, or when
+  /// `republish(id, relay: ...)` introduces a new relay.
   final List<RelayUrl> relays;
 
   /// Relay set still to resolve, or `null` once its relays are frozen into
-  /// [relays]. While non-null the record is [BroadcastStatus.pending].
+  /// [relays]. While non-null the record is [QueuedPublishStatus.pending].
   final UrlSet? pendingRelaySet;
 
   /// Consecutive resolutions of [pendingRelaySet] that ended unavailable.
@@ -84,7 +84,7 @@ class QueuedBroadcast {
   final int attempts;
 
   /// Online attempts that left relays owed since the record was last queued
-  /// by `broadcast` or given a new relay by `rebroadcast`. Drives the backoff:
+  /// by `publish` or given a new relay by `republish`. Drives the backoff:
   /// an offline attempt leaves it unchanged.
   final int onlineFailures;
 
@@ -102,8 +102,8 @@ class QueuedBroadcast {
 
   /// Wall-clock millis (since epoch) of the first time every relay in
   /// [relays] had accepted the event. Monotonic: once set, never cleared by
-  /// an attempt; only `rebroadcast(id, relay: r)` with a brand new relay (or
-  /// `broadcast()` merging in an unacked relay) clears it.
+  /// an attempt; only `republish(id, relay: r)` with a brand new relay (or
+  /// `publish()` merging in an unacked relay) clears it.
   final int? deliveredAt;
 
   /// Wall-clock millis (since epoch) of the first time the entry became
@@ -116,25 +116,25 @@ class QueuedBroadcast {
 
   /// Override for the *next* attempt only: when non-null, the worker pushes
   /// the event to exactly these relays, even if some of them already have
-  /// acks. Set by `BroadcastQueue.rebroadcast`; cleared by the attempt itself
+  /// acks. Set by `PublishQueue.republish`; cleared by the attempt itself
   /// once it runs. Existence is what makes a delivered entry eligible for one
   /// more push without rewriting its history.
   final List<RelayUrl>? forcedRelays;
 
   /// Id of the newest version of this replaceable or addressable event when
   /// newer versions stopped its retries, or `null`. Set once and never
-  /// cleared: the record stays [BroadcastStatus.superseded] whatever happens
-  /// to those versions.
+  /// cleared: the record stays [QueuedPublishStatus.superseded] whatever
+  /// happens to those versions.
   final String? supersededBy;
 
-  /// Wall-clock millis (since epoch) when `BroadcastQueue.cancel` stopped
-  /// this record's retries, or `null`. Cleared when `broadcast` queues the
+  /// Wall-clock millis (since epoch) when `PublishQueue.cancel` stopped
+  /// this record's retries, or `null`. Cleared when `publish` queues the
   /// same record again.
   final int? cancelledAt;
 
   /// Creates a record. Most callers should not invoke this directly; records
-  /// are produced by `BroadcastQueue`.
-  QueuedBroadcast({
+  /// are produced by `PublishQueue`.
+  QueuedPublish({
     required this.id,
     this.account,
     required this.event,
@@ -169,13 +169,13 @@ class QueuedBroadcast {
 
   /// `pending` while the relay set is unresolved or any relay is still
   /// retryable, otherwise terminal.
-  BroadcastStatus get status {
-    if (supersededBy != null) return BroadcastStatus.superseded;
-    if (cancelledAt != null) return BroadcastStatus.cancelled;
-    if (pendingRelaySet != null) return BroadcastStatus.pending;
-    if (deliveredAt != null) return BroadcastStatus.delivered;
-    if (failedAt != null) return BroadcastStatus.failed;
-    return BroadcastStatus.pending;
+  QueuedPublishStatus get status {
+    if (supersededBy != null) return QueuedPublishStatus.superseded;
+    if (cancelledAt != null) return QueuedPublishStatus.cancelled;
+    if (pendingRelaySet != null) return QueuedPublishStatus.pending;
+    if (deliveredAt != null) return QueuedPublishStatus.delivered;
+    if (failedAt != null) return QueuedPublishStatus.failed;
+    return QueuedPublishStatus.pending;
   }
 
   /// Relays still retryable, i.e. [relays] minus acks and terminal failures.
@@ -193,7 +193,7 @@ class QueuedBroadcast {
   /// alone is ambiguous with "leave as-is" for nullable fields). Same idea
   /// for `clearForcedRelays`, `clearPendingRelaySet`, `clearResolutionError`
   /// and `clearCancelled`.
-  QueuedBroadcast copyWith({
+  QueuedPublish copyWith({
     List<RelayUrl>? relays,
     UrlSet? pendingRelaySet,
     int? resolutionAttempts,
@@ -219,7 +219,7 @@ class QueuedBroadcast {
     bool clearResolutionError = false,
     bool clearCancelled = false,
   }) {
-    return QueuedBroadcast(
+    return QueuedPublish(
       id: id,
       account: account,
       event: event,
@@ -281,8 +281,8 @@ class QueuedBroadcast {
 
   /// Inverse of [toMap]. Reads the records of `broadcast_queue_shim_for_ndk`
   /// too, and drops the relay urls that are not ws or wss urls.
-  static QueuedBroadcast fromMap(Map<String, dynamic> map) {
-    return QueuedBroadcast(
+  static QueuedPublish fromMap(Map<String, dynamic> map) {
+    return QueuedPublish(
       id: map['id'] as String,
       account: map['pubkey'] as String?,
       event: Nip01Event.fromJson(map['event'] as Map),

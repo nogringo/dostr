@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
-import 'support/fake_broadcaster.dart';
+import 'support/fake_publisher.dart';
 import 'support/helpers.dart';
 
 const _alice = 'alice_alice_alice_alice_alice_alice_alice_alice_alice_alice_al';
@@ -26,20 +26,20 @@ void main() {
   test(
     'same event under two accounts yields two independent records',
     () async {
-      final fake = FakeBroadcaster()..ack('wss://a');
-      final queue = BroadcastQueue(
-        broadcastFn: fake.fn,
+      final fake = FakePublisher()..ack('wss://a');
+      final queue = PublishQueue(
+        publishFn: fake.fn,
         db: db,
         initialBackoff: const Duration(milliseconds: 5),
       );
 
       final event = makeEvent();
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://a']),
         account: _alice,
       );
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://a']),
         account: _bob,
@@ -56,9 +56,9 @@ void main() {
   );
 
   test('clearLocalAccountData removes only the targeted account', () async {
-    final fake = FakeBroadcaster()..ack('wss://a');
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final fake = FakePublisher()..ack('wss://a');
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       initialBackoff: const Duration(milliseconds: 5),
     );
@@ -66,17 +66,17 @@ void main() {
     final e1 = makeEvent(seed: 1);
     final e2 = makeEvent(seed: 2);
     final e3 = makeEvent(seed: 3);
-    await queue.broadcast(
+    await queue.publish(
       e1,
       relaySet: const UrlSet.explicit(['wss://a']),
       account: _alice,
     );
-    await queue.broadcast(
+    await queue.publish(
       e2,
       relaySet: const UrlSet.explicit(['wss://a']),
       account: _bob,
     );
-    await queue.broadcast(
+    await queue.publish(
       e3,
       relaySet: const UrlSet.explicit(['wss://a']),
     ); // unattributed
@@ -91,9 +91,9 @@ void main() {
   });
 
   test('a cleared pending entry is never retried again', () async {
-    final fake = FakeBroadcaster()..fail('wss://gone');
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final fake = FakePublisher()..fail('wss://gone');
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       // Long backoff: after the first attempt the entry is not due again during
       // the test window, so any post-clear call would only come from a resurrected record.
@@ -101,7 +101,7 @@ void main() {
     );
 
     final event = makeEvent();
-    await queue.broadcast(
+    await queue.publish(
       event,
       relaySet: const UrlSet.explicit(['wss://gone']),
       account: _alice,
@@ -123,22 +123,22 @@ void main() {
   test(
     'clearing during an in-flight attempt does not resurrect the record',
     () async {
-      final fake = FakeBroadcaster()
+      final fake = FakePublisher()
         ..gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
-      final queue = BroadcastQueue(
-        broadcastFn: fake.fn,
+      final queue = PublishQueue(
+        publishFn: fake.fn,
         db: db,
         initialBackoff: const Duration(milliseconds: 5),
       );
 
       final event = makeEvent();
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://a']),
         account: _alice,
       );
 
-      // Wait until the attempt has handed off to the (parked) broadcaster.
+      // Wait until the attempt has handed off to the (parked) publisher.
       for (var i = 0; i < 400 && fake.calls.isEmpty; i++) {
         await Future.delayed(const Duration(milliseconds: 5));
       }
@@ -164,9 +164,9 @@ void main() {
   test(
     'gift-wrap attribution is keyed by account, not the ephemeral event pubkey',
     () async {
-      final fake = FakeBroadcaster()..ack('wss://a');
-      final queue = BroadcastQueue(
-        broadcastFn: fake.fn,
+      final fake = FakePublisher()..ack('wss://a');
+      final queue = PublishQueue(
+        publishFn: fake.fn,
         db: db,
         initialBackoff: const Duration(milliseconds: 5),
       );
@@ -180,7 +180,7 @@ void main() {
         content: 'sealed',
         sig: fakeSig,
       );
-      await queue.broadcast(
+      await queue.publish(
         wrap,
         relaySet: const UrlSet.explicit(['wss://a']),
         account: _alice,
@@ -201,9 +201,9 @@ void main() {
   test(
     'clearAllLocalData wipes the store but leaves sibling stores intact',
     () async {
-      final fake = FakeBroadcaster()..ack('wss://a');
-      final queue = BroadcastQueue(
-        broadcastFn: fake.fn,
+      final fake = FakePublisher()..ack('wss://a');
+      final queue = PublishQueue(
+        publishFn: fake.fn,
         db: db,
         initialBackoff: const Duration(milliseconds: 5),
       );
@@ -211,12 +211,12 @@ void main() {
       final other = stringMapStoreFactory.store('other');
       await other.record('keep').put(db, {'v': 1});
 
-      await queue.broadcast(
+      await queue.publish(
         makeEvent(seed: 1),
         relaySet: const UrlSet.explicit(['wss://a']),
         account: _alice,
       );
-      await queue.broadcast(
+      await queue.publish(
         makeEvent(seed: 2),
         relaySet: const UrlSet.explicit(['wss://a']),
       );
@@ -231,15 +231,15 @@ void main() {
   );
 
   test('unattributed entries survive an account-scoped clear', () async {
-    final fake = FakeBroadcaster()..ack('wss://a');
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final fake = FakePublisher()..ack('wss://a');
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       initialBackoff: const Duration(milliseconds: 5),
     );
 
     final event = makeEvent();
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
 
     await queue.clearLocalAccountData(account: _alice);
     expect(await queue.get(event.id), isNotNull);

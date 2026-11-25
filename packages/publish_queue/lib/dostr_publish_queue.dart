@@ -3,5 +3,5 @@
 /// `UrlSet` accepts it, refuses it for good, or stays unreachable while online.
 library;
 
-export 'src/broadcast_queue.dart' show BroadcastFn, BroadcastQueue;
-export 'src/queued_broadcast.dart' show BroadcastStatus, QueuedBroadcast;
+export 'src/publish_queue.dart' show PublishFn, PublishQueue;
+export 'src/queued_publish.dart' show QueuedPublishStatus, QueuedPublish;

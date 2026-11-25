@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:dostr_broadcast_queue/src/backoff.dart';
+import 'package:dostr_publish_queue/src/backoff.dart';
 import 'package:test/test.dart';
 
 void main() {

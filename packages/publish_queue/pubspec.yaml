@@ -1,4 +1,4 @@
-name: dostr_broadcast_queue
+name: dostr_publish_queue
 description: An offline-first queue for Nostr events, stored in sembast and published with dostr_core until every relay accepts them, refuses them for good, or stays unreachable while online.
 version: 0.1.0
 homepage: https://github.com/nogringo/dostr

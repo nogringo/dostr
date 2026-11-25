@@ -1,7 +1,7 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
@@ -42,17 +42,17 @@ void main() {
   test('delivers to every relay', () async {
     final first = await startRelay();
     final second = await startRelay();
-    final queue = BroadcastQueue.withDostr(relayManager, db: db);
+    final queue = PublishQueue.withDostr(relayManager, db: db);
     final event = makeEvent();
 
-    await queue.broadcast(
+    await queue.publish(
       event,
       relaySet: UrlSet.explicit([first.url, second.url]),
     );
     final delivered = await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.delivered,
+      (r) => r.status == QueuedPublishStatus.delivered,
     );
     expect(delivered.ackedRelays, unorderedEquals([first.url, second.url]));
     expect(first.events.single.id, event.id);
@@ -63,14 +63,14 @@ void main() {
 
   test('a terminal refusal fails the relay', () async {
     final relay = await startRelay(rejectEventsWith: 'blocked: spam');
-    final queue = BroadcastQueue.withDostr(relayManager, db: db);
+    final queue = PublishQueue.withDostr(relayManager, db: db);
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: UrlSet.explicit([relay.url]));
+    await queue.publish(event, relaySet: UrlSet.explicit([relay.url]));
     final failed = await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.failed,
+      (r) => r.status == QueuedPublishStatus.failed,
     );
     expect(failed.terminalErrors, {relay.url: 'blocked: spam'});
 
@@ -79,14 +79,14 @@ void main() {
 
   test('a relay that does not answer times out', () async {
     final relay = await startRelay(answerEvents: false);
-    final queue = BroadcastQueue.withDostr(
+    final queue = PublishQueue.withDostr(
       relayManager,
       db: db,
       publishTimeout: const Duration(milliseconds: 100),
     );
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: UrlSet.explicit([relay.url]));
+    await queue.publish(event, relaySet: UrlSet.explicit([relay.url]));
     final pending = await waitFor(queue, event.id, (r) => r.attempts >= 1);
     expect(pending.lastErrors, {relay.url: 'timed out'});
     expect(pending.inaccessibleAttempts, {relay.url: 1});
@@ -98,7 +98,7 @@ void main() {
     final relay = await startRelay(requireAuthForEvents: true);
     final (:privateKey, :publicKey) = Bip340.generateKeyPair();
     final signer = Bip340Signer(privateKey);
-    final queue = BroadcastQueue.withDostr(
+    final queue = PublishQueue.withDostr(
       relayManager,
       db: db,
       authPolicyOf: (event, account) =>
@@ -106,7 +106,7 @@ void main() {
     );
     final event = makeEvent();
 
-    await queue.broadcast(
+    await queue.publish(
       event,
       relaySet: UrlSet.explicit([relay.url]),
       account: publicKey,
@@ -114,7 +114,7 @@ void main() {
     await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.delivered,
+      (r) => r.status == QueuedPublishStatus.delivered,
       account: publicKey,
     );
     expect(relay.clients.last.authenticatedAs, publicKey);

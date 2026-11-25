@@ -1,7 +1,7 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 
 /// A signature nothing checks: the queue only requires one.
 final String fakeSig = 'f' * 128;
@@ -29,10 +29,10 @@ Nip01Event makeEvent({
 );
 
 /// Polls until [predicate] holds for the record at `(id, account)`, or throws.
-Future<QueuedBroadcast> waitFor(
-  BroadcastQueue queue,
+Future<QueuedPublish> waitFor(
+  PublishQueue queue,
   String id,
-  bool Function(QueuedBroadcast r) predicate, {
+  bool Function(QueuedPublish r) predicate, {
   String? account,
 }) async {
   for (var i = 0; i < 400; i++) {

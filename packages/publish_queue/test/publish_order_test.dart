@@ -1,22 +1,22 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
-import 'support/fake_broadcaster.dart';
+import 'support/fake_publisher.dart';
 import 'support/helpers.dart';
 
 const _relays = UrlSet.explicit(['wss://a']);
 
 /// A record of [event] as the store holds it, already attempted once.
-QueuedBroadcast _stored(
+QueuedPublish _stored(
   Nip01Event event, {
   required int createdAt,
   required int nextAttemptAt,
-}) => QueuedBroadcast(
+}) => QueuedPublish(
   id: event.id,
   event: event,
   relays: [RelayUrl.parse('wss://a')],
@@ -35,23 +35,22 @@ QueuedBroadcast _stored(
 
 void main() {
   late Database db;
-  late FakeBroadcaster fake;
+  late FakePublisher fake;
 
   setUp(() async {
     db = await newDatabaseFactoryMemory().openDatabase('test.db');
-    fake = FakeBroadcaster();
+    fake = FakePublisher();
   });
 
   tearDown(() async {
     await db.close();
   });
 
-  BroadcastQueue newQueue({required int maxConcurrentPublishes}) =>
-      BroadcastQueue(
-        broadcastFn: fake.fn,
-        db: db,
-        maxConcurrentPublishes: maxConcurrentPublishes,
-      );
+  PublishQueue newQueue({required int maxConcurrentPublishes}) => PublishQueue(
+    publishFn: fake.fn,
+    db: db,
+    maxConcurrentPublishes: maxConcurrentPublishes,
+  );
 
   test('at most maxConcurrentPublishes attempts publish at once', () async {
     fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
@@ -61,7 +60,7 @@ void main() {
     ];
 
     for (final event in events) {
-      await queue.broadcast(event, relaySet: _relays);
+      await queue.publish(event, relaySet: _relays);
     }
     await waitFor(queue, events.first.id, (_) => fake.calls.length >= 2);
     await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -74,7 +73,7 @@ void main() {
       await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
     }
     expect(fake.calls.map((c) => c.event.id), [for (final e in events) e.id]);
@@ -102,7 +101,7 @@ void main() {
       await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
     }
     expect(fake.calls.map((c) => c.event.id), [for (final e in events) e.id]);
@@ -116,8 +115,8 @@ void main() {
     final first = makeEvent(seed: 1);
     final second = makeEvent(seed: 2);
 
-    await queue.broadcast(first, relaySet: _relays);
-    await queue.broadcast(second, relaySet: _relays);
+    await queue.publish(first, relaySet: _relays);
+    await queue.publish(second, relaySet: _relays);
     await waitFor(queue, first.id, (_) => fake.calls.isNotEmpty);
     await queue.dispose().timeout(const Duration(seconds: 1));
 

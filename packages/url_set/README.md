@@ -41,7 +41,7 @@ A union flattens its URLs and forgets which account named each.
 A gift wrap belongs on the DM relays of its own recipient only, so resolve one `UrlSet.dm` per recipient, never a union of them: the relays of the others would hold a wrap they have no use for.
 
 Relays and Blossom servers share one type.
-A consumer checks `set.kinds` and rejects the leaves it cannot use: a broadcast queue has no use for Blossom servers, and a blob upload queue none for DM relays.
+A consumer checks `set.kinds` and rejects the leaves it cannot use: a publish queue has no use for Blossom servers, and a blob upload queue none for DM relays.
 
 ## Resolving
 

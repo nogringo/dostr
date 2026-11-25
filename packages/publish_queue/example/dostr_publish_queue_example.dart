@@ -1,13 +1,13 @@
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_io.dart';
 
 Future<void> main() async {
   // sembast_io on dart:io targets, sembast_web in the browser.
-  final db = await databaseFactoryIo.openDatabase('broadcasts.db');
+  final db = await databaseFactoryIo.openDatabase('publish_queue.db');
 
   final relayManager = RelayManager(
     nostrTransportFactory: webSocketTransportFactory(),
@@ -18,7 +18,7 @@ Future<void> main() async {
   );
   final nip65 = Nip65Fetcher(reqs: reqs);
 
-  final queue = BroadcastQueue.withDostr(
+  final queue = PublishQueue.withDostr(
     relayManager,
     db: db,
     relayListFn: fetcherUrlListFn(
@@ -39,7 +39,7 @@ Future<void> main() async {
 
   // Returns once the event is stored: the outbox is looked up later, offline
   // included, and a new account without one falls back to the explicit relay.
-  await queue.broadcast(
+  await queue.publish(
     event,
     relaySet: UrlSet.fallback([
       UrlSet.outbox(event.pubkey),
@@ -49,7 +49,9 @@ Future<void> main() async {
   );
 
   await for (final record in queue.watch(event.id, account: signer.publicKey)) {
-    if (record == null || record.status == BroadcastStatus.pending) continue;
+    if (record == null || record.status == QueuedPublishStatus.pending) {
+      continue;
+    }
     print('${record.status.name} on ${record.ackedRelays}');
     break;
   }

@@ -1,12 +1,12 @@
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:test/test.dart';
 
 import 'support/helpers.dart';
 
 RelayUrl _relay(String url) => RelayUrl.parse(url);
 
-QueuedBroadcast _record({
+QueuedPublish _record({
   Nip01Event? event,
   String? account,
   List<String> relays = const ['wss://relay.example'],
@@ -19,7 +19,7 @@ QueuedBroadcast _record({
   int? failedAt,
 }) {
   event ??= makeEvent();
-  return QueuedBroadcast(
+  return QueuedPublish(
     id: event.id,
     account: account,
     event: event,
@@ -42,7 +42,7 @@ QueuedBroadcast _record({
 }
 
 void main() {
-  group('QueuedBroadcast', () {
+  group('QueuedPublish', () {
     test('remainingRelays excludes acked and terminal relays', () {
       final r = _record(
         relays: const ['wss://a', 'wss://b', 'wss://c'],
@@ -58,23 +58,26 @@ void main() {
         ackedRelays: const ['wss://a'],
         attempts: 1,
       );
-      expect(base.status, BroadcastStatus.pending);
-      expect(base.copyWith(failedAt: 1).status, BroadcastStatus.failed);
-      expect(base.copyWith(deliveredAt: 1).status, BroadcastStatus.delivered);
+      expect(base.status, QueuedPublishStatus.pending);
+      expect(base.copyWith(failedAt: 1).status, QueuedPublishStatus.failed);
+      expect(
+        base.copyWith(deliveredAt: 1).status,
+        QueuedPublishStatus.delivered,
+      );
       expect(
         base.copyWith(deliveredAt: 1, supersededBy: 'newer').status,
-        BroadcastStatus.superseded,
+        QueuedPublishStatus.superseded,
       );
-      final restored = QueuedBroadcast.fromMap(
+      final restored = QueuedPublish.fromMap(
         base.copyWith(supersededBy: 'newer').toMap(),
       );
       expect(restored.supersededBy, 'newer');
       expect(
         base.copyWith(deliveredAt: 1, cancelledAt: 1).status,
-        BroadcastStatus.cancelled,
+        QueuedPublishStatus.cancelled,
       );
       expect(
-        QueuedBroadcast.fromMap(
+        QueuedPublish.fromMap(
           base.copyWith(cancelledAt: 1).toMap(),
         ).cancelledAt,
         1,
@@ -82,17 +85,14 @@ void main() {
     });
 
     test('keyFor composes account and event id, bare when unattributed', () {
-      expect(QueuedBroadcast.keyFor(eventId: 'evt'), 'evt');
-      expect(QueuedBroadcast.keyFor(eventId: 'evt', account: null), 'evt');
-      expect(
-        QueuedBroadcast.keyFor(eventId: 'evt', account: 'npub'),
-        'npub|evt',
-      );
+      expect(QueuedPublish.keyFor(eventId: 'evt'), 'evt');
+      expect(QueuedPublish.keyFor(eventId: 'evt', account: null), 'evt');
+      expect(QueuedPublish.keyFor(eventId: 'evt', account: 'npub'), 'npub|evt');
     });
 
     test('toMap → fromMap roundtrip preserves the account', () {
       final original = _record(account: 'account-pubkey');
-      final restored = QueuedBroadcast.fromMap(original.toMap());
+      final restored = QueuedPublish.fromMap(original.toMap());
       expect(restored.account, 'account-pubkey');
       expect(restored.key, 'account-pubkey|${original.id}');
     });
@@ -107,7 +107,7 @@ void main() {
         onlineFailures: 1,
         failedAt: 400,
       );
-      final restored = QueuedBroadcast.fromMap(original.toMap());
+      final restored = QueuedPublish.fromMap(original.toMap());
       expect(restored.id, original.id);
       expect(restored.event.id, original.event.id);
       expect(restored.event.sig, original.event.sig);
@@ -122,7 +122,7 @@ void main() {
 
     test('fromMap reads a record of broadcast_queue_shim_for_ndk', () {
       final event = makeEvent();
-      final restored = QueuedBroadcast.fromMap({
+      final restored = QueuedPublish.fromMap({
         'id': event.id,
         'event': event.toJson(),
         'relays': const ['wss://relay.example', 'not a relay'],

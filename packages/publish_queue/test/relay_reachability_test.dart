@@ -1,5 +1,5 @@
-import 'package:dostr_broadcast_queue/src/relay_reachability.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/src/relay_reachability.dart';
 import 'package:test/test.dart';
 
 class _Connection implements RelayConnectivity {

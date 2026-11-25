@@ -1,12 +1,12 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
-import 'package:dostr_broadcast_queue/src/queue_store.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
+import 'package:dostr_publish_queue/src/queue_store.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
-import 'support/fake_broadcaster.dart';
+import 'support/fake_publisher.dart';
 import 'support/helpers.dart';
 
 class FakeRelayLists {
@@ -26,7 +26,7 @@ class FakeRelayLists {
 }
 
 void main() {
-  group('BroadcastQueue with a relay set', () {
+  group('PublishQueue with a relay set', () {
     late Database db;
 
     setUp(() async {
@@ -37,9 +37,9 @@ void main() {
       await db.close();
     });
 
-    BroadcastQueue queueFor(FakeBroadcaster fake, FakeRelayLists? lists) =>
-        BroadcastQueue(
-          broadcastFn: fake.fn,
+    PublishQueue queueFor(FakePublisher fake, FakeRelayLists? lists) =>
+        PublishQueue(
+          publishFn: fake.fn,
           relayListFn: lists?.fn,
           db: db,
           initialBackoff: const Duration(milliseconds: 5),
@@ -47,18 +47,18 @@ void main() {
         );
 
     test('persists unresolved without waiting for the lookup', () async {
-      final fake = FakeBroadcaster()..ack('wss://w');
+      final fake = FakePublisher()..ack('wss://w');
       final lists = FakeRelayLists()
         ..gate = Completer<void>()
         ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w/']));
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      final record = await queue.broadcast(
+      final record = await queue.publish(
         event,
         relaySet: const UrlSet.outbox('p'),
       );
-      expect(record.status, BroadcastStatus.pending);
+      expect(record.status, QueuedPublishStatus.pending);
       expect(record.relays, isEmpty);
       expect(record.pendingRelaySet, isA<OutboxUrls>());
       expect(fake.calls, isEmpty);
@@ -67,7 +67,7 @@ void main() {
       final delivered = await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
       expect(delivered.relays, ['wss://w']);
       expect(delivered.pendingRelaySet, isNull);
@@ -76,18 +76,18 @@ void main() {
     });
 
     test('an unavailable lookup backs off and is retried', () async {
-      final fake = FakeBroadcaster()..ack('wss://w');
+      final fake = FakePublisher()..ack('wss://w');
       final lists = FakeRelayLists();
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      await queue.broadcast(event, relaySet: const UrlSet.outbox('p'));
+      await queue.publish(event, relaySet: const UrlSet.outbox('p'));
       final waiting = await waitFor(
         queue,
         event.id,
         (r) => r.resolutionAttempts == 1,
       );
-      expect(waiting.status, BroadcastStatus.pending);
+      expect(waiting.status, QueuedPublishStatus.pending);
       expect(waiting.resolutionError, contains('offline'));
       expect(fake.calls, isEmpty);
 
@@ -101,7 +101,7 @@ void main() {
       final delivered = await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
       expect(delivered.resolutionAttempts, 0);
       expect(delivered.resolutionError, isNull);
@@ -110,13 +110,13 @@ void main() {
     });
 
     test('freezes relays at the first successful resolution', () async {
-      final fake = FakeBroadcaster()..fail('wss://w');
+      final fake = FakePublisher()..fail('wss://w');
       final lists = FakeRelayLists()
         ..set('p', UrlListKind.outbox, const UrlListLookup.found(['wss://w']));
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      await queue.broadcast(event, relaySet: const UrlSet.outbox('p'));
+      await queue.publish(event, relaySet: const UrlSet.outbox('p'));
       await waitFor(queue, event.id, (r) => r.attempts >= 1);
 
       lists.set(
@@ -134,17 +134,17 @@ void main() {
     });
 
     test('a set resolving to no relay fails the entry', () async {
-      final fake = FakeBroadcaster();
+      final fake = FakePublisher();
       final lists = FakeRelayLists()
         ..set('p', UrlListKind.outbox, const UrlListLookup.notFound());
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      await queue.broadcast(event, relaySet: const UrlSet.outbox('p'));
+      await queue.publish(event, relaySet: const UrlSet.outbox('p'));
       final failed = await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.failed,
+        (r) => r.status == QueuedPublishStatus.failed,
       );
       expect(failed.resolutionError, 'relay set resolved to no relay');
       expect(fake.calls, isEmpty);
@@ -153,28 +153,25 @@ void main() {
     });
 
     test('a new set on a delivered entry resolves and reopens it', () async {
-      final fake = FakeBroadcaster()..ackAll(['wss://a', 'wss://b']);
+      final fake = FakePublisher()..ackAll(['wss://a', 'wss://b']);
       final lists = FakeRelayLists()
         ..set('p', UrlListKind.inbox, const UrlListLookup.found(['wss://b']));
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      await queue.broadcast(
-        event,
-        relaySet: const UrlSet.explicit(['wss://a']),
-      );
+      await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
       await waitFor(
         queue,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
 
-      await queue.broadcast(event, relaySet: const UrlSet.inbox('p'));
+      await queue.publish(event, relaySet: const UrlSet.inbox('p'));
       final delivered = await waitFor(
         queue,
         event.id,
         (r) =>
-            r.status == BroadcastStatus.delivered &&
+            r.status == QueuedPublishStatus.delivered &&
             r.ackedRelays.contains('wss://b'),
       );
       expect(delivered.relays, ['wss://a', 'wss://b']);
@@ -183,10 +180,10 @@ void main() {
     });
 
     test('an unresolved set survives a restart', () async {
-      final fake = FakeBroadcaster()..ack('wss://w');
+      final fake = FakePublisher()..ack('wss://w');
       final first = queueFor(fake, FakeRelayLists());
       final event = makeEvent();
-      await first.broadcast(event, relaySet: const UrlSet.dm('p'));
+      await first.publish(event, relaySet: const UrlSet.dm('p'));
       await waitFor(first, event.id, (r) => r.resolutionAttempts >= 1);
       await first.dispose();
 
@@ -199,19 +196,19 @@ void main() {
       await waitFor(
         second,
         event.id,
-        (r) => r.status == BroadcastStatus.delivered,
+        (r) => r.status == QueuedPublishStatus.delivered,
       );
 
       await second.dispose();
     });
 
     test('dispose abandons a resolution waiting on a lookup', () async {
-      final fake = FakeBroadcaster();
+      final fake = FakePublisher();
       final lists = FakeRelayLists()..gate = Completer<void>();
       final queue = queueFor(fake, lists);
 
       final event = makeEvent();
-      await queue.broadcast(event, relaySet: const UrlSet.private('p'));
+      await queue.publish(event, relaySet: const UrlSet.private('p'));
       while (lists.calls.isEmpty) {
         await Future.delayed(const Duration(milliseconds: 5));
       }
@@ -227,10 +224,10 @@ void main() {
     });
 
     test('an explicit-only set resolves at enqueue time', () async {
-      final fake = FakeBroadcaster()..ack('wss://b');
+      final fake = FakePublisher()..ack('wss://b');
       final queue = queueFor(fake, null);
 
-      final record = await queue.broadcast(
+      final record = await queue.publish(
         makeEvent(),
         relaySet: const UrlSet.fallback([
           UrlSet.explicit([]),
@@ -244,10 +241,10 @@ void main() {
     });
 
     test('rejects invalid arguments', () async {
-      final queue = queueFor(FakeBroadcaster(), null);
+      final queue = queueFor(FakePublisher(), null);
       final event = makeEvent();
       expect(
-        () => queue.broadcast(event, relaySet: const UrlSet.outbox('p')),
+        () => queue.publish(event, relaySet: const UrlSet.outbox('p')),
         throwsStateError,
       );
       for (final invalid in const [
@@ -261,7 +258,7 @@ void main() {
         ]),
       ]) {
         await expectLater(
-          queue.broadcast(event, relaySet: invalid),
+          queue.publish(event, relaySet: invalid),
           throwsArgumentError,
         );
       }

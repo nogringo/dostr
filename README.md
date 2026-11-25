@@ -31,9 +31,9 @@ Start here.
 
 `dostr_url_set`: relay and Blossom server sets described rather than listed, stored offline and resolved later, in pure Dart.
 
-#### [🔗 Broadcast queue](./packages/broadcast_queue/)
+#### [🔗 Publish queue](./packages/publish_queue/)
 
-`dostr_broadcast_queue`: an offline-first queue in front of the publishes of `dostr_core`, stored in sembast and sent until every relay of a `UrlSet` accepts the event, refuses it for good, or stays unreachable while online.
+`dostr_publish_queue`: an offline-first queue in front of the publishes of `dostr_core`, stored in sembast and sent until every relay of a `UrlSet` accepts the event, refuses it for good, or stays unreachable while online.
 
 #### [🔗 Relay URLs](./packages/relay_url/)
 

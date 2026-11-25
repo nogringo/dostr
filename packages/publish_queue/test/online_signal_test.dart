@@ -1,19 +1,19 @@
 import 'dart:async';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/helpers.dart';
 
-/// Fake broadcaster that fails every call (so entries stay pending and get
+/// Fake publisher that fails every call (so entries stay pending and get
 /// rescheduled by the worker). Useful to count how many times the worker
 /// actually tries.
 class FailingCounter {
   int calls = 0;
-  BroadcastFn get fn => (event, relays, {account}) async {
+  PublishFn get fn => (event, relays, {account}) async {
     calls++;
     return {
       for (final relay in relays)
@@ -47,8 +47,8 @@ void main() {
   test('periodic tick is a no-op while offline', () async {
     final fake = FailingCounter();
     final signal = StreamController<bool>();
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       tickInterval: const Duration(milliseconds: 20),
       initialBackoff: const Duration(milliseconds: 5),
@@ -57,13 +57,10 @@ void main() {
 
     // Seed the queue with a failing entry (so it stays pending and would
     // normally be picked up by every tick).
-    await queue.broadcast(
-      _event(),
-      relaySet: const UrlSet.explicit(['wss://a']),
-    );
+    await queue.publish(_event(), relaySet: const UrlSet.explicit(['wss://a']));
     queue.start();
     signal.add(false);
-    // Let broadcast()'s unconditional attempt + start()'s initial replay
+    // Let publish()'s unconditional attempt + start()'s initial replay
     // land, plus the signal listener flip _isOnline to false.
     await Future<void>.delayed(const Duration(milliseconds: 10));
     final base = fake.calls;
@@ -83,8 +80,8 @@ void main() {
   test('offline -> online edge triggers an immediate replay', () async {
     final fake = FailingCounter();
     final signal = StreamController<bool>();
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       // Long interval so we know any replay came from the edge, not the timer.
       tickInterval: const Duration(seconds: 30),
@@ -92,10 +89,7 @@ void main() {
       onlineSignal: signal.stream,
     );
 
-    await queue.broadcast(
-      _event(),
-      relaySet: const UrlSet.explicit(['wss://a']),
-    );
+    await queue.publish(_event(), relaySet: const UrlSet.explicit(['wss://a']));
     await _flush();
     final base = fake.calls;
     expect(base, 1);
@@ -125,18 +119,15 @@ void main() {
   test('retryNow() bypasses the online state', () async {
     final fake = FailingCounter();
     final signal = StreamController<bool>();
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
+    final queue = PublishQueue(
+      publishFn: fake.fn,
       db: db,
       tickInterval: const Duration(seconds: 30),
       initialBackoff: const Duration(milliseconds: 5),
       onlineSignal: signal.stream,
     );
 
-    await queue.broadcast(
-      _event(),
-      relaySet: const UrlSet.explicit(['wss://a']),
-    );
+    await queue.publish(_event(), relaySet: const UrlSet.explicit(['wss://a']));
     queue.start();
     signal.add(false);
     // Let the initial attempt + start replay land and the entry's backoff

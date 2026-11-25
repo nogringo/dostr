@@ -1,4 +1,4 @@
-import 'package:dostr_broadcast_queue/src/relay_host_filter.dart';
+import 'package:dostr_publish_queue/src/relay_host_filter.dart';
 import 'package:test/test.dart';
 
 void main() {

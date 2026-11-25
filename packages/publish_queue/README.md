@@ -1,4 +1,4 @@
-# dostr_broadcast_queue
+# dostr_publish_queue
 
 An offline-first queue for Nostr events, in front of the publishes of [`dostr_core`](https://pub.dev/packages/dostr_core).
 
@@ -6,35 +6,35 @@ An offline-first queue for Nostr events, in front of the publishes of [`dostr_co
 If the network is down, the app is backgrounded or the process is killed, the event is gone.
 This queue stores the event in a [sembast](https://pub.dev/packages/sembast) database first, then keeps sending it until every relay has accepted it, refused it for good, or stayed unreachable while the device was online:
 
- - **Local persistence first.** `broadcast()` returns once the event is stored, before any network attempt. Delivery happens in the background and survives restarts.
+ - **Local persistence first.** `publish()` returns once the event is stored, before any network attempt. Delivery happens in the background and survives restarts.
  - **Full delivery.** An entry is only `delivered` once *every* targeted relay has accepted the event. A partial success keeps it pending and retries the relays still owed.
  - **Monotonic ack history.** A relay that accepted the event never un-acks, so a delivered entry never flips back to pending on a transient outage.
- - **Terminal refusals.** An `OK false` with a `blocked`, `invalid`, `mute`, `pow` or `restricted` prefix, an event too long for the relay, or a relay the `RelayManager` blocks, stops the retries on that relay and shows as `BroadcastStatus.failed`.
+ - **Terminal refusals.** An `OK false` with a `blocked`, `invalid`, `mute`, `pow` or `restricted` prefix, an event too long for the relay, or a relay the `RelayManager` blocks, stops the retries on that relay and shows as `QueuedPublishStatus.failed`.
  - **Dead relay cutoff.** A relay unreachable for 12 consecutive online attempts is stopped for that event.
  - **Relay sets resolved offline.** Target an account's NIP-65 outbox, its recipients' inboxes, NIP-17 DM relays or NIP-37 private relays with a [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) `UrlSet`, without knowing the URLs yet. The set is stored as is, resolved once online, then frozen.
  - **Superseded versions.** Queuing a new version of a replaceable or addressable event stops the retries of an older version still pending once newer versions head to all its relays.
  - **Ordered, capped publishing.** At most `maxConcurrentPublishes` entries publish at once, taken in the order they were queued, so a backlog piled up offline goes out in order.
  - **Cancellation and account-scoped clearing.** `cancel` stops one entry and keeps it in the store, `clearLocalAccountData` wipes one account's queue on logout.
- - **No auto-deletion.** Delivered entries stay in the store and can be re-broadcast later, to a freshly discovered relay for instance.
+ - **No auto-deletion.** Delivered entries stay in the store and can be published again later, to a freshly discovered relay for instance.
 
 ## Install
 
 ```yaml
 dependencies:
-  dostr_broadcast_queue: ^0.1.0
+  dostr_publish_queue: ^0.1.0
 ```
 
 ## Quick start
 
 ```dart
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_io.dart';
 
-final db = await databaseFactoryIo.openDatabase('broadcasts.db');
+final db = await databaseFactoryIo.openDatabase('publish_queue.db');
 final relayManager = RelayManager(
   nostrTransportFactory: webSocketTransportFactory(),
 );
@@ -44,7 +44,7 @@ final reqs = RelayReqs(
 );
 final nip65 = Nip65Fetcher(reqs: reqs);
 
-final queue = BroadcastQueue.withDostr(
+final queue = PublishQueue.withDostr(
   relayManager,
   db: db,
   relayListFn: fetcherUrlListFn(
@@ -55,7 +55,7 @@ final queue = BroadcastQueue.withDostr(
 )..start();
 
 // Returns as soon as the event is stored. Delivery is now the queue's job.
-await queue.broadcast(
+await queue.publish(
   signedEvent,
   relaySet: const UrlSet.explicit([
     'wss://relay.primal.net',
@@ -64,19 +64,19 @@ await queue.broadcast(
 );
 
 // Or let the queue find the author's write relays later, offline included.
-await queue.broadcast(signedEvent, relaySet: UrlSet.outbox(signedEvent.pubkey));
+await queue.publish(signedEvent, relaySet: UrlSet.outbox(signedEvent.pubkey));
 ```
 
-The full example is in [example/dostr_broadcast_queue_example.dart](example/dostr_broadcast_queue_example.dart).
+The full example is in [example/dostr_publish_queue_example.dart](example/dostr_publish_queue_example.dart).
 
 ## Semantics
 
-### `broadcast(event, {required UrlSet relaySet, String? account})`
+### `publish(event, {required UrlSet relaySet, String? account})`
 
 Persists `event` and schedules an immediate attempt to the relays of `relaySet` (see [Relay sets](#relay-sets)).
-`event` must be signed: the queue never signs, and `broadcast` throws an `ArgumentError` on an unsigned event.
+`event` must be signed: the queue never signs, and `publish` throws an `ArgumentError` on an unsigned event.
 URLs are normalized as `RelayUrl.tryParse` does, and those that are not ws or wss urls are dropped.
-`broadcast` never waits on the network.
+`publish` never waits on the network.
 A set that needs no lookup and holds no relay throws an `ArgumentError`.
 
 Records are keyed by the pair `(event.id, account)`.
@@ -106,7 +106,7 @@ UrlSet.first(count, set)                 // the first count relays of set
 
 Every leaf reads the list of one account.
 Combine several with `union`: `UrlSet.union([for (final p in recipients) UrlSet.dm(p)])`.
-`UrlSet.blossom` names Blossom servers, not relays: `broadcast` rejects it with an `ArgumentError`.
+`UrlSet.blossom` names Blossom servers, not relays: `publish` rejects it with an `ArgumentError`.
 Use `dm`, not `inbox`, for gift wraps.
 
 The lookups go through the `relayListFn` you pass, usually `fetcherUrlListFn` of [`dostr_fetchers`](https://pub.dev/packages/dostr_fetchers), which reads the lists from the account's write relays and a few indexers, with its cache.
@@ -128,7 +128,7 @@ If any lookup the result depends on is unavailable, nothing is frozen: the entry
 This matters for `fallback`: an offline lookup never falls through to the next set, so going offline cannot lock an entry onto its fallback relays.
 
 If the whole set resolves to no relay, the entry becomes `failed` with `resolutionError: 'relay set resolved to no relay'`.
-Calling `broadcast` again with a set queues a new resolution on the same entry.
+Calling `publish` again with a set queues a new resolution on the same entry.
 
 The queue never times a lookup out as a whole, so a remote signer (NIP-46, NIP-55) can wait for the user's approval as long as it takes: bound the network part in the fetchers.
 `dispose` does not wait for such a lookup: the resolution is abandoned without writing and starts over on the next run.
@@ -138,7 +138,7 @@ Once frozen, private relays are stored in plain text in the queue's database.
 
 Relays keep only the latest version of a replaceable (kind 0, 3, 10000-19999) or addressable (kind 30000-39999, per `d` tag) event: the highest `created_at`, then the lowest id.
 So an older version only needs to reach the relays no newer version will.
-When `broadcast` queues such an event, a record of an older version of the same address that is still pending becomes `BroadcastStatus.superseded` once the newer versions in the store, together, hold or are still headed to every relay it owes:
+When `publish` queues such an event, a record of an older version of the same address that is still pending becomes `QueuedPublishStatus.superseded` once the newer versions in the store, together, hold or are still headed to every relay it owes:
 
  - it is no longer retried, and an unresolved relay set is dropped;
  - `supersededBy` holds the id of the newest version;
@@ -151,7 +151,7 @@ An older version that is not covered keeps going to all its relays: those that a
 This spans every `account` label, since relays do not care which local account queued a version.
 It holds for a version older than one already in the store too, delivered or not: covered, it is stored superseded and never sent.
 Older versions that were already delivered or failed keep their status.
-`rebroadcast` still forces one push of a superseded record, which stays superseded.
+`republish` still forces one push of a superseded record, which stays superseded.
 
 Edit a NIP-65 list twice offline, sending both versions to the same relays, and only the second version goes out once back online.
 
@@ -160,16 +160,16 @@ Edit a NIP-65 list twice offline, sending both versions to the same relays, and 
 `account` labels the local account an entry was queued under, by its pubkey, so its queue can be dropped on logout:
 
 ```dart
-await queue.broadcast(event, relaySet: ..., account: myPubkey);
+await queue.publish(event, relaySet: ..., account: myPubkey);
 ...
 await queue.clearLocalAccountData(account: myPubkey); // wipe this account
 await queue.clearAllLocalData();                      // wipe everything
 ```
 
- - It need not be `event.pubkey`. An event may be queued under an account that did not sign it (rebroadcasting someone else's note), and for a gift wrap (kind 1059) `event.pubkey` is an ephemeral throwaway key. Pass the real sending account so NIP-17 DMs and other wraps can still be cleared.
+ - It need not be `event.pubkey`. An event may be queued under an account that did not sign it (republishing someone else's note), and for a gift wrap (kind 1059) `event.pubkey` is an ephemeral throwaway key. Pass the real sending account so NIP-17 DMs and other wraps can still be cleared.
  - Leaving `account` `null` leaves the entry **unattributed**: retried like any other, keyed by the bare `event.id`, but never removed by `clearLocalAccountData`.
- - `clearLocalAccountData` removes matching entries for good, delivered or not. It is safe to call while attempts are in flight (a concurrent attempt no-ops once its record is gone), but do not `broadcast` for an account you are clearing, as an overlapping enqueue can re-create its record.
- - `get`, `watch`, `rebroadcast` and `cancel` take the same optional `account` to select which record they act on. `watchPending` and `listAll` span all accounts; filter on `QueuedBroadcast.account` for one.
+ - `clearLocalAccountData` removes matching entries for good, delivered or not. It is safe to call while attempts are in flight (a concurrent attempt no-ops once its record is gone), but do not `publish` for an account you are clearing, as an overlapping enqueue can re-create its record.
+ - `get`, `watch`, `republish` and `cancel` take the same optional `account` to select which record they act on. `watchPending` and `listAll` span all accounts; filter on `QueuedPublish.account` for one.
  - `clearAllLocalData` empties the queue's store only; other sembast stores in the same database are untouched.
 
 ### Authentication
@@ -178,7 +178,7 @@ A relay may ask for NIP-42 authentication before it accepts an event, as private
 `withDostr` takes `authPolicyOf`, which gives the `AuthPolicy` of each publish from the event and the account it was queued under:
 
 ```dart
-BroadcastQueue.withDostr(
+PublishQueue.withDostr(
   relayManager,
   db: db,
   authPolicyOf: (event, account) {
@@ -196,12 +196,12 @@ Never authenticate a gift wrap as its sender: that tells the recipient's relay w
 ### Connectivity
 
 An attempt made while the device is offline does not count towards the dead relay cutoff, and is retried after `initialBackoff` without growing the backoff, so everything goes out shortly after the network is back.
-The backoff only grows with the attempts that fail online, and starts over when `broadcast` queues the entry again or `rebroadcast` gives it a new relay.
+The backoff only grows with the attempts that fail online, and starts over when `publish` queues the entry again or `republish` gives it a new relay.
 
 Pass the platform's connectivity as `onlineSignal`, such as a stream of `connectivity_plus`, to tell the queue when the device is offline:
 
 ```dart
-BroadcastQueue.withDostr(
+PublishQueue.withDostr(
   relayManager,
   db: db,
   onlineSignal: yourConnectivityStream, // true while online, false otherwise
@@ -224,31 +224,31 @@ The default constructor without `onlineSignal` assumes it is always online.
 Forces an immediate scan of due entries, bypassing the online check.
 Use it as an explicit override (e.g. when the user pulls to refresh).
 
-### `rebroadcast(id, {String? account, String? relay})`
+### `republish(id, {String? account, String? relay})`
 
 `ackedRelays` and `deliveredAt` are monotonic.
-`rebroadcast` never rewrites the past; it queues a one-shot push via a transient `forcedRelays` override that the next attempt consumes.
+`republish` never rewrites the past; it queues a one-shot push via a transient `forcedRelays` override that the next attempt consumes.
 It returns `null` if no such record exists.
 
- - `rebroadcast(id)`: schedules an immediate push to **every** relay in the entry's `relays` list, including those that already acked. Useful when you suspect a relay dropped your event. Acks and `deliveredAt` are kept regardless of the new attempt's outcome.
- - `rebroadcast(id, relay: r)`: pushes to that single relay. If `r` is new to the entry, it joins the target list, the entry goes back to pending until `r` acks and its backoff starts over. If `r` was already there, the historical state is kept. A `relay` that is not a ws or wss url throws an `ArgumentError`.
+ - `republish(id)`: schedules an immediate push to **every** relay in the entry's `relays` list, including those that already acked. Useful when you suspect a relay dropped your event. Acks and `deliveredAt` are kept regardless of the new attempt's outcome.
+ - `republish(id, relay: r)`: pushes to that single relay. If `r` is new to the entry, it joins the target list, the entry goes back to pending until `r` acks and its backoff starts over. If `r` was already there, the historical state is kept. A `relay` that is not a ws or wss url throws an `ArgumentError`.
 
 ### `cancel(id, {String? account})`
 
 Stops the retries of a pending entry.
-It becomes `BroadcastStatus.cancelled` with a `cancelledAt` timestamp, leaves `watchPending()` and stays in `listAll()`.
-An unresolved relay set and a push queued by `rebroadcast` are dropped.
+It becomes `QueuedPublishStatus.cancelled` with a `cancelledAt` timestamp, leaves `watchPending()` and stays in `listAll()`.
+An unresolved relay set and a push queued by `republish` are dropped.
 It returns `null` if no such record exists.
 
- - An entry that is already delivered, failed or superseded keeps its status. Only a queued `rebroadcast` push is dropped.
+ - An entry that is already delivered, failed or superseded keeps its status. Only a queued `republish` push is dropped.
  - An attempt already in flight still completes and records its acks.
  - Relays that acked keep the event. To remove it from them, publish a NIP-09 `kind:5` deletion.
- - `broadcast` with the same event and `account` reopens the entry. `rebroadcast` forces one push and the entry stays cancelled.
+ - `publish` with the same event and `account` reopens the entry. `republish` forces one push and the entry stays cancelled.
 
 ### Terminal failures
 
 NIP-01 requires failed `OK` messages to start with a machine-readable prefix followed by `:`.
-When a relay refuses the event with one of these prefixes, the queue records the message in `QueuedBroadcast.terminalErrors` and stops retrying that relay for the event:
+When a relay refuses the event with one of these prefixes, the queue records the message in `QueuedPublish.terminalErrors` and stops retrying that relay for the event:
 
  - `blocked`
  - `invalid`
@@ -257,12 +257,12 @@ When a relay refuses the event with one of these prefixes, the queue records the
  - `restricted`
 
 An event longer than the relay reads (`RelayFailureKind.messageTooLong`) and a relay the `RelayManager` blocks (`RelayFailureKind.blocked`) are terminal too.
-If every target relay is either acked or terminally refused, and at least one is refused, the entry becomes `BroadcastStatus.failed` and leaves `watchPending()`.
+If every target relay is either acked or terminally refused, and at least one is refused, the entry becomes `QueuedPublishStatus.failed` and leaves `watchPending()`.
 
-Other refusals, such as `rate-limited:`, `auth-required:` or `error:` (NIP-01's example is `error: could not connect to the database`), unknown prefixes and messages without a colon, stay retryable, and so do the failures of an identity (`cannotSign`, `authenticationFailed`, etc.) and the exceptions a `BroadcastFn` throws.
+Other refusals, such as `rate-limited:`, `auth-required:` or `error:` (NIP-01's example is `error: could not connect to the database`), unknown prefixes and messages without a colon, stay retryable, and so do the failures of an identity (`cannotSign`, `authenticationFailed`, etc.) and the exceptions a `PublishFn` throws.
 A relay that could not be reached, dropped the connection or timed out stays retryable until it has been unreachable for `maxInaccessibleAttemptsPerRelay` (12) consecutive online attempts.
 
-`rebroadcast` can still force another push.
+`republish` can still force another push.
 If a terminally refused relay later accepts the event, its terminal error is cleared and the entry can become `delivered`.
 
 ### What the queue does not do
@@ -274,7 +274,7 @@ If a terminally refused relay later accepts the event, its terminal error is cle
 ## Tuning
 
 ```dart
-BroadcastQueue.withDostr(
+PublishQueue.withDostr(
   relayManager,
   db: db,
   publishTimeout: defaultPublishTimeout,       // how long each attempt waits for the relays, NIP-42 aside
@@ -290,7 +290,7 @@ BroadcastQueue.withDostr(
 ## Architecture in one diagram
 
 ```
-caller.broadcast(event, relaySet)
+caller.publish(event, relaySet)
         │
         ▼
   sembast write ──── durable, returns to caller here
@@ -316,34 +316,35 @@ A `Timer.periodic` scans for due entries every `tickInterval` and replays whatev
 
 ## Testing your integration
 
-`BroadcastQueue` is unit-testable without relays.
-Pass a `BroadcastFn` to the default constructor:
+`PublishQueue` is unit-testable without relays.
+Pass a `PublishFn` to the default constructor:
 
 ```dart
-final queue = BroadcastQueue(
-  broadcastFn: (event, relays, {account}) async => {
+final queue = PublishQueue(
+  publishFn: (event, relays, {account}) async => {
     for (final relay in relays) relay: const RelayPublishOutcome.accepted(),
   },
   db: await newDatabaseFactoryMemory().openDatabase('test.db'),
 );
 ```
 
-The package's own test suite uses exactly this approach, see [test/support/fake_broadcaster.dart](test/support/fake_broadcaster.dart).
+The package's own test suite uses exactly this approach, see [test/support/fake_publisher.dart](test/support/fake_publisher.dart).
 
 ## Coming from `broadcast_queue_shim_for_ndk`
 
-`OfflineBroadcast` is `BroadcastQueue`, and `OfflineBroadcast.withNdk(ndk, ...)` is `BroadcastQueue.withDostr(relayManager, ...)`.
+`OfflineBroadcast` is `PublishQueue`, and `OfflineBroadcast.withNdk(ndk, ...)` is `PublishQueue.withDostr(relayManager, ...)`.
 The rest of the API is the same, with these changes:
 
- - `pubkey` is `account`, on `broadcast`, `get`, `watch`, `rebroadcast`, `cancel`, `clearLocalAccountData`, `QueuedBroadcast` and `QueuedBroadcast.keyFor`. Stored records keep their `pubkey` field.
- - `BroadcastFn` takes the event, the relays as `RelayUrl`s and the `account` the event was queued under, and returns the `RelayPublishOutcome` of each relay. `perAttemptTimeout` is `publishTimeout` on `withDostr`: a `BroadcastFn` bounds its own attempts.
+ - `broadcast` is `publish`, `rebroadcast` is `republish`, `QueuedBroadcast` is `QueuedPublish`, `BroadcastStatus` is `QueuedPublishStatus`, and `BroadcastFn` is `PublishFn`, passed as `publishFn`.
+ - `pubkey` is `account`, on `publish`, `get`, `watch`, `republish`, `cancel`, `clearLocalAccountData`, `QueuedPublish` and `QueuedPublish.keyFor`. Stored records keep their `pubkey` field.
+ - `PublishFn` takes the event, the relays as `RelayUrl`s and the `account` the event was queued under, and returns the `RelayPublishOutcome` of each relay. `perAttemptTimeout` is `publishTimeout` on `withDostr`: a `PublishFn` bounds its own attempts.
  - `withNdk` built the relay list lookups itself. Pass `relayListFn`, built with `fetcherUrlListFn` of `dostr_fetchers`: `relayListDiscoveryRelays` and `relayListQueryTimeout` are the `relays` and `timeout` of its fetchers.
  - `UrlSet` comes from `dostr_url_set`, which this package does not re-export.
- - `QueuedBroadcast.relays`, `ackedRelays`, `forcedRelays` and the keys of `lastErrors`, `terminalErrors` and `inaccessibleAttempts` are `RelayUrl`s.
- - `broadcast` throws on an unsigned event, where NDK signed it.
+ - `QueuedPublish.relays`, `ackedRelays`, `forcedRelays` and the keys of `lastErrors`, `terminalErrors` and `inaccessibleAttempts` are `RelayUrl`s.
+ - `publish` throws on an unsigned event, where NDK signed it.
  - Errors read `refused`, `no response`, `timed out` or the `RelayFailure` of the relay, such as `unreachable: <reason>`, where they read `rejected` and `no response (timeout or relay unreachable)`.
  - An event too long for a relay, a `mute:` refusal and a relay the `RelayManager` blocks are refused for good. An `error:` refusal is retried.
- - An attempt made offline no longer grows the backoff, and one in which a relay answered counts as online. The backoff starts over when `broadcast` queues the entry again or `rebroadcast` gives it a new relay.
+ - An attempt made offline no longer grows the backoff, and one in which a relay answered counts as online. The backoff starts over when `publish` queues the entry again or `republish` gives it a new relay.
  - A newer version of a replaceable or addressable event supersedes an older one only once newer versions head to all its relays.
  - At most `maxConcurrentPublishes` entries publish at once, oldest first. Without `onlineSignal`, `withDostr` no longer pauses the periodic retries, see [Connectivity](#connectivity).
  - `dispose` abandons an attempt still waiting on the relays, where it waited for it.

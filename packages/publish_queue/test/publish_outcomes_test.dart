@@ -1,36 +1,36 @@
 import 'dart:async';
 import 'dart:math';
 
-import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
-import 'support/fake_broadcaster.dart';
+import 'support/fake_publisher.dart';
 import 'support/helpers.dart';
 
 void main() {
   late Database db;
-  late FakeBroadcaster fake;
+  late FakePublisher fake;
 
   setUp(() async {
     db = await newDatabaseFactoryMemory().openDatabase('test.db');
-    fake = FakeBroadcaster();
+    fake = FakePublisher();
   });
 
   tearDown(() async {
     await db.close();
   });
 
-  BroadcastQueue newQueue({
+  PublishQueue newQueue({
     int maxInaccessibleAttemptsPerRelay = 12,
     Stream<bool>? onlineSignal,
     Duration initialBackoff = const Duration(milliseconds: 1),
     Duration maxBackoff = const Duration(minutes: 30),
     Random? random,
-  }) => BroadcastQueue(
-    broadcastFn: fake.fn,
+  }) => PublishQueue(
+    publishFn: fake.fn,
     db: db,
     initialBackoff: initialBackoff,
     maxBackoff: maxBackoff,
@@ -39,12 +39,12 @@ void main() {
     random: random,
   );
 
-  test('broadcast rejects an unsigned event and stores nothing', () async {
+  test('publish rejects an unsigned event and stores nothing', () async {
     final queue = newQueue();
     final unsigned = Nip01Event(pubkey: 'a' * 64, kind: 1, content: 'hi');
 
     await expectLater(
-      queue.broadcast(unsigned, relaySet: const UrlSet.explicit(['wss://a'])),
+      queue.publish(unsigned, relaySet: const UrlSet.explicit(['wss://a'])),
       throwsArgumentError,
     );
     expect(await queue.listAll(), isEmpty);
@@ -57,7 +57,7 @@ void main() {
     fake.ack('wss://a');
     final queue = newQueue();
 
-    final record = await queue.broadcast(
+    final record = await queue.publish(
       makeEvent(),
       relaySet: const UrlSet.explicit([
         'https://relay.example',
@@ -70,30 +70,30 @@ void main() {
     await queue.dispose();
   });
 
-  test('rebroadcast rejects a relay that is not a relay url', () async {
+  test('republish rejects a relay that is not a relay url', () async {
     fake.ack('wss://a');
     final queue = newQueue();
     final event = makeEvent();
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
 
     await expectLater(
-      queue.rebroadcast(event.id, relay: 'https://a'),
+      queue.republish(event.id, relay: 'https://a'),
       throwsArgumentError,
     );
 
     await queue.dispose();
   });
 
-  test('the broadcastFn gets the account the event was queued under', () async {
+  test('the publishFn gets the account the event was queued under', () async {
     fake.ack('wss://a');
     final queue = newQueue();
 
-    await queue.broadcast(
+    await queue.publish(
       makeEvent(),
       relaySet: const UrlSet.explicit(['wss://a']),
       account: 'alice',
     );
-    await queue.broadcast(
+    await queue.publish(
       makeEvent(seed: 2),
       relaySet: const UrlSet.explicit(['wss://a']),
     );
@@ -111,11 +111,11 @@ void main() {
     final queue = newQueue();
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     final failed = await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.failed,
+      (r) => r.status == QueuedPublishStatus.failed,
     );
     expect(failed.terminalErrors, {'wss://a': 'messageTooLong: 512'});
 
@@ -127,11 +127,11 @@ void main() {
     final queue = newQueue();
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     final failed = await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.failed,
+      (r) => r.status == QueuedPublishStatus.failed,
     );
     expect(failed.terminalErrors, {'wss://a': 'blocked: by the user'});
     expect(failed.inaccessibleAttempts, isEmpty);
@@ -145,11 +145,11 @@ void main() {
     final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     final failed = await waitFor(
       queue,
       event.id,
-      (r) => r.status == BroadcastStatus.failed,
+      (r) => r.status == QueuedPublishStatus.failed,
     );
     expect(failed.terminalErrors, {
       'wss://a': 'max-inaccessible-attempts: timed out',
@@ -165,12 +165,9 @@ void main() {
       final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
       final event = makeEvent();
 
-      await queue.broadcast(
-        event,
-        relaySet: const UrlSet.explicit(['wss://a']),
-      );
+      await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
       final pending = await waitFor(queue, event.id, (r) => r.attempts >= 1);
-      expect(pending.status, BroadcastStatus.pending);
+      expect(pending.status, QueuedPublishStatus.pending);
       expect(pending.inaccessibleAttempts, isEmpty);
       expect(pending.lastErrors, {'wss://a': 'cannotSign: no key'});
 
@@ -183,11 +180,11 @@ void main() {
     final queue = newQueue();
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     await waitFor(queue, event.id, (r) => r.inaccessibleAttempts.isNotEmpty);
 
     fake.refuse('wss://a', message: 'rate-limited: slow down');
-    await queue.rebroadcast(event.id);
+    await queue.republish(event.id);
     final answered = await waitFor(
       queue,
       event.id,
@@ -205,7 +202,7 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final event = makeEvent();
 
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://a', 'wss://gone']),
       );
@@ -221,7 +218,7 @@ void main() {
       final queue = newQueue(onlineSignal: online.stream)..start();
       final event = makeEvent();
 
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://gone']),
       );
@@ -247,7 +244,7 @@ void main() {
         )..start();
         await Future<void>.delayed(Duration.zero);
         final event = makeEvent(seed: online ? 1 : 2);
-        await queue.broadcast(
+        await queue.publish(
           event,
           relaySet: const UrlSet.explicit(['wss://gone']),
         );
@@ -259,7 +256,7 @@ void main() {
             (r) => r.attempts >= attempts,
           );
           delays.add(record.nextAttemptAt - record.lastAttemptAt!);
-          await queue.rebroadcast(event.id);
+          await queue.republish(event.id);
         }
         await queue.dispose();
         return delays;
@@ -280,19 +277,19 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       final event = makeEvent();
 
-      await queue.broadcast(
+      await queue.publish(
         event,
         relaySet: const UrlSet.explicit(['wss://gone']),
       );
       for (var attempts = 1; attempts <= 3; attempts++) {
         await waitFor(queue, event.id, (r) => r.attempts >= attempts);
-        if (attempts < 3) await queue.rebroadcast(event.id);
+        if (attempts < 3) await queue.republish(event.id);
       }
       expect((await queue.get(event.id))!.onlineFailures, 0);
 
       online.add(true);
       await Future<void>.delayed(Duration.zero);
-      await queue.rebroadcast(event.id);
+      await queue.republish(event.id);
       final record = await waitFor(queue, event.id, (r) => r.attempts >= 4);
       expect(record.onlineFailures, record.attempts - 3);
       expect(record.nextAttemptAt - record.lastAttemptAt!, lessThan(200));
@@ -302,7 +299,7 @@ void main() {
     });
   });
 
-  test('broadcast resets the backoff of an existing entry', () async {
+  test('publish resets the backoff of an existing entry', () async {
     fake.refuse('wss://a', message: 'rate-limited: slow down');
     final queue = newQueue(
       initialBackoff: const Duration(milliseconds: 50),
@@ -310,14 +307,14 @@ void main() {
     );
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     for (var attempts = 1; attempts <= 3; attempts++) {
       await waitFor(queue, event.id, (r) => r.attempts >= attempts);
-      if (attempts < 3) await queue.rebroadcast(event.id);
+      if (attempts < 3) await queue.republish(event.id);
     }
     expect((await queue.get(event.id))!.onlineFailures, 3);
 
-    final queued = await queue.broadcast(
+    final queued = await queue.publish(
       event,
       relaySet: const UrlSet.explicit(['wss://b']),
     );
@@ -334,14 +331,14 @@ void main() {
     final queue = newQueue();
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
     await waitFor(queue, event.id, (_) => fake.calls.isNotEmpty);
     await queue.dispose().timeout(const Duration(seconds: 1));
 
     final queueAgain = newQueue();
     final record = (await queueAgain.get(event.id))!;
     expect(record.attempts, 0);
-    expect(record.status, BroadcastStatus.pending);
+    expect(record.status, QueuedPublishStatus.pending);
     await queueAgain.dispose();
   });
 }
