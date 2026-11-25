@@ -62,6 +62,32 @@ void main() {
     await queue.dispose();
   });
 
+  test('onError gets a write the store refuses in the background', () async {
+    final errors = <Object>[];
+    fake.gate = Completer();
+    final queue = PublishQueue(
+      publishFn: fake.fn,
+      store: store,
+      onError: (error, _) => errors.add(error),
+    );
+    final event = makeEvent();
+    await queue.publish(event, relaySet: _relays);
+    await waitFor(queue, event.id, (_) => fake.calls.isNotEmpty);
+
+    store.refuseWrites = true;
+    fake.gate!.complete({
+      RelayUrl.parse('wss://a'): const RelayPublishOutcome.accepted(),
+    });
+    for (var i = 0; i < 100 && errors.isEmpty; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    expect(errors.single, isA<StateError>());
+    expect((await queue.get(event.id))!.attempts, 0);
+
+    store.refuseWrites = false;
+    await queue.dispose();
+  });
+
   test('a read the store refuses is tried again on the next call', () async {
     final event = makeEvent();
     await newQueue().publish(event, relaySet: _relays);

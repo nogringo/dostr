@@ -1,11 +1,21 @@
 import 'dart:async';
 
-import 'package:dostr_core/dostr_core.dart' show RelayUrl;
-import 'package:dostr_url_set/dostr_url_set.dart';
-
 import 'publish_queue_store.dart';
 import 'queued_publish.dart';
 import 'replaceable.dart';
+
+/// What the newer versions of a replaceable or addressable event do with the
+/// relays an older version still owes.
+enum Coverage {
+  /// At least one relay gets no newer version.
+  none,
+
+  /// Newer versions hold, or are still headed to, every relay.
+  headedTo,
+
+  /// Newer versions hold every relay.
+  held,
+}
 
 /// The records of a [PublishQueueStore], read once and kept in memory.
 ///
@@ -31,51 +41,17 @@ class QueueStore {
     return _records[key];
   }
 
-  /// Writes [record], and supersedes, in the same write, every record of an
-  /// older version of the same replaceable or addressable event that is still
-  /// owed an attempt, [record] included, once newer versions head to all its
-  /// relays. Returns [record] as stored.
-  Future<QueuedPublish> put(QueuedPublish record) => _serialized(() async {
-    final address = replaceableAddress(record.event);
-    if (address == null) {
-      await _store([record]);
-      return record;
-    }
-
-    final versions = [
-      for (final other in _records.values)
-        if (other.key != record.key &&
-            replaceableAddress(other.event) == address)
-          other,
-      record,
-    ];
-    final newest = versions
-        .map((r) => r.event)
-        .reduce((a, b) => replaces(b, a) ? b : a);
-
-    final written = {record.key: record};
-    for (final version in versions) {
-      if (version.supersededBy == null) {
-        final owed =
-            version.status == QueuedPublishStatus.pending ||
-            version.forcedRelays != null;
-        if (!owed) continue;
-        final newer = [
-          for (final other in versions)
-            if (replaces(other.event, version.event)) other,
-        ];
-        if (newer.isEmpty || !_covered(version, newer)) continue;
-        written[version.key] = version.copyWith(
-          supersededBy: newest.id,
-          clearPendingRelaySet: true,
-          clearForcedRelays: true,
-        );
-      } else if (version.pendingRelaySet != null) {
-        written[version.key] = version.copyWith(clearPendingRelaySet: true);
-      }
-    }
-    await _store(written.values.toList());
-    return written[record.key]!;
+  /// Writes the record [build] makes of the one stored at [key], or of null,
+  /// atomic with the other writes. A pending record whose relays all hold a
+  /// newer version is stored superseded. Returns the record as stored.
+  Future<QueuedPublish> put(
+    String key,
+    Future<QueuedPublish> Function(QueuedPublish? existing) build,
+  ) => _serialized(() async {
+    final record = await build(_records[key]);
+    final stored = _supersededIfHeld(record) ?? record;
+    await _store([stored]);
+    return stored;
   });
 
   /// Read-modify-write of the record at [key], atomic with the other writes.
@@ -92,24 +68,82 @@ class QueueStore {
     return next;
   });
 
-  /// Whether the [newer] versions hold, or are still headed to, every relay
-  /// [version] owes. A relay set still to resolve only covers the same set.
-  static bool _covered(QueuedPublish version, List<QueuedPublish> newer) {
-    final relays = <RelayUrl>{};
-    final sets = <UrlSet>{};
-    for (final other in newer) {
-      relays.addAll(other.ackedRelays);
-      if (other.status != QueuedPublishStatus.pending) continue;
-      relays.addAll(other.remainingRelays);
-      if (other.pendingRelaySet case final set?) sets.add(set);
-    }
-    final owedSet = version.pendingRelaySet;
-    return (owedSet == null || sets.contains(owedSet)) &&
-        [
-          ...version.remainingRelays,
-          ...?version.forcedRelays,
-        ].every(relays.contains);
+  /// What the newer versions of [record] do with the relays it owes. Always
+  /// [Coverage.none] for a record that is not pending or has a push queued by
+  /// `republish`. Reads the records in memory: call it once they are loaded.
+  Coverage coverage(QueuedPublish record) =>
+      _coverage(record, _newerVersions(record));
+
+  /// Marks the record at [key] superseded if newer versions hold every relay
+  /// it owes.
+  Future<void> supersede(String key) => update(key, _supersededIfHeld);
+
+  QueuedPublish? _supersededIfHeld(QueuedPublish record) {
+    final newer = _newerVersions(record);
+    if (_coverage(record, newer) != Coverage.held) return null;
+    final newest = newer
+        .map((r) => r.event)
+        .reduce((a, b) => replaces(b, a) ? b : a);
+    return record.copyWith(supersededBy: newest.id);
   }
+
+  List<QueuedPublish> _newerVersions(QueuedPublish record) {
+    final address = replaceableAddress(record.event);
+    if (address == null) return const [];
+    return [
+      for (final other in _records.values)
+        if (replaceableAddress(other.event) == address &&
+            replaces(other.event, record.event))
+          other,
+    ];
+  }
+
+  /// A relay set still to resolve is only covered by a pending newer version
+  /// that has the same set to resolve.
+  static Coverage _coverage(QueuedPublish record, List<QueuedPublish> newer) {
+    final set = record.pendingRelaySet;
+    final owed = record.remainingRelays;
+    if (newer.isEmpty ||
+        record.status != QueuedPublishStatus.pending ||
+        record.forcedRelays != null ||
+        (set == null && owed.isEmpty)) {
+      return Coverage.none;
+    }
+    final held = {for (final other in newer) ...other.ackedRelays};
+    if (set == null && owed.every(held.contains)) return Coverage.held;
+    final pending = [
+      for (final other in newer)
+        if (other.status == QueuedPublishStatus.pending) other,
+    ];
+    final headedTo = {
+      ...held,
+      for (final other in pending) ...other.remainingRelays,
+    };
+    final setCovered =
+        set == null || pending.any((other) => other.pendingRelaySet == set);
+    return setCovered && owed.every(headedTo.contains)
+        ? Coverage.headedTo
+        : Coverage.none;
+  }
+
+  /// Deletes the record at [key] and returns it, or null if there is none.
+  Future<QueuedPublish?> delete(String key) => _serialized(() async {
+    final record = _records[key];
+    if (record != null) await _remove([key]);
+    return record;
+  });
+
+  /// Deletes the records that are settled, with no push queued by
+  /// `republish`, and were created before [createdBefore].
+  Future<void> deleteSettled({required int createdBefore}) => _serialized(
+    () => _remove([
+      for (final record in _records.values)
+        if (record.createdAt < createdBefore &&
+            record.status != QueuedPublishStatus.pending &&
+            record.forcedRelays == null)
+          record.key,
+    ]),
+  );
 
   /// Deletes every record queued under [account]. Records with no account
   /// never match.

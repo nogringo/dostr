@@ -81,7 +81,9 @@ void main() {
       relayManager,
       store: store,
       publishTimeout: const Duration(milliseconds: 100),
-    );
+      onlineSignal: Stream.value(true),
+    )..start();
+    await Future<void>.delayed(Duration.zero);
     final event = makeEvent();
 
     await queue.publish(event, relaySet: UrlSet.explicit([relay.url]));

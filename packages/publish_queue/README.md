@@ -10,12 +10,12 @@ This queue stores the event first, in the [store](#storage) you give it, then ke
  - **Full delivery.** An entry is only `delivered` once *every* targeted relay has accepted the event. A partial success keeps it pending and retries the relays still owed.
  - **Monotonic ack history.** A relay that accepted the event never un-acks, so a delivered entry never flips back to pending on a transient outage.
  - **Terminal refusals.** An `OK false` with a `blocked`, `invalid`, `mute`, `pow` or `restricted` prefix, an event too long for the relay, or a relay the `RelayManager` blocks, stops the retries on that relay and shows as `QueuedPublishStatus.failed`.
- - **Dead relay cutoff.** A relay unreachable for 12 consecutive online attempts is stopped for that event.
+ - **Dead relay cutoff.** A relay unreachable for 12 consecutive online attempts is stopped for that event. A relay found unreachable is tried once a round for every event owed to it, not once per event.
  - **Relay sets resolved offline.** Target an account's NIP-65 outbox, its recipients' inboxes, NIP-17 DM relays or NIP-37 private relays with a [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) `UrlSet`, without knowing the URLs yet. The set is stored as is, resolved once online, then frozen.
- - **Superseded versions.** Queuing a new version of a replaceable or addressable event stops the retries of an older version still pending once newer versions head to all its relays.
+ - **Superseded versions.** An older version of a replaceable or addressable event still pending waits while newer versions head to all its relays, and is superseded once they hold them. It goes out if a newer version does not reach them.
  - **Ordered, capped publishing.** At most `maxConcurrentPublishes` entries publish at once, taken in the order they were queued, so a backlog piled up offline goes out in order.
- - **Cancellation and account-scoped clearing.** `cancel` stops one entry and keeps it in the store, `clearLocalAccountData` wipes one account's queue on logout.
- - **No auto-deletion.** Delivered entries stay in the store and can be published again later, to a freshly discovered relay for instance.
+ - **Cancellation and removal.** `cancel` stops one entry and keeps it in the store, `remove` drops it, `removeSettled` prunes the settled history, and `clearLocalAccountData` wipes one account's queue on logout.
+ - **No auto-deletion.** Delivered entries stay in the store and can be published again later, to a freshly discovered relay for instance, until you remove them.
 
 ## Install
 
@@ -152,20 +152,20 @@ Once frozen, private relays are stored in plain text in the queue's database.
 
 Relays keep only the latest version of a replaceable (kind 0, 3, 10000-19999) or addressable (kind 30000-39999, per `d` tag) event: the highest `created_at`, then the lowest id.
 So an older version only needs to reach the relays no newer version will.
-When `publish` queues such an event, a record of an older version of the same address that is still pending becomes `QueuedPublishStatus.superseded` once the newer versions in the store, together, hold or are still headed to every relay it owes:
+A pending record of an older version is weighed against the newer versions of the same address in the store:
 
- - it is no longer retried, and an unresolved relay set is dropped;
- - `supersededBy` holds the id of the newest version;
- - it leaves `watchPending()` but stays in `listAll()`.
+ - While the newer versions, together, hold or are still headed to every relay it owes, it waits: it stays `pending` but is not sent.
+ - Once they hold every relay it owes, it becomes `QueuedPublishStatus.superseded`: it is no longer retried, `supersededBy` holds the id of the newest version, and it leaves `watchPending()` but stays in `listAll()`.
+ - Otherwise it goes to all its relays: those that also get a newer version keep the newer one.
 
-A newer version counts on the relays that acked it, and on those it is still being sent to while it is pending: a relay that refused it for good, or that a cancelled version never reached, does not count.
-A relay set still to resolve only covers the same set still to resolve.
-An older version that is not covered keeps going to all its relays: those that also get a newer version keep the newer one.
+A newer version counts on the relays that acked it, and on those it is still being sent to while it is pending: a relay that refused it for good, or that a cancelled or removed version never reached, does not count.
+So an older version waiting on a newer one goes out once that one is cancelled, removed or refused for good.
+A relay set still to resolve only counts for the same set still to resolve, and an older version waiting on it does not look its lists up meanwhile.
 
 This spans every `account` label, since relays do not care which local account queued a version.
-It holds for a version older than one already in the store too, delivered or not: covered, it is stored superseded and never sent.
+It holds for a version older than one already in the store too: queued after newer versions that hold all its relays, it is stored superseded and never sent.
 Older versions that were already delivered or failed keep their status.
-`republish` still forces one push of a superseded record, which stays superseded.
+`publish` reopens a superseded record, and `republish` still forces one push of it, which stays superseded.
 
 Edit a NIP-65 list twice offline, sending both versions to the same relays, and only the second version goes out once back online.
 
@@ -182,8 +182,8 @@ await queue.clearAllLocalData();                      // wipe everything
 
  - It need not be `event.pubkey`. An event may be queued under an account that did not sign it (republishing someone else's note), and for a gift wrap (kind 1059) `event.pubkey` is an ephemeral throwaway key. Pass the real sending account so NIP-17 DMs and other wraps can still be cleared.
  - Leaving `account` `null` leaves the entry **unattributed**: retried like any other, keyed by the bare `event.id`, but never removed by `clearLocalAccountData`.
- - `clearLocalAccountData` removes matching entries for good, delivered or not. It is safe to call while attempts are in flight (a concurrent attempt no-ops once its record is gone), but do not `publish` for an account you are clearing, as an overlapping enqueue can re-create its record.
- - `get`, `watch`, `republish` and `cancel` take the same optional `account` to select which record they act on. `watchPending` and `listAll` span all accounts; filter on `QueuedPublish.account` for one.
+ - `clearLocalAccountData` removes matching entries for good, delivered or not. It is safe to call while attempts are in flight (a concurrent attempt no-ops once its record is gone). Calls take effect in the order they are made, so a `publish` called before the clear is cleared with it.
+ - `get`, `watch`, `republish`, `cancel` and `remove` take the same optional `account` to select which record they act on. `watchPending` and `listAll` span all accounts; filter on `QueuedPublish.account` for one.
  - `clearAllLocalData` empties the queue's store, every account and unattributed entry included.
 
 ### Authentication
@@ -209,8 +209,10 @@ Never authenticate a gift wrap as its sender: that tells the recipient's relay w
 
 ### Connectivity
 
-An attempt made while the device is offline does not count towards the dead relay cutoff, and is retried after `initialBackoff` without growing the backoff, so everything goes out shortly after the network is back.
-The backoff only grows with the attempts that fail online, and starts over when `publish` queues the entry again or `republish` gives it a new relay.
+An attempt counts as online when one of the queue's relays answered while it ran, or when the online signal said so both when it started and when it ended.
+Only online attempts count towards the dead relay cutoff.
+An attempt the signal shows offline is retried after `initialBackoff` without growing the backoff, so everything goes out shortly after the network is back.
+The backoff grows with the other attempts that leave relays owed, and starts over when `publish` queues the entry again or `republish` gives it a new relay.
 
 Pass the platform's connectivity as `onlineSignal`, such as a stream of `connectivity_plus`, to tell the queue when the device is offline:
 
@@ -222,7 +224,7 @@ PublishQueue.withDostr(
 );
 ```
 
-While its latest value is `false`, the periodic retries pause, and the `false -> true` edge replays everything due at once.
+While its latest value is `false`, the periodic retries pause, and the `false -> true` edge replays everything due at once and gives the relays found unreachable a fresh try.
 
 Without `onlineSignal`, `withDostr` reads the network from the connections of the `RelayManager`: online once a public relay is connected, offline once every connection to one failed or dropped.
 Loopback, private IPv4 and IPv6, and mDNS `.local` hosts are left out, so a connected dev relay does not mask an outage.
@@ -230,8 +232,7 @@ Loopback, private IPv4 and IPv6, and mDNS `.local` hosts are left out, so a conn
 In a process without other open connections, an unreachable relay then looks like an offline device: it is retried every tick and never cut off.
 Pass `onlineSignal` there too.
 
-An attempt in which one of the relays answered counts as online whatever the signal says.
-The default constructor without `onlineSignal` assumes it is always online.
+The default constructor without `onlineSignal` knows nothing of the network: a relay that does not answer is only cut off while other relays answer, and its backoff grows as if online.
 
 ### `retryNow()`
 
@@ -259,6 +260,20 @@ It returns `null` if no such record exists.
  - Relays that acked keep the event. To remove it from them, publish a NIP-09 `kind:5` deletion.
  - `publish` with the same event and `account` reopens the entry. `republish` forces one push and the entry stays cancelled.
 
+### `remove(id, {String? account})` and `removeSettled({required DateTime queuedBefore})`
+
+`remove` drops one entry for good, settled or not, and returns it, or `null` if no such record exists.
+An attempt in flight still completes, but records nothing.
+
+`removeSettled` drops the entries queued before `queuedBefore` that are delivered, failed, superseded or cancelled, across all accounts, unless a `republish` push is still queued.
+The queue keeps every record in memory, so call it from time to time to keep the history bounded:
+
+```dart
+await queue.removeSettled(
+  queuedBefore: DateTime.now().subtract(const Duration(days: 30)),
+);
+```
+
 ### Terminal failures
 
 NIP-01 requires failed `OK` messages to start with a machine-readable prefix followed by `:`.
@@ -275,14 +290,32 @@ If every target relay is either acked or terminally refused, and at least one is
 
 Other refusals, such as `rate-limited:`, `auth-required:` or `error:` (NIP-01's example is `error: could not connect to the database`), unknown prefixes and messages without a colon, stay retryable, and so do the failures of an identity (`cannotSign`, `authenticationFailed`, etc.) and the exceptions a `PublishFn` throws.
 A relay that could not be reached, dropped the connection or timed out stays retryable until it has been unreachable for `maxInaccessibleAttemptsPerRelay` (12) consecutive online attempts.
+Once found unreachable while online, a relay waits out its backoff before the queue tries it again, for every event owed to it: the others skip it meanwhile and take its count.
+So a dead relay is tried once a round rather than once per event, and a new event owed to it is cut off without trying it once that count is reached.
 
 `republish` can still force another push.
 If a terminally refused relay later accepts the event, its terminal error is cleared and the entry can become `delivered`.
 
+### Background errors
+
+`publish`, `republish`, `cancel` and the other calls throw what the store throws.
+The work the queue does in the background, such as writing what an attempt did, reports its errors to `onError`, which both constructors take:
+
+```dart
+PublishQueue.withDostr(
+  relayManager,
+  store: store,
+  onError: (error, stackTrace) => log('publish queue: $error'),
+);
+```
+
+The record stays as last stored, and is tried again.
+Without `onError`, these errors are uncaught errors of the zone, which end a Dart program that does not catch them.
+
 ### What the queue does not do
 
  - **It never signs.** Sign the event before queuing it.
- - **It never auto-deletes records.** Even after full delivery, an entry stays in the store until `clearLocalAccountData` or `clearAllLocalData` removes it.
+ - **It never auto-deletes records.** Even after full delivery, an entry stays in the store until `remove`, `removeSettled`, `clearLocalAccountData` or `clearAllLocalData` removes it.
  - **It applies no max-attempts limit.** Retryable failures continue with exponential backoff until they ack, are cancelled, are terminally refused, or hit the dead relay cutoff.
 
 ## Tuning
@@ -309,10 +342,16 @@ caller.publish(event, relaySet)
   store write ────── durable, returns to caller here
         │
         ▼
+  newer versions of the event?           ────►  wait while headed to its relays, superseded once held
+        │
+        ▼
   resolve pendingRelaySet (once)         ────►  retry with backoff while unavailable
         │
         ▼
   wait for a publish slot                ────►  maxConcurrentPublishes, oldest entry first
+        │
+        ▼
+  skip relays found unreachable          ────►  until their backoff runs out, for every event
         │
         ▼
   RelayPublishes.publish(event, relays: remaining).done
@@ -359,10 +398,14 @@ The rest of the API is the same, with these changes:
  - Errors read `refused`, `no response`, `timed out` or the `RelayFailure` of the relay, such as `unreachable: <reason>`, where they read `rejected` and `no response (timeout or relay unreachable)`.
  - An event too long for a relay, a `mute:` refusal and a relay the `RelayManager` blocks are refused for good. An `error:` refusal is retried.
  - An attempt made offline no longer grows the backoff, and one in which a relay answered counts as online. The backoff starts over when `publish` queues the entry again or `republish` gives it a new relay.
- - A newer version of a replaceable or addressable event supersedes an older one only once newer versions head to all its relays.
+ - The default constructor without `onlineSignal` no longer assumes it is online: a relay that does not answer is only cut off while other relays answer.
+ - A relay found unreachable is tried once a round for every event owed to it, and a new event owed to it takes its count.
+ - `publish` and `republish` made while an attempt is in flight are no longer undone by it, and calls take effect in the order they are made.
+ - `remove`, `removeSettled` and `onError` are new.
+ - An older version of a replaceable or addressable event waits while newer versions head to all its relays, and is superseded only once they hold them. `publish` reopens a superseded record.
  - At most `maxConcurrentPublishes` entries publish at once, oldest first. Without `onlineSignal`, `withDostr` no longer pauses the periodic retries, see [Connectivity](#connectivity).
  - `dispose` abandons an attempt still waiting on the relays, where it waited for it.
  - `listAll` and `watchPending` give the records in the order they were queued.
 
 A queue stored by the shim loads unchanged in a `SembastPublishQueueStore` on the same database and `storeName`.
-An event the shim stored unsigned, counting on NDK to sign it, is never sent: a signed copy has the same id, so remove the record from the store before queuing the event again, signed.
+An event the shim stored unsigned, counting on NDK to sign it, is never sent: a signed copy has the same id, so remove the record with `remove` before queuing the event again, signed.

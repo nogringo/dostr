@@ -10,6 +10,7 @@ import 'publish_slots.dart';
 import 'queue_store.dart';
 import 'queued_publish.dart';
 import 'relay_reachability.dart';
+import 'unreachable_relays.dart';
 
 /// Sends [event] to [relays] once and gives what each relay did with it, as
 /// `RelayPublishes.publish` of dostr_core does. [account] is the account the
@@ -36,7 +37,8 @@ typedef PublishFn =
 ///    good.
 ///  - Records are never auto-deleted. A terminal entry stays in the store for
 ///    manual `republish` or inspection. Explicit removal is available via
-///    `clearLocalAccountData` and `clearAllLocalData`.
+///    `remove`, `removeSettled`, `clearLocalAccountData` and
+///    `clearAllLocalData`.
 class PublishQueue {
   final PublishFn _publishFn;
   final UrlListFn? _relayListFn;
@@ -50,11 +52,19 @@ class PublishQueue {
   final Stream<bool>? _onlineSignal;
   final bool _pauseWhileOffline;
   final PublishSlots _publishSlots;
+  final void Function(Object error, StackTrace stackTrace)? _onError;
+  final UnreachableRelays _unreachable = UnreachableRelays();
 
   Timer? _tickTimer;
   StreamSubscription<bool>? _onlineSub;
-  bool _isOnline = true;
+
+  /// The latest value of the online signal, null until it emits.
+  bool? _isOnline;
+  int? _lastAnswerAt;
   final Map<String, Future<void>> _inFlight = <String, Future<void>>{};
+
+  /// Keys asked for an attempt while one was in flight.
+  final Set<String> _requested = {};
   final Set<Future<void>> _scans = {};
   bool _disposed = false;
   final Completer<void> _disposal = Completer<void>();
@@ -70,6 +80,7 @@ class PublishQueue {
     required int maxConcurrentPublishes,
     required Stream<bool>? onlineSignal,
     required bool pauseWhileOffline,
+    required void Function(Object error, StackTrace stackTrace)? onError,
     Random? random,
     int Function()? now,
   }) : _publishFn = publishFn,
@@ -82,6 +93,7 @@ class PublishQueue {
        _onlineSignal = onlineSignal,
        _pauseWhileOffline = pauseWhileOffline,
        _publishSlots = PublishSlots(maxConcurrentPublishes),
+       _onError = onError,
        _random = random ?? Random(),
        _now = now ?? (() => DateTime.now().millisecondsSinceEpoch) {
     if (maxInaccessibleAttemptsPerRelay <= 0) {
@@ -109,16 +121,21 @@ class PublishQueue {
   /// Pass [onlineSignal] to make the periodic retry loop connectivity-aware:
   /// while the latest emission is `false`, periodic ticks are no-ops, and the
   /// `false -> true` edge triggers an immediate retry pass. `retryNow()`
-  /// always runs regardless of this signal. If [onlineSignal] is null the
-  /// queue assumes it is always online.
+  /// always runs regardless of this signal.
   ///
   /// [maxInaccessibleAttemptsPerRelay] caps consecutive online attempts where
   /// a relay is unreachable for one event. Once reached, that relay is treated
-  /// as terminally failed for the event. An attempt counts as online when
-  /// [onlineSignal] said so both when it started and when it ended, or when
-  /// one of its relays answered. Offline attempts and exceptions thrown by
-  /// [publishFn] do not increment this counter, and an offline attempt is
+  /// as terminally failed for the event. An attempt counts as online when one
+  /// of the queue's relays answered while it ran, or when [onlineSignal] said
+  /// so both when it started and when it ended: without [onlineSignal], a
+  /// relay is only cut off while other relays answer. Exceptions thrown by
+  /// [publishFn] never count. An attempt [onlineSignal] shows offline is
   /// retried after [initialBackoff] without growing the backoff.
+  ///
+  /// A relay found unreachable while online is not tried again before its
+  /// backoff runs out, whatever the event: the other events owed to it skip
+  /// it meanwhile and take its count of unreachable attempts. So a dead relay
+  /// is tried once a round, not once per event.
   ///
   /// [maxConcurrentPublishes] caps the attempts publishing at once. The others
   /// wait their turn, due entries in the order they were queued, so a backlog
@@ -128,6 +145,10 @@ class PublishQueue {
   /// `fetcherUrlListFn` of dostr_fetchers. Without it, only sets that need no
   /// lookup can be published. The queue puts no timeout on it: bound the
   /// network part yourself, and let a signer take as long as it needs.
+  ///
+  /// [onError] gets the errors of the work the queue does in the background,
+  /// such as a write the store refuses: the record stays as last stored and
+  /// is tried again. Without it, they are uncaught errors of the zone.
   PublishQueue({
     required PublishFn publishFn,
     UrlListFn? relayListFn,
@@ -138,6 +159,7 @@ class PublishQueue {
     int maxInaccessibleAttemptsPerRelay = 12,
     int maxConcurrentPublishes = 10,
     Stream<bool>? onlineSignal,
+    void Function(Object error, StackTrace stackTrace)? onError,
     Random? random,
     int Function()? now,
   }) : this._(
@@ -151,6 +173,7 @@ class PublishQueue {
          maxConcurrentPublishes: maxConcurrentPublishes,
          onlineSignal: onlineSignal,
          pauseWhileOffline: true,
+         onError: onError,
          random: random,
          now: now,
        );
@@ -186,6 +209,7 @@ class PublishQueue {
     Duration maxBackoff = const Duration(minutes: 30),
     int maxInaccessibleAttemptsPerRelay = 12,
     int maxConcurrentPublishes = 10,
+    void Function(Object error, StackTrace stackTrace)? onError,
   }) {
     final publishes = RelayPublishes(relayManager: relayManager);
     return PublishQueue._(
@@ -208,6 +232,7 @@ class PublishQueue {
           onlineSignal ??
           publicRelayReachability(relayManager.relayConnectivityChanges),
       pauseWhileOffline: onlineSignal != null,
+      onError: onError,
     );
   }
 
@@ -237,11 +262,12 @@ class PublishQueue {
   /// different [account] is a separate record.
   ///
   /// For a replaceable or addressable [event], relays only keep the latest
-  /// version, so a record of an older version that is still pending becomes
-  /// [QueuedPublishStatus.superseded] once newer versions hold, or are headed
-  /// to, every relay it owes, whatever their [account]. It is no longer
-  /// retried. This holds for a version older than one already in the store
-  /// too.
+  /// version. So a pending record of an older version waits while newer
+  /// versions, whatever their [account], are headed to every relay it owes,
+  /// and becomes [QueuedPublishStatus.superseded] once they hold them all. It
+  /// goes out if a newer version does not reach one of them. This holds for a
+  /// version older than one already in the store too, and [publish] reopens a
+  /// superseded record.
   Future<QueuedPublish> publish(
     Nip01Event event, {
     required UrlSet relaySet,
@@ -264,59 +290,56 @@ class PublishQueue {
     final now = _now();
     final key = QueuedPublish.keyFor(eventId: event.id, account: account);
 
-    final existing = await _store.get(key);
-    final QueuedPublish record;
-    if (relaySet.needsLookup) {
-      final pending = existing?.pendingRelaySet;
-      record =
-          existing?.copyWith(
-            pendingRelaySet: pending == null
-                ? relaySet
-                : UrlSet.union([pending, relaySet]),
-            resolutionAttempts: 0,
-            clearResolutionError: true,
-            onlineFailures: 0,
-            nextAttemptAt: now,
-            clearCancelled: true,
-          ) ??
-          _newRecord(
-            event,
-            account,
-            now,
-            relays: const [],
-            pendingRelaySet: relaySet,
-          );
-    } else {
+    final stored = await _store.put(key, (existing) async {
+      if (relaySet.needsLookup) {
+        final pending = existing?.pendingRelaySet;
+        return existing?.copyWith(
+              pendingRelaySet: pending == null
+                  ? relaySet
+                  : UrlSet.union([pending, relaySet]),
+              resolutionAttempts: 0,
+              clearResolutionError: true,
+              onlineFailures: 0,
+              nextAttemptAt: now,
+              clearSuperseded: true,
+              clearCancelled: true,
+            ) ??
+            _newRecord(
+              event,
+              account,
+              now,
+              relays: const [],
+              pendingRelaySet: relaySet,
+            );
+      }
       final resolved = await resolveUrlSet(relaySet, _noLookup) as UrlsResolved;
       final relays = _relayUrls(resolved.urls);
       if (relays.isEmpty) {
         throw ArgumentError.value(relaySet, 'relaySet', 'has no relay');
       }
-      if (existing != null) {
-        final mergedRelays = _relayUrls([...existing.relays, ...relays]);
-        // Terminal timestamps are monotonic facts, but adding a relay that is
-        // not already covered by that terminal state reopens the entry.
-        final fullyAcked = mergedRelays.every(existing.ackedRelays.contains);
-        final fullySettled = mergedRelays.every(
-          (relay) =>
-              existing.ackedRelays.contains(relay) ||
-              existing.terminalErrors.containsKey(relay),
-        );
-        record = existing.copyWith(
-          relays: mergedRelays,
-          onlineFailures: 0,
-          nextAttemptAt: now,
-          clearDelivered: !fullyAcked,
-          clearFailed: !fullyAcked && !fullySettled,
-          clearCancelled: true,
-        );
-      } else {
-        record = _newRecord(event, account, now, relays: relays);
+      if (existing == null) {
+        return _newRecord(event, account, now, relays: relays);
       }
-    }
-    final stored = await _store.put(record);
-
-    unawaited(_attempt(record.key));
+      final mergedRelays = _relayUrls([...existing.relays, ...relays]);
+      // Terminal timestamps are monotonic facts, but adding a relay that is
+      // not already covered by that terminal state reopens the entry.
+      final fullyAcked = mergedRelays.every(existing.ackedRelays.contains);
+      final fullySettled = mergedRelays.every(
+        (relay) =>
+            existing.ackedRelays.contains(relay) ||
+            existing.terminalErrors.containsKey(relay),
+      );
+      return existing.copyWith(
+        relays: mergedRelays,
+        onlineFailures: 0,
+        nextAttemptAt: now,
+        clearDelivered: !fullyAcked,
+        clearFailed: !fullyAcked && !fullySettled,
+        clearSuperseded: true,
+        clearCancelled: true,
+      );
+    });
+    _request(stored.key);
     return stored;
   }
 
@@ -404,9 +427,7 @@ class PublishQueue {
         clearFailed: isNew,
       );
     });
-    if (updated != null) {
-      unawaited(_attempt(key));
-    }
+    if (updated != null) _request(key);
     return updated;
   }
 
@@ -465,6 +486,26 @@ class PublishQueue {
   /// accounts, in the order they were queued.
   Future<List<QueuedPublish>> listAll() => _store.findAll();
 
+  /// Removes the record for `(eventId, account)`, settled or not, and returns
+  /// it, or `null` if none exists. A pending record is dropped for good. An
+  /// attempt in flight still completes, but records nothing.
+  Future<QueuedPublish?> remove(String eventId, {String? account}) async {
+    _ensureNotDisposed();
+    return _store.delete(
+      QueuedPublish.keyFor(eventId: eventId, account: account),
+    );
+  }
+
+  /// Removes the settled records queued before [queuedBefore], across all
+  /// accounts: those delivered, failed, superseded or cancelled, unless a
+  /// [republish] push is still queued. Pending records stay.
+  Future<void> removeSettled({required DateTime queuedBefore}) async {
+    _ensureNotDisposed();
+    await _store.deleteSettled(
+      createdBefore: queuedBefore.millisecondsSinceEpoch,
+    );
+  }
+
   /// Removes every entry queued under [account], delivered or
   /// not. Pending entries are dropped for good and will never be retried.
   /// Entries queued without an account (see [publish]) are left untouched;
@@ -472,9 +513,8 @@ class PublishQueue {
   ///
   /// Safe to call while attempts are in flight: the write of a concurrent
   /// attempt no-ops once the record is gone, so it cannot resurrect a cleared
-  /// entry. A [publish] call for the same account
-  /// that overlaps this clear may still re-create its record; do not enqueue
-  /// for an account you are clearing.
+  /// entry. Calls take effect in the order they are made: a [publish] called
+  /// before the clear is cleared with it.
   Future<void> clearLocalAccountData({required String account}) async {
     await _store.deleteByAccount(account);
   }
@@ -518,17 +558,18 @@ class PublishQueue {
 
   void _handleOnlineChange(bool online) {
     if (_disposed) return;
-    final wasOnline = _isOnline;
+    final wasOffline = _isOnline == false;
     _isOnline = online;
-    if (!wasOnline && online) {
-      unawaited(_tick());
+    if (wasOffline && online) {
+      _unreachable.clear();
+      _background(_tick());
     }
   }
 
   void _periodicTick() {
     if (_disposed) return;
-    if (_pauseWhileOffline && !_isOnline) return;
-    unawaited(_tick());
+    if (_pauseWhileOffline && _isOnline == false) return;
+    _background(_tick());
   }
 
   Future<void> _tick() {
@@ -542,9 +583,22 @@ class PublishQueue {
     final due = await _store.findDue(now: _now());
     for (final record in due) {
       if (_disposed) return;
-      unawaited(_attempt(record.key));
+      _background(_attempt(record.key));
     }
   }
+
+  /// Attempts the record at [key] now, or once the attempt in flight for it
+  /// is done.
+  void _request(String key) {
+    if (_inFlight.containsKey(key)) {
+      _requested.add(key);
+    } else {
+      _background(_attempt(key));
+    }
+  }
+
+  void _background(Future<void> work) =>
+      unawaited(work.then((_) {}, onError: _onError));
 
   /// [future], or null once the queue is disposed.
   Future<T?> _untilDisposed<T extends Object>(Future<T> future) =>
@@ -557,11 +611,11 @@ class PublishQueue {
     _inFlight[key] = completer.future;
 
     try {
-      final stored = await _store.get(key);
-      if (stored == null) return;
-      if (stored.pendingRelaySet != null &&
-          await _resolvePendingRelaySet(stored) == null) {
-        return;
+      var record = await _store.get(key);
+      if (record == null || await _leftToNewerVersions(record)) return;
+      if (record.pendingRelaySet != null) {
+        record = await _resolvePendingRelaySet(record);
+        if (record == null || await _leftToNewerVersions(record)) return;
       }
       final release = await _untilDisposed(_publishSlots.acquire());
       if (release == null) return;
@@ -573,6 +627,22 @@ class PublishQueue {
     } finally {
       _inFlight.remove(key);
       completer.complete();
+      if (_requested.remove(key)) _request(key);
+    }
+  }
+
+  /// Whether [record] is left to the newer versions of its event instead of
+  /// being sent: they are headed to every relay it owes, or hold them all and
+  /// it is superseded.
+  Future<bool> _leftToNewerVersions(QueuedPublish record) async {
+    switch (_store.coverage(record)) {
+      case Coverage.none:
+        return false;
+      case Coverage.headedTo:
+        return true;
+      case Coverage.held:
+        await _store.supersede(record.key);
+        return true;
     }
   }
 
@@ -587,7 +657,8 @@ class PublishQueue {
       return;
     }
 
-    final targets = record.forcedRelays ?? record.remainingRelays;
+    final forced = record.forcedRelays;
+    final targets = forced ?? record.remainingRelays;
     if (targets.isEmpty) {
       // Nothing to push. Sync terminal timestamps if we somehow got here
       // with stale nulls.
@@ -603,39 +674,70 @@ class PublishQueue {
         final setFailed =
             terminal == _AttemptTerminalState.failed &&
             current.failedAt == null;
-        if (!setDelivered && !setFailed && current.forcedRelays == null) {
-          return null;
-        }
+        final consumed =
+            current.forcedRelays != null &&
+            identical(current.forcedRelays, forced);
+        if (!setDelivered && !setFailed && !consumed) return null;
         return current.copyWith(
           deliveredAt: setDelivered ? _now() : null,
           failedAt: setFailed ? _now() : null,
           clearFailed: setDelivered,
-          clearForcedRelays: true,
+          clearForcedRelays: consumed,
         );
       });
       return;
     }
 
     final attemptStart = _now();
+    final waiting = <RelayUrl, UnreachableRelay>{
+      if (forced == null)
+        for (final relay in targets)
+          relay: ?_unreachable.waiting(relay, attemptStart),
+    };
+    final sent = [
+      for (final relay in targets)
+        if (!waiting.containsKey(relay)) relay,
+    ];
     final startedOnline = _isOnline;
-    Map<RelayUrl, RelayPublishOutcome> outcomes;
+    var outcomes = const <RelayUrl, RelayPublishOutcome>{};
     String? publishError;
-    try {
-      final sent = await _untilDisposed(
-        _publishFn(record.event, targets, account: record.account),
-      );
-      if (sent == null) return;
-      outcomes = {
-        for (final MapEntry(:key, :value) in sent.entries)
-          ?RelayUrl.tryParse(key): value,
-      };
-    } catch (e) {
-      if (_disposed) return;
-      publishError = e.toString();
-      outcomes = const {};
+    if (sent.isNotEmpty) {
+      try {
+        final result = await _untilDisposed(
+          _publishFn(record.event, sent, account: record.account),
+        );
+        if (result == null) return;
+        outcomes = {
+          for (final MapEntry(:key, :value) in result.entries)
+            ?RelayUrl.tryParse(key): value,
+        };
+      } catch (e) {
+        if (_disposed) return;
+        publishError = e.toString();
+      }
     }
-    final answered = targets.any((relay) => _answered(outcomes[relay]));
-    final online = (startedOnline && _isOnline) || answered;
+    final answeredAt = _now();
+    if (sent.any((relay) => _answered(outcomes[relay]))) {
+      _lastAnswerAt = answeredAt;
+    }
+    final online =
+        (_lastAnswerAt ?? -1) >= attemptStart ||
+        (startedOnline == true && _isOnline == true);
+    final offline = !online && (startedOnline == false || _isOnline == false);
+    final unreachableAttempts = <RelayUrl, int>{};
+    for (final relay in sent) {
+      final outcome = outcomes[relay];
+      if (_answered(outcome)) {
+        _unreachable.answered(relay);
+      } else if (online && _isInaccessible(outcome, publishError)) {
+        unreachableAttempts[relay] = _unreachable.failed(
+          relay,
+          _retryableError(outcome, publishError),
+          answeredAt,
+          _backoff,
+        );
+      }
+    }
 
     await _store.update(key, (current) {
       final newAcked = Set<RelayUrl>.from(current.ackedRelays);
@@ -647,7 +749,17 @@ class PublishQueue {
         current.inaccessibleAttempts,
       );
 
-      for (final relay in targets) {
+      void unreachable(RelayUrl relay, int count, String error) {
+        newInaccessibleAttempts[relay] = count;
+        if (count >= _maxInaccessibleAttemptsPerRelay) {
+          newTerminalErrors[relay] = 'max-inaccessible-attempts: $error';
+          newErrors.remove(relay);
+        } else {
+          newErrors[relay] = error;
+        }
+      }
+
+      for (final relay in sent) {
         final outcome = outcomes[relay];
         final alreadyAcked = current.ackedRelays.contains(relay);
         final alreadyTerminal = current.terminalErrors.containsKey(relay);
@@ -670,19 +782,21 @@ class PublishQueue {
           if (_answered(outcome)) {
             newInaccessibleAttempts.remove(relay);
             newErrors[relay] = error;
-          } else if (online && _isInaccessible(outcome, publishError)) {
+          } else if (unreachableAttempts[relay] case final attempts?) {
             final count = (newInaccessibleAttempts[relay] ?? 0) + 1;
-            newInaccessibleAttempts[relay] = count;
-            if (count >= _maxInaccessibleAttemptsPerRelay) {
-              newTerminalErrors[relay] = 'max-inaccessible-attempts: $error';
-              newErrors.remove(relay);
-            } else {
-              newErrors[relay] = error;
-            }
+            unreachable(relay, max(count, attempts), error);
           } else {
             newErrors[relay] = error;
           }
         }
+      }
+      for (final MapEntry(key: relay, value: skipped) in waiting.entries) {
+        if (current.ackedRelays.contains(relay) ||
+            current.terminalErrors.containsKey(relay)) {
+          continue;
+        }
+        final count = newInaccessibleAttempts[relay] ?? 0;
+        unreachable(relay, max(count, skipped.failures), skipped.error);
       }
       for (final ok in newAcked) {
         newErrors.remove(ok);
@@ -700,30 +814,30 @@ class PublishQueue {
       );
       final delivered = terminalState == _AttemptTerminalState.delivered;
       final failed = terminalState == _AttemptTerminalState.failed;
-      final onlineFailures = online && !delivered && !failed
+      final tried = sent.isNotEmpty;
+      final onlineFailures = tried && !offline && !delivered && !failed
           ? current.onlineFailures + 1
           : current.onlineFailures;
-      final nextDelay = online
-          ? computeBackoff(
-              attempts: onlineFailures,
-              initial: _initialBackoff,
-              max: _maxBackoff,
-              random: _random,
-            )
-          : _initialBackoff;
+      final int nextAttemptAt;
+      if (delivered || failed) {
+        nextAttemptAt = attemptStart;
+      } else if (!tried) {
+        nextAttemptAt = waiting.values.map((w) => w.retryAt).reduce(min);
+      } else {
+        final delay = offline ? _initialBackoff : _backoff(onlineFailures);
+        nextAttemptAt = _now() + delay.inMilliseconds;
+      }
 
       return current.copyWith(
         ackedRelays: newAcked.toList(growable: false),
         lastErrors: newErrors,
         terminalErrors: newTerminalErrors,
         inaccessibleAttempts: newInaccessibleAttempts,
-        attempts: current.attempts + 1,
+        attempts: tried ? current.attempts + 1 : null,
         onlineFailures: onlineFailures,
-        firstAttemptAt: current.firstAttemptAt ?? attemptStart,
-        lastAttemptAt: attemptStart,
-        nextAttemptAt: delivered || failed
-            ? attemptStart
-            : _now() + nextDelay.inMilliseconds,
+        firstAttemptAt: tried ? (current.firstAttemptAt ?? attemptStart) : null,
+        lastAttemptAt: tried ? attemptStart : null,
+        nextAttemptAt: nextAttemptAt,
         // deliveredAt is monotonic: once set it stays set (the historical
         // 100% confirmation is preserved). Only set it the first time.
         deliveredAt: delivered
@@ -731,10 +845,17 @@ class PublishQueue {
             : current.deliveredAt,
         failedAt: failed ? (current.failedAt ?? _now()) : current.failedAt,
         clearFailed: delivered || !failed,
-        clearForcedRelays: true,
+        clearForcedRelays: identical(current.forcedRelays, forced),
       );
     });
   }
+
+  Duration _backoff(int attempts) => computeBackoff(
+    attempts: attempts,
+    initial: _initialBackoff,
+    max: _maxBackoff,
+    random: _random,
+  );
 
   /// Resolves [record]'s pending relay set and freezes the result. Returns the
   /// resolved record, or `null` when the set stays pending: a lookup was
@@ -749,12 +870,7 @@ class PublishQueue {
       if (current.pendingRelaySet != set) return null;
       if (resolution.unavailable case final reason?) {
         final attempts = current.resolutionAttempts + 1;
-        final delay = computeBackoff(
-          attempts: attempts,
-          initial: _initialBackoff,
-          max: _maxBackoff,
-          random: _random,
-        );
+        final delay = _backoff(attempts);
         return current.copyWith(
           resolutionAttempts: attempts,
           resolutionError: reason,

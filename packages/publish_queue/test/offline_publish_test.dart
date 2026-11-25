@@ -249,7 +249,9 @@ void main() {
         store: store,
         initialBackoff: const Duration(milliseconds: 1),
         maxInaccessibleAttemptsPerRelay: 2,
-      );
+        onlineSignal: Stream.value(true),
+      )..start();
+      await Future<void>.delayed(Duration.zero);
 
       final event = makeEvent();
       await queue.publish(

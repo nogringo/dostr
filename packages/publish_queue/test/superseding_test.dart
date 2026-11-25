@@ -49,30 +49,41 @@ void main() {
   int pushesOf(Nip01Event event) =>
       fake.calls.where((c) => c.event.id == event.id).length;
 
-  test('a newer version stops the retries of a pending older one', () async {
-    fake.fail('wss://a');
-    final queue = newQueue();
-    final v1 = _version(createdAt: 100);
-    final v2 = _version(createdAt: 200);
+  test(
+    'an older version waits while a newer one heads to its relays',
+    () async {
+      fake.fail('wss://a');
+      final queue = newQueue();
+      final v1 = _version(createdAt: 100);
+      final v2 = _version(createdAt: 200);
 
-    await queue.publish(v1, relaySet: _relays);
-    await waitFor(queue, v1.id, (r) => r.attempts >= 1);
-    final queued = await queue.publish(v2, relaySet: _relays);
-    expect(queued.status, QueuedPublishStatus.pending);
+      await queue.publish(v1, relaySet: _relays);
+      await waitFor(queue, v1.id, (r) => r.attempts >= 1);
+      await queue.publish(v2, relaySet: _relays);
+      await waitFor(queue, v2.id, (r) => r.attempts >= 1);
+      final pushes = pushesOf(v1);
+      await waitFor(queue, v2.id, (r) => r.attempts >= 4);
+      expect(pushesOf(v1), pushes);
+      expect((await queue.get(v1.id))!.status, QueuedPublishStatus.pending);
+      expect(
+        (await queue.watchPending().first).map((r) => r.id),
+        unorderedEquals([v1.id, v2.id]),
+      );
 
-    final old = (await queue.get(v1.id))!;
-    expect(old.status, QueuedPublishStatus.superseded);
-    expect(old.supersededBy, v2.id);
+      fake.ack('wss://a');
+      final old = await waitFor(
+        queue,
+        v1.id,
+        (r) => r.status == QueuedPublishStatus.superseded,
+      );
+      expect(old.supersededBy, v2.id);
+      expect(pushesOf(v1), pushes);
+      expect((await queue.watchPending().first), isEmpty);
+      expect(await queue.listAll(), hasLength(2));
 
-    await waitFor(queue, v2.id, (r) => r.attempts >= 3);
-    final pushes = pushesOf(v1);
-    await waitFor(queue, v2.id, (r) => r.attempts >= 6);
-    expect(pushesOf(v1), pushes);
-    expect((await queue.watchPending().first).map((r) => r.id), [v2.id]);
-    expect(await queue.listAll(), hasLength(2));
-
-    await queue.dispose();
-  });
+      await queue.dispose();
+    },
+  );
 
   test('an older version queued after a newer one is never sent', () async {
     fake.ack('wss://a');
@@ -119,23 +130,92 @@ void main() {
     await queue.dispose();
   });
 
-  test('an unresolved relay set of an older version is dropped', () async {
-    final queue = newQueue(
-      relayListFn: (_, _) async => const UrlListLookup.unavailable('offline'),
-    );
+  test('an older version goes out once a newer one is cancelled', () async {
+    fake.fail('wss://a');
+    final queue = newQueue();
     final v1 = _version(createdAt: 100);
     final v2 = _version(createdAt: 200);
 
-    await queue.publish(v1, relaySet: UrlSet.outbox(v1.pubkey));
-    await queue.publish(v2, relaySet: UrlSet.outbox(v2.pubkey));
-    var old = (await queue.get(v1.id))!;
-    expect(old.status, QueuedPublishStatus.superseded);
-    expect(old.pendingRelaySet, isNull);
+    await queue.publish(v2, relaySet: _relays);
+    await queue.publish(v1, relaySet: _relays);
+    await waitFor(queue, v2.id, (r) => r.attempts >= 3);
+    expect(pushesOf(v1), 0);
 
-    old = await queue.publish(v1, relaySet: UrlSet.outbox(v1.pubkey));
-    expect(old.status, QueuedPublishStatus.superseded);
-    expect(old.pendingRelaySet, isNull);
-    expect((await queue.get(v1.id))!.pendingRelaySet, isNull);
+    await queue.cancel(v2.id);
+    fake.ack('wss://a');
+    await waitFor(
+      queue,
+      v1.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
+
+    await queue.dispose();
+  });
+
+  test('an older version goes out once a newer one is removed', () async {
+    fake.fail('wss://a');
+    final queue = newQueue();
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+
+    await queue.publish(v2, relaySet: _relays);
+    await queue.publish(v1, relaySet: _relays);
+    await waitFor(queue, v2.id, (r) => r.attempts >= 3);
+    expect(pushesOf(v1), 0);
+
+    await queue.remove(v2.id);
+    await waitFor(queue, v1.id, (r) => r.attempts >= 1);
+
+    await queue.dispose();
+  });
+
+  test(
+    'an older relay set waits for the same set of a newer version',
+    () async {
+      final queue = newQueue(
+        relayListFn: (_, _) async => const UrlListLookup.unavailable('offline'),
+      );
+      final v1 = _version(createdAt: 100);
+      final v2 = _version(createdAt: 200);
+
+      await queue.publish(v2, relaySet: UrlSet.outbox(v2.pubkey));
+      await queue.publish(v1, relaySet: UrlSet.outbox(v1.pubkey));
+      await waitFor(queue, v2.id, (r) => r.resolutionAttempts >= 3);
+      final old = (await queue.get(v1.id))!;
+      expect(old.status, QueuedPublishStatus.pending);
+      expect(old.resolutionAttempts, 0);
+      expect(old.pendingRelaySet, UrlSet.outbox(v1.pubkey));
+
+      await queue.dispose();
+    },
+  );
+
+  test('publish reopens a superseded record', () async {
+    fake.ackAll(['wss://a', 'wss://b']);
+    final queue = newQueue();
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+
+    await queue.publish(v2, relaySet: _relays);
+    await waitFor(
+      queue,
+      v2.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
+    final superseded = await queue.publish(v1, relaySet: _relays);
+    expect(superseded.status, QueuedPublishStatus.superseded);
+
+    final reopened = await queue.publish(
+      v1,
+      relaySet: const UrlSet.explicit(['wss://b']),
+    );
+    expect(reopened.status, QueuedPublishStatus.pending);
+    expect(reopened.supersededBy, isNull);
+    await waitFor(
+      queue,
+      v1.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
 
     await queue.dispose();
   });
@@ -147,19 +227,30 @@ void main() {
     final y1 = _version(kind: 30000, createdAt: 150, d: 'y');
     final x2 = _version(kind: 30000, createdAt: 200, d: 'x');
 
+    await queue.publish(x2, relaySet: _relays);
     await queue.publish(x1, relaySet: _relays);
     await queue.publish(y1, relaySet: _relays);
-    await queue.publish(x2, relaySet: _relays);
+    await waitFor(queue, y1.id, (r) => r.attempts >= 2);
+    expect(pushesOf(x1), 0);
 
-    expect((await queue.get(x1.id))!.supersededBy, x2.id);
-    expect((await queue.get(y1.id))!.status, QueuedPublishStatus.pending);
-    expect((await queue.get(x2.id))!.status, QueuedPublishStatus.pending);
+    fake.ack('wss://a');
+    final old = await waitFor(
+      queue,
+      x1.id,
+      (r) => r.status == QueuedPublishStatus.superseded,
+    );
+    expect(old.supersededBy, x2.id);
+    await waitFor(
+      queue,
+      y1.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
 
     await queue.dispose();
   });
 
   test('versions with the same created_at keep the lowest id', () async {
-    fake.fail('wss://a');
+    fake.ack('wss://a');
     final queue = newQueue();
     final versions = [
       _version(createdAt: 100, content: 'one'),
@@ -168,10 +259,14 @@ void main() {
     final [lowest, highest] = versions;
 
     await queue.publish(lowest, relaySet: _relays);
+    await waitFor(
+      queue,
+      lowest.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
     final queued = await queue.publish(highest, relaySet: _relays);
 
     expect(queued.supersededBy, lowest.id);
-    expect((await queue.get(lowest.id))!.status, QueuedPublishStatus.pending);
 
     await queue.dispose();
   });
@@ -193,7 +288,8 @@ void main() {
     }
 
     for (final event in [...notes, ...lists]) {
-      expect((await queue.get(event.id))!.status, QueuedPublishStatus.pending);
+      final record = await waitFor(queue, event.id, (r) => r.attempts >= 2);
+      expect(record.status, QueuedPublishStatus.pending);
     }
 
     await queue.dispose();
@@ -208,13 +304,24 @@ void main() {
     await queue.publish(v1, relaySet: _relays, account: _alice);
     await queue.publish(v1, relaySet: _relays, account: _bob);
     for (final account in [_alice, _bob]) {
-      final r = (await queue.get(v1.id, account: account))!;
+      final r = await waitFor(
+        queue,
+        v1.id,
+        (r) => r.attempts >= 2,
+        account: account,
+      );
       expect(r.status, QueuedPublishStatus.pending);
     }
 
     await queue.publish(v2, relaySet: _relays, account: _bob);
+    fake.ack('wss://a');
     for (final account in [_alice, _bob]) {
-      final r = (await queue.get(v1.id, account: account))!;
+      final r = await waitFor(
+        queue,
+        v1.id,
+        (r) => r.status != QueuedPublishStatus.pending,
+        account: account,
+      );
       expect(r.supersededBy, v2.id);
     }
 
@@ -222,26 +329,30 @@ void main() {
   });
 
   test('republish pushes a superseded record once and keeps it', () async {
-    fake.fail('wss://a');
+    fake.ack('wss://a');
     final queue = newQueue();
     final v1 = _version(createdAt: 100);
     final v2 = _version(createdAt: 200);
 
-    await queue.publish(v1, relaySet: _relays);
-    await waitFor(queue, v1.id, (r) => r.attempts >= 1);
     await queue.publish(v2, relaySet: _relays);
-    final attempts = (await queue.get(v1.id))!.attempts;
+    await waitFor(
+      queue,
+      v2.id,
+      (r) => r.status == QueuedPublishStatus.delivered,
+    );
+    await queue.publish(v1, relaySet: _relays);
 
     await queue.republish(v1.id);
     final pushed = await waitFor(
       queue,
       v1.id,
-      (r) => r.attempts == attempts + 1 && r.forcedRelays == null,
+      (r) => r.attempts == 1 && r.forcedRelays == null,
     );
     expect(pushed.status, QueuedPublishStatus.superseded);
 
-    await waitFor(queue, v2.id, (r) => r.attempts >= 4);
-    expect((await queue.get(v1.id))!.attempts, attempts + 1);
+    await queue.retryNow();
+    await Future.delayed(const Duration(milliseconds: 20));
+    expect(pushesOf(v1), 1);
 
     await queue.dispose();
   });
@@ -278,15 +389,23 @@ void main() {
     final v2 = _version(createdAt: 200);
     final v3 = _version(createdAt: 300);
 
+    await queue.publish(v2, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.publish(v3, relaySet: const UrlSet.explicit(['wss://b']));
     await queue.publish(
       v1,
       relaySet: const UrlSet.explicit(['wss://a', 'wss://b']),
     );
-    await queue.publish(v2, relaySet: const UrlSet.explicit(['wss://a']));
-    await queue.publish(v3, relaySet: const UrlSet.explicit(['wss://b']));
+    await waitFor(queue, v3.id, (r) => r.attempts >= 3);
+    expect(pushesOf(v1), 0);
 
-    expect((await queue.get(v1.id))!.supersededBy, v3.id);
-    expect((await queue.get(v2.id))!.status, QueuedPublishStatus.pending);
+    fake.ackAll(['wss://a', 'wss://b']);
+    final old = await waitFor(
+      queue,
+      v1.id,
+      (r) => r.status == QueuedPublishStatus.superseded,
+    );
+    expect(old.supersededBy, v3.id);
+    expect(pushesOf(v1), 0);
 
     await queue.dispose();
   });
@@ -304,8 +423,8 @@ void main() {
     await queue.publish(v2, relaySet: UrlSet.outbox(v2.pubkey));
     await queue.publish(v3, relaySet: UrlSet.inbox(v3.pubkey));
 
-    expect((await queue.get(v1.id))!.status, QueuedPublishStatus.pending);
-    expect((await queue.get(v2.id))!.status, QueuedPublishStatus.pending);
+    await waitFor(queue, v1.id, (r) => r.attempts >= 2);
+    await waitFor(queue, v2.id, (r) => r.resolutionAttempts >= 2);
 
     await queue.dispose();
   });
@@ -321,6 +440,7 @@ void main() {
     final queued = await queue.publish(v1, relaySet: _relays);
     expect(queued.status, QueuedPublishStatus.pending);
     expect(queued.supersededBy, isNull);
+    await waitFor(queue, v1.id, (r) => r.attempts >= 1);
 
     await queue.dispose();
   });

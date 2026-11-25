@@ -16,9 +16,9 @@ enum QueuedPublishStatus {
   /// back to `pending` on its own.
   delivered,
 
-  /// Newer versions of the same replaceable or addressable event hold, or are
-  /// headed to, every relay this one still owed, so it is no longer retried.
-  /// See [QueuedPublish.supersededBy].
+  /// Newer versions of the same replaceable or addressable event hold every
+  /// relay this one still owed, so it is no longer retried. See
+  /// [QueuedPublish.supersededBy].
   superseded,
 
   /// The caller stopped its retries with `PublishQueue.cancel` before it
@@ -82,9 +82,9 @@ class QueuedPublish {
   /// since the record was created.
   final int attempts;
 
-  /// Online attempts that left relays owed since the record was last queued
-  /// by `publish` or given a new relay by `republish`. Drives the backoff:
-  /// an offline attempt leaves it unchanged.
+  /// Attempts that left relays owed since the record was last queued by
+  /// `publish` or given a new relay by `republish`. Drives the backoff: an
+  /// attempt known to be offline leaves it unchanged.
   final int onlineFailures;
 
   /// Wall-clock millis (since epoch) of the first attempt for this record,
@@ -121,9 +121,8 @@ class QueuedPublish {
   final List<RelayUrl>? forcedRelays;
 
   /// Id of the newest version of this replaceable or addressable event when
-  /// newer versions stopped its retries, or `null`. Set once and never
-  /// cleared: the record stays [QueuedPublishStatus.superseded] whatever
-  /// happens to those versions.
+  /// newer versions held every relay it owed, or `null`. Cleared when
+  /// `publish` queues the same record again.
   final String? supersededBy;
 
   /// Wall-clock millis (since epoch) when `PublishQueue.cancel` stopped
@@ -190,8 +189,8 @@ class QueuedPublish {
   ///
   /// Use `clearDelivered: true` to force-clear [deliveredAt] (`null` arg
   /// alone is ambiguous with "leave as-is" for nullable fields). Same idea
-  /// for `clearForcedRelays`, `clearPendingRelaySet`, `clearResolutionError`
-  /// and `clearCancelled`.
+  /// for `clearForcedRelays`, `clearPendingRelaySet`, `clearResolutionError`,
+  /// `clearSuperseded` and `clearCancelled`.
   QueuedPublish copyWith({
     List<RelayUrl>? relays,
     UrlSet? pendingRelaySet,
@@ -216,6 +215,7 @@ class QueuedPublish {
     bool clearForcedRelays = false,
     bool clearPendingRelaySet = false,
     bool clearResolutionError = false,
+    bool clearSuperseded = false,
     bool clearCancelled = false,
   }) {
     return QueuedPublish(
@@ -245,7 +245,9 @@ class QueuedPublish {
       forcedRelays: clearForcedRelays
           ? null
           : (forcedRelays ?? this.forcedRelays),
-      supersededBy: supersededBy ?? this.supersededBy,
+      supersededBy: clearSuperseded
+          ? null
+          : (supersededBy ?? this.supersededBy),
       cancelledAt: clearCancelled ? null : (cancelledAt ?? this.cancelledAt),
     );
   }

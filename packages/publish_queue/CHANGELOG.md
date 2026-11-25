@@ -11,8 +11,13 @@
  - `UrlSet` comes from `dostr_url_set`, which is no longer re-exported.
  - `publish` throws an `ArgumentError` on an unsigned event.
  - An event too long for a relay, a `mute:` refusal and a relay the `RelayManager` blocks are refused for good. An `error:` refusal is retried.
- - An attempt made offline is retried after `initialBackoff` without growing the backoff, and one in which a relay answered counts as online. `QueuedPublish.onlineFailures` drives the backoff, and starts over when `publish` queues the entry again or `republish` gives it a new relay.
- - A newer version of a replaceable or addressable event supersedes an older one only once newer versions hold, or are headed to, every relay it owes.
+ - An attempt counts as online when one of the queue's relays answered while it ran, or when `onlineSignal` said so when it started and when it ended. Without `onlineSignal`, a relay that does not answer is only cut off while other relays answer.
+ - An attempt made offline is retried after `initialBackoff` without growing the backoff. `QueuedPublish.onlineFailures` drives the backoff, and starts over when `publish` queues the entry again or `republish` gives it a new relay.
+ - A relay found unreachable while online is tried once a round for every event owed to it: the other events skip it until its backoff runs out and take its count. The `false -> true` edge of `onlineSignal` gives these relays a fresh try.
+ - An older version of a replaceable or addressable event waits while newer versions hold, or are headed to, every relay it owes, and is superseded only once they hold them all. It goes out if they do not reach one, cancelled, removed or refused for good. `publish` reopens a superseded record.
+ - `publish` and `republish` made while an attempt is in flight are no longer undone by it: the acks it records are kept, and the push they ask for follows it. Calls take effect in the order they are made, so a `publish` called before `clearLocalAccountData` is cleared with it.
+ - `remove` drops one record, and `removeSettled` the settled records queued before a date.
+ - `onError` gets the errors of the work the queue does in the background, such as a write the store refuses.
  - `maxConcurrentPublishes`, 10 by default, caps the publishes at once. Due entries take their turn in the order they were queued.
  - Without `onlineSignal`, `withDostr` reads the network from the connections of the `RelayManager` and never pauses the periodic retries, since `dostr_core` closes idle connections.
  - `dispose` abandons an attempt still waiting on the relays, and waits for the scans of due entries and the writes to the store before the database can be closed.

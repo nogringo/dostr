@@ -137,7 +137,11 @@ void main() {
 
   test('a timed out relay counts as unreachable', () async {
     fake.timeOut('wss://a');
-    final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
+    final queue = newQueue(
+      maxInaccessibleAttemptsPerRelay: 1,
+      onlineSignal: Stream.value(true),
+    )..start();
+    await Future<void>.delayed(Duration.zero);
     final event = makeEvent();
 
     await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
@@ -172,7 +176,8 @@ void main() {
 
   test('a relay that answers resets its unreachable count', () async {
     fake.fail('wss://a');
-    final queue = newQueue();
+    final queue = newQueue(onlineSignal: Stream.value(true))..start();
+    await Future<void>.delayed(Duration.zero);
     final event = makeEvent();
 
     await queue.publish(event, relaySet: const UrlSet.explicit(['wss://a']));
@@ -207,6 +212,70 @@ void main() {
       await queue.dispose();
     });
 
+    test('without a signal, a relay is cut off while others answer', () async {
+      fake.refuse('wss://a', message: 'rate-limited: slow down');
+      final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
+      final lone = makeEvent(seed: 1);
+      final paired = makeEvent(seed: 2);
+
+      await queue.publish(
+        lone,
+        relaySet: const UrlSet.explicit(['wss://gone']),
+      );
+      final pending = await waitFor(queue, lone.id, (r) => r.attempts >= 1);
+      expect(pending.inaccessibleAttempts, isEmpty);
+      expect(pending.onlineFailures, 1);
+
+      await queue.publish(
+        paired,
+        relaySet: const UrlSet.explicit(['wss://a', 'wss://gone']),
+      );
+      final cutOff = await waitFor(queue, paired.id, (r) => r.attempts >= 1);
+      expect(cutOff.terminalErrors.keys, ['wss://gone']);
+
+      await queue.dispose();
+    });
+
+    test('a relay answering another attempt shows the device online', () async {
+      final gone = Completer<Map<RelayUrl, RelayPublishOutcome>>();
+      final queue = PublishQueue(
+        publishFn: (event, relays, {account}) async =>
+            relays.contains('wss://gone')
+            ? gone.future
+            : {
+                for (final relay in relays)
+                  relay: const RelayPublishOutcome.accepted(),
+              },
+        store: store,
+        maxInaccessibleAttemptsPerRelay: 1,
+      );
+      final lone = makeEvent(seed: 1);
+      final other = makeEvent(seed: 2);
+
+      await queue.publish(
+        lone,
+        relaySet: const UrlSet.explicit(['wss://gone']),
+      );
+      await queue.publish(other, relaySet: const UrlSet.explicit(['wss://a']));
+      await waitFor(
+        queue,
+        other.id,
+        (r) => r.status == QueuedPublishStatus.delivered,
+      );
+      gone.complete(const {});
+
+      final failed = await waitFor(
+        queue,
+        lone.id,
+        (r) => r.status == QueuedPublishStatus.failed,
+      );
+      expect(failed.terminalErrors, {
+        'wss://gone': 'max-inaccessible-attempts: no response',
+      });
+
+      await queue.dispose();
+    });
+
     test('an attempt that ends offline does not count', () async {
       final online = StreamController<bool>();
       fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
@@ -232,6 +301,7 @@ void main() {
 
     test('an offline attempt does not grow the backoff', () async {
       Future<List<int>> delays({required bool online}) async {
+        store = MemoryPublishQueueStore();
         final queue = newQueue(
           onlineSignal: Stream.value(online),
           initialBackoff: const Duration(milliseconds: 50),
