@@ -164,17 +164,17 @@ void main() {
     await queue.dispose();
   });
 
-  test('cancel selects the record by pubkey', () async {
+  test('cancel selects the record by account', () async {
     fake.fail('wss://a');
     final queue = newQueue();
     final event = makeEvent();
 
-    await queue.broadcast(event, relaySet: _relays, pubkey: _alice);
-    await queue.broadcast(event, relaySet: _relays, pubkey: _bob);
-    await queue.cancel(event.id, pubkey: _alice);
+    await queue.broadcast(event, relaySet: _relays, account: _alice);
+    await queue.broadcast(event, relaySet: _relays, account: _bob);
+    await queue.cancel(event.id, account: _alice);
 
-    final alice = (await queue.get(event.id, pubkey: _alice))!;
-    final bob = (await queue.get(event.id, pubkey: _bob))!;
+    final alice = (await queue.get(event.id, account: _alice))!;
+    final bob = (await queue.get(event.id, account: _bob))!;
     expect(alice.status, BroadcastStatus.cancelled);
     expect(bob.status, BroadcastStatus.pending);
     expect(await queue.cancel(event.id), isNull);

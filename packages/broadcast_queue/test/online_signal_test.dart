@@ -13,7 +13,7 @@ import 'support/helpers.dart';
 /// actually tries.
 class FailingCounter {
   int calls = 0;
-  BroadcastFn get fn => (event, relays, {pubkey}) async {
+  BroadcastFn get fn => (event, relays, {account}) async {
     calls++;
     return {
       for (final relay in relays)

@@ -202,16 +202,16 @@ void main() {
     final v1 = _version(createdAt: 100);
     final v2 = _version(createdAt: 200);
 
-    await queue.broadcast(v1, relaySet: _relays, pubkey: _alice);
-    await queue.broadcast(v1, relaySet: _relays, pubkey: _bob);
+    await queue.broadcast(v1, relaySet: _relays, account: _alice);
+    await queue.broadcast(v1, relaySet: _relays, account: _bob);
     for (final account in [_alice, _bob]) {
-      final r = (await queue.get(v1.id, pubkey: account))!;
+      final r = (await queue.get(v1.id, account: account))!;
       expect(r.status, BroadcastStatus.pending);
     }
 
-    await queue.broadcast(v2, relaySet: _relays, pubkey: _bob);
+    await queue.broadcast(v2, relaySet: _relays, account: _bob);
     for (final account in [_alice, _bob]) {
-      final r = (await queue.get(v1.id, pubkey: account))!;
+      final r = (await queue.get(v1.id, account: account))!;
       expect(r.supersededBy, v2.id);
     }
 
@@ -239,6 +239,81 @@ void main() {
 
     await waitFor(queue, v2.id, (r) => r.attempts >= 4);
     expect((await queue.get(v1.id))!.attempts, attempts + 1);
+
+    await queue.dispose();
+  });
+
+  test('an older version keeps going where no newer version heads', () async {
+    fake.fail('wss://a');
+    fake.fail('wss://b');
+    final queue = newQueue();
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+
+    await queue.broadcast(
+      v1,
+      relaySet: const UrlSet.explicit(['wss://a', 'wss://b']),
+    );
+    await queue.broadcast(v2, relaySet: const UrlSet.explicit(['wss://b']));
+    expect((await queue.get(v1.id))!.status, BroadcastStatus.pending);
+
+    fake.ackAll(['wss://a', 'wss://b']);
+    await waitFor(queue, v1.id, (r) => r.status == BroadcastStatus.delivered);
+
+    await queue.dispose();
+  });
+
+  test('newer versions cover the relays of an older one together', () async {
+    fake.fail('wss://a');
+    fake.fail('wss://b');
+    final queue = newQueue();
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+    final v3 = _version(createdAt: 300);
+
+    await queue.broadcast(
+      v1,
+      relaySet: const UrlSet.explicit(['wss://a', 'wss://b']),
+    );
+    await queue.broadcast(v2, relaySet: const UrlSet.explicit(['wss://a']));
+    await queue.broadcast(v3, relaySet: const UrlSet.explicit(['wss://b']));
+
+    expect((await queue.get(v1.id))!.supersededBy, v3.id);
+    expect((await queue.get(v2.id))!.status, BroadcastStatus.pending);
+
+    await queue.dispose();
+  });
+
+  test('a relay set still to resolve covers only the same set', () async {
+    fake.fail('wss://a');
+    final queue = newQueue(
+      relayListFn: (_, _) async => const UrlListLookup.unavailable('offline'),
+    );
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+    final v3 = _version(createdAt: 300);
+
+    await queue.broadcast(v1, relaySet: _relays);
+    await queue.broadcast(v2, relaySet: UrlSet.outbox(v2.pubkey));
+    await queue.broadcast(v3, relaySet: UrlSet.inbox(v3.pubkey));
+
+    expect((await queue.get(v1.id))!.status, BroadcastStatus.pending);
+    expect((await queue.get(v2.id))!.status, BroadcastStatus.pending);
+
+    await queue.dispose();
+  });
+
+  test('a newer version refused for good does not cover the relay', () async {
+    fake.refuse('wss://a', message: 'invalid: bad tag');
+    final queue = newQueue();
+    final v1 = _version(createdAt: 100);
+    final v2 = _version(createdAt: 200);
+
+    await queue.broadcast(v2, relaySet: _relays);
+    await waitFor(queue, v2.id, (r) => r.status == BroadcastStatus.failed);
+    final queued = await queue.broadcast(v1, relaySet: _relays);
+    expect(queued.status, BroadcastStatus.pending);
+    expect(queued.supersededBy, isNull);
 
     await queue.dispose();
   });

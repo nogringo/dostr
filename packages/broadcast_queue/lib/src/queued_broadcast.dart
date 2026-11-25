@@ -7,8 +7,8 @@ enum BroadcastStatus {
   pending,
 
   /// Every relay has either accepted the event or refused it for good: a
-  /// terminal NIP-01 OK prefix, an event too long for it, or too many online
-  /// attempts while unreachable.
+  /// terminal NIP-01 OK prefix, an event too long for it, a relay the
+  /// `RelayManager` blocks, or too many online attempts while unreachable.
   failed,
 
   /// Every relay in `relays` has accepted the event at least once.
@@ -16,9 +16,9 @@ enum BroadcastStatus {
   /// back to `pending` on its own.
   delivered,
 
-  /// A newer version of the same replaceable or addressable event was queued
-  /// before this one was settled, so it is no longer retried. See
-  /// [QueuedBroadcast.supersededBy].
+  /// Newer versions of the same replaceable or addressable event hold, or are
+  /// headed to, every relay this one still owed, so it is no longer retried.
+  /// See [QueuedBroadcast.supersededBy].
   superseded,
 
   /// The caller stopped its retries with `BroadcastQueue.cancel` before it
@@ -31,17 +31,18 @@ enum BroadcastStatus {
 /// Immutable from the caller's perspective: every mutation goes through the
 /// store and yields a fresh instance.
 class QueuedBroadcast {
-  /// Nostr event id. Combined with [pubkey] it forms the sembast record [key].
+  /// Nostr event id. Combined with [account] it forms the sembast record
+  /// [key].
   final String id;
 
-  /// Pubkey of the account this broadcast was queued under, or `null` if the
-  /// caller did not attribute it. This is NOT `event.pubkey`: an event can be
-  /// queued under an account that did not sign it (rebroadcasting someone
-  /// else's note), and for a gift wrap (kind 1059) `event.pubkey` is an
-  /// ephemeral throwaway key. It is part of the record's identity, so the same
-  /// event queued under two pubkeys is two independent records.
-  /// `BroadcastQueue.clearLocalAccountData` matches on this field.
-  final String? pubkey;
+  /// Pubkey of the local account this broadcast was queued under, or `null`
+  /// if the caller did not attribute it. It need not be `event.pubkey`: an
+  /// event can be queued under an account that did not sign it
+  /// (rebroadcasting someone else's note), and for a gift wrap (kind 1059)
+  /// `event.pubkey` is an ephemeral throwaway key. It is part of the record's
+  /// identity, so the same event queued under two accounts is two independent
+  /// records. `BroadcastQueue.clearLocalAccountData` matches on this field.
+  final String? account;
 
   /// The full event as it will be (re-)broadcast.
   final Nip01Event event;
@@ -82,6 +83,11 @@ class QueuedBroadcast {
   /// since the record was created.
   final int attempts;
 
+  /// Online attempts that left relays owed since the record was last queued
+  /// by `broadcast` or given a new relay by `rebroadcast`. Drives the backoff:
+  /// an offline attempt leaves it unchanged.
+  final int onlineFailures;
+
   /// Wall-clock millis (since epoch) of the first attempt for this record,
   /// or null if none has run yet.
   final int? firstAttemptAt;
@@ -115,9 +121,10 @@ class QueuedBroadcast {
   /// more push without rewriting its history.
   final List<RelayUrl>? forcedRelays;
 
-  /// Id of the newer version of this replaceable or addressable event that
-  /// stopped its retries, or `null`. Set once and never cleared: the record
-  /// stays [BroadcastStatus.superseded] whatever happens to that version.
+  /// Id of the newest version of this replaceable or addressable event when
+  /// newer versions stopped its retries, or `null`. Set once and never
+  /// cleared: the record stays [BroadcastStatus.superseded] whatever happens
+  /// to those versions.
   final String? supersededBy;
 
   /// Wall-clock millis (since epoch) when `BroadcastQueue.cancel` stopped
@@ -129,7 +136,7 @@ class QueuedBroadcast {
   /// are produced by `BroadcastQueue`.
   QueuedBroadcast({
     required this.id,
-    this.pubkey,
+    this.account,
     required this.event,
     required this.relays,
     this.pendingRelaySet,
@@ -140,6 +147,7 @@ class QueuedBroadcast {
     required this.terminalErrors,
     required this.inaccessibleAttempts,
     required this.attempts,
+    this.onlineFailures = 0,
     required this.firstAttemptAt,
     required this.lastAttemptAt,
     required this.nextAttemptAt,
@@ -152,12 +160,12 @@ class QueuedBroadcast {
   });
 
   /// The sembast record key for this entry.
-  String get key => keyFor(eventId: id, pubkey: pubkey);
+  String get key => keyFor(eventId: id, account: account);
 
   /// Builds the sembast record key for an (event, account) pair:
-  /// `pubkey|eventId` when bound to an account, the bare event id otherwise.
-  static String keyFor({required String eventId, String? pubkey}) =>
-      pubkey == null ? eventId : '$pubkey|$eventId';
+  /// `account|eventId` when bound to an account, the bare event id otherwise.
+  static String keyFor({required String eventId, String? account}) =>
+      account == null ? eventId : '$account|$eventId';
 
   /// `pending` while the relay set is unresolved or any relay is still
   /// retryable, otherwise terminal.
@@ -195,6 +203,7 @@ class QueuedBroadcast {
     Map<RelayUrl, String>? terminalErrors,
     Map<RelayUrl, int>? inaccessibleAttempts,
     int? attempts,
+    int? onlineFailures,
     int? firstAttemptAt,
     int? lastAttemptAt,
     int? nextAttemptAt,
@@ -212,7 +221,7 @@ class QueuedBroadcast {
   }) {
     return QueuedBroadcast(
       id: id,
-      pubkey: pubkey,
+      account: account,
       event: event,
       relays: relays ?? this.relays,
       pendingRelaySet: clearPendingRelaySet
@@ -227,6 +236,7 @@ class QueuedBroadcast {
       terminalErrors: terminalErrors ?? this.terminalErrors,
       inaccessibleAttempts: inaccessibleAttempts ?? this.inaccessibleAttempts,
       attempts: attempts ?? this.attempts,
+      onlineFailures: onlineFailures ?? this.onlineFailures,
       firstAttemptAt: firstAttemptAt ?? this.firstAttemptAt,
       lastAttemptAt: lastAttemptAt ?? this.lastAttemptAt,
       nextAttemptAt: nextAttemptAt ?? this.nextAttemptAt,
@@ -245,7 +255,7 @@ class QueuedBroadcast {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'pubkey': pubkey,
+      'pubkey': account,
       'event': event.toJson(),
       'relays': relays,
       'pendingRelaySet': pendingRelaySet?.toMap(),
@@ -256,6 +266,7 @@ class QueuedBroadcast {
       'terminalErrors': terminalErrors,
       'inaccessibleAttempts': inaccessibleAttempts,
       'attempts': attempts,
+      'onlineFailures': onlineFailures,
       'firstAttemptAt': firstAttemptAt,
       'lastAttemptAt': lastAttemptAt,
       'nextAttemptAt': nextAttemptAt,
@@ -273,7 +284,7 @@ class QueuedBroadcast {
   static QueuedBroadcast fromMap(Map<String, dynamic> map) {
     return QueuedBroadcast(
       id: map['id'] as String,
-      pubkey: map['pubkey'] as String?,
+      account: map['pubkey'] as String?,
       event: Nip01Event.fromJson(map['event'] as Map),
       relays: _relayList(map['relays']),
       pendingRelaySet: map['pendingRelaySet'] == null
@@ -286,6 +297,7 @@ class QueuedBroadcast {
       terminalErrors: _relayMap<String>(map['terminalErrors']),
       inaccessibleAttempts: _relayMap<int>(map['inaccessibleAttempts']),
       attempts: map['attempts'] as int,
+      onlineFailures: (map['onlineFailures'] as int?) ?? 0,
       firstAttemptAt: map['firstAttemptAt'] as int?,
       lastAttemptAt: map['lastAttemptAt'] as int?,
       nextAttemptAt: map['nextAttemptAt'] as int,

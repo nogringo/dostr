@@ -1,0 +1,130 @@
+import 'dart:async';
+
+import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:sembast/sembast_memory.dart';
+import 'package:test/test.dart';
+
+import 'support/fake_broadcaster.dart';
+import 'support/helpers.dart';
+
+const _relays = UrlSet.explicit(['wss://a']);
+
+/// A record of [event] as the store holds it, already attempted once.
+QueuedBroadcast _stored(
+  Nip01Event event, {
+  required int createdAt,
+  required int nextAttemptAt,
+}) => QueuedBroadcast(
+  id: event.id,
+  event: event,
+  relays: [RelayUrl.parse('wss://a')],
+  ackedRelays: const [],
+  lastErrors: const {},
+  terminalErrors: const {},
+  inaccessibleAttempts: const {},
+  attempts: 1,
+  firstAttemptAt: createdAt,
+  lastAttemptAt: createdAt,
+  nextAttemptAt: nextAttemptAt,
+  deliveredAt: null,
+  failedAt: null,
+  createdAt: createdAt,
+);
+
+void main() {
+  late Database db;
+  late FakeBroadcaster fake;
+
+  setUp(() async {
+    db = await newDatabaseFactoryMemory().openDatabase('test.db');
+    fake = FakeBroadcaster();
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  BroadcastQueue newQueue({required int maxConcurrentPublishes}) =>
+      BroadcastQueue(
+        broadcastFn: fake.fn,
+        db: db,
+        maxConcurrentPublishes: maxConcurrentPublishes,
+      );
+
+  test('at most maxConcurrentPublishes attempts publish at once', () async {
+    fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
+    final queue = newQueue(maxConcurrentPublishes: 2);
+    final events = [
+      for (var seed = 1; seed <= 3; seed++) makeEvent(seed: seed),
+    ];
+
+    for (final event in events) {
+      await queue.broadcast(event, relaySet: _relays);
+    }
+    await waitFor(queue, events.first.id, (_) => fake.calls.length >= 2);
+    await Future<void>.delayed(const Duration(milliseconds: 20));
+    expect(fake.calls.map((c) => c.event.id), [events[0].id, events[1].id]);
+
+    fake.gate!.complete({
+      RelayUrl.parse('wss://a'): const RelayPublishOutcome.accepted(),
+    });
+    for (final event in events) {
+      await waitFor(
+        queue,
+        event.id,
+        (r) => r.status == BroadcastStatus.delivered,
+      );
+    }
+    expect(fake.calls.map((c) => c.event.id), [for (final e in events) e.id]);
+
+    await queue.dispose();
+  });
+
+  test('due entries go out in the order they were queued', () async {
+    fake.ack('wss://a');
+    final events = [
+      for (var seed = 1; seed <= 3; seed++) makeEvent(seed: seed),
+    ];
+    final store = stringMapStoreFactory.store('broadcasts');
+    for (final (index, event) in events.indexed) {
+      final record = _stored(
+        event,
+        createdAt: index,
+        nextAttemptAt: events.length - index,
+      );
+      await store.record(record.key).put(db, record.toMap());
+    }
+
+    final queue = newQueue(maxConcurrentPublishes: 1)..start();
+    for (final event in events) {
+      await waitFor(
+        queue,
+        event.id,
+        (r) => r.status == BroadcastStatus.delivered,
+      );
+    }
+    expect(fake.calls.map((c) => c.event.id), [for (final e in events) e.id]);
+
+    await queue.dispose();
+  });
+
+  test('dispose abandons the attempts waiting for a slot', () async {
+    fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
+    final queue = newQueue(maxConcurrentPublishes: 1);
+    final first = makeEvent(seed: 1);
+    final second = makeEvent(seed: 2);
+
+    await queue.broadcast(first, relaySet: _relays);
+    await queue.broadcast(second, relaySet: _relays);
+    await waitFor(queue, first.id, (_) => fake.calls.isNotEmpty);
+    await queue.dispose().timeout(const Duration(seconds: 1));
+
+    expect(fake.calls, hasLength(1));
+  });
+
+  test('rejects a maxConcurrentPublishes below one', () {
+    expect(() => newQueue(maxConcurrentPublishes: 0), throwsArgumentError);
+  });
+}

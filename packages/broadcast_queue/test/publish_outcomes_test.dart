@@ -91,7 +91,7 @@ void main() {
     await queue.broadcast(
       makeEvent(),
       relaySet: const UrlSet.explicit(['wss://a']),
-      pubkey: 'alice',
+      account: 'alice',
     );
     await queue.broadcast(
       makeEvent(seed: 2),
@@ -101,7 +101,7 @@ void main() {
       await Future.delayed(const Duration(milliseconds: 5));
     }
 
-    expect(fake.calls.map((c) => c.pubkey), unorderedEquals(['alice', null]));
+    expect(fake.calls.map((c) => c.account), unorderedEquals(['alice', null]));
 
     await queue.dispose();
   });
@@ -118,6 +118,24 @@ void main() {
       (r) => r.status == BroadcastStatus.failed,
     );
     expect(failed.terminalErrors, {'wss://a': 'messageTooLong: 512'});
+
+    await queue.dispose();
+  });
+
+  test('a relay the RelayManager blocks fails it for good', () async {
+    fake.fail('wss://a', kind: RelayFailureKind.blocked, detail: 'by the user');
+    final queue = newQueue();
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    final failed = await waitFor(
+      queue,
+      event.id,
+      (r) => r.status == BroadcastStatus.failed,
+    );
+    expect(failed.terminalErrors, {'wss://a': 'blocked: by the user'});
+    expect(failed.inaccessibleAttempts, isEmpty);
+    expect(fake.calls, hasLength(1));
 
     await queue.dispose();
   });
@@ -250,6 +268,65 @@ void main() {
       expect(await delays(online: false), everyElement(lessThan(90)));
       expect((await delays(online: true)).last, greaterThanOrEqualTo(200));
     });
+
+    test('the backoff starts over once back online', () async {
+      final online = StreamController<bool>();
+      final queue = newQueue(
+        onlineSignal: online.stream,
+        initialBackoff: const Duration(milliseconds: 50),
+        random: _LongestJitter(),
+      )..start();
+      online.add(false);
+      await Future<void>.delayed(Duration.zero);
+      final event = makeEvent();
+
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://gone']),
+      );
+      for (var attempts = 1; attempts <= 3; attempts++) {
+        await waitFor(queue, event.id, (r) => r.attempts >= attempts);
+        if (attempts < 3) await queue.rebroadcast(event.id);
+      }
+      expect((await queue.get(event.id))!.onlineFailures, 0);
+
+      online.add(true);
+      await Future<void>.delayed(Duration.zero);
+      await queue.rebroadcast(event.id);
+      final record = await waitFor(queue, event.id, (r) => r.attempts >= 4);
+      expect(record.onlineFailures, record.attempts - 3);
+      expect(record.nextAttemptAt - record.lastAttemptAt!, lessThan(200));
+
+      await queue.dispose();
+      await online.close();
+    });
+  });
+
+  test('broadcast resets the backoff of an existing entry', () async {
+    fake.refuse('wss://a', message: 'rate-limited: slow down');
+    final queue = newQueue(
+      initialBackoff: const Duration(milliseconds: 50),
+      random: _LongestJitter(),
+    );
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    for (var attempts = 1; attempts <= 3; attempts++) {
+      await waitFor(queue, event.id, (r) => r.attempts >= attempts);
+      if (attempts < 3) await queue.rebroadcast(event.id);
+    }
+    expect((await queue.get(event.id))!.onlineFailures, 3);
+
+    final queued = await queue.broadcast(
+      event,
+      relaySet: const UrlSet.explicit(['wss://b']),
+    );
+    expect(queued.onlineFailures, 0);
+    final record = await waitFor(queue, event.id, (r) => r.attempts >= 4);
+    expect(record.onlineFailures, 1);
+    expect(record.nextAttemptAt - record.lastAttemptAt!, lessThan(90));
+
+    await queue.dispose();
   });
 
   test('dispose abandons an attempt waiting on the network', () async {

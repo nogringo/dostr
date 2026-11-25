@@ -28,15 +28,15 @@ Nip01Event makeEvent({
   sig: fakeSig,
 );
 
-/// Polls until [predicate] holds for the record at `(id, pubkey)`, or throws.
+/// Polls until [predicate] holds for the record at `(id, account)`, or throws.
 Future<QueuedBroadcast> waitFor(
   BroadcastQueue queue,
   String id,
   bool Function(QueuedBroadcast r) predicate, {
-  String? pubkey,
+  String? account,
 }) async {
   for (var i = 0; i < 400; i++) {
-    final r = await queue.get(id, pubkey: pubkey);
+    final r = await queue.get(id, account: account);
     if (r != null && predicate(r)) return r;
     await Future.delayed(const Duration(milliseconds: 5));
   }

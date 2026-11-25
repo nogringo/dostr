@@ -10,7 +10,7 @@ class FakeBroadcaster {
   /// as one that did not answer.
   final Map<String, RelayPublishOutcome> responders = {};
 
-  final List<({Nip01Event event, List<RelayUrl> relays, String? pubkey})>
+  final List<({Nip01Event event, List<RelayUrl> relays, String? account})>
   calls = [];
 
   /// Thrown by every call until cleared.
@@ -20,8 +20,8 @@ class FakeBroadcaster {
   /// test drive an attempt that is mid-flight.
   Completer<Map<RelayUrl, RelayPublishOutcome>>? gate;
 
-  BroadcastFn get fn => (event, relays, {pubkey}) async {
-    calls.add((event: event, relays: List.of(relays), pubkey: pubkey));
+  BroadcastFn get fn => (event, relays, {account}) async {
+    calls.add((event: event, relays: List.of(relays), account: account));
     if (error != null) throw error!;
     if (gate != null) return gate!.future;
     return {for (final relay in relays) relay: ?responders[relay]};

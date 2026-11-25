@@ -8,19 +8,20 @@ RelayUrl _relay(String url) => RelayUrl.parse(url);
 
 QueuedBroadcast _record({
   Nip01Event? event,
-  String? pubkey,
+  String? account,
   List<String> relays = const ['wss://relay.example'],
   List<String> ackedRelays = const [],
   Map<String, String> lastErrors = const {},
   Map<String, String> terminalErrors = const {},
   Map<String, int> inaccessibleAttempts = const {},
   int attempts = 0,
+  int onlineFailures = 0,
   int? failedAt,
 }) {
   event ??= makeEvent();
   return QueuedBroadcast(
     id: event.id,
-    pubkey: pubkey,
+    account: account,
     event: event,
     relays: relays.map(_relay).toList(),
     ackedRelays: ackedRelays.map(_relay).toList(),
@@ -30,6 +31,7 @@ QueuedBroadcast _record({
       (k, v) => MapEntry(_relay(k), v),
     ),
     attempts: attempts,
+    onlineFailures: onlineFailures,
     firstAttemptAt: null,
     lastAttemptAt: null,
     nextAttemptAt: 0,
@@ -79,19 +81,19 @@ void main() {
       );
     });
 
-    test('keyFor composes pubkey and event id, bare when unattributed', () {
+    test('keyFor composes account and event id, bare when unattributed', () {
       expect(QueuedBroadcast.keyFor(eventId: 'evt'), 'evt');
-      expect(QueuedBroadcast.keyFor(eventId: 'evt', pubkey: null), 'evt');
+      expect(QueuedBroadcast.keyFor(eventId: 'evt', account: null), 'evt');
       expect(
-        QueuedBroadcast.keyFor(eventId: 'evt', pubkey: 'npub'),
+        QueuedBroadcast.keyFor(eventId: 'evt', account: 'npub'),
         'npub|evt',
       );
     });
 
-    test('toMap → fromMap roundtrip preserves pubkey', () {
-      final original = _record(pubkey: 'account-pubkey');
+    test('toMap → fromMap roundtrip preserves the account', () {
+      final original = _record(account: 'account-pubkey');
       final restored = QueuedBroadcast.fromMap(original.toMap());
-      expect(restored.pubkey, 'account-pubkey');
+      expect(restored.account, 'account-pubkey');
       expect(restored.key, 'account-pubkey|${original.id}');
     });
 
@@ -102,6 +104,7 @@ void main() {
         terminalErrors: const {'wss://other.example': 'blocked: banned'},
         inaccessibleAttempts: const {'wss://relay.example': 2},
         attempts: 2,
+        onlineFailures: 1,
         failedAt: 400,
       );
       final restored = QueuedBroadcast.fromMap(original.toMap());
@@ -113,6 +116,7 @@ void main() {
       expect(restored.terminalErrors, original.terminalErrors);
       expect(restored.inaccessibleAttempts, original.inaccessibleAttempts);
       expect(restored.attempts, original.attempts);
+      expect(restored.onlineFailures, original.onlineFailures);
       expect(restored.failedAt, original.failedAt);
     });
 
@@ -132,12 +136,13 @@ void main() {
         'createdAt': 0,
         'forcedRelays': null,
       });
-      expect(restored.pubkey, isNull);
+      expect(restored.account, isNull);
       expect(restored.key, event.id);
       expect(restored.relays, ['wss://relay.example']);
       expect(restored.lastErrors, isEmpty);
       expect(restored.terminalErrors, isEmpty);
       expect(restored.inaccessibleAttempts, isEmpty);
+      expect(restored.onlineFailures, 0);
       expect(restored.failedAt, isNull);
     });
   });

@@ -101,21 +101,21 @@ void main() {
     final queue = BroadcastQueue.withDostr(
       relayManager,
       db: db,
-      authPolicyOf: (event, pubkey) =>
-          pubkey == publicKey ? AuthPolicy.allow(signer) : null,
+      authPolicyOf: (event, account) =>
+          account == publicKey ? AuthPolicy.allow(signer) : null,
     );
     final event = makeEvent();
 
     await queue.broadcast(
       event,
       relaySet: UrlSet.explicit([relay.url]),
-      pubkey: publicKey,
+      account: publicKey,
     );
     await waitFor(
       queue,
       event.id,
       (r) => r.status == BroadcastStatus.delivered,
-      pubkey: publicKey,
+      account: publicKey,
     );
     expect(relay.clients.last.authenticatedAs, publicKey);
 

@@ -1,3 +1,5 @@
+import 'package:dostr_core/dostr_core.dart' show RelayUrl;
+import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast.dart';
 
 import 'queued_broadcast.dart';
@@ -23,7 +25,8 @@ class QueueStore {
 
   /// Writes [record], then, in the same transaction, supersedes every record
   /// of an older version of the same replaceable or addressable event that
-  /// is still owed an attempt, [record] included. Returns [record] as stored.
+  /// is still owed an attempt, [record] included, once newer versions head to
+  /// all its relays. Returns [record] as stored.
   Future<QueuedBroadcast> put(QueuedBroadcast record) {
     return _db.transaction((txn) async {
       await _store.record(record.key).put(txn, record.toMap());
@@ -47,13 +50,17 @@ class QueueStore {
 
       var stored = record;
       for (final version in versions) {
-        if (version.id == newest.id) continue;
         final QueuedBroadcast superseded;
         if (version.supersededBy == null) {
           final owed =
               version.status == BroadcastStatus.pending ||
               version.forcedRelays != null;
           if (!owed) continue;
+          final newer = [
+            for (final other in versions)
+              if (replaces(other.event, version.event)) other,
+          ];
+          if (newer.isEmpty || !_covered(version, newer)) continue;
           superseded = version.copyWith(
             supersededBy: newest.id,
             clearPendingRelaySet: true,
@@ -88,11 +95,30 @@ class QueueStore {
     });
   }
 
-  /// Deletes every record queued under [pubkey]. Records with no pubkey never
-  /// match. Returns the number of records removed.
-  Future<int> deleteByPubkey(String pubkey) => _store.delete(
+  /// Whether the [newer] versions hold, or are still headed to, every relay
+  /// [version] owes. A relay set still to resolve only covers the same set.
+  static bool _covered(QueuedBroadcast version, List<QueuedBroadcast> newer) {
+    final relays = <RelayUrl>{};
+    final sets = <UrlSet>{};
+    for (final other in newer) {
+      relays.addAll(other.ackedRelays);
+      if (other.status != BroadcastStatus.pending) continue;
+      relays.addAll(other.remainingRelays);
+      if (other.pendingRelaySet case final set?) sets.add(set);
+    }
+    final owedSet = version.pendingRelaySet;
+    return (owedSet == null || sets.contains(owedSet)) &&
+        [
+          ...version.remainingRelays,
+          ...?version.forcedRelays,
+        ].every(relays.contains);
+  }
+
+  /// Deletes every record queued under [account]. Records with no account
+  /// never match. Returns the number of records removed.
+  Future<int> deleteByAccount(String account) => _store.delete(
     _db,
-    finder: Finder(filter: Filter.equals('pubkey', pubkey)),
+    finder: Finder(filter: Filter.equals('pubkey', account)),
   );
 
   /// Deletes every record in this store. Other stores in the database are
@@ -102,6 +128,7 @@ class QueueStore {
   /// Records eligible for an attempt right now: either still pending (relay
   /// set unresolved included), or terminal but carrying a
   /// [QueuedBroadcast.forcedRelays] override that hasn't been consumed yet.
+  /// Sorted in the order they were queued.
   Future<List<QueuedBroadcast>> findDue({required int now}) async {
     final finder = Finder(
       filter: Filter.custom((record) {
@@ -114,7 +141,7 @@ class QueueStore {
         if (m['deliveredAt'] == null && m['failedAt'] == null) return true;
         return m['forcedRelays'] != null;
       }),
-      sortOrders: [SortOrder('nextAttemptAt')],
+      sortOrders: [SortOrder('createdAt')],
     );
     final records = await _store.find(_db, finder: finder);
     return records

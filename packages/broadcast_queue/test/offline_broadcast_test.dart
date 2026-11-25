@@ -80,8 +80,8 @@ void main() {
     () async {
       const terminalMessages = {
         'wss://blocked': 'blocked: you are banned',
-        'wss://error': 'error: relay refuses this event',
         'wss://invalid': 'invalid: bad event',
+        'wss://mute': 'mute: no one was listening to your ephemeral event',
         'wss://pow': 'pow: difficulty 26 is less than 30',
         'wss://restricted': 'restricted: kind not allowed',
       };
@@ -163,6 +163,10 @@ void main() {
     () async {
       final fake = FakeBroadcaster();
       fake.refuse('wss://rate', message: 'rate-limited: slow down');
+      fake.refuse(
+        'wss://error',
+        message: 'error: could not connect to the database',
+      );
       fake.refuse('wss://unknown', message: 'mystery: nope');
       fake.refuse('wss://empty', message: '');
       fake.fail('wss://transport', detail: 'pow: from transport path');
@@ -177,6 +181,7 @@ void main() {
         event,
         relaySet: const UrlSet.explicit([
           'wss://rate',
+          'wss://error',
           'wss://unknown',
           'wss://empty',
           'wss://no-response',
@@ -191,6 +196,7 @@ void main() {
         pending.remainingRelays,
         unorderedEquals([
           'wss://rate',
+          'wss://error',
           'wss://unknown',
           'wss://empty',
           'wss://no-response',
@@ -198,6 +204,10 @@ void main() {
         ]),
       );
       expect(pending.lastErrors['wss://rate'], 'rate-limited: slow down');
+      expect(
+        pending.lastErrors['wss://error'],
+        'error: could not connect to the database',
+      );
       expect(pending.lastErrors['wss://unknown'], 'mystery: nope');
       expect(pending.lastErrors['wss://empty'], 'refused');
       expect(pending.lastErrors['wss://no-response'], 'no response');
@@ -208,6 +218,7 @@ void main() {
 
       fake.ackAll([
         'wss://rate',
+        'wss://error',
         'wss://unknown',
         'wss://empty',
         'wss://no-response',
@@ -223,6 +234,7 @@ void main() {
         fake.calls.last.relays,
         unorderedEquals([
           'wss://rate',
+          'wss://error',
           'wss://unknown',
           'wss://empty',
           'wss://no-response',

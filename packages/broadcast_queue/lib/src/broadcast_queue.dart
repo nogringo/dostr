@@ -6,12 +6,13 @@ import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast.dart' show Database;
 
 import 'backoff.dart';
+import 'publish_slots.dart';
 import 'queue_store.dart';
 import 'queued_broadcast.dart';
 import 'relay_reachability.dart';
 
 /// Sends [event] to [relays] once and gives what each relay did with it, as
-/// `RelayPublishes.publish` of dostr_core does. [pubkey] is the account the
+/// `RelayPublishes.publish` of dostr_core does. [account] is the account the
 /// event was queued under, see [BroadcastQueue.broadcast].
 ///
 /// It must complete: `RelayPublishes.publish` does once its timeout runs out.
@@ -20,7 +21,7 @@ typedef BroadcastFn =
     Future<Map<RelayUrl, RelayPublishOutcome>> Function(
       Nip01Event event,
       List<RelayUrl> relays, {
-      String? pubkey,
+      String? account,
     });
 
 /// An offline-first queue of events to publish.
@@ -48,6 +49,7 @@ class BroadcastQueue {
   final int Function() _now;
   final Stream<bool>? _onlineSignal;
   final bool _pauseWhileOffline;
+  final PublishSlots _publishSlots;
 
   Timer? _tickTimer;
   StreamSubscription<bool>? _onlineSub;
@@ -66,6 +68,7 @@ class BroadcastQueue {
     required Duration initialBackoff,
     required Duration maxBackoff,
     required int maxInaccessibleAttemptsPerRelay,
+    required int maxConcurrentPublishes,
     required Stream<bool>? onlineSignal,
     required bool pauseWhileOffline,
     Random? random,
@@ -79,12 +82,20 @@ class BroadcastQueue {
        _maxInaccessibleAttemptsPerRelay = maxInaccessibleAttemptsPerRelay,
        _onlineSignal = onlineSignal,
        _pauseWhileOffline = pauseWhileOffline,
+       _publishSlots = PublishSlots(maxConcurrentPublishes),
        _random = random ?? Random(),
        _now = now ?? (() => DateTime.now().millisecondsSinceEpoch) {
     if (maxInaccessibleAttemptsPerRelay <= 0) {
       throw ArgumentError.value(
         maxInaccessibleAttemptsPerRelay,
         'maxInaccessibleAttemptsPerRelay',
+        'must be greater than zero',
+      );
+    }
+    if (maxConcurrentPublishes <= 0) {
+      throw ArgumentError.value(
+        maxConcurrentPublishes,
+        'maxConcurrentPublishes',
         'must be greater than zero',
       );
     }
@@ -107,6 +118,10 @@ class BroadcastQueue {
   /// [broadcastFn] do not increment this counter, and an offline attempt is
   /// retried after [initialBackoff] without growing the backoff.
   ///
+  /// [maxConcurrentPublishes] caps the attempts publishing at once. The others
+  /// wait their turn, due entries in the order they were queued, so a backlog
+  /// piled up offline goes out in order rather than all at once.
+  ///
   /// [relayListFn] resolves the relay lists a [UrlSet] refers to, such as
   /// `fetcherUrlListFn` of dostr_fetchers. Without it, only sets that need no
   /// lookup can be broadcast. The queue puts no timeout on it: bound the
@@ -120,6 +135,7 @@ class BroadcastQueue {
     Duration initialBackoff = const Duration(seconds: 5),
     Duration maxBackoff = const Duration(minutes: 30),
     int maxInaccessibleAttemptsPerRelay = 12,
+    int maxConcurrentPublishes = 10,
     Stream<bool>? onlineSignal,
     Random? random,
     int Function()? now,
@@ -132,6 +148,7 @@ class BroadcastQueue {
          initialBackoff: initialBackoff,
          maxBackoff: maxBackoff,
          maxInaccessibleAttemptsPerRelay: maxInaccessibleAttemptsPerRelay,
+         maxConcurrentPublishes: maxConcurrentPublishes,
          onlineSignal: onlineSignal,
          pauseWhileOffline: true,
          random: random,
@@ -161,7 +178,7 @@ class BroadcastQueue {
     RelayManager relayManager, {
     required Database db,
     UrlListFn? relayListFn,
-    AuthPolicy? Function(Nip01Event event, String? pubkey)? authPolicyOf,
+    AuthPolicy? Function(Nip01Event event, String? account)? authPolicyOf,
     Duration publishTimeout = defaultPublishTimeout,
     Stream<bool>? onlineSignal,
     String storeName = 'broadcasts',
@@ -169,14 +186,15 @@ class BroadcastQueue {
     Duration initialBackoff = const Duration(seconds: 5),
     Duration maxBackoff = const Duration(minutes: 30),
     int maxInaccessibleAttemptsPerRelay = 12,
+    int maxConcurrentPublishes = 10,
   }) {
     final publishes = RelayPublishes(relayManager: relayManager);
     return BroadcastQueue._(
-      broadcastFn: (event, relays, {pubkey}) => publishes
+      broadcastFn: (event, relays, {account}) => publishes
           .publish(
             event,
             relays: relays,
-            auth: authPolicyOf?.call(event, pubkey),
+            auth: authPolicyOf?.call(event, account),
             timeout: publishTimeout,
           )
           .done,
@@ -187,6 +205,7 @@ class BroadcastQueue {
       initialBackoff: initialBackoff,
       maxBackoff: maxBackoff,
       maxInaccessibleAttemptsPerRelay: maxInaccessibleAttemptsPerRelay,
+      maxConcurrentPublishes: maxConcurrentPublishes,
       onlineSignal:
           onlineSignal ??
           publicRelayReachability(relayManager.relayConnectivityChanges),
@@ -204,30 +223,30 @@ class BroadcastQueue {
   /// others are dropped. A Blossom leaf throws [ArgumentError]: it names
   /// servers, not relays.
   ///
-  /// [pubkey] attributes the entry to a local account so it can later be
-  /// dropped by [clearLocalAccountData], and is handed to the [BroadcastFn].
-  /// It is a plain label, not `event.pubkey`: pass the account you queued it
-  /// under, which for a gift wrap (kind 1059) is the real sender, not the
-  /// event's ephemeral key. Leave it `null` and the entry is unattributed:
-  /// retried like any other, but never removed by an account-scoped clear.
+  /// [account] is the pubkey of the local account the entry is queued under,
+  /// so it can later be dropped by [clearLocalAccountData], and is handed to
+  /// the [BroadcastFn]. It need not be `event.pubkey`: for a gift wrap (kind
+  /// 1059) it is the real sender, not the event's ephemeral key. Leave it
+  /// `null` and the entry is unattributed: retried like any other, but never
+  /// removed by an account-scoped clear.
   ///
-  /// Records are keyed by `(event.id, pubkey)`. If one with the same pair
+  /// Records are keyed by `(event.id, account)`. If one with the same pair
   /// already exists, the new relays are merged into it and it is rescheduled
-  /// for an immediate attempt: explicit relays join its relay list, a set that
-  /// needs a lookup is resolved and its relays joined. The event payload is
-  /// *not* overwritten; the original event wins. A record stopped by [cancel]
-  /// is reopened. The same event queued under a different [pubkey] is a
-  /// separate record.
+  /// for an immediate attempt, its backoff reset: explicit relays join its
+  /// relay list, a set that needs a lookup is resolved and its relays joined.
+  /// The event payload is *not* overwritten; the original event wins. A
+  /// record stopped by [cancel] is reopened. The same event queued under a
+  /// different [account] is a separate record.
   ///
   /// For a replaceable or addressable [event], relays only keep the latest
-  /// version, so queuing one supersedes the records of older versions that
-  /// are still pending, whatever their [pubkey]: they become
-  /// [BroadcastStatus.superseded] and are no longer retried. Queuing a
-  /// version older than one already in the store stores it superseded.
+  /// version, so a record of an older version that is still pending becomes
+  /// [BroadcastStatus.superseded] once newer versions hold, or are headed to,
+  /// every relay it owes, whatever their [account]. It is no longer retried.
+  /// This holds for a version older than one already in the store too.
   Future<QueuedBroadcast> broadcast(
     Nip01Event event, {
     required UrlSet relaySet,
-    String? pubkey,
+    String? account,
   }) async {
     _ensureNotDisposed();
     if (event.sig == null) {
@@ -244,7 +263,7 @@ class BroadcastQueue {
       throw StateError('this relaySet needs a relayListFn to resolve');
     }
     final now = _now();
-    final key = QueuedBroadcast.keyFor(eventId: event.id, pubkey: pubkey);
+    final key = QueuedBroadcast.keyFor(eventId: event.id, account: account);
 
     final existing = await _store.get(key);
     final QueuedBroadcast record;
@@ -257,12 +276,13 @@ class BroadcastQueue {
                 : UrlSet.union([pending, relaySet]),
             resolutionAttempts: 0,
             clearResolutionError: true,
+            onlineFailures: 0,
             nextAttemptAt: now,
             clearCancelled: true,
           ) ??
           _newRecord(
             event,
-            pubkey,
+            account,
             now,
             relays: const [],
             pendingRelaySet: relaySet,
@@ -285,13 +305,14 @@ class BroadcastQueue {
         );
         record = existing.copyWith(
           relays: mergedRelays,
+          onlineFailures: 0,
           nextAttemptAt: now,
           clearDelivered: !fullyAcked,
           clearFailed: !fullyAcked && !fullySettled,
           clearCancelled: true,
         );
       } else {
-        record = _newRecord(event, pubkey, now, relays: relays);
+        record = _newRecord(event, account, now, relays: relays);
       }
     }
     final stored = await _store.put(record);
@@ -302,13 +323,13 @@ class BroadcastQueue {
 
   QueuedBroadcast _newRecord(
     Nip01Event event,
-    String? pubkey,
+    String? account,
     int now, {
     required List<RelayUrl> relays,
     UrlSet? pendingRelaySet,
   }) => QueuedBroadcast(
     id: event.id,
-    pubkey: pubkey,
+    account: account,
     event: event,
     relays: relays,
     pendingRelaySet: pendingRelaySet,
@@ -341,17 +362,18 @@ class BroadcastQueue {
   /// - `relay != null`: adds [relay] to the entry's `relays` list if absent,
   ///   schedules an immediate one-shot push to that single relay. If the
   ///   relay is new, `deliveredAt` is cleared (the entry can no longer claim
-  ///   100% delivery until the new relay acks); otherwise it is preserved.
-  ///   Throws an [ArgumentError] when it is not a ws or wss url.
+  ///   100% delivery until the new relay acks) and the backoff is reset;
+  ///   otherwise both are preserved. Throws an [ArgumentError] when it is not
+  ///   a ws or wss url.
   ///
   /// A superseded or cancelled record still gets this one push, but keeps its
   /// status.
   ///
-  /// [pubkey] selects which record to rebroadcast, matching the value passed to
-  /// [broadcast]. Returns `null` if no such record exists.
+  /// [account] selects which record to rebroadcast, matching the value passed
+  /// to [broadcast]. Returns `null` if no such record exists.
   Future<QueuedBroadcast?> rebroadcast(
     String eventId, {
-    String? pubkey,
+    String? account,
     String? relay,
   }) async {
     _ensureNotDisposed();
@@ -364,7 +386,7 @@ class BroadcastQueue {
           (throw ArgumentError.value(relay, 'relay', 'is not a relay url'));
     }
     final now = _now();
-    final key = QueuedBroadcast.keyFor(eventId: eventId, pubkey: pubkey);
+    final key = QueuedBroadcast.keyFor(eventId: eventId, account: account);
     final updated = await _store.update(key, (current) {
       if (relayUrl == null) {
         return current.copyWith(
@@ -377,6 +399,7 @@ class BroadcastQueue {
       return current.copyWith(
         relays: relays,
         forcedRelays: [relayUrl],
+        onlineFailures: isNew ? 0 : null,
         nextAttemptAt: now,
         clearDelivered: isNew,
         clearFailed: isNew,
@@ -398,11 +421,11 @@ class BroadcastQueue {
   /// that acked keep the event; cancelling does not delete it from them.
   /// Calling [broadcast] again for the same record reopens it.
   ///
-  /// [pubkey] selects which record to cancel, matching the value passed to
+  /// [account] selects which record to cancel, matching the value passed to
   /// [broadcast]. Returns `null` if no such record exists.
-  Future<QueuedBroadcast?> cancel(String eventId, {String? pubkey}) async {
+  Future<QueuedBroadcast?> cancel(String eventId, {String? account}) async {
     _ensureNotDisposed();
-    final key = QueuedBroadcast.keyFor(eventId: eventId, pubkey: pubkey);
+    final key = QueuedBroadcast.keyFor(eventId: eventId, account: account);
     return _store.update(key, (current) {
       if (current.status == BroadcastStatus.pending) {
         return current.copyWith(
@@ -423,36 +446,36 @@ class BroadcastQueue {
     await _tick();
   }
 
-  /// Returns the currently persisted record for `(eventId, pubkey)`, or `null`
-  /// if none exists.
-  Future<QueuedBroadcast?> get(String eventId, {String? pubkey}) =>
-      _store.get(QueuedBroadcast.keyFor(eventId: eventId, pubkey: pubkey));
+  /// Returns the currently persisted record for `(eventId, account)`, or
+  /// `null` if none exists.
+  Future<QueuedBroadcast?> get(String eventId, {String? account}) =>
+      _store.get(QueuedBroadcast.keyFor(eventId: eventId, account: account));
 
-  /// Live snapshot of the record for `(eventId, pubkey)`. Emits `null` if/while
-  /// the record is absent.
-  Stream<QueuedBroadcast?> watch(String eventId, {String? pubkey}) =>
-      _store.watch(QueuedBroadcast.keyFor(eventId: eventId, pubkey: pubkey));
+  /// Live snapshot of the record for `(eventId, account)`. Emits `null`
+  /// if/while the record is absent.
+  Stream<QueuedBroadcast?> watch(String eventId, {String? account}) =>
+      _store.watch(QueuedBroadcast.keyFor(eventId: eventId, account: account));
 
   /// Live snapshot of every record that still has retryable relays, across all
-  /// accounts. Filter on [QueuedBroadcast.pubkey] for a single account.
+  /// accounts. Filter on [QueuedBroadcast.account] for a single account.
   Stream<List<QueuedBroadcast>> watchPending() => _store.watchPending();
 
   /// One-shot read of every record in the store, delivered or not, across all
   /// accounts.
   Future<List<QueuedBroadcast>> listAll() => _store.findAll();
 
-  /// Removes every queued broadcast attributed to [pubkey], delivered or not.
-  /// Pending entries are dropped for good and will never be retried. Entries
-  /// queued without a pubkey (see [broadcast]) are left untouched; use
-  /// [clearAllLocalData] to remove those.
+  /// Removes every queued broadcast attributed to [account], delivered or
+  /// not. Pending entries are dropped for good and will never be retried.
+  /// Entries queued without an account (see [broadcast]) are left untouched;
+  /// use [clearAllLocalData] to remove those.
   ///
   /// Safe to call while attempts are in flight: a concurrent attempt writes
   /// through a sembast transaction that no-ops once the record is gone, so it
   /// cannot resurrect a cleared entry. A [broadcast] call for the same account
   /// that overlaps this clear may still re-create its record; do not enqueue
   /// for an account you are clearing.
-  Future<void> clearLocalAccountData({required String pubkey}) async {
-    await _store.deleteByPubkey(pubkey);
+  Future<void> clearLocalAccountData({required String account}) async {
+    await _store.deleteByAccount(account);
   }
 
   /// Removes every queued broadcast, all accounts and unattributed entries
@@ -534,164 +557,181 @@ class BroadcastQueue {
     try {
       final stored = await _store.get(key);
       if (stored == null) return;
-      final record = stored.pendingRelaySet == null
-          ? stored
-          : await _resolvePendingRelaySet(stored);
-      if (record == null) return;
-      // A terminal entry only re-enters _attempt if a force-push is queued.
-      if (record.status != BroadcastStatus.pending &&
-          record.forcedRelays == null) {
+      if (stored.pendingRelaySet != null &&
+          await _resolvePendingRelaySet(stored) == null) {
         return;
       }
-
-      final targets = record.forcedRelays ?? record.remainingRelays;
-      if (targets.isEmpty) {
-        // Nothing to push. Sync terminal timestamps if we somehow got here
-        // with stale nulls.
-        await _store.update(key, (current) {
-          final terminal = _terminalState(
-            current.relays,
-            current.ackedRelays,
-            current.terminalErrors.keys,
-          );
-          final setDelivered =
-              terminal == _AttemptTerminalState.delivered &&
-              current.deliveredAt == null;
-          final setFailed =
-              terminal == _AttemptTerminalState.failed &&
-              current.failedAt == null;
-          if (!setDelivered && !setFailed && current.forcedRelays == null) {
-            return null;
-          }
-          return current.copyWith(
-            deliveredAt: setDelivered ? _now() : null,
-            failedAt: setFailed ? _now() : null,
-            clearFailed: setDelivered,
-            clearForcedRelays: true,
-          );
-        });
-        return;
-      }
-
-      final attemptStart = _now();
-      final startedOnline = _isOnline;
-      Map<RelayUrl, RelayPublishOutcome> outcomes;
-      String? broadcastError;
+      final release = await _untilDisposed(_publishSlots.acquire());
+      if (release == null) return;
       try {
-        final sent = await _untilDisposed(
-          _broadcastFn(record.event, targets, pubkey: record.pubkey),
-        );
-        if (sent == null) return;
-        outcomes = {
-          for (final MapEntry(:key, :value) in sent.entries)
-            ?RelayUrl.tryParse(key): value,
-        };
-      } catch (e) {
-        if (_disposed) return;
-        broadcastError = e.toString();
-        outcomes = const {};
+        await _publish(key);
+      } finally {
+        release();
       }
-      final answered = targets.any((relay) => _answered(outcomes[relay]));
-      final online = (startedOnline && _isOnline) || answered;
-
-      await _store.update(key, (current) {
-        final newAcked = Set<RelayUrl>.from(current.ackedRelays);
-        final newErrors = Map<RelayUrl, String>.from(current.lastErrors);
-        final newTerminalErrors = Map<RelayUrl, String>.from(
-          current.terminalErrors,
-        );
-        final newInaccessibleAttempts = Map<RelayUrl, int>.from(
-          current.inaccessibleAttempts,
-        );
-
-        for (final relay in targets) {
-          final outcome = outcomes[relay];
-          final alreadyAcked = current.ackedRelays.contains(relay);
-          final alreadyTerminal = current.terminalErrors.containsKey(relay);
-          if (outcome != null && outcome.accepted) {
-            newAcked.add(relay);
-            newErrors.remove(relay);
-            newTerminalErrors.remove(relay);
-            newInaccessibleAttempts.remove(relay);
-          } else if (_terminalError(outcome) case final error?) {
-            if (!alreadyAcked) {
-              newTerminalErrors[relay] = error;
-              newErrors.remove(relay);
-              newInaccessibleAttempts.remove(relay);
-            }
-          } else if (!alreadyAcked && !alreadyTerminal) {
-            // Acks are monotonic: a transient failure does not invalidate
-            // historical confirmation. We only surface errors for relays
-            // that have never confirmed or terminally failed.
-            final error = _retryableError(outcome, broadcastError);
-            if (_answered(outcome)) {
-              newInaccessibleAttempts.remove(relay);
-              newErrors[relay] = error;
-            } else if (online && _isInaccessible(outcome, broadcastError)) {
-              final count = (newInaccessibleAttempts[relay] ?? 0) + 1;
-              newInaccessibleAttempts[relay] = count;
-              if (count >= _maxInaccessibleAttemptsPerRelay) {
-                newTerminalErrors[relay] = 'max-inaccessible-attempts: $error';
-                newErrors.remove(relay);
-              } else {
-                newErrors[relay] = error;
-              }
-            } else {
-              newErrors[relay] = error;
-            }
-          }
-        }
-        for (final ok in newAcked) {
-          newErrors.remove(ok);
-          newTerminalErrors.remove(ok);
-          newInaccessibleAttempts.remove(ok);
-        }
-        for (final terminal in newTerminalErrors.keys) {
-          newErrors.remove(terminal);
-        }
-
-        final terminalState = _terminalState(
-          current.relays,
-          newAcked,
-          newTerminalErrors.keys,
-        );
-        final delivered = terminalState == _AttemptTerminalState.delivered;
-        final failed = terminalState == _AttemptTerminalState.failed;
-        final attempts = current.attempts + 1;
-        final nextDelay = online
-            ? computeBackoff(
-                attempts: attempts,
-                initial: _initialBackoff,
-                max: _maxBackoff,
-                random: _random,
-              )
-            : _initialBackoff;
-
-        return current.copyWith(
-          ackedRelays: newAcked.toList(growable: false),
-          lastErrors: newErrors,
-          terminalErrors: newTerminalErrors,
-          inaccessibleAttempts: newInaccessibleAttempts,
-          attempts: attempts,
-          firstAttemptAt: current.firstAttemptAt ?? attemptStart,
-          lastAttemptAt: attemptStart,
-          nextAttemptAt: delivered || failed
-              ? attemptStart
-              : _now() + nextDelay.inMilliseconds,
-          // deliveredAt is monotonic: once set it stays set (the historical
-          // 100% confirmation is preserved). Only set it the first time.
-          deliveredAt: delivered
-              ? (current.deliveredAt ?? _now())
-              : current.deliveredAt,
-          failedAt: failed ? (current.failedAt ?? _now()) : current.failedAt,
-          clearFailed: delivered || !failed,
-          clearForcedRelays: true,
-        );
-      });
     } finally {
       _inFlight.remove(key);
       completer.complete();
     }
+  }
+
+  /// Pushes the record at [key] to the relays it is owed, then records what
+  /// each relay did.
+  Future<void> _publish(String key) async {
+    final record = await _store.get(key);
+    if (record == null) return;
+    // A terminal entry only re-enters _attempt if a force-push is queued.
+    if (record.status != BroadcastStatus.pending &&
+        record.forcedRelays == null) {
+      return;
+    }
+
+    final targets = record.forcedRelays ?? record.remainingRelays;
+    if (targets.isEmpty) {
+      // Nothing to push. Sync terminal timestamps if we somehow got here
+      // with stale nulls.
+      await _store.update(key, (current) {
+        final terminal = _terminalState(
+          current.relays,
+          current.ackedRelays,
+          current.terminalErrors.keys,
+        );
+        final setDelivered =
+            terminal == _AttemptTerminalState.delivered &&
+            current.deliveredAt == null;
+        final setFailed =
+            terminal == _AttemptTerminalState.failed &&
+            current.failedAt == null;
+        if (!setDelivered && !setFailed && current.forcedRelays == null) {
+          return null;
+        }
+        return current.copyWith(
+          deliveredAt: setDelivered ? _now() : null,
+          failedAt: setFailed ? _now() : null,
+          clearFailed: setDelivered,
+          clearForcedRelays: true,
+        );
+      });
+      return;
+    }
+
+    final attemptStart = _now();
+    final startedOnline = _isOnline;
+    Map<RelayUrl, RelayPublishOutcome> outcomes;
+    String? broadcastError;
+    try {
+      final sent = await _untilDisposed(
+        _broadcastFn(record.event, targets, account: record.account),
+      );
+      if (sent == null) return;
+      outcomes = {
+        for (final MapEntry(:key, :value) in sent.entries)
+          ?RelayUrl.tryParse(key): value,
+      };
+    } catch (e) {
+      if (_disposed) return;
+      broadcastError = e.toString();
+      outcomes = const {};
+    }
+    final answered = targets.any((relay) => _answered(outcomes[relay]));
+    final online = (startedOnline && _isOnline) || answered;
+
+    await _store.update(key, (current) {
+      final newAcked = Set<RelayUrl>.from(current.ackedRelays);
+      final newErrors = Map<RelayUrl, String>.from(current.lastErrors);
+      final newTerminalErrors = Map<RelayUrl, String>.from(
+        current.terminalErrors,
+      );
+      final newInaccessibleAttempts = Map<RelayUrl, int>.from(
+        current.inaccessibleAttempts,
+      );
+
+      for (final relay in targets) {
+        final outcome = outcomes[relay];
+        final alreadyAcked = current.ackedRelays.contains(relay);
+        final alreadyTerminal = current.terminalErrors.containsKey(relay);
+        if (outcome != null && outcome.accepted) {
+          newAcked.add(relay);
+          newErrors.remove(relay);
+          newTerminalErrors.remove(relay);
+          newInaccessibleAttempts.remove(relay);
+        } else if (_terminalError(outcome) case final error?) {
+          if (!alreadyAcked) {
+            newTerminalErrors[relay] = error;
+            newErrors.remove(relay);
+            newInaccessibleAttempts.remove(relay);
+          }
+        } else if (!alreadyAcked && !alreadyTerminal) {
+          // Acks are monotonic: a transient failure does not invalidate
+          // historical confirmation. We only surface errors for relays
+          // that have never confirmed or terminally failed.
+          final error = _retryableError(outcome, broadcastError);
+          if (_answered(outcome)) {
+            newInaccessibleAttempts.remove(relay);
+            newErrors[relay] = error;
+          } else if (online && _isInaccessible(outcome, broadcastError)) {
+            final count = (newInaccessibleAttempts[relay] ?? 0) + 1;
+            newInaccessibleAttempts[relay] = count;
+            if (count >= _maxInaccessibleAttemptsPerRelay) {
+              newTerminalErrors[relay] = 'max-inaccessible-attempts: $error';
+              newErrors.remove(relay);
+            } else {
+              newErrors[relay] = error;
+            }
+          } else {
+            newErrors[relay] = error;
+          }
+        }
+      }
+      for (final ok in newAcked) {
+        newErrors.remove(ok);
+        newTerminalErrors.remove(ok);
+        newInaccessibleAttempts.remove(ok);
+      }
+      for (final terminal in newTerminalErrors.keys) {
+        newErrors.remove(terminal);
+      }
+
+      final terminalState = _terminalState(
+        current.relays,
+        newAcked,
+        newTerminalErrors.keys,
+      );
+      final delivered = terminalState == _AttemptTerminalState.delivered;
+      final failed = terminalState == _AttemptTerminalState.failed;
+      final onlineFailures = online && !delivered && !failed
+          ? current.onlineFailures + 1
+          : current.onlineFailures;
+      final nextDelay = online
+          ? computeBackoff(
+              attempts: onlineFailures,
+              initial: _initialBackoff,
+              max: _maxBackoff,
+              random: _random,
+            )
+          : _initialBackoff;
+
+      return current.copyWith(
+        ackedRelays: newAcked.toList(growable: false),
+        lastErrors: newErrors,
+        terminalErrors: newTerminalErrors,
+        inaccessibleAttempts: newInaccessibleAttempts,
+        attempts: current.attempts + 1,
+        onlineFailures: onlineFailures,
+        firstAttemptAt: current.firstAttemptAt ?? attemptStart,
+        lastAttemptAt: attemptStart,
+        nextAttemptAt: delivered || failed
+            ? attemptStart
+            : _now() + nextDelay.inMilliseconds,
+        // deliveredAt is monotonic: once set it stays set (the historical
+        // 100% confirmation is preserved). Only set it the first time.
+        deliveredAt: delivered
+            ? (current.deliveredAt ?? _now())
+            : current.deliveredAt,
+        failedAt: failed ? (current.failedAt ?? _now()) : current.failedAt,
+        clearFailed: delivered || !failed,
+        clearForcedRelays: true,
+      );
+    });
   }
 
   /// Resolves [record]'s pending relay set and freezes the result. Returns the
@@ -794,10 +834,8 @@ class BroadcastQueue {
           :final message,
         ) =>
           _hasTerminalPrefix(message) ? message : null,
-        RelayPublishOutcome(
-          failure: RelayFailure(kind: RelayFailureKind.messageTooLong) &&
-              final failure,
-        ) =>
+        RelayPublishOutcome(:final failure?)
+            when _terminalFailures.contains(failure.kind) =>
           '$failure',
         _ => null,
       };
@@ -859,14 +897,18 @@ class BroadcastQueue {
 
 const _terminalOkFalsePrefixes = <String>{
   'blocked',
-  'error',
   'invalid',
+  'mute',
   'pow',
   'restricted',
 };
 
-const _unreachableFailures = <RelayFailureKind>{
+const _terminalFailures = <RelayFailureKind>{
   RelayFailureKind.blocked,
+  RelayFailureKind.messageTooLong,
+};
+
+const _unreachableFailures = <RelayFailureKind>{
   RelayFailureKind.unreachable,
   RelayFailureKind.connectionLost,
   RelayFailureKind.connectionFull,

@@ -45,10 +45,10 @@ Future<void> main() async {
       UrlSet.outbox(event.pubkey),
       const UrlSet.explicit(['wss://relay.primal.net']),
     ]),
-    pubkey: signer.publicKey,
+    account: signer.publicKey,
   );
 
-  await for (final record in queue.watch(event.id, pubkey: signer.publicKey)) {
+  await for (final record in queue.watch(event.id, account: signer.publicKey)) {
     if (record == null || record.status == BroadcastStatus.pending) continue;
     print('${record.status.name} on ${record.ackedRelays}');
     break;

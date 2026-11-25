@@ -23,34 +23,37 @@ void main() {
     await db.close();
   });
 
-  test('same event under two pubkeys yields two independent records', () async {
-    final fake = FakeBroadcaster()..ack('wss://a');
-    final queue = BroadcastQueue(
-      broadcastFn: fake.fn,
-      db: db,
-      initialBackoff: const Duration(milliseconds: 5),
-    );
+  test(
+    'same event under two accounts yields two independent records',
+    () async {
+      final fake = FakeBroadcaster()..ack('wss://a');
+      final queue = BroadcastQueue(
+        broadcastFn: fake.fn,
+        db: db,
+        initialBackoff: const Duration(milliseconds: 5),
+      );
 
-    final event = makeEvent();
-    await queue.broadcast(
-      event,
-      relaySet: const UrlSet.explicit(['wss://a']),
-      pubkey: _alice,
-    );
-    await queue.broadcast(
-      event,
-      relaySet: const UrlSet.explicit(['wss://a']),
-      pubkey: _bob,
-    );
+      final event = makeEvent();
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://a']),
+        account: _alice,
+      );
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://a']),
+        account: _bob,
+      );
 
-    final all = await queue.listAll();
-    expect(all.length, 2);
-    expect((await queue.get(event.id, pubkey: _alice))?.pubkey, _alice);
-    expect((await queue.get(event.id, pubkey: _bob))?.pubkey, _bob);
-    expect(await queue.get(event.id), isNull); // no unattributed record
+      final all = await queue.listAll();
+      expect(all.length, 2);
+      expect((await queue.get(event.id, account: _alice))?.account, _alice);
+      expect((await queue.get(event.id, account: _bob))?.account, _bob);
+      expect(await queue.get(event.id), isNull); // no unattributed record
 
-    await queue.dispose();
-  });
+      await queue.dispose();
+    },
+  );
 
   test('clearLocalAccountData removes only the targeted account', () async {
     final fake = FakeBroadcaster()..ack('wss://a');
@@ -66,22 +69,22 @@ void main() {
     await queue.broadcast(
       e1,
       relaySet: const UrlSet.explicit(['wss://a']),
-      pubkey: _alice,
+      account: _alice,
     );
     await queue.broadcast(
       e2,
       relaySet: const UrlSet.explicit(['wss://a']),
-      pubkey: _bob,
+      account: _bob,
     );
     await queue.broadcast(
       e3,
       relaySet: const UrlSet.explicit(['wss://a']),
     ); // unattributed
 
-    await queue.clearLocalAccountData(pubkey: _alice);
+    await queue.clearLocalAccountData(account: _alice);
 
-    expect(await queue.get(e1.id, pubkey: _alice), isNull);
-    expect(await queue.get(e2.id, pubkey: _bob), isNotNull);
+    expect(await queue.get(e1.id, account: _alice), isNull);
+    expect(await queue.get(e2.id, account: _bob), isNotNull);
     expect(await queue.get(e3.id), isNotNull);
 
     await queue.dispose();
@@ -101,17 +104,17 @@ void main() {
     await queue.broadcast(
       event,
       relaySet: const UrlSet.explicit(['wss://gone']),
-      pubkey: _alice,
+      account: _alice,
     );
-    await waitFor(queue, event.id, (r) => r.attempts >= 1, pubkey: _alice);
+    await waitFor(queue, event.id, (r) => r.attempts >= 1, account: _alice);
     final callsAfterFirst = fake.calls.length;
 
-    await queue.clearLocalAccountData(pubkey: _alice);
+    await queue.clearLocalAccountData(account: _alice);
     await queue.retryNow();
     await queue.retryNow();
     await Future.delayed(const Duration(milliseconds: 20));
 
-    expect(await queue.get(event.id, pubkey: _alice), isNull);
+    expect(await queue.get(event.id, account: _alice), isNull);
     expect(fake.calls.length, callsAfterFirst);
 
     await queue.dispose();
@@ -132,7 +135,7 @@ void main() {
       await queue.broadcast(
         event,
         relaySet: const UrlSet.explicit(['wss://a']),
-        pubkey: _alice,
+        account: _alice,
       );
 
       // Wait until the attempt has handed off to the (parked) broadcaster.
@@ -141,8 +144,8 @@ void main() {
       }
       expect(fake.calls, isNotEmpty);
 
-      await queue.clearLocalAccountData(pubkey: _alice);
-      expect(await queue.get(event.id, pubkey: _alice), isNull);
+      await queue.clearLocalAccountData(account: _alice);
+      expect(await queue.get(event.id, account: _alice), isNull);
 
       // Release the attempt: its transactional update must no-op on the now
       // absent record rather than write it back.
@@ -151,7 +154,7 @@ void main() {
       });
       await Future.delayed(const Duration(milliseconds: 30));
 
-      expect(await queue.get(event.id, pubkey: _alice), isNull);
+      expect(await queue.get(event.id, account: _alice), isNull);
       expect(await queue.listAll(), isEmpty);
 
       await queue.dispose();
@@ -180,16 +183,16 @@ void main() {
       await queue.broadcast(
         wrap,
         relaySet: const UrlSet.explicit(['wss://a']),
-        pubkey: _alice,
+        account: _alice,
       );
 
       // Clearing by the event's own pubkey must not touch it.
-      await queue.clearLocalAccountData(pubkey: 'e' * 64);
-      expect(await queue.get(wrap.id, pubkey: _alice), isNotNull);
+      await queue.clearLocalAccountData(account: 'e' * 64);
+      expect(await queue.get(wrap.id, account: _alice), isNotNull);
 
       // Clearing by the queuing account removes it.
-      await queue.clearLocalAccountData(pubkey: _alice);
-      expect(await queue.get(wrap.id, pubkey: _alice), isNull);
+      await queue.clearLocalAccountData(account: _alice);
+      expect(await queue.get(wrap.id, account: _alice), isNull);
 
       await queue.dispose();
     },
@@ -211,7 +214,7 @@ void main() {
       await queue.broadcast(
         makeEvent(seed: 1),
         relaySet: const UrlSet.explicit(['wss://a']),
-        pubkey: _alice,
+        account: _alice,
       );
       await queue.broadcast(
         makeEvent(seed: 2),
@@ -238,7 +241,7 @@ void main() {
     final event = makeEvent();
     await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
 
-    await queue.clearLocalAccountData(pubkey: _alice);
+    await queue.clearLocalAccountData(account: _alice);
     expect(await queue.get(event.id), isNotNull);
 
     // An unattributed record keeps the bare event id as its sembast key, so
