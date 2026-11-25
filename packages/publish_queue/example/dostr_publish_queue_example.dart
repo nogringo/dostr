@@ -3,12 +3,8 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_io.dart';
 
 Future<void> main() async {
-  // sembast_io on dart:io targets, sembast_web in the browser.
-  final db = await databaseFactoryIo.openDatabase('publish_queue.db');
-
   final relayManager = RelayManager(
     nostrTransportFactory: webSocketTransportFactory(),
   );
@@ -20,7 +16,9 @@ Future<void> main() async {
 
   final queue = PublishQueue.withDostr(
     relayManager,
-    db: db,
+    // Keeps nothing across runs: dostr_publish_queue_sembast keeps the queue in
+    // a database.
+    store: MemoryPublishQueueStore(),
     relayListFn: fetcherUrlListFn(
       nip65: nip65,
       dmRelays: DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65),
@@ -58,5 +56,4 @@ Future<void> main() async {
 
   await queue.dispose();
   await relayManager.dispose();
-  await db.close();
 }

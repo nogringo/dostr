@@ -33,7 +33,11 @@ Start here.
 
 #### [🔗 Publish queue](./packages/publish_queue/)
 
-`dostr_publish_queue`: an offline-first queue in front of the publishes of `dostr_core`, stored in sembast and sent until every relay of a `UrlSet` accepts the event, refuses it for good, or stays unreachable while online.
+`dostr_publish_queue`: an offline-first queue in front of the publishes of `dostr_core`, kept in a store of your choice and sent until every relay of a `UrlSet` accepts the event, refuses it for good, or stays unreachable while online.
+
+#### [🔗 Publish queue for sembast](./packages/publish_queue_sembast/)
+
+`dostr_publish_queue_sembast`: keeps the queue of `dostr_publish_queue` in a sembast database, so the events it holds survive a restart.
 
 #### [🔗 Relay URLs](./packages/relay_url/)
 

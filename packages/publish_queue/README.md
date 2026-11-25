@@ -4,7 +4,7 @@ An offline-first queue for Nostr events, in front of the publishes of [`dostr_co
 
 `RelayPublishes.publish` sends a signed event to the relays you pick once, and reports what each relay did.
 If the network is down, the app is backgrounded or the process is killed, the event is gone.
-This queue stores the event in a [sembast](https://pub.dev/packages/sembast) database first, then keeps sending it until every relay has accepted it, refused it for good, or stayed unreachable while the device was online:
+This queue stores the event first, in the [store](#storage) you give it, then keeps sending it until every relay has accepted it, refused it for good, or stayed unreachable while the device was online:
 
  - **Local persistence first.** `publish()` returns once the event is stored, before any network attempt. Delivery happens in the background and survives restarts.
  - **Full delivery.** An entry is only `delivered` once *every* targeted relay has accepted the event. A partial success keeps it pending and retries the relays still owed.
@@ -22,15 +22,17 @@ This queue stores the event in a [sembast](https://pub.dev/packages/sembast) dat
 ```yaml
 dependencies:
   dostr_publish_queue: ^0.1.0
+  dostr_publish_queue_sembast: ^0.1.0 # or your own PublishQueueStore
 ```
 
 ## Quick start
 
 ```dart
 import 'package:dostr_bip340/dostr_bip340.dart';
-import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
+import 'package:dostr_publish_queue/dostr_publish_queue.dart';
+import 'package:dostr_publish_queue_sembast/dostr_publish_queue_sembast.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
 import 'package:sembast/sembast_io.dart';
 
@@ -46,7 +48,7 @@ final nip65 = Nip65Fetcher(reqs: reqs);
 
 final queue = PublishQueue.withDostr(
   relayManager,
-  db: db,
+  store: SembastPublishQueueStore(db),
   relayListFn: fetcherUrlListFn(
     nip65: nip65,
     dmRelays: DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65),
@@ -68,6 +70,18 @@ await queue.publish(signedEvent, relaySet: UrlSet.outbox(signedEvent.pubkey));
 ```
 
 The full example is in [example/dostr_publish_queue_example.dart](example/dostr_publish_queue_example.dart).
+
+## Storage
+
+`PublishQueue` takes a `PublishQueueStore`, where it keeps its records between runs:
+
+ - [`dostr_publish_queue_sembast`](https://pub.dev/packages/dostr_publish_queue_sembast) keeps them in a sembast database.
+ - `MemoryPublishQueueStore` keeps them as long as the process lives, for tests and for queues that need not survive a restart.
+ - For another database, implement `PublishQueueStore`: `readAll`, `put` and `delete`. `QueuedPublish.toMap` and `QueuedPublish.fromMap` turn a record into JSON-compatible values and back.
+
+The queue reads the store once, on its first use, then keeps every record in memory and only writes to it.
+Each write is one `put` or `delete` that completes once the change is durable, and the queue applies it in memory only then, so a failed write changes nothing.
+A store therefore serves one queue at a time.
 
 ## Semantics
 
@@ -170,7 +184,7 @@ await queue.clearAllLocalData();                      // wipe everything
  - Leaving `account` `null` leaves the entry **unattributed**: retried like any other, keyed by the bare `event.id`, but never removed by `clearLocalAccountData`.
  - `clearLocalAccountData` removes matching entries for good, delivered or not. It is safe to call while attempts are in flight (a concurrent attempt no-ops once its record is gone), but do not `publish` for an account you are clearing, as an overlapping enqueue can re-create its record.
  - `get`, `watch`, `republish` and `cancel` take the same optional `account` to select which record they act on. `watchPending` and `listAll` span all accounts; filter on `QueuedPublish.account` for one.
- - `clearAllLocalData` empties the queue's store only; other sembast stores in the same database are untouched.
+ - `clearAllLocalData` empties the queue's store, every account and unattributed entry included.
 
 ### Authentication
 
@@ -180,7 +194,7 @@ A relay may ask for NIP-42 authentication before it accepts an event, as private
 ```dart
 PublishQueue.withDostr(
   relayManager,
-  db: db,
+  store: store,
   authPolicyOf: (event, account) {
     if (event.kind == 1059 || account == null) return null;
     final signer = accounts.getAccount(account);
@@ -203,7 +217,7 @@ Pass the platform's connectivity as `onlineSignal`, such as a stream of `connect
 ```dart
 PublishQueue.withDostr(
   relayManager,
-  db: db,
+  store: store,
   onlineSignal: yourConnectivityStream, // true while online, false otherwise
 );
 ```
@@ -268,7 +282,7 @@ If a terminally refused relay later accepts the event, its terminal error is cle
 ### What the queue does not do
 
  - **It never signs.** Sign the event before queuing it.
- - **It never auto-deletes records.** Even after full delivery, an entry stays in the database until `clearLocalAccountData`, `clearAllLocalData`, or sembast itself removes it.
+ - **It never auto-deletes records.** Even after full delivery, an entry stays in the store until `clearLocalAccountData` or `clearAllLocalData` removes it.
  - **It applies no max-attempts limit.** Retryable failures continue with exponential backoff until they ack, are cancelled, are terminally refused, or hit the dead relay cutoff.
 
 ## Tuning
@@ -276,9 +290,8 @@ If a terminally refused relay later accepts the event, its terminal error is cle
 ```dart
 PublishQueue.withDostr(
   relayManager,
-  db: db,
+  store: store,
   publishTimeout: defaultPublishTimeout,       // how long each attempt waits for the relays, NIP-42 aside
-  storeName: 'broadcasts',                     // sembast store name
   tickInterval: const Duration(seconds: 30),   // periodic retry scan
   initialBackoff: const Duration(seconds: 5),  // backoff floor
   maxBackoff: const Duration(minutes: 30),     // backoff ceiling
@@ -293,7 +306,7 @@ PublishQueue.withDostr(
 caller.publish(event, relaySet)
         │
         ▼
-  sembast write ──── durable, returns to caller here
+  store write ────── durable, returns to caller here
         │
         ▼
   resolve pendingRelaySet (once)         ────►  retry with backoff while unavailable
@@ -324,7 +337,7 @@ final queue = PublishQueue(
   publishFn: (event, relays, {account}) async => {
     for (final relay in relays) relay: const RelayPublishOutcome.accepted(),
   },
-  db: await newDatabaseFactoryMemory().openDatabase('test.db'),
+  store: MemoryPublishQueueStore(),
 );
 ```
 
@@ -336,6 +349,7 @@ The package's own test suite uses exactly this approach, see [test/support/fake_
 The rest of the API is the same, with these changes:
 
  - `broadcast` is `publish`, `rebroadcast` is `republish`, `QueuedBroadcast` is `QueuedPublish`, `BroadcastStatus` is `QueuedPublishStatus`, and `BroadcastFn` is `PublishFn`, passed as `publishFn`.
+ - `db` and `storeName` are `store`, a `PublishQueueStore`: pass `SembastPublishQueueStore(db, storeName: storeName)` of [`dostr_publish_queue_sembast`](https://pub.dev/packages/dostr_publish_queue_sembast).
  - `pubkey` is `account`, on `publish`, `get`, `watch`, `republish`, `cancel`, `clearLocalAccountData`, `QueuedPublish` and `QueuedPublish.keyFor`. Stored records keep their `pubkey` field.
  - `PublishFn` takes the event, the relays as `RelayUrl`s and the `account` the event was queued under, and returns the `RelayPublishOutcome` of each relay. `perAttemptTimeout` is `publishTimeout` on `withDostr`: a `PublishFn` bounds its own attempts.
  - `withNdk` built the relay list lookups itself. Pass `relayListFn`, built with `fetcherUrlListFn` of `dostr_fetchers`: `relayListDiscoveryRelays` and `relayListQueryTimeout` are the `relays` and `timeout` of its fetchers.
@@ -348,6 +362,7 @@ The rest of the API is the same, with these changes:
  - A newer version of a replaceable or addressable event supersedes an older one only once newer versions head to all its relays.
  - At most `maxConcurrentPublishes` entries publish at once, oldest first. Without `onlineSignal`, `withDostr` no longer pauses the periodic retries, see [Connectivity](#connectivity).
  - `dispose` abandons an attempt still waiting on the relays, where it waited for it.
+ - `listAll` and `watchPending` give the records in the order they were queued.
 
-A queue stored by the shim loads unchanged: pass the same database and `storeName`.
+A queue stored by the shim loads unchanged in a `SembastPublishQueueStore` on the same database and `storeName`.
 An event the shim stored unsigned, counting on NDK to sign it, is never sent: a signed copy has the same id, so remove the record from the store before queuing the event again, signed.

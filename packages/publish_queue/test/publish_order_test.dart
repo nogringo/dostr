@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_publisher.dart';
@@ -34,21 +33,17 @@ QueuedPublish _stored(
 );
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
   late FakePublisher fake;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
+  setUp(() {
+    store = MemoryPublishQueueStore();
     fake = FakePublisher();
-  });
-
-  tearDown(() async {
-    await db.close();
   });
 
   PublishQueue newQueue({required int maxConcurrentPublishes}) => PublishQueue(
     publishFn: fake.fn,
-    db: db,
+    store: store,
     maxConcurrentPublishes: maxConcurrentPublishes,
   );
 
@@ -86,15 +81,10 @@ void main() {
     final events = [
       for (var seed = 1; seed <= 3; seed++) makeEvent(seed: seed),
     ];
-    final store = stringMapStoreFactory.store('broadcasts');
-    for (final (index, event) in events.indexed) {
-      final record = _stored(
-        event,
-        createdAt: index,
-        nextAttemptAt: events.length - index,
-      );
-      await store.record(record.key).put(db, record.toMap());
-    }
+    await store.put([
+      for (final (index, event) in events.indexed)
+        _stored(event, createdAt: index, nextAttemptAt: events.length - index),
+    ]);
 
     final queue = newQueue(maxConcurrentPublishes: 1)..start();
     for (final event in events) {

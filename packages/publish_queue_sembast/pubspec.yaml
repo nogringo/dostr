@@ -1,0 +1,26 @@
+name: dostr_publish_queue_sembast
+description: Keeps the queue of dostr_publish_queue in a sembast database, so queued Nostr events survive a restart, and loads the queues broadcast_queue_shim_for_ndk stored.
+version: 0.1.0
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
+
+topics:
+  - nostr
+  - dostr
+  - offline-first
+  - sembast
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  dostr_publish_queue: ^0.1.0
+  sembast: ^3.8.7
+
+dev_dependencies:
+  dostr_core: ^0.1.1
+  dostr_url_set: ^0.1.0
+  lints: ^6.1.0
+  test: ^1.31.1

@@ -2,11 +2,11 @@
 
 # Package graph
 
-The workspace has 35 packages and 66 direct dependencies between them, with no cycle.
+The workspace has 36 packages and 67 direct dependencies between them, with no cycle.
 A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
 An arrow from A to B means that A depends on B.
-The graph draws 46 of the 66 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
+The graph draws 47 of the 67 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
 Names drop their `dostr_` prefix.
 The table lists every direct dependency.
 
@@ -48,6 +48,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 3 | `dostr_fetchers` | `dostr_blossom_url`, `dostr_core`, `dostr_home_relays`, `dostr_url_set` | 1 |
 | 3 | `dostr_nip46` | `dostr_core` | 1 |
 | 3 | `dostr_nip77` | `dostr_core` | 1 |
-| 3 | `dostr_publish_queue` | `dostr_core`, `dostr_url_set` | 0 |
+| 3 | `dostr_publish_queue` | `dostr_core`, `dostr_url_set` | 1 |
 | 4 | `dostr_flutter` | `dostr_accounts`, `dostr_bip340`, `dostr_core`, `dostr_fetchers`, `dostr_nip01`, `dostr_nip05`, `dostr_nip07`, `dostr_nip19`, `dostr_nip46`, `dostr_nip55`, `dostr_noble`, `dostr_signer`, `dostr_string_color` | 0 |
 | 4 | `dostr_mock_relay` | `dostr_bip340`, `dostr_core`, `dostr_nip44`, `dostr_nip77` | 0 |
+| 4 | `dostr_publish_queue_sembast` | `dostr_publish_queue` | 0 |

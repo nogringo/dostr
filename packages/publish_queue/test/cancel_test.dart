@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_publisher.dart';
@@ -14,22 +13,18 @@ const _bob = 'bob';
 const _relays = UrlSet.explicit(['wss://a']);
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
   late FakePublisher fake;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
+  setUp(() {
+    store = MemoryPublishQueueStore();
     fake = FakePublisher();
-  });
-
-  tearDown(() async {
-    await db.close();
   });
 
   PublishQueue newQueue({UrlListFn? relayListFn}) => PublishQueue(
     publishFn: fake.fn,
     relayListFn: relayListFn,
-    db: db,
+    store: store,
     tickInterval: const Duration(milliseconds: 5),
     initialBackoff: const Duration(milliseconds: 5),
     maxBackoff: const Duration(milliseconds: 5),

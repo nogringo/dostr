@@ -3,6 +3,7 @@
  - Initial release, moved out of `broadcast_queue_shim_for_ndk` 0.8.2 onto `dostr_core`. Stored queues keep the same format.
  - `OfflineBroadcast` is `PublishQueue`, and `OfflineBroadcast.withNdk` is `PublishQueue.withDostr`, which publishes through a `RelayManager` and takes the `relayListFn` that `withNdk` built itself, such as `fetcherUrlListFn` of `dostr_fetchers`.
  - `broadcast` is `publish`, `rebroadcast` is `republish`, `QueuedBroadcast` is `QueuedPublish`, `BroadcastStatus` is `QueuedPublishStatus`, and `BroadcastFn` is `PublishFn`, passed as `publishFn`.
+ - `PublishQueue` takes a `PublishQueueStore` as `store`, where it took a sembast `db` and `storeName`, and no longer depends on sembast. `SembastPublishQueueStore` of `dostr_publish_queue_sembast` keeps the queue in sembast in the same format, and `MemoryPublishQueueStore` keeps it in memory.
  - `pubkey` is `account` throughout the API. Stored records keep their `pubkey` field.
  - `PublishFn` takes the relays as `RelayUrl`s and the `account` the event was queued under, and returns the `RelayPublishOutcome` of each relay. `perAttemptTimeout` is `publishTimeout` on `withDostr`.
  - `withDostr` takes `authPolicyOf`, the NIP-42 `AuthPolicy` of each publish.
@@ -14,4 +15,5 @@
  - A newer version of a replaceable or addressable event supersedes an older one only once newer versions hold, or are headed to, every relay it owes.
  - `maxConcurrentPublishes`, 10 by default, caps the publishes at once. Due entries take their turn in the order they were queued.
  - Without `onlineSignal`, `withDostr` reads the network from the connections of the `RelayManager` and never pauses the periodic retries, since `dostr_core` closes idle connections.
- - `dispose` abandons an attempt still waiting on the relays, and waits for the scans of due entries before the database can be closed.
+ - `dispose` abandons an attempt still waiting on the relays, and waits for the scans of due entries and the writes to the store before the database can be closed.
+ - `listAll` and `watchPending` give the records in the order they were queued.

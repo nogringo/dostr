@@ -3,9 +3,9 @@ import 'dart:math';
 
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast.dart' show Database;
 
 import 'backoff.dart';
+import 'publish_queue_store.dart';
 import 'publish_slots.dart';
 import 'queue_store.dart';
 import 'queued_publish.dart';
@@ -62,8 +62,7 @@ class PublishQueue {
   PublishQueue._({
     required PublishFn publishFn,
     required UrlListFn? relayListFn,
-    required Database db,
-    required String storeName,
+    required PublishQueueStore store,
     required Duration tickInterval,
     required Duration initialBackoff,
     required Duration maxBackoff,
@@ -75,7 +74,7 @@ class PublishQueue {
     int Function()? now,
   }) : _publishFn = publishFn,
        _relayListFn = relayListFn,
-       _store = QueueStore(db: db, storeName: storeName),
+       _store = QueueStore(store),
        _tickInterval = tickInterval,
        _initialBackoff = initialBackoff,
        _maxBackoff = maxBackoff,
@@ -104,6 +103,9 @@ class PublishQueue {
   /// A queue that sends with [publishFn], for tests or for callers who
   /// publish their own way.
   ///
+  /// [store] keeps the records between runs, and serves this queue alone, see
+  /// [PublishQueueStore].
+  ///
   /// Pass [onlineSignal] to make the periodic retry loop connectivity-aware:
   /// while the latest emission is `false`, periodic ticks are no-ops, and the
   /// `false -> true` edge triggers an immediate retry pass. `retryNow()`
@@ -129,8 +131,7 @@ class PublishQueue {
   PublishQueue({
     required PublishFn publishFn,
     UrlListFn? relayListFn,
-    required Database db,
-    String storeName = 'broadcasts',
+    required PublishQueueStore store,
     Duration tickInterval = const Duration(seconds: 30),
     Duration initialBackoff = const Duration(seconds: 5),
     Duration maxBackoff = const Duration(minutes: 30),
@@ -142,8 +143,7 @@ class PublishQueue {
   }) : this._(
          publishFn: publishFn,
          relayListFn: relayListFn,
-         db: db,
-         storeName: storeName,
+         store: store,
          tickInterval: tickInterval,
          initialBackoff: initialBackoff,
          maxBackoff: maxBackoff,
@@ -176,12 +176,11 @@ class PublishQueue {
   /// The other parameters are those of the default constructor.
   factory PublishQueue.withDostr(
     RelayManager relayManager, {
-    required Database db,
+    required PublishQueueStore store,
     UrlListFn? relayListFn,
     AuthPolicy? Function(Nip01Event event, String? account)? authPolicyOf,
     Duration publishTimeout = defaultPublishTimeout,
     Stream<bool>? onlineSignal,
-    String storeName = 'broadcasts',
     Duration tickInterval = const Duration(seconds: 30),
     Duration initialBackoff = const Duration(seconds: 5),
     Duration maxBackoff = const Duration(minutes: 30),
@@ -199,8 +198,7 @@ class PublishQueue {
           )
           .done,
       relayListFn: relayListFn,
-      db: db,
-      storeName: storeName,
+      store: store,
       tickInterval: tickInterval,
       initialBackoff: initialBackoff,
       maxBackoff: maxBackoff,
@@ -459,11 +457,12 @@ class PublishQueue {
       _store.watch(QueuedPublish.keyFor(eventId: eventId, account: account));
 
   /// Live snapshot of every record that still has retryable relays, across all
-  /// accounts. Filter on [QueuedPublish.account] for a single account.
+  /// accounts, in the order they were queued. Filter on
+  /// [QueuedPublish.account] for a single account.
   Stream<List<QueuedPublish>> watchPending() => _store.watchPending();
 
   /// One-shot read of every record in the store, delivered or not, across all
-  /// accounts.
+  /// accounts, in the order they were queued.
   Future<List<QueuedPublish>> listAll() => _store.findAll();
 
   /// Removes every entry queued under [account], delivered or
@@ -471,9 +470,9 @@ class PublishQueue {
   /// Entries queued without an account (see [publish]) are left untouched;
   /// use [clearAllLocalData] to remove those.
   ///
-  /// Safe to call while attempts are in flight: a concurrent attempt writes
-  /// through a sembast transaction that no-ops once the record is gone, so it
-  /// cannot resurrect a cleared entry. A [publish] call for the same account
+  /// Safe to call while attempts are in flight: the write of a concurrent
+  /// attempt no-ops once the record is gone, so it cannot resurrect a cleared
+  /// entry. A [publish] call for the same account
   /// that overlaps this clear may still re-create its record; do not enqueue
   /// for an account you are clearing.
   Future<void> clearLocalAccountData({required String account}) async {
@@ -481,7 +480,7 @@ class PublishQueue {
   }
 
   /// Removes every entry, all accounts and unattributed entries
-  /// included. Leaves other sembast stores in the same database untouched.
+  /// included.
   Future<void> clearAllLocalData() async {
     await _store.deleteAll();
   }
@@ -501,9 +500,9 @@ class PublishQueue {
   }
 
   /// Stops the retry timer and the online signal subscription, then waits for
-  /// the attempts writing to the store, so the caller can safely close the
-  /// sembast database. An attempt still waiting on the network, or a relay
-  /// set resolution waiting on a signer, is abandoned without writing.
+  /// the writes to the store, so the caller can safely close the database
+  /// behind it. An attempt still waiting on the network, or a relay set
+  /// resolution waiting on a signer, is abandoned without writing.
   Future<void> dispose() async {
     if (_disposed) return;
     _disposed = true;
@@ -514,6 +513,7 @@ class PublishQueue {
     _onlineSub = null;
     await Future.wait(_scans.toList());
     await Future.wait(_inFlight.values.toList());
+    await _store.idle;
   }
 
   void _handleOnlineChange(bool online) {

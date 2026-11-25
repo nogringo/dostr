@@ -3,17 +3,16 @@ import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_mock_relay/dostr_mock_relay.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/helpers.dart';
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
   late RelayManager relayManager;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
+  setUp(() {
+    store = MemoryPublishQueueStore();
     relayManager = RelayManager(
       nostrTransportFactory: webSocketTransportFactory(pingInterval: null),
     );
@@ -21,7 +20,6 @@ void main() {
 
   tearDown(() async {
     await relayManager.dispose();
-    await db.close();
   });
 
   Future<MockRelay> startRelay({
@@ -42,7 +40,7 @@ void main() {
   test('delivers to every relay', () async {
     final first = await startRelay();
     final second = await startRelay();
-    final queue = PublishQueue.withDostr(relayManager, db: db);
+    final queue = PublishQueue.withDostr(relayManager, store: store);
     final event = makeEvent();
 
     await queue.publish(
@@ -63,7 +61,7 @@ void main() {
 
   test('a terminal refusal fails the relay', () async {
     final relay = await startRelay(rejectEventsWith: 'blocked: spam');
-    final queue = PublishQueue.withDostr(relayManager, db: db);
+    final queue = PublishQueue.withDostr(relayManager, store: store);
     final event = makeEvent();
 
     await queue.publish(event, relaySet: UrlSet.explicit([relay.url]));
@@ -81,7 +79,7 @@ void main() {
     final relay = await startRelay(answerEvents: false);
     final queue = PublishQueue.withDostr(
       relayManager,
-      db: db,
+      store: store,
       publishTimeout: const Duration(milliseconds: 100),
     );
     final event = makeEvent();
@@ -100,7 +98,7 @@ void main() {
     final signer = Bip340Signer(privateKey);
     final queue = PublishQueue.withDostr(
       relayManager,
-      db: db,
+      store: store,
       authPolicyOf: (event, account) =>
           account == publicKey ? AuthPolicy.allow(signer) : null,
     );

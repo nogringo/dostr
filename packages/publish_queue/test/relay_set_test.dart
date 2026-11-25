@@ -1,9 +1,7 @@
 import 'dart:async';
 
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
-import 'package:dostr_publish_queue/src/queue_store.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_publisher.dart';
@@ -27,21 +25,17 @@ class FakeRelayLists {
 
 void main() {
   group('PublishQueue with a relay set', () {
-    late Database db;
+    late MemoryPublishQueueStore store;
 
-    setUp(() async {
-      db = await newDatabaseFactoryMemory().openDatabase('test.db');
-    });
-
-    tearDown(() async {
-      await db.close();
+    setUp(() {
+      store = MemoryPublishQueueStore();
     });
 
     PublishQueue queueFor(FakePublisher fake, FakeRelayLists? lists) =>
         PublishQueue(
           publishFn: fake.fn,
           relayListFn: lists?.fn,
-          db: db,
+          store: store,
           initialBackoff: const Duration(milliseconds: 5),
           maxBackoff: const Duration(milliseconds: 5),
         );
@@ -214,11 +208,8 @@ void main() {
       }
       await queue.dispose().timeout(const Duration(seconds: 1));
 
-      final record = await QueueStore(
-        db: db,
-        storeName: 'broadcasts',
-      ).get(event.id);
-      expect(record!.pendingRelaySet, isA<PrivateUrls>());
+      final record = (await store.readAll()).single;
+      expect(record.pendingRelaySet, isA<PrivateUrls>());
       expect(record.resolutionAttempts, 0);
       lists.gate!.complete();
     });

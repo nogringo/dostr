@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_publisher.dart';
@@ -13,14 +12,10 @@ const _alice = 'alice_alice_alice_alice_alice_alice_alice_alice_alice_alice_al';
 const _bob = 'bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob_bob';
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
-  });
-
-  tearDown(() async {
-    await db.close();
+  setUp(() {
+    store = MemoryPublishQueueStore();
   });
 
   test(
@@ -29,7 +24,7 @@ void main() {
       final fake = FakePublisher()..ack('wss://a');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 5),
       );
 
@@ -59,7 +54,7 @@ void main() {
     final fake = FakePublisher()..ack('wss://a');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 5),
     );
 
@@ -94,7 +89,7 @@ void main() {
     final fake = FakePublisher()..fail('wss://gone');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       // Long backoff: after the first attempt the entry is not due again during
       // the test window, so any post-clear call would only come from a resurrected record.
       initialBackoff: const Duration(seconds: 30),
@@ -127,7 +122,7 @@ void main() {
         ..gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 5),
       );
 
@@ -167,7 +162,7 @@ void main() {
       final fake = FakePublisher()..ack('wss://a');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 5),
       );
 
@@ -198,43 +193,37 @@ void main() {
     },
   );
 
-  test(
-    'clearAllLocalData wipes the store but leaves sibling stores intact',
-    () async {
-      final fake = FakePublisher()..ack('wss://a');
-      final queue = PublishQueue(
-        publishFn: fake.fn,
-        db: db,
-        initialBackoff: const Duration(milliseconds: 5),
-      );
+  test('clearAllLocalData wipes the store', () async {
+    final fake = FakePublisher()..ack('wss://a');
+    final queue = PublishQueue(
+      publishFn: fake.fn,
+      store: store,
+      initialBackoff: const Duration(milliseconds: 5),
+    );
 
-      final other = stringMapStoreFactory.store('other');
-      await other.record('keep').put(db, {'v': 1});
+    await queue.publish(
+      makeEvent(seed: 1),
+      relaySet: const UrlSet.explicit(['wss://a']),
+      account: _alice,
+    );
+    await queue.publish(
+      makeEvent(seed: 2),
+      relaySet: const UrlSet.explicit(['wss://a']),
+    );
 
-      await queue.publish(
-        makeEvent(seed: 1),
-        relaySet: const UrlSet.explicit(['wss://a']),
-        account: _alice,
-      );
-      await queue.publish(
-        makeEvent(seed: 2),
-        relaySet: const UrlSet.explicit(['wss://a']),
-      );
+    await queue.clearAllLocalData();
 
-      await queue.clearAllLocalData();
+    expect(await queue.listAll(), isEmpty);
+    expect(await store.readAll(), isEmpty);
 
-      expect(await queue.listAll(), isEmpty);
-      expect(await other.record('keep').get(db), {'v': 1});
-
-      await queue.dispose();
-    },
-  );
+    await queue.dispose();
+  });
 
   test('unattributed entries survive an account-scoped clear', () async {
     final fake = FakePublisher()..ack('wss://a');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 5),
     );
 
@@ -244,10 +233,9 @@ void main() {
     await queue.clearLocalAccountData(account: _alice);
     expect(await queue.get(event.id), isNotNull);
 
-    // An unattributed record keeps the bare event id as its sembast key, so
-    // pre-0.4.0 databases stay readable.
-    final store = stringMapStoreFactory.store('broadcasts');
-    expect(await store.record(event.id).exists(db), isTrue);
+    // An unattributed record keeps the bare event id as its key, so pre-0.4.0
+    // databases stay readable.
+    expect((await store.readAll()).single.key, event.id);
 
     await queue.dispose();
   });

@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/helpers.dart';
@@ -34,14 +33,10 @@ Future<void> _flush() async {
 }
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
-  });
-
-  tearDown(() async {
-    await db.close();
+  setUp(() {
+    store = MemoryPublishQueueStore();
   });
 
   test('periodic tick is a no-op while offline', () async {
@@ -49,7 +44,7 @@ void main() {
     final signal = StreamController<bool>();
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       tickInterval: const Duration(milliseconds: 20),
       initialBackoff: const Duration(milliseconds: 5),
       onlineSignal: signal.stream,
@@ -82,7 +77,7 @@ void main() {
     final signal = StreamController<bool>();
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       // Long interval so we know any replay came from the edge, not the timer.
       tickInterval: const Duration(seconds: 30),
       initialBackoff: const Duration(milliseconds: 5),
@@ -121,7 +116,7 @@ void main() {
     final signal = StreamController<bool>();
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       tickInterval: const Duration(seconds: 30),
       initialBackoff: const Duration(milliseconds: 5),
       onlineSignal: signal.stream,

@@ -31,8 +31,7 @@ enum QueuedPublishStatus {
 /// Immutable from the caller's perspective: every mutation goes through the
 /// store and yields a fresh instance.
 class QueuedPublish {
-  /// Nostr event id. Combined with [account] it forms the sembast record
-  /// [key].
+  /// Nostr event id. Combined with [account] it forms the record [key].
   final String id;
 
   /// Pubkey of the local account this publish was queued under, or `null`
@@ -159,10 +158,10 @@ class QueuedPublish {
     this.cancelledAt,
   });
 
-  /// The sembast record key for this entry.
+  /// The key that identifies this record in its store.
   String get key => keyFor(eventId: id, account: account);
 
-  /// Builds the sembast record key for an (event, account) pair:
+  /// Builds the record key for an (event, account) pair:
   /// `account|eventId` when bound to an account, the bare event id otherwise.
   static String keyFor({required String eventId, String? account}) =>
       account == null ? eventId : '$account|$eventId';
@@ -251,7 +250,7 @@ class QueuedPublish {
     );
   }
 
-  /// Serializes the record for sembast storage.
+  /// Serializes the record as JSON-compatible values.
   Map<String, dynamic> toMap() {
     return {
       'id': id,

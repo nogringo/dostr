@@ -1,99 +1,96 @@
+import 'dart:async';
+
 import 'package:dostr_core/dostr_core.dart' show RelayUrl;
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast.dart';
 
+import 'publish_queue_store.dart';
 import 'queued_publish.dart';
 import 'replaceable.dart';
 
-/// Sembast-backed persistent store for [QueuedPublish] records.
+/// The records of a [PublishQueueStore], read once and kept in memory.
 ///
-/// All writes are serialized through sembast transactions. The store name is
-/// caller-provided so several queues can coexist in the same database.
+/// Writes run one at a time. Each is computed from the records in memory and
+/// applied there only once the backend stored it, so a failed write changes
+/// nothing.
 class QueueStore {
-  final Database _db;
-  final StoreRef<String, Map<String, Object?>> _store;
+  final PublishQueueStore _backend;
+  final Map<String, QueuedPublish> _records = {};
+  final StreamController<Set<String>> _changes = StreamController.broadcast(
+    sync: true,
+  );
+  Future<void>? _loading;
+  Future<void> _writing = Future.value();
 
-  QueueStore({required Database db, required String storeName})
-    : _db = db,
-      _store = stringMapStoreFactory.store(storeName);
+  QueueStore(this._backend);
+
+  /// Completes once the writes started so far are done.
+  Future<void> get idle => _writing;
 
   Future<QueuedPublish?> get(String key) async {
-    final map = await _store.record(key).get(_db);
-    if (map == null) return null;
-    return QueuedPublish.fromMap(_normalize(map));
+    await _ensureLoaded();
+    return _records[key];
   }
 
-  /// Writes [record], then, in the same transaction, supersedes every record
-  /// of an older version of the same replaceable or addressable event that
-  /// is still owed an attempt, [record] included, once newer versions head to
-  /// all its relays. Returns [record] as stored.
-  Future<QueuedPublish> put(QueuedPublish record) {
-    return _db.transaction((txn) async {
-      await _store.record(record.key).put(txn, record.toMap());
-      final address = replaceableAddress(record.event);
-      if (address == null) return record;
+  /// Writes [record], and supersedes, in the same write, every record of an
+  /// older version of the same replaceable or addressable event that is still
+  /// owed an attempt, [record] included, once newer versions head to all its
+  /// relays. Returns [record] as stored.
+  Future<QueuedPublish> put(QueuedPublish record) => _serialized(() async {
+    final address = replaceableAddress(record.event);
+    if (address == null) {
+      await _store([record]);
+      return record;
+    }
 
-      final sameAuthorAndKind = Finder(
-        filter: Filter.custom((r) {
-          final event = (r.value as Map)['event'] as Map;
-          return event['kind'] == record.event.kind &&
-              event['pubkey'] == record.event.pubkey;
-        }),
-      );
-      final versions = (await _store.find(txn, finder: sameAuthorAndKind))
-          .map((r) => QueuedPublish.fromMap(_normalize(r.value)))
-          .where((r) => replaceableAddress(r.event) == address)
-          .toList();
-      final newest = versions
-          .map((r) => r.event)
-          .reduce((a, b) => replaces(b, a) ? b : a);
+    final versions = [
+      for (final other in _records.values)
+        if (other.key != record.key &&
+            replaceableAddress(other.event) == address)
+          other,
+      record,
+    ];
+    final newest = versions
+        .map((r) => r.event)
+        .reduce((a, b) => replaces(b, a) ? b : a);
 
-      var stored = record;
-      for (final version in versions) {
-        final QueuedPublish superseded;
-        if (version.supersededBy == null) {
-          final owed =
-              version.status == QueuedPublishStatus.pending ||
-              version.forcedRelays != null;
-          if (!owed) continue;
-          final newer = [
-            for (final other in versions)
-              if (replaces(other.event, version.event)) other,
-          ];
-          if (newer.isEmpty || !_covered(version, newer)) continue;
-          superseded = version.copyWith(
-            supersededBy: newest.id,
-            clearPendingRelaySet: true,
-            clearForcedRelays: true,
-          );
-        } else if (version.pendingRelaySet != null) {
-          superseded = version.copyWith(clearPendingRelaySet: true);
-        } else {
-          continue;
-        }
-        await _store.record(version.key).put(txn, superseded.toMap());
-        if (version.key == record.key) stored = superseded;
+    final written = {record.key: record};
+    for (final version in versions) {
+      if (version.supersededBy == null) {
+        final owed =
+            version.status == QueuedPublishStatus.pending ||
+            version.forcedRelays != null;
+        if (!owed) continue;
+        final newer = [
+          for (final other in versions)
+            if (replaces(other.event, version.event)) other,
+        ];
+        if (newer.isEmpty || !_covered(version, newer)) continue;
+        written[version.key] = version.copyWith(
+          supersededBy: newest.id,
+          clearPendingRelaySet: true,
+          clearForcedRelays: true,
+        );
+      } else if (version.pendingRelaySet != null) {
+        written[version.key] = version.copyWith(clearPendingRelaySet: true);
       }
-      return stored;
-    });
-  }
+    }
+    await _store(written.values.toList());
+    return written[record.key]!;
+  });
 
-  /// Atomically read-modify-write a record. The mutator runs inside a sembast
-  /// transaction; returning null leaves the record unchanged.
+  /// Read-modify-write of the record at [key], atomic with the other writes.
+  /// Returning null from [mutate] leaves the record unchanged.
   Future<QueuedPublish?> update(
     String key,
     QueuedPublish? Function(QueuedPublish current) mutate,
-  ) async {
-    return _db.transaction((txn) async {
-      final raw = await _store.record(key).get(txn);
-      if (raw == null) return null;
-      final current = QueuedPublish.fromMap(_normalize(raw));
-      final next = mutate(current);
-      if (next == null) return current;
-      await _store.record(key).put(txn, next.toMap());
-      return next;
-    });
-  }
+  ) => _serialized(() async {
+    final current = _records[key];
+    if (current == null) return null;
+    final next = mutate(current);
+    if (next == null) return current;
+    await _store([next]);
+    return next;
+  });
 
   /// Whether the [newer] versions hold, or are still headed to, every relay
   /// [version] owes. A relay set still to resolve only covers the same set.
@@ -115,82 +112,126 @@ class QueueStore {
   }
 
   /// Deletes every record queued under [account]. Records with no account
-  /// never match. Returns the number of records removed.
-  Future<int> deleteByAccount(String account) => _store.delete(
-    _db,
-    finder: Finder(filter: Filter.equals('pubkey', account)),
+  /// never match.
+  Future<void> deleteByAccount(String account) => _serialized(
+    () => _remove([
+      for (final record in _records.values)
+        if (record.account == account) record.key,
+    ]),
   );
 
-  /// Deletes every record in this store. Other stores in the database are
-  /// left untouched. Returns the number of records removed.
-  Future<int> deleteAll() => _store.delete(_db);
+  Future<void> deleteAll() =>
+      _serialized(() => _remove(_records.keys.toList()));
 
   /// Records eligible for an attempt right now: either still pending (relay
   /// set unresolved included), or terminal but carrying a
   /// [QueuedPublish.forcedRelays] override that hasn't been consumed yet.
   /// Sorted in the order they were queued.
   Future<List<QueuedPublish>> findDue({required int now}) async {
-    final finder = Finder(
-      filter: Filter.custom((record) {
-        final m = record.value as Map;
-        final nextAttemptAt = m['nextAttemptAt'] as int;
-        if (nextAttemptAt > now) return false;
-        if (m['supersededBy'] != null) return m['forcedRelays'] != null;
-        if (m['cancelledAt'] != null) return m['forcedRelays'] != null;
-        if (m['pendingRelaySet'] != null) return true;
-        if (m['deliveredAt'] == null && m['failedAt'] == null) return true;
-        return m['forcedRelays'] != null;
-      }),
-      sortOrders: [SortOrder('createdAt')],
+    await _ensureLoaded();
+    return _inQueueOrder(
+      _records.values.where(
+        (r) =>
+            r.nextAttemptAt <= now &&
+            (r.status == QueuedPublishStatus.pending || r.forcedRelays != null),
+      ),
     );
-    final records = await _store.find(_db, finder: finder);
-    return records
-        .map((r) => QueuedPublish.fromMap(_normalize(r.value)))
-        .toList(growable: false);
   }
 
   Future<List<QueuedPublish>> findAll() async {
-    final records = await _store.find(_db);
-    return records
-        .map((r) => QueuedPublish.fromMap(_normalize(r.value)))
-        .toList(growable: false);
+    await _ensureLoaded();
+    return _inQueueOrder(_records.values);
   }
 
-  Stream<QueuedPublish?> watch(String key) {
-    return _store
-        .record(key)
-        .onSnapshot(_db)
-        .map(
-          (snap) => snap == null
-              ? null
-              : QueuedPublish.fromMap(_normalize(snap.value)),
-        );
-  }
+  Stream<QueuedPublish?> watch(String key) =>
+      _watch((written) => written.contains(key), () => _records[key]);
 
   Stream<List<QueuedPublish>> watchPending() {
-    final finder = Finder(
-      filter: Filter.or([
-        Filter.notNull('pendingRelaySet'),
-        Filter.and([
-          Filter.equals('deliveredAt', null),
-          Filter.equals('failedAt', null),
-        ]),
-      ]),
-    );
-    return _store
-        .query(finder: finder)
-        .onSnapshots(_db)
-        .map(
-          (snaps) => snaps
-              .map((s) => QueuedPublish.fromMap(_normalize(s.value)))
-              .where((r) => r.status == QueuedPublishStatus.pending)
-              .toList(growable: false),
+    var shown = <String>{};
+    return _watch(
+      (written) => written.any(
+        (key) =>
+            shown.contains(key) ||
+            _records[key]?.status == QueuedPublishStatus.pending,
+      ),
+      () {
+        final pending = _inQueueOrder(
+          _records.values.where((r) => r.status == QueuedPublishStatus.pending),
         );
+        shown = {for (final r in pending) r.key};
+        return pending;
+      },
+    );
   }
 
-  /// Sembast hands back `Map<String, Object?>`; QueuedPublish.fromMap expects
-  /// `Map<String, dynamic>`. The cast is shallow on purpose: nested maps stay
-  /// as `Map<dynamic, dynamic>` and the model handles them.
-  Map<String, dynamic> _normalize(Map<String, Object?> raw) =>
-      Map<String, dynamic>.from(raw);
+  /// [read] once listened to, then after every write whose keys [concerns].
+  Stream<T> _watch<T>(
+    bool Function(Set<String> written) concerns,
+    T Function() read,
+  ) {
+    StreamSubscription<Set<String>>? changes;
+    late final StreamController<T> controller;
+    controller = StreamController<T>(
+      onListen: () {
+        changes = _changes.stream.listen((written) {
+          if (concerns(written)) controller.add(read());
+        });
+        _ensureLoaded().then(
+          (_) => controller.add(read()),
+          onError: controller.addError,
+        );
+      },
+      onCancel: () => changes?.cancel(),
+    );
+    return controller.stream;
+  }
+
+  Future<void> _ensureLoaded() => _loading ??= _backend.readAll().then(
+    (records) {
+      for (final record in records) {
+        _records[record.key] = record;
+      }
+    },
+    onError: (Object error, StackTrace stackTrace) {
+      _loading = null;
+      Error.throwWithStackTrace(error, stackTrace);
+    },
+  );
+
+  /// Runs [write] once the records are loaded and the writes before it are
+  /// done.
+  Future<T> _serialized<T>(Future<T> Function() write) {
+    final result = _writing.then((_) async {
+      await _ensureLoaded();
+      return write();
+    });
+    _writing = result.then((_) {}, onError: (Object _) {});
+    return result;
+  }
+
+  Future<void> _store(List<QueuedPublish> records) async {
+    await _backend.put(records);
+    for (final record in records) {
+      _records[record.key] = record;
+    }
+    _changes.add({for (final record in records) record.key});
+  }
+
+  Future<void> _remove(List<String> keys) async {
+    if (keys.isEmpty) return;
+    await _backend.delete(keys);
+    keys.forEach(_records.remove);
+    _changes.add(keys.toSet());
+  }
+
+  /// [records] by [QueuedPublish.createdAt], and at the same time in the order
+  /// they were read or first stored.
+  static List<QueuedPublish> _inQueueOrder(Iterable<QueuedPublish> records) {
+    final indexed = records.indexed.toList()
+      ..sort((a, b) {
+        final byCreation = a.$2.createdAt.compareTo(b.$2.createdAt);
+        return byCreation != 0 ? byCreation : a.$1.compareTo(b.$1);
+      });
+    return [for (final (_, record) in indexed) record];
+  }
 }

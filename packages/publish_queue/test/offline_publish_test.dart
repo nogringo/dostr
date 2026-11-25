@@ -2,21 +2,16 @@ import 'dart:async';
 
 import 'package:dostr_publish_queue/dostr_publish_queue.dart';
 import 'package:dostr_url_set/dostr_url_set.dart';
-import 'package:sembast/sembast_memory.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_publisher.dart';
 import 'support/helpers.dart';
 
 void main() {
-  late Database db;
+  late MemoryPublishQueueStore store;
 
-  setUp(() async {
-    db = await newDatabaseFactoryMemory().openDatabase('test.db');
-  });
-
-  tearDown(() async {
-    await db.close();
+  setUp(() {
+    store = MemoryPublishQueueStore();
   });
 
   test(
@@ -26,7 +21,7 @@ void main() {
       fake.ackAll(['wss://a', 'wss://b']);
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 10),
       );
 
@@ -56,7 +51,7 @@ void main() {
     fake.fail('wss://b', detail: 'pow too low');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 5),
     );
 
@@ -91,7 +86,7 @@ void main() {
         fake.refuse(entry.key, message: entry.value);
         final queue = PublishQueue(
           publishFn: fake.fn,
-          db: db,
+          store: store,
           initialBackoff: const Duration(milliseconds: 1),
         );
 
@@ -113,8 +108,7 @@ void main() {
         expect(fake.calls.length, 1);
 
         await queue.dispose();
-        await db.close();
-        db = await newDatabaseFactoryMemory().openDatabase('test.db');
+        store = MemoryPublishQueueStore();
       }
     },
   );
@@ -127,7 +121,7 @@ void main() {
       fake.refuse('wss://b', message: 'pow too low');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -172,7 +166,7 @@ void main() {
       fake.fail('wss://transport', detail: 'pow: from transport path');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -252,7 +246,7 @@ void main() {
       final fake = FakePublisher();
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
         maxInaccessibleAttemptsPerRelay: 2,
       );
@@ -296,7 +290,7 @@ void main() {
       final fake = FakePublisher();
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
         maxInaccessibleAttemptsPerRelay: 1,
         onlineSignal: online.stream,
@@ -327,7 +321,7 @@ void main() {
       final fake = FakePublisher()..error = StateError('no signer');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
         maxInaccessibleAttemptsPerRelay: 1,
       );
@@ -349,7 +343,7 @@ void main() {
     fake.refuse('wss://rate', message: 'rate-limited: slow down');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 1),
       maxInaccessibleAttemptsPerRelay: 1,
     );
@@ -374,7 +368,7 @@ void main() {
       fake.fail('wss://c', detail: 'temporary outage');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -412,7 +406,7 @@ void main() {
     fake.refuse('wss://a', message: 'invalid: malformed');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 1),
     );
 
@@ -437,7 +431,7 @@ void main() {
       fake.refuse('wss://a', message: 'pow: too low');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -473,7 +467,7 @@ void main() {
     fake.fail('wss://b');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 1),
     );
 
@@ -507,7 +501,7 @@ void main() {
       fake.ackAll(['wss://a', 'wss://b']);
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -567,7 +561,7 @@ void main() {
       fake.ackAll(['wss://a']);
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -611,7 +605,7 @@ void main() {
       fake.ackAll(['wss://a']);
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -646,7 +640,7 @@ void main() {
   );
 
   test('publish() throws on empty relays', () async {
-    final queue = PublishQueue(publishFn: FakePublisher().fn, db: db);
+    final queue = PublishQueue(publishFn: FakePublisher().fn, store: store);
     expect(
       () => queue.publish(makeEvent(), relaySet: const UrlSet.explicit([])),
       throwsArgumentError,
@@ -660,7 +654,7 @@ void main() {
     fake.fail('wss://b');
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 1),
     );
 
@@ -680,7 +674,7 @@ void main() {
     fake.ackAll(['wss://relay.example']);
     final queue = PublishQueue(
       publishFn: fake.fn,
-      db: db,
+      store: store,
       initialBackoff: const Duration(milliseconds: 1),
     );
 
@@ -704,7 +698,7 @@ void main() {
       final fake = FakePublisher()..error = StateError('no signer');
       final queue = PublishQueue(
         publishFn: fake.fn,
-        db: db,
+        store: store,
         initialBackoff: const Duration(milliseconds: 1),
       );
 
@@ -719,7 +713,7 @@ void main() {
   );
 
   test('dispose() blocks further public calls', () async {
-    final queue = PublishQueue(publishFn: FakePublisher().fn, db: db);
+    final queue = PublishQueue(publishFn: FakePublisher().fn, store: store);
     await queue.dispose();
     expect(
       () => queue.publish(

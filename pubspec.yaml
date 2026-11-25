@@ -40,6 +40,7 @@ workspace:
   - packages/home_relays
   - packages/url_set
   - packages/publish_queue
+  - packages/publish_queue_sembast
   - packages/relay_url
   - packages/blossom_url
   - packages/string_color
