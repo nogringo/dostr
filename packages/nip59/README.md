@@ -71,10 +71,19 @@ The overlap brings back wraps you already opened: a cache spares decrypting them
 ## Caching the plaintext
 
 Without a cache, every unwrap asks the signer to decrypt again, which is slow with a remote signer.
-Pass a `GiftWrapCache` as `cache`: it keeps the decrypted plaintext of each wrap and seal, per event id and viewer pubkey.
-Later unwraps reuse it, and `tryFromGiftWrapFromCache` answers from the cache alone, or null when a payload is missing.
+Wrap the signer in a `CachedNostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer): it keeps the plaintext of each wrap and seal it decrypts, and later unwraps reuse it.
 
-`GiftWrapCache` is an interface: implement `loadCachedPlaintext` and `loadOrDecrypt` on your storage.
+```dart
+final cachedSigner = CachedNostrSigner(signer, cache: MemoryDecryptionCache());
+final giftWrap = GiftWrap(
+  signer: () => cachedSigner,
+  eventVerifier: verifier,
+  signerFactory: const Bip340SignerFactory(),
+);
+```
+
+`tryFromGiftWrapFromCache` answers from that cache alone, or null when a payload is missing or the signer is not a `CachedNostrSigner`.
+`MemoryDecryptionCache` forgets everything on restart: implement `DecryptionCache` on your storage to keep the plaintexts.
 
 ## Deleting a gift wrap
 
@@ -92,7 +101,7 @@ What changed:
 |-------|---------------|
 | `accounts` | `signer`, a function that returns the signer to use, or null |
 | `eventSignerFactory` | `signerFactory` |
-| `decryptedEventPayloads`, required | `cache`, an optional `GiftWrapCache` |
+| `decryptedEventPayloads`, required | a `CachedNostrSigner` of `dostr_signer` as the signer |
 | `recipientPublicKey` of `wrapEvent` | `recipientPubkey` |
 | `kGiftWrapEventkind` | `kGiftWrapEventKind` |
 | `createRumor` returned a `Future` | returns the rumor |

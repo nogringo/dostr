@@ -1,6 +1,6 @@
 name: dostr_signer
 description: The NostrSigner interface that signers implement, and the accounts and AuthPolicy that decide when one is revealed to a relay (NIP-42) or Blossom.
-version: 0.2.0
+version: 0.2.1
 homepage: https://github.com/nogringo/dostr
 repository: https://github.com/nogringo/dostr
 
@@ -15,8 +15,11 @@ environment:
 resolution: workspace
 
 dependencies:
+  crypto: ^3.0.7
   dostr_nip01: ^0.1.0
 
 dev_dependencies:
+  dostr_bip340: ^0.1.0
+  dostr_signer_test_suite: ^0.1.0
   lints: ^6.1.0
   test: ^1.31.1

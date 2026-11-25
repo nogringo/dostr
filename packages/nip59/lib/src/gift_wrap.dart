@@ -4,7 +4,6 @@ import 'dart:math';
 import 'package:dostr_nip01/dostr_nip01.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 
-import 'gift_wrap_cache.dart';
 import 'gift_wrap_exceptions.dart';
 import 'gift_wrap_unwrap_result.dart';
 
@@ -24,14 +23,10 @@ class GiftWrap {
   /// Makes the one-time key of each wrap.
   final LocalSignerFactory signerFactory;
 
-  /// Without it, every unwrap decrypts again.
-  final GiftWrapCache? cache;
-
   GiftWrap({
     required this.signer,
     required this.eventVerifier,
     required this.signerFactory,
-    this.cache,
   });
 
   NostrSigner _getSigner({NostrSigner? customSigner}) =>
@@ -87,26 +82,26 @@ class GiftWrap {
     );
   }
 
-  /// The rumor that [giftWrap] holds, read from [cache] alone, without asking
-  /// the signer to decrypt.
+  /// The rumor that [giftWrap] holds, read from the cache of a
+  /// [CachedNostrSigner] alone, without asking it to decrypt.
   ///
-  /// Returns null without a [cache], or when the wrap or the seal is not
-  /// cached. [verifySignature] works as in [fromGiftWrap].
+  /// Returns null when the signer is not a [CachedNostrSigner], or when the
+  /// wrap or the seal is not in its cache. [verifySignature] works as in
+  /// [fromGiftWrap].
   Future<Nip01Event?> tryFromGiftWrapFromCache({
     required Nip01Event giftWrap,
     NostrSigner? customSigner,
     bool verifySignature = true,
   }) async {
     _checkKind(giftWrap);
-    final cache = this.cache;
-    if (cache == null) {
+    final signer = _getSigner(customSigner: customSigner);
+    if (signer is! CachedNostrSigner) {
       return null;
     }
-    final viewerPubkey = _getSigner(customSigner: customSigner).publicKey;
 
-    final cachedSealJson = await cache.loadCachedPlaintext(
-      eventId: giftWrap.id,
-      viewerPubkey: viewerPubkey,
+    final cachedSealJson = await signer.decryptNip44FromCache(
+      ciphertext: giftWrap.content,
+      senderPubkey: giftWrap.pubkey,
     );
     if (cachedSealJson == null) {
       return null;
@@ -116,9 +111,9 @@ class GiftWrap {
       await _checkSealSignature(seal);
     }
 
-    final cachedRumorJson = await cache.loadCachedPlaintext(
-      eventId: seal.id,
-      viewerPubkey: viewerPubkey,
+    final cachedRumorJson = await signer.decryptNip44FromCache(
+      ciphertext: seal.content,
+      senderPubkey: seal.pubkey,
     );
     if (cachedRumorJson == null) {
       return null;
@@ -276,22 +271,13 @@ class GiftWrap {
     (cause) => GiftWrapEncryptionException(recipientPubkey, cause: cause),
   );
 
-  Future<String> _decrypt(Nip01Event event, NostrSigner signer) async {
-    Future<String> decrypt() => _callSigner(
-      () => signer.decryptNip44(
-        ciphertext: event.content,
-        senderPubkey: event.pubkey,
-      ),
-      (cause) => GiftWrapDecryptionException(event.id, cause: cause),
-    );
-    final cache = this.cache;
-    if (cache == null) return decrypt();
-    return cache.loadOrDecrypt(
-      event: event,
-      viewerPubkey: signer.publicKey,
-      decrypt: decrypt,
-    );
-  }
+  Future<String> _decrypt(Nip01Event event, NostrSigner signer) => _callSigner(
+    () => signer.decryptNip44(
+      ciphertext: event.content,
+      senderPubkey: event.pubkey,
+    ),
+    (cause) => GiftWrapDecryptionException(event.id, cause: cause),
+  );
 
   /// A request the user cancelled or rejected passes through unchanged.
   static Future<String> _callSigner(

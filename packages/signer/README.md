@@ -5,7 +5,7 @@ It comes with `LocalSignerFactory`, the `PendingSignerRequest` that interactive 
 
 It also holds the accounts the Dostr packages may authenticate as, and what decides when one is revealed: to a relay that asks for NIP-42 authentication, or to a Blossom server.
 
-Pure Dart: interfaces, and the `ConcurrencyLimiterMixin` that interactive signers share.
+Pure Dart: interfaces, the `ConcurrencyLimiterMixin` that interactive signers share, and `CachedNostrSigner`, which caches what another signer decrypts.
 A signer such as [`dostr_bip340`](https://pub.dev/packages/dostr_bip340) needs this package and [`dostr_nip01`](https://pub.dev/packages/dostr_nip01), not `dostr_core`.
 So does a package that authenticates on behalf of Dostr accounts, such as [`dostr_blossom`](https://pub.dev/packages/dostr_blossom).
 
@@ -54,6 +54,25 @@ A local signer always has an empty list.
 `ConcurrencyLimiterMixin` caps how many requests an interactive signer sends at once and queues the rest.
 
 To write a signer, implement `NostrSigner`, and `LocalSignerFactory` if the Dostr packages should create it from a private key.
+
+## Caching decryptions
+
+`CachedNostrSigner` wraps any signer and keeps what it decrypts with NIP-44 in a `DecryptionCache`, so each ciphertext asks the signer once, which spares the user a prompt with a remote signer:
+
+```dart
+final signer = CachedNostrSigner(bunkerSigner, cache: MemoryDecryptionCache());
+```
+
+Each plaintext is stored under an opaque key, the sha256 of the three inputs of its decryption: the account, which is the signer's pubkey, the sender pubkey and the ciphertext.
+It serves any NIP-44 decryption, inside an event or not, and a ciphertext copied under another pubkey misses the cache, as the signer would refuse it.
+Concurrent decryptions of one ciphertext share one request, and a failed one is not kept.
+`decryptNip44FromCache` reads the cache alone, without asking the signer, and gives null when the plaintext is not there.
+Everything else, NIP-04 included, goes to the wrapped signer unchanged.
+
+`clearCache` removes the plaintexts of the signer's pubkey, such as on logout, and a decryption still running then is not stored once it ends.
+
+`MemoryDecryptionCache` forgets everything on restart.
+To keep the plaintexts, implement `DecryptionCache` on your database: store each one under its key with its account pubkey, and remove those of one account in `clear`.
 
 ## Signers
 

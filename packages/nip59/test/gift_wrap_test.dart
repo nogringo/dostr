@@ -4,7 +4,23 @@ import 'package:dostr_nip59/dostr_nip59.dart';
 import 'package:dostr_signer/dostr_signer.dart';
 import 'package:test/test.dart';
 
-import 'mocks/memory_gift_wrap_cache.dart';
+class _CountingSigner extends Bip340Signer {
+  int decryptions = 0;
+
+  _CountingSigner(KeyPair key) : super(key.privateKey);
+
+  @override
+  Future<String> decryptNip44({
+    required String ciphertext,
+    required String senderPubkey,
+  }) {
+    decryptions++;
+    return super.decryptNip44(
+      ciphertext: ciphertext,
+      senderPubkey: senderPubkey,
+    );
+  }
+}
 
 class _RejectingSigner extends Bip340Signer {
   _RejectingSigner(KeyPair key) : super(key.privateKey);
@@ -25,13 +41,6 @@ void main() {
   final carol = Bip340.generateKeyPair();
 
   NostrSigner signerOf(KeyPair key) => Bip340Signer(key.privateKey);
-
-  GiftWrap giftWrapWith({GiftWrapCache? cache}) => GiftWrap(
-    signer: () => loggedSigner,
-    eventVerifier: Bip340EventVerifier(),
-    signerFactory: const Bip340SignerFactory(),
-    cache: cache,
-  );
 
   Nip01Event rumorOf(KeyPair author, {String content = 'hello'}) =>
       Nip01Event(pubkey: author.publicKey, kind: 14, content: content);
@@ -67,7 +76,11 @@ void main() {
 
   setUp(() {
     loggedSigner = signerOf(alice);
-    giftWrap = giftWrapWith();
+    giftWrap = GiftWrap(
+      signer: () => loggedSigner,
+      eventVerifier: Bip340EventVerifier(),
+      signerFactory: const Bip340SignerFactory(),
+    );
   });
 
   group('GiftWrap', () {
@@ -369,42 +382,48 @@ void main() {
   });
 
   group('cache', () {
-    test('the cache-only unwrap returns null without a cache', () async {
+    test(
+      'the cache-only unwrap returns null unless the signer caches',
+      () async {
+        final wrap = await wrapForBob(rumorOf(alice));
+
+        expect(await giftWrap.tryFromGiftWrapFromCache(giftWrap: wrap), isNull);
+      },
+    );
+
+    test('an unwrap fills the signer cache, later unwraps reuse it', () async {
       final wrap = await wrapForBob(rumorOf(alice));
-      loggedSigner = null;
+      final bobSigner = _CountingSigner(bob);
+      loggedSigner = CachedNostrSigner(
+        bobSigner,
+        cache: MemoryDecryptionCache(),
+      );
 
       expect(await giftWrap.tryFromGiftWrapFromCache(giftWrap: wrap), isNull);
-    });
 
-    test('an unwrap fills the cache, later unwraps reuse it', () async {
-      final cache = MemoryGiftWrapCache();
-      final cached = giftWrapWith(cache: cache);
-      final wrap = await wrapForBob(rumorOf(alice));
-
-      expect(await cached.tryFromGiftWrapFromCache(giftWrap: wrap), isNull);
-
-      final rumor = await cached.fromGiftWrap(giftWrap: wrap);
-      expect(cache.decryptions, 2);
+      final rumor = await giftWrap.fromGiftWrap(giftWrap: wrap);
+      expect(bobSigner.decryptions, 2);
       expect(
-        (await cached.tryFromGiftWrapFromCache(giftWrap: wrap))?.id,
+        (await giftWrap.tryFromGiftWrapFromCache(giftWrap: wrap))?.id,
         rumor.id,
       );
 
-      await cached.fromGiftWrap(giftWrap: wrap);
-      expect(cache.decryptions, 2);
+      await giftWrap.fromGiftWrap(giftWrap: wrap);
+      expect(bobSigner.decryptions, 2);
     });
 
     test('a failed decryption is not cached', () async {
-      final cache = MemoryGiftWrapCache();
-      final cached = giftWrapWith(cache: cache);
       final wrap = await wrapForBob(rumorOf(alice));
-      loggedSigner = signerOf(carol);
+      loggedSigner = CachedNostrSigner(
+        signerOf(carol),
+        cache: MemoryDecryptionCache(),
+      );
 
       await expectLater(
-        cached.fromGiftWrap(giftWrap: wrap),
+        giftWrap.fromGiftWrap(giftWrap: wrap),
         throwsA(isA<GiftWrapDecryptionException>()),
       );
-      expect(cache.plaintexts, isEmpty);
+      expect(await giftWrap.tryFromGiftWrapFromCache(giftWrap: wrap), isNull);
     });
   });
 }

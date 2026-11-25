@@ -11,6 +11,5 @@
 library;
 
 export 'src/gift_wrap.dart';
-export 'src/gift_wrap_cache.dart';
 export 'src/gift_wrap_exceptions.dart';
 export 'src/gift_wrap_unwrap_result.dart';

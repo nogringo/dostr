@@ -1,3 +1,7 @@
+## 0.2.1
+
+ - `CachedNostrSigner` wraps a signer and keeps what it decrypts with NIP-44 in a `DecryptionCache`, under an opaque key derived from the account pubkey, the sender pubkey and the ciphertext, so that each ciphertext asks the signer once. `decryptNip44FromCache` reads the cache alone, `clearCache` removes the plaintexts of the signer's pubkey, such as on logout, and `MemoryDecryptionCache` keeps the plaintexts until a restart.
+
 ## 0.2.0
 
  - `LocalSignerFactory.generateKeyPair` returns a `KeyPair`, a record with named `privateKey` and `publicKey` fields, so that one cannot be taken for the other.
