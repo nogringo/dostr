@@ -17,7 +17,7 @@
  - **BREAKING** The JS bundle defines `DostrNoble` instead of `NostrCrypto`, so that the one of `ndk_flutter` or of another library is not taken for it, and no longer defines `NostrCryptoModule`.
  - The JS bundle carries a version, a hash of the files it is built from, and the classes throw a `StateError` when the page loaded a bundle of another version, as a `nostr_crypto.js` not copied again after an upgrade.
  - `WebSignerFactory.generateKeyPair` draws again a private key that is not one, as `Bip340.generateKeyPair` does, instead of throwing a `FormatException`.
- - The JS bundle carries the MIT notice of @noble/hashes, as it already did for @noble/curves and @noble/ciphers.
+ - The JS bundle carries the full MIT license of @noble/hashes, @noble/ciphers and @noble/curves, instead of the one-line notices of @noble/ciphers and @noble/curves only.
  - `decryptNip04` and `decryptNip44` read base64 as `dostr_nip44` does, with the rules of Dart's `base64.decode` instead of those of `atob`: whitespace, a missing padding and stray bits before the padding fail, NIP-04 also takes the URL-safe alphabet and a `%3D` padding, and NIP-44 takes standard base64 only.
  - `decryptNip04` rejects a payload with more than one `?iv=`, as `dostr_nip44` does.
  - The classes work in a Web Worker that loads the JS bundle with `importScripts`, and throw a `StateError` that says so when it did not, instead of a `TypeError`.
