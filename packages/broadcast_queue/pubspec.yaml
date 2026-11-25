@@ -1,0 +1,28 @@
+name: dostr_broadcast_queue
+description: An offline-first queue for Nostr events, stored in sembast and published with dostr_core until every relay accepts them, refuses them for good, or stays unreachable while online.
+version: 0.1.0
+homepage: https://github.com/nogringo/dostr
+repository: https://github.com/nogringo/dostr
+
+topics:
+  - nostr
+  - dostr
+  - offline-first
+  - queue
+
+environment:
+  sdk: ">=3.9.0 <4.0.0"
+
+resolution: workspace
+
+dependencies:
+  dostr_core: ^0.1.1
+  dostr_url_set: ^0.1.0
+  sembast: ^3.8.7
+
+dev_dependencies:
+  dostr_bip340: ^0.1.0
+  dostr_fetchers: ^0.1.1
+  dostr_mock_relay: ^0.1.0
+  lints: ^6.1.0
+  test: ^1.31.1

@@ -1,0 +1,282 @@
+import 'dart:async';
+import 'dart:math';
+
+import 'package:dostr_broadcast_queue/dostr_broadcast_queue.dart';
+import 'package:dostr_core/dostr_core.dart';
+import 'package:dostr_url_set/dostr_url_set.dart';
+import 'package:sembast/sembast_memory.dart';
+import 'package:test/test.dart';
+
+import 'support/fake_broadcaster.dart';
+import 'support/helpers.dart';
+
+void main() {
+  late Database db;
+  late FakeBroadcaster fake;
+
+  setUp(() async {
+    db = await newDatabaseFactoryMemory().openDatabase('test.db');
+    fake = FakeBroadcaster();
+  });
+
+  tearDown(() async {
+    await db.close();
+  });
+
+  BroadcastQueue newQueue({
+    int maxInaccessibleAttemptsPerRelay = 12,
+    Stream<bool>? onlineSignal,
+    Duration initialBackoff = const Duration(milliseconds: 1),
+    Duration maxBackoff = const Duration(minutes: 30),
+    Random? random,
+  }) => BroadcastQueue(
+    broadcastFn: fake.fn,
+    db: db,
+    initialBackoff: initialBackoff,
+    maxBackoff: maxBackoff,
+    maxInaccessibleAttemptsPerRelay: maxInaccessibleAttemptsPerRelay,
+    onlineSignal: onlineSignal,
+    random: random,
+  );
+
+  test('broadcast rejects an unsigned event and stores nothing', () async {
+    final queue = newQueue();
+    final unsigned = Nip01Event(pubkey: 'a' * 64, kind: 1, content: 'hi');
+
+    await expectLater(
+      queue.broadcast(unsigned, relaySet: const UrlSet.explicit(['wss://a'])),
+      throwsArgumentError,
+    );
+    expect(await queue.listAll(), isEmpty);
+    expect(fake.calls, isEmpty);
+
+    await queue.dispose();
+  });
+
+  test('urls that are not ws or wss urls are dropped', () async {
+    fake.ack('wss://a');
+    final queue = newQueue();
+
+    final record = await queue.broadcast(
+      makeEvent(),
+      relaySet: const UrlSet.explicit([
+        'https://relay.example',
+        'relay.example',
+        'wss://a',
+      ]),
+    );
+    expect(record.relays, ['wss://a']);
+
+    await queue.dispose();
+  });
+
+  test('rebroadcast rejects a relay that is not a relay url', () async {
+    fake.ack('wss://a');
+    final queue = newQueue();
+    final event = makeEvent();
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+
+    await expectLater(
+      queue.rebroadcast(event.id, relay: 'https://a'),
+      throwsArgumentError,
+    );
+
+    await queue.dispose();
+  });
+
+  test('the broadcastFn gets the account the event was queued under', () async {
+    fake.ack('wss://a');
+    final queue = newQueue();
+
+    await queue.broadcast(
+      makeEvent(),
+      relaySet: const UrlSet.explicit(['wss://a']),
+      pubkey: 'alice',
+    );
+    await queue.broadcast(
+      makeEvent(seed: 2),
+      relaySet: const UrlSet.explicit(['wss://a']),
+    );
+    while (fake.calls.length < 2) {
+      await Future.delayed(const Duration(milliseconds: 5));
+    }
+
+    expect(fake.calls.map((c) => c.pubkey), unorderedEquals(['alice', null]));
+
+    await queue.dispose();
+  });
+
+  test('an event too long for a relay fails it for good', () async {
+    fake.fail('wss://a', kind: RelayFailureKind.messageTooLong, detail: '512');
+    final queue = newQueue();
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    final failed = await waitFor(
+      queue,
+      event.id,
+      (r) => r.status == BroadcastStatus.failed,
+    );
+    expect(failed.terminalErrors, {'wss://a': 'messageTooLong: 512'});
+
+    await queue.dispose();
+  });
+
+  test('a timed out relay counts as unreachable', () async {
+    fake.timeOut('wss://a');
+    final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    final failed = await waitFor(
+      queue,
+      event.id,
+      (r) => r.status == BroadcastStatus.failed,
+    );
+    expect(failed.terminalErrors, {
+      'wss://a': 'max-inaccessible-attempts: timed out',
+    });
+
+    await queue.dispose();
+  });
+
+  test(
+    'an identity a relay cannot use does not count as unreachable',
+    () async {
+      fake.fail('wss://a', kind: RelayFailureKind.cannotSign, detail: 'no key');
+      final queue = newQueue(maxInaccessibleAttemptsPerRelay: 1);
+      final event = makeEvent();
+
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://a']),
+      );
+      final pending = await waitFor(queue, event.id, (r) => r.attempts >= 1);
+      expect(pending.status, BroadcastStatus.pending);
+      expect(pending.inaccessibleAttempts, isEmpty);
+      expect(pending.lastErrors, {'wss://a': 'cannotSign: no key'});
+
+      await queue.dispose();
+    },
+  );
+
+  test('a relay that answers resets its unreachable count', () async {
+    fake.fail('wss://a');
+    final queue = newQueue();
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await waitFor(queue, event.id, (r) => r.inaccessibleAttempts.isNotEmpty);
+
+    fake.refuse('wss://a', message: 'rate-limited: slow down');
+    await queue.rebroadcast(event.id);
+    final answered = await waitFor(
+      queue,
+      event.id,
+      (r) => r.inaccessibleAttempts.isEmpty,
+    );
+    expect(answered.lastErrors, {'wss://a': 'rate-limited: slow down'});
+
+    await queue.dispose();
+  });
+
+  group('offline attempts', () {
+    test('a relay that answers shows the device is online', () async {
+      fake.refuse('wss://a', message: 'rate-limited: slow down');
+      final queue = newQueue(onlineSignal: Stream.value(false))..start();
+      await Future<void>.delayed(Duration.zero);
+      final event = makeEvent();
+
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://a', 'wss://gone']),
+      );
+      final record = await waitFor(queue, event.id, (r) => r.attempts >= 1);
+      expect(record.inaccessibleAttempts, {'wss://gone': 1});
+
+      await queue.dispose();
+    });
+
+    test('an attempt that ends offline does not count', () async {
+      final online = StreamController<bool>();
+      fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
+      final queue = newQueue(onlineSignal: online.stream)..start();
+      final event = makeEvent();
+
+      await queue.broadcast(
+        event,
+        relaySet: const UrlSet.explicit(['wss://gone']),
+      );
+      await waitFor(queue, event.id, (_) => fake.calls.isNotEmpty);
+      online.add(false);
+      await Future<void>.delayed(Duration.zero);
+      fake.gate!.complete(const {});
+
+      final record = await waitFor(queue, event.id, (r) => r.attempts >= 1);
+      expect(record.inaccessibleAttempts, isEmpty);
+      expect(record.lastErrors, {'wss://gone': 'no response'});
+
+      await queue.dispose();
+      await online.close();
+    });
+
+    test('an offline attempt does not grow the backoff', () async {
+      Future<List<int>> delays({required bool online}) async {
+        final queue = newQueue(
+          onlineSignal: Stream.value(online),
+          initialBackoff: const Duration(milliseconds: 50),
+          random: _LongestJitter(),
+        )..start();
+        await Future<void>.delayed(Duration.zero);
+        final event = makeEvent(seed: online ? 1 : 2);
+        await queue.broadcast(
+          event,
+          relaySet: const UrlSet.explicit(['wss://gone']),
+        );
+        final delays = <int>[];
+        for (var attempts = 1; attempts <= 3; attempts++) {
+          final record = await waitFor(
+            queue,
+            event.id,
+            (r) => r.attempts >= attempts,
+          );
+          delays.add(record.nextAttemptAt - record.lastAttemptAt!);
+          await queue.rebroadcast(event.id);
+        }
+        await queue.dispose();
+        return delays;
+      }
+
+      expect(await delays(online: false), everyElement(lessThan(90)));
+      expect((await delays(online: true)).last, greaterThanOrEqualTo(200));
+    });
+  });
+
+  test('dispose abandons an attempt waiting on the network', () async {
+    fake.gate = Completer<Map<RelayUrl, RelayPublishOutcome>>();
+    final queue = newQueue();
+    final event = makeEvent();
+
+    await queue.broadcast(event, relaySet: const UrlSet.explicit(['wss://a']));
+    await waitFor(queue, event.id, (_) => fake.calls.isNotEmpty);
+    await queue.dispose().timeout(const Duration(seconds: 1));
+
+    final queueAgain = newQueue();
+    final record = (await queueAgain.get(event.id))!;
+    expect(record.attempts, 0);
+    expect(record.status, BroadcastStatus.pending);
+    await queueAgain.dispose();
+  });
+}
+
+/// Always draws the longest backoff, so that a growing one shows.
+class _LongestJitter implements Random {
+  @override
+  double nextDouble() => 1;
+
+  @override
+  bool nextBool() => true;
+
+  @override
+  int nextInt(int max) => max - 1;
+}

@@ -2,11 +2,11 @@
 
 # Package graph
 
-The workspace has 34 packages and 64 direct dependencies between them, with no cycle.
+The workspace has 35 packages and 66 direct dependencies between them, with no cycle.
 A package sits one layer above the deepest package it depends on: layer 0, at the bottom, depends on no other package of the workspace.
 
 An arrow from A to B means that A depends on B.
-The graph draws 44 of the 64 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
+The graph draws 46 of the 66 dependencies and leaves out those a longer path already implies: `dostr_mock_relay` depends on `dostr_core`, but no arrow goes from one to the other since `dostr_mock_relay` reaches it through `dostr_nip77`.
 Names drop their `dostr_` prefix.
 The table lists every direct dependency.
 
@@ -23,7 +23,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 0 | `dostr_relay_url` |  | 4 |
 | 0 | `dostr_secp256k1` |  | 3 |
 | 0 | `dostr_string_color` |  | 1 |
-| 0 | `dostr_url_set` |  | 1 |
+| 0 | `dostr_url_set` |  | 2 |
 | 1 | `dostr_cashu_protocol` | `dostr_secp256k1` | 0 |
 | 1 | `dostr_event_store` | `dostr_nip01` | 1 |
 | 1 | `dostr_nip05` | `dostr_relay_url` | 1 |
@@ -35,7 +35,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 2 | `dostr_accounts` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_bip340` | `dostr_nip01`, `dostr_nip44`, `dostr_secp256k1`, `dostr_signer` | 2 |
 | 2 | `dostr_blossom` | `dostr_blossom_url`, `dostr_nip01`, `dostr_signer` | 0 |
-| 2 | `dostr_core` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 5 |
+| 2 | `dostr_core` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 6 |
 | 2 | `dostr_event_store_test_suite` | `dostr_event_store`, `dostr_nip01` | 0 |
 | 2 | `dostr_event_verifier_test_suite` | `dostr_nip01`, `dostr_signer` | 0 |
 | 2 | `dostr_home_relays` | `dostr_nip01`, `dostr_nip19`, `dostr_relay_url` | 1 |
@@ -45,6 +45,7 @@ Run `dart run tool/package_graph.dart` after changing a dependency between packa
 | 2 | `dostr_noble` | `dostr_nip01`, `dostr_signer` | 1 |
 | 2 | `dostr_signer_test_suite` | `dostr_nip01`, `dostr_signer` | 0 |
 | 2 | `dostr_zaps` | `dostr_nip01`, `dostr_relay_url`, `dostr_signer` | 0 |
+| 3 | `dostr_broadcast_queue` | `dostr_core`, `dostr_url_set` | 0 |
 | 3 | `dostr_fetchers` | `dostr_blossom_url`, `dostr_core`, `dostr_home_relays`, `dostr_url_set` | 1 |
 | 3 | `dostr_nip46` | `dostr_core` | 1 |
 | 3 | `dostr_nip77` | `dostr_core` | 1 |
