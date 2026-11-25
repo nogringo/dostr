@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:dostr_bip340/dostr_bip340.dart';
 import 'package:dostr_core/dostr_core.dart';
 import 'package:dostr_fetchers/dostr_fetchers.dart';
 import 'package:dostr_fetchers/src/replaceable_asks.dart'
@@ -39,6 +40,27 @@ Nip01Event metadata(
   content: jsonEncode({'name': name}),
   createdAt: createdAt,
 ).copyWith(sig: 'f' * 128);
+
+final owner = Bip340Signer('1' * 64);
+
+/// A `kind:10013` of [signer], [privateTags] encrypted to itself.
+Future<Nip01Event> privateRelayList(
+  List<List<String>> privateTags, {
+  NostrSigner? signer,
+  int createdAt = 1000,
+}) async {
+  final author = signer ?? owner;
+  return Nip01Event(
+    pubkey: author.publicKey,
+    kind: 10013,
+    tags: [],
+    content: await author.encryptNip44(
+      plaintext: jsonEncode(privateTags),
+      recipientPubkey: author.publicKey,
+    ),
+    createdAt: createdAt,
+  ).copyWith(sig: 'f' * 128);
+}
 
 class AcceptAll implements EventVerifier {
   @override
@@ -1166,6 +1188,77 @@ void main() {
     },
   );
 
+  group('PrivateRelaysFetcher', () {
+    NostrSigner? ownerOnly(String pubkey) =>
+        pubkey == owner.publicKey ? owner : null;
+
+    test('decrypts the relay tags of the list, each once', () async {
+      final list = await privateRelayList([
+        ['relay', 'wss://private.example.com/'],
+        ['relay', 'wss://Private.example.com'],
+        ['r', 'wss://other.example.com'],
+        ['relay', 'wss://drafts.example.com'],
+      ]);
+      final fetcher = PrivateRelaysFetcher(
+        reqs: reqs,
+        relays: [
+          await startRelay([list]),
+        ],
+        signerOf: ownerOnly,
+      );
+
+      final found = await fetcher.fetch(owner.publicKey);
+
+      expect(found?.id, list.id);
+      expect(await fetcher.relaysOf(found!), [
+        'wss://private.example.com',
+        'wss://drafts.example.com',
+      ]);
+    });
+
+    test('throws without a signer that decrypts the list', () async {
+      final list = await privateRelayList([
+        ['relay', 'wss://private.example.com'],
+      ]);
+      Future<List<RelayUrl>> relaysWith(NostrSigner? signer) =>
+          PrivateRelaysFetcher(
+            reqs: reqs,
+            signerOf: (_) => signer,
+          ).relaysOf(list);
+      final fails = throwsA(isA<PrivateRelaysDecryptionException>());
+
+      await expectLater(relaysWith(null), fails);
+      await expectLater(
+        relaysWith(Bip340Signer.readOnly(owner.publicKey)),
+        fails,
+      );
+      await expectLater(relaysWith(Bip340Signer('2' * 64)), fails);
+    });
+
+    test('reads an empty content as no relay, without a signer', () async {
+      final list = Nip01Event(
+        pubkey: owner.publicKey,
+        kind: 10013,
+        tags: [],
+        content: '',
+        createdAt: 1000,
+      ).copyWith(sig: 'f' * 128);
+
+      final relays = await PrivateRelaysFetcher(
+        reqs: reqs,
+        signerOf: (_) => null,
+      ).relaysOf(list);
+
+      expect(relays, isEmpty);
+    });
+
+    test('privateRelaysOf finds none in content not a list of tags', () {
+      expect(privateRelaysOf('not json'), isEmpty);
+      expect(privateRelaysOf('{"relay": "wss://a.example.com"}'), isEmpty);
+      expect(privateRelaysOf('[["relay"], ["relay", 1], "relay"]'), isEmpty);
+    });
+  });
+
   group('BlossomServersFetcher', () {
     Nip01Event serverList(String server, {int createdAt = 1000}) => relayList(
       [
@@ -1296,6 +1389,7 @@ void main() {
     UrlListFn listsOn(
       RelayUrl url, {
       Duration timeout = const Duration(seconds: 5),
+      NostrSigner? Function(String pubkey)? signerOf,
     }) {
       final nip65 = Nip65Fetcher(reqs: reqs, relays: [url], timeout: timeout);
       return fetcherUrlListFn(
@@ -1312,6 +1406,15 @@ void main() {
           nip65Fetcher: nip65,
           timeout: timeout,
         ),
+        privateRelays: signerOf == null
+            ? null
+            : PrivateRelaysFetcher(
+                reqs: reqs,
+                relays: [url],
+                nip65Fetcher: nip65,
+                timeout: timeout,
+                signerOf: signerOf,
+              ),
       );
     }
 
@@ -1381,7 +1484,30 @@ void main() {
       expect(unanswered, isA<UrlsUnavailable>());
     });
 
-    test('rejects private relay lists', () async {
+    test('decrypts a private relay list with its owner signer', () async {
+      final list = await privateRelayList([
+        ['relay', 'wss://private.example.com'],
+      ]);
+      final lists = listsOn(await startRelay([list]), signerOf: (_) => owner);
+
+      expect(
+        await lists(owner.publicKey, UrlListKind.private),
+        const UrlListLookup.found(['wss://private.example.com']),
+      );
+    });
+
+    test('is unavailable for a private list no signer decrypts', () async {
+      final list = await privateRelayList([
+        ['relay', 'wss://private.example.com'],
+      ]);
+      final lists = listsOn(await startRelay([list]), signerOf: (_) => null);
+
+      final lookup = await lists(owner.publicKey, UrlListKind.private);
+
+      expect((lookup as UrlListUnavailable).reason, contains('no signer'));
+    });
+
+    test('rejects private relay lists without privateRelays', () async {
       final lists = listsOn(await startRelay([]));
 
       expect(lists(alice, UrlListKind.private), throwsUnsupportedError);
@@ -1401,6 +1527,21 @@ void main() {
         ),
         throwsArgumentError,
       );
+      expect(
+        () => fetcherUrlListFn(
+          nip65: nip65,
+          dmRelays: DmRelaysFetcher(reqs: reqs, nip65Fetcher: nip65),
+          blossomServers: BlossomServersFetcher(
+            reqs: reqs,
+            nip65Fetcher: nip65,
+          ),
+          privateRelays: PrivateRelaysFetcher(
+            reqs: reqs,
+            signerOf: (_) => owner,
+          ),
+        ),
+        throwsArgumentError,
+      );
     });
   });
 
@@ -1412,6 +1553,7 @@ void main() {
       required List<RelayUrl> relays,
       ReplaceableEventCache? cache,
       LookupCheckStore? checks,
+      NostrSigner? Function(String pubkey)? signerOf,
     }) {
       final nip65 = Nip65Fetcher(
         reqs: reqs,
@@ -1434,6 +1576,15 @@ void main() {
           nip65Fetcher: nip65,
           timeout: timeout,
         ),
+        privateRelays: signerOf == null
+            ? null
+            : PrivateRelaysFetcher(
+                reqs: reqs,
+                relays: relays,
+                nip65Fetcher: nip65,
+                timeout: timeout,
+                signerOf: signerOf,
+              ),
       );
     }
 
@@ -1570,7 +1721,48 @@ void main() {
       expect(relay.reqCount, 1);
     });
 
-    test('rejects private relay lists', () async {
+    test('gives a private relay list once decrypted', () async {
+      final url = await startRelay([
+        await privateRelayList([
+          ['relay', 'wss://private.example.com'],
+        ]),
+      ]);
+      final watch = watchesOn(
+        nip65Relays: [url],
+        relays: [url],
+        signerOf: (_) => owner,
+      );
+
+      expect(await watch(owner.publicKey, UrlListKind.private).toList(), [
+        const UrlListLookup.found(['wss://private.example.com']),
+      ]);
+    });
+
+    test('is unavailable for a private list no signer decrypts', () async {
+      final url = await startRelay([
+        await privateRelayList([
+          ['relay', 'wss://private.example.com'],
+        ]),
+      ]);
+      final watch = watchesOn(
+        nip65Relays: [url],
+        relays: [url],
+        signerOf: (_) => null,
+      );
+
+      final lookups = await watch(
+        owner.publicKey,
+        UrlListKind.private,
+      ).toList();
+
+      expect(lookups, [isA<UrlListUnavailable>()]);
+      expect(
+        (lookups.single as UrlListUnavailable).reason,
+        contains('no signer'),
+      );
+    });
+
+    test('rejects private relay lists without privateRelays', () async {
       final watch = watchesOn(nip65Relays: [], relays: []);
 
       expect(watch(alice, UrlListKind.private), emitsError(isUnsupportedError));

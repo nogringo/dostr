@@ -1,6 +1,6 @@
 # dostr_fetchers
 
-Fetches the lists a Nostr account publishes about itself from the relays where NIP-65 puts them, on top of `dostr_core`: its metadata, relay list, DM relays, Blossom servers and `home-relays` list.
+Fetches the lists a Nostr account publishes about itself from the relays where NIP-65 puts them, on top of `dostr_core`: its metadata, relay list, DM relays, private relays, Blossom servers and `home-relays` list.
 
 Each fetcher asks the account's write relays as soon as its relay list arrives, and a few indexer relays meanwhile.
 It hands over every newer version as it comes, and tells a list no relay holds from one no relay answered for.
@@ -19,6 +19,7 @@ dependencies:
 | `Nip65Fetcher` | 10002, NIP-65 relay list | `writeRelaysOf`, `readRelaysOf`, `allRelaysOf` |
 | `MetadataFetcher` | 0, metadata | |
 | `DmRelaysFetcher` | 10050, NIP-17 DM relays | `dmRelaysOf` |
+| `PrivateRelaysFetcher` | 10013, NIP-37 private relays | `relaysOf`, then `privateRelaysOf` for a content decrypted elsewhere |
 | `BlossomServersFetcher` | 10063, BUD-03 Blossom servers | `blossomServersOf` |
 | `HomeRelayListFetcher` | 36205, `home-relays` list | `HomeRelayList.fromEvent` of `dostr_home_relays` |
 
@@ -98,6 +99,27 @@ Addressable events are told apart by their `dTag`.
 `MemoryLookupCheckStore` forgets everything on restart.
 To keep the checks, implement `LookupCheckStore` on your database, one check per pubkey, kind and `dTag`: `LookupCheck.toMap()` gives a JSON-compatible record.
 
+## Private relays
+
+A NIP-37 private relay list, kind 10013, holds its `relay` tags encrypted to its owner with NIP-44, so only the owner's signer reads them.
+`PrivateRelaysFetcher` fetches it from the owner's write relays like the other lists, and `relaysOf` decrypts it with the signer `signerOf` gives for the owner, such as `Accounts.getAccount` of `dostr_accounts`:
+
+```dart
+final privateRelays = PrivateRelaysFetcher(
+  reqs: reqs,
+  nip65Fetcher: nip65,
+  signerOf: accounts.getAccount,
+);
+final list = await privateRelays.fetch(pubkey);
+if (list != null) print(await privateRelays.relaysOf(list));
+```
+
+`relaysOf` puts no timeout on the signer, which may be waiting for its user.
+It throws a `PrivateRelaysDecryptionException` when the owner has no signer here that can decrypt, or the signer fails.
+
+Each call asks the signer to decrypt, which prompts the user of a remote signer such as a NIP-46 bunker.
+Wrap the signers in a `CachedNostrSigner` of [`dostr_signer`](https://pub.dev/packages/dostr_signer), and each version of a list asks once, restarts included with a persistent `DecryptionCache`.
+
 ## Resolving a `UrlSet`
 
 `fetcherUrlListFn` reads the lists of a [`dostr_url_set`](https://pub.dev/packages/dostr_url_set) `UrlSet` with these fetchers, cache and checks included:
@@ -114,7 +136,8 @@ final resolution = await resolveUrlSet(UrlSet.dm(bob), lists);
 ```
 
 `dmRelays` and `blossomServers` must find the write relays with `nip65`.
-Private relay lists (kind 10013) are not supported.
+Pass a `PrivateRelaysFetcher` as `privateRelays`, with the same `nip65`, to read `UrlSet.private` too: a list its owner has no signer here to decrypt is `unavailable`, so the set is resolved again later.
+Without it, a private relay list throws an `UnsupportedError`.
 
 `resolveUrlSet` waits for every list.
 To ask a relay as soon as a list names it, watch the set with `fetcherUrlListWatchFn`, which takes the same fetchers and gives each version of a list they find:
@@ -131,6 +154,7 @@ await for (final snapshot in watchUrlSet(UrlSet.dm(bob), watch)) {
 ```
 
 A DM list found on the indexers then comes before the NIP-65 lookup ends.
+Each version of a private relay list comes once decrypted.
 
 ## Fetching any filter
 

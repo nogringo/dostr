@@ -25,7 +25,7 @@ Start here.
 
 #### [🔗 Fetchers](./packages/fetchers/)
 
-`dostr_fetchers`: an account's metadata, relay list, DM relays and Blossom servers, fetched from its write relays on top of `dostr_core`, and any filter fetched from the relays a `UrlSet` resolves to.
+`dostr_fetchers`: an account's metadata, relay list, DM relays, private relays and Blossom servers, fetched from its write relays on top of `dostr_core`, and any filter fetched from the relays a `UrlSet` resolves to.
 
 #### [🔗 URL sets](./packages/url_set/)
 

@@ -1,3 +1,8 @@
+## 0.1.1
+
+ - `PrivateRelaysFetcher` fetches NIP-37 private relay lists, kind 10013, from their owner's write relays, and its `relaysOf` decrypts one with the signer `signerOf` gives for its owner. `privateRelaysOf` reads the relays of a decrypted content.
+ - `fetcherUrlListFn` and `fetcherUrlListWatchFn` take an optional `privateRelays` to read `UrlSet.private`: a list its owner has no signer here to decrypt is unavailable. Without it, a private relay list still throws an `UnsupportedError`.
+
 ## 0.1.0
 
  - Initial release.
