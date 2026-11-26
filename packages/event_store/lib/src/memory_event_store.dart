@@ -6,12 +6,13 @@ import 'event_store.dart';
 
 /// An [EventStore] that lives as long as the process, without NIP-50 search.
 ///
-/// A filter with `ids`, `authors` or `kinds` reads only the events it can
-/// match, through an index.
+/// It indexes the events by id, author, kind and single-letter tag, so a
+/// filter reads only the events its most selective condition can match.
 class MemoryEventStore implements EventStore {
   final Map<String, Nip01Event> _events = {};
   final Map<String, Set<String>> _idsByAuthor = {};
   final Map<int, Set<String>> _idsByKind = {};
+  final Map<(String, String), Set<String>> _idsByTag = {};
   final Map<String, String> _versionAt = {};
   final Map<String, Set<String>> _deletionsOfId = {};
   final Map<String, Set<String>> _deletionsOfAddress = {};
@@ -51,6 +52,7 @@ class MemoryEventStore implements EventStore {
     _events.clear();
     _idsByAuthor.clear();
     _idsByKind.clear();
+    _idsByTag.clear();
     _versionAt.clear();
     _deletionsOfId.clear();
     _deletionsOfAddress.clear();
@@ -118,6 +120,9 @@ class MemoryEventStore implements EventStore {
     _events[event.id] = event;
     (_idsByAuthor[event.pubkey] ??= {}).add(event.id);
     (_idsByKind[event.kind] ??= {}).add(event.id);
+    for (final tag in _indexedTags(event)) {
+      (_idsByTag[tag] ??= {}).add(event.id);
+    }
     if (address != null) _versionAt[address] = event.id;
   }
 
@@ -125,6 +130,9 @@ class MemoryEventStore implements EventStore {
     if (_events.remove(event.id) == null) return;
     _removeFrom(_idsByAuthor, event.pubkey, event.id);
     _removeFrom(_idsByKind, event.kind, event.id);
+    for (final tag in _indexedTags(event)) {
+      _removeFrom(_idsByTag, tag, event.id);
+    }
     final address = addressOf(event);
     if (address != null && _versionAt[address] == event.id) {
       _versionAt.remove(address);
@@ -178,17 +186,33 @@ class MemoryEventStore implements EventStore {
   }
 
   Iterable<String> _candidates(Filter filter) {
-    if (filter.ids case final ids?) {
-      return ids.toSet().where(_events.containsKey);
-    }
-    if (filter.authors case final authors?) {
-      return authors.toSet().expand(
-        (author) => _idsByAuthor[author] ?? const <String>{},
-      );
-    }
-    if (filter.kinds case final kinds?) {
-      return kinds.toSet().expand((kind) => _idsByKind[kind] ?? const {});
-    }
-    return _events.keys;
+    final conditions = <List<Set<String>>>[
+      if (filter.ids case final ids?) [ids.where(_events.containsKey).toSet()],
+      if (filter.authors case final authors?)
+        [for (final author in authors) ?_idsByAuthor[author]],
+      if (filter.kinds case final kinds?)
+        [for (final kind in kinds) ?_idsByKind[kind]],
+      if (filter.tags case final tags?)
+        for (final MapEntry(key: name, value: values) in tags.entries)
+          if (_isIndexedTag(name))
+            [for (final value in values) ?_idsByTag[(name, value)]],
+    ];
+    if (conditions.isEmpty) return _events.keys;
+    final smallest = conditions.reduce(
+      (a, b) => _countOf(a) <= _countOf(b) ? a : b,
+    );
+    return {for (final ids in smallest) ...ids};
   }
+
+  static int _countOf(List<Set<String>> buckets) =>
+      buckets.fold(0, (count, ids) => count + ids.length);
+
+  // NIP-01 has relays index the single-letter tags only.
+  static bool _isIndexedTag(String name) => name.length == 1;
+
+  static Iterable<(String, String)> _indexedTags(Nip01Event event) => [
+    for (final tag in event.tags)
+      if (tag case [final name, final value, ...] when _isIndexedTag(name))
+        (name, value),
+  ];
 }

@@ -50,7 +50,7 @@ These rules read the time from `clock.now()` of [`package:clock`](https://pub.de
 
 ## MemoryEventStore
 
-`MemoryEventStore` indexes the events by id, author and kind, so a filter with `ids`, `authors` or `kinds` reads only the events it can match.
+`MemoryEventStore` indexes the events by id, author, kind and single-letter tag, as relays do, so a filter reads only the events its most selective condition can match.
 It drops an expired event when a query meets it.
 It has no NIP-50 search: a filter with `search` matches nothing.
 

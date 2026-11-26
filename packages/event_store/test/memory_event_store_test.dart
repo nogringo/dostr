@@ -17,4 +17,32 @@ void main() {
 
     expect(await store.query([Filter(search: 'hello')]), isEmpty);
   });
+
+  test(
+    'MemoryEventStore matches a tag of several letters, without an index',
+    () async {
+      final store = MemoryEventStore();
+      final note = Nip01Event(
+        pubkey: 'a' * 64,
+        kind: 1,
+        tags: [
+          ['alt', 'a note'],
+        ],
+        content: '',
+        createdAt: 1,
+      );
+      await store.add(note);
+
+      expect(
+        await store.query([
+          Filter(
+            tags: {
+              'alt': ['a note'],
+            },
+          ),
+        ]),
+        [note],
+      );
+    },
+  );
 }

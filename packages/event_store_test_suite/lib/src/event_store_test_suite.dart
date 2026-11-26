@@ -232,6 +232,29 @@ void runEventStoreTestSuite({
         );
       });
 
+      test('gives an event that matches several values once', () async {
+        final reply = event(
+          tags: [
+            ['p', _bob],
+            ['p', _carol],
+          ],
+        );
+        final older = event(
+          createdAt: 999,
+          tags: [
+            ['p', _bob],
+          ],
+        );
+        await addEach([reply, older]);
+
+        expect(
+          await idsOf([
+            Filter(pTags: [_bob, _carol], limit: 2),
+          ]),
+          [reply.id, older.id],
+        );
+      });
+
       test('bounds created_at with since and until, both included', () async {
         final notes = [
           for (final createdAt in [10, 20, 30, 40]) event(createdAt: createdAt),
@@ -353,6 +376,37 @@ void runEventStoreTestSuite({
         expect(await store.add(lower), EventAddOutcome.stored);
         expect(await store.add(higher), EventAddOutcome.outdated);
         expect(await allIds(), [lower.id]);
+      });
+
+      test('a replaced version no longer matches its tags', () async {
+        final older = event(
+          kind: 0,
+          createdAt: 1000,
+          tags: [
+            ['p', _bob],
+          ],
+        );
+        final newer = event(
+          kind: 0,
+          createdAt: 1001,
+          tags: [
+            ['p', _carol],
+          ],
+        );
+        await addEach([older, newer]);
+
+        expect(
+          await idsOf([
+            Filter(pTags: [_bob]),
+          ]),
+          isEmpty,
+        );
+        expect(
+          await idsOf([
+            Filter(pTags: [_carol]),
+          ]),
+          [newer.id],
+        );
       });
 
       test('kinds 3 and 10000 to 19999 are replaceable too', () async {
@@ -654,6 +708,19 @@ void runEventStoreTestSuite({
         expect(await at(1499, allIds), [note.id]);
         expect(await at(1500, allIds), isEmpty);
         expect(await at(1500, () => store.remove([Filter()])), 0);
+      });
+
+      test('an expired event takes no place in a limit', () async {
+        final older = event(createdAt: 1000);
+        final newer = event(
+          createdAt: 1001,
+          tags: [
+            ['expiration', '1500'],
+          ],
+        );
+        await at(1000, () => addEach([older, newer]));
+
+        expect(await at(1500, () => idsOf([Filter(limit: 1)])), [older.id]);
       });
 
       test('keeps an event whose expiration is not a number', () async {
