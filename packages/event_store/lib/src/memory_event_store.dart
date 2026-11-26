@@ -25,6 +25,13 @@ class MemoryEventStore implements EventStore {
   }
 
   @override
+  Future<List<EventAddOutcome>> addAll(List<Nip01Event> events) async {
+    _checkOpen();
+    final now = nowInSeconds(clock.now());
+    return [for (final event in events) _add(event, now)];
+  }
+
+  @override
   Future<List<Nip01Event>> query(List<Filter> filters) async {
     _checkOpen();
     return _query(filters, nowInSeconds(clock.now()));

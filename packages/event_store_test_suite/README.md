@@ -36,6 +36,7 @@ It does not test NIP-50 search, which each store reads its own way.
 | Group | What it verifies |
 |-------|-----------------|
 | **add** | Gives back an event as it was added, tags, content and sig included; tells a duplicate; does not store an ephemeral event |
+| **addAll** | Tells what it did with each event of a batch, in their order, as `add` one after the other; a deletion request applies to the events before and after it in the batch; no events give no outcomes |
 | **query** | Matches `ids`, `authors`, `kinds` and tag filters; bounds `created_at` with `since` and `until`, both included; gives the matches of every filter once, newest first, and the lower id first at the same `created_at`; keeps the newest `limit` matches of each filter; an empty filter matches every event, and no filter, an empty list or a `limit` of 0 match nothing |
 | **NIP-01 replaceable events** | A newer version replaces the older one and an older one is outdated, the lower id wins at the same `created_at`, for kinds 0, 3 and 10000 to 19999, and per `d` tag for addressable kinds, where a missing `d` tag reads as an empty one; each author has its own version; regular events are all kept |
 | **NIP-09 deletion requests** | Remove the events their `e` tags name, of their author only, and refuse them afterwards, even those that come later; remove the versions of an address of their author up to their `created_at`, and refuse those versions; do not delete another deletion request; once removed, let the events they named in again |

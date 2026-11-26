@@ -51,6 +51,13 @@ abstract interface class EventStore {
   /// Adds [event] by the rules above, and tells what it did.
   Future<EventAddOutcome> add(Nip01Event event);
 
+  /// Adds [events] in their order, as [add] one after the other, and tells
+  /// what it did with each, in the same order.
+  ///
+  /// It adds a batch, such as the events a REQ brought: a store on a database
+  /// can write them in one transaction.
+  Future<List<EventAddOutcome>> addAll(List<Nip01Event> events);
+
   /// The stored events that match at least one of [filters], newest first,
   /// and the lower id first at the same `created_at`, as NIP-01 orders them.
   ///

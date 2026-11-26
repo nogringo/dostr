@@ -12,7 +12,8 @@ final _sig = 'e' * 128;
 
 /// Runs the contract every [EventStore] must keep against one
 /// implementation: the NIP-01, NIP-09, NIP-59 and NIP-40 rules that
-/// [EventStore] lists, the order and limits of [EventStore.query], what
+/// [EventStore] lists, the batches of [EventStore.addAll], the order and
+/// limits of [EventStore.query], what
 /// [EventStore.remove] removes, and the [StateError] once it is closed.
 ///
 /// [createStore] returns an empty store for each test, which the suite closes
@@ -114,6 +115,43 @@ void runEventStoreTestSuite({
       test('does not store an ephemeral event', () async {
         expect(await store.add(event(kind: 20001)), EventAddOutcome.ephemeral);
         expect(await allIds(), isEmpty);
+      });
+    });
+
+    group('addAll', () {
+      test('tells what it did with each event, in their order', () async {
+        final note = event();
+        final older = event(kind: 0, createdAt: 1000);
+        final newer = event(kind: 0, createdAt: 1001);
+
+        expect(
+          await store.addAll([note, newer, note, older, event(kind: 20001)]),
+          [
+            EventAddOutcome.stored,
+            EventAddOutcome.stored,
+            EventAddOutcome.duplicate,
+            EventAddOutcome.outdated,
+            EventAddOutcome.ephemeral,
+          ],
+        );
+        expect(await allIds(), [newer.id, note.id]);
+      });
+
+      test('applies a deletion to the events before and after it', () async {
+        final before = event(content: 'before');
+        final after = event(content: 'after');
+        final request = deletion(ids: [before.id, after.id]);
+
+        expect(await store.addAll([before, request, after]), [
+          EventAddOutcome.stored,
+          EventAddOutcome.stored,
+          EventAddOutcome.deleted,
+        ]);
+        expect(await allIds(), [request.id]);
+      });
+
+      test('tells nothing for no events', () async {
+        expect(await store.addAll([]), isEmpty);
       });
     });
 
@@ -706,6 +744,7 @@ void runEventStoreTestSuite({
         await store.close();
 
         await expectLater(() => store.add(event()), throwsStateError);
+        await expectLater(() => store.addAll([event()]), throwsStateError);
         await expectLater(() => store.query([Filter()]), throwsStateError);
         await expectLater(() => store.remove([Filter()]), throwsStateError);
       });
